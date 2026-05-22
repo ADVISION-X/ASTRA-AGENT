@@ -66,11 +66,5 @@ export {
   listFacebookProductVideoMiningSavedRecords,
   createFacebookProductVideoMiningStorage,
   FacebookProductVideoMiningSchemas,
-  runFacebookProductVideoMiningMission,
 };
-export type {
-  FacebookProductVideoMiningContracts,
-  FacebookProductVideoMiningContext,
-  FacebookProductVideoMiningMissionInput,
-  FacebookProductVideoMiningRunStatus,
-};
+export type { FacebookProductVideoMiningContracts };

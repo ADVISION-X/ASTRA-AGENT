@@ -39,7 +39,7 @@ const resolveCapabilityRoot = (repoPath: string): string | undefined => {
   return segments.length >= 3 ? `${segments[0]}/${segments[1]}/${segments[2]}` : undefined;
 };
 
-const pushCapabilityImportFindings = (
+const pushCapabilityPluginImportFindings = (
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   repoPath: string,
   facadeLawId: string,
@@ -62,7 +62,14 @@ const pushCapabilityImportFindings = (
       message: `${repoPath} imports plugin-owned code ${targetPath}.`,
     });
   }
+};
 
+const pushCapabilityCrossOwnerImportFindings = (
+  sourceFile: Parameters<typeof getRepoSourcePath>[0],
+  repoPath: string,
+  facadeLawId: string,
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
+): void => {
   const sourceCapabilityRoot = resolveCapabilityRoot(repoPath);
   if (!sourceCapabilityRoot) {
     return;
@@ -109,7 +116,8 @@ const inspectCapabilityFile = (
     return;
   }
   registerCapabilityRoot(capabilityRoots, repoPath);
-  pushCapabilityImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
+  pushCapabilityPluginImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
+  pushCapabilityCrossOwnerImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
   if (!/^src\/capabilities\/[^/]+\/index\.ts$/u.test(repoPath)) {
     return;
   }

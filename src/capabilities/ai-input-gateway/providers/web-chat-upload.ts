@@ -3,7 +3,6 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { AiFeedInput } from "../schema.js";
 import type { UploadableAiFeedInputRef } from "../runtime/ai-feed-input-package.js";
 import {
-  chooseFileInNativeDialog,
   clickDesktopPoint,
   copyFileObjectToMacClipboard,
   pasteMacClipboardIntoChrome,
@@ -63,13 +62,11 @@ const clickUploadMenuItemAfterPlus = async (
 const uploadFileViaProviderMenu = async (
   browser: BrowserController,
   context: AiProviderAdapterContext,
-  filePath: string,
 ): Promise<void> => {
   await pressEscapeInChrome(context.abortSignal).catch(() => undefined);
   await browser.wait(300);
   const target = await clickUploadMenuPoint(browser, context);
   if (target === "composer-plus") await clickUploadMenuItemAfterPlus(browser, context);
-  await chooseFileInNativeDialog(filePath, context.abortSignal);
 };
 
 const listUploadableRefs = (request: AiFeedInput): UploadableAiFeedInputRef[] =>
@@ -84,35 +81,60 @@ const listUploadableRefs = (request: AiFeedInput): UploadableAiFeedInputRef[] =>
       : []
   ));
 
+const waitForRefUploadComplete = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  ref: UploadableAiFeedInputRef;
+}): Promise<void> => {
+  await waitForUploadComplete(input.browser, input.context, input.ref.filePath, input.request.timeoutMs);
+};
+
+const uploadLocatedFileInput = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  ref: UploadableAiFeedInputRef;
+}): Promise<void> => {
+  const selector = assertUploadTarget(await waitForUploadTarget(input.browser, input.context, input.request.timeoutMs));
+  const uploaded = await input.browser.setFileInputFiles({
+    elementRef: { selector, targetKind: "file-input" },
+    filePath: input.ref.filePath,
+    description: `upload governed input file ${input.ref.id} to provider web chat`,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  if (!uploaded.ok) {
+    throw new Error(`failed: ${uploaded.message}`);
+  }
+  await waitForRefUploadComplete(input);
+};
+
+const tryClipboardUpload = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  ref: UploadableAiFeedInputRef;
+}): Promise<void> => {
+  await uploadFileViaClipboardPaste(input.browser, input.context, input.ref.filePath);
+  await waitForRefUploadComplete(input);
+};
+
 const uploadSingleFile = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
 }): Promise<void> => {
-  const waitForCurrentFile = () =>
-    waitForUploadComplete(input.browser, input.context, input.ref.filePath, input.request.timeoutMs);
   try {
-    await uploadFileViaClipboardPaste(input.browser, input.context, input.ref.filePath);
-    await waitForCurrentFile();
+    await tryClipboardUpload(input);
     return;
   } catch {
     try {
-      await uploadFileViaProviderMenu(input.browser, input.context, input.ref.filePath);
-      await waitForCurrentFile();
+      await uploadLocatedFileInput(input);
       return;
     } catch {
-      const selector = assertUploadTarget(await waitForUploadTarget(input.browser, input.context, input.request.timeoutMs));
-      const uploaded = await input.browser.setFileInputFiles({
-        elementRef: { selector, targetKind: "file-input" },
-        filePath: input.ref.filePath,
-        description: `upload governed input file ${input.ref.id} to provider web chat`,
-        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-      });
-      if (!uploaded.ok) {
-        throw new Error(`failed: ${uploaded.message}`);
-      }
-      await waitForCurrentFile();
+      await uploadFileViaProviderMenu(input.browser, input.context);
+      await uploadLocatedFileInput(input);
     }
   }
 };

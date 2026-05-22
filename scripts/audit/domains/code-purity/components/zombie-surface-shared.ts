@@ -19,6 +19,17 @@ const ownerInspectorPathPattern = /^scripts\/audit\/domains\/[^/]+\/inspector\.t
 const packageScriptEntrypointPattern = /(?:src|scripts)\/[A-Za-z0-9._/-]+\.(?:ts|tsx|js|jsx|mjs)/gu;
 const relativeModulePattern = /^\.{1,2}\//u;
 const candidateSuffixes = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx", "/index.js", "/index.jsx", "/index.mjs"];
+const lawfulPublicBoundaryFilePatterns = [
+  /^src\/plugins\/[^/]+\/index\.ts$/u,
+  /^src\/capabilities\/[^/]+\/index\.ts$/u,
+  /^src\/lib\/[^/]+\/index\.ts$/u,
+  /^src\/types\/.*\.ts$/u,
+  /^scripts\/audit\/shared\/.*contracts\.ts$/u,
+] as const;
+
+const lawfulExportAllowlist = new Map<string, ReadonlySet<string>>([
+  ["src/capabilities/dom-automation/runtime/dom-locator.ts", new Set(["locateDomElementResultOnce"])],
+]);
 
 export const pushZombieFinding = (
   collector: InventoryFindingCollector,
@@ -174,5 +185,15 @@ export const buildZombieGraph = (governedFiles: readonly GovernedFile[]): Zombie
   };
 };
 
+const isLawfulPublicBoundaryFile = (governedFile: GovernedFile): boolean =>
+  governedFile.role === "type-contract"
+  || lawfulPublicBoundaryFilePatterns.some((pattern) => pattern.test(governedFile.repoPath));
+
+export const isLawfulZombieExport = (governedFile: GovernedFile, exportName: string): boolean =>
+  isLawfulPublicBoundaryFile(governedFile)
+  || (lawfulExportAllowlist.get(governedFile.repoPath)?.has(exportName) ?? false);
+
 export const isLawfulZombieEntrypoint = (governedFile: GovernedFile, graph: ZombieGraph): boolean =>
-  graph.packageEntrypoints.has(governedFile.repoPath) || ownerInspectorPathPattern.test(governedFile.repoPath);
+  graph.packageEntrypoints.has(governedFile.repoPath)
+  || ownerInspectorPathPattern.test(governedFile.repoPath)
+  || isLawfulPublicBoundaryFile(governedFile);

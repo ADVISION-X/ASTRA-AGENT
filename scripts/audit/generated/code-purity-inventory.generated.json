@@ -1,155 +1,15 @@
 {
-  "generatedAt": "2026-05-22T12:43:50.426Z",
-  "itemCount": 187,
+  "generatedAt": "2026-05-22T12:55:42.276Z",
+  "itemCount": 68,
   "items": [
     {
-      "checkId": "code-purity/file-budget-hard-limit",
-      "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:architecture-boundary",
-      "reason": "audit owner inspector has 408 lines and exceeds hard limit 320.",
-      "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "audit:facebook-product-video-mining",
+      "reason": "Top-level variable hasNamedExport has no live identifier usage in the file.",
+      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
       "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:architecture-boundary",
-      "reason": "Function near line 66 breaks function budget: physical line count 58 exceeds hard limit 40; cyclomatic complexity 11 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:architecture-boundary",
-      "reason": "Function near line 125 breaks function budget: physical line count 46 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:audit-system",
-      "reason": "Function near line 133 breaks function budget: physical line count 41 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:capability-group-governance",
-      "reason": "Function near line 42 breaks function budget: physical line count 51 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/generated-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export auditConflictSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/generated-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export enforcementMatrixRowSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/generated-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export staticClauseCoverageEntrySchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/inspector-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export inspectorFindingSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/inspector-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export AuditPlanEntry has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/law-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export lawSourceSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/law-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export LawMetadata has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/manifest-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export manifestSourceSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/manifest-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export BlueprintRef has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/manifest-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export AuditManifest has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -214,200 +74,20 @@
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayAbilityGroupId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedResult has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayChildCapabilityId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayProviderKind has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-input.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-input.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedInputRef has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-input.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayProviderKind has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-input.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedProviderProof has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedResult has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedStatus has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/ai-input-gateway/contracts/ai-feed-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AI_INPUT_GATEWAY_ABILITY_GROUP_ID has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedInputSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiFeedResultSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayChildCapabilityId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayProviderKind has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export AiInputGatewayExecutionContext has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
       "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "capability:ai-input-gateway",
       "reason": "Export StableAnswerState has no active importer or namespace consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "ability-group",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "capability:ai-input-gateway",
+      "reason": "Export chooseFileInNativeDialog has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "ability-group",
       "verificationCommand": "npm run ci:full"
@@ -433,276 +113,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomActionResultContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export FillDomElementContractInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export ClickDomElementContractInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export UploadApprovedFileContractInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomActionEvidenceContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomElementRefContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export LocateDomElementContractInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomElementRefEvidenceContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomReviewRequiredStatus has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomReviewRequiredActionContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomReviewRequiredVerificationContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomSnapshotContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export ReadDomSnapshotContractInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomSnapshotEvidenceContract has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export scrollToElementOnce has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export selectOptionOnce has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export dismissOverlayOnce has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DomLocatorCandidate has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "child-ability",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export locateDomElementResultOnce has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "child-ability",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/dom-automation/schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:dom-automation",
-      "reason": "Export DOM_AUTOMATION_ABILITY_GROUP_ID has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/forensics-persistence/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:forensics-persistence",
-      "reason": "Export FORENSICS_PERSISTENCE_ABILITY_GROUP_ID has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/forensics-persistence/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:forensics-persistence",
-      "reason": "Export ForensicsPersistenceAbilityGroupId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/forensics-persistence/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:forensics-persistence",
-      "reason": "Export ForensicsPersistenceAbilityResult has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/zombie-top-level-declaration",
       "filePath": "src/capabilities/forensics-persistence/schema.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
@@ -720,76 +130,6 @@
       "reason": "Top-level type alias ForensicsArtifactType has no live identifier usage in the file.",
       "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
       "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadAbilityGroupId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadAbilityInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadChildCapabilityId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadResult has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadExecutionContext has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadArtifact has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadAbilityInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -924,16 +264,6 @@
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/video-download/schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:video-download",
-      "reason": "Export VideoDownloadArtifactDisposition has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
       "filePath": "src/lib/browser/browser-controller.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "browser",
@@ -984,96 +314,6 @@
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export GrassEyeWorkbench has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export GrassEyeWorkbenchHandle has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export GrassEyeWorkbenchOptions has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export GrassEyePlatformTarget has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export RequestedPlatformId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export getDefaultLocalDataDir has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export getDefaultPhase04LocalDataDir has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export createId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
       "filePath": "src/lib/local-runtime/runtime-resource-usage.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "local-runtime",
@@ -1094,47 +334,27 @@
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/settings.ts",
+      "filePath": "src/lib/local-runtime/settings-types.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "local-runtime",
-      "reason": "Export loadUserRequirementHistory has no active importer or namespace consumer.",
+      "reason": "Export UserRequirementHistoryPlatformId has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "app-shell",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/settings.ts",
+      "filePath": "src/lib/local-runtime/settings-types.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "local-runtime",
-      "reason": "Export upsertUserRequirementHistory has no active importer or namespace consumer.",
+      "reason": "Export UserRequirementHistoryEntry has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "app-shell",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/settings.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export deleteUserRequirementHistory has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/settings.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export markUserRequirementHistoryReused has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/settings.ts",
+      "filePath": "src/lib/local-runtime/settings-types.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "local-runtime",
       "reason": "Export UserRequirementHistoryUpsertInput has no active importer or namespace consumer.",
@@ -1179,56 +399,6 @@
       "owner": "lib",
       "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
       "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "infrastructure",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/online-ai/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "online-ai",
-      "reason": "Export LOCKED_GEMINI_MODEL has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "infrastructure",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/online-ai/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "online-ai",
-      "reason": "Export toPublicOnlineAiProviderStatus has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "infrastructure",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/online-ai/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "online-ai",
-      "reason": "Export OnlineAiProviderConfig has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "infrastructure",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/online-ai/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "online-ai",
-      "reason": "Export GeminiGenerateInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "infrastructure",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/online-ai/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "online-ai",
-      "reason": "Export GeminiGenerateResult has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "infrastructure",
       "verificationCommand": "npm run ci:full"
     },
@@ -1393,56 +563,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.errors.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookProductVideoMiningFailureCode has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.errors.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookProductVideoMiningError has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.errors.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export isFacebookReviewRequiredError has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.errors.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export errorMessageOf has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.errors.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Active file has no lawful inbound reference and is not a declared entry surface.",
-      "remediation": "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/zombie-top-level-declaration",
       "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
@@ -1454,62 +574,22 @@
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookNotInterestedActionResult has no active importer or namespace consumer.",
+      "reason": "Export buildSafeZoneNavigateToNextVideoScript has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export createFacebookMiningMissionId has no active importer or namespace consumer.",
+      "reason": "Export FacebookNotInterestedActionResult has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export createFacebookMiningRunId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export createFacebookMiningRoundId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export finalizeRoundState has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export buildRunStatusFromStorage has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
+      "role": "job-step",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -1553,136 +633,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/named-export-budget",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Named export count 12 exceeds hard limit 10.",
-      "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export runFacebookProductVideoMiningMission has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookProductVideoMiningContracts has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookProductVideoMiningContext has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookProductVideoMiningMissionInput has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Export FacebookProductVideoMiningRunStatus has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/dom-automation.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export DomTargetKind has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/dom-automation.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export DomElementSummary has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/evidence.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export EvidenceKindSchema has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/evidence.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export EvidenceKind has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/evidence.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export EvidenceRef has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/evidence.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export ImageEvidence has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/types/evidence.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Export OcrTextResult has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/zombie-top-level-declaration",
       "filePath": "src/types/local-browser-session.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
@@ -1717,7 +667,7 @@
       "filePath": "src/types/structured-log.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "types",
-      "reason": "Top-level variable LiveProofLogSequence has no live identifier usage in the file.",
+      "reason": "Top-level variable StructuredLogRefSchema has no live identifier usage in the file.",
       "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
       "role": "type-contract",
       "verificationCommand": "npm run ci:full"
@@ -1727,147 +677,7 @@
       "filePath": "src/types/structured-log.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "types",
-      "reason": "Top-level variable LiveProofLogSequenceSchema has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredLogStatus has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredRuntimeLogLevel has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredRuntimeEventType has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredActionType has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredActionPurpose has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredLogRef has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredRuntimeMissingFrame has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredAiImageInput has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredRuntimeResourceSummary has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredRuntimeSnapshotSummary has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredJointStage has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredJointCheckpointStatus has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredFailureSnapshot has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "type-contract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/types/structured-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "types",
-      "reason": "Top-level type alias StructuredJointCheckpoint has no live identifier usage in the file.",
+      "reason": "Top-level variable StructuredRuntimeMissingFrameSchema has no live identifier usage in the file.",
       "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
       "role": "type-contract",
       "verificationCommand": "npm run ci:full"

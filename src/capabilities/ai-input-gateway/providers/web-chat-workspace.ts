@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { runAppleScript } from "../../../lib/browser/current-chrome-window-control.js";
+import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
 const FACEBOOK_WORKSPACE_ID = "facebook";
@@ -78,7 +79,31 @@ tell application "Google Chrome"
   return "not_found"
 end tell
 `, input.abortSignal ? { signal: input.abortSignal } : undefined);
-  return result.trim() === "focused";
+  return result.trim().startsWith("focused");
+};
+
+export const ensureProviderWorkspaceFocused = async (input: {
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  providerUrl: string;
+}): Promise<void> => {
+  const workspaceId = resolveWebChatWorkspaceId(input.request);
+  if (!workspaceId) return;
+  const savedUrl = readSavedWorkspaceUrl({
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId,
+  });
+  const focused = await focusExistingWorkspaceTab({
+    providerHost: new URL(input.providerUrl).host,
+    workspaceId,
+    savedUrl,
+    allowAnyProviderTab: savedUrl === null,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  if (!focused) {
+    throw new Error("review_required: provider workspace tab was not focused before web-chat action.");
+  }
 };
 
 export const focusExistingSourceTab = async (input: {

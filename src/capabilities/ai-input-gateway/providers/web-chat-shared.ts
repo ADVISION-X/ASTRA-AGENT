@@ -16,6 +16,7 @@ import {
   requireBrowser,
   restoreSourcePage,
 } from "./web-chat-shared-support.js";
+import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
 const STABLE_ROUNDS_REQUIRED = 3;
@@ -42,8 +43,14 @@ const extractWebChatConversation = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
+  providerUrl: string;
   previousAnswerText: string | null;
 }): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
+  await ensureProviderWorkspaceFocused({
+    request: input.request,
+    context: input.context,
+    providerUrl: input.providerUrl,
+  });
   const extracted = await waitForStableAnswer({
     browser: input.browser,
     context: input.context,
@@ -58,6 +65,23 @@ const extractWebChatConversation = async (input: {
   };
 };
 
+const readPreSubmitConversationState = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+}): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
+  const beforeSubmit = await waitForStableAnswer({
+    browser: input.browser,
+    context: input.context,
+    timeoutMs: 1_000,
+    pollIntervalMs: 250,
+    stableRoundsRequired: 1,
+  });
+  return {
+    previousAssistantCount: beforeSubmit.assistantCount ?? 0,
+    previousAnswerText: beforeSubmit.answerText?.trim() ?? null,
+  };
+};
+
 const executeWebChatConversation = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
@@ -66,28 +90,27 @@ const executeWebChatConversation = async (input: {
   runtimeName: string;
   sourcePageUrlBeforeFeed: string | null;
 }): Promise<AiProviderRawResponse> => {
+  await ensureProviderWorkspaceFocused(input);
   await setFileInputFilesFlow(input.browser, input.request, input.context);
-  const beforeSubmit = await waitForStableAnswer({
+  await ensureProviderWorkspaceFocused(input);
+  const preSubmit = await readPreSubmitConversationState({
     browser: input.browser,
     context: input.context,
-    timeoutMs: 1_000,
-    pollIntervalMs: 250,
-    stableRoundsRequired: 1,
   });
-  const previousAssistantCount = beforeSubmit.assistantCount ?? 0;
-  const previousAnswerText = beforeSubmit.answerText?.trim() ?? null;
+  await ensureProviderWorkspaceFocused(input);
   await submitWebChatPrompt({
     browser: input.browser,
     request: input.request,
     context: input.context,
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
-    previousAssistantCount,
+    previousAssistantCount: preSubmit.previousAssistantCount,
   });
   const conversation = await extractWebChatConversation({
     browser: input.browser,
     request: input.request,
     context: input.context,
-    previousAnswerText,
+    providerUrl: input.providerUrl,
+    previousAnswerText: preSubmit.previousAnswerText,
   });
   return buildWebChatRawResponse({
     request: input.request,

@@ -95,34 +95,36 @@ const inspectWorkbenchSurface = (
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  const taskExports = getRequiredSourceFile(context, "src/plugins/local-workbench-plugin-tasks.ts");
+  const pluginIndex = getRequiredSourceFile(context, "src/plugins/facebook-product-video-mining/index.ts");
   const workbenchHandle = getRequiredSourceFile(context, "src/lib/local-runtime/workbench.ts");
   const appServer = getRequiredSourceFile(context, "src/app/workbench-facebook-routes.ts");
 
-  trackSourceFile(inspectedFiles, taskExports);
+  trackSourceFile(inspectedFiles, pluginIndex);
   trackSourceFile(inspectedFiles, workbenchHandle);
   trackSourceFile(inspectedFiles, appServer);
-  inspectTaskExports(findings, lawId, taskExports);
+  inspectPluginFacade(findings, lawId, pluginIndex);
   inspectWorkbenchHandleSurface(findings, lawId, workbenchHandle);
   inspectAppShellRoutes(findings, lawId, appServer);
 };
 
-const inspectTaskExports = (
+const inspectPluginFacade = (
   findings: InspectorFinding[],
   lawId: string,
-  taskExports: SourceFile | undefined,
+  pluginIndex: SourceFile | undefined,
 ): void => {
-  if (taskExports
-    && hasNamedExport(taskExports, "./facebook-product-video-mining/index.js", "startFacebookProductVideoMiningMission")
-    && hasNamedExport(taskExports, "./facebook-product-video-mining/index.js", "getFacebookProductVideoMiningRunStatus")
-    && hasNamedExport(taskExports, "./facebook-product-video-mining/index.js", "getLatestFacebookProductVideoMiningRun")) {
+  if (pluginIndex
+    && hasIdentifier(pluginIndex, "startFacebookProductVideoMiningMission")
+    && hasIdentifier(pluginIndex, "getFacebookProductVideoMiningRunStatus")
+    && hasIdentifier(pluginIndex, "getLatestFacebookProductVideoMiningRun")
+    && hasIdentifier(pluginIndex, "listFacebookProductVideoMiningSavedRecords")
+    && hasIdentifier(pluginIndex, "exportFacebookProductVideoMiningSelectionRecords")) {
     return;
   }
   findings.push(createFinding({
-    checkId: "facebook-mining/local-workbench-export",
+    checkId: "facebook-mining/plugin-public-surface",
     lawId,
-    filePath: "src/plugins/local-workbench-plugin-tasks.ts",
-    message: "Local workbench plugin tasks must re-export Facebook mining start/run/latest public surfaces.",
+    filePath: "src/plugins/facebook-product-video-mining/index.ts",
+    message: "Facebook mining plugin index must expose start/run/latest and records public surfaces.",
   }));
 };
 

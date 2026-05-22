@@ -1,6 +1,11 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
-import { isLawfulZombieEntrypoint, pushZombieFinding, type ZombieGraph } from "./zombie-surface-shared.js";
+import {
+  isLawfulZombieEntrypoint,
+  isLawfulZombieExport,
+  pushZombieFinding,
+  type ZombieGraph,
+} from "./zombie-surface-shared.js";
 
 const scanZombieFiles = (
   collector: InventoryFindingCollector,
@@ -36,6 +41,9 @@ const scanZombieExports = (
     }
     const importedNames = graph.importedNamesByFile.get(governedFile.repoPath) ?? new Set<string>();
     for (const [exportName] of governedFile.sourceFile.getExportedDeclarations()) {
+      if (isLawfulZombieExport(governedFile, exportName)) {
+        continue;
+      }
       if (importedNames.has(exportName)) {
         continue;
       }

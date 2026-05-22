@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T12:43:50.475Z",
+  "generatedAt": "2026-05-22T12:55:42.326Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,16 +9,8 @@
     "APEX-FACEBOOK-MINING-004-V1",
     "APEX-FACEBOOK-MINING-005-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "facebook-mining/local-workbench-export",
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "primary",
-      "message": "Local workbench plugin tasks must re-export Facebook mining start/run/latest public surfaces.",
-      "filePath": "src/plugins/local-workbench-plugin-tasks.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "package.json",
     "scripts/acceptance/facebook-live-dom-probe.ts",
@@ -29,6 +21,8 @@
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",

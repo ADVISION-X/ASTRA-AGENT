@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T12:43:47.800Z",
+  "generatedAt": "2026-05-22T12:55:39.763Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1218,6 +1218,9 @@
         "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
         "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
         "scripts/acceptance/facebook-product-video-mining*.ts",
         "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
       ],
@@ -1225,7 +1228,9 @@
         "Default notInterestedEnabled=true for operator-facing Facebook mining.",
         "AI web-chat judgment without a hard timeout.",
         "AI web-chat timeout that leaves the run in running with no candidate evidence.",
-        "Provider composer wait that ignores the task abort signal."
+        "Provider composer wait that ignores the task abort signal.",
+        "Typing a governed file path unless a provider file input is located.",
+        "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
       "blockIndex": 3

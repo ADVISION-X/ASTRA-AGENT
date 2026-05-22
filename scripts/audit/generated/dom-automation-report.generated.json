@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T12:43:50.465Z",
+  "generatedAt": "2026-05-22T12:55:42.316Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,201 +20,8 @@
     "APEX-DOM-015-V1",
     "APEX-DOM-016-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-action-result.contract.ts has no lawful inbound reference and behaves like a zombie file.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "evidence": "code-purity/zombie-file"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts has no lawful inbound reference and behaves like a zombie file.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "evidence": "code-purity/zombie-file"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-review-required.contract.ts has no lawful inbound reference and behaves like a zombie file.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "evidence": "code-purity/zombie-file"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts has no lawful inbound reference and behaves like a zombie file.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "evidence": "code-purity/zombie-file"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-action-result.contract.ts exports DomActionResultContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-action-result.contract.ts exports FillDomElementContractInput without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-action-result.contract.ts exports ClickDomElementContractInput without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-action-result.contract.ts exports UploadApprovedFileContractInput without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-action-result.contract.ts exports DomActionEvidenceContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts exports DomElementRefContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts exports LocateDomElementContractInput without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts exports DomElementRefEvidenceContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-review-required.contract.ts exports DomReviewRequiredStatus without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-review-required.contract.ts exports DomReviewRequiredActionContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-review-required.contract.ts exports DomReviewRequiredVerificationContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts exports DomSnapshotContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts exports ReadDomSnapshotContractInput without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts exports DomSnapshotEvidenceContract without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/index.ts exports scrollToElementOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/index.ts exports selectOptionOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/index.ts exports dismissOverlayOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/runtime/dom-locator-candidates.ts exports DomLocatorCandidate without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/runtime/dom-locator.ts exports locateDomElementResultOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/schema.ts exports DOM_AUTOMATION_ABILITY_GROUP_ID without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/schema.ts",
-      "evidence": "code-purity/zombie-export"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/facebook-live-dom-probe.ts",
@@ -232,6 +39,11 @@
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-mediator-shared-ai-scope.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-project-sources.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-root-allowlist.ts",
     "scripts/audit/domains/architecture-boundary/inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/capability-group-governance/inspector.ts",
@@ -298,8 +110,6 @@
     "src/app/workbench-multipart.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
-    "src/capabilities/ai-input-gateway/contracts/ai-feed-input.contract.ts",
-    "src/capabilities/ai-input-gateway/contracts/ai-feed-result.contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
     "src/capabilities/ai-input-gateway/index.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
@@ -328,10 +138,6 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
-    "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
-    "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
-    "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
-    "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
     "src/capabilities/dom-automation/runtime/dom-click.ts",
@@ -474,7 +280,6 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe-script.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
-    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.errors.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.hints.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",

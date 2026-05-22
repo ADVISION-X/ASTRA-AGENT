@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T12:43:50.479Z",
+  "generatedAt": "2026-05-22T12:55:42.331Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -8,17 +8,8 @@
     "APEX-LOCAL-APP-SHELL-003-V1",
     "APEX-LOCAL-APP-SHELL-004-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "local-app-shell/private-capability-import",
-      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
-      "clauseId": "primary",
-      "message": "src/lib/local-runtime/workbench-evidence-support.ts imports ability-group code outside the public facade.",
-      "filePath": "src/lib/local-runtime/workbench-evidence-support.ts",
-      "evidence": "src/capabilities/forensics-persistence/storage-adapter.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-client.ts",

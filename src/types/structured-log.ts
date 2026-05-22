@@ -149,28 +149,6 @@ const RuntimeActionEventSchema = z.object({
   durationMs: z.number().int().nonnegative().nullable().default(null),
 }).passthrough();
 
-const LiveProofLogSequence = [
-  "MISSION_STARTED",
-  "ABILITY_DISPATCH_COMPLETED",
-  "FORENSICS_RECORD_WRITTEN",
-] as const;
-
-const LiveProofLogSequenceSchema = z.array(StructuredRuntimeEventTypeSchema);
-
-type StructuredLogStatus = z.infer<typeof StructuredLogStatusSchema>;
-type StructuredRuntimeLogLevel = z.infer<typeof StructuredRuntimeLogLevelSchema>;
-type StructuredRuntimeEventType = z.infer<typeof StructuredRuntimeEventTypeSchema>;
-type StructuredActionType = z.infer<typeof StructuredActionTypeSchema>;
-type StructuredActionPurpose = z.infer<typeof StructuredActionPurposeSchema>;
-type StructuredLogRef = z.infer<typeof StructuredLogRefSchema>;
-type StructuredRuntimeMissingFrame = z.infer<typeof StructuredRuntimeMissingFrameSchema>;
-type StructuredAiImageInput = z.infer<typeof StructuredAiImageInputSchema>;
-type StructuredRuntimeResourceSummary = z.infer<typeof StructuredRuntimeResourceSummarySchema>;
-type StructuredRuntimeSnapshotSummary = z.infer<typeof StructuredRuntimeSnapshotSummarySchema>;
-type StructuredJointStage = z.infer<typeof StructuredJointStageSchema>;
-type StructuredJointCheckpointStatus = z.infer<typeof StructuredJointCheckpointStatusSchema>;
-type StructuredFailureSnapshot = z.infer<typeof StructuredFailureSnapshotSchema>;
-type StructuredJointCheckpoint = z.infer<typeof StructuredJointCheckpointSchema>;
 type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
 type RuntimeActionEvent = z.infer<typeof RuntimeActionEventSchema>;
 

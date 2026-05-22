@@ -5,13 +5,18 @@ import { judgeFacebookProductVideo } from "../../src/plugins/facebook-product-vi
 
 const judgeSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts", "utf8");
 const webChatSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", "utf8");
+const uploadSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts", "utf8");
+const workspaceSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts", "utf8");
 
 assert.match(judgeSource, /inputRefs:\s*\[/u);
 assert.match(judgeSource, /filePath:\s*input\.videoFilePath/u);
 assert.match(judgeSource, /mimeType:\s*"video\/mp4"/u);
 assert.match(webChatSource, /setFileInputFiles/u);
+assert.match(webChatSource, /ensureProviderWorkspaceFocused/u);
+assert.match(workspaceSource, /startsWith\("focused"\)/u);
 assert.match(webChatSource, /waitForStableAnswer/u);
 assert.match(webChatSource, /STABLE_ROUNDS_REQUIRED\s*=\s*3/u);
+assert.doesNotMatch(uploadSource, /chooseFileInNativeDialog/u);
 assert.doesNotMatch(judgeSource, /providers\/gpt-web-chat|providers\/gemini-web-chat/u);
 
 let aborted = false;

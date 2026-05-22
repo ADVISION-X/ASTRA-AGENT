@@ -1,6 +1,6 @@
 import type { LocateDomElementInput } from "../../../types/dom-automation-inputs.js";
 
-export type DomLocatorCandidate = {
+type DomLocatorCandidate = {
   tagName?: string | undefined;
   selectorCandidate: string;
   candidateKind?: string | undefined;

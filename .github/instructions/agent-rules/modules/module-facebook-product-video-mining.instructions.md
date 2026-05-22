@@ -199,6 +199,9 @@ Facebook 种草视频入口必须保持一键任务形态：
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "scripts/acceptance/facebook-product-video-mining*.ts",
     "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
   ],
@@ -206,7 +209,9 @@ Facebook 种草视频入口必须保持一键任务形态：
     "Default notInterestedEnabled=true for operator-facing Facebook mining.",
     "AI web-chat judgment without a hard timeout.",
     "AI web-chat timeout that leaves the run in running with no candidate evidence.",
-    "Provider composer wait that ignores the task abort signal."
+    "Provider composer wait that ignores the task abort signal.",
+    "Typing a governed file path unless a provider file input is located.",
+    "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace."
   ]
 }
 ```
@@ -219,12 +224,15 @@ Facebook mining 的默认行为必须保护操作者当前 Facebook 账号与推
 - AI 判断必须有硬超时，并在超时后返回 `review_required` / `UNCERTAIN` 判断。
 - AI 超时必须走正常 judgment failure 路径，保存候选 evidence 并让 mission 终止复核。
 - web-chat provider 页面等待必须接收并传递 abort signal。
+- 每次 upload / submit / answer extraction 前必须重新聚焦 provider workspace tab。
+- 文件上传只能在定位到 provider file input 后进入 file-input selection；不得在未确认 native file chooser 打开时输入本地文件路径。
 
 ### 禁止
 
 - 默认点击 Not Interested、Hide、See less 等会污染推荐流的动作。
 - web-chat provider 卡住后让 run 长期保持 `running`。
 - 用后台未落库的下载 artifact 冒充任务进展。
+- Chrome active tab drift 后继续向错误 tab 输入 prompt 或文件路径。
 
 ## [APEX-FACEBOOK-MINING-005-V1] Successful Records And Selection Export
 

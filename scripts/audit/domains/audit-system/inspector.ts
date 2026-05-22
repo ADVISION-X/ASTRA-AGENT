@@ -19,6 +19,8 @@ const runnerFiles = ["scripts/audit/ci-full.ts", "scripts/audit/core/run-generat
 const staticCoveragePath = "scripts/audit/generated/static-clause-coverage.generated.json";
 const packageJsonPath = "package.json";
 
+type StaticCoverageSummary = { activeLawCount?: number; coveredLawCount?: number; coveragePercent?: number };
+
 const fileHasContent = (repoPath: string): boolean => {
   const absolutePath = resolveFromRepo(repoPath);
   return existsSync(absolutePath) && statSync(absolutePath).size > 2;
@@ -130,6 +132,17 @@ const pushCodePurityPrerequisiteFinding = (
   );
 };
 
+const readStaticCoverageSummary = (): StaticCoverageSummary => {
+  const parsed = JSON.parse(readFileSync(resolveFromRepo(staticCoveragePath), "utf8")) as {
+    summary?: StaticCoverageSummary;
+  };
+  const summary = parsed.summary;
+  if (!summary) {
+    throw new Error("missing summary");
+  }
+  return summary;
+};
+
 const pushStaticCoverageFindings = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
@@ -137,17 +150,7 @@ const pushStaticCoverageFindings = (
 ): void => {
   inspectedFiles.add(staticCoveragePath);
   try {
-    const parsed = JSON.parse(readFileSync(resolveFromRepo(staticCoveragePath), "utf8")) as {
-      summary?: {
-        activeLawCount?: number;
-        coveredLawCount?: number;
-        coveragePercent?: number;
-      };
-    };
-    const summary = parsed.summary;
-    if (!summary) {
-      throw new Error("missing summary");
-    }
+    const summary = readStaticCoverageSummary();
     if (summary.coveragePercent !== 100 || summary.activeLawCount !== summary.coveredLawCount) {
       findings.push(
         createFinding({

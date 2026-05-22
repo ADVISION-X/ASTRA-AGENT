@@ -8,11 +8,10 @@ type FacebookMiningStatus = FacebookProductVideoMiningContracts["FacebookMiningS
 type FacebookProductVideoMiningMissionInput = FacebookProductVideoMiningContracts["FacebookProductVideoMiningMissionInput"];
 type FacebookProductVideoMiningRoundState = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRoundState"];
 type FacebookProductVideoMiningRunConfig = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunConfig"];
-type FacebookProductVideoMiningRunStatus = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunStatus"];
 
-export const createFacebookMiningMissionId = (): string => createId("facebook_mission");
-export const createFacebookMiningRunId = (): string => createId("facebook_run");
-export const createFacebookMiningRoundId = (): string => createId("facebook_round");
+const createFacebookMiningMissionId = (): string => createId("facebook_mission");
+const createFacebookMiningRunId = (): string => createId("facebook_run");
+const createFacebookMiningRoundId = (): string => createId("facebook_round");
 export const createFacebookMiningCandidateId = (): string => createId("facebook_candidate");
 export const createFacebookMiningAiJudgmentId = (): string => createId("facebook_ai_judgment");
 
@@ -44,25 +43,6 @@ export const buildFacebookMiningRoundState = (input: {
   candidateId: null,
   reason: null,
 });
-
-export const finalizeRoundState = (input: {
-  round: FacebookProductVideoMiningRoundState;
-  status: FacebookProductVideoMiningRoundState["status"];
-  sourcePageUrl?: string | null;
-  candidateId?: string | null;
-  reason?: string | null;
-}): FacebookProductVideoMiningRoundState => ({
-  ...input.round,
-  status: input.status,
-  endedAt: new Date().toISOString(),
-  sourcePageUrl: input.sourcePageUrl ?? input.round.sourcePageUrl,
-  candidateId: input.candidateId ?? input.round.candidateId,
-  reason: input.reason ?? input.round.reason,
-});
-
-export const buildRunStatusFromStorage = (input: {
-  run: FacebookProductVideoMiningRunStatus;
-}): FacebookProductVideoMiningRunStatus => input.run;
 
 const resolveIncompleteTerminalStatus = (input: {
   timedOut: boolean;

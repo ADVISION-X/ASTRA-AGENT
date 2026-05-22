@@ -173,6 +173,8 @@ flowchart TD
    - 输入包括视频文件 ref、页面事实、评论样本。
    - 通过 AI Input Gateway 投递给 web-chat provider。
    - AI feed 有硬超时与 abort signal；超时返回 `review_required` / `UNCERTAIN`，不能让 run 长期停在 `running`。
+   - 每次上传、提交、读取回答前都会重新聚焦 provider workspace tab，避免 Chrome active tab drift。
+   - 文件上传必须先定位 provider file input；不能在 native dialog 未确认打开时输入本地文件路径。
    - AI 必须返回 JSON 判断，不得返回工作流、选择器、坐标或浏览器动作。
 
 6. 决策落库

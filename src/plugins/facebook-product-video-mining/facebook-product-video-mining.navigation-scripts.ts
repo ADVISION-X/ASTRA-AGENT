@@ -2,6 +2,7 @@ export type FacebookNavigationSignature = {
   signature: string;
   mediaSignature: string;
   url: string;
+  blockerReason: string | null;
   videoCount: number;
   videoFacts: Array<{
     currentSrc: string | null;
@@ -34,6 +35,12 @@ const hashText = (value) => {
   return String(hash >>> 0);
 };
 const viewportCenterY = window.innerHeight / 2;
+const bodyText = clip(document.body?.innerText || "");
+const blockerReason = /captcha|verify|verification|2fa|two-factor|rate limit|try again later|account restricted|security check/i.test(bodyText)
+  ? "facebook_security_or_rate_limit_blocker"
+  : /login|log in|sign in/i.test(bodyText)
+    ? "facebook_login_required"
+    : null;
 const videoFacts = Array.from(document.querySelectorAll("video")).filter(isVisible).map((video) => {
   const rect = video.getBoundingClientRect();
   return {
@@ -70,6 +77,7 @@ return {
   signature: mediaSignature,
   mediaSignature,
   url: location.href,
+  blockerReason,
   videoCount: videoFacts.length,
   videoFacts,
   metricTexts,
@@ -99,32 +107,13 @@ document.dispatchEvent(new KeyboardEvent("keydown", {key: "Escape", code: "Escap
 return {acted: true, action: "escape", text: null};
 `;
 
-const FACEBOOK_NAVIGATE_NEXT_VIDEO_SCRIPT = `
-const clip = (value) => String(value || "").replace(/\\s+/g, " ").trim();
-const isVisible = (node) => {
-  if (!(node instanceof Element)) return false;
-  const rect = node.getBoundingClientRect();
-  const style = getComputedStyle(node);
-  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
-};
-const candidates = Array.from(document.querySelectorAll("button,a,div[role='button'],span[role='button'],[aria-label]"))
-  .filter(isVisible)
-  .map((node) => ({
-    node,
-    text: clip(node.getAttribute("aria-label") || node.textContent || ""),
-    rect: node.getBoundingClientRect(),
-  }))
-  .filter((item) => /下一行|下一个|下一条|next|arrow down/i.test(item.text));
-const preferred = candidates
-  .filter((item) => !/快拍|story/i.test(item.text))
-  .sort((left, right) => right.rect.top - left.rect.top)[0] || candidates[0];
-if (preferred?.node instanceof HTMLElement) {
-  preferred.node.scrollIntoView({block: "center", inline: "center"});
-  preferred.node.click();
-  return {acted: true, action: "clicked_next", text: preferred.text};
+const FACEBOOK_SAFE_ZONE_NEXT_VIDEO_SCRIPT = `
+const target = document.elementFromPoint(Math.floor(window.innerWidth / 2), Math.floor(window.innerHeight * 0.82));
+if (target instanceof HTMLElement) {
+  target.click();
 }
-window.scrollBy({top: Math.max(700, Math.floor(window.innerHeight * 0.85)), behavior: "smooth"});
-return {acted: true, action: "scrolled_feed", text: null};
+window.scrollBy({top: Math.max(700, Math.floor(window.innerHeight * 0.95)), behavior: "smooth"});
+return {acted: true, action: "safe_zone_click_and_scroll", text: null};
 `;
 
 const FACEBOOK_FALLBACK_NEXT_VIDEO_SCRIPT = `
@@ -138,6 +127,6 @@ export const buildNavigationSignatureScript = (): string => FACEBOOK_NAVIGATION_
 
 export const buildPrepareForNextVideoScript = (): string => FACEBOOK_PREPARE_NEXT_VIDEO_SCRIPT;
 
-export const buildNavigateToNextVideoScript = (): string => FACEBOOK_NAVIGATE_NEXT_VIDEO_SCRIPT;
+export const buildSafeZoneNavigateToNextVideoScript = (): string => FACEBOOK_SAFE_ZONE_NEXT_VIDEO_SCRIPT;
 
 export const buildFallbackNavigateToNextVideoScript = (): string => FACEBOOK_FALLBACK_NEXT_VIDEO_SCRIPT;
