@@ -274,6 +274,9 @@ const verifyPersistedResearchState = (
 
     const subQuestions = store.listSubQuestions(result.jobId);
     assert(subQuestions.length >= 2, `Expected at least 2 sub-questions, received ${subQuestions.length}.`);
+    assert(subQuestions[0]?.id !== subQuestions[0]?.modelQuestionId, "Database sub-question ID must differ from modelQuestionId.");
+    assert(subQuestions[0]?.modelQuestionId === "Q1", "Persisted Q1 must preserve modelQuestionId.");
+    assert(subQuestions[0]?.question.id === "Q1", "Persisted display question ID must remain Q1.");
 
     const interactions = store.listInteractions(result.jobId);
     assert(interactions.length === 6, `Expected 6 persisted interactions, received ${interactions.length}.`);
@@ -318,8 +321,81 @@ const verifyPersistedResearchState = (
   }
 };
 
+const verifySubQuestionIdsAreJobScoped = (): void => {
+  const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-id-scope-"));
+  const store = createDeepResearchRecordStore(dataDir);
+  try {
+    const input = {
+      userQuestion: "Can repeated model question IDs persist across jobs?",
+      analysisGoal: "Verify persistence identity boundaries.",
+      language: "en" as const,
+      maxSubQuestions: 4,
+      outputFormat: "markdown" as const,
+    };
+    const modelSubQuestions = [
+      {
+        id: "Q1",
+        title: "Repeated first question",
+        questionText: "Can Q1 appear in another job?",
+        purpose: "Prove model IDs are job-local.",
+        scope: "Deep Research persistence.",
+        expectedAnswerShape: "identity-proof",
+      },
+      {
+        id: "Q2",
+        title: "Repeated second question",
+        questionText: "Can Q2 appear in another job?",
+        purpose: "Prove ordinal boundaries are job-local.",
+        scope: "Deep Research persistence.",
+        expectedAnswerShape: "identity-proof",
+      },
+    ];
+    const firstJob = store.createJob(input);
+    const firstInteraction = store.createInteraction({
+      jobId: firstJob.id,
+      phase: "decomposition",
+      promptId: "acceptance.identity",
+      promptVersion: "v1",
+      promptHash: "sha256:first",
+      rawResponseText: JSON.stringify({ subQuestions: modelSubQuestions }),
+      rawResponseHash: "sha256:first-raw",
+      parseStatus: "parsed",
+    });
+    const firstRows = store.saveSubQuestions({
+      jobId: firstJob.id,
+      interactionId: firstInteraction.id,
+      subQuestions: modelSubQuestions,
+    });
+    const secondJob = store.createJob(input);
+    const secondInteraction = store.createInteraction({
+      jobId: secondJob.id,
+      phase: "decomposition",
+      promptId: "acceptance.identity",
+      promptVersion: "v1",
+      promptHash: "sha256:second",
+      rawResponseText: JSON.stringify({ subQuestions: modelSubQuestions }),
+      rawResponseHash: "sha256:second-raw",
+      parseStatus: "parsed",
+    });
+    const secondRows = store.saveSubQuestions({
+      jobId: secondJob.id,
+      interactionId: secondInteraction.id,
+      subQuestions: modelSubQuestions,
+    });
+
+    assert(firstRows[0]?.id !== secondRows[0]?.id, "Repeated Q1 must receive distinct database IDs across jobs.");
+    assert(firstRows[0]?.modelQuestionId === "Q1", "First job Q1 must preserve modelQuestionId.");
+    assert(secondRows[0]?.modelQuestionId === "Q1", "Second job Q1 must preserve modelQuestionId.");
+    assert(firstRows[0]?.question.id === "Q1", "First job display question ID must remain Q1.");
+    assert(secondRows[0]?.question.id === "Q1", "Second job display question ID must remain Q1.");
+  } finally {
+    store.close();
+  }
+};
+
 async function main(): Promise<void> {
   verifySmokeUsesRealSurfaces();
+  verifySubQuestionIdsAreJobScoped();
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-"));
   const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-smoke.jsonl");
   const runtimeLogger = createRuntimeLogger({

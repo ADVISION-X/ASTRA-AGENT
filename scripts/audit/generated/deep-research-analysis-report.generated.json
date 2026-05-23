@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T08:58:15.384Z",
+  "generatedAt": "2026-05-23T13:06:07.908Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -24,6 +24,7 @@
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "scripts/audit/ci-full.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",

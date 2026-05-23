@@ -16,7 +16,6 @@ import {
   renderDeepResearchFalsificationPrompt,
   renderDeepResearchPositivePrompt,
 } from "./deep-research-analysis.prompts.js";
-import type { DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
 import type { ResearchSubQuestion } from "./deep-research-analysis.records.js";
 import {
   persistFalsificationAnswer,

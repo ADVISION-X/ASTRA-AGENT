@@ -6,6 +6,7 @@ import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const webChatProviderHandoffFiles = [
+  "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
@@ -36,6 +37,16 @@ const countIdentifierCalls = (sourceFile: SourceFile, symbolName: string): numbe
     })
     .length;
 
+const hasLiteralText = (sourceFile: SourceFile, expected: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .some((literal) => literal.getLiteralValue() === expected)
+  || sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
+    .some((literal) => literal.getLiteralText().includes(expected));
+
+const hasNumericToken = (sourceFile: SourceFile, expected: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)
+    .some((literal) => literal.getText() === expected);
+
 const functionHasEarlyResponseNullReturn = (sourceFile: SourceFile, functionName: string): boolean => {
   const declaration = sourceFile.getVariableDeclaration(functionName);
   const initializer = declaration?.getInitializer();
@@ -55,21 +66,36 @@ const functionHasEarlyResponseNullReturn = (sourceFile: SourceFile, functionName
   });
 };
 
-export const inspectWebChatProviderHandoff = (input: {
-  context: InspectorContext;
+type WebChatHandoffFiles = {
+  openFile: SourceFile | undefined;
+  sharedFile: SourceFile | undefined;
+  supportFile: SourceFile | undefined;
+  submitFile: SourceFile | undefined;
+  pageActionsFile: SourceFile | undefined;
+};
+
+const loadWebChatHandoffFiles = (context: InspectorContext): WebChatHandoffFiles => ({
+  openFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"),
+  sharedFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
+  supportFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts"),
+  submitFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"),
+  pageActionsFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts"),
+});
+
+const trackWebChatHandoffFiles = (
+  inspectedFiles: Set<string>,
+  files: WebChatHandoffFiles,
+): void => {
+  Object.values(files).forEach((sourceFile) => track(inspectedFiles, sourceFile));
+  webChatProviderHandoffFiles.forEach((repoPath) => inspectedFiles.add(repoPath));
+};
+
+const inspectProviderPageAssertion = (input: {
+  files: WebChatHandoffFiles;
   findings: InspectorFinding[];
-  inspectedFiles: Set<string>;
   lawId: string;
 }): void => {
-  const sharedFile = getSourceFile(input.context, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts");
-  const supportFile = getSourceFile(input.context, "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts");
-  const submitFile = getSourceFile(input.context, "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts");
-  const pageActionsFile = getSourceFile(input.context, "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts");
-
-  [sharedFile, supportFile, submitFile, pageActionsFile].forEach((sourceFile) => track(input.inspectedFiles, sourceFile));
-  webChatProviderHandoffFiles.forEach((repoPath) => input.inspectedFiles.add(repoPath));
-
-  if (!supportFile?.getFunction("assertActiveProviderPage") && !supportFile?.getVariableDeclaration("assertActiveProviderPage")) {
+  if (!input.files.supportFile?.getFunction("assertActiveProviderPage") && !input.files.supportFile?.getVariableDeclaration("assertActiveProviderPage")) {
     input.findings.push(createFinding({
       checkId: "deep-research/web-chat-provider-page-assertion",
       lawId: input.lawId,
@@ -78,52 +104,90 @@ export const inspectWebChatProviderHandoff = (input: {
     }));
   }
 
-  if (!sharedFile) return;
-  const sharedImports = getImportedSymbolNames(sharedFile, "./web-chat-shared-support.js");
-  if (!sharedImports.has("assertActiveProviderPage") || countIdentifierCalls(sharedFile, "assertActiveProviderPage") < 3) {
+  if (!input.files.sharedFile) return;
+  const sharedImports = getImportedSymbolNames(input.files.sharedFile, "./web-chat-shared-support.js");
+  if (!sharedImports.has("assertActiveProviderPage") || countIdentifierCalls(input.files.sharedFile, "assertActiveProviderPage") < 3) {
     input.findings.push(createFinding({
       checkId: "deep-research/web-chat-provider-page-assertion-use",
       lawId: input.lawId,
-      filePath: getRepoSourcePath(sharedFile),
+      filePath: getRepoSourcePath(input.files.sharedFile),
       message: "Web chat transport must assert the provider tab before upload, submit, and response capture.",
     }));
   }
 
-  if (!functionHasEarlyResponseNullReturn(sharedFile, "restoreAfterWebChatFeed")) {
+  if (!functionHasEarlyResponseNullReturn(input.files.sharedFile, "restoreAfterWebChatFeed")) {
     input.findings.push(createFinding({
       checkId: "deep-research/web-chat-no-pre-response-restore",
       lawId: input.lawId,
-      filePath: getRepoSourcePath(sharedFile),
+      filePath: getRepoSourcePath(input.files.sharedFile),
       message: "Web chat transport must not restore the source APP tab before a provider response exists.",
     }));
   }
+};
 
-  if (!submitFile) return;
-  const submitImports = getImportedSymbolNames(submitFile, "./web-chat-page-actions.js");
-  if (!submitImports.has("waitForComposerFocused") || countIdentifierCalls(submitFile, "waitForComposerFocused") < 1) {
+const inspectNewChatIsolation = (input: {
+  openFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  const openFile = input.openFile;
+  if (openFile?.getVariableDeclaration("startFreshChatGptConversation")
+    && countIdentifierCalls(openFile, "startFreshChatGptConversation") === 1
+    && openFile.getVariableDeclaration("isDeepResearchGptRequest")
+    && hasLiteralText(openFile, "新聊天")
+    && hasLiteralText(openFile, "deep-research.")) return;
+  input.findings.push(createFinding({
+    checkId: "deep-research/web-chat-new-chat-isolation",
+    lawId: input.lawId,
+    filePath: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    message: "Deep Research GPT web-chat feeds must click ChatGPT new chat before each prompt so provider context is isolated.",
+  }));
+};
+
+const inspectSubmitDiscipline = (input: {
+  submitFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  if (!input.submitFile) return;
+  const submitImports = getImportedSymbolNames(input.submitFile, "./web-chat-page-actions.js");
+  if (!submitImports.has("waitForComposerFocused") || countIdentifierCalls(input.submitFile, "waitForComposerFocused") < 1) {
     input.findings.push(createFinding({
       checkId: "deep-research/web-chat-composer-focus-gate",
       lawId: input.lawId,
-      filePath: getRepoSourcePath(submitFile),
+      filePath: getRepoSourcePath(input.submitFile),
       message: "Web chat prompt submission must verify composer focus before prompt paste.",
     }));
   }
 
-  if (submitImports.has("verifyComposerText") || countIdentifierCalls(submitFile, "verifyComposerText") > 0) {
+  if (submitImports.has("verifyComposerText") || countIdentifierCalls(input.submitFile, "verifyComposerText") > 0) {
     input.findings.push(createFinding({
       checkId: "deep-research/web-chat-no-exact-composer-text-gate",
       lawId: input.lawId,
-      filePath: getRepoSourcePath(submitFile),
+      filePath: getRepoSourcePath(input.submitFile),
       message: "Web chat prompt submission must not block keyboard submit on exact composer text verification; submit/assistant response proof owns verification.",
     }));
   }
 
-  if (countIdentifierCalls(submitFile, "pressReturnInChrome") !== 1 || !submitFile.getText().includes("2_000")) {
+  if (countIdentifierCalls(input.submitFile, "pressReturnInChrome") !== 1 || !hasNumericToken(input.submitFile, "2_000")) {
     input.findings.push(createFinding({
       checkId: "deep-research/web-chat-keyboard-return-submit",
       lawId: input.lawId,
-      filePath: getRepoSourcePath(submitFile),
+      filePath: getRepoSourcePath(input.submitFile),
       message: "Web chat prompt submission must wait 2 seconds after paste and submit with one keyboard Return action.",
     }));
   }
+};
+
+export const inspectWebChatProviderHandoff = (input: {
+  context: InspectorContext;
+  findings: InspectorFinding[];
+  inspectedFiles: Set<string>;
+  lawId: string;
+}): void => {
+  const files = loadWebChatHandoffFiles(input.context);
+  trackWebChatHandoffFiles(input.inspectedFiles, files);
+  inspectProviderPageAssertion({ files, findings: input.findings, lawId: input.lawId });
+  inspectNewChatIsolation({ openFile: files.openFile, findings: input.findings, lawId: input.lawId });
+  inspectSubmitDiscipline({ submitFile: files.submitFile, findings: input.findings, lawId: input.lawId });
 };

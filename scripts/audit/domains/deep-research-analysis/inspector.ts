@@ -23,6 +23,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
+import { inspectSubQuestionPersistenceIdentity } from "./components/scan-sub-question-persistence-identity.js";
 import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
 
 const requiredFiles = [
@@ -362,6 +363,68 @@ const inspectRegressionFixtures = (
   }
 };
 
+type DeepResearchAuditFiles = {
+  promptFile: SourceFile | undefined;
+  parserFile: SourceFile | undefined;
+  flowFile: SourceFile | undefined;
+  regressionFile: SourceFile | undefined;
+  promptsFile: SourceFile | undefined;
+  qualityFile: SourceFile | undefined;
+  decompositionAcceptanceFile: SourceFile | undefined;
+  smokeFile: SourceFile | undefined;
+  ciFullFile: SourceFile | undefined;
+};
+
+const inspectDeepResearchStaticRules = (input: {
+  context: InspectorContext;
+  sourceFiles: readonly SourceFile[];
+  files: DeepResearchAuditFiles;
+  findings: InspectorFinding[];
+  inspectedFiles: Set<string>;
+  lawId: string;
+  captureLawId: string;
+  smokeLawId: string;
+}): void => {
+  inspectPromptAsset(input.files.promptFile, input.findings, input.lawId);
+  inspectPromptScatter(input.sourceFiles, input.findings, input.lawId);
+  inspectForbiddenRuntimeFields(input.sourceFiles, input.findings, input.lawId);
+  inspectFlowIntegration(input.files.flowFile, input.findings, input.lawId);
+  inspectParserHonesty(input.files.parserFile, input.findings, input.lawId);
+  inspectAntiEvasion(input.sourceFiles, input.findings, input.lawId);
+  inspectRegressionFixtures(input.files.regressionFile, input.findings, input.lawId);
+  inspectWebChatProviderHandoff({
+    context: input.context,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.captureLawId,
+  });
+  inspectSubQuestionPersistenceIdentity({
+    context: input.context,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.captureLawId,
+  });
+  inspectDecompositionPromptV2({
+    promptFile: input.files.promptFile,
+    promptsFile: input.files.promptsFile,
+    acceptanceFile: input.files.decompositionAcceptanceFile,
+    qualityFile: input.files.qualityFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.lawId,
+  });
+  inspectSmokeAcceptance({
+    smokeFile: input.files.smokeFile,
+    ciFullFile: input.files.ciFullFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.smokeLawId,
+    hasAstCoverage: input.files.smokeFile
+      ? countAstCoverageNodes(input.files.smokeFile.getProject(), input.files.smokeFile) > 0
+      : false,
+  });
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
   const captureLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-003-V1");
@@ -372,50 +435,30 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   sourceFiles.forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
 
   inspectRequiredFiles(findings, inspectedFiles, lawId);
-  const promptFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts");
-  const parserFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts");
-  const flowFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts");
-  const regressionFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts");
-  const promptsFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts");
-  const qualityFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts");
-  const decompositionAcceptanceFile = getSourceFile(context, "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts");
-  const smokeFile = getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts");
-  const ciFullFile = getSourceFile(context, "scripts/audit/ci-full.ts");
-  [promptFile, parserFile, flowFile, regressionFile, promptsFile, qualityFile, decompositionAcceptanceFile, smokeFile, ciFullFile]
+  const files: DeepResearchAuditFiles = {
+    promptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
+    parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts"),
+    flowFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts"),
+    regressionFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"),
+    promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
+    qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),
+    decompositionAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts"),
+    smokeFile: getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts"),
+    ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
+  };
+  Object.values(files)
     .forEach((sourceFile) => track(inspectedFiles, sourceFile));
-  const astCoverageCount = flowFile ? countAstCoverageNodes(context.project, flowFile) : 0;
+  const astCoverageCount = files.flowFile ? countAstCoverageNodes(context.project, files.flowFile) : 0;
 
-  inspectPromptAsset(promptFile, findings, lawId);
-  inspectPromptScatter(sourceFiles, findings, lawId);
-  inspectForbiddenRuntimeFields(sourceFiles, findings, lawId);
-  inspectFlowIntegration(flowFile, findings, lawId);
-  inspectParserHonesty(parserFile, findings, lawId);
-  inspectAntiEvasion(sourceFiles, findings, lawId);
-  inspectRegressionFixtures(regressionFile, findings, lawId);
-  inspectWebChatProviderHandoff({
+  inspectDeepResearchStaticRules({
     context,
-    findings,
-    inspectedFiles,
-    lawId: captureLawId,
-  });
-  inspectDecompositionPromptV2({
-    promptFile,
-    promptsFile,
-    acceptanceFile: decompositionAcceptanceFile,
-    qualityFile,
+    sourceFiles,
+    files,
     findings,
     inspectedFiles,
     lawId,
-  });
-  inspectSmokeAcceptance({
-    smokeFile,
-    ciFullFile,
-    findings,
-    inspectedFiles,
-    lawId: smokeLawId,
-    hasAstCoverage: smokeFile
-      ? countAstCoverageNodes(smokeFile.getProject(), smokeFile) > 0
-      : false,
+    captureLawId,
+    smokeLawId,
   });
   if (astCoverageCount === 0) {
     findings.push(createFinding({

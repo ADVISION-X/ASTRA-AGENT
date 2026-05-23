@@ -161,77 +161,95 @@ const hasColumn = (
   (db.prepare(`PRAGMA table_info(${tableName})`).all() as SqliteColumnInfo[])
     .some((column) => column.name === columnName);
 
-const migrateResearchSubQuestionsSchema = (db: Database.Database): void => {
-  if (hasColumn(db, "research_sub_questions", "model_question_id")) return;
-
-  const legacyRows = db.prepare(
+const listLegacySubQuestionRows = (db: Database.Database): LegacySubQuestionRow[] =>
+  db.prepare(
     `SELECT id, job_id, interaction_id, ordinal, title, question_text, purpose, scope,
       expected_answer_shape, created_at
     FROM research_sub_questions
     ORDER BY job_id ASC, ordinal ASC`,
   ).all() as LegacySubQuestionRow[];
 
-  const migrate = db.transaction(() => {
-    db.exec(`
-      CREATE TABLE research_sub_questions_v2 (
-        id TEXT PRIMARY KEY,
-        job_id TEXT NOT NULL,
-        interaction_id TEXT NOT NULL,
-        model_question_id TEXT NOT NULL,
-        ordinal INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        question_text TEXT NOT NULL,
-        purpose TEXT NOT NULL,
-        scope TEXT NOT NULL,
-        expected_answer_shape TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        UNIQUE(job_id, model_question_id),
-        UNIQUE(job_id, ordinal)
-      )
-    `);
-    const insert = db.prepare(
-      `INSERT INTO research_sub_questions_v2 (
-        id, job_id, interaction_id, model_question_id, ordinal, title, question_text,
-        purpose, scope, expected_answer_shape, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+const createSubQuestionsV2Table = (db: Database.Database): void => {
+  db.exec(`
+    CREATE TABLE research_sub_questions_v2 (
+      id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      interaction_id TEXT NOT NULL,
+      model_question_id TEXT NOT NULL,
+      ordinal INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      question_text TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      expected_answer_shape TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(job_id, model_question_id),
+      UNIQUE(job_id, ordinal)
+    )
+  `);
+};
+
+const copyLegacySubQuestionRows = (
+  db: Database.Database,
+  legacyRows: readonly LegacySubQuestionRow[],
+): Map<string, string> => {
+  const insert = db.prepare(
+    `INSERT INTO research_sub_questions_v2 (
+      id, job_id, interaction_id, model_question_id, ordinal, title, question_text,
+      purpose, scope, expected_answer_shape, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const idRemap = new Map<string, string>();
+  for (const row of legacyRows) {
+    const systemId = createId("deep_research_sub_question");
+    idRemap.set(`${row.job_id}\u0000${row.id}`, systemId);
+    insert.run(
+      systemId,
+      row.job_id,
+      row.interaction_id,
+      row.id,
+      row.ordinal,
+      row.title,
+      row.question_text,
+      row.purpose,
+      row.scope,
+      row.expected_answer_shape,
+      row.created_at,
     );
-    const idRemap = new Map<string, string>();
-    for (const row of legacyRows) {
-      const systemId = createId("deep_research_sub_question");
-      idRemap.set(`${row.job_id}\u0000${row.id}`, systemId);
-      insert.run(
-        systemId,
-        row.job_id,
-        row.interaction_id,
-        row.id,
-        row.ordinal,
-        row.title,
-        row.question_text,
-        row.purpose,
-        row.scope,
-        row.expected_answer_shape,
-        row.created_at,
-      );
-    }
-    for (const row of legacyRows) {
-      const systemId = idRemap.get(`${row.job_id}\u0000${row.id}`);
-      if (!systemId) continue;
-      db.prepare(
-        `UPDATE research_interactions
-          SET sub_question_id = ?
-          WHERE job_id = ? AND sub_question_id = ?`,
-      ).run(systemId, row.job_id, row.id);
-      db.prepare(
-        `UPDATE research_answers
-          SET sub_question_id = ?
-          WHERE job_id = ? AND sub_question_id = ?`,
-      ).run(systemId, row.job_id, row.id);
-      db.prepare(
-        `UPDATE research_conflict_matrix
-          SET sub_question_id = ?
-          WHERE job_id = ? AND sub_question_id = ?`,
-      ).run(systemId, row.job_id, row.id);
-    }
+  }
+  return idRemap;
+};
+
+const remapSubQuestionReferences = (
+  db: Database.Database,
+  legacyRows: readonly LegacySubQuestionRow[],
+  idRemap: ReadonlyMap<string, string>,
+): void => {
+  const updateInteractions = db.prepare(
+    `UPDATE research_interactions SET sub_question_id = ? WHERE job_id = ? AND sub_question_id = ?`,
+  );
+  const updateAnswers = db.prepare(
+    `UPDATE research_answers SET sub_question_id = ? WHERE job_id = ? AND sub_question_id = ?`,
+  );
+  const updateConflictRows = db.prepare(
+    `UPDATE research_conflict_matrix SET sub_question_id = ? WHERE job_id = ? AND sub_question_id = ?`,
+  );
+  for (const row of legacyRows) {
+    const systemId = idRemap.get(`${row.job_id}\u0000${row.id}`);
+    if (!systemId) continue;
+    updateInteractions.run(systemId, row.job_id, row.id);
+    updateAnswers.run(systemId, row.job_id, row.id);
+    updateConflictRows.run(systemId, row.job_id, row.id);
+  }
+};
+
+const migrateResearchSubQuestionsSchema = (db: Database.Database): void => {
+  if (hasColumn(db, "research_sub_questions", "model_question_id")) return;
+  const legacyRows = listLegacySubQuestionRows(db);
+  const migrate = db.transaction(() => {
+    createSubQuestionsV2Table(db);
+    const idRemap = copyLegacySubQuestionRows(db, legacyRows);
+    remapSubQuestionReferences(db, legacyRows, idRemap);
     db.exec("DROP TABLE research_sub_questions");
     db.exec("ALTER TABLE research_sub_questions_v2 RENAME TO research_sub_questions");
   });

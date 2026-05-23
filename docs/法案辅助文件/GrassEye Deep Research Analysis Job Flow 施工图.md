@@ -513,6 +513,7 @@ type ResearchJob = {
 ```ts
 type ResearchSubQuestion = {
   id: string;
+  modelQuestionId: string;
   jobId: string;
   order: number;
   title: string;
@@ -523,6 +524,40 @@ type ResearchSubQuestion = {
   status: "created" | "positive_completed" | "falsified" | "review_required" | "failed";
 };
 ```
+
+身份边界：
+
+```txt
+id = 系统生成的数据库主键，例如 deep_research_sub_question_xxx
+modelQuestionId = AI 返回的局部编号，例如 Q1 / Q2 / SQ1
+question.id = 展示用模型编号，必须等于 modelQuestionId
+```
+
+`research_sub_questions.id` 是全库唯一主键，禁止使用 AI 输出的 `Q1/Q2` 作为主键。  
+AI 输出 ID 只能作为 job 内局部业务编号保存到 `model_question_id`。
+
+SQLite 约束：
+
+```sql
+id TEXT PRIMARY KEY
+model_question_id TEXT NOT NULL
+UNIQUE(job_id, model_question_id)
+UNIQUE(job_id, ordinal)
+```
+
+迁移要求：
+
+```txt
+旧表如果没有 model_question_id：
+1. 创建 research_sub_questions_v2。
+2. 每条旧记录生成新的 deep_research_sub_question_xxx。
+3. old.id 写入 model_question_id。
+4. answers / interactions / conflict_matrix 的 sub_question_id 同 job 内 remap 到新系统 ID。
+5. drop old table，rename v2。
+```
+
+后续 positive / falsification / conflict matrix 的内部关联必须使用数据库 `ResearchSubQuestion.id`。  
+Prompt 和 UI 展示 Q1/Q2 时使用 `ResearchSubQuestion.question.id` 或 `modelQuestionId`。
 
 ### 5.3 ResearchInteraction
 
@@ -951,6 +986,28 @@ export hash missing
 runtime log terminal missing
 catch swallowed error
 ```
+
+### GPT Web Chat 会话隔离
+
+Deep Research 阶段执行是串行的：
+
+```txt
+SEND -> CAPTURE -> PARSE -> PERSIST -> next prompt
+```
+
+GPT web-chat 传输还必须做到每个 prompt exchange 独立会话：
+
+```txt
+Decomposition -> click 新聊天 -> paste -> Return -> wait response
+Q1 Positive -> click 新聊天 -> paste -> Return -> wait response
+Q1 Falsification -> click 新聊天 -> paste -> Return -> wait response
+Q2 Positive -> click 新聊天 -> paste -> Return -> wait response
+...
+Final Synthesis -> click 新聊天 -> paste -> Return -> wait response
+```
+
+不得把 positive、falsification、final synthesis 连续塞进同一个 ChatGPT conversation。  
+实测基线：同一 ChatGPT 会话能回忆上一条随机 marker；点击“新聊天”后，新会话对旧 marker 只能返回 UNKNOWN。
 
 ### Phase 1：无浏览器假数据 smoke
 

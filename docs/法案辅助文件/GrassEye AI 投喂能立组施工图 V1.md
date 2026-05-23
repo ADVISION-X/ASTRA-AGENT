@@ -107,3 +107,4 @@ flowchart TD
 - prompt paste 前必须验证 composer 焦点真实保留；`focus()` 调用本身不等于授权成功，`inputFocused=false` 不得进入 paste。
 - prompt 文本粘贴后等待 2 秒，然后直接用键盘 Return 提交；不得用 exact composer text verification 作为提交前 gate，提交是否成功由 composer 清空 / generating / 新 assistant 回复证明。
 - submit 后必须在 provider 标签内等待新 assistant 回复稳定；在拿到 provider response 并构建 raw output proof 之前，不得自动恢复 source APP 标签，避免中断尚未发送或尚在生成的 provider 对话。
+- Deep Research 使用 GPT web-chat 时，每一次 prompt exchange 在粘贴前必须先点击 ChatGPT 页面“新聊天”；实测证明同一会话会记住上一个随机 marker，而点击新聊天后只返回 UNKNOWN，因此“新聊天”是当前最小可用会话隔离动作。

@@ -16,6 +16,26 @@ const composer = resolveComposerInput();
 return {status: composer ? "success" : "pending", message: composer ? "provider composer ready" : "provider composer pending", pageUrl: location.href};
 `;
 
+const CHATGPT_NEW_CHAT_SCRIPT = `
+const candidates = Array.from(document.querySelectorAll("a,button"));
+const target = candidates.find((element) => {
+  const label = [element.getAttribute("aria-label"), element.textContent].filter(Boolean).join(" ");
+  return label.includes("新聊天") || label.includes("New chat");
+});
+if (!target) {
+  return {status: "review_required", message: "ChatGPT new chat control was not found", pageUrl: location.href};
+}
+target.click();
+return {status: "success", message: "clicked ChatGPT new chat", pageUrl: location.href};
+`;
+
+const isDeepResearchGptRequest = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): boolean =>
+  new URL(input.providerUrl).host === "chatgpt.com"
+  && input.request.promptContractId.includes("deep-research.");
+
 const waitForProviderComposer = async (
   browser: BrowserController,
   abortSignal?: AbortSignal,
@@ -37,6 +57,25 @@ const waitForProviderComposer = async (
     await browser.wait(300);
   }
   throw new Error("review_required: provider composer did not become ready.");
+};
+
+const startFreshChatGptConversation = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  providerUrl: string;
+}): Promise<void> => {
+  if (!isDeepResearchGptRequest(input)) return;
+  const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+    description: "click ChatGPT new chat before Deep Research prompt",
+    script: CHATGPT_NEW_CHAT_SCRIPT,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  if (state.status !== "success") {
+    throw new Error(`${state.status}: ${state.message}`);
+  }
+  await input.browser.wait(1_000);
+  await waitForProviderComposer(input.browser, input.context.abortSignal);
 };
 
 const readActiveProviderUrl = async (
@@ -145,5 +184,11 @@ export const openProviderPage = async (input: {
   });
   assertProviderPageOpened(opened);
   await waitForProviderComposer(input.browser, input.context.abortSignal);
+  await startFreshChatGptConversation({
+    browser: input.browser,
+    context: input.context,
+    request: input.request,
+    providerUrl: input.providerUrl,
+  });
   await persistWorkspaceUrlIfNeeded({ browser: input.browser, context: input.context, request: input.request, workspaceId });
 };
