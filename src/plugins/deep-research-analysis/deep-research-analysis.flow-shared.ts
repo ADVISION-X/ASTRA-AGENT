@@ -64,6 +64,7 @@ export type DeepResearchGatewaySender = (
 export type ExchangePersistSummary = {
   recordType: string;
   recordId: string;
+  recordIds?: string[];
   count: number;
 };
 

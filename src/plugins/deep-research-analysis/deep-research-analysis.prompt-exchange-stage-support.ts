@@ -43,6 +43,7 @@ export type CapturePromptOutputInput = {
   prompt: DeepResearchPrompt;
   promptPackage: DeepResearchGatewayPromptPackage;
   promptHash: string;
+  renderedPromptText: string;
   preview: PromptPreview;
   stage: DeepResearchPhase;
   subQuestionId?: string;
@@ -63,6 +64,7 @@ export type ParsePromptOutputInput<TParsed> = {
   providerKind: ProviderKind;
   prompt: DeepResearchPrompt;
   promptHash: string;
+  renderedPromptText: string;
   preview: PromptPreview;
   stage: DeepResearchPhase;
   domRef: string;
@@ -82,6 +84,7 @@ export type PersistPromptOutputInput<TParsed> = {
   providerKind: ProviderKind;
   prompt: DeepResearchPrompt;
   promptHash: string;
+  renderedPromptText: string;
   preview: PromptPreview;
   stage: DeepResearchPhase;
   subQuestionId?: string;
@@ -137,6 +140,7 @@ export const createInteractionRecord = <TParsed>(input: {
   providerKind: ProviderKind;
   prompt: DeepResearchPrompt;
   promptHash: string;
+  renderedPromptText: string;
   subQuestionId?: string;
   domRef: string;
   gatewayResult: DeepResearchGatewayResult;
@@ -149,6 +153,7 @@ export const createInteractionRecord = <TParsed>(input: {
     promptId: input.prompt.promptId,
     promptVersion: input.prompt.promptVersion,
     promptHash: input.promptHash,
+    renderedPromptText: input.renderedPromptText,
     domRef: input.domRef,
     rawResponseText: input.gatewayResult.normalizedText,
     rawResponseHash: input.parsed.rawResponseHash,
@@ -164,6 +169,7 @@ export const createFailedInteractionRecord = <TParsed>(input: {
   providerKind: ProviderKind;
   prompt: DeepResearchPrompt;
   promptHash: string;
+  renderedPromptText: string;
   subQuestionId?: string;
   domRef: string;
   gatewayResult: DeepResearchGatewayResult;
@@ -176,6 +182,7 @@ export const createFailedInteractionRecord = <TParsed>(input: {
     promptId: input.prompt.promptId,
     promptVersion: input.prompt.promptVersion,
     promptHash: input.promptHash,
+    renderedPromptText: input.renderedPromptText,
     domRef: input.domRef,
     rawResponseText: input.gatewayResult.normalizedText,
     rawResponseHash: input.parsed.rawResponseHash,

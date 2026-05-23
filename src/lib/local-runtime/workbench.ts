@@ -39,7 +39,9 @@ import {
 import {
   deepResearchAnalysisPublicFacade,
   type DeepResearchAnalysisStartInput,
+  type DeepResearchHistorySnapshot,
   type DeepResearchJobSnapshot,
+  type DeepResearchReportViewModel,
   type DeepResearchTimelineSnapshot,
 } from "../../plugins/deep-research-analysis/index.js";
 
@@ -50,29 +52,59 @@ type DeepResearchExecutionState = {
   reviewReason: string | null;
 };
 
+type DeepResearchExecutionJobLike = {
+  id: string;
+  status: DeepResearchJobSnapshot["job"]["status"];
+  phase: DeepResearchJobSnapshot["job"]["phase"];
+  failureReason?: string | null;
+  reviewReason?: string | null;
+};
+
+type DeepResearchExecutionSnapshotLike = {
+  job: DeepResearchExecutionJobLike;
+  overview?: { currentPhase: DeepResearchJobSnapshot["overview"]["currentPhase"] };
+};
+
+type DeepResearchHandleContext = {
+  assembly: WorkbenchAssembly;
+  dataDir: string;
+  executions: Map<string, DeepResearchExecutionState>;
+  applyExecutionState: <T extends DeepResearchExecutionSnapshotLike>(snapshot: T | null) => T | null;
+  loadLatestSnapshot: () => DeepResearchJobSnapshot | null;
+};
+
+const applyDeepResearchExecutionJobState = <T extends DeepResearchExecutionJobLike>(
+  executions: Map<string, DeepResearchExecutionState>,
+  job: T,
+  currentPhase?: DeepResearchJobSnapshot["overview"]["currentPhase"],
+): T => {
+  const execution = executions.get(job.id);
+  if (!execution) return job;
+  return {
+    ...job,
+    status: execution.status,
+    phase: execution.status === "running"
+      ? currentPhase ?? execution.phase
+      : execution.phase,
+    failureReason: execution.failureReason ?? job.failureReason ?? null,
+    reviewReason: execution.reviewReason ?? job.reviewReason ?? null,
+  };
+};
+
 const applyDeepResearchExecutionState = <
-  T extends {
-    job: DeepResearchJobSnapshot["job"];
-    overview?: { currentPhase: DeepResearchJobSnapshot["overview"]["currentPhase"] };
-  },
+  T extends DeepResearchExecutionSnapshotLike,
 >(
   executions: Map<string, DeepResearchExecutionState>,
   snapshot: T | null,
 ): T | null => {
   if (!snapshot) return null;
-  const execution = executions.get(snapshot.job.id);
-  if (!execution) return snapshot;
   return {
     ...snapshot,
-    job: {
-      ...snapshot.job,
-      status: execution.status,
-      phase: execution.status === "running"
-        ? snapshot.overview?.currentPhase ?? execution.phase
-        : execution.phase,
-      failureReason: execution.failureReason ?? snapshot.job.failureReason,
-      reviewReason: execution.reviewReason ?? snapshot.job.reviewReason,
-    },
+    job: applyDeepResearchExecutionJobState(
+      executions,
+      snapshot.job,
+      snapshot.overview?.currentPhase,
+    ),
   };
 };
 
@@ -199,69 +231,101 @@ const buildFacebookMiningHandle = (
   },
 });
 
+const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
+  async startDeepResearchAnalysis(input: DeepResearchAnalysisStartInput) {
+    const previousLatest = context.loadLatestSnapshot();
+    const runPromise = deepResearchAnalysisPublicFacade.runDeepResearchAnalysis(
+      {
+        userQuestion: input.userQuestion,
+        analysisGoal: input.analysisGoal ?? null,
+        language: input.language,
+        maxSubQuestions: input.maxSubQuestions,
+        outputFormat: input.outputFormat,
+      },
+      {
+        aiInputGateway: context.assembly.aiInputGateway,
+        runtimeLogger: context.assembly.runtimeLogger,
+        dataDir: context.dataDir,
+        providerKind: input.providerKind,
+        modelName: "workbench-default",
+        timeoutMs: 180_000,
+      },
+    );
+
+    const latestSnapshot = context.loadLatestSnapshot();
+    const snapshot = latestSnapshot ?? previousLatest;
+    if (!snapshot) {
+      throw new Error("Deep Research job was not created.");
+    }
+    trackDeepResearchExecution({ executions: context.executions, snapshot, runPromise });
+    return context.applyExecutionState(snapshot) ?? snapshot;
+  },
+});
+
+const buildDeepResearchQueryHandle = (context: DeepResearchHandleContext) => ({
+  async getDeepResearchAnalysisJob(jobId: string) {
+    return context.applyExecutionState(
+      deepResearchAnalysisPublicFacade.getDeepResearchAnalysisJob({ dataDir: context.dataDir, jobId }),
+    );
+  },
+  async listDeepResearchAnalysisJobs(input?: {
+    limit?: number;
+    status?: DeepResearchHistorySnapshot["jobs"][number]["status"];
+  }) {
+    const history = deepResearchAnalysisPublicFacade.listDeepResearchAnalysisHistory({
+      dataDir: context.dataDir,
+      ...(typeof input?.limit === "number" ? { limit: input.limit } : {}),
+      ...(input?.status ? { status: input.status } : {}),
+    });
+    return {
+      jobs: history.jobs.map((job) => applyDeepResearchExecutionJobState(context.executions, job)),
+    };
+  },
+  async getDeepResearchAnalysisReport(jobId: string) {
+    return context.applyExecutionState(
+      deepResearchAnalysisPublicFacade.getDeepResearchAnalysisReport({ dataDir: context.dataDir, jobId }),
+    );
+  },
+  async getLatestDeepResearchAnalysisJob() {
+    return context.applyExecutionState(context.loadLatestSnapshot());
+  },
+  async getDeepResearchAnalysisTimeline(jobId: string) {
+    return context.applyExecutionState(
+      deepResearchAnalysisPublicFacade.getDeepResearchAnalysisTimeline({ dataDir: context.dataDir, jobId }) as DeepResearchTimelineSnapshot | null,
+    );
+  },
+  async exportDeepResearchAnalysisArtifact(input: {
+    jobId: string;
+    kind: Parameters<typeof deepResearchAnalysisPublicFacade.getDeepResearchExportArtifact>[0]["kind"];
+  }) {
+    return deepResearchAnalysisPublicFacade.getDeepResearchExportArtifact({
+      dataDir: context.dataDir,
+      jobId: input.jobId,
+      kind: input.kind,
+    });
+  },
+});
+
 const buildDeepResearchAnalysisHandle = (
   assembly: WorkbenchAssembly,
   dataDir: string,
 ) => {
   const executions = new Map<string, DeepResearchExecutionState>();
-  const applyExecutionState = <T extends { job: DeepResearchJobSnapshot["job"]; overview?: { currentPhase: DeepResearchJobSnapshot["overview"]["currentPhase"] } }>(snapshot: T | null) =>
+  const applyExecutionState = <T extends DeepResearchExecutionSnapshotLike>(snapshot: T | null) =>
     applyDeepResearchExecutionState(executions, snapshot);
   const loadLatestSnapshot = () =>
     deepResearchAnalysisPublicFacade.getLatestDeepResearchAnalysisJob({ dataDir });
+  const context: DeepResearchHandleContext = {
+    assembly,
+    dataDir,
+    executions,
+    applyExecutionState,
+    loadLatestSnapshot,
+  };
 
   return {
-    async startDeepResearchAnalysis(input: DeepResearchAnalysisStartInput) {
-      const previousLatest = loadLatestSnapshot();
-      const runPromise = deepResearchAnalysisPublicFacade.runDeepResearchAnalysis(
-        {
-          userQuestion: input.userQuestion,
-          analysisGoal: input.analysisGoal ?? null,
-          language: input.language,
-          maxSubQuestions: input.maxSubQuestions,
-          outputFormat: input.outputFormat,
-        },
-        {
-          aiInputGateway: assembly.aiInputGateway,
-          runtimeLogger: assembly.runtimeLogger,
-          dataDir,
-          providerKind: input.providerKind,
-          modelName: "workbench-default",
-          timeoutMs: 180_000,
-        },
-      );
-
-      const latestSnapshot = loadLatestSnapshot();
-      const snapshot = latestSnapshot ?? previousLatest;
-      if (!snapshot) {
-        throw new Error("Deep Research job was not created.");
-      }
-      trackDeepResearchExecution({ executions, snapshot, runPromise });
-
-      return applyExecutionState(snapshot) ?? snapshot;
-    },
-    async getDeepResearchAnalysisJob(jobId: string) {
-      return applyExecutionState(
-        deepResearchAnalysisPublicFacade.getDeepResearchAnalysisJob({ dataDir, jobId }),
-      );
-    },
-    async getLatestDeepResearchAnalysisJob() {
-      return applyExecutionState(loadLatestSnapshot());
-    },
-    async getDeepResearchAnalysisTimeline(jobId: string) {
-      return applyExecutionState(
-        deepResearchAnalysisPublicFacade.getDeepResearchAnalysisTimeline({ dataDir, jobId }) as DeepResearchTimelineSnapshot | null,
-      );
-    },
-    async exportDeepResearchAnalysisArtifact(input: {
-      jobId: string;
-      kind: Parameters<typeof deepResearchAnalysisPublicFacade.getDeepResearchExportArtifact>[0]["kind"];
-    }) {
-      return deepResearchAnalysisPublicFacade.getDeepResearchExportArtifact({
-        dataDir,
-        jobId: input.jobId,
-        kind: input.kind,
-      });
-    },
+    ...buildDeepResearchStartHandle(context),
+    ...buildDeepResearchQueryHandle(context),
   };
 };
 

@@ -203,6 +203,66 @@ exports 成功但页面不列出 export refs
 timeline 有 records 但 overview 缺失导致假空态
 ```
 
+### 3.4 APP 报告阅读器与历史报告库
+
+Deep Research 页面不是调试面板，而是报告库。
+
+第一层入口必须是历史记录：
+
+```txt
+history list
+-> selected report
+-> report reader
+```
+
+历史记录至少展示：
+
+```txt
+title / question summary
+status
+createdAt / updatedAt
+subQuestionCount
+interactionCount
+finalConfidence
+completed / failed / review_required
+```
+
+选中报告后第一屏必须展示最终结论：
+
+```txt
+Final Conclusion
+Confidence
+Core Reasons
+Strongest Opposing Arguments
+Reverse Conditions
+```
+
+全流程必须按树状结构展示：
+
+```txt
+Original Question
+-> Decomposition
+-> Q1 Positive / Falsification
+-> Q2 Positive / Falsification
+-> ...
+-> Final Synthesis
+-> Evidence / Debug
+```
+
+每个 subQuestion 必须展示 Positive / Falsification 成对回答，不得把正反答案拆到不同大区。
+
+Debug / Evidence 默认折叠。raw JSON、hash、provider proof、export path 只能作为调试元数据存在，不能抢占主阅读区。
+
+New Research 与 Report Reading 必须分离：
+
+```txt
+New Research button / collapsible form
+Report history rail
+Selected report reader
+```
+
+长 prompt、长 raw response、长 parsed result 必须支持 More / Show 展开，默认不全量铺开。
+
 ---
 
 ## 4. 阶段设计
@@ -455,42 +515,45 @@ evidence-index.json
 
 #### final-report.md
 
-面向用户阅读。
+唯一的人读报告。
 
-结构：
+它不是 summary-only markdown，而是完整全流程报告。
+
+最小结构：
 
 ```md
-# Deep Research Final Report
+# Deep Research Full Flow Report
 
-## 1. 原始问题
-...
+Job ID:
+Created At:
+Updated At:
+Status:
+Question:
+Analysis Goal:
+Language:
+Max SubQuestions:
 
-## 2. 最终结论
-...
+## One-line Verdict
 
-## 3. 置信度
-...
+## Final Summary
 
-## 4. 正方核心理由
-...
+## Stage Overview
 
-## 5. 反方核心质疑
-...
+## Stage 1: Decomposition
 
-## 6. 冲突矩阵摘要
-...
+## Sub-question Q1: ...
+### Positive Analysis
+### Falsification
 
-## 7. 证据缺口
-...
+## Sub-question Q2: ...
+### Positive Analysis
+### Falsification
 
-## 8. 反转条件
-...
+## Conflict Matrix
 
-## 9. 后续观察信号
-...
+## Final Synthesis
 
-## 10. 局限性
-...
+## Evidence Index
 ```
 
 #### research-bundle.json
@@ -535,6 +598,17 @@ evidence-index.json
   ]
 }
 ```
+
+## 唯一人读全流程报告
+
+1. `final-report.md` 是唯一的人读报告。
+2. 报告必须展示完整 `1 + N + N + 1` 全流程，而不是只放最终摘要。
+3. 报告必须按阶段组织，不能把 prompt、raw response、parsed summary 和 evidence 平铺成一坨。
+4. 每个阶段必须包含：Prompt、AI Raw Response、Parsed Summary、Evidence。
+5. 每个 sub-question 必须有独立的 Positive 和 Falsification 两块。
+6. Final Synthesis 也必须展示 prompt 和 raw response。
+7. Evidence Index 必须放在报告末尾，供人快速追溯 interaction / hash / domRef。
+8. `research-bundle.json` 和 `evidence-index.json` 是机器证据，不是第二份人读报告。
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T17:51:34.349Z",
+  "generatedAt": "2026-05-23T22:30:54.563Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -15,7 +15,9 @@
     "GRASSEYE-DEEP-RESEARCH-010-V1",
     "GRASSEYE-DEEP-RESEARCH-011-V1",
     "GRASSEYE-DEEP-RESEARCH-012-V1",
-    "GRASSEYE-DEEP-RESEARCH-013-V1"
+    "GRASSEYE-DEEP-RESEARCH-013-V1",
+    "GRASSEYE-DEEP-RESEARCH-014-V1",
+    "GRASSEYE-DEEP-RESEARCH-015-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -25,6 +27,7 @@
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
+    "scripts/acceptance/deep-research-report-export.acceptance.ts",
     "scripts/audit/ci-full.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -42,6 +45,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
@@ -58,6 +63,10 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",

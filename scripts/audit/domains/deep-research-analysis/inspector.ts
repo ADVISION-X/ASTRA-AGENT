@@ -1,74 +1,25 @@
-import { existsSync, readFileSync } from "node:fs";
-import {
-  Node,
-  Project,
-  SyntaxKind,
-  type CallExpression,
-  type ExportDeclaration,
-  type Identifier,
-  type ImportDeclaration,
-  type ObjectLiteralExpression,
-  type PropertyAccessExpression,
-  type SourceFile,
-  type StringLiteral,
-  type Symbol,
-  type TypeChecker,
-  type VariableDeclaration,
-} from "ts-morph";
+import { existsSync } from "node:fs";
+import { Node, SyntaxKind, type CallExpression, type Identifier, type ImportDeclaration, type ObjectLiteralExpression, type SourceFile, type StringLiteral } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import {
+  decompositionAuditFiles,
+  forbiddenRuntimeFields,
+  promptTextAllowedFiles,
+  requiredFiles,
+} from "./inspector-constants.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectConfidenceContract } from "./components/scan-confidence-contract.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
+import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
 import { inspectGatewayRawCaptureBoundary } from "./components/scan-gateway-raw-capture-boundary.js";
+import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
+import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
 import { inspectSubQuestionFaultIsolation } from "./components/scan-sub-question-fault-isolation.js";
 import { inspectSubQuestionPersistenceIdentity } from "./components/scan-sub-question-persistence-identity.js";
 import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
-
-const requiredFiles = [
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-  "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
-  "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
-  "scripts/acceptance/deep-research-analysis-smoke.ts",
-] as const;
-
-const forbiddenRuntimeFields = [
-  "nextAction",
-  "actionPlan",
-  "browserCommand",
-  "selector",
-  "coordinate",
-  "workflow",
-  "multiStepPlan",
-  "runNext",
-] as const;
-
-const promptTextAllowedFiles = new Set([
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
-]);
-
-const decompositionAuditFiles = new Set([
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-]);
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
@@ -93,28 +44,6 @@ const unwrapObjectLiteral = (initializer: Node | undefined): ObjectLiteralExpres
     return Node.isObjectLiteralExpression(expression) ? expression : null;
   }
   return null;
-};
-
-const countAstCoverageNodes = (project: Project, sourceFile: SourceFile): number => {
-  const checker: TypeChecker = project.getTypeChecker();
-  const imports: ImportDeclaration[] = sourceFile.getImportDeclarations();
-  const exports: ExportDeclaration[] = sourceFile.getExportDeclarations();
-  const variables: VariableDeclaration[] = sourceFile.getVariableDeclarations();
-  const calls: CallExpression[] = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
-  const properties: PropertyAccessExpression[] = sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression);
-  const strings: StringLiteral[] = sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral);
-  const identifiers: Identifier[] = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
-  const resolvedSymbols: Symbol[] = identifiers
-    .map((identifier) => checker.getSymbolAtLocation(identifier))
-    .filter((symbol): symbol is Symbol => Boolean(symbol));
-  return imports.length
-    + exports.length
-    + variables.length
-    + calls.length
-    + properties.length
-    + strings.length
-    + identifiers.length
-    + resolvedSymbols.length;
 };
 
 const inspectRequiredFiles = (
@@ -369,7 +298,8 @@ type DeepResearchAuditFiles = {
   promptFile: SourceFile | undefined;
   parserFile: SourceFile | undefined;
   flowFile: SourceFile | undefined;
-  publicFile: SourceFile | undefined;
+  queryFile: SourceFile | undefined;
+  contractFile: SourceFile | undefined;
   regressionFile: SourceFile | undefined;
   promptsFile: SourceFile | undefined;
   qualityFile: SourceFile | undefined;
@@ -378,7 +308,7 @@ type DeepResearchAuditFiles = {
   ciFullFile: SourceFile | undefined;
 };
 
-const inspectDeepResearchStaticRules = (input: {
+type DeepResearchStaticRulesInput = {
   context: InspectorContext;
   sourceFiles: readonly SourceFile[];
   files: DeepResearchAuditFiles;
@@ -387,7 +317,11 @@ const inspectDeepResearchStaticRules = (input: {
   lawId: string;
   captureLawId: string;
   smokeLawId: string;
-}): void => {
+  reportLawId: string;
+  readerLawId: string;
+};
+
+const inspectCoreStaticRules = (input: DeepResearchStaticRulesInput): void => {
   inspectPromptAsset(input.files.promptFile, input.findings, input.lawId);
   inspectPromptScatter(input.sourceFiles, input.findings, input.lawId);
   inspectForbiddenRuntimeFields(input.sourceFiles, input.findings, input.lawId);
@@ -395,6 +329,9 @@ const inspectDeepResearchStaticRules = (input: {
   inspectParserHonesty(input.files.parserFile, input.findings, input.lawId);
   inspectAntiEvasion(input.sourceFiles, input.findings, input.lawId);
   inspectRegressionFixtures(input.files.regressionFile, input.findings, input.lawId);
+};
+
+const inspectCaptureAndSmokeRules = (input: DeepResearchStaticRulesInput): void => {
   inspectWebChatProviderHandoff({
     context: input.context,
     findings: input.findings,
@@ -440,36 +377,44 @@ const inspectDeepResearchStaticRules = (input: {
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.smokeLawId,
-    hasAstCoverage: input.files.smokeFile
-      ? countAstCoverageNodes(input.files.smokeFile.getProject(), input.files.smokeFile) > 0
-      : false,
   });
-  if (input.files.publicFile) {
-    const publicText = input.files.publicFile.getFullText();
-    for (const marker of [
-      "overview: DeepResearchJobSnapshot[\"overview\"]",
-      "buildTimelineSnapshot",
-      "buildJobSnapshot({",
-      "timeline",
-      "subQuestions",
-      "answers",
-      "exports",
-    ]) {
-      if (publicText.includes(marker)) continue;
-      input.findings.push(createFinding({
-        checkId: "deep-research/public-timeline-delivery-overview",
-        lawId: input.lawId,
-        filePath: getRepoSourcePath(input.files.publicFile),
-        message: `Deep Research public timeline snapshot must expose completed delivery marker ${marker}.`,
-      }));
-    }
-  }
+};
+
+const inspectDeliveryRules = (input: DeepResearchStaticRulesInput): void => {
+  inspectPublicTimelineDelivery({
+    queryFile: input.files.queryFile,
+    contractFile: input.files.contractFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.lawId,
+  });
+  inspectFullFlowReportExport({
+    context: input.context,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.reportLawId,
+  });
+  inspectReportReaderViewModel({
+    queriesFile: input.files.queryFile,
+    contractFile: input.files.contractFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.readerLawId,
+  });
+};
+
+const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): void => {
+  inspectCoreStaticRules(input);
+  inspectCaptureAndSmokeRules(input);
+  inspectDeliveryRules(input);
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
   const captureLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-003-V1");
   const smokeLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-013-V1");
+  const reportLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-015-V1");
+  const readerLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-014-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
   const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
@@ -480,7 +425,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     promptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
     parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts"),
     flowFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts"),
-    publicFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public.ts"),
+    queryFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts"),
+    contractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts"),
     regressionFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"),
     promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
     qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),
@@ -490,7 +436,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   };
   Object.values(files)
     .forEach((sourceFile) => track(inspectedFiles, sourceFile));
-  const astCoverageCount = files.flowFile ? countAstCoverageNodes(context.project, files.flowFile) : 0;
+  const astCoverageCount = files.flowFile?.getDescendantsOfKind(SyntaxKind.CallExpression).length ?? 0;
 
   inspectDeepResearchStaticRules({
     context,
@@ -501,6 +447,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     lawId,
     captureLawId,
     smokeLawId,
+    reportLawId,
+    readerLawId,
   });
   if (astCoverageCount === 0) {
     findings.push(createFinding({

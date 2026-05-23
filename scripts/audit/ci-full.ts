@@ -79,6 +79,8 @@ const main = async (): Promise<void> => {
   steps.push(await runCommand("runtime-log-spine", ["npm", "run", "acceptance:runtime-log-spine"]));
   steps.push(await runCommand("deep-research-decomposition-prompt", ["npm", "run", "acceptance:deep-research-decomposition-prompt"]));
   steps.push(await runCommand("deep-research-analysis-smoke", ["npm", "run", "acceptance:deep-research-analysis-smoke"]));
+  steps.push(await runCommand("deep-research-report-export", ["npm", "run", "acceptance:deep-research-report-export"]));
+  steps.push(await runCommand("deep-research-report-reader-ui", ["npm", "run", "acceptance:deep-research-report-reader-ui"]));
   steps.push(await runCommand("deep-research-app-ui", ["npm", "run", "acceptance:deep-research-app-ui"]));
   steps.push(await runCommand("amazon-invoice-upload-smoke", ["npm", "run", "acceptance:amazon-invoice-upload-smoke"]));
   steps.push(await runCommand("facebook-product-video-mining", ["npm", "run", "acceptance:facebook-product-video-mining"]));
@@ -93,7 +95,7 @@ const main = async (): Promise<void> => {
   if (hasFailures) {
     throw new Error("ci:full failed");
   }
-  process.stdout.write("[CI-FULL] PASS — audit plan, typecheck, runtime log acceptance, Deep Research smoke, Amazon smoke, and Facebook mining acceptance passed.\n");
+  process.stdout.write("[CI-FULL] PASS — audit plan, typecheck, runtime log acceptance, Deep Research smoke, Deep Research report export acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
 };
 
 await main();

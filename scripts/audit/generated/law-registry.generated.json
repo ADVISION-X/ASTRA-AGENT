@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T17:51:28.050Z",
+  "generatedAt": "2026-05-23T22:30:47.695Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -922,6 +922,28 @@
       "summary": "Deep Research Analysis must provide a minimum smoke acceptance that proves the job flow can execute its smallest live path through parser, persistence, final package, export, and runtime logs.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 12
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast+db+acceptance",
+      "summary": "Deep Research APP must present completed jobs as a report history and report reader, not as a raw debug dashboard.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 13
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "db+artifact+hash+acceptance+ast",
+      "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted 1+N+N+1 flow with prompt, raw response, parsed summary, and evidence traceability.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 14
     },
     {
       "lawId": "APEX-DOM-001-V1",

@@ -1,4 +1,4 @@
-generatedAt: "2026-05-23T17:51:28.050Z"
+generatedAt: "2026-05-23T22:30:47.695Z"
 rows:
   - capabilityDomain: "architecture-boundary"
     manifestPath: "scripts/audit/domains/architecture-boundary/manifest.json"
@@ -78,6 +78,8 @@ rows:
       - "GRASSEYE-DEEP-RESEARCH-011-V1"
       - "GRASSEYE-DEEP-RESEARCH-012-V1"
       - "GRASSEYE-DEEP-RESEARCH-013-V1"
+      - "GRASSEYE-DEEP-RESEARCH-014-V1"
+      - "GRASSEYE-DEEP-RESEARCH-015-V1"
   - capabilityDomain: "dom-automation"
     manifestPath: "scripts/audit/domains/dom-automation/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/dom-automation/inspector.ts"

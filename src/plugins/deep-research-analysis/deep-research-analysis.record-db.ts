@@ -18,6 +18,7 @@ import type {
 import {
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
   DeepResearchProviderKindSchema,
+  LEGACY_RENDERED_PROMPT_TEXT,
   ResearchAnswerSchema,
   ResearchConflictMatrixSchema,
   ResearchExportSchema,
@@ -75,6 +76,7 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     prompt_id TEXT NOT NULL,
     prompt_version TEXT NOT NULL,
     prompt_hash TEXT NOT NULL,
+    rendered_prompt_text TEXT NOT NULL,
     dom_ref TEXT,
     raw_response_text TEXT NOT NULL,
     raw_response_hash TEXT NOT NULL,
@@ -256,6 +258,17 @@ const migrateResearchSubQuestionsSchema = (db: Database.Database): void => {
   migrate();
 };
 
+const migrateResearchInteractionsRenderedPromptText = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_interactions", "rendered_prompt_text")) {
+    db.exec("ALTER TABLE research_interactions ADD COLUMN rendered_prompt_text TEXT");
+  }
+  db.prepare(
+    `UPDATE research_interactions
+     SET rendered_prompt_text = ?
+     WHERE rendered_prompt_text IS NULL OR trim(rendered_prompt_text) = ''`,
+  ).run(LEGACY_RENDERED_PROMPT_TEXT);
+};
+
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));
 
@@ -272,6 +285,7 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
     db.exec(statement);
   }
   migrateResearchSubQuestionsSchema(db);
+  migrateResearchInteractionsRenderedPromptText(db);
   for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {
     db.exec(statement);
   }
@@ -345,6 +359,7 @@ export const mapInteractionRow = (row: {
   prompt_id: string;
   prompt_version: string;
   prompt_hash: string;
+  rendered_prompt_text: string | null;
   dom_ref: string | null;
   raw_response_text: string;
   raw_response_hash: string;
@@ -362,6 +377,7 @@ export const mapInteractionRow = (row: {
     promptId: row.prompt_id,
     promptVersion: row.prompt_version,
     promptHash: row.prompt_hash,
+    renderedPromptText: row.rendered_prompt_text ?? LEGACY_RENDERED_PROMPT_TEXT,
     domRef: row.dom_ref,
     rawResponseText: row.raw_response_text,
     rawResponseHash: row.raw_response_hash,

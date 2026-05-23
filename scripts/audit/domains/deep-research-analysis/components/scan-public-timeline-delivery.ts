@@ -29,23 +29,28 @@ const hasTimelineSnapshotBuilder = (sourceFile: SourceFile): boolean => {
 };
 
 export const inspectPublicTimelineDelivery = (input: {
-  publicFile: SourceFile | undefined;
+  queryFile: SourceFile | undefined;
+  contractFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
 }): void => {
-  if (!input.publicFile) return;
-  const repoPath = getRepoSourcePath(input.publicFile);
-  input.inspectedFiles.add(repoPath);
-  if (!hasOverviewPropertySignature(input.publicFile)) {
-    input.findings.push(createFinding({
-      checkId: "deep-research/public-timeline-overview-type",
-      lawId: input.lawId,
-      filePath: repoPath,
-      message: "DeepResearchTimelineSnapshot must expose overview for completed delivery counts.",
-    }));
+  if (input.contractFile) {
+    const contractPath = getRepoSourcePath(input.contractFile);
+    input.inspectedFiles.add(contractPath);
+    if (!hasOverviewPropertySignature(input.contractFile)) {
+      input.findings.push(createFinding({
+        checkId: "deep-research/public-timeline-overview-type",
+        lawId: input.lawId,
+        filePath: contractPath,
+        message: "DeepResearchTimelineSnapshot must expose overview for completed delivery counts.",
+      }));
+    }
   }
-  if (!hasTimelineSnapshotBuilder(input.publicFile)) {
+  if (!input.queryFile) return;
+  const repoPath = getRepoSourcePath(input.queryFile);
+  input.inspectedFiles.add(repoPath);
+  if (!hasTimelineSnapshotBuilder(input.queryFile)) {
     input.findings.push(createFinding({
       checkId: "deep-research/public-timeline-overview-builder",
       lawId: input.lawId,

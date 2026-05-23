@@ -1,26 +1,5 @@
 {
-  "generatedAt": "2026-05-23T17:51:32.679Z",
-  "itemCount": 2,
-  "items": [
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "active executable source file has 521 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 381 breaks function budget: physical line count 87 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-05-23T22:30:52.670Z",
+  "itemCount": 0,
+  "items": []
 }

@@ -4,7 +4,9 @@ import type { VideoDownloadAbilityGroup } from "../../capabilities/video-downloa
 import type {
   DeepResearchAnalysisStartInput,
   DeepResearchExportArtifactPayload,
+  DeepResearchHistorySnapshot,
   DeepResearchJobSnapshot,
+  DeepResearchReportViewModel,
   DeepResearchTimelineSnapshot,
 } from "../../plugins/deep-research-analysis/index.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
@@ -102,6 +104,13 @@ export type GrassEyeWorkbenchHandle = {
   getDeepResearchAnalysisJob: (
     jobId: string,
   ) => Promise<DeepResearchJobSnapshot | null>;
+  listDeepResearchAnalysisJobs: (input?: {
+    limit?: number;
+    status?: DeepResearchHistorySnapshot["jobs"][number]["status"];
+  }) => Promise<DeepResearchHistorySnapshot>;
+  getDeepResearchAnalysisReport: (
+    jobId: string,
+  ) => Promise<DeepResearchReportViewModel | null>;
   getLatestDeepResearchAnalysisJob: () => Promise<DeepResearchJobSnapshot | null>;
   getDeepResearchAnalysisTimeline: (
     jobId: string,

@@ -155,6 +155,7 @@ const completePersistSuccess = (input: {
     phase: input.stage,
     recordType: input.persistSummary.recordType,
     recordId: input.persistSummary.recordId,
+    ...(input.persistSummary.recordIds ? { recordIds: input.persistSummary.recordIds } : {}),
     count: input.persistSummary.count,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
     promptHash: input.promptHash,
@@ -170,6 +171,11 @@ const completePersistSuccess = (input: {
     preview: {
       recordType: input.persistSummary.recordType,
       recordId: input.persistSummary.recordId,
+      firstRecordId: input.persistSummary.recordIds?.[0] ?? input.persistSummary.recordId,
+      recordCount: String(input.persistSummary.count),
+      ...(input.persistSummary.recordIds && input.persistSummary.recordIds.length > 1
+        ? { recordIds: input.persistSummary.recordIds.join(",") }
+        : {}),
       ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
     },
   });
@@ -273,6 +279,7 @@ const continueParsePromptOutput = <TParsed>(
       providerKind: input.providerKind,
       prompt: input.prompt,
       promptHash: input.promptHash,
+      renderedPromptText: input.renderedPromptText,
       ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
       domRef: input.domRef,
       gatewayResult: input.gatewayResult,
@@ -375,6 +382,7 @@ const continuePersistPromptOutput = <TParsed>(
     providerKind: input.providerKind,
     prompt: input.prompt,
     promptHash: input.promptHash,
+    renderedPromptText: input.renderedPromptText,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
     domRef: input.domRef,
     gatewayResult: input.gatewayResult,

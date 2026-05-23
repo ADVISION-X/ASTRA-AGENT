@@ -887,6 +887,61 @@ pass-without-falsification
 
 ---
 
+### [GRASSEYE-DEEP-RESEARCH-014-V1] Report Reader UX 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-014-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast+db+acceptance",
+  "summary": "Deep Research APP must present completed jobs as a report history and report reader, not as a raw debug dashboard."
+}
+```
+
+#### 主权定义
+
+Deep Research APP must present completed jobs as a report history and report reader, not as a raw debug dashboard.
+
+The first screen of a selected completed report must prioritize the final conclusion, confidence, core reasons, strongest opposing arguments, and reverse conditions.
+
+The full 1+N+N+1 flow must be visible in user-readable order:
+
+```txt
+decomposition
+sub-question positive/falsification pairs
+conflict judgment
+final synthesis
+evidence/debug
+```
+
+Raw JSON, hashes, provider proofs, and export paths are debug/evidence metadata and must not dominate the default report reading view.
+
+Long prompt and response content must be collapsed behind More/Show controls by default.
+
+New research creation and completed report reading must be visually separated.
+
+#### 必须
+
+- 历史记录必须来自 persisted jobs，而不是 transient memory。
+- selected report reader 必须基于 persisted records 组装，不得要求前端自行拼 raw records。
+- decomposition 必须展示为问题树骨架。
+- 每个 subQuestion 必须成对展示 positive 与 falsification。
+- final synthesis 必须展示在 paired sections 之后。
+- evidence/debug 必须默认折叠。
+
+#### 禁止
+
+- latest-only 交付面。
+- raw result record 默认占据主阅读区。
+- export hash/path 抢占报告正文首屏。
+- 把 final report 拆成无主线字段堆。
+- new research form 与 completed report reader 混成同一默认主流程。
+
+---
+
 ## 4. 二元完成标准
 
 本 Job Flow 只允许二元运行判断：
@@ -985,3 +1040,42 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
 每一次证伪都绑定正向回答；
 最终报告不是凭空生成，而是由完整证据链生成。
 ```
+
+---
+
+## 8. 唯一人读全流程报告主权
+
+### [GRASSEYE-DEEP-RESEARCH-015-V1] Full Flow Human Report 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-015-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "db+artifact+hash+acceptance+ast",
+  "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted 1+N+N+1 flow with prompt, raw response, parsed summary, and evidence traceability."
+}
+```
+
+#### 必须
+
+- Deep Research 只允许一个人读报告：`final-report.md`。
+- `final-report.md` 必须完整展示 decomposition、每个 sub-question 的 positive / falsification、conflict matrix、final synthesis、以及 evidence index。
+- 每个阶段必须展示 prompt、AI raw response、parsed summary、以及 promptHash / rawResponseHash / domRef 等证据字段。
+- 报告必须基于 persisted records 构建，而不是只使用运行时临时对象。
+- `ResearchInteraction` 必须持久化真正发送给 AI 的 rendered prompt text。
+- 缺失、失败、review_required 的阶段必须显式显示，不得静默省略。
+
+#### 允许
+
+- `research-bundle.json` 与 `evidence-index.json` 作为机器证据保留。
+- 允许把 markdown 渲染拆成 owner-local support files，但不得形成第二人读报告。
+
+#### 禁止
+
+- 新增 `executive-report.md`、`full-report.md`、`trace-report.md`、`debug-report.md` 等第二人读报告。
+- 用 promptHash 代替 prompt 内容。
+- 把完整 prompt 或 raw response 只藏在 JSON，不进入 `final-report.md`。
+- 把 `final-report.md` 退化回只包含最终摘要的 summary-only 报告。

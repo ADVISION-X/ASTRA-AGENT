@@ -71,6 +71,7 @@ export const runDecompositionPhase = async (
       return {
         recordType: "sub-question",
         recordId: subQuestions[0] ? subQuestions[0].id : interaction.id,
+        recordIds: subQuestions.map((record) => record.id),
         count: subQuestions.length,
       };
     },

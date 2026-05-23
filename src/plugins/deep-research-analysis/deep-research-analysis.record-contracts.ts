@@ -27,6 +27,9 @@ const ResearchExportKindSchema = z.enum([
   "evidence-index.json",
 ]);
 
+export const LEGACY_RENDERED_PROMPT_TEXT =
+  "[legacy interaction did not persist rendered prompt text]";
+
 export const ResearchJobSchema = z.object({
   id: z.string().trim().min(1),
   userQuestion: DeepResearchInputSchema.shape.userQuestion,
@@ -60,6 +63,7 @@ export const ResearchInteractionSchema = z.object({
   promptId: z.string().trim().min(1),
   promptVersion: z.string().trim().min(1),
   promptHash: z.string().trim().min(1),
+  renderedPromptText: z.string().trim().min(1),
   domRef: z.string().trim().min(1).nullable().default(null),
   rawResponseText: z.string().trim().min(1),
   rawResponseHash: z.string().trim().min(1),

@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { stableJsonHash } from "../../lib/storage/hash.js";
+import { buildDeepResearchFullFlowReportMarkdown } from "./deep-research-analysis.export-markdown.js";
 import type {
   DeepResearchFinalReport,
 } from "./deep-research-analysis.result.js";
@@ -35,7 +36,8 @@ type DeepResearchExportArtifacts = {
 };
 
 type DeepResearchPersistedExportState = {
-  finalReportRecord: ResearchFinalReportRecord;
+  job: ReturnType<DeepResearchRecordStore["getJob"]> extends infer TJob | null ? TJob : never;
+  finalReportRecord: ResearchFinalReportRecord | null;
   interactions: ResearchInteraction[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
@@ -47,59 +49,11 @@ const buildTextHash = (value: string): string =>
 const buildExportDir = (dataDir: string, jobId: string): string =>
   path.join(dataDir, "deep-research-analysis", "exports", jobId);
 
-const buildMarkdownList = (items: readonly string[]): string =>
-  items.map((item) => `- ${item}`).join("\n");
-
-const buildConflictMatrixSection = (rows: DeepResearchFinalReport["conflictMatrix"]): string => {
-  const header = "| Sub-question | Positive claim | Falsification | Conflict | Evidence gap | Human review |\n| --- | --- | --- | --- | --- | --- |";
-  const body = rows.map((row) =>
-    `| ${row.subQuestionId} | ${row.positiveClaimSummary} | ${row.falsificationSummary} | ${row.conflictLevel} | ${row.evidenceGap} | ${row.needsHumanReview ? "yes" : "no"} |`,
-  ).join("\n");
-  return `${header}\n${body}`;
-};
-
-const buildFinalReportMarkdown = (input: {
-  finalReport: DeepResearchFinalReport;
-  finalPackage: DeepResearchFinalPackage;
-}): string => [
-  "# Deep Research Final Report",
-  "",
-  "## User Question",
-  input.finalPackage.userQuestion,
-  "",
-  "## Final Conclusion",
-  input.finalReport.executiveConclusion,
-  "",
-  `Confidence: ${input.finalReport.confidence}`,
-  "",
-  "## Positive Reasons",
-  buildMarkdownList(input.finalReport.positiveReasons),
-  "",
-  "## Strongest Opposing Arguments",
-  buildMarkdownList(input.finalReport.strongestOpposingArguments),
-  "",
-  "## Conflict Matrix",
-  buildConflictMatrixSection(input.finalReport.conflictMatrix),
-  "",
-  "## Evidence Gaps",
-  buildMarkdownList(input.finalReport.evidenceGaps),
-  "",
-  "## Reverse Conditions",
-  buildMarkdownList(input.finalReport.reverseConditions),
-  "",
-  "## Follow-up Signals",
-  buildMarkdownList(input.finalReport.followUpSignals),
-  "",
-  "## Limitations",
-  buildMarkdownList(input.finalReport.limitations),
-  "",
-].join("\n");
-
 const buildEvidenceIndexEntries = (input: {
   interactions: readonly ResearchInteraction[];
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalReportRecord: ResearchFinalReportRecord;
+  finalReportRecord: ResearchFinalReportRecord | null;
 }): DeepResearchEvidenceIndexEntry[] => {
   const entries: DeepResearchEvidenceIndexEntry[] = [];
   input.interactions.forEach((interaction) => {
@@ -122,7 +76,11 @@ const buildEvidenceIndexEntries = (input: {
         .forEach((record) => entries.push({ ...base, parsedRecordId: record.id }));
       return;
     }
-    if (interaction.phase === "final_synthesis" && input.finalReportRecord.interactionId === interaction.id) {
+    if (
+      interaction.phase === "final_synthesis"
+      && input.finalReportRecord
+      && input.finalReportRecord.interactionId === interaction.id
+    ) {
       entries.push({ ...base, parsedRecordId: input.finalReportRecord.id });
     }
   });
@@ -133,13 +91,14 @@ const loadPersistedExportState = (
   store: DeepResearchRecordStore,
   jobId: string,
 ): DeepResearchPersistedExportState => {
-  const finalReportRecord = store.getLatestFinalReport(jobId);
-  if (!finalReportRecord) {
-    throw new Error(`Deep research job ${jobId} has no persisted final report.`);
+  const job = store.getJob(jobId);
+  if (!job) {
+    throw new Error(`Deep research job ${jobId} was not found.`);
   }
 
   return {
-    finalReportRecord,
+    job,
+    finalReportRecord: store.getLatestFinalReport(jobId),
     interactions: store.listInteractions(jobId),
     subQuestions: store.listSubQuestions(jobId),
     answers: store.listAnswers({ jobId }),
@@ -184,15 +143,16 @@ export const exportDeepResearchArtifacts = (input: {
   mkdirSync(exportDir, { recursive: true });
   const persisted = loadPersistedExportState(input.store, input.jobId);
 
-  const finalReportMarkdownText = buildFinalReportMarkdown({
-    finalReport: input.finalReport,
+  const finalReportMarkdownText = buildDeepResearchFullFlowReportMarkdown({
     finalPackage: input.finalPackage,
+    finalReport: persisted.finalReportRecord?.report ?? input.finalReport,
+    persisted: persisted,
   });
   const finalReportArtifact = writeTextArtifact(path.join(exportDir, "final-report.md"), finalReportMarkdownText);
 
   const researchBundle = buildResearchBundle({
     finalPackage: input.finalPackage,
-    finalReport: input.finalReport,
+    finalReport: persisted.finalReportRecord?.report ?? input.finalReport,
   });
   const researchBundleArtifact = writeJsonArtifact(path.join(exportDir, "research-bundle.json"), researchBundle);
 

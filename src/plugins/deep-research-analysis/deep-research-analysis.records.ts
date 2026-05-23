@@ -149,6 +149,7 @@ export type DeepResearchRecordStore = {
     promptId: string;
     promptVersion: string;
     promptHash: string;
+    renderedPromptText: string;
     domRef?: string | null;
     rawResponseText: string;
     rawResponseHash: string;

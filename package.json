@@ -22,6 +22,8 @@
     "acceptance:facebook-log-coverage": "node --import tsx scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-failure-diagnosis.acceptance.ts",
     "acceptance:deep-research-decomposition-prompt": "node --import tsx scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
+    "acceptance:deep-research-report-export": "node --import tsx scripts/acceptance/deep-research-report-export.acceptance.ts",
+    "acceptance:deep-research-report-reader-ui": "node --import tsx scripts/acceptance/deep-research-report-reader-ui.acceptance.ts",
     "acceptance:deep-research-app-ui": "node --import tsx scripts/acceptance/deep-research-app-ui.acceptance.ts",
     "acceptance:video-download-telegram-web": "node --import tsx scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "dev:facebook-live-dom-probe": "node --import tsx scripts/acceptance/facebook-live-dom-probe.ts",

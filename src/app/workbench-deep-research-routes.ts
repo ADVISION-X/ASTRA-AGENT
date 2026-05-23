@@ -10,6 +10,14 @@ const DEEP_RESEARCH_PROVIDER_KINDS = [
   "gpt-web-chat",
 ] as const;
 
+const DEEP_RESEARCH_JOB_STATUSES = [
+  "queued",
+  "running",
+  "completed",
+  "review_required",
+  "failed",
+] as const;
+
 const DEEP_RESEARCH_EXPORT_KINDS = [
   "final-report.md",
   "research-bundle.json",
@@ -18,6 +26,7 @@ const DEEP_RESEARCH_EXPORT_KINDS = [
 
 type DeepResearchProviderKind = typeof DEEP_RESEARCH_PROVIDER_KINDS[number];
 type DeepResearchExportKind = typeof DEEP_RESEARCH_EXPORT_KINDS[number];
+type DeepResearchJobStatus = typeof DEEP_RESEARCH_JOB_STATUSES[number];
 
 type DeepResearchStartRequest = {
   userQuestion?: unknown;
@@ -57,6 +66,22 @@ const readJobId = (response: ServerResponse, url: URL): string | null => {
     return null;
   }
   return jobId;
+};
+
+const readHistoryLimit = (url: URL): number | undefined => {
+  const value = url.searchParams.get("limit");
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const readHistoryStatus = (value: string | null): DeepResearchJobStatus | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  return DEEP_RESEARCH_JOB_STATUSES.find((status) => status === value);
 };
 
 const readStartInput = (body: DeepResearchStartRequest) => {
@@ -138,6 +163,38 @@ const handleJobRequest = async (
   return true;
 };
 
+const handleHistoryRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const limit = readHistoryLimit(url);
+  const status = readHistoryStatus(url.searchParams.get("status"));
+  writeJson(response, 200, await workbench.listDeepResearchAnalysisJobs({
+    ...(typeof limit === "number" ? { limit } : {}),
+    ...(status ? { status } : {}),
+  }));
+  return true;
+};
+
+const handleReportRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const jobId = readJobId(response, url);
+  if (!jobId) {
+    return true;
+  }
+  const report = await workbench.getDeepResearchAnalysisReport(jobId);
+  if (!report) {
+    writeJson(response, 404, { error: "job_not_found" });
+    return true;
+  }
+  writeJson(response, 200, report);
+  return true;
+};
+
 const handleLatestRequest = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -204,6 +261,12 @@ export const handleDeepResearchRequest = async (
   }
   if (routeKey === "GET:/api/deep-research-analysis/job") {
     return handleJobRequest(response, workbench, url);
+  }
+  if (routeKey === "GET:/api/deep-research-analysis/history") {
+    return handleHistoryRequest(response, workbench, url);
+  }
+  if (routeKey === "GET:/api/deep-research-analysis/report") {
+    return handleReportRequest(response, workbench, url);
   }
   if (routeKey === "GET:/api/deep-research-analysis/latest") {
     return handleLatestRequest(response, workbench);

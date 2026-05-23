@@ -4,6 +4,13 @@ import { Project, SyntaxKind } from "ts-morph";
 import { renderWorkbenchHomePage } from "../../src/app/workbench-home-page.js";
 
 const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+const clientRuntimePaths = [
+  "src/app/workbench-deep-research-client.ts",
+  "src/app/workbench-deep-research-client-report-sections.ts",
+  "src/app/workbench-deep-research-client-shared.ts",
+  "src/app/workbench-deep-research-client-boot.ts",
+] as const;
+
 const read = (filePath: string): string => readFileSync(filePath, "utf8");
 const source = (filePath: string) => {
   const file = project.getSourceFile(filePath);
@@ -13,6 +20,10 @@ const source = (filePath: string) => {
 
 const assertText = (filePath: string, marker: string): void => {
   assert(read(filePath).includes(marker), `${filePath} must contain ${marker}.`);
+};
+
+const assertTextInAnyFile = (filePaths: readonly string[], marker: string): void => {
+  assert(filePaths.some((filePath) => read(filePath).includes(marker)), `${filePaths.join(", ")} must contain ${marker}.`);
 };
 
 const assertImport = (filePath: string, symbolName: string, moduleSuffix: string): void => {
@@ -57,9 +68,11 @@ assertText("src/app/workbench-deep-research-panel.ts", "name=\"userQuestion\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"language\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"providerKind\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"maxSubQuestions\"");
-assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-final-report");
-assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-evidence");
-assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-delivery");
+assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-new-toggle");
+assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-form-shell");
+assertText("src/app/workbench-deep-research-history-view.ts", "data-deep-research-history");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-final-card");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-evidence");
 assertImport(
   "src/app/create-workbench-server.ts",
   "handleDeepResearchRequest",
@@ -67,17 +80,20 @@ assertImport(
 );
 assertCall("src/app/create-workbench-server.ts", "handleDeepResearchRequest");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/start");
+assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/history");
+assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/report");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/timeline");
 assertText("src/lib/local-runtime/workbench-handle.ts", "startDeepResearchAnalysis");
+assertText("src/lib/local-runtime/workbench-handle.ts", "listDeepResearchAnalysisJobs");
+assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisReport");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisTimeline");
 assertText("src/lib/local-runtime/workbench.ts", "deepResearchAnalysisPublicFacade");
-assertText("src/app/workbench-deep-research-client.ts", "Full prompt");
-assertText("src/app/workbench-deep-research-client.ts", "AI response");
-assertText("src/app/workbench-deep-research-client.ts", "Parsed JSON");
-assertText("src/app/workbench-deep-research-client.ts", "<details>");
-assertText("src/app/workbench-deep-research-client.ts", "deriveDeepResearchOverview");
-assertText("src/app/workbench-deep-research-client.ts", "data-deep-research-export-ledger");
-assertText("src/plugins/deep-research-analysis/deep-research-analysis.public.ts", "overview: DeepResearchJobSnapshot[\"overview\"]");
+assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
+assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
+assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");
+assertTextInAnyFile(clientRuntimePaths, "refreshHistory");
+assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
+assertText("src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts", "buildTimelineSnapshot");
 assertWorkbenchInlineScriptCompiles();
 
 process.stdout.write("[ACCEPTANCE][deep-research-app-ui] PASS\n");

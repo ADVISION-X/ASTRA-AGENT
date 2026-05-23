@@ -165,9 +165,10 @@ const buildSharedStageInput = <TParsed>(
   recordHashes: input.recordHashes,
   jobId: input.jobId,
   providerKind: input.providerKind,
-  prompt: input.prompt,
-  promptHash: prepared.promptHash,
-  preview: prepared.preview,
+    prompt: input.prompt,
+    promptHash: prepared.promptHash,
+    renderedPromptText: input.renderedPromptText,
+    preview: prepared.preview,
   ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
 });
 
@@ -225,6 +226,7 @@ export const runPromptExchange = async <TParsed>(
     prompt: input.prompt,
     promptPackage: prepared.promptPackage,
     promptHash: prepared.promptHash,
+    renderedPromptText: input.renderedPromptText,
     preview: prepared.preview,
     stage: input.stages.capture,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),

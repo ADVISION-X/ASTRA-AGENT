@@ -197,11 +197,13 @@ export const logDeepResearchRecordPersisted = (input: {
   phase: DeepResearchPhase;
   recordType: string;
   recordId: string;
+  recordIds?: string[];
   count?: number;
   subQuestionId?: string;
   promptHash?: string;
   rawResponseHash?: string;
 }): void => {
+  const recordCount = input.count ?? input.recordIds?.length;
   emitDeepResearchEvent({
     logger: input.logger,
     traceContext: input.traceContext,
@@ -213,10 +215,15 @@ export const logDeepResearchRecordPersisted = (input: {
       ...(input.promptHash ? { promptHash: input.promptHash } : {}),
       ...(input.rawResponseHash ? { rawResponseHash: input.rawResponseHash } : {}),
     },
-    ...(input.count !== undefined ? { metrics: { count: input.count } } : {}),
+    ...(recordCount !== undefined ? { metrics: { recordCount } } : {}),
     preview: {
       recordType: input.recordType,
       recordId: input.recordId,
+      firstRecordId: input.recordIds?.[0] ?? input.recordId,
+      ...(recordCount !== undefined ? { recordCount: String(recordCount) } : {}),
+      ...(input.recordIds && input.recordIds.length > 1
+        ? { recordIds: input.recordIds.join(",") }
+        : {}),
       ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
     },
   });

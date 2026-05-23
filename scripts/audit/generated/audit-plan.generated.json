@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T17:51:28.050Z",
+  "generatedAt": "2026-05-23T22:30:47.695Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -143,7 +143,9 @@
         "GRASSEYE-DEEP-RESEARCH-010-V1",
         "GRASSEYE-DEEP-RESEARCH-011-V1",
         "GRASSEYE-DEEP-RESEARCH-012-V1",
-        "GRASSEYE-DEEP-RESEARCH-013-V1"
+        "GRASSEYE-DEEP-RESEARCH-013-V1",
+        "GRASSEYE-DEEP-RESEARCH-014-V1",
+        "GRASSEYE-DEEP-RESEARCH-015-V1"
       ],
       "clauseIds": [
         "primary"
@@ -152,12 +154,14 @@
         "acceptance+runtime-log+db+artifact",
         "ast+schema",
         "db+artifact+hash",
+        "db+artifact+hash+acceptance+ast",
         "db+schema",
         "dom+artifact+hash",
         "dom+parser+db",
         "dom+parser+db+runtime-log",
         "file+hash+db",
         "fs+ast",
+        "fs+ast+db+acceptance",
         "fs+db+hash",
         "parser+db+runtime-log",
         "runtime-log+audit"

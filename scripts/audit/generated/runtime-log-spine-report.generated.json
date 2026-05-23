@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-23T17:51:34.075Z",
+  "generatedAt": "2026-05-23T22:30:54.245Z",
   "status": "PASS",
-  "scannedFiles": 272,
+  "scannedFiles": 284,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -10,8 +10,14 @@
     "src/app/create-workbench-server.ts",
     "src/app/server.ts",
     "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-deep-research-client-boot.ts",
+    "src/app/workbench-deep-research-client-contracts.ts",
+    "src/app/workbench-deep-research-client-report-sections.ts",
+    "src/app/workbench-deep-research-client-shared.ts",
     "src/app/workbench-deep-research-client.ts",
+    "src/app/workbench-deep-research-history-view.ts",
     "src/app/workbench-deep-research-panel.ts",
+    "src/app/workbench-deep-research-report-view.ts",
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
@@ -203,6 +209,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
@@ -219,6 +227,10 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
@@ -294,7 +306,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 272,
+    "scannedFiles": 284,
     "emitCallCount": 12,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -305,7 +317,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 267,
+      "scannedFiles": 279,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -314,13 +326,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 223
+      "scannedFiles": 229
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 220,
+      "scannedFiles": 226,
       "metrics": {
         "emitCallCount": 2
       }
@@ -329,13 +341,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 220
+      "scannedFiles": 226
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 224,
+      "scannedFiles": 230,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -350,7 +362,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 224,
+      "scannedFiles": 230,
       "metrics": {
         "failureWithoutClassCount": 0
       }

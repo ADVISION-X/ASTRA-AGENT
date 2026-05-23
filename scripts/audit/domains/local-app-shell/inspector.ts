@@ -6,6 +6,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { inspectDeepResearchReportReaderUi } from "./components/scan-deep-research-report-reader-ui.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -150,54 +151,23 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
 const inspectDeepResearchAppSurface = (
   context: InspectorContext,
   findings: Finding[],
+  inspectedFiles: Set<string>,
   lawId: string,
   deliveryLawId: string,
 ): void => {
   const pageText = readRepoFile(pagePath);
-  const panelText = readRepoFile(deepResearchPanelPath);
-  const clientText = readRepoFile(deepResearchClientPath);
-  const routeText = readRepoFile(deepResearchRoutePath);
   requireImport({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", moduleSuffix: "./workbench-deep-research-panel.js", checkId: "local-app-shell/deep-research-ui-import" });
   requireImport({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", moduleSuffix: "./workbench-deep-research-routes.js", checkId: "local-app-shell/deep-research-route-import" });
   requireCall({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
   requireCall({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", checkId: "local-app-shell/deep-research-route-call" });
-  for (const marker of [
-    "data-job-card=\"deep-research\"",
-    "data-job-panel=\"deep-research\"",
-    "name=\"userQuestion\"",
-    "name=\"language\"",
-    "name=\"providerKind\"",
-    "name=\"maxSubQuestions\"",
-    "data-deep-research-final-report",
-    "data-deep-research-evidence",
-    "data-deep-research-delivery",
-  ]) {
-    requireMarker({ findings, lawId, filePath: marker.startsWith("data-job-card") ? pagePath : deepResearchPanelPath, text: `${pageText}\n${panelText}`, marker, checkId: "local-app-shell/deep-research-surface" });
-  }
-  for (const marker of [
-    "/api/deep-research-analysis/start",
-    "/api/deep-research-analysis/timeline",
-    "readJsonBody",
-    "writeJson",
-    "workbench.startDeepResearchAnalysis",
-    "workbench.getDeepResearchAnalysisTimeline",
-  ]) {
-    requireMarker({ findings, lawId, filePath: deepResearchRoutePath, text: routeText, marker, checkId: "local-app-shell/deep-research-route" });
-  }
-  for (const marker of ["Full prompt", "AI response", "Parsed JSON", "<details>"]) {
-    requireMarker({ findings, lawId, filePath: deepResearchClientPath, text: clientText, marker, checkId: "local-app-shell/deep-research-collapsed-client" });
-  }
-  for (const marker of [
-    "deriveDeepResearchOverview",
-    "data-deep-research-export-ledger",
-    "Raw result record",
-    "finalReport",
-    "subQuestions.length",
-    "answers.filter",
-    "exports.length",
-  ]) {
-    requireMarker({ findings, lawId: deliveryLawId, filePath: deepResearchClientPath, text: clientText, marker, checkId: "local-app-shell/deep-research-delivery-surface" });
-  }
+  requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-job-card=\"deep-research\"", checkId: "local-app-shell/deep-research-surface" });
+  inspectDeepResearchReportReaderUi({
+    context,
+    findings,
+    inspectedFiles,
+    inputLawId: lawId,
+    deliveryLawId,
+  });
 };
 
 const inspectDeepResearchAppBoundary = (
@@ -345,11 +315,23 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-004-V1");
   const deliveryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-005-V1");
   const findings: Finding[] = [];
+  const inspectedFiles = new Set<string>([
+    pagePath,
+    clientPath,
+    videoDownloadClientPath,
+    videoDownloadRoutePath,
+    deepResearchPanelPath,
+    deepResearchClientPath,
+    deepResearchRoutePath,
+    stylesPath,
+    serverPath,
+    inspectorPath,
+  ]);
 
   inspectAstProjectAccess(context, findings, boundaryLawId);
   inspectRootSurface(findings, surfaceLawId);
   inspectJobInputs(findings, inputLawId);
-  inspectDeepResearchAppSurface(context, findings, inputLawId, deliveryLawId);
+  inspectDeepResearchAppSurface(context, findings, inspectedFiles, inputLawId, deliveryLawId);
   inspectStatusWindow(findings, statusLawId);
   inspectForbiddenPageTerms(findings, boundaryLawId);
   inspectDeepResearchAppBoundary(context, findings, boundaryLawId);
@@ -360,6 +342,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [pagePath, clientPath, videoDownloadClientPath, videoDownloadRoutePath, deepResearchPanelPath, deepResearchClientPath, deepResearchRoutePath, stylesPath, serverPath, inspectorPath],
+    inspectedFiles: [...inspectedFiles].sort(),
   };
 };

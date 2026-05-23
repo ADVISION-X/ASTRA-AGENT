@@ -2,8 +2,16 @@ import { existsSync, readFileSync } from "node:fs";
 
 import {
   Node,
+  Project,
   SyntaxKind,
+  type ExportDeclaration,
+  type Identifier,
+  type PropertyAccessExpression,
   type SourceFile,
+  type StringLiteral,
+  type Symbol,
+  type TypeChecker,
+  type VariableDeclaration,
 } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
@@ -15,6 +23,20 @@ const hasStringLiteral = (sourceFile: SourceFile, value: string): boolean =>
   sourceFile
     .getDescendantsOfKind(SyntaxKind.StringLiteral)
     .some((literal) => literal.getLiteralValue() === value);
+
+const countAstCoverageNodes = (project: Project, sourceFile: SourceFile): number => {
+  const checker: TypeChecker = project.getTypeChecker();
+  const variables: VariableDeclaration[] = sourceFile.getVariableDeclarations();
+  const calls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
+  const properties: PropertyAccessExpression[] = sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression);
+  const strings: StringLiteral[] = sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral);
+  const identifiers: Identifier[] = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
+  const exports: ExportDeclaration[] = sourceFile.getExportDeclarations();
+  const resolvedSymbols: Symbol[] = identifiers
+    .map((identifier) => checker.getSymbolAtLocation(identifier))
+    .filter((symbol): symbol is Symbol => Boolean(symbol));
+  return variables.length + calls.length + properties.length + strings.length + identifiers.length + exports.length + resolvedSymbols.length;
+};
 
 const addMissingSymbolFindings = (input: {
   sourceFile: SourceFile;
@@ -220,7 +242,6 @@ export const inspectSmokeAcceptance = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-  hasAstCoverage: boolean;
 }): void => {
   const smokePath = "scripts/acceptance/deep-research-analysis-smoke.ts";
   const packagePath = "package.json";
@@ -270,7 +291,7 @@ export const inspectSmokeAcceptance = (input: {
     smokePath,
   });
   inspectSmokeAstCoverage({
-    hasAstCoverage: input.hasAstCoverage,
+    hasAstCoverage: countAstCoverageNodes(input.smokeFile.getProject(), input.smokeFile) > 0,
     findings: input.findings,
     lawId: input.lawId,
     smokePath,

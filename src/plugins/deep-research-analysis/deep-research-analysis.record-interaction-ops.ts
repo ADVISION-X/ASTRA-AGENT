@@ -20,6 +20,8 @@ import {
 
 type DeepResearchDatabaseHandle = ReturnType<typeof createDeepResearchDatabase>;
 
+const renderedPromptTextColumn = "rendered_prompt_text";
+
 export const createInteraction = (
   db: DeepResearchDatabaseHandle,
   input: {
@@ -29,6 +31,7 @@ export const createInteraction = (
     promptId: string;
     promptVersion: string;
     promptHash: string;
+    renderedPromptText: string;
     domRef?: string | null;
     rawResponseText: string;
     rawResponseHash: string;
@@ -43,9 +46,9 @@ export const createInteraction = (
   db.prepare(
     `INSERT INTO research_interactions (
       id, job_id, phase, sub_question_id, prompt_id, prompt_version, prompt_hash,
-      dom_ref, raw_response_text, raw_response_hash, normalized_text, parse_status,
+      ${renderedPromptTextColumn}, dom_ref, raw_response_text, raw_response_hash, normalized_text, parse_status,
       provider_kind, provider_proof_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.jobId,
@@ -54,6 +57,7 @@ export const createInteraction = (
     input.promptId,
     input.promptVersion,
     input.promptHash,
+    input.renderedPromptText,
     input.domRef ?? null,
     input.rawResponseText,
     input.rawResponseHash,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T17:51:34.462Z",
+  "generatedAt": "2026-05-23T22:30:54.678Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -12,15 +12,20 @@
   "status": "PASS",
   "findings": [],
   "inspectedFiles": [
-    "src/app/workbench-home-page.ts",
-    "src/app/workbench-home-client.ts",
-    "src/app/workbench-video-download-client.ts",
-    "src/app/workbench-video-download-routes.ts",
-    "src/app/workbench-deep-research-panel.ts",
-    "src/app/workbench-deep-research-client.ts",
-    "src/app/workbench-deep-research-routes.ts",
-    "src/app/workbench-home-styles.ts",
+    "scripts/audit/domains/local-app-shell/inspector.ts",
     "src/app/create-workbench-server.ts",
-    "scripts/audit/domains/local-app-shell/inspector.ts"
+    "src/app/workbench-deep-research-client-boot.ts",
+    "src/app/workbench-deep-research-client-report-sections.ts",
+    "src/app/workbench-deep-research-client-shared.ts",
+    "src/app/workbench-deep-research-client.ts",
+    "src/app/workbench-deep-research-history-view.ts",
+    "src/app/workbench-deep-research-panel.ts",
+    "src/app/workbench-deep-research-report-view.ts",
+    "src/app/workbench-deep-research-routes.ts",
+    "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-styles.ts",
+    "src/app/workbench-video-download-client.ts",
+    "src/app/workbench-video-download-routes.ts"
   ]
 }

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-23T17:51:45.264Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-23T22:31:07.172Z",
+  "status": "PASS",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,8 +8,7 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "FAIL",
-      "error": "One or more audit domains reported findings."
+      "status": "PASS"
     },
     {
       "name": "typecheck",
@@ -25,6 +24,14 @@
     },
     {
       "name": "deep-research-analysis-smoke",
+      "status": "PASS"
+    },
+    {
+      "name": "deep-research-report-export",
+      "status": "PASS"
+    },
+    {
+      "name": "deep-research-report-reader-ui",
       "status": "PASS"
     },
     {
@@ -58,8 +65,8 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "FAIL",
-      "findingCount": 3,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
