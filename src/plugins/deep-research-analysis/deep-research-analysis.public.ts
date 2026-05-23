@@ -75,6 +75,7 @@ export type DeepResearchJobSnapshot = {
 
 export type DeepResearchTimelineSnapshot = {
   job: ResearchJob;
+  overview: DeepResearchJobSnapshot["overview"];
   timeline: DeepResearchTimelineEntry[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
@@ -392,6 +393,14 @@ const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTime
     });
     return {
       job,
+      overview: buildJobSnapshot({
+        job,
+        interactions,
+        subQuestions,
+        answers,
+        finalReport: finalReportRecord?.report ?? null,
+        exports,
+      }).overview,
       timeline,
       subQuestions,
       answers,

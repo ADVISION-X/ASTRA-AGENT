@@ -369,6 +369,7 @@ type DeepResearchAuditFiles = {
   promptFile: SourceFile | undefined;
   parserFile: SourceFile | undefined;
   flowFile: SourceFile | undefined;
+  publicFile: SourceFile | undefined;
   regressionFile: SourceFile | undefined;
   promptsFile: SourceFile | undefined;
   qualityFile: SourceFile | undefined;
@@ -443,6 +444,26 @@ const inspectDeepResearchStaticRules = (input: {
       ? countAstCoverageNodes(input.files.smokeFile.getProject(), input.files.smokeFile) > 0
       : false,
   });
+  if (input.files.publicFile) {
+    const publicText = input.files.publicFile.getFullText();
+    for (const marker of [
+      "overview: DeepResearchJobSnapshot[\"overview\"]",
+      "buildTimelineSnapshot",
+      "buildJobSnapshot({",
+      "timeline",
+      "subQuestions",
+      "answers",
+      "exports",
+    ]) {
+      if (publicText.includes(marker)) continue;
+      input.findings.push(createFinding({
+        checkId: "deep-research/public-timeline-delivery-overview",
+        lawId: input.lawId,
+        filePath: getRepoSourcePath(input.files.publicFile),
+        message: `Deep Research public timeline snapshot must expose completed delivery marker ${marker}.`,
+      }));
+    }
+  }
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
@@ -459,6 +480,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     promptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
     parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts"),
     flowFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts"),
+    publicFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public.ts"),
     regressionFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"),
     promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
     qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),

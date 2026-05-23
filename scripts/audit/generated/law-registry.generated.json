@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T15:54:36.748Z",
+  "generatedAt": "2026-05-23T17:51:28.050Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1515,6 +1515,28 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
       "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-app-shell",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Completed workbench jobs must surface durable deliverables, persisted counts, export references, and evidence references as the primary result view instead of raw JSON alone.",
+      "appliesTo": [
+        "src/app/**",
+        "src/lib/local-runtime/**"
+      ],
+      "forbidden": [
+        "Completed result visible only as raw JSON.",
+        "UI showing zero persisted record counts when timeline records, answers, or exports exist.",
+        "Final report hidden behind raw record inspection only.",
+        "Export artifacts hidden from the primary delivery surface.",
+        "Raw JSON replacing final report, export refs, or evidence refs."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",

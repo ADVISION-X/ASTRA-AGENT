@@ -35,6 +35,7 @@ textarea {
 .research-progress,
 .research-summary-grid,
 .research-timeline,
+.research-delivery,
 .research-final-report,
 .research-evidence-table {
   max-width: 980px;
@@ -47,6 +48,7 @@ textarea {
 }
 .research-metric,
 .research-step,
+.research-delivery-card,
 .research-final-section {
   border: 1px solid var(--line);
   background: var(--panel);
@@ -130,6 +132,59 @@ textarea {
   display: grid;
   gap: 10px;
 }
+.research-delivery-card {
+  display: grid;
+  gap: 12px;
+  border-color: #cbd8d1;
+}
+.research-delivery-kicker {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.research-delivery-card h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.research-delivery-grid,
+.research-delivery-sections,
+.research-export-ledger,
+.research-question-list {
+  display: grid;
+  gap: 8px;
+}
+.research-delivery-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.research-export-item,
+.research-question-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+.research-export-item div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.research-export-item code {
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.research-question-item p {
+  margin-top: 4px;
+  color: var(--muted);
+}
 .research-evidence-table table {
   width: 100%;
   border-collapse: collapse;
@@ -151,6 +206,7 @@ textarea {
   .research-control,
   .research-overview,
   .research-summary-grid,
+  .research-delivery-grid,
   .research-progress {
     grid-template-columns: 1fr;
   }

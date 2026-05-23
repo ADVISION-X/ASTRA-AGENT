@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-23T15:54:36.748Z",
+  "generatedAt": "2026-05-23T17:51:28.050Z",
   "summary": {
-    "activeLawCount": 117,
-    "coveredLawCount": 117,
+    "activeLawCount": 118,
+    "coveredLawCount": 118,
     "coveragePercent": 100
   },
   "coverage": [
@@ -918,6 +918,16 @@
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "capabilityDomain": "local-app-shell",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
       "capabilityDomain": "local-app-shell",
       "clauses": [
         {

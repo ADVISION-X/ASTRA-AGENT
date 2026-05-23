@@ -1,4 +1,4 @@
-generatedAt: "2026-05-23T15:54:36.748Z"
+generatedAt: "2026-05-23T17:51:28.050Z"
 rows:
   - capabilityDomain: "architecture-boundary"
     manifestPath: "scripts/audit/domains/architecture-boundary/manifest.json"
@@ -128,6 +128,7 @@ rows:
       - "APEX-LOCAL-APP-SHELL-002-V1"
       - "APEX-LOCAL-APP-SHELL-003-V1"
       - "APEX-LOCAL-APP-SHELL-004-V1"
+      - "APEX-LOCAL-APP-SHELL-005-V1"
   - capabilityDomain: "runtime-log-spine"
     manifestPath: "scripts/audit/domains/runtime-log-spine/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/runtime-log-spine/inspector.ts"

@@ -16,6 +16,7 @@ const WORKBENCH_DEEP_RESEARCH_CLIENT = `
     const node = qs(selector);
     if (node) node.innerHTML = html;
   };
+  const listValue = (value) => Array.isArray(value) ? value.filter(Boolean).join(" · ") : value;
   const phaseLabel = (entry) => {
     const prefix = entry.subQuestionId ? entry.subQuestionId + " " : "";
     return prefix + String(entry.phase || "").replace("_", " ").toUpperCase();
@@ -27,30 +28,96 @@ const WORKBENCH_DEEP_RESEARCH_CLIENT = `
     </details>\`;
   const renderMetric = (label, value) => \`
     <div class="research-metric"><b>\${escapeText(value ?? "-")}</b><span class="muted">\${escapeText(label)}</span></div>\`;
+  const deriveDeepResearchOverview = (payload) => {
+    const overview = payload?.overview || {};
+    const answers = payload?.answers || [];
+    const timeline = payload?.timeline || [];
+    const exports = payload?.exports || [];
+    const subQuestions = payload?.subQuestions || [];
+    return {
+      currentPhase: overview.currentPhase || payload?.job?.phase || "-",
+      interactionCount: overview.interactionCount ?? timeline.length,
+      subQuestionCount: overview.subQuestionCount ?? subQuestions.length,
+      positiveCount: overview.positiveCount ?? answers.filter((record) => record.answerKind === "positive").length,
+      falsificationCount: overview.falsificationCount ?? answers.filter((record) => record.answerKind === "falsification").length,
+      exportCount: overview.exportCount ?? exports.length,
+    };
+  };
+  const getFinalReportTitle = (report) =>
+    report?.finalJudgment || report?.executiveConclusion || report?.executiveSummary || "Final report is available.";
   const renderDeepResearchOverview = (payload) => {
     const job = payload?.job || {};
-    const overview = payload?.overview || {};
+    const overview = deriveDeepResearchOverview(payload);
     setResearchHtml("[data-deep-research-overview]", [
       renderMetric("status", job.status),
       renderMetric("phase", job.phase || overview.currentPhase),
-      renderMetric("interactions", overview.interactionCount || 0),
-      renderMetric("exports", overview.exportCount || 0),
+      renderMetric("interactions", overview.interactionCount),
+      renderMetric("exports", overview.exportCount),
     ].join(""));
     setResearchHtml("[data-deep-research-summary]", [
-      renderMetric("sub questions", overview.subQuestionCount || 0),
-      renderMetric("positive", overview.positiveCount || 0),
-      renderMetric("falsification", overview.falsificationCount || 0),
+      renderMetric("sub questions", overview.subQuestionCount),
+      renderMetric("positive", overview.positiveCount),
+      renderMetric("falsification", overview.falsificationCount),
       renderMetric("reason", job.failureReason || job.reviewReason || "-"),
     ].join(""));
-    renderLedger({ record: { ...job, reason: job.failureReason || job.reviewReason || "-" } });
+    renderLedger({ record: { ...job, reason: job.failureReason || job.reviewReason || "-", evidence: overview.exportCount ? "export artifacts recorded" : "-" } });
   };
   const renderDeepResearchProgress = (payload) => {
-    const phase = payload?.job?.phase || payload?.overview?.currentPhase || "";
-    const stages = ["Intake", "Decompose", "Positive", "Falsify", "Final", "Export"];
-    setResearchHtml("[data-deep-research-progress]", stages.map((stage) => {
-      const active = phase.toLowerCase().includes(stage.toLowerCase().slice(0, 6));
-      return \`<span class="\${active ? "active" : ""}">\${stage}</span>\`;
+    const phase = String(payload?.job?.phase || payload?.overview?.currentPhase || "");
+    const completed = payload?.job?.status === "completed";
+    const stages = [
+      ["Intake", "INTAKE"],
+      ["Decompose", "DECOMPOSE"],
+      ["Positive", "POSITIVE"],
+      ["Falsify", "FALSIFY"],
+      ["Final", "FINAL"],
+      ["Export", "EXPORT"],
+    ];
+    setResearchHtml("[data-deep-research-progress]", stages.map(([label, key]) => {
+      const active = completed || phase.toUpperCase().includes(key);
+      return \`<span class="\${active ? "active" : ""}">\${label}</span>\`;
     }).join(""));
+  };
+  const renderExportLedger = (exports) => \`
+    <div class="research-export-ledger" data-deep-research-export-ledger>
+      \${exports.length ? exports.map((record) => \`
+        <article class="research-export-item">
+          <div><b>\${escapeText(record.exportKind)}</b><span class="muted">\${escapeText(record.createdAt || "")}</span></div>
+          <code>\${escapeText(record.fileHash || "-")}</code>
+          <span class="muted">\${escapeText(record.filePath || "-")}</span>
+          <button class="btn secondary" type="button" data-deep-research-export="\${escapeText(record.exportKind)}">Open artifact</button>
+        </article>\`).join("") : "<p class=\\"muted\\">No export artifact recorded yet.</p>"}
+    </div>\`;
+  const renderDeepResearchDelivery = (payload) => {
+    const job = payload?.job || {};
+    const report = payload?.finalReport;
+    const overview = deriveDeepResearchOverview(payload);
+    const exports = payload?.exports || [];
+    const statusClass = job.status === "completed" ? "ok" : job.status === "failed" ? "bad" : job.status === "review_required" ? "warn" : "";
+    setResearchHtml("[data-deep-research-delivery]", \`
+      <section class="research-delivery-card">
+        <div class="research-delivery-kicker">
+          <span class="\${statusClass}">\${escapeText(job.status || "-")}</span>
+          <span class="muted">\${escapeText(job.id || deepResearchState.jobId || "-")}</span>
+        </div>
+        <h2>\${escapeText(report ? getFinalReportTitle(report) : "No final report persisted yet.")}</h2>
+        <div class="research-delivery-grid">
+          \${renderMetric("sub questions", overview.subQuestionCount)}
+          \${renderMetric("positive answers", overview.positiveCount)}
+          \${renderMetric("falsification answers", overview.falsificationCount)}
+          \${renderMetric("export files", overview.exportCount)}
+        </div>
+        \${report ? \`
+          <div class="research-delivery-sections">
+            \${section("Confidence", report.confidence || report.confidenceLevel)}
+            \${section("Evidence Gaps", report.evidenceGaps)}
+            \${section("Reverse Conditions", report.reverseConditions)}
+            \${section("Limitations", report.limitations)}
+          </div>
+        \` : ""}
+        \${renderExportLedger(exports)}
+        \${renderRawDetails("Raw result record", researchJson(payload), "raw-json-pre")}
+      </section>\`);
   };
   const renderTimelineItem = (entry) => \`
     <article class="research-step">
@@ -61,8 +128,10 @@ const WORKBENCH_DEEP_RESEARCH_CLIENT = `
         <span class="hash-chip">response sha256:\${escapeText(entry.rawResponseHash || "-")}</span>
       </header>
       <p>\${escapeText(entry.parsedSummary || "-")}</p>
-      <button class="btn secondary" type="button" data-copy-text="\${escapeText(entry.promptText || "")}">Copy prompt</button>
-      <button class="btn secondary" type="button" data-copy-text="\${escapeText(entry.rawResponseText || "")}">Copy response</button>
+      <div class="actions">
+        <button class="btn secondary" type="button" data-copy-text="\${escapeText(entry.promptText || "")}">Copy prompt</button>
+        <button class="btn secondary" type="button" data-copy-text="\${escapeText(entry.rawResponseText || "")}">Copy response</button>
+      </div>
       \${renderRawDetails("Full prompt", entry.promptText || "", "prompt-pre")}
       \${renderRawDetails("AI response", entry.rawResponseText || "", "response-pre")}
       \${renderRawDetails("Parsed JSON", researchJson(entry.parsedJson), "raw-json-pre")}
@@ -77,7 +146,7 @@ const WORKBENCH_DEEP_RESEARCH_CLIENT = `
   const section = (title, value) => \`
     <section class="research-final-section">
       <h3>\${escapeText(title)}</h3>
-      <p>\${escapeText(Array.isArray(value) ? value.join(" | ") : value || "-")}</p>
+      <p>\${escapeText(listValue(value) || "-")}</p>
     </section>\`;
   const renderDeepResearchFinalReport = (payload) => {
     const report = payload?.finalReport;
@@ -97,11 +166,7 @@ const WORKBENCH_DEEP_RESEARCH_CLIENT = `
       section("Reverse Conditions", report.reverseConditions),
       section("Follow-up Signals", report.followUpSignals),
       section("Limitations", report.limitations),
-      \`<div class="actions">
-        <button class="btn secondary" type="button" data-deep-research-export="final-report.md">Download final-report.md</button>
-        <button class="btn secondary" type="button" data-deep-research-export="research-bundle.json">Download research-bundle.json</button>
-        <button class="btn secondary" type="button" data-deep-research-export="evidence-index.json">Download evidence-index.json</button>
-      </div>\`,
+      renderExportLedger(payload.exports || []),
       renderRawDetails("View raw final report JSON", researchJson(report), "raw-json-pre"),
     ].join(""));
     deepResearchState.jobId = jobId;
@@ -122,12 +187,27 @@ const WORKBENCH_DEEP_RESEARCH_CLIENT = `
       <table><thead><tr><th>interactionId</th><th>phase</th><th>subQuestionId</th><th>promptHash</th><th>rawResponseHash</th><th>parsedRecordId</th><th>domRef</th><th>createdAt</th></tr></thead>
       <tbody>\${rows.join("") || "<tr><td colspan=\\"8\\">No evidence yet.</td></tr>"}</tbody></table>\`);
   };
+  const renderSubQuestionSummary = (payload) => {
+    const subQuestions = payload?.subQuestions || [];
+    if (!subQuestions.length) return;
+    setResearchHtml("[data-research-view='overview']", \`
+      <div class="research-summary-grid" data-deep-research-summary>\${qs("[data-deep-research-summary]")?.innerHTML || ""}</div>
+      <div class="research-question-list">
+        \${subQuestions.map((record) => \`
+          <article class="research-question-item">
+            <b>Q\${escapeText(record.ordinal + 1)} · \${escapeText(record.question.title || record.modelQuestionId)}</b>
+            <p>\${escapeText(record.question.questionText)}</p>
+          </article>\`).join("")}
+      </div>\`);
+  };
   const renderDeepResearchPayload = (payload) => {
     renderDeepResearchOverview(payload);
     renderDeepResearchProgress(payload);
+    renderDeepResearchDelivery(payload);
     renderDeepResearchTimeline(payload);
     renderDeepResearchFinalReport(payload);
     renderDeepResearchEvidence(payload);
+    renderSubQuestionSummary(payload);
   };
   const stopDeepResearchPolling = () => {
     if (deepResearchState.poll) clearInterval(deepResearchState.poll);

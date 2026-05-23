@@ -44,6 +44,7 @@ Deep Research Analysis
 DOM 读取是可靠性主线。
 数据库是记忆主线。
 最终报告是价值体现。
+Workbench 交付面是已知完成信息的查看入口。
 ```
 
 ---
@@ -156,6 +157,51 @@ AI gateway 是运输层，只负责发送、等待、读取 raw response、落 r
 Deep Research 调用 AI gateway 时必须使用 raw-only capture，`expectedOutputSchemaRef` 必须为 `null`。  
 `promptContractId` 只能作为合同标识和审计记录保留，不得作为 gateway 阻断解析条件。  
 只要 provider 返回了 raw response，CAPTURE 阶段必须完成；JSON 语法错误、字段缺失、schema 不合格必须进入对应 PARSE 阶段处理。
+
+### 3.3 Workbench 展示契约
+
+Workbench 展示只消费 Deep Research public facade 返回的 persisted snapshot / timeline / export artifact，不读取插件私有文件，不重新解析 raw AI response。
+
+`/api/deep-research-analysis/timeline` 必须足够支撑完成态展示：
+
+```txt
+job
+overview.currentPhase
+overview.interactionCount
+overview.subQuestionCount
+overview.positiveCount
+overview.falsificationCount
+overview.exportCount
+timeline[]
+subQuestions[]
+answers[]
+conflictMatrix[]
+finalReport
+exports[]
+```
+
+完成态首屏必须把以下内容置于 raw JSON 之前：
+
+```txt
+final report headline
+confidence
+evidence gaps
+reverse conditions
+limitations
+subQuestion / positive / falsification / export counts
+export refs and hashes
+timeline evidence hashes
+```
+
+禁止：
+
+```txt
+completed 但 UI 统计显示 0
+只展示 raw result record
+final report 只能从 raw JSON 找
+exports 成功但页面不列出 export refs
+timeline 有 records 但 overview 缺失导致假空态
+```
 
 ---
 

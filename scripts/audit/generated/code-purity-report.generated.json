@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T15:54:41.265Z",
+  "generatedAt": "2026-05-23T17:51:32.680Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -21,8 +21,35 @@
     "APEX-CODE-PURITY-016-V1",
     "APEX-CODE-PURITY-017-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts has 521 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts has an over-line function near line 381.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/audit-anti-evasion",
+      "lawId": "APEX-CODE-PURITY-013-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts uses text-search judgment publicText.includes(marker) on ts-morph source text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/deep-research-analysis-raw-capture-boundary.ts",

@@ -151,6 +151,7 @@ const inspectDeepResearchAppSurface = (
   context: InspectorContext,
   findings: Finding[],
   lawId: string,
+  deliveryLawId: string,
 ): void => {
   const pageText = readRepoFile(pagePath);
   const panelText = readRepoFile(deepResearchPanelPath);
@@ -169,6 +170,7 @@ const inspectDeepResearchAppSurface = (
     "name=\"maxSubQuestions\"",
     "data-deep-research-final-report",
     "data-deep-research-evidence",
+    "data-deep-research-delivery",
   ]) {
     requireMarker({ findings, lawId, filePath: marker.startsWith("data-job-card") ? pagePath : deepResearchPanelPath, text: `${pageText}\n${panelText}`, marker, checkId: "local-app-shell/deep-research-surface" });
   }
@@ -184,6 +186,17 @@ const inspectDeepResearchAppSurface = (
   }
   for (const marker of ["Full prompt", "AI response", "Parsed JSON", "<details>"]) {
     requireMarker({ findings, lawId, filePath: deepResearchClientPath, text: clientText, marker, checkId: "local-app-shell/deep-research-collapsed-client" });
+  }
+  for (const marker of [
+    "deriveDeepResearchOverview",
+    "data-deep-research-export-ledger",
+    "Raw result record",
+    "finalReport",
+    "subQuestions.length",
+    "answers.filter",
+    "exports.length",
+  ]) {
+    requireMarker({ findings, lawId: deliveryLawId, filePath: deepResearchClientPath, text: clientText, marker, checkId: "local-app-shell/deep-research-delivery-surface" });
   }
 };
 
@@ -330,12 +343,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const inputLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-002-V1");
   const statusLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-003-V1");
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-004-V1");
+  const deliveryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-005-V1");
   const findings: Finding[] = [];
 
   inspectAstProjectAccess(context, findings, boundaryLawId);
   inspectRootSurface(findings, surfaceLawId);
   inspectJobInputs(findings, inputLawId);
-  inspectDeepResearchAppSurface(context, findings, inputLawId);
+  inspectDeepResearchAppSurface(context, findings, inputLawId, deliveryLawId);
   inspectStatusWindow(findings, statusLawId);
   inspectForbiddenPageTerms(findings, boundaryLawId);
   inspectDeepResearchAppBoundary(context, findings, boundaryLawId);

@@ -29,6 +29,8 @@ health / mode
 
 底部可以显示本地活动列表，但只能作为 display channel，不能替代 Runtime Log Spine 或 evidence store。
 
+完成态结果展示是首屏主交付面的一部分。Job 已完成时，中央区域不得只显示输入表单、空统计或 raw JSON；必须把持久化的最终交付、记录计数、导出文件和证据引用放在 raw 调试信息之前。
+
 ## 当前法门入口
 
 当前页面可暴露：
@@ -36,6 +38,28 @@ health / mode
 - Amazon invoice upload：第一成熟 job flow。
 - Facebook product video mining：独立 job flow，不得塞进 Amazon 表单。
 - Video download skill：受治理的视频下载能力入口；它不是独立 job-flow 主权，也不是第二运行时。
+
+## Deep Research Analysis 交付面
+
+Deep Research Analysis 是独立 job flow。页面只负责展示它的输入、状态和持久化结果，不拥有研究阶段顺序、prompt、parser、最终报告生成或导出算法。
+
+完成态必须显示：
+
+- job status / phase / jobId。
+- final report 主结论、置信度、证据缺口、反转条件和 limitations。
+- persisted subQuestions / positive answers / falsification answers / exports 计数。
+- `final-report.md`、`research-bundle.json`、`evidence-index.json` 的 export refs、file hash、file path。
+- timeline evidence：interactionId、phase、promptHash、rawResponseHash、parsedRecordIds、domRef。
+
+禁止：
+
+- completed 后主区域仍然显示 0 sub questions / 0 answers / 0 exports，而 records 或 exports 已经存在。
+- 把 raw result JSON 作为唯一可见交付物。
+- 把 final report 藏在 raw JSON 或右侧账本里。
+- 隐藏 export artifact refs。
+- 页面重新实现 Deep Research prompt、parser、conflict matrix 或导出逻辑。
+
+Raw JSON 只能作为折叠审计视图存在，用于排障，不得替代最终报告、export refs 或 evidence refs。
 
 ## Amazon 输入面
 
@@ -166,6 +190,7 @@ local-app-shell owner inspector 检查：
 - Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start，以及 Telegram Web 授权页边界提示。
 - Video Download route 是否存在 `/api/video-download/start`，且 route 必须经 mediator + job flow 后再调用能力组，页面只展示真实 result 状态。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
+- Deep Research completed delivery surface 是否展示 final report、真实 persisted counts、export refs、evidence hashes，且 raw JSON 只作为折叠审计视图。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。
 - `src/lib/local-runtime/**` 是否只通过 plugin / ability public facade 导入 job 与能力。

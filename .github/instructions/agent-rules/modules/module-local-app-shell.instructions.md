@@ -149,3 +149,34 @@ Forbidden:
 - Browser/DOM control buttons owned by the app shell.
 - `src/lib/local-runtime/**` importing plugin files outside `src/plugins/<job-id>/index.ts`.
 - `src/lib/local-runtime/**` importing ability files outside `src/capabilities/<group-id>/index.ts`.
+
+## [APEX-LOCAL-APP-SHELL-005-V1] Completed Job Delivery Surface
+
+```apex-law
+{
+  "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "local-app-shell",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "Completed workbench jobs must surface durable deliverables, persisted counts, export references, and evidence references as the primary result view instead of raw JSON alone.",
+  "appliesTo": [
+    "src/app/**",
+    "src/lib/local-runtime/**"
+  ],
+  "forbidden": [
+    "Completed result visible only as raw JSON.",
+    "UI showing zero persisted record counts when timeline records, answers, or exports exist.",
+    "Final report hidden behind raw record inspection only.",
+    "Export artifacts hidden from the primary delivery surface.",
+    "Raw JSON replacing final report, export refs, or evidence refs."
+  ]
+}
+```
+
+Required:
+
+- Completed Deep Research Analysis surfaces must prioritize final report summary, persisted sub-question / positive / falsification counts, export artifact refs, and evidence hashes.
+- Raw JSON may remain available only as a collapsed audit/debug view.
+- Timeline responses that contain records must expose enough overview data for the app shell to avoid false `0` counts after refresh.

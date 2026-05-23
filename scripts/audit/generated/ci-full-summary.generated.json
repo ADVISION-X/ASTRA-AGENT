@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-23T15:54:53.719Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-23T17:51:45.264Z",
+  "status": "FAIL",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,7 +8,8 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "PASS"
+      "status": "FAIL",
+      "error": "One or more audit domains reported findings."
     },
     {
       "name": "typecheck",
@@ -57,8 +58,8 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 3,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {

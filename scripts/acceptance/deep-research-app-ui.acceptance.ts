@@ -59,6 +59,7 @@ assertText("src/app/workbench-deep-research-panel.ts", "name=\"providerKind\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"maxSubQuestions\"");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-final-report");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-evidence");
+assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-delivery");
 assertImport(
   "src/app/create-workbench-server.ts",
   "handleDeepResearchRequest",
@@ -74,6 +75,9 @@ assertText("src/app/workbench-deep-research-client.ts", "Full prompt");
 assertText("src/app/workbench-deep-research-client.ts", "AI response");
 assertText("src/app/workbench-deep-research-client.ts", "Parsed JSON");
 assertText("src/app/workbench-deep-research-client.ts", "<details>");
+assertText("src/app/workbench-deep-research-client.ts", "deriveDeepResearchOverview");
+assertText("src/app/workbench-deep-research-client.ts", "data-deep-research-export-ledger");
+assertText("src/plugins/deep-research-analysis/deep-research-analysis.public.ts", "overview: DeepResearchJobSnapshot[\"overview\"]");
 assertWorkbenchInlineScriptCompiles();
 
 process.stdout.write("[ACCEPTANCE][deep-research-app-ui] PASS\n");

@@ -17,6 +17,7 @@ export const renderDeepResearchPanel = (): string => `
   </form>
   <section class="research-overview" data-deep-research-overview></section>
   <section class="research-progress" data-deep-research-progress></section>
+  <section class="research-delivery" data-deep-research-delivery></section>
   <nav class="research-tabs" aria-label="Deep Research views">
     <button class="btn secondary" type="button" data-research-tab="overview">Overview</button>
     <button class="btn secondary" type="button" data-research-tab="timeline">Timeline</button>
