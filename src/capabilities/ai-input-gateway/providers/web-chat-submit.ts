@@ -1,20 +1,19 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import { clickDesktopPoint, pasteTextAndSubmitInChrome } from "./web-chat-clipboard.js";
 import {
-  clickSubmitButton,
-  findSubmitButtonPoint,
+  pasteTextAndSubmitInChrome,
+  pressReturnInChrome,
+} from "./web-chat-clipboard.js";
+import {
   verifyPromptSubmitted,
 } from "./web-chat-submit-page-actions.js";
 import {
-  findComposerPoint,
   focusComposer,
   waitForAttachmentCountAtLeast,
   verifyComposerText,
 } from "./web-chat-page-actions.js";
-
-const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
+import { clearComposer } from "./web-chat-upload-page-actions.js";
 
 const withWebChatStep = async <T>(
   step: string,
@@ -25,28 +24,6 @@ const withWebChatStep = async <T>(
   } catch (error) {
     throw new Error(`${step}: ${error instanceof Error ? error.message : String(error)}`);
   }
-};
-
-const waitForSubmitButtonPoint = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  timeoutMs: number;
-}): Promise<{ x: number; y: number }> => {
-  const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
-  let lastMessage = "provider submit button was not checked";
-  while (Date.now() < deadline) {
-    const submitPoint = await withWebChatStep("find_submit_button_point", () =>
-      findSubmitButtonPoint(input.browser, input.context));
-    lastMessage = `${submitPoint.status}: ${submitPoint.message}`;
-    if (submitPoint.status === "success" && typeof submitPoint.x === "number" && typeof submitPoint.y === "number") {
-      return { x: submitPoint.x, y: submitPoint.y };
-    }
-    if (submitPoint.status === "review_required" || submitPoint.status === "failed") {
-      throw new Error(lastMessage);
-    }
-    await input.browser.wait(1_500);
-  }
-  throw new Error(`review_required: provider submit button did not become enabled; last=${lastMessage}`);
 };
 
 const waitForPromptSubmitted = async (input: {
@@ -90,13 +67,12 @@ const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): 
 };
 
 const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
-  const point = await withWebChatStep("find_composer_point_before_prompt_paste", () =>
-    findComposerPoint(input.browser, input.context));
-  if (point.status === "success" && typeof point.x === "number" && typeof point.y === "number") {
-    const clickPoint = { x: point.x, y: point.y };
-    await withWebChatStep("click_composer_before_prompt_paste", () =>
-      clickDesktopPoint(clickPoint, input.context.abortSignal));
+  const cleared = await withWebChatStep("clear_composer_before_prompt_paste", () =>
+    clearComposer(input.browser, input.context));
+  if (cleared.status !== "success") {
+    throw new Error(`${cleared.status}: ${cleared.message}`);
   }
+  await input.browser.wait(250);
   await withWebChatStep("paste_prompt_text", () =>
     pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
   const verified = await withWebChatStep("verify_prompt_text_after_paste", () =>
@@ -112,15 +88,8 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
     await withWebChatStep("verify_attachments_before_submit", () =>
       waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
   }
-  const submitPoint = await waitForSubmitButtonPoint({
-    browser: input.browser,
-    context: input.context,
-    timeoutMs: input.request.timeoutMs,
-  });
-  await withWebChatStep("click_submit_button_dom", () =>
-    clickSubmitButton(input.browser, input.context));
-  await withWebChatStep("click_submit_button_point", () =>
-    clickDesktopPoint(submitPoint, input.context.abortSignal));
+  await withWebChatStep("press_return_after_prompt_paste", () =>
+    pressReturnInChrome(input.context.abortSignal));
   await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,

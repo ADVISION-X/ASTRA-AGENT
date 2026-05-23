@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Project, SyntaxKind } from "ts-morph";
+import { renderWorkbenchHomePage } from "../../src/app/workbench-home-page.js";
 
 const project = new Project({ tsConfigFilePath: "tsconfig.json" });
 const read = (filePath: string): string => readFileSync(filePath, "utf8");
@@ -27,6 +28,16 @@ const assertCall = (filePath: string, symbolName: string): void => {
     call.getExpression().getText() === symbolName,
   );
   assert(found, `${filePath} must call ${symbolName}.`);
+};
+
+const assertWorkbenchInlineScriptCompiles = (): void => {
+  const pageHtml = renderWorkbenchHomePage();
+  const match = pageHtml.match(/<script>([\s\S]*)<\/script>/u);
+  const scriptText = match?.[1];
+  assert(scriptText, "workbench home page must render one inline client script.");
+  assert.doesNotThrow(() => {
+    new Function(scriptText);
+  }, "workbench inline client script must parse so shell click handlers can bind.");
 };
 
 assertImport(
@@ -63,5 +74,6 @@ assertText("src/app/workbench-deep-research-client.ts", "Full prompt");
 assertText("src/app/workbench-deep-research-client.ts", "AI response");
 assertText("src/app/workbench-deep-research-client.ts", "Parsed JSON");
 assertText("src/app/workbench-deep-research-client.ts", "<details>");
+assertWorkbenchInlineScriptCompiles();
 
 process.stdout.write("[ACCEPTANCE][deep-research-app-ui] PASS\n");

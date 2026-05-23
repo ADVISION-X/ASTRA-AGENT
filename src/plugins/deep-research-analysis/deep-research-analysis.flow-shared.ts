@@ -54,6 +54,7 @@ export type DeepResearchGatewayResult = {
   rawOutputHash: string;
   normalizedText: string;
   providerProofJson: string;
+  errorReason: string | null;
 };
 
 export type DeepResearchGatewaySender = (
@@ -103,6 +104,7 @@ const mapGatewayResult = (
     rawOutputHash: result.rawOutputHash ?? buildDeepResearchTextHash(normalizedText),
     normalizedText,
     providerProofJson: JSON.stringify(result.providerProof),
+    errorReason: result.failureReason ?? result.reviewRequiredReason ?? null,
   };
 };
 

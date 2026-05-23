@@ -188,6 +188,7 @@ const flowResult = await runDeepResearchDecompositionPhase({
     rawOutputHash: promptPackage.promptHash,
     normalizedText: validFixtureText,
     providerProofJson: JSON.stringify({ providerKind: promptPackage.providerKind }),
+    errorReason: null,
   }),
 });
 assertStatus(flowResult.status, "parsed");

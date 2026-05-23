@@ -41,8 +41,12 @@ const renderVideoDownloadLedger = (result, downloadsPath) => {
   if (result?.status === "success") {
     const output = result?.result?.output || result?.output || {};
     const artifact = downloadsPath || output.filePath || output.artifactRef || "artifact ready";
+    const downloadsMarker = "/Downloads/";
+    const displayArtifact = artifact.includes(downloadsMarker)
+      ? artifact.slice(artifact.lastIndexOf(downloadsMarker) + downloadsMarker.length)
+      : artifact;
     const msg = downloadsPath
-      ? "✓ 视频已下载到 ~/Downloads：" + artifact.replace(/^.*\/Downloads\//, "")
+      ? "✓ 视频已下载到 ~/Downloads：" + displayArtifact
       : "✓ 视频下载完成：" + artifact;
     writeActivity(msg, "ok");
     return;

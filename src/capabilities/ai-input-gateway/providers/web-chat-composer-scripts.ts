@@ -94,11 +94,13 @@ ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
 const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
 const expected = ${JSON.stringify(expectedText)};
-const expectedPrefix = clip(expected).slice(0, 80);
+const normalizedExpected = clip(expected);
 return {
-  status: actual.includes(expectedPrefix) ? "success" : "pending",
-  message: actual.includes(expectedPrefix) ? "provider composer contains prompt text" : "provider composer prompt text missing",
+  status: actual === normalizedExpected ? "success" : "pending",
+  message: actual === normalizedExpected ? "provider composer contains exactly one prompt text" : "provider composer prompt text mismatch",
   pageUrl: location.href,
   composerText: actual,
+  expectedLength: normalizedExpected.length,
+  actualLength: actual.length,
 };
 `;

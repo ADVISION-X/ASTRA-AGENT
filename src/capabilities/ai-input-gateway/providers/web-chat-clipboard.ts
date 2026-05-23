@@ -36,6 +36,8 @@ export const pasteMacClipboardIntoChrome = async (
   const script = [
     'tell application "Google Chrome" to activate',
     'tell application "System Events"',
+    '  keystroke "a" using command down',
+    "  delay 0.2",
     '  keystroke "v" using command down',
     "end tell",
   ].join("\n");
@@ -64,7 +66,19 @@ export const pasteTextAndSubmitInChrome = async (
     'tell application "Google Chrome" to activate',
     'tell application "System Events"',
     '  keystroke "v" using command down',
-    "  delay 0.5",
+    "end tell",
+  ].join("\n");
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
+};
+
+export const pressReturnInChrome = async (
+  abortSignal?: AbortSignal,
+): Promise<void> => {
+  const script = [
+    'tell application "Google Chrome" to activate',
+    'tell application "System Events"',
+    "  delay 2",
+    '  key code 36',
     "end tell",
   ].join("\n");
   await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });

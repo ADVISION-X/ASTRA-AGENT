@@ -192,9 +192,10 @@ const continueCapturePromptOutput = async (
       input.jobId,
       gatewayResult.rawOutputRef,
     );
+    const reason = gatewayResult.errorReason ?? `ai_gateway_${gatewayResult.status}`;
     completeCaptureFailure(input.captureStage, {
       status,
-      reason: `ai_gateway_${gatewayResult.status}`,
+      reason,
       domRef,
       promptHash: input.promptHash,
       rawResponseHash: gatewayResult.rawOutputHash,
@@ -205,6 +206,7 @@ const continueCapturePromptOutput = async (
       promptHash: input.promptHash,
       rawResponseHash: gatewayResult.rawOutputHash,
       gatewayStatus: gatewayResult.status,
+      reason,
     });
   }
   const domRef = buildDomRef(

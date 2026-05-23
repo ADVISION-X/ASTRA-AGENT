@@ -102,10 +102,11 @@ export const buildGatewayFailure = (input: {
   promptHash: string;
   rawResponseHash: string;
   gatewayStatus: DeepResearchGatewayResult["status"];
+  reason: string | null;
 }): PromptExchangeFailure => ({
   status: input.status,
   phase: input.stage,
-  reason: `ai_gateway_${input.gatewayStatus}`,
+  reason: input.reason ?? `ai_gateway_${input.gatewayStatus}`,
   failureClass: RuntimeFailureClass.AI_PROVIDER_FAILURE,
   promptHash: input.promptHash,
   rawResponseHash: input.rawResponseHash,
