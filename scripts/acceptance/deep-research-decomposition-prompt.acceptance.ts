@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 import {
   DEEP_RESEARCH_DECOMPOSITION_PROMPT,
   DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES,
+  detectCurrentEventMissingInfo,
+  detectFinalSynthesisLeakage,
   parseDecompositionResponse,
   renderDecompositionPrompt,
   runDeepResearchDecompositionPhase,
@@ -12,11 +14,17 @@ import {
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
 import { repoRoot } from "../audit/shared/paths.js";
 
-const fixturePath = resolve(
-  repoRoot,
-  "scripts/acceptance/fixtures/deep-research-decomposition/valid-stock-response.json",
-);
-const validFixtureText = readFileSync(fixturePath, "utf8");
+const readFixture = (name: string): string =>
+  readFileSync(
+    resolve(repoRoot, "scripts/acceptance/fixtures/deep-research-decomposition", name),
+    "utf8",
+  );
+
+const validFixtureText = readFixture("valid-stock-response.json");
+const validIranFixtureText = readFixture("valid-iran-war-response.json");
+const invalidOldContractText = readFixture("invalid-old-decomposition-response.json");
+const invalidExtraRootFieldsText = readFixture("invalid-extra-root-fields-response.json");
+const invalidFinalSynthesisLeakageText = readFixture("invalid-final-synthesis-leakage-response.json");
 
 const assertStatus = (actual: string, expected: string): void => {
   assert.equal(actual, expected);
@@ -30,10 +38,13 @@ const rendered = renderDecompositionPrompt({
 });
 assert.match(rendered, /某科技股近期上涨是否由基本面支撑/u);
 assert.match(rendered, /6/u);
+assert.match(rendered, /Do not include contractId/u);
+assert.match(rendered, /Do not include format/u);
+assert.match(rendered, /dimension must be one of/u);
 assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptId, "deep-research.decomposition");
-assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion, "1.0.0");
+assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion, "v1.1.0");
 assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.phase, "decompose");
-assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.outputContractId, "deep-research.decomposition-output.v1");
+assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.outputContractId, "deep-research.decomposition-output.v1.1");
 
 const validParse = parseDecompositionResponse({
   rawText: validFixtureText,
@@ -48,6 +59,7 @@ const secondSubQuestion = validParse.parsed.subQuestions[1];
 if (!firstSubQuestion || !secondSubQuestion) {
   throw new Error("valid fixture must contain at least two sub-questions");
 }
+assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
 
 const invalidJson = parseDecompositionResponse({
   rawText: "{ invalid",
@@ -60,6 +72,26 @@ const missingField = parseDecompositionResponse({
   maxSubQuestions: 6,
 });
 assertStatus(missingField.parseStatus, "failed");
+
+const oldContract = parseDecompositionResponse({
+  rawText: invalidOldContractText,
+  maxSubQuestions: 12,
+});
+assertStatus(oldContract.parseStatus, "failed");
+if (oldContract.parseStatus === "parsed") {
+  throw new Error("old contract must fail");
+}
+assert.match(oldContract.reason, /invalid_decomposition_contract/u);
+
+const extraRootFields = parseDecompositionResponse({
+  rawText: invalidExtraRootFieldsText,
+  maxSubQuestions: 12,
+});
+assertStatus(extraRootFields.parseStatus, "failed");
+if (extraRootFields.parseStatus === "parsed") {
+  throw new Error("extra root fields must fail");
+}
+assert.match(extraRootFields.reason, /schema_extra_fields_not_allowed/u);
 
 const emptySubQuestions = parseDecompositionResponse({
   rawText: JSON.stringify({
@@ -103,6 +135,37 @@ assertStatus(qualitySelfCheckFalse.parseStatus, "partial_review_required");
 const quality = scoreDecompositionQuality(validParse.parsed);
 assert.equal(quality.status, "passed");
 assert.ok(quality.score >= quality.passScore);
+
+const validIran = parseDecompositionResponse({
+  rawText: validIranFixtureText,
+  maxSubQuestions: 12,
+});
+assertStatus(validIran.parseStatus, "parsed");
+if (validIran.parseStatus !== "parsed") {
+  throw new Error("valid iran fixture did not parse");
+}
+assert.equal(validIran.parsed.questionType, "event");
+assert.ok(validIran.parsed.subQuestions.length >= 8);
+assert.ok(validIran.parsed.subQuestions.length <= 12);
+assert.equal(detectCurrentEventMissingInfo(validIran.parsed), false);
+assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
+assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.positiveAnalysisFocus.trim().length > 0));
+assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.falsificationFocus.trim().length > 0));
+assert.ok(!validIran.parsed.subQuestions.some((subQuestion) => detectFinalSynthesisLeakage(subQuestion.questionText)));
+const iranQuality = scoreDecompositionQuality(validIran.parsed);
+assert.equal(iranQuality.status, "passed");
+
+const leakageParse = parseDecompositionResponse({
+  rawText: invalidFinalSynthesisLeakageText,
+  maxSubQuestions: 12,
+});
+assertStatus(leakageParse.parseStatus, "parsed");
+if (leakageParse.parseStatus !== "parsed") {
+  throw new Error("leakage fixture must be schema-valid before quality scoring");
+}
+const leakageQuality = scoreDecompositionQuality(leakageParse.parsed);
+assert.equal(leakageQuality.status, "failed");
+assert.ok(leakageParse.parsed.subQuestions.some((subQuestion) => detectFinalSynthesisLeakage(subQuestion.questionText)));
 
 assert.ok(DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES.length >= 10);
 for (const fixture of DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES) {

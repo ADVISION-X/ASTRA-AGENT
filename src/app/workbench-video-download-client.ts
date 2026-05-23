@@ -26,25 +26,29 @@ const setVideoPlatform = (platform) => {
   qs("[name=preferredQuality]")?.closest(".field")?.classList.toggle("hidden", !config.quality);
   qs("[data-video-subtitles-field]")?.classList.toggle("hidden", !config.subtitles);
   qs("[data-video-detect-row]")?.classList.toggle("hidden", !config.detect);
-  setText("[data-video-source-state]", "-");
+  setText("[data-video-source-state]", config.detect ? "（先播放视频，再点此按钮）" : "-");
 };
 const detectVideoSourcePage = async (platformId) => {
   const payload = await readJson("/api/video-download/source-page?platform=" + encodeURIComponent(platformId));
   const sourceInput = qs("[data-video-download-form] [name=sourcePageUrl]");
   if (sourceInput) sourceInput.value = payload.sourcePageUrl || "";
-  setText("[data-video-source-state]", payload.pageTitle || payload.sourcePageUrl || "source page loaded");
-  writeActivity("video source page detected", "ok");
+  const label = payload.pageTitle || payload.sourcePageUrl || "source page loaded";
+  setText("[data-video-source-state]", "✓ 已检测到：" + label);
+  writeActivity("② 已检测视频页面：" + label, "ok");
 };
-const renderVideoDownloadLedger = (result) => {
+const renderVideoDownloadLedger = (result, downloadsPath) => {
   renderLedger({ record: result });
   if (result?.status === "success") {
     const output = result?.result?.output || result?.output || {};
-    const artifact = output.filePath || output.artifactRef || "artifact ready";
-    writeActivity("video download completed: " + artifact, "ok");
+    const artifact = downloadsPath || output.filePath || output.artifactRef || "artifact ready";
+    const msg = downloadsPath
+      ? "✓ 视频已下载到 ~/Downloads：" + artifact.replace(/^.*\/Downloads\//, "")
+      : "✓ 视频下载完成：" + artifact;
+    writeActivity(msg, "ok");
     return;
   }
   const nested = result?.result || result;
-  writeActivity("video download needs review: " + (nested?.failureReason || nested?.reviewRequiredReason || nested?.output?.reason || "unknown"), "warn");
+  writeActivity("视频下载需要检查：" + (nested?.failureReason || nested?.reviewRequiredReason || nested?.output?.reason || "unknown"), "warn");
 };
 const startVideoDownload = async (event) => {
   event.preventDefault();
@@ -56,6 +60,7 @@ const startVideoDownload = async (event) => {
     preferredQuality: form.preferredQuality.value,
     maxBytes: Math.max(1, maxMegabytes) * 1000000,
     downloadSubtitles: form.downloadSubtitles.checked,
+    saveToDownloads: form.saveToDownloads?.checked === true,
   };
   writeActivity("video download submitted: " + request.childCapabilityId);
   const payload = await readJson("/api/video-download/start", {
@@ -63,7 +68,7 @@ const startVideoDownload = async (event) => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(request),
   });
-  renderVideoDownloadLedger(payload.record);
+  renderVideoDownloadLedger(payload.record, payload.downloadsPath ?? null);
 };
 document.addEventListener("DOMContentLoaded", () => {
   const form = qs("[data-video-download-form]");

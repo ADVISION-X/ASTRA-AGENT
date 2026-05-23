@@ -12,7 +12,11 @@ import {
 import { parseDeepResearchFinalReportResponse } from "./deep-research-analysis.parser.js";
 import { finalSynthesisPrompt, renderDeepResearchFinalSynthesisPrompt } from "./deep-research-analysis.prompts.js";
 import { type DeepResearchFinalReport, type DeepResearchResult } from "./deep-research-analysis.result.js";
-import { finishFailure, startFlowStage } from "./deep-research-analysis.flow-shared.js";
+import {
+  type FlowStageHandle,
+  buildFlowStageStartFields,
+  finishFailure,
+} from "./deep-research-analysis.flow-shared.js";
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import {
   finishPromptFailure,
@@ -32,7 +36,7 @@ type FinalReportSuccess = {
 
 const failFinalPackageStage = (
   context: AnalysisExecutionContext,
-  finalPackageStage: ReturnType<typeof startFlowStage>,
+  finalPackageStage: FlowStageHandle,
   reason: string,
 ): AnalysisFailure => {
   finalPackageStage.reviewRequired({
@@ -78,10 +82,11 @@ const logConflictMatrixRows = (
 
 const completeFinalPackageStage = (input: {
   context: AnalysisExecutionContext;
-  finalPackageStage: ReturnType<typeof startFlowStage>;
+  finalPackageStage: FlowStageHandle;
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
   conflictRowCount: number;
 }) => {
+  const { finalPackageStage } = input;
   const finalPackageHash = stableJsonHash(input.finalPackage);
   logDeepResearchFinalPackageBuilt({
     logger: input.context.runtimeLogger,
@@ -91,7 +96,8 @@ const completeFinalPackageStage = (input: {
     recordHashCount: Object.keys(input.finalPackage.recordHashes).length,
     promptVersionCount: Object.keys(input.finalPackage.promptVersions).length,
   });
-  input.finalPackageStage.complete({
+  finalPackageStage.complete({
+    durationMs: Math.max(0, Date.now() - finalPackageStage.startedAt),
     hashes: { packageHash: finalPackageHash },
     metrics: {
       conflictRowCount: input.conflictRowCount,
@@ -110,11 +116,12 @@ const runExportStage = (
     status: "running",
     phase: "EXPORT_REPORT",
   });
-  const exportStage = startFlowStage({
-    stageLogger: context.stageLogger,
+  const exportStage = context.stageLogger.start({
+    ...buildFlowStageStartFields({
     traceContext: context.traceContext,
-    stageName: "EXPORT_REPORT",
     preview: { jobId: context.jobId },
+    }),
+    stageName: "EXPORT_REPORT",
   });
   const exportArtifacts = exportDeepResearchArtifacts({
     dataDir: context.dataDir,
@@ -133,6 +140,7 @@ const runExportStage = (
     evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
   });
   exportStage.complete({
+    durationMs: Math.max(0, Date.now() - exportStage.startedAt),
     refs: { exportDir: exportArtifacts.exportDir },
     hashes: {
       finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
@@ -204,11 +212,12 @@ export const buildFinalPackageStage = (
     status: "running",
     phase: "FINAL_PACKAGE_BUILD",
   });
-  const finalPackageStage = startFlowStage({
-    stageLogger: context.stageLogger,
+  const finalPackageStage = context.stageLogger.start({
+    ...buildFlowStageStartFields({
     traceContext: context.traceContext,
-    stageName: "FINAL_PACKAGE_BUILD",
     preview: { jobId: context.jobId },
+    }),
+    stageName: "FINAL_PACKAGE_BUILD",
   });
   const conflictMatrixResult = buildDeepResearchConflictMatrix({
     store: context.store,

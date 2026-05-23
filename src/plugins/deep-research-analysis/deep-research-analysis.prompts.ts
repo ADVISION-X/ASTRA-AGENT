@@ -11,8 +11,14 @@ import type {
 import type {
   DeepResearchFinalPackage,
 } from "./deep-research-analysis.final-package.js";
+import {
+  DEEP_RESEARCH_DECOMPOSITION_PROMPT,
+  renderDecompositionPrompt,
+} from "./deep-research-analysis.decomposition-prompt.js";
 
 const FORBIDDEN_CONTROL_FIELDS = [
+  "contractId",
+  "format",
   "browserCommand",
   "selector",
   "coordinate",
@@ -44,25 +50,26 @@ const buildContractSection = (contract: DeepResearchPromptOutputContract): strin
   JSON.stringify(contract, null, 2);
 
 export const decompositionPrompt = buildPrompt({
-  promptId: "deep-research.decomposition",
-  promptVersion: "v1.0.0",
+  promptId: DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptId,
+  promptVersion: DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion,
   phase: "decomposition",
-  promptText: [
-    "You are an external researcher. Decompose the user question into a bounded set of sub-questions.",
-    "Return one JSON object only.",
-    "The JSON object must contain mainQuestion and subQuestions.",
-    "subQuestions must contain at least two items and each item must include id, title, questionText, purpose, scope, expectedAnswerShape.",
-    "Do not output runtime control fields, browser commands, selectors, coordinates, workflows, database commands, or file paths.",
-  ].join("\n"),
+  promptText: DEEP_RESEARCH_DECOMPOSITION_PROMPT.text,
   expectedOutputContract: buildOutputContract({
-    contractId: "deep-research.decomposition.json.v1",
-    requiredFields: ["mainQuestion", "subQuestions"],
+    contractId: DEEP_RESEARCH_DECOMPOSITION_PROMPT.outputContractId,
+    requiredFields: [
+      "mainQuestion",
+      "questionType",
+      "decompositionStrategy",
+      "missingInfo",
+      "subQuestions",
+      "qualitySelfCheck",
+    ],
   }),
 });
 
 export const positiveAnalysisPrompt = buildPrompt({
   promptId: "deep-research.positive-analysis",
-  promptVersion: "v1.0.0",
+  promptVersion: "v1.1.0",
   phase: "positive",
   promptText: [
     "You are an external researcher. Produce the strongest positive analysis for one sub-question.",
@@ -87,7 +94,7 @@ export const positiveAnalysisPrompt = buildPrompt({
 
 export const falsificationPrompt = buildPrompt({
   promptId: "deep-research.falsification",
-  promptVersion: "v1.0.0",
+  promptVersion: "v1.1.0",
   phase: "falsification",
   promptText: [
     "You are an external researcher. Produce the strongest falsification and opposing case for one sub-question.",
@@ -111,7 +118,7 @@ export const falsificationPrompt = buildPrompt({
 
 export const finalSynthesisPrompt = buildPrompt({
   promptId: "deep-research.final-synthesis",
-  promptVersion: "v1.0.0",
+  promptVersion: "v1.1.0",
   phase: "final_synthesis",
   promptText: [
     "You are an external researcher. Synthesize the persisted positive and falsification records into one final report.",
@@ -150,12 +157,13 @@ export const buildRenderedDeepResearchPromptHash = (input: {
 
 export const renderDeepResearchDecompositionPrompt = (input: Pick<DeepResearchInput, "userQuestion" | "analysisGoal" | "language" | "maxSubQuestions">): string =>
   buildPromptDocument([
-    decompositionPrompt.promptText,
-    `User question:\n${input.userQuestion}`,
+    renderDecompositionPrompt({
+      userQuestion: input.userQuestion,
+      maxSubQuestions: input.maxSubQuestions,
+      language: input.language,
+      questionTypeHint: "general",
+    }),
     input.analysisGoal ? `Analysis goal:\n${input.analysisGoal}` : null,
-    `Response language: ${input.language}`,
-    `Maximum sub-questions: ${input.maxSubQuestions}`,
-    `Expected output contract:\n${buildContractSection(decompositionPrompt.expectedOutputContract)}`,
   ]);
 
 export const renderDeepResearchPositivePrompt = (input: {

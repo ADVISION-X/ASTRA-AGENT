@@ -10,71 +10,30 @@ import {
   logDeepResearchPromptSent,
   logDeepResearchRecordPersisted,
 } from "./deep-research-analysis.logging.js";
-import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-contracts.js";
-import type { DeepResearchParserResult } from "./deep-research-analysis.parser.js";
-import {
-  type DeepResearchRecordStore,
-  type ResearchInteraction,
-} from "./deep-research-analysis.records.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 import {
-  type DeepResearchGatewayPromptPackage,
-  type DeepResearchGatewayResult,
-  type DeepResearchGatewaySender,
   type ExchangePersistSummary,
+  type FlowStageHandle,
   type PromptExchangeFailure,
   type PromptExchangeSuccess,
-  type ProviderKind,
-  type StageLogger,
   type StageTraceContext,
+  buildFlowStageStartFields,
   rememberInteractionHashes,
-  startFlowStage,
 } from "./deep-research-analysis.flow-shared.js";
+import {
+  type CapturePromptOutputInput,
+  type CaptureSuccess,
+  type ParsePromptOutputInput,
+  type ParseSuccess,
+  type PersistPromptOutputInput,
+  type SuccessfulParserResult,
+  buildDomRef,
+  buildGatewayFailure,
+  buildParseFailure,
+  createInteractionRecord,
+} from "./deep-research-analysis.prompt-exchange-stage-support.js";
 
-type SuccessfulParserResult<TParsed> = Extract<
-  DeepResearchParserResult<TParsed>,
-  { parseStatus: "parsed" }
->;
-
-type PromptPreview = {
-  promptId: string;
-  promptVersion: string;
-  subQuestionId?: string;
-};
-
-type CaptureSuccess = {
-  gatewayResult: DeepResearchGatewayResult;
-  domRef: string;
-};
-
-type ParseSuccess<TParsed> = {
-  parsed: SuccessfulParserResult<TParsed>;
-  recordCount: number;
-};
-
-const buildDomRef = (
-  promptId: string,
-  jobId: string,
-  rawOutputRef: string | null,
-): string => rawOutputRef ?? `artifact://deep-research/${jobId}/${promptId}`;
-
-const buildGatewayFailure = (input: {
-  stage: DeepResearchPhase;
-  status: "failed" | "review_required";
-  promptHash: string;
-  rawResponseHash: string;
-  gatewayStatus: DeepResearchGatewayResult["status"];
-}): PromptExchangeFailure => ({
-  status: input.status,
-  phase: input.stage,
-  reason: `ai_gateway_${input.gatewayStatus}`,
-  failureClass: RuntimeFailureClass.AI_PROVIDER_FAILURE,
-  promptHash: input.promptHash,
-  rawResponseHash: input.rawResponseHash,
-});
-
-const completeCaptureFailure = (input: {
-  captureStage: ReturnType<typeof startFlowStage>;
+const completeCaptureFailure = (captureStage: FlowStageHandle, input: {
   status: "failed" | "review_required";
   reason: string;
   domRef: string;
@@ -94,22 +53,21 @@ const completeCaptureFailure = (input: {
     },
   };
   if (input.status === "failed") {
-    input.captureStage.fail(terminalInput);
+    captureStage.fail(terminalInput);
     return;
   }
-  input.captureStage.reviewRequired(terminalInput);
+  captureStage.reviewRequired(terminalInput);
 };
 
 const completeCaptureSuccess = (input: {
   runtimeLogger: RuntimeLogger;
   traceContext: StageTraceContext;
-  captureStage: ReturnType<typeof startFlowStage>;
   stage: DeepResearchPhase;
   promptHash: string;
   rawResponseHash: string;
   domRef: string;
   subQuestionId?: string;
-}) => {
+}, captureStage: FlowStageHandle) => {
   logDeepResearchDomCaptureCompleted({
     logger: input.runtimeLogger,
     traceContext: input.traceContext,
@@ -119,7 +77,8 @@ const completeCaptureSuccess = (input: {
     domRef: input.domRef,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
   });
-  input.captureStage.complete({
+  captureStage.complete({
+    durationMs: Math.max(0, Date.now() - captureStage.startedAt),
     refs: { domRef: input.domRef },
     hashes: {
       promptHash: input.promptHash,
@@ -128,23 +87,7 @@ const completeCaptureSuccess = (input: {
   });
 };
 
-const buildParseFailure = (input: {
-  stage: DeepResearchPhase;
-  promptHash: string;
-  rawResponseHash: string;
-  reason: string;
-  status: "failed" | "review_required";
-}): PromptExchangeFailure => ({
-  status: input.status,
-  phase: input.stage,
-  reason: input.reason,
-  failureClass: RuntimeFailureClass.AI_PARSE_FAILURE,
-  promptHash: input.promptHash,
-  rawResponseHash: input.rawResponseHash,
-});
-
-const completeParseFailure = (input: {
-  parseStage: ReturnType<typeof startFlowStage>;
+const completeParseFailure = (parseStage: FlowStageHandle, input: {
   status: "failed" | "review_required";
   reason: string;
   promptHash: string;
@@ -162,22 +105,21 @@ const completeParseFailure = (input: {
     },
   };
   if (input.status === "failed") {
-    input.parseStage.fail(terminalInput);
+    parseStage.fail(terminalInput);
     return;
   }
-  input.parseStage.reviewRequired(terminalInput);
+  parseStage.reviewRequired(terminalInput);
 };
 
 const completeParseSuccess = (input: {
   runtimeLogger: RuntimeLogger;
   traceContext: StageTraceContext;
-  parseStage: ReturnType<typeof startFlowStage>;
   stage: DeepResearchPhase;
   promptHash: string;
   rawResponseHash: string;
   recordCount: number;
   subQuestionId?: string;
-}) => {
+}, parseStage: FlowStageHandle) => {
   logDeepResearchParseCompleted({
     logger: input.runtimeLogger,
     traceContext: input.traceContext,
@@ -187,7 +129,8 @@ const completeParseSuccess = (input: {
     recordCount: input.recordCount,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
   });
-  input.parseStage.complete({
+  parseStage.complete({
+    durationMs: Math.max(0, Date.now() - parseStage.startedAt),
     hashes: {
       promptHash: input.promptHash,
       rawResponseHash: input.rawResponseHash,
@@ -196,43 +139,15 @@ const completeParseSuccess = (input: {
   });
 };
 
-const createInteractionRecord = <TParsed>(input: {
-  store: DeepResearchRecordStore;
-  jobId: string;
-  providerKind: ProviderKind;
-  prompt: DeepResearchPrompt;
-  promptHash: string;
-  subQuestionId?: string;
-  domRef: string;
-  gatewayResult: DeepResearchGatewayResult;
-  parsed: SuccessfulParserResult<TParsed>;
-}): ResearchInteraction =>
-  input.store.createInteraction({
-    jobId: input.jobId,
-    phase: input.prompt.phase,
-    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-    promptId: input.prompt.promptId,
-    promptVersion: input.prompt.promptVersion,
-    promptHash: input.promptHash,
-    domRef: input.domRef,
-    rawResponseText: input.gatewayResult.normalizedText,
-    rawResponseHash: input.parsed.rawResponseHash,
-    normalizedText: input.parsed.normalizedText,
-    parseStatus: input.parsed.parseStatus,
-    providerKind: input.providerKind,
-    providerProofJson: input.gatewayResult.providerProofJson,
-  });
-
 const completePersistSuccess = (input: {
   runtimeLogger: RuntimeLogger;
   traceContext: StageTraceContext;
-  persistStage: ReturnType<typeof startFlowStage>;
   stage: DeepResearchPhase;
   promptHash: string;
   rawResponseHash: string;
   persistSummary: ExchangePersistSummary;
   subQuestionId?: string;
-}) => {
+}, persistStage: FlowStageHandle) => {
   logDeepResearchRecordPersisted({
     logger: input.runtimeLogger,
     traceContext: input.traceContext,
@@ -244,7 +159,8 @@ const completePersistSuccess = (input: {
     promptHash: input.promptHash,
     rawResponseHash: input.rawResponseHash,
   });
-  input.persistStage.complete({
+  persistStage.complete({
+    durationMs: Math.max(0, Date.now() - persistStage.startedAt),
     hashes: {
       promptHash: input.promptHash,
       rawResponseHash: input.rawResponseHash,
@@ -258,32 +174,9 @@ const completePersistSuccess = (input: {
   });
 };
 
-export const capturePromptOutput = async (input: {
-  store: DeepResearchRecordStore;
-  runtimeLogger: RuntimeLogger;
-  traceContext: StageTraceContext;
-  stageLogger: StageLogger;
-  sender: DeepResearchGatewaySender;
-  jobId: string;
-  prompt: DeepResearchPrompt;
-  promptPackage: DeepResearchGatewayPromptPackage;
-  promptHash: string;
-  preview: PromptPreview;
-  stage: DeepResearchPhase;
-  subQuestionId?: string;
-}): Promise<CaptureSuccess | PromptExchangeFailure> => {
-  input.store.updateJobState({
-    jobId: input.jobId,
-    status: "running",
-    phase: input.stage,
-  });
-  const captureStage = startFlowStage({
-    stageLogger: input.stageLogger,
-    traceContext: input.traceContext,
-    stageName: input.stage,
-    preview: input.preview,
-    hashes: { promptHash: input.promptHash },
-  });
+const continueCapturePromptOutput = async (
+  input: CapturePromptOutputInput & { captureStage: FlowStageHandle },
+): Promise<CaptureSuccess | PromptExchangeFailure> => {
   logDeepResearchDomCaptureStarted({
     logger: input.runtimeLogger,
     traceContext: input.traceContext,
@@ -299,8 +192,7 @@ export const capturePromptOutput = async (input: {
       input.jobId,
       gatewayResult.rawOutputRef,
     );
-    completeCaptureFailure({
-      captureStage,
+    completeCaptureFailure(input.captureStage, {
       status,
       reason: `ai_gateway_${gatewayResult.status}`,
       domRef,
@@ -323,45 +215,53 @@ export const capturePromptOutput = async (input: {
   completeCaptureSuccess({
     runtimeLogger: input.runtimeLogger,
     traceContext: input.traceContext,
-    captureStage,
     stage: input.stage,
     promptHash: input.promptHash,
     rawResponseHash: gatewayResult.rawOutputHash,
     domRef,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-  });
+  }, input.captureStage);
   return { gatewayResult, domRef };
 };
 
-export const parsePromptOutput = <TParsed>(input: {
-  store: DeepResearchRecordStore;
-  runtimeLogger: RuntimeLogger;
-  traceContext: StageTraceContext;
-  stageLogger: StageLogger;
-  jobId: string;
-  promptHash: string;
-  preview: PromptPreview;
-  stage: DeepResearchPhase;
-  gatewayResult: DeepResearchGatewayResult;
-  subQuestionId?: string;
-  parse: (rawText: string) => DeepResearchParserResult<TParsed>;
-  successRecordCount: (parsed: TParsed) => number;
-}): ParseSuccess<TParsed> | PromptExchangeFailure => {
+export const capturePromptOutput = async (
+  input: CapturePromptOutputInput,
+): Promise<CaptureSuccess | PromptExchangeFailure> => {
   input.store.updateJobState({
     jobId: input.jobId,
     status: "running",
     phase: input.stage,
   });
-  const parseStage = startFlowStage({
-    stageLogger: input.stageLogger,
+  const startFields = buildFlowStageStartFields({
     traceContext: input.traceContext,
-    stageName: input.stage,
     preview: input.preview,
-    hashes: {
-      promptHash: input.promptHash,
-      rawResponseHash: input.gatewayResult.rawOutputHash,
-    },
+    hashes: { promptHash: input.promptHash },
   });
+  switch (input.stage) {
+    case "DECOMPOSE_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
+    case "POSITIVE_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
+    case "FALSIFY_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
+    case "FINAL_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
+    default:
+      throw new Error(`Unsupported Deep Research capture stage ${input.stage}.`);
+  }
+};
+
+const continueParsePromptOutput = <TParsed>(
+  input: ParsePromptOutputInput<TParsed> & { parseStage: FlowStageHandle },
+): ParseSuccess<TParsed> | PromptExchangeFailure => {
   const parsed = input.parse(input.gatewayResult.normalizedText);
   if (parsed.parseStatus !== "parsed") {
     logDeepResearchParseFailed({
@@ -375,8 +275,7 @@ export const parsePromptOutput = <TParsed>(input: {
       ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
     });
     const status = parsed.parseStatus === "failed" ? "failed" : "review_required";
-    completeParseFailure({
-      parseStage,
+    completeParseFailure(input.parseStage, {
       status,
       reason: parsed.reason,
       promptHash: input.promptHash,
@@ -394,52 +293,56 @@ export const parsePromptOutput = <TParsed>(input: {
   completeParseSuccess({
     runtimeLogger: input.runtimeLogger,
     traceContext: input.traceContext,
-    parseStage,
     stage: input.stage,
     promptHash: input.promptHash,
     rawResponseHash: parsed.rawResponseHash,
     recordCount,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-  });
+  }, input.parseStage);
   return { parsed, recordCount };
 };
 
-export const persistPromptOutput = <TParsed>(input: {
-  store: DeepResearchRecordStore;
-  runtimeLogger: RuntimeLogger;
-  traceContext: StageTraceContext;
-  stageLogger: StageLogger;
-  recordHashes: Record<string, string>;
-  jobId: string;
-  providerKind: ProviderKind;
-  prompt: DeepResearchPrompt;
-  promptHash: string;
-  preview: PromptPreview;
-  stage: DeepResearchPhase;
-  subQuestionId?: string;
-  domRef: string;
-  gatewayResult: DeepResearchGatewayResult;
-  parsed: SuccessfulParserResult<TParsed>;
-  persist: (input: {
-    interaction: ResearchInteraction;
-    parsed: TParsed;
-  }) => ExchangePersistSummary;
-}): PromptExchangeSuccess<TParsed> => {
+export const parsePromptOutput = <TParsed>(
+  input: ParsePromptOutputInput<TParsed>,
+): ParseSuccess<TParsed> | PromptExchangeFailure => {
   input.store.updateJobState({
     jobId: input.jobId,
     status: "running",
     phase: input.stage,
   });
-  const persistStage = startFlowStage({
-    stageLogger: input.stageLogger,
+  const startFields = buildFlowStageStartFields({
     traceContext: input.traceContext,
-    stageName: input.stage,
     preview: input.preview,
     hashes: {
       promptHash: input.promptHash,
-      rawResponseHash: input.parsed.rawResponseHash,
+      rawResponseHash: input.gatewayResult.rawOutputHash,
     },
   });
+  switch (input.stage) {
+    case "DECOMPOSE_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
+    case "POSITIVE_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
+    case "FALSIFY_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
+    case "FINAL_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
+    default:
+      throw new Error(`Unsupported Deep Research parse stage ${input.stage}.`);
+  }
+};
+
+const continuePersistPromptOutput = <TParsed>(
+  input: PersistPromptOutputInput<TParsed> & { persistStage: FlowStageHandle },
+): PromptExchangeSuccess<TParsed> => {
   const interaction = createInteractionRecord({
     store: input.store,
     jobId: input.jobId,
@@ -459,13 +362,12 @@ export const persistPromptOutput = <TParsed>(input: {
   completePersistSuccess({
     runtimeLogger: input.runtimeLogger,
     traceContext: input.traceContext,
-    persistStage,
     stage: input.stage,
     promptHash: input.promptHash,
     rawResponseHash: input.parsed.rawResponseHash,
     persistSummary,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-  });
+  }, input.persistStage);
   return {
     status: "parsed",
     interaction,
@@ -473,4 +375,42 @@ export const persistPromptOutput = <TParsed>(input: {
     promptHash: input.promptHash,
     rawResponseHash: input.parsed.rawResponseHash,
   };
+};
+
+export const persistPromptOutput = <TParsed>(
+  input: PersistPromptOutputInput<TParsed>,
+): PromptExchangeSuccess<TParsed> => {
+  input.store.updateJobState({
+    jobId: input.jobId,
+    status: "running",
+    phase: input.stage,
+  });
+  const startFields = buildFlowStageStartFields({
+    traceContext: input.traceContext,
+    preview: input.preview,
+    hashes: {
+      promptHash: input.promptHash,
+      rawResponseHash: input.parsed.rawResponseHash,
+    },
+  });
+  switch (input.stage) {
+    case "DECOMPOSE_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    case "POSITIVE_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    case "FALSIFY_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    case "FINAL_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    default:
+      throw new Error(`Unsupported Deep Research persist stage ${input.stage}.`);
+  }
 };

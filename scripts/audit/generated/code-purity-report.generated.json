@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T23:09:36.811Z",
+  "generatedAt": "2026-05-23T00:39:32.710Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -21,134 +21,8 @@
     "APEX-CODE-PURITY-016-V1",
     "APEX-CODE-PURITY-017-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/deep-research-analysis-smoke.ts has an over-line function near line 265.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts has 542 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts has an over-line function near line 346.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/children/download-telegram-web-video-once.ts has an over-line function near line 113.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts has an over-line function near line 1.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts has 1111 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts has an over-line function near line 368.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts has an over-line function near line 736.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts has 510 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts has an over-line function near line 131.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts has an over-line function near line 294.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts exports DeepResearchDecompositionFlowResult without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts exports DeepResearchDecompositionFlowInput without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/audit-project-usage",
-      "lawId": "APEX-CODE-PURITY-013-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/video-download-capability/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/video-download-capability/inspector.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
@@ -204,6 +78,8 @@
     "scripts/audit/domains/code-purity/components/structural-metrics.ts",
     "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
+    "scripts/audit/domains/deep-research-analysis/inspector-smoke.ts",
     "scripts/audit/domains/deep-research-analysis/inspector.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
@@ -468,16 +344,27 @@
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
     "src/plugins/deep-research-analysis/acceptance-surface.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
@@ -485,6 +372,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-result-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",

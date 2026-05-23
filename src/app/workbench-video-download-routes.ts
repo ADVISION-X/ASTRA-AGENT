@@ -1,4 +1,7 @@
+import { copyFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { homedir } from "node:os";
+import path from "node:path";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
@@ -40,6 +43,7 @@ type VideoDownloadRequestBody = {
   maxBytes?: unknown;
   timeoutMs?: unknown;
   downloadSubtitles?: unknown;
+  saveToDownloads?: unknown;
 };
 
 type VideoDownloadSourcePlatform = "telegram-web";
@@ -119,12 +123,27 @@ export const handleVideoDownloadRequest = async (
   if (request.method !== "POST" || request.url?.split("?")[0] !== "/api/video-download/start") {
     return false;
   }
-  const input = buildVideoDownloadJobInput(await readJsonBody(request) as VideoDownloadRequestBody);
+  const body = await readJsonBody(request) as VideoDownloadRequestBody;
+  const input = buildVideoDownloadJobInput(body);
   if (!input) {
     writeJson(response, 400, { error: "missing_source_page_url" });
     return true;
   }
   const result = await routeVideoDownloadArtifactJob(input, workbench);
-  writeJson(response, 200, { record: result });
+  let downloadsPath: string | null = null;
+  if (result.status === "success" && body.saveToDownloads === true) {
+    const output = result.result.output as Record<string, unknown>;
+    const filePath = typeof output.filePath === "string" ? output.filePath : null;
+    if (filePath) {
+      const dest = path.join(homedir(), "Downloads", path.basename(filePath));
+      try {
+        await copyFile(filePath, dest);
+        downloadsPath = dest;
+      } catch {
+        // best-effort: copy failure does not fail the job
+      }
+    }
+  }
+  writeJson(response, 200, { record: result, downloadsPath });
   return true;
 };

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-22T23:09:50.742Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-23T00:39:45.885Z",
+  "status": "PASS",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,8 +8,7 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "FAIL",
-      "error": "One or more audit domains reported findings."
+      "status": "PASS"
     },
     {
       "name": "typecheck",
@@ -58,22 +57,22 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "FAIL",
-      "findingCount": 14,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
       "capabilityDomain": "runtime-log-spine",
       "executionGroup": "foundation",
-      "status": "FAIL",
-      "findingCount": 11,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json"
     },
     {
       "capabilityDomain": "deep-research-analysis",
       "executionGroup": "domain",
-      "status": "FAIL",
-      "findingCount": 1,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/deep-research-analysis-report.generated.json"
     },
     {

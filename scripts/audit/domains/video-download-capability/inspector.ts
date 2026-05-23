@@ -346,10 +346,14 @@ const inspectAstProjectCoverage = (
   if (missingFiles.length === 0) {
     return;
   }
+  const firstMissingFile = missingFiles[0];
+  if (!firstMissingFile) {
+    return;
+  }
   pushFinding(
     findings,
     lawId,
-    missingFiles[0],
+    firstMissingFile,
     "video-download/ast-project-coverage",
     "Video-download inspector must resolve governed source files through context.project.",
     missingFiles.join(", "),

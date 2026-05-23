@@ -87,7 +87,15 @@ const renderVideoDownloadPanel = (): string => `
       <button class="platform-tab" type="button" data-video-platform="x" data-child-capability-id="download-x-video-once" aria-pressed="false">X</button>
       <button class="platform-tab" type="button" data-video-platform="xiaohongshu" data-child-capability-id="download-xiaohongshu-video-once" aria-pressed="false">Xiaohongshu</button>
     </div>
-    <div class="notice wide" data-video-platform-note="telegram" data-video-download-telegram-boundary><b>Telegram Web</b><span>Authorized Chrome tab -> Service Worker cache -> artifact proof.</span></div>
+    <div class="notice wide" data-video-platform-note="telegram" data-video-download-telegram-boundary style="display:flex;flex-direction:column;gap:8px;padding:12px 14px">
+      <b style="font-size:13px">如何下载 Telegram 指定视频：</b>
+      <ol style="margin:0;padding-left:20px;line-height:2;font-size:13px">
+        <li>点击下方按钮打开 Telegram Web，<b>找到要下载的视频并点击播放</b></li>
+        <li>视频播放后回到此页，点击 <b>② 自动检测当前视频</b></li>
+        <li>确认 URL 已填入，勾选"保存到 ~/Downloads"，点击 <b>Start</b></li>
+      </ol>
+      <div><a class="btn" href="https://web.telegram.org/k/" target="_blank" rel="noopener noreferrer">① 打开 Telegram Web ↗</a></div>
+    </div>
     <div class="notice wide hidden" data-video-platform-note="youtube"><b>YouTube</b><span>URL -> governed local runtime -> optional subtitles.</span></div>
     <div class="notice wide hidden" data-video-platform-note="universal"><b>Universal</b><span>Visible page media candidates -> one validated artifact.</span></div>
     <div class="notice wide hidden" data-video-platform-note="facebook"><b>Facebook</b><span>Visible reel/video URL -> governed media artifact.</span></div>
@@ -99,8 +107,8 @@ const renderVideoDownloadPanel = (): string => `
     <div class="notice wide hidden" data-video-platform-note="xiaohongshu"><b>Xiaohongshu</b><span>Visible note/video URL -> governed media artifact.</span></div>
     <div class="field wide"><label>Source page URL</label><input name="sourcePageUrl" type="url" required /></div>
     <div class="actions wide" data-video-detect-row>
-      <button class="btn secondary" type="button" data-video-detect-source="telegram-web">Use open Telegram tab</button>
-      <span class="muted" data-video-source-state>-</span>
+      <button class="btn secondary" type="button" data-video-detect-source="telegram-web">② 自动检测当前视频</button>
+      <span class="muted" data-video-source-state>（先播放视频，再点此按钮）</span>
     </div>
     <div class="field">
       <label>Quality</label>
@@ -115,6 +123,7 @@ const renderVideoDownloadPanel = (): string => `
     </div>
     <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="500" value="200" required /></div>
     <label class="check" data-video-subtitles-field><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
+    <label class="check wide" style="font-weight:600;color:#1a73e8"><input name="saveToDownloads" type="checkbox" checked /> ③ 保存到 ~/Downloads（完成后可在 Finder 下载文件夹找到）</label>
     <div class="actions wide">
       <button class="btn" type="submit">Start</button>
     </div>

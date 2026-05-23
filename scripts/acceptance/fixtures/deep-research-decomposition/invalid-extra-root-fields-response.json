@@ -1,0 +1,37 @@
+{
+  "contractId": "deep-research.decomposition.json.v1.1",
+  "format": "json_object",
+  "mainQuestion": "当前伊朗相关冲突会以什么条件降温？",
+  "questionType": "event",
+  "decompositionStrategy": "Cover facts, causes, impact, evidence, risks, and falsification without answering the final outcome.",
+  "missingInfo": [
+    "current date/time for the conflict state",
+    "latest reliable sources",
+    "conflict scope and actors included"
+  ],
+  "subQuestions": [
+    {
+      "id": "Q1",
+      "title": "Current facts",
+      "questionText": "What verified events define the current conflict state?",
+      "dimension": "facts",
+      "purpose": "Establish the factual baseline.",
+      "requiredEvidence": ["official statements", "independent incident timelines"],
+      "positiveAnalysisFocus": "Evaluate verified current facts.",
+      "falsificationFocus": "Challenge unsupported or stale claims.",
+      "scope": "Include current verified events; exclude final outcome prediction.",
+      "expectedAnswerShape": "Timeline and evidence table.",
+      "priority": "high"
+    }
+  ],
+  "qualitySelfCheck": {
+    "coversFacts": true,
+    "coversCausality": true,
+    "coversImpact": true,
+    "coversEvidence": true,
+    "coversFalsification": true,
+    "coversRisks": true,
+    "hasNoDuplicateQuestions": true,
+    "isReadyForPositiveAndFalsification": true
+  }
+}

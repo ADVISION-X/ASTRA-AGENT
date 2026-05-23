@@ -1,0 +1,15 @@
+{
+  "contractId": "deep-research.decomposition.json.v1",
+  "format": "json_object",
+  "mainQuestion": "按照当前最新的伊朗战争形态，这场战争最可能以哪种形式平息或结束？",
+  "subQuestions": [
+    {
+      "id": "SQ1",
+      "title": "当前战争形态判断",
+      "questionText": "当前伊朗相关战争的主要形态是什么？",
+      "purpose": "先界定战争性质。",
+      "scope": "仅分析当前军事行动模式。",
+      "expectedAnswerShape": "分类判断 + 证据点"
+    }
+  ]
+}

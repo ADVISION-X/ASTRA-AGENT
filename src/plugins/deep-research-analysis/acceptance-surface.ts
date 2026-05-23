@@ -15,5 +15,9 @@ export {
   renderDecompositionPrompt,
 } from "./deep-research-analysis.decomposition-prompt.js";
 export { parseDecompositionResponse } from "./deep-research-analysis.decomposition-parser.js";
-export { scoreDecompositionQuality } from "./deep-research-analysis.prompt-quality.js";
+export {
+  detectCurrentEventMissingInfo,
+  detectFinalSynthesisLeakage,
+  scoreDecompositionQuality,
+} from "./deep-research-analysis.prompt-quality.js";
 export { DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES } from "./deep-research-analysis.prompt-regression.js";

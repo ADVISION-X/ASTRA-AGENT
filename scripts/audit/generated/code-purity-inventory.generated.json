@@ -1,36 +1,5 @@
 {
-  "generatedAt": "2026-05-22T23:37:48.920Z",
-  "itemCount": 3,
-  "items": [
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Function near line 265 breaks function budget: physical line count 94 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "capability:video-download",
-      "reason": "Function near line 113 breaks function budget: physical line count 77 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "child-ability",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "capability:video-download",
-      "reason": "Function near line 1 breaks function budget: physical line count 142 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "child-ability",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-05-23T00:39:32.709Z",
+  "itemCount": 0,
+  "items": []
 }

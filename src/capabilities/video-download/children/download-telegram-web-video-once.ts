@@ -110,6 +110,82 @@ const writeArtifact = (
 const asFailureMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Unknown Telegram Web video download failure.";
 
+const evaluateTelegramProbe = async (
+  input: ParsedDownloadTelegramWebVideoInput,
+  context: VideoDownloadExecutionContext,
+  abortSignal: AbortSignal,
+): Promise<TelegramProbeResult> => {
+  const evaluateTelegramPage = context.browserMediaSourcePort.evaluateSourcePage
+    ?? ((request: {
+      script: string;
+      description: string;
+      abortSignal?: AbortSignal;
+    }) => context.browserMediaSourcePort.evaluateActiveTab<TelegramProbeResult>(request));
+  return evaluateTelegramPage<TelegramProbeResult>({
+    sourcePageUrl: input.sourcePageUrl,
+    script: buildTelegramWebCacheProbeScript(input.maxBytes),
+    description: "collect Telegram Web cached video media bytes",
+    abortSignal,
+  });
+};
+
+const buildCandidateBase = (
+  base: { input: ParsedDownloadTelegramWebVideoInput; startedAt: string },
+  candidate: VideoDownloadCandidate,
+) => ({
+  ...base,
+  candidate,
+  candidateHost: TELEGRAM_WEB_HOST,
+});
+
+const buildSuccessfulTelegramDownload = async (input: {
+  base: { input: ParsedDownloadTelegramWebVideoInput; startedAt: string };
+  probe: TelegramProbeSuccess;
+  context: VideoDownloadExecutionContext;
+}): Promise<VideoDownloadResult> => {
+  const candidate = buildCandidate(input.base.input);
+  const candidateBase = buildCandidateBase(input.base, candidate);
+  const bytes = decodeBase64(input.probe.bytesBase64);
+  if (bytes.length > input.base.input.maxBytes) {
+    return buildVideoDownloadFailure(
+      candidateBase,
+      "download_too_large",
+      "Telegram Web cached media exceeds maxBytes.",
+      "review_required",
+    );
+  }
+  const validationFailure = validateProbeBytes(input.probe, bytes);
+  if (validationFailure) {
+    return buildVideoDownloadFailure(
+      candidateBase,
+      "metadata_validation_failed",
+      validationFailure,
+    );
+  }
+  const documentHash = hashDocumentId(input.probe.documentId);
+  const artifact = await writeArtifact(
+    input.base.input,
+    input.context,
+    bytes,
+    input.probe.contentType,
+    documentHash,
+  );
+  return buildVideoDownloadSuccess({
+    ...candidateBase,
+    contentType: input.probe.contentType,
+    byteSize: input.probe.byteSize,
+    durationMs: null,
+    width: null,
+    height: null,
+    artifactRef: artifact.artifactRef,
+    storageRef: artifact.storageRef,
+    filePath: artifact.filePath,
+    sha256: artifact.sha256,
+    artifactDisposition: artifact.artifactDisposition,
+    videoId: `telegram-document-${documentHash}`,
+  });
+};
+
 const executeDownloadTelegramWebVideoOnce = async (
   input: ParsedDownloadTelegramWebVideoInput,
   context: VideoDownloadExecutionContext,
@@ -127,60 +203,15 @@ const executeDownloadTelegramWebVideoOnce = async (
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), input.timeoutMs);
   try {
-    const evaluateTelegramPage = context.browserMediaSourcePort.evaluateSourcePage
-      ?? ((request: {
-        script: string;
-        description: string;
-        abortSignal?: AbortSignal;
-      }) => context.browserMediaSourcePort.evaluateActiveTab<TelegramProbeResult>(request));
-    const probe = await evaluateTelegramPage<TelegramProbeResult>({
-      sourcePageUrl: input.sourcePageUrl,
-      script: buildTelegramWebCacheProbeScript(input.maxBytes),
-      description: "collect Telegram Web cached video media bytes",
-      abortSignal: abortController.signal,
-    });
+    const probe = await evaluateTelegramProbe(
+      input,
+      context,
+      abortController.signal,
+    );
     if (!probe.ok) {
       return buildVideoDownloadFailure(base, probe.failureReason, probe.reason, probe.status);
     }
-
-    const candidate = buildCandidate(input);
-    const bytes = decodeBase64(probe.bytesBase64);
-    if (bytes.length > input.maxBytes) {
-      return buildVideoDownloadFailure(
-        { ...base, candidate, candidateHost: TELEGRAM_WEB_HOST },
-        "download_too_large",
-        "Telegram Web cached media exceeds maxBytes.",
-        "review_required",
-      );
-    }
-
-    const validationFailure = validateProbeBytes(probe, bytes);
-    if (validationFailure) {
-      return buildVideoDownloadFailure(
-        { ...base, candidate, candidateHost: TELEGRAM_WEB_HOST },
-        "metadata_validation_failed",
-        validationFailure,
-      );
-    }
-
-    const documentHash = hashDocumentId(probe.documentId);
-    const artifact = await writeArtifact(input, context, bytes, probe.contentType, documentHash);
-    return buildVideoDownloadSuccess({
-      ...base,
-      candidate,
-      candidateHost: TELEGRAM_WEB_HOST,
-      contentType: probe.contentType,
-      byteSize: probe.byteSize,
-      durationMs: null,
-      width: null,
-      height: null,
-      artifactRef: artifact.artifactRef,
-      storageRef: artifact.storageRef,
-      filePath: artifact.filePath,
-      sha256: artifact.sha256,
-      artifactDisposition: artifact.artifactDisposition,
-      videoId: `telegram-document-${documentHash}`,
-    });
+    return buildSuccessfulTelegramDownload({ base, probe, context });
   } catch (error) {
     return buildVideoDownloadFailure(base, "network_failed", asFailureMessage(error), "review_required");
   } finally {

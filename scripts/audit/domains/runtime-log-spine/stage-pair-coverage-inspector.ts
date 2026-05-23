@@ -75,7 +75,7 @@ const appendStartCallPairFindings = (input: {
   startCalls: ResolvedStageCall[];
   terminalCalls: ResolvedStageCall[];
 }): void => {
-  const handleToStageName = new Map<string, string>();
+  const handleToStageNames = new Map<string, Set<string>>();
   const stagesWithTerminal = new Set<string>();
 
   for (const startCall of input.startCalls) {
@@ -83,15 +83,17 @@ const appendStartCallPairFindings = (input: {
     const stageName = startObject ? getStringLiteralProperty(startObject, "stageName") : null;
     const handleName = resolveStageHandleBinding(startCall.callNode);
     if (stageName && handleName) {
-      handleToStageName.set(handleName, stageName);
+      const knownStageNames = handleToStageNames.get(handleName) ?? new Set<string>();
+      knownStageNames.add(stageName);
+      handleToStageNames.set(handleName, knownStageNames);
     }
   }
 
   for (const terminalCall of input.terminalCalls) {
     const handleName = resolveStageHandleName(terminalCall.callNode);
-    const stageName = handleName ? handleToStageName.get(handleName) : undefined;
-    if (stageName) {
-      stagesWithTerminal.add(stageName);
+    const stageNames = handleName ? handleToStageNames.get(handleName) : undefined;
+    if (stageNames) {
+      stageNames.forEach((stageName) => stagesWithTerminal.add(stageName));
     }
   }
 

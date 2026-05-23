@@ -1,6 +1,6 @@
-export const buildTelegramWebCacheProbeScript = (maxBytes: number): string => `
+const TELEGRAM_WEB_CACHE_PROBE_SCRIPT_TEMPLATE = `
 (async () => {
-  const MAX_BYTES = ${JSON.stringify(maxBytes)};
+  const MAX_BYTES = __MAX_BYTES__;
   const CACHE_NAME = "tt-media-progressive";
 
   const failure = (failureReason, reason, status = "failed") => ({
@@ -140,3 +140,9 @@ export const buildTelegramWebCacheProbeScript = (maxBytes: number): string => `
   return failure("candidate_not_found", "No Telegram Web video media cache entries were found.", "review_required");
 })()
 `;
+
+export const buildTelegramWebCacheProbeScript = (maxBytes: number): string =>
+  TELEGRAM_WEB_CACHE_PROBE_SCRIPT_TEMPLATE.replace(
+    "__MAX_BYTES__",
+    JSON.stringify(maxBytes),
+  );

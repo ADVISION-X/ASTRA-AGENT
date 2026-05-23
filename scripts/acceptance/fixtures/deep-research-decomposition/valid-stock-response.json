@@ -13,6 +13,7 @@
       "requiredEvidence": ["latest earnings", "guidance", "cash flow"],
       "positiveAnalysisFocus": "Identify fundamental metrics that improved enough to justify the rally.",
       "falsificationFocus": "Check whether improvement is temporary, accounting-driven, or below peers.",
+      "scope": "Include recent company fundamentals; exclude final investment advice.",
       "expectedAnswerShape": "Evidence table with trend and interpretation.",
       "priority": "high"
     },
@@ -25,6 +26,7 @@
       "requiredEvidence": ["price-volume data", "sector performance", "news timeline"],
       "positiveAnalysisFocus": "Connect the rally to company-specific improvements.",
       "falsificationFocus": "Test whether the move can be explained without fundamentals.",
+      "scope": "Include market and company catalysts; exclude final probability judgment.",
       "expectedAnswerShape": "Cause ranking with evidence strength.",
       "priority": "high"
     },
@@ -37,6 +39,7 @@
       "requiredEvidence": ["valuation multiples", "peer comparison", "earnings estimates"],
       "positiveAnalysisFocus": "Show where valuation remains reasonable versus growth.",
       "falsificationFocus": "Identify assumptions required to avoid overvaluation.",
+      "scope": "Include valuation sensitivity; exclude buy or sell recommendations.",
       "expectedAnswerShape": "Valuation comparison and sensitivity.",
       "priority": "medium"
     },
@@ -49,6 +52,7 @@
       "requiredEvidence": ["primary filings", "management commentary", "analyst revisions"],
       "positiveAnalysisFocus": "Prioritize hard evidence over narrative signals.",
       "falsificationFocus": "Flag evidence gaps and unsupported claims.",
+      "scope": "Include source reliability; exclude final synthesis.",
       "expectedAnswerShape": "Evidence checklist by reliability.",
       "priority": "medium"
     },
@@ -61,6 +65,7 @@
       "requiredEvidence": ["risk factors", "estimate revisions", "competitive data"],
       "positiveAnalysisFocus": "List manageable risks consistent with a valid fundamental thesis.",
       "falsificationFocus": "Define specific signals that would break the thesis.",
+      "scope": "Include disconfirming triggers; exclude final investment action.",
       "expectedAnswerShape": "Risk list with disconfirming triggers.",
       "priority": "high"
     }

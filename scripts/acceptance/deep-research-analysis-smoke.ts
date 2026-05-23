@@ -13,6 +13,7 @@ import {
   parseDeepResearchPositiveResponse,
   runDeepResearchAnalysis,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
+import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 import type {
   AiProviderAdapter,
   AiProviderRawResponse,
@@ -262,47 +263,10 @@ const verifyRuntimeLogCoverage = (bundlePath: string): void => {
   }
 };
 
-async function main(): Promise<void> {
-  verifySmokeUsesRealSurfaces();
-  const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-"));
-  const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-smoke.jsonl");
-  const runtimeLogger = createRuntimeLogger({
-    terminalEnabled: false,
-    fileSink: {
-      bundlePath: runtimeLogBundlePath,
-      redact: false,
-    },
-  });
-  const adapter = new SequentialFixtureAdapter();
-  const aiInputGateway = createAiInputGatewayAbilityGroup({
-    dataDir,
-    adapters: {
-      "gemini-api": adapter,
-    },
-  });
-
-  const result = await runDeepResearchAnalysis(
-    {
-      userQuestion: "Should the company enter the robotics warehouse market?",
-      analysisGoal: "Assess whether entry is justified and under what conditions.",
-      language: "en",
-      maxSubQuestions: 4,
-      outputFormat: "markdown",
-    },
-    {
-      aiInputGateway,
-      runtimeLogger,
-      dataDir,
-      providerKind: "gemini-api",
-      modelName: "fixture-gemini-model",
-      timeoutMs: 5_000,
-    },
-  );
-
-  assert(result.status === "success", `Deep Research smoke expected success but received ${JSON.stringify(result)}.`);
-  assert(result.report !== null, "Deep Research smoke expected a final report.");
-  assert(Object.keys(result.recordHashes).length > 0, "Deep Research smoke expected non-empty record hashes.");
-
+const verifyPersistedResearchState = (
+  dataDir: string,
+  result: DeepResearchResult,
+): void => {
   const store = createDeepResearchRecordStore(dataDir);
   try {
     const job = store.getJob(result.jobId);
@@ -352,7 +316,49 @@ async function main(): Promise<void> {
   } finally {
     store.close();
   }
+};
 
+async function main(): Promise<void> {
+  verifySmokeUsesRealSurfaces();
+  const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-"));
+  const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-smoke.jsonl");
+  const runtimeLogger = createRuntimeLogger({
+    terminalEnabled: false,
+    fileSink: {
+      bundlePath: runtimeLogBundlePath,
+      redact: false,
+    },
+  });
+  const adapter = new SequentialFixtureAdapter();
+  const aiInputGateway = createAiInputGatewayAbilityGroup({
+    dataDir,
+    adapters: {
+      "gemini-api": adapter,
+    },
+  });
+
+  const result = await runDeepResearchAnalysis(
+    {
+      userQuestion: "Should the company enter the robotics warehouse market?",
+      analysisGoal: "Assess whether entry is justified and under what conditions.",
+      language: "en",
+      maxSubQuestions: 4,
+      outputFormat: "markdown",
+    },
+    {
+      aiInputGateway,
+      runtimeLogger,
+      dataDir,
+      providerKind: "gemini-api",
+      modelName: "fixture-gemini-model",
+      timeoutMs: 5_000,
+    },
+  );
+
+  assert(result.status === "success", `Deep Research smoke expected success but received ${JSON.stringify(result)}.`);
+  assert(result.report !== null, "Deep Research smoke expected a final report.");
+  assert(Object.keys(result.recordHashes).length > 0, "Deep Research smoke expected non-empty record hashes.");
+  verifyPersistedResearchState(dataDir, result);
   verifyRuntimeLogCoverage(runtimeLogBundlePath);
   process.stdout.write("[DEEP-RESEARCH-ANALYSIS-SMOKE][PASS] full fixed research pipeline completed with persisted records, exports, and runtime logs.\n");
 }

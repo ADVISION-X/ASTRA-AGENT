@@ -60,10 +60,28 @@ const parseJson = (normalizedText: string): unknown | DecompositionParseFailure 
 };
 
 const isDecompositionParseFailure = (value: unknown): value is DecompositionParseFailure => {
-  if (typeof value !== "object" || value === null || !('parseStatus' in value)) {
+  if (typeof value !== "object" || value === null || !("parseStatus" in value)) {
     return false;
   }
   return value.parseStatus === "failed" || value.parseStatus === "partial_review_required";
+};
+
+const hasForbiddenContractMetadata = (value: unknown): boolean => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const keys = Object.keys(value);
+  return keys.includes("contractId") || keys.includes("format");
+};
+
+const formatSchemaFailureReason = (issues: {
+  code: string;
+  message: string;
+}[]): string => {
+  if (issues.some((issue) => issue.code === "unrecognized_keys")) {
+    return "invalid_decomposition_contract:unrecognized_keys:schema_extra_fields_not_allowed";
+  }
+  return `invalid_decomposition_contract:${issues.map((issue) => issue.message).join("; ")}`;
 };
 
 const hasDuplicateQuestionText = (parsed: DeepResearchDecompositionResponse): boolean => {
@@ -97,9 +115,15 @@ export const parseDecompositionResponse = (input: {
   if (isDecompositionParseFailure(raw)) {
     return raw;
   }
+  if (hasForbiddenContractMetadata(raw)) {
+    return buildFailure(
+      normalizedText,
+      "invalid_decomposition_contract:unrecognized_keys:schema_extra_fields_not_allowed",
+    );
+  }
   const parsed = DeepResearchDecompositionResponseSchema.safeParse(raw);
   if (!parsed.success) {
-    return buildFailure(normalizedText, `invalid_decomposition_contract:${parsed.error.issues.map((issue) => issue.message).join("; ")}`);
+    return buildFailure(normalizedText, formatSchemaFailureReason(parsed.error.issues));
   }
   if (parsed.data.subQuestions.length === 0) {
     return buildFailure(normalizedText, "empty_sub_questions");

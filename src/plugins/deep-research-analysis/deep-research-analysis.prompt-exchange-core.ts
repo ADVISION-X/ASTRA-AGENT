@@ -15,8 +15,8 @@ import {
   type ProviderKind,
   type StageLogger,
   type StageTraceContext,
+  buildFlowStageStartFields,
   buildPromptPackage,
-  startFlowStage,
 } from "./deep-research-analysis.flow-shared.js";
 import { buildRenderedDeepResearchPromptHash } from "./deep-research-analysis.prompts.js";
 import {
@@ -86,23 +86,50 @@ const startPromptSend = (input: {
     status: "running",
     phase: input.stage,
   });
-  const sendStage = startFlowStage({
-    stageLogger: input.stageLogger,
+  const startFields = buildFlowStageStartFields({
     traceContext: input.traceContext,
-    stageName: input.stage,
     preview: input.preview,
     hashes: { promptHash: input.promptHash },
   });
-  logDeepResearchPromptSent({
-    logger: input.runtimeLogger,
-    traceContext: input.traceContext,
-    phase: input.stage,
-    promptId: input.prompt.promptId,
-    promptVersion: input.prompt.promptVersion,
-    promptHash: input.promptHash,
-    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-  });
-  sendStage.complete({ hashes: { promptHash: input.promptHash } });
+  const completeSendStage = (sendStage: ReturnType<StageLogger["start"]>): void => {
+    logDeepResearchPromptSent({
+      logger: input.runtimeLogger,
+      traceContext: input.traceContext,
+      phase: input.stage,
+      promptId: input.prompt.promptId,
+      promptVersion: input.prompt.promptVersion,
+      promptHash: input.promptHash,
+      ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+    });
+    sendStage.complete({
+      durationMs: Math.max(0, Date.now() - sendStage.startedAt),
+      hashes: { promptHash: input.promptHash },
+    });
+  };
+  switch (input.stage) {
+    case "DECOMPOSE_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_SEND" });
+      completeSendStage(sendStage);
+      return;
+    }
+    case "POSITIVE_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_SEND" });
+      completeSendStage(sendStage);
+      return;
+    }
+    case "FALSIFY_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_SEND" });
+      completeSendStage(sendStage);
+      return;
+    }
+    case "FINAL_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_SEND" });
+      completeSendStage(sendStage);
+      return;
+    }
+    default:
+      throw new Error(`Unsupported Deep Research send stage ${input.stage}.`);
+  }
 };
 
 const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => {

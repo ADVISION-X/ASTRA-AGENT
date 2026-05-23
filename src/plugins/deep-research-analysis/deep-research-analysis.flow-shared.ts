@@ -30,6 +30,9 @@ type AiGatewayExecutionResult = {
 export type ProviderKind = "gemini-api" | "gemini-web-chat" | "gpt-web-chat";
 export type StageLogger = ReturnType<typeof createStageLogger>;
 export type StageTraceContext = ReturnType<typeof createDeepResearchTraceContext>;
+export type FlowStageHandle = ReturnType<StageLogger["start"]>;
+type FlowStageStartInput = Parameters<StageLogger["start"]>[0];
+type FlowStageStartFields = Omit<FlowStageStartInput, "stageName">;
 
 export type DeepResearchGatewayPromptPackage = {
   jobId: string;
@@ -243,19 +246,15 @@ export const finishFailure = (input: {
   });
 };
 
-export const startFlowStage = (input: {
-  stageLogger: StageLogger;
+export const buildFlowStageStartFields = (input: {
   traceContext: StageTraceContext;
-  stageName: DeepResearchPhase;
   preview?: Record<string, string>;
   refs?: Record<string, string>;
   hashes?: Record<string, string>;
   metrics?: Record<string, number>;
   payload?: Record<string, unknown>;
-}) =>
-  input.stageLogger.start({
+}): FlowStageStartFields => ({
     context: input.traceContext,
-    stageName: input.stageName,
     modeVisibility: ["FLOW", "DEBUG", "TRACE"],
     ...(input.preview ? { preview: input.preview } : {}),
     ...(input.refs ? { refs: input.refs } : {}),

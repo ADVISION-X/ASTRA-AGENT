@@ -1,4 +1,9 @@
-import { RuntimeFailureClass, createStageLogger } from "../../lib/runtime-logs/index.js";
+import {
+  RuntimeFailureClass,
+  RuntimeLogEventType,
+  createRuntimeEvent,
+  createStageLogger,
+} from "../../lib/runtime-logs/index.js";
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import {
   createDeepResearchTraceContext,
@@ -96,11 +101,27 @@ export const runDeepResearchAnalysis = async (
       phase: "INTAKE",
       inputHash: stableJsonHash(input),
     });
-    return runAnalysisPhases(executionContext);
+    return await runAnalysisPhases(executionContext);
   } catch (error) {
     const currentPhase = store.getJob(jobId)?.phase ?? "INTAKE";
     const reason =
       error instanceof Error ? error.message : "deep_research_internal_failure";
+    runtimeLogger.emit(createRuntimeEvent({
+      context: traceContext,
+      eventType: RuntimeLogEventType.DEEP_RESEARCH_JOB_FAILED,
+      level: "error",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      status: "failed",
+      reason,
+      payload: {
+        phase: currentPhase,
+        failureClass: RuntimeFailureClass.INTERNAL_BUG,
+        stageName: currentPhase,
+        retryable: false,
+        terminal: true,
+        recoveryPolicy: "terminal",
+      },
+    }));
     return finishFailure({
       store,
       runtimeLogger,

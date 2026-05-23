@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-22T23:09:38.367Z",
-  "status": "FAIL",
-  "scannedFiles": 257,
+  "generatedAt": "2026-05-23T00:39:34.117Z",
+  "status": "PASS",
+  "scannedFiles": 270,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -192,16 +192,27 @@
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
     "src/plugins/deep-research-analysis/acceptance-surface.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
@@ -209,6 +220,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-result-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
@@ -261,36 +274,36 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 11,
+  "emitCallCount": 12,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
   "missingTraceContractCount": 0,
   "catchBranchCount": 1,
-  "catchBranchWithoutLogCount": 10,
-  "failureBranchCount": 34,
+  "catchBranchWithoutLogCount": 0,
+  "failureBranchCount": 27,
   "failureWithoutClassCount": 0,
-  "stageStartCount": 19,
+  "stageStartCount": 18,
   "stageTerminalCount": 37,
-  "stagePairViolationCount": 1,
+  "stagePairViolationCount": 0,
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 11,
-    "fatalFindings": 11,
-    "scannedFiles": 257,
-    "emitCallCount": 11,
+    "totalFindings": 0,
+    "fatalFindings": 0,
+    "scannedFiles": 270,
+    "emitCallCount": 12,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
-    "stageCoveragePercent": 95
+    "stageCoveragePercent": 100
   },
   "phases": [
     {
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 252,
+      "scannedFiles": 265,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -299,43 +312,43 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 208
+      "scannedFiles": 221
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 205,
+      "scannedFiles": 218,
       "metrics": {
-        "emitCallCount": 1
+        "emitCallCount": 2
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 205
+      "scannedFiles": 218
     },
     {
       "name": "stage-pair-coverage",
-      "status": "FAIL",
-      "findingCount": 1,
-      "scannedFiles": 209,
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 222,
       "metrics": {
-        "stageCoveragePercent": 95
+        "stageCoveragePercent": 100
       }
     },
     {
       "name": "catch-branch-log",
-      "status": "FAIL",
-      "findingCount": 10,
+      "status": "PASS",
+      "findingCount": 0,
       "scannedFiles": 20
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 209,
+      "scannedFiles": 222,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -370,10 +383,10 @@
       "findingCount": 0,
       "scannedFiles": 20,
       "metrics": {
-        "emitCallCount": 11,
-        "stageStartCount": 19,
+        "emitCallCount": 12,
+        "stageStartCount": 18,
         "stageTerminalCount": 37,
-        "failureBranchCount": 34
+        "failureBranchCount": 27
       }
     },
     {
@@ -383,105 +396,5 @@
       "scannedFiles": 2
     }
   ],
-  "findings": [
-    {
-      "checkId": "runtime-log-spine/stage-start-terminal-pair",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 354,
-      "severity": "fatal",
-      "message": "stage has no proven started/terminal pair",
-      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 1093,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 529,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 546,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 712,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 721,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 932,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 1096,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/throw-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 185,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/throw-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 281,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    },
-    {
-      "checkId": "runtime-log-spine/throw-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "line": 284,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    }
-  ]
+  "findings": []
 }

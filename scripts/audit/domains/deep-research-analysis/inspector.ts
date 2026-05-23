@@ -22,6 +22,7 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
+import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
 
 const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -80,6 +81,16 @@ const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyN
   return initializer?.getText() ?? null;
 };
 
+const unwrapObjectLiteral = (initializer: Node | undefined): ObjectLiteralExpression | null => {
+  if (!initializer) return null;
+  if (Node.isObjectLiteralExpression(initializer)) return initializer;
+  if (Node.isAsExpression(initializer)) {
+    const expression = initializer.getExpression();
+    return Node.isObjectLiteralExpression(expression) ? expression : null;
+  }
+  return null;
+};
+
 const countAstCoverageNodes = (project: Project, sourceFile: SourceFile): number => {
   const checker: TypeChecker = project.getTypeChecker();
   const imports: ImportDeclaration[] = sourceFile.getImportDeclarations();
@@ -134,8 +145,8 @@ const inspectPromptAsset = (
     return;
   }
   const declaration = sourceFile.getVariableDeclaration("DEEP_RESEARCH_DECOMPOSITION_PROMPT");
-  const initializer = declaration?.getInitializer();
-  if (!initializer || !Node.isObjectLiteralExpression(initializer)) {
+  const initializer = unwrapObjectLiteral(declaration?.getInitializer());
+  if (!initializer) {
     findings.push(createFinding({
       checkId: "deep-research/prompt-asset",
       lawId,
@@ -305,17 +316,7 @@ const inspectParserHonesty = (
       checkId: "deep-research/parser-catch-success",
       lawId,
       filePath: getRepoSourcePath(parserFile),
-      lawId: input.lawId,
-      filePath: smokePath,
-      message: `Smoke must verify runtime log signal ${runtimeSignal}.`,
-    }));
-  }
-  if (countAstCoverageNodes(input.smokeFile.getProject(), input.smokeFile) === 0) {
-    input.findings.push(createFinding({
-      checkId: "deep-research/smoke-ast-symbol",
-      lawId: input.lawId,
-      filePath: smokePath,
-      message: "Smoke inspector must exercise ts-morph AST and symbol evidence.",
+      message: "Parser must not label catch-path parse results as parsed.",
     }));
   }
 };
@@ -373,9 +374,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const parserFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts");
   const flowFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts");
   const regressionFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts");
+  const promptsFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts");
+  const qualityFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts");
+  const decompositionAcceptanceFile = getSourceFile(context, "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts");
   const smokeFile = getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts");
   const ciFullFile = getSourceFile(context, "scripts/audit/ci-full.ts");
-  [promptFile, parserFile, flowFile, regressionFile, smokeFile, ciFullFile].forEach((sourceFile) => track(inspectedFiles, sourceFile));
+  [promptFile, parserFile, flowFile, regressionFile, promptsFile, qualityFile, decompositionAcceptanceFile, smokeFile, ciFullFile]
+    .forEach((sourceFile) => track(inspectedFiles, sourceFile));
   const astCoverageCount = flowFile ? countAstCoverageNodes(context.project, flowFile) : 0;
 
   inspectPromptAsset(promptFile, findings, lawId);
@@ -385,6 +390,15 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectParserHonesty(parserFile, findings, lawId);
   inspectAntiEvasion(sourceFiles, findings, lawId);
   inspectRegressionFixtures(regressionFile, findings, lawId);
+  inspectDecompositionPromptV2({
+    promptFile,
+    promptsFile,
+    acceptanceFile: decompositionAcceptanceFile,
+    qualityFile,
+    findings,
+    inspectedFiles,
+    lawId,
+  });
   inspectSmokeAcceptance({
     smokeFile,
     ciFullFile,
