@@ -144,6 +144,19 @@ buildPrompt
   -> emitStageTerminalLog
 ```
 
+阶段边界：
+
+```txt
+CAPTURE = 是否拿到非空 AI 原始回复、rawOutputRef、rawResponseHash
+PARSE = 原始回复是否能通过 Deep Research 业务 parser
+PERSIST = parser 成功后的业务记录是否入库
+```
+
+AI gateway 是运输层，只负责发送、等待、读取 raw response、落 rawOutputRef、生成 rawResponseHash。  
+Deep Research 调用 AI gateway 时必须使用 raw-only capture，`expectedOutputSchemaRef` 必须为 `null`。  
+`promptContractId` 只能作为合同标识和审计记录保留，不得作为 gateway 阻断解析条件。  
+只要 provider 返回了 raw response，CAPTURE 阶段必须完成；JSON 语法错误、字段缺失、schema 不合格必须进入对应 PARSE 阶段处理。
+
 ---
 
 ## 4. 阶段设计
@@ -802,6 +815,31 @@ deep-research-analysis.flow.ts
 
 能力组只做同类能力，不做业务判断。
 
+### 7.4 Raw Capture 与业务 Parser 边界
+
+```txt
+Prompt 负责尽量约束 AI 输出。
+AI gateway 负责拿回 raw response。
+Deep Research parser 负责 JSON 提取、合同校验、失败归类。
+Records / runtime logs 负责保存证据链和阶段定位。
+```
+
+禁止：
+
+```txt
+AI gateway 因 JSON.parse 失败把 Deep Research CAPTURE 标为 failed
+AI gateway 替 Deep Research 判断 confidence、字段完整性、业务合同
+有 rawOutputRef / rawResponseHash 但不进入 Deep Research PARSE
+```
+
+允许：
+
+```txt
+provider 无回复、登录失效、验证码、安全校验、页面恢复失败 -> CAPTURE failed/review_required
+provider 有 raw response 但 JSON 损坏 -> CAPTURE completed，PARSE failed/review_required
+provider 有 raw response 且 schema 不合格 -> CAPTURE completed，PARSE failed/review_required
+```
+
 ---
 
 ## 8. Runtime Log 设计
@@ -987,6 +1025,31 @@ runtime log terminal missing
 catch swallowed error
 ```
 
+### Raw Capture Boundary 验收
+
+Smoke 必须包含一个畸形 provider JSON 用例：
+
+```txt
+Decomposition fixture 合格
+Positive fixture 返回非空 raw response，但 JSON 故意缺少闭合括号
+```
+
+期望：
+
+```txt
+POSITIVE_CAPTURE completed
+POSITIVE_PARSE failed
+result.phase = POSITIVE_PARSE
+failureReason = json_parse_failed:...
+```
+
+禁止：
+
+```txt
+AI feed output failed requested parsing.
+result.phase = POSITIVE_CAPTURE
+```
+
 ### GPT Web Chat 会话隔离
 
 Deep Research 阶段执行是串行的：
@@ -1011,30 +1074,53 @@ Final Synthesis -> click 新聊天 -> paste -> Return -> wait response
 
 ### Confidence 输出合同
 
-Positive、Falsification、Final Synthesis 三类 JSON 输出的 `confidence` 必须是严格枚举：
+Positive、Falsification、Final Synthesis 三类 JSON 输出应优先使用：
 
 ```txt
 "low" | "medium" | "high"
 ```
 
-禁止：
+但 runtime parser 必须接受并归一化这些常见变体：
 
 ```txt
 0.8
 80
 "80%"
 "high confidence"
+"较高"
 ```
 
-parser 必须继续拒绝数字 confidence；不得把 `0.8` 自动转换为 `high`。  
+parser 必须先尝试归一化；只有无法判断 confidence 时，才允许 `PARSE failed / review_required`。  
 prompt 必须明确写入：
 
 ```txt
-confidence must be exactly one of: "low", "medium", "high".
-Do not output numeric confidence.
+Prioritize analytical content over perfect formatting.
+confidence may be low/medium/high, a numeric score, or a percentage; the system will normalize it.
+If a preferred field is unavailable, omit it instead of inventing evidence.
 ```
 
-实测基线：旧 positive prompt 曾让 GPT 返回 `"confidence": 0.68` 并在 `POSITIVE_PARSE` 被 parser 拒绝；强化合同后，GPT 在 positive、falsification、final 三类页面实测中均返回 `"confidence": "medium"`。
+实测基线：旧 positive prompt 曾让 GPT 返回 `"confidence": 0.68` 并在 `POSITIVE_PARSE` 被 parser 拒绝；当前 runtime 必须把这类格式差异视为 PARSE 内部归一化责任，而不是把内容价值直接判死。
+
+### Single Sub-question Fault Isolation
+
+Deep Research 必须把单题失败隔离在 sub-question 边界：
+
+```txt
+Q1 success
+Q2 positive parse failed
+Q3 success
+-> final package continues when minimum material exists
+-> final report surfaces evidence gaps for the missing structured sub-question
+```
+
+规则：
+
+```txt
+当前 sub-question parse failed != 整个 job 立即 failed
+single sub-question failed != 剩余 sub-questions停止
+no complete positive/falsification pair -> FINAL_PACKAGE_BUILD review_required
+system-built conflictMatrix 已存在时，AI final report 可以不重复输出完整 conflictMatrix
+```
 
 ### Phase 1：无浏览器假数据 smoke
 
@@ -1087,11 +1173,14 @@ Deep Research inspector 必须检查：
 3. active 代码中没有 planner / nextAction / actionPlan / mission-loop / universal-agent。
 4. prompt 只能集中在 prompts 文件。
 5. final package 构造必须读取 persisted records。
-6. parse failed 不得继续进入下一阶段。
+6. 同一 subQuestion 的 parse failed 不得伪装为 success；剩余 subQuestions 可继续，只有 minimum material gate 才能阻断 final path。
 7. 每个 interaction 必须记录 promptHash 和 rawResponseHash。
-8. final report 必须有 reverseConditions 和 limitations。
+8. final report 允许回退到系统构造的 conflictMatrix / evidenceGaps；不得强迫 AI 重新复制系统已知结构。
 9. export 必须生成三件套。
 10. runtime log 必须覆盖 stage start/terminal。
+11. Deep Research 调用 AI gateway 必须传 expectedOutputSchemaRef: null。
+12. Smoke 必须证明 malformed raw JSON 是 POSITIVE_PARSE 失败，不是 POSITIVE_CAPTURE 失败。
+13. Smoke 必须证明单个 sub-question parse 失败不会直接杀死整条研究链，并且 final report 会出现对应 evidence gap。
 ```
 
 ---

@@ -21,6 +21,8 @@ import type {
 import type {
   AiFeedInput,
 } from "../../src/capabilities/ai-input-gateway/index.js";
+import { verifyMalformedProviderJsonFailsAtParseNotCapture } from "./deep-research-analysis-raw-capture-boundary.js";
+import { verifySingleSubQuestionFailureDoesNotKillJob } from "./deep-research-analysis-sub-question-fault-isolation.js";
 
 const REQUIRED_STAGE_NAMES = [
   "DECOMPOSE_SEND",
@@ -396,6 +398,8 @@ const verifySubQuestionIdsAreJobScoped = (): void => {
 async function main(): Promise<void> {
   verifySmokeUsesRealSurfaces();
   verifySubQuestionIdsAreJobScoped();
+  await verifyMalformedProviderJsonFailsAtParseNotCapture();
+  await verifySingleSubQuestionFailureDoesNotKillJob();
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-"));
   const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-smoke.jsonl");
   const runtimeLogger = createRuntimeLogger({

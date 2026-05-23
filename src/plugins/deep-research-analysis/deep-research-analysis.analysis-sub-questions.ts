@@ -173,10 +173,10 @@ const runFalsificationPhase = async (
 const runSubQuestionPhase = async (
   context: AnalysisExecutionContext,
   subQuestion: ResearchSubQuestion,
-): Promise<AnalysisOutcome> => {
+): Promise<{ completed: boolean }> => {
   const positive = await runPositivePhase(context, subQuestion);
   if (positive.status !== "parsed") {
-    return finishPromptFailure(context, positive);
+    return { completed: false };
   }
   const falsification = await runFalsificationPhase(
     context,
@@ -184,9 +184,9 @@ const runSubQuestionPhase = async (
     positive.parsed,
   );
   if (falsification.status !== "parsed") {
-    return finishPromptFailure(context, falsification);
+    return { completed: false };
   }
-  return { ok: true };
+  return { completed: true };
 };
 
 export const runSubQuestionPhases = async (
@@ -194,10 +194,7 @@ export const runSubQuestionPhases = async (
   subQuestions: readonly ResearchSubQuestion[],
 ): Promise<AnalysisOutcome> => {
   for (const subQuestion of subQuestions) {
-    const outcome = await runSubQuestionPhase(context, subQuestion);
-    if (!outcome.ok) {
-      return outcome;
-    }
+    await runSubQuestionPhase(context, subQuestion);
   }
   return { ok: true };
 };

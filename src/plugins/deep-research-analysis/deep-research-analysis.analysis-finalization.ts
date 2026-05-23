@@ -34,6 +34,37 @@ type FinalReportSuccess = {
   finalReport: DeepResearchFinalReport;
 };
 
+const uniqueStrings = (values: readonly string[]): string[] =>
+  [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
+
+const buildFinalReportFallback = (
+  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+) => {
+  const fallback = {
+    conflictMatrix: finalPackage.conflictMatrix,
+    positiveReasons: uniqueStrings(
+      finalPackage.positiveAnswerRecords.map((record) =>
+        record.keyPoints[0] ?? record.answerText),
+    ),
+    strongestOpposingArguments: uniqueStrings(
+      finalPackage.falsificationAnswerRecords.map((record) =>
+        record.keyPoints[0] ?? record.answerText),
+    ),
+    evidenceGaps: uniqueStrings([
+      ...finalPackage.conflictMatrix.map((row) => row.evidenceGap),
+      ...finalPackage.missingSubQuestionIds.map((subQuestionId) =>
+        `Missing structured positive or falsification record for ${subQuestionId}.`),
+    ]),
+  };
+  if (finalPackage.missingSubQuestionIds.length === 0) {
+    return fallback;
+  }
+  return {
+    ...fallback,
+    limitations: [`Structured analysis is incomplete for: ${finalPackage.missingSubQuestionIds.join(", ")}.`],
+  };
+};
+
 const failFinalPackageStage = (
   context: AnalysisExecutionContext,
   finalPackageStage: FlowStageHandle,
@@ -278,7 +309,11 @@ export const runFinalReportPhase = async (
       parse: "FINAL_PARSE",
       persist: "FINAL_PERSIST",
     },
-    parse: parseDeepResearchFinalReportResponse,
+    parse: (rawText) =>
+      parseDeepResearchFinalReportResponse(
+        rawText,
+        buildFinalReportFallback(finalPackage),
+      ),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) => {
       const finalReportRecord = context.store.saveFinalReport({

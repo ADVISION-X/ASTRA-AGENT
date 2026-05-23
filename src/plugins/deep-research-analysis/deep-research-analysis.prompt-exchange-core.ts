@@ -24,6 +24,7 @@ import {
   parsePromptOutput,
   persistPromptOutput,
 } from "./deep-research-analysis.prompt-exchange-stages.js";
+import type { CaptureSuccess } from "./deep-research-analysis.prompt-exchange-stage-support.js";
 
 type PromptPreview = {
   promptId: string;
@@ -153,10 +154,54 @@ const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => 
   };
 };
 
+const buildSharedStageInput = <TParsed>(
+  input: PromptExchangeInput<TParsed>,
+  prepared: Pick<ReturnType<typeof preparePromptExchange<TParsed>>, "promptHash" | "preview">,
+) => ({
+  store: input.store,
+  runtimeLogger: input.runtimeLogger,
+  traceContext: input.traceContext,
+  stageLogger: input.stageLogger,
+  recordHashes: input.recordHashes,
+  jobId: input.jobId,
+  providerKind: input.providerKind,
+  prompt: input.prompt,
+  promptHash: prepared.promptHash,
+  preview: prepared.preview,
+  ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+});
+
+const continuePromptExchange = <TParsed>(
+  input: PromptExchangeInput<TParsed>,
+  prepared: Pick<ReturnType<typeof preparePromptExchange<TParsed>>, "promptHash" | "preview">,
+  captured: CaptureSuccess,
+): PromptExchangeSuccess<TParsed> | PromptExchangeFailure => {
+  const stageInput = buildSharedStageInput(input, prepared);
+  const parsed = parsePromptOutput({
+    ...stageInput,
+    stage: input.stages.parse,
+    domRef: captured.domRef,
+    gatewayResult: captured.gatewayResult,
+    parse: input.parse,
+    successRecordCount: input.successRecordCount,
+  });
+  if ("status" in parsed) {
+    return parsed;
+  }
+  return persistPromptOutput({
+    ...stageInput,
+    stage: input.stages.persist,
+    domRef: captured.domRef,
+    gatewayResult: captured.gatewayResult,
+    parsed: parsed.parsed,
+    persist: input.persist,
+  });
+};
+
 export const runPromptExchange = async <TParsed>(
   input: PromptExchangeInput<TParsed>,
 ): Promise<PromptExchangeSuccess<TParsed> | PromptExchangeFailure> => {
-  const { promptHash, promptPackage, preview } = preparePromptExchange(input);
+  const prepared = preparePromptExchange(input);
 
   startPromptSend({
     store: input.store,
@@ -165,9 +210,9 @@ export const runPromptExchange = async <TParsed>(
     stageLogger: input.stageLogger,
     jobId: input.jobId,
     stage: input.stages.send,
-    preview,
+    preview: prepared.preview,
     prompt: input.prompt,
-    promptHash,
+    promptHash: prepared.promptHash,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
   });
   const captured = await capturePromptOutput({
@@ -178,9 +223,9 @@ export const runPromptExchange = async <TParsed>(
     sender: input.sender,
     jobId: input.jobId,
     prompt: input.prompt,
-    promptPackage,
-    promptHash,
-    preview,
+    promptPackage: prepared.promptPackage,
+    promptHash: prepared.promptHash,
+    preview: prepared.preview,
     stage: input.stages.capture,
     ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
   });
@@ -188,40 +233,5 @@ export const runPromptExchange = async <TParsed>(
     return captured;
   }
 
-  const parsed = parsePromptOutput({
-    store: input.store,
-    runtimeLogger: input.runtimeLogger,
-    traceContext: input.traceContext,
-    stageLogger: input.stageLogger,
-    jobId: input.jobId,
-    promptHash,
-    preview,
-    stage: input.stages.parse,
-    gatewayResult: captured.gatewayResult,
-    parse: input.parse,
-    successRecordCount: input.successRecordCount,
-    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-  });
-  if ("status" in parsed) {
-    return parsed;
-  }
-
-  return persistPromptOutput({
-    store: input.store,
-    runtimeLogger: input.runtimeLogger,
-    traceContext: input.traceContext,
-    stageLogger: input.stageLogger,
-    recordHashes: input.recordHashes,
-    jobId: input.jobId,
-    providerKind: input.providerKind,
-    prompt: input.prompt,
-    promptHash,
-    preview,
-    stage: input.stages.persist,
-    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-    domRef: captured.domRef,
-    gatewayResult: captured.gatewayResult,
-    parsed: parsed.parsed,
-    persist: input.persist,
-  });
+  return continuePromptExchange(input, prepared, captured);
 };

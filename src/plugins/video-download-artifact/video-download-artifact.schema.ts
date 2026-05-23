@@ -32,10 +32,11 @@ export const VideoDownloadArtifactJobInputSchema = z.object({
   sourcePageUrl: z.string().url(),
   childCapabilityId: VideoDownloadArtifactChildCapabilitySchema.default("download-web-video-once"),
   preferredQuality: VideoDownloadArtifactQualitySchema.default("best_available"),
-  maxBytes: z.number().int().min(1024).max(500_000_000).default(200_000_000),
-  timeoutMs: z.number().int().min(1000).max(3_600_000).default(60_000),
+  maxBytes: z.number().int().min(1024).max(5_000_000_000).default(5_000_000_000),
+  timeoutMs: z.number().int().min(1000).max(3_600_000).default(3_600_000),
   downloadSubtitles: z.boolean().default(false),
   subtitleLanguages: z.array(z.string().min(1)).max(8).default(["en"]),
+  telegramDocumentIdHash: z.string().regex(/^[a-f0-9]{24}$/u).optional(),
 }).strict();
 
 export type VideoDownloadArtifactJobInput = z.input<typeof VideoDownloadArtifactJobInputSchema>;

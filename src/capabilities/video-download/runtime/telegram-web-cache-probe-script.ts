@@ -1,6 +1,7 @@
 const TELEGRAM_WEB_CACHE_PROBE_SCRIPT_TEMPLATE = `
 (async () => {
   const MAX_BYTES = __MAX_BYTES__;
+  const TARGET_DOCUMENT_ID_HASH = __TARGET_DOCUMENT_ID_HASH__;
   const CACHE_NAME = "tt-media-progressive";
 
   const failure = (failureReason, reason, status = "failed") => ({
@@ -40,11 +41,40 @@ const TELEGRAM_WEB_CACHE_PROBE_SCRIPT_TEMPLATE = `
     return matched ? matched[1] : null;
   };
 
+  const hashText = async (value) => {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24);
+  };
+
   const cache = await caches.open(CACHE_NAME);
-  const resourceUrls = performance.getEntriesByType("resource")
+  const visibleVideoUrls = Array.from(document.querySelectorAll("video"))
+    .map((video) => video.currentSrc || video.getAttribute("src") || "")
+    .filter((url) => typeof url === "string" && url.includes("/progressive/document"));
+  const resourceUrls = window.performance.getEntriesByType("resource")
     .map((entry) => entry && entry.name)
     .filter((url) => typeof url === "string" && url.includes("/progressive/document"));
-  const documentIds = [...new Set(resourceUrls.map(documentIdFromUrl).filter(Boolean))];
+  const initialDocumentIds = [...new Set([...visibleVideoUrls, ...resourceUrls].map(documentIdFromUrl).filter(Boolean))];
+  const cacheDocumentIds = [];
+  if (!TARGET_DOCUMENT_ID_HASH || initialDocumentIds.length === 0) {
+    try {
+      const cacheUrls = (await cache.keys())
+        .map((request) => request.url)
+        .filter((url) => typeof url === "string" && url.includes("/progressive/document"));
+      cacheDocumentIds.push(...cacheUrls.map(documentIdFromUrl).filter(Boolean));
+    } catch {
+      // Large Telegram caches can reject full key enumeration; visible video and performance entries remain authoritative.
+    }
+  }
+  const allDocumentIds = [...new Set([...initialDocumentIds, ...cacheDocumentIds])];
+  const documentIds = [];
+  for (const documentId of allDocumentIds) {
+    if (TARGET_DOCUMENT_ID_HASH && await hashText(documentId) !== TARGET_DOCUMENT_ID_HASH) continue;
+    documentIds.push(documentId);
+  }
+  if (TARGET_DOCUMENT_ID_HASH && documentIds.length === 0) {
+    return failure("candidate_not_found", "Selected Telegram Web video is not present in the authorized page media list.", "review_required");
+  }
   const groups = new Map();
   const chunkSize = 524288;
   const maxProbeEnd = Math.min(MAX_BYTES, 10 * 1024 * 1024);
@@ -141,8 +171,14 @@ const TELEGRAM_WEB_CACHE_PROBE_SCRIPT_TEMPLATE = `
 })()
 `;
 
-export const buildTelegramWebCacheProbeScript = (maxBytes: number): string =>
+export const buildTelegramWebCacheProbeScript = (
+  maxBytes: number,
+  targetDocumentIdHash?: string | null,
+): string =>
   TELEGRAM_WEB_CACHE_PROBE_SCRIPT_TEMPLATE.replace(
     "__MAX_BYTES__",
     JSON.stringify(maxBytes),
+  ).replace(
+    "__TARGET_DOCUMENT_ID_HASH__",
+    JSON.stringify(targetDocumentIdHash ?? null),
   );

@@ -123,7 +123,7 @@ const evaluateTelegramProbe = async (
     }) => context.browserMediaSourcePort.evaluateActiveTab<TelegramProbeResult>(request));
   return evaluateTelegramPage<TelegramProbeResult>({
     sourcePageUrl: input.sourcePageUrl,
-    script: buildTelegramWebCacheProbeScript(input.maxBytes),
+    script: buildTelegramWebCacheProbeScript(input.maxBytes, input.telegramDocumentIdHash),
     description: "collect Telegram Web cached video media bytes",
     abortSignal,
   });

@@ -100,11 +100,11 @@ export const buildDeepResearchConflictMatrix = (input: {
     rows.push(buildRow({ subQuestion, positive, falsification }));
   });
 
-  if (missingSubQuestions.length > 0) {
+  if (rows.length === 0) {
     return {
       status: "review_required",
       rows: [],
-      reason: `missing_positive_or_falsification:${missingSubQuestions.join(",")}`,
+      reason: "no_complete_positive_falsification_pairs",
     };
   }
 

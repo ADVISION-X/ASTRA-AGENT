@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-23T13:27:25.678Z",
+  "generatedAt": "2026-05-23T15:54:42.710Z",
   "status": "PASS",
-  "scannedFiles": 270,
+  "scannedFiles": 272,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -104,6 +104,7 @@
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
     "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+    "src/capabilities/video-download/runtime/telegram-web-visible-media-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
     "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",
@@ -207,6 +208,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
@@ -292,7 +294,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 270,
+    "scannedFiles": 272,
     "emitCallCount": 12,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -303,7 +305,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 265,
+      "scannedFiles": 267,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -312,13 +314,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 221
+      "scannedFiles": 223
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 218,
+      "scannedFiles": 220,
       "metrics": {
         "emitCallCount": 2
       }
@@ -327,13 +329,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 218
+      "scannedFiles": 220
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 222,
+      "scannedFiles": 224,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -348,7 +350,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 222,
+      "scannedFiles": 224,
       "metrics": {
         "failureWithoutClassCount": 0
       }

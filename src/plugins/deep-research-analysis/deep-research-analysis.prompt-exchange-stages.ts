@@ -30,6 +30,7 @@ import {
   buildDomRef,
   buildGatewayFailure,
   buildParseFailure,
+  createFailedInteractionRecord,
   createInteractionRecord,
 } from "./deep-research-analysis.prompt-exchange-stage-support.js";
 
@@ -266,6 +267,18 @@ const continueParsePromptOutput = <TParsed>(
 ): ParseSuccess<TParsed> | PromptExchangeFailure => {
   const parsed = input.parse(input.gatewayResult.normalizedText);
   if (parsed.parseStatus !== "parsed") {
+    const interaction = createFailedInteractionRecord({
+      store: input.store,
+      jobId: input.jobId,
+      providerKind: input.providerKind,
+      prompt: input.prompt,
+      promptHash: input.promptHash,
+      ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+      domRef: input.domRef,
+      gatewayResult: input.gatewayResult,
+      parsed,
+    });
+    rememberInteractionHashes(input.recordHashes, interaction);
     logDeepResearchParseFailed({
       logger: input.runtimeLogger,
       traceContext: input.traceContext,
@@ -275,6 +288,17 @@ const continueParsePromptOutput = <TParsed>(
       failureClass: RuntimeFailureClass.AI_PARSE_FAILURE,
       parseStatus: parsed.parseStatus,
       ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+    });
+    logDeepResearchRecordPersisted({
+      logger: input.runtimeLogger,
+      traceContext: input.traceContext,
+      phase: input.stage,
+      recordType: "interaction",
+      recordId: interaction.id,
+      count: 1,
+      ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+      promptHash: input.promptHash,
+      rawResponseHash: parsed.rawResponseHash,
     });
     const status = parsed.parseStatus === "failed" ? "failed" : "review_required";
     completeParseFailure(input.parseStage, {

@@ -28,6 +28,7 @@ export const runVideoDownloadArtifactFlow = async (
     artifactDisposition: "final",
     downloadSubtitles: jobInput.downloadSubtitles,
     subtitleLanguages: jobInput.subtitleLanguages,
+    ...(jobInput.telegramDocumentIdHash ? { telegramDocumentIdHash: jobInput.telegramDocumentIdHash } : {}),
   });
 
   return VideoDownloadArtifactJobResultSchema.parse({

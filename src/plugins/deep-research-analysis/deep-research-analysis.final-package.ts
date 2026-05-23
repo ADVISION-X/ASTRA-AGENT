@@ -23,6 +23,7 @@ const DeepResearchFinalPackageSchema = z.object({
   positiveAnswerRecords: z.array(z.unknown()),
   falsificationAnswerRecords: z.array(z.unknown()),
   conflictMatrix: z.array(z.unknown()).min(1),
+  missingSubQuestionIds: z.array(z.string().trim().min(1)).default([]),
   recordHashes: z.record(z.string(), z.string()),
   promptVersions: z.record(z.string(), z.string()),
   outputContract: z.object({
@@ -40,6 +41,7 @@ export type DeepResearchFinalPackage = {
   positiveAnswerRecords: ResearchAnswer[];
   falsificationAnswerRecords: ResearchAnswer[];
   conflictMatrix: DeepResearchConflictMatrixRow[];
+  missingSubQuestionIds: string[];
   recordHashes: Record<string, string>;
   promptVersions: Record<string, string>;
   outputContract: DeepResearchPromptOutputContract;
@@ -61,6 +63,7 @@ const buildRecordHashes = (input: {
   positiveAnswers: readonly ResearchAnswer[];
   falsificationAnswers: readonly ResearchAnswer[];
   conflictMatrix: readonly DeepResearchConflictMatrixRow[];
+  missingSubQuestionIds: readonly string[];
   interactions: readonly ResearchInteraction[];
 }): Record<string, string> => {
   const hashes: Record<string, string> = {};
@@ -69,6 +72,7 @@ const buildRecordHashes = (input: {
   input.positiveAnswers.forEach((record) => appendHashes(hashes, `positive:${record.id}`, record));
   input.falsificationAnswers.forEach((record) => appendHashes(hashes, `falsification:${record.id}`, record));
   input.conflictMatrix.forEach((record) => appendHashes(hashes, `conflict:${record.subQuestionId}`, record));
+  appendHashes(hashes, `missing-sub-questions:${input.job.id}`, input.missingSubQuestionIds);
   input.interactions.forEach((record) => {
     hashes[`interaction:${record.id}:prompt`] = record.promptHash;
     hashes[`interaction:${record.id}:response`] = record.rawResponseHash;
@@ -90,6 +94,13 @@ export const buildDeepResearchFinalPackage = (input: {
   const falsificationAnswers = input.store.listAnswers({ jobId: input.jobId, answerKind: "falsification" });
   const conflictMatrix = input.store.listConflictMatrix(input.jobId).map((record) => record.row);
   const interactions = input.store.listInteractions(input.jobId);
+  const positiveSubQuestionIds = new Set(positiveAnswers.map((answer) => answer.subQuestionId));
+  const falsificationSubQuestionIds = new Set(falsificationAnswers.map((answer) => answer.subQuestionId));
+  const missingSubQuestionIds = subQuestions
+    .filter((subQuestion) =>
+      !positiveSubQuestionIds.has(subQuestion.id)
+      || !falsificationSubQuestionIds.has(subQuestion.id))
+    .map((subQuestion) => subQuestion.id);
 
   if (subQuestions.length === 0) {
     throw new Error(`Deep research job ${input.jobId} has no persisted sub-question records.`);
@@ -108,12 +119,14 @@ export const buildDeepResearchFinalPackage = (input: {
     positiveAnswerRecords: positiveAnswers,
     falsificationAnswerRecords: falsificationAnswers,
     conflictMatrix,
+    missingSubQuestionIds,
     recordHashes: buildRecordHashes({
       job,
       subQuestions,
       positiveAnswers,
       falsificationAnswers,
       conflictMatrix,
+      missingSubQuestionIds,
       interactions,
     }),
     promptVersions: buildPromptVersionMap(interactions),

@@ -125,7 +125,7 @@ export const buildGatewaySender = (
       providerKind: promptPackage.providerKind,
       promptPackageId: promptPackage.promptPackageId,
       promptContractId: promptPackage.promptContractId,
-      expectedOutputSchemaRef: promptPackage.promptContractId,
+      expectedOutputSchemaRef: null,
       textPrompt: promptPackage.promptText,
       inputRefs: promptPackage.inputRefs.map((ref) => ({
         id: ref,

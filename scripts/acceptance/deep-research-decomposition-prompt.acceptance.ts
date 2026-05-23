@@ -194,10 +194,16 @@ const numericPositive = parseDeepResearchPositiveResponse(JSON.stringify({
   ...validPositiveResponse,
   confidence: 0.82,
 }));
-assertStatus(numericPositive.parseStatus, "failed");
-if (numericPositive.parseStatus === "failed") {
-  assert.match(numericPositive.reason, /invalid_positive_analysis_contract/u);
+assertStatus(numericPositive.parseStatus, "parsed");
+if (numericPositive.parseStatus === "parsed") {
+  assert.equal(numericPositive.parsed.confidence, "high");
 }
+const proseWrappedPositive = parseDeepResearchPositiveResponse(`Analysis follows:\n${JSON.stringify({
+  ...validPositiveResponse,
+  confidence: "80%",
+  extraField: "still allowed",
+})}\nEnd.`);
+assertStatus(proseWrappedPositive.parseStatus, "parsed");
 
 const validFalsificationResponse = {
   subQuestionId: "deep_research_sub_question_acceptance",
@@ -214,9 +220,9 @@ const numericFalsification = parseDeepResearchFalsificationResponse(JSON.stringi
   ...validFalsificationResponse,
   confidence: 0.82,
 }));
-assertStatus(numericFalsification.parseStatus, "failed");
-if (numericFalsification.parseStatus === "failed") {
-  assert.match(numericFalsification.reason, /invalid_falsification_contract/u);
+assertStatus(numericFalsification.parseStatus, "parsed");
+if (numericFalsification.parseStatus === "parsed") {
+  assert.equal(numericFalsification.parsed.confidence, "high");
 }
 
 const validFinalResponse = {
@@ -228,7 +234,7 @@ const validFinalResponse = {
     subQuestionId: "deep_research_sub_question_acceptance",
     positiveClaimSummary: "positive",
     falsificationSummary: "negative",
-    conflictLevel: "medium",
+    conflictLevel: "medium" as const,
     evidenceGap: "gap",
     needsHumanReview: true,
   }],
@@ -243,9 +249,27 @@ const numericFinal = parseDeepResearchFinalReportResponse(JSON.stringify({
   ...validFinalResponse,
   confidence: 0.82,
 }));
-assertStatus(numericFinal.parseStatus, "failed");
-if (numericFinal.parseStatus === "failed") {
-  assert.match(numericFinal.reason, /invalid_final_report_contract/u);
+assertStatus(numericFinal.parseStatus, "parsed");
+if (numericFinal.parseStatus === "parsed") {
+  assert.equal(numericFinal.parsed.confidence, "high");
+}
+const fallbackFinal = parseDeepResearchFinalReportResponse(
+  JSON.stringify({
+    executiveConclusion: "Final conclusion.",
+    confidence: "80%",
+  }),
+  {
+    conflictMatrix: validFinalResponse.conflictMatrix,
+    strongestOpposingArguments: validFinalResponse.strongestOpposingArguments,
+    evidenceGaps: validFinalResponse.evidenceGaps,
+    reverseConditions: validFinalResponse.reverseConditions,
+    followUpSignals: validFinalResponse.followUpSignals,
+    limitations: validFinalResponse.limitations,
+  },
+);
+assertStatus(fallbackFinal.parseStatus, "parsed");
+if (fallbackFinal.parseStatus === "parsed") {
+  assert.equal(fallbackFinal.parsed.conflictMatrix.length, 1);
 }
 
 const flowResult = await runDeepResearchDecompositionPhase({

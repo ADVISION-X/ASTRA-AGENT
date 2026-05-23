@@ -1,6 +1,7 @@
 import {
   createFilesystemVideoArtifactStoragePort,
   createVideoDownloadAbilityGroup,
+  buildTelegramWebVisibleMediaProbeScript,
   type BrowserMediaSourcePort,
 } from "../../capabilities/video-download/index.js";
 import type { BrowserController } from "../browser/browser-controller.js";
@@ -12,6 +13,38 @@ export type VideoDownloadSourcePage = {
   platformId: VideoDownloadSourcePagePlatform;
   sourcePageUrl: string;
   pageTitle: string;
+  videoCandidates: TelegramWebVisibleVideoCandidate[];
+};
+
+type TelegramWebVisibleVideoCandidate = {
+  documentIdHash: string;
+  sourceKind: "visible_progressive_video";
+  redactedPathPrefix: string;
+  durationMs: number | null;
+  width: number | null;
+  height: number | null;
+  readyState: number;
+  visible: boolean;
+  viewportRect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  cacheStorageAvailable: boolean;
+  cacheComplete: boolean;
+  cachedByteSize: number | null;
+  cacheRangeCount: number;
+};
+
+type TelegramWebVisibleMediaProbeResult = {
+  ok: boolean;
+  status: "success" | "failed" | "review_required" | "invalid_input";
+  sourcePageUrl?: string;
+  candidateCount?: number;
+  candidates?: TelegramWebVisibleVideoCandidate[];
+  failureReason?: string;
+  reason?: string;
 };
 
 const forbiddenStorageReads = new RegExp([
@@ -200,13 +233,37 @@ export function createWorkbenchVideoDownload(
 
 export const findOpenVideoDownloadSourcePage = async (
   platformId: VideoDownloadSourcePagePlatform,
+  preferredSourcePageUrl?: string,
 ): Promise<VideoDownloadSourcePage | null> => {
   const host = platformId === "telegram-web" ? "web.telegram.org" : "";
   if (!host) {
     return null;
   }
+  const preferredUrl = preferredSourcePageUrl ? (() => {
+    try {
+      return new URL(preferredSourcePageUrl);
+    } catch {
+      return null;
+    }
+  })() : null;
+  if (preferredSourcePageUrl && !preferredUrl) {
+    return null;
+  }
+  if (preferredUrl && preferredUrl.hostname.toLowerCase() !== host) {
+    return null;
+  }
   const raw = await runAppleScript(
     `tell application "Google Chrome"
+  ${preferredSourcePageUrl ? `repeat with wIndex from 1 to count of windows
+    set w to window wIndex
+    repeat with tIndex from 1 to count of tabs of w
+      set u to URL of tab tIndex of w
+      if u is ${JSON.stringify(preferredSourcePageUrl)} then
+        return u & linefeed & title of tab tIndex of w
+      end if
+    end repeat
+  end repeat` : ""}
+  ${preferredSourcePageUrl ? "return \"\"" : ""}
   repeat with wIndex from 1 to count of windows
     set w to window wIndex
     repeat with tIndex from 1 to count of tabs of w
@@ -223,9 +280,17 @@ return ""`,
   if (!sourcePageUrl) {
     return null;
   }
+  const target = await resolveChromeTabSelector(sourcePageUrl);
+  const probeResult = await evaluateChromePage<TelegramWebVisibleMediaProbeResult>({
+    script: buildTelegramWebVisibleMediaProbeScript(),
+    description: "collect Telegram Web visible media list",
+    windowSelector: target.windowSelector,
+    tabSelector: target.tabSelector,
+  });
   return {
     platformId,
     sourcePageUrl,
     pageTitle: titleParts.join("\n").trim(),
+    videoCandidates: probeResult.ok ? probeResult.candidates ?? [] : [],
   };
 };

@@ -4,6 +4,9 @@ export {
 export {
   createFilesystemVideoArtifactStoragePort,
 } from "./runtime/artifact-storage.js";
+export {
+  buildTelegramWebVisibleMediaProbeScript,
+} from "./runtime/telegram-web-visible-media-probe-script.js";
 export type {
   BrowserMediaSourcePort,
 } from "./ports/browser-media-source-port.js";

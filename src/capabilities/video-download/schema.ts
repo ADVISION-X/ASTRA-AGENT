@@ -109,8 +109,8 @@ const VideoDownloadInputBaseSchema = z.object({
   capabilityCallId: z.string().min(1),
   sourcePageUrl: z.string().url(),
   preferredQuality: VideoDownloadPreferredQualitySchema.default("best_available"),
-  maxBytes: z.number().int().min(1024).max(500_000_000).default(200_000_000),
-  timeoutMs: z.number().int().min(1000).max(3_600_000).default(60_000),
+  maxBytes: z.number().int().min(1024).max(5_000_000_000).default(5_000_000_000),
+  timeoutMs: z.number().int().min(1000).max(3_600_000).default(3_600_000),
   artifactDisposition: VideoArtifactDispositionSchema.default("final"),
   downloadSubtitles: z.boolean().default(false),
   subtitleLanguages: z.array(z.string().min(1)).max(8).default(["en"]),
@@ -156,6 +156,7 @@ const DownloadYoutubeVideoInputSchema = VideoDownloadInputBaseSchema.extend({
 
 const DownloadTelegramWebVideoInputSchema = VideoDownloadInputBaseSchema.extend({
   childCapabilityId: z.literal("download-telegram-web-video-once"),
+  telegramDocumentIdHash: z.string().regex(/^[a-f0-9]{24}$/u).optional(),
 }).strict();
 
 export const VideoDownloadAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [

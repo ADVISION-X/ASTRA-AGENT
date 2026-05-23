@@ -582,10 +582,17 @@ partial_review_required
 failed
 ```
 
+#### 必须
+
+- Parser 必须先做 JSON 提取、字段别名映射、confidence 归一化、以及不编造证据的本地修复，再决定 `failed` 或 `partial_review_required`。
+- 只要 raw response 已经被 CAPTURE，PARSE 失败也必须落 interaction 证据记录，不得让业务层丢失原始回复。
+- 单个 positive / falsification parse 失败只能阻断当前 sub-question，不得直接终止剩余 sub-questions。
+- Final synthesis 允许回退到系统已持久化的 conflictMatrix 与 missingSubQuestionIds；不得强迫 AI 重新八股复制系统已知结构。
+
 #### 禁止
 
 - JSON parse failed 后静默改写为 success。
-- Markdown 解析失败后继续下一阶段。
+- 仅因 markdown fence、前后 prose、额外字段、numeric confidence 等可归一化格式差异就终止整条研究链。
 - 缺少必填字段仍标记 completed。
 - 用空数组作为成功拆解。
 - 用空 final report 作为成功导出。
@@ -895,8 +902,8 @@ FAIL
 review_required
 ```
 
-但 `review_required` 不是 PASS。  
-只要存在未处理的 review_required，Job 不得标记 complete。  
+但 job-level `review_required` 不是 PASS。  
+sub-question / interaction 级别的 failed 或 review_required 证据，在 minimum material 已满足且 final report 已显式写出 evidence gaps 时，不自动阻止 Job complete。  
 
 禁止：
 
@@ -932,6 +939,8 @@ Smoke 必须证明：
 10. final report 可以入库。
 11. export 可以生成 final-report.md / research-bundle.json / evidence-index.json。
 12. 全链路 runtime log 有 started/terminal/failureClass 覆盖。
+13. numeric / percentage confidence 会在 parser 中被归一化，而不是直接 kill parse。
+14. 单个 sub-question parse 失败不会直接杀死整条研究链；若 minimum material 足够，final report 仍需生成并写出 evidence gaps。
 ```
 
 ---
@@ -957,7 +966,8 @@ Inspector 最少检查：
 7. 每个 AI interaction 都绑定 promptHash / rawResponseHash / parseStatus。
 8. final synthesis package 只从 persisted records 构造。
 9. export 必须包含 final-report.md / research-bundle.json / evidence-index.json。
-10. parse failed 不得进入下一阶段。
+10. 同一 subQuestion 的 parse failed 不得伪装成 success；剩余 sub-questions 可以继续，只有 minimum material gate 才能阻断 final path。
+11. final synthesis 允许使用系统构造的 conflictMatrix / missingSubQuestionIds 作为 fallback，不得强迫 AI 重复复制系统已知结构。
 ```
 
 ---

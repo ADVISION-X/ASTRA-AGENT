@@ -364,6 +364,7 @@ type DownloadTelegramWebVideoInput = {
   capabilityCallId: string;
   sourcePageUrl: string;          // 必须是 web.telegram.org 下的当前授权页面
   currentBrowserPageRef: string;  // 必须来自用户已登录、已授权的本地浏览器会话
+  telegramDocumentIdHash?: string; // 来自可见视频清单探针的 document id hash；用于绑定目标视频
   preferredQuality?: "best_available";
   maxBytes?: number;
   timeoutMs?: number;
@@ -394,9 +395,15 @@ type DownloadTelegramWebVideoInput = {
 Step 1: 页面与链路识别
   - 仅接受 web.telegram.org 当前授权页面。
   - 识别目标视频消息、document id、progressive/download path、SW controller 状态。
+  - APP 自动检测必须先返回可见视频清单：`documentIdHash`、duration、dimensions、redacted path prefix、cache coverage；不得只填 URL 后直接下载第一个缓存命中。
+  - 下载请求若携带 `telegramDocumentIdHash`，CacheStorage 拼接只能选择该 hash 对应 document；hash 不在当前授权页可见媒体列表中时返回 `review_required`。
+  - Workbench 页面必须显示下载动态进度区；至少在生产请求进行中显示明确 running 状态，不得让用户以为页面卡死。
+  - 页面不得再写死 500MB 上限；大文件边界由生产 schema 的受治理 `maxBytes` 控制。当前法案禁止 unbounded download size，因此实现采用 5GB 上限而不是无限制。
   - 若页面未登录、消息不可见、视频未加载、SW 未接管，返回 review_required。
 
 Step 2: CacheStorage 证据探测
+  - 下载探针识别目标 document id 时，必须合并当前可见 video src、performance resource、CacheStorage keys 三个授权页面内来源；不得只依赖 performance 条目。
+  - CacheStorage keys 只能作为受限补充来源；Telegram 大缓存可能抛出 `Operation too large`，不得让全量 key 枚举失败覆盖 visible video / performance 证据。
   - 读取 `tt-media-progressive` 中与目标 document 对应的分片 metadata。
   - 只记录 redacted path、range、content-type、content-range、byte length。
   - 若所有分片覆盖完整 `fullSize`，可拼接 artifact 并进入验证。
@@ -428,6 +435,9 @@ Telegram Web 验收口径：
 - 至少一个大于 Service Worker 早期缓存范围的视频完成内部链路评估；如果无法合法取得完整分片，必须如实返回 `review_required`，不得退回 UI 点击或 direct URL。
 - APP 接入必须通过 Video Download 输入面提交 `download-telegram-web-video-once`，经 `/api/video-download/start` -> mediator -> `video-download-artifact` job flow -> video-download public facade；APP 不得直调 child/runtime。
 - 从 APP 发起时，video-download 浏览器端口必须按 `sourcePageUrl` 定位已授权 Telegram Web 标签页执行探针，不能误在 Workbench 页面上探测。
+- `/api/video-download/source-page?platform=telegram-web` 必须返回 `videoCandidates` 清单；清单只允许 durable-safe 字段：document hash、duration、width、height、readyState、viewport rect、cache completeness、cached byte size，不得返回 raw progressive URL、消息正文、群组名、账号身份或 credential。
+- UI 必须要求用户从 `videoCandidates` 选择目标，随后把 `telegramDocumentIdHash` 交给 job flow；没有清单或 hash 未绑定时不得把“可下载”呈现为确定成功。
+- UI 必须有进度条/进度状态。若生产链路无法取得 byte-level progress，只能显示真实 running/review/success 状态，不得伪造百分比。
 - 成功输出必须包含 artifactRef、platformId=`telegram-web`、byteSize、durationMs、width、height、candidateKind、range coverage proof。
 - 失败输出必须说明阻断点：未登录、页面不可见、SW 未接管、缓存不完整、内部 chunk 链路不可用、超时、超限、验证失败。
 - 验收不得依赖群组名称、账号身份、消息正文或任何 secret。
@@ -435,9 +445,14 @@ Telegram Web 验收口径：
 Telegram Web 实现阻断条件：
 
 - `video-download-capability` inspector 未把 Telegram child、platformId、candidateKind 和禁用面纳入检查。
+- inspector 未用 AST 级检查 `telegramDocumentIdHash` 从 app route -> mediator/job schema -> job flow -> child input schema 的传递，或未检查 source page detection 返回 `videoCandidates`。
 - 没有媒体 container 验证。
 - 只能通过 UI 下载按钮成功。
+- 没有可见视频清单，仅下载 CacheStorage 中第一个完整分片。
+- 页面保留 500MB 固定上限，导致 1GB+ Telegram 视频无法进入合法尝试。
+- 页面无进度条或无 running 状态，导致长下载看起来卡死。
 - 只能通过 CacheStorage 早期缓存成功，却把大文件未覆盖分片冒充完整 artifact。
+- 复活已实测失败的 XHR/fetch progressive 分片流；2026-05-23 生产实测 `/a/progressive/document...` XHR/Fetch 即使设置 Range 仍返回 302/opaqueredirect，必须视为 invalid path，除非未来重新取证证明 Telegram Web active law 允许且生产实测成功。
 - 任何实现读取或记录 cookie/session/storage/token。
 
 ## 9. 质检建设
@@ -457,6 +472,11 @@ inspector 阻断条件：
 - `universal-page-probe-script.ts` 不存在；
 - `schema.ts` 中 `platformId` 仍是 `z.literal("facebook-web")` 硬编码；
 - Telegram Web child、platformId、candidateKind、platform-router 或 CacheStorage 探针缺失；
+- Telegram Web visible media list 探针缺失、`videoCandidates` 输出缺失、或 `telegramDocumentIdHash` 目标绑定链路缺失；
+- Telegram Web 下载探针只从 `performance` resource 识别 selected document，未合并可见 video src 与 CacheStorage keys，导致清单 hash 到下载 hash 断链；
+- Telegram Web 下载探针无条件枚举大型 `tt-media-progressive` cache keys，导致 `Operation too large` 直接变成 `network_failed`；
+- Workbench 缺少下载进度 UI，或 Telegram 默认上限退回 500MB；
+- 代码复活 `telegram-web-download-stream-probe`、裸 progressive XHR/fetch 分片下载，或把 HTTP 302/HTML 当作成功；
 - 代码中出现 cookie/session/token/DRM/CAPTCHA bypass 正向实现；
 - 代码中出现第三方下载站调用；
 - 截图/封面图冒充视频下载成功。
@@ -484,4 +504,6 @@ Phase 1 完成标准：
 - YouTube API 实测至少覆盖两个不同 `preferredQuality` 请求，且必须经过 mediator + `video-download-artifact` job flow，并证明输出 `selectedQuality`、文件路径、字节数、sha256。
 - 字幕实测必须用 `downloadSubtitles=true` 请求，平台提供字幕时必须产生 `subtitleArtifacts`；平台未提供字幕时必须在交付中如实说明，不得伪造。
 - Telegram Web 实测必须证明 `web.telegram.org` 路由、CacheStorage 完整分片拼接成功路径、缓存不完整 `review_required` 路径、以及不读取 credential/storage/token 的红线。
+- Telegram Web 实测必须证明目标页先识别出可见视频清单，选择某个 `documentIdHash` 后只下载该目标；不得以“第一个完整缓存命中”冒充用户选择。
+- Telegram Web 大文件实测：若 CacheStorage 不完整且内部 chunk 链路不可用，必须返回 `review_required` 并显示进度/失败状态；不得卡死、不得假成功。2026-05-23 对 1.408GB 候选生产实测返回 `review_required: Telegram stream chunk returned HTTP 302`，因此 XHR/Range stream 路径不得作为生产成功依据。
 - 不允许通过手工编辑 generated artifacts、第二 downloader、第三方 downloader 网站、cookie/session/token 导出完成验收。

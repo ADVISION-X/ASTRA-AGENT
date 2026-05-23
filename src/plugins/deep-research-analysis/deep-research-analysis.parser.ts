@@ -1,9 +1,22 @@
-import { createHash } from "node:crypto";
-
 import { z } from "zod";
 
-import { DeepResearchSubQuestionSchema } from "./deep-research-analysis.schema.js";
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
+import { DeepResearchSubQuestionSchema } from "./deep-research-analysis.schema.js";
+import {
+  buildDefaultLimitations,
+  buildFailure,
+  buildSentenceFallback,
+  normalizeConfidenceValue,
+  normalizeConflictMatrixRows,
+  normalizeWithSchema,
+  parseJsonObject,
+  refineSchemaResult,
+  takeFallbackArray,
+  takeFirstString,
+  takeFirstStringArray,
+  type DeepResearchParserResult,
+  type FinalReportNormalizationFallback,
+} from "./deep-research-analysis.parser-support.js";
 
 const DeepResearchConfidenceSchema = z.enum(["low", "medium", "high"]);
 
@@ -68,109 +81,161 @@ const DeepResearchFalsificationAnswerSchema = z.object({
   limitations: z.array(z.string().trim().min(1)).min(1),
 }).strict();
 
-type DeepResearchParserFailure = {
-  parseStatus: "partial_review_required" | "failed";
-  parsed: null;
-  normalizedText: string;
-  rawResponseHash: string;
-  reason: string;
-};
-
-type DeepResearchParserSuccess<T> = {
-  parseStatus: "parsed";
-  parsed: T;
-  normalizedText: string;
-  rawResponseHash: string;
-};
-
-export type DeepResearchParserResult<T> =
-  | DeepResearchParserFailure
-  | DeepResearchParserSuccess<T>;
-
 export type DeepResearchDecompositionResponse = z.infer<typeof DeepResearchDecompositionResponseSchema>;
 export type DeepResearchPositiveAnswer = z.infer<typeof DeepResearchPositiveAnswerSchema>;
 export type DeepResearchFalsificationAnswer = z.infer<typeof DeepResearchFalsificationAnswerSchema>;
 
-const buildTextHash = (value: string): string =>
-  "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
+export type {
+  DeepResearchParserResult,
+} from "./deep-research-analysis.parser-support.js";
 
-const buildFailure = (
-  normalizedText: string,
-  rawResponseHash: string,
-  reason: string,
-  parseStatus: DeepResearchParserFailure["parseStatus"] = "failed",
-): DeepResearchParserFailure => ({
-  parseStatus,
-  parsed: null,
-  normalizedText,
-  rawResponseHash,
-  reason,
-});
+type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
 
-const normalizeRawText = (rawText: string): string => rawText.trim();
-
-const extractCandidateJson = (rawText: string): string => {
-  const trimmed = normalizeRawText(rawText);
-  if (trimmed.startsWith("```")) {
-    const withoutFenceStart = trimmed.replace(/^```(?:json)?\s*/u, "");
-    return withoutFenceStart.replace(/\s*```$/u, "").trim();
+const buildPositiveCandidate = (candidate: Record<string, unknown>) => {
+  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
+  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
+  const confidence = normalizeConfidenceValue(
+    candidate.confidence
+    ?? candidate.confidenceScore
+    ?? candidate.confidenceLevel,
+  );
+  if (!subQuestionId) {
+    return { ok: false as const, reason: "missing_sub_question_id" };
   }
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1).trim();
+  if (!answer) {
+    return { ok: false as const, reason: "missing_answer" };
   }
-  return trimmed;
+  if (!confidence) {
+    return { ok: false as const, reason: "invalid_confidence" };
+  }
+  const answerFallback = buildSentenceFallback(answer);
+  const keyClaims = takeFirstStringArray(candidate, ["keyClaims", "claims", "keyPoints"]);
+  const supportingReasons = takeFirstStringArray(candidate, ["supportingReasons", "reasons", "support"]);
+  return {
+    ok: true as const,
+    value: {
+      subQuestionId,
+      answer,
+      keyClaims: keyClaims.length > 0 ? keyClaims : answerFallback,
+      supportingReasons: supportingReasons.length > 0 ? supportingReasons : answerFallback,
+      assumptions: takeFirstStringArray(candidate, ["assumptions", "assumptionList"]),
+      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
+      confidence,
+      limitations: takeFallbackArray(
+        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
+        buildDefaultLimitations(),
+      ),
+    },
+  };
 };
 
-const parseJsonObject = (rawText: string): DeepResearchParserResult<unknown> => {
-  const normalizedText = normalizeRawText(rawText);
-  const rawResponseHash = buildTextHash(normalizedText);
-  if (!normalizedText) {
-    return buildFailure(normalizedText, rawResponseHash, "empty_ai_response");
+const buildFalsificationCandidate = (candidate: Record<string, unknown>) => {
+  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
+  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
+  const confidence = normalizeConfidenceValue(
+    candidate.confidence
+    ?? candidate.confidenceScore
+    ?? candidate.confidenceLevel,
+  );
+  if (!subQuestionId) {
+    return { ok: false as const, reason: "missing_sub_question_id" };
   }
-  const candidateJson = extractCandidateJson(normalizedText);
-  try {
-    const parsed = JSON.parse(candidateJson) as unknown;
-    if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
-      return buildFailure(normalizedText, rawResponseHash, "ai_response_must_be_json_object");
-    }
-    return {
-      parseStatus: "parsed",
-      parsed,
-      normalizedText,
-      rawResponseHash,
-    };
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : "invalid_json";
-    return buildFailure(normalizedText, rawResponseHash, `json_parse_failed:${reason}`);
+  if (!answer) {
+    return { ok: false as const, reason: "missing_answer" };
   }
+  if (!confidence) {
+    return { ok: false as const, reason: "invalid_confidence" };
+  }
+  const answerFallback = buildSentenceFallback(answer);
+  const strongestOpposingArguments = takeFirstStringArray(candidate, [
+    "strongestOpposingArguments",
+    "opposingArguments",
+    "counterArguments",
+    "keyArguments",
+  ]);
+  const contradictionPoints = takeFirstStringArray(candidate, [
+    "contradictionPoints",
+    "contradictions",
+    "counterPoints",
+  ]);
+  return {
+    ok: true as const,
+    value: {
+      subQuestionId,
+      answer,
+      strongestOpposingArguments:
+        strongestOpposingArguments.length > 0 ? strongestOpposingArguments : answerFallback,
+      contradictionPoints:
+        contradictionPoints.length > 0 ? contradictionPoints : answerFallback,
+      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
+      confidence,
+      limitations: takeFallbackArray(
+        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
+        buildDefaultLimitations(),
+      ),
+    },
+  };
 };
 
-const refineSchemaResult = <T>(input: {
-  parsedJson: DeepResearchParserResult<unknown>;
-  schema: z.ZodType<T>;
-  missingRequiredReason: string;
-  partialReviewOnCustomIssue?: boolean;
-}): DeepResearchParserResult<T> => {
-  if (input.parsedJson.parseStatus !== "parsed") {
-    return input.parsedJson;
+const buildFinalReportCandidate = (
+  candidate: Record<string, unknown>,
+  fallback: FinalReportNormalizationFallback,
+) => {
+  const executiveConclusion = takeFirstString(candidate, [
+    "executiveConclusion",
+    "conclusion",
+    "summary",
+    "finalConclusion",
+  ]);
+  const confidence = normalizeConfidenceValue(
+    candidate.confidence
+    ?? candidate.confidenceScore
+    ?? candidate.confidenceLevel,
+  );
+  if (!executiveConclusion) {
+    return { ok: false as const, reason: "missing_executive_conclusion" };
   }
-  const parsed = input.schema.safeParse(input.parsedJson.parsed);
-  if (!parsed.success) {
-    const hasCustomIssue = parsed.error.issues.some((issue) => issue.code === z.ZodIssueCode.custom);
-    return buildFailure(
-      input.parsedJson.normalizedText,
-      input.parsedJson.rawResponseHash,
-      `${input.missingRequiredReason}:${parsed.error.issues.map((issue) => issue.message).join("; ")}`,
-      hasCustomIssue && input.partialReviewOnCustomIssue ? "partial_review_required" : "failed",
-    );
+  if (!confidence) {
+    return { ok: false as const, reason: "invalid_confidence" };
+  }
+  const conflictMatrix = normalizeConflictMatrixRows(candidate.conflictMatrix);
+  const effectiveConflictMatrix = conflictMatrix.length > 0
+    ? conflictMatrix
+    : [...(fallback.conflictMatrix ?? [])];
+  if (effectiveConflictMatrix.length === 0) {
+    return { ok: false as const, reason: "missing_conflict_matrix" };
   }
   return {
-    parseStatus: "parsed",
-    parsed: parsed.data,
-    normalizedText: input.parsedJson.normalizedText,
-    rawResponseHash: input.parsedJson.rawResponseHash,
+    ok: true as const,
+    value: {
+      executiveConclusion,
+      confidence,
+      positiveReasons: takeFallbackArray(
+        takeFirstStringArray(candidate, ["positiveReasons", "supportingReasons", "reasons"]),
+        fallback.positiveReasons ?? effectiveConflictMatrix.map((row) => row.positiveClaimSummary),
+      ),
+      strongestOpposingArguments: takeFallbackArray(
+        takeFirstStringArray(candidate, ["strongestOpposingArguments", "opposingArguments", "counterArguments"]),
+        fallback.strongestOpposingArguments ?? effectiveConflictMatrix.map((row) => row.falsificationSummary),
+      ),
+      conflictMatrix: effectiveConflictMatrix,
+      evidenceGaps: takeFallbackArray(
+        takeFirstStringArray(candidate, ["evidenceGaps", "gaps"]),
+        fallback.evidenceGaps ?? effectiveConflictMatrix.map((row) => row.evidenceGap),
+      ),
+      reverseConditions: takeFallbackArray(
+        takeFirstStringArray(candidate, ["reverseConditions", "reversalConditions"]),
+        fallback.reverseConditions ?? ["Model did not provide explicit reverse conditions."],
+      ),
+      followUpSignals: takeFallbackArray(
+        takeFirstStringArray(candidate, ["followUpSignals", "followUps", "watchSignals"]),
+        fallback.followUpSignals ?? ["Model did not provide explicit follow-up signals."],
+      ),
+      limitations: takeFallbackArray(
+        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
+        fallback.limitations ?? buildDefaultLimitations(),
+      ),
+    },
   };
 };
 
@@ -204,26 +269,30 @@ export const parseDeepResearchDecompositionResponse = (input: {
 export const parseDeepResearchPositiveResponse = (
   rawText: string,
 ): DeepResearchParserResult<DeepResearchPositiveAnswer> =>
-  refineSchemaResult({
+  normalizeWithSchema({
     parsedJson: parseJsonObject(rawText),
     schema: DeepResearchPositiveAnswerSchema,
+    normalize: buildPositiveCandidate,
     missingRequiredReason: "invalid_positive_analysis_contract",
   });
 
 export const parseDeepResearchFalsificationResponse = (
   rawText: string,
 ): DeepResearchParserResult<DeepResearchFalsificationAnswer> =>
-  refineSchemaResult({
+  normalizeWithSchema({
     parsedJson: parseJsonObject(rawText),
     schema: DeepResearchFalsificationAnswerSchema,
+    normalize: buildFalsificationCandidate,
     missingRequiredReason: "invalid_falsification_contract",
   });
 
 export const parseDeepResearchFinalReportResponse = (
   rawText: string,
-): DeepResearchParserResult<z.infer<typeof DeepResearchFinalReportSchema>> =>
-  refineSchemaResult({
+  fallback: FinalReportNormalizationFallback = {},
+): DeepResearchParserResult<DeepResearchFinalReport> =>
+  normalizeWithSchema({
     parsedJson: parseJsonObject(rawText),
     schema: DeepResearchFinalReportSchema,
+    normalize: (candidate) => buildFinalReportCandidate(candidate, fallback),
     missingRequiredReason: "invalid_final_report_contract",
   });

@@ -143,6 +143,24 @@ input, select {
   cursor: pointer;
 }
 .btn.secondary { background: #fff; color: var(--accent-strong); border-color: var(--line); }
+.candidate-row {
+  width: 100%;
+  min-height: 38px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.candidate-row[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
 .panel {
   border: 1px solid var(--line);
   background: var(--panel);

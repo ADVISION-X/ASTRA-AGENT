@@ -46,6 +46,7 @@ export type GrassEyeWorkbenchHandle = {
   getVideoDownloadAbilityGroup: () => VideoDownloadAbilityGroup;
   findOpenVideoDownloadSourcePage: (
     platformId: VideoDownloadSourcePagePlatform,
+    preferredSourcePageUrl?: string,
   ) => Promise<VideoDownloadSourcePage | null>;
   getAiInputGatewayAbilityGroup: () => AiInputGatewayAbilityGroup;
   getHealthReport: () => Promise<WorkbenchHealthReport>;

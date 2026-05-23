@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T13:27:26.051Z",
+  "generatedAt": "2026-05-23T15:54:43.104Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -26,8 +26,13 @@
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+    "src/capabilities/video-download/runtime/telegram-web-visible-media-probe-script.ts",
+    "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
     "src/capabilities/video-download/children/download-youtube-video-once.ts",
     "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-styles.ts",
+    "src/app/workbench-video-download-client.ts",
     "src/mediator/video-download-artifact-route.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",

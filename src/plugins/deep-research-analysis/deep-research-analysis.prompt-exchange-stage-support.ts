@@ -58,10 +58,14 @@ export type ParsePromptOutputInput<TParsed> = {
   runtimeLogger: RuntimeLogger;
   traceContext: StageTraceContext;
   stageLogger: StageLogger;
+  recordHashes: Record<string, string>;
   jobId: string;
+  providerKind: ProviderKind;
+  prompt: DeepResearchPrompt;
   promptHash: string;
   preview: PromptPreview;
   stage: DeepResearchPhase;
+  domRef: string;
   gatewayResult: DeepResearchGatewayResult;
   subQuestionId?: string;
   parse: (rawText: string) => DeepResearchParserResult<TParsed>;
@@ -137,6 +141,33 @@ export const createInteractionRecord = <TParsed>(input: {
   domRef: string;
   gatewayResult: DeepResearchGatewayResult;
   parsed: SuccessfulParserResult<TParsed>;
+}): ResearchInteraction =>
+  input.store.createInteraction({
+    jobId: input.jobId,
+    phase: input.prompt.phase,
+    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+    promptId: input.prompt.promptId,
+    promptVersion: input.prompt.promptVersion,
+    promptHash: input.promptHash,
+    domRef: input.domRef,
+    rawResponseText: input.gatewayResult.normalizedText,
+    rawResponseHash: input.parsed.rawResponseHash,
+    normalizedText: input.parsed.normalizedText,
+    parseStatus: input.parsed.parseStatus,
+    providerKind: input.providerKind,
+    providerProofJson: input.gatewayResult.providerProofJson,
+  });
+
+export const createFailedInteractionRecord = <TParsed>(input: {
+  store: DeepResearchRecordStore;
+  jobId: string;
+  providerKind: ProviderKind;
+  prompt: DeepResearchPrompt;
+  promptHash: string;
+  subQuestionId?: string;
+  domRef: string;
+  gatewayResult: DeepResearchGatewayResult;
+  parsed: Exclude<DeepResearchParserResult<TParsed>, { parseStatus: "parsed" }>;
 }): ResearchInteraction =>
   input.store.createInteraction({
     jobId: input.jobId,

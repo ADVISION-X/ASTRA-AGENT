@@ -44,6 +44,7 @@ type VideoDownloadRequestBody = {
   timeoutMs?: unknown;
   downloadSubtitles?: unknown;
   saveToDownloads?: unknown;
+  telegramDocumentIdHash?: unknown;
 };
 
 type VideoDownloadSourcePlatform = "telegram-web";
@@ -69,10 +70,13 @@ const buildVideoDownloadJobInputForChild = (
   childCapabilityId,
   sourcePageUrl,
   preferredQuality: isVideoDownloadQuality(body.preferredQuality) ? body.preferredQuality : "best_available",
-  maxBytes: readPositiveInteger(body.maxBytes) ?? 200_000_000,
-  timeoutMs: readPositiveInteger(body.timeoutMs) ?? 60_000,
+  maxBytes: readPositiveInteger(body.maxBytes) ?? 5_000_000_000,
+  timeoutMs: readPositiveInteger(body.timeoutMs) ?? 3_600_000,
   downloadSubtitles: body.downloadSubtitles === true,
   subtitleLanguages: ["en"],
+  ...(typeof body.telegramDocumentIdHash === "string" && /^[a-f0-9]{24}$/u.test(body.telegramDocumentIdHash)
+    ? { telegramDocumentIdHash: body.telegramDocumentIdHash }
+    : {}),
 });
 
 const buildVideoDownloadJobInput = (body: VideoDownloadRequestBody): Parameters<typeof routeVideoDownloadArtifactJob>[0] | null => {
@@ -103,7 +107,8 @@ const handleVideoDownloadSourcePageRequest = async (
     writeJson(response, 400, { error: "unsupported_video_source_platform" });
     return true;
   }
-  const sourcePage = await workbench.findOpenVideoDownloadSourcePage(platformId);
+  const preferredSourcePageUrl = readString(url.searchParams.get("sourcePageUrl"));
+  const sourcePage = await workbench.findOpenVideoDownloadSourcePage(platformId, preferredSourcePageUrl ?? undefined);
   if (!sourcePage) {
     writeJson(response, 404, { error: "source_page_not_found", platformId });
     return true;

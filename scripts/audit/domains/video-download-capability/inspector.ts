@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import {
+  inspectTelegramVisibleListAst,
+  inspectTelegramWebChain,
+} from "./components/telegram-web-inspector.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -16,8 +20,13 @@ const sourceFiles = [
   "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
   "src/capabilities/video-download/runtime/youtube-url.ts",
   "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+  "src/capabilities/video-download/runtime/telegram-web-visible-media-probe-script.ts",
+  "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
   "src/capabilities/video-download/children/download-youtube-video-once.ts",
   "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+  "src/app/workbench-home-page.ts",
+  "src/app/workbench-home-styles.ts",
+  "src/app/workbench-video-download-client.ts",
   "src/mediator/video-download-artifact-route.ts",
   "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
   "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
@@ -245,73 +254,6 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
   });
 };
 
-const inspectTelegramWebChain = (findings: Finding[], lawId: string): void => {
-  const schemaText = readRepoFile("src/capabilities/video-download/schema.ts");
-  const routerText = readRepoFile("src/capabilities/video-download/runtime/platform-router.ts");
-  const appRouteText = readRepoFile("src/app/workbench-video-download-routes.ts");
-  const jobSchemaText = readRepoFile("src/plugins/video-download-artifact/video-download-artifact.schema.ts");
-  const childText = readRepoFile("src/capabilities/video-download/children/download-telegram-web-video-once.ts");
-  const probeText = readRepoFile("src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts");
-  for (const marker of [
-    "telegram-web",
-    "download-telegram-web-video-once",
-    "telegram_sw_progressive_cache",
-    "telegram_sw_download_stream",
-  ]) {
-    requireText({
-      findings,
-      lawId,
-      filePath: "src/capabilities/video-download/schema.ts",
-      text: schemaText,
-      marker,
-      checkId: "video-download/telegram-schema",
-    });
-  }
-  for (const marker of ["web.telegram.org", "download-telegram-web-video-once"]) {
-    requireText({
-      findings,
-      lawId,
-      filePath: "src/capabilities/video-download/runtime/platform-router.ts",
-      text: routerText,
-      marker,
-      checkId: "video-download/telegram-routing",
-    });
-  }
-  for (const [filePath, text] of [
-    ["src/app/workbench-video-download-routes.ts", appRouteText],
-    ["src/plugins/video-download-artifact/video-download-artifact.schema.ts", jobSchemaText],
-  ] as const) {
-    requireText({
-      findings,
-      lawId,
-      filePath,
-      text,
-      marker: "download-telegram-web-video-once",
-      checkId: "video-download/telegram-app-job-entry",
-    });
-  }
-  for (const marker of ["tt-media-progressive", "CacheStorage", "content-range", "bytesBase64", "telegram_sw_progressive_cache"]) {
-    requireText({
-      findings,
-      lawId,
-      filePath: "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
-      text: probeText,
-      marker,
-      checkId: "video-download/telegram-cache-probe",
-    });
-  }
-  for (const marker of ["writeVideoArtifact", "metadata_validation_failed", "review_required", "telegram-document-", "source_page_mismatch"]) {
-    requireText({
-      findings,
-      lawId,
-      filePath: "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
-      text: childText,
-      marker,
-      checkId: "video-download/telegram-child",
-    });
-  }
-};
-
 const inspectForbiddenDownloadSurfaces = (findings: Finding[], lawId: string): void => {
   const scanned = sourceFiles.map((filePath) => [filePath, readRepoFile(filePath)] as const);
   const forbiddenPatterns = [
@@ -369,6 +311,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectYoutubeQualityAndSubtitles(findings, lawId);
   inspectRoutingAndApi(findings, lawId);
   inspectTelegramWebChain(findings, lawId);
+  inspectTelegramVisibleListAst(context, findings, lawId);
   inspectForbiddenDownloadSurfaces(findings, lawId);
 
   return {

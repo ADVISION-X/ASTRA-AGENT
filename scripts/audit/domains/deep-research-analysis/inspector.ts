@@ -1,5 +1,4 @@
 import { existsSync, readFileSync } from "node:fs";
-
 import {
   Node,
   Project,
@@ -16,7 +15,6 @@ import {
   type TypeChecker,
   type VariableDeclaration,
 } from "ts-morph";
-
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -24,6 +22,8 @@ import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectConfidenceContract } from "./components/scan-confidence-contract.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
+import { inspectGatewayRawCaptureBoundary } from "./components/scan-gateway-raw-capture-boundary.js";
+import { inspectSubQuestionFaultIsolation } from "./components/scan-sub-question-fault-isolation.js";
 import { inspectSubQuestionPersistenceIdentity } from "./components/scan-sub-question-persistence-identity.js";
 import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
 
@@ -38,6 +38,7 @@ const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
   "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
+  "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
   "scripts/acceptance/deep-research-analysis-smoke.ts",
 ] as const;
 
@@ -404,6 +405,18 @@ const inspectDeepResearchStaticRules = (input: {
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.captureLawId,
+  });
+  inspectGatewayRawCaptureBoundary({
+    context: input.context,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.captureLawId,
+  });
+  inspectSubQuestionFaultIsolation({
+    context: input.context,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.lawId,
   });
   inspectConfidenceContract({
     promptsFile: input.files.promptsFile,

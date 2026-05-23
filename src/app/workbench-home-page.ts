@@ -75,6 +75,7 @@ const renderVideoDownloadPanel = (): string => `
   <p class="muted">one platform, one verified media artifact</p>
   <form class="form-grid" data-video-download-form>
     <input name="childCapabilityId" type="hidden" value="download-telegram-web-video-once" />
+    <input name="telegramDocumentIdHash" type="hidden" value="" />
     <div class="platform-tabs wide" data-video-platform-tabs>
       <button class="platform-tab" type="button" data-video-platform="telegram" data-child-capability-id="download-telegram-web-video-once" aria-pressed="true">Telegram Web</button>
       <button class="platform-tab" type="button" data-video-platform="youtube" data-child-capability-id="download-youtube-video-once" aria-pressed="false">YouTube</button>
@@ -110,6 +111,7 @@ const renderVideoDownloadPanel = (): string => `
       <button class="btn secondary" type="button" data-video-detect-source="telegram-web">② 自动检测当前视频</button>
       <span class="muted" data-video-source-state>（先播放视频，再点此按钮）</span>
     </div>
+    <div class="wide hidden" data-video-candidate-list></div>
     <div class="field">
       <label>Quality</label>
       <select name="preferredQuality">
@@ -121,9 +123,13 @@ const renderVideoDownloadPanel = (): string => `
         <option value="sd">SD</option>
       </select>
     </div>
-    <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="500" value="200" required /></div>
+    <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="5000" value="5000" required /></div>
     <label class="check" data-video-subtitles-field><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
     <label class="check wide" style="font-weight:600;color:#1a73e8"><input name="saveToDownloads" type="checkbox" checked /> ③ 保存到 ~/Downloads（完成后可在 Finder 下载文件夹找到）</label>
+    <div class="wide hidden" data-video-download-progress>
+      <progress style="width:100%;height:14px"></progress>
+      <div class="muted" data-video-download-progress-label></div>
+    </div>
     <div class="actions wide">
       <button class="btn" type="submit">Start</button>
     </div>

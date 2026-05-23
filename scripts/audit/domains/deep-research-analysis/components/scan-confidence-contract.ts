@@ -5,12 +5,16 @@ import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const confidenceRuleSnippets = [
-  "confidence must be exactly one of",
-  "\"low\"",
-  "\"medium\"",
-  "\"high\"",
-  "Do not output numeric confidence",
+  "Prioritize analytical content over perfect formatting.",
+  "confidence may be low/medium/high, a numeric score, or a percentage; the system will normalize it.",
+  "If a preferred field is unavailable, omit it instead of inventing evidence.",
 ] as const;
+
+const promptSpecificSnippets: Partial<Record<typeof promptNames[number], readonly string[]>> = {
+  finalSynthesisPrompt: [
+    "you may omit conflictMatrix",
+  ],
+};
 
 const promptNames = [
   "positiveAnalysisPrompt",
@@ -49,12 +53,16 @@ export const inspectConfidenceContract = (input: {
   input.inspectedFiles.add(getRepoSourcePath(input.promptsFile));
   for (const promptName of promptNames) {
     const promptText = readPromptTextLiterals(input.promptsFile, promptName);
-    if (confidenceRuleSnippets.every((snippet) => promptText.includes(snippet))) continue;
+    const requiredSnippets = [
+      ...confidenceRuleSnippets,
+      ...(promptSpecificSnippets[promptName] ?? []),
+    ];
+    if (requiredSnippets.every((snippet) => promptText.includes(snippet))) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/confidence-contract",
       lawId: input.lawId,
       filePath: getRepoSourcePath(input.promptsFile),
-      message: `${promptName} must force confidence to exactly "low", "medium", or "high" and forbid numeric confidence.`,
+      message: `${promptName} must prioritize analytical content over exact formatting and must allow runtime confidence normalization.`,
     }));
   }
 };
