@@ -66,7 +66,8 @@ dependency check
 热挂载用于代码迭代期间复用已经健康的本地 workbench：
 
 - 在清理端口前，先探测 `${baseUrl}/api/health`。
-- `/api/health` 返回 HTTP OK 时，不启动第二个 app server。
+- `/api/health` 返回 HTTP OK 且 source fingerprint 匹配当前源码时，不启动第二个 app server。
+- `/api/health` 健康但 source fingerprint 缺失或不匹配时，视为旧内存代码，不得 hot-mount，必须进入端口清理和单一启动链。
 - 热挂载只打开 workbench 页面并输出 structured ready report。
 - 热挂载不证明 job readiness、AI readiness、evidence truth 或 CI truth。
 - `/api/health` 不可达或返回非 OK 时，进入端口清理和单一启动链。

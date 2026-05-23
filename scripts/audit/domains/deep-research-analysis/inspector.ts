@@ -23,6 +23,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
+import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
 
 const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -363,6 +364,7 @@ const inspectRegressionFixtures = (
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
+  const captureLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-003-V1");
   const smokeLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-013-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
@@ -390,6 +392,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectParserHonesty(parserFile, findings, lawId);
   inspectAntiEvasion(sourceFiles, findings, lawId);
   inspectRegressionFixtures(regressionFile, findings, lawId);
+  inspectWebChatProviderHandoff({
+    context,
+    findings,
+    inspectedFiles,
+    lawId: captureLawId,
+  });
   inspectDecompositionPromptV2({
     promptFile,
     promptsFile,

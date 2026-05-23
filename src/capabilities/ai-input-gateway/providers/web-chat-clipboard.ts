@@ -44,19 +44,6 @@ export const pasteMacClipboardIntoChrome = async (
   await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
-export const clickDesktopPoint = async (
-  point: { x: number; y: number },
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = [
-    'tell application "Google Chrome" to activate',
-    'tell application "System Events"',
-    `  click at {${Math.round(point.x)}, ${Math.round(point.y)}}`,
-    "end tell",
-  ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
-};
-
 export const pasteTextAndSubmitInChrome = async (
   prompt: string,
   abortSignal?: AbortSignal,

@@ -42,6 +42,7 @@ export async function getHealthReport(
     status: allOk ? "healthy" : "degraded",
     components,
     checkedAt,
+    sourceFingerprint: process.env.GRASSEYE_SOURCE_FINGERPRINT ?? "unknown",
   };
 }
 

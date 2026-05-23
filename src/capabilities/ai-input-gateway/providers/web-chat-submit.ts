@@ -11,9 +11,11 @@ import {
 import {
   focusComposer,
   waitForAttachmentCountAtLeast,
-  verifyComposerText,
+  waitForComposerFocused,
 } from "./web-chat-page-actions.js";
 import { clearComposer } from "./web-chat-upload-page-actions.js";
+
+const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 
 const withWebChatStep = async <T>(
   step: string,
@@ -33,7 +35,7 @@ const waitForPromptSubmitted = async (input: {
   previousAssistantCount: number;
   timeoutMs: number;
 }): Promise<void> => {
-  const deadline = Date.now() + Math.min(input.timeoutMs, 30_000);
+  const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider submit result was not checked";
   while (Date.now() < deadline) {
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
@@ -52,18 +54,17 @@ type SubmitPromptViaClipboardInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
-  sourceUrl: string | null;
   previousAssistantCount: number;
-  restoreSourcePage: (browser: BrowserController, sourceUrl: string | null, abortSignal?: AbortSignal) => Promise<boolean | null>;
 };
 
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
     focusComposer(input.browser, input.context));
   if (focused.status !== "success") {
-    const restoredSourcePage = await input.restoreSourcePage(input.browser, input.sourceUrl, input.context.abortSignal);
-    throw new Error(`${focused.status}: ${focused.message}; restoredSourcePage=${String(restoredSourcePage)}`);
+    throw new Error(`${focused.status}: ${focused.message}`);
   }
+  await withWebChatStep("verify_composer_focus_before_prompt_paste", () =>
+    waitForComposerFocused(input.browser, input.context, 2_000));
 };
 
 const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
@@ -75,11 +76,6 @@ const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Pro
   await input.browser.wait(250);
   await withWebChatStep("paste_prompt_text", () =>
     pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
-  const verified = await withWebChatStep("verify_prompt_text_after_paste", () =>
-    verifyComposerText(input.browser, input.context, input.request.textPrompt));
-  if (verified.status !== "success") {
-    throw new Error(`${verified.status}: ${verified.message}`);
-  }
 };
 
 const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
@@ -88,6 +84,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
     await withWebChatStep("verify_attachments_before_submit", () =>
       waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
   }
+  await input.browser.wait(2_000);
   await withWebChatStep("press_return_after_prompt_paste", () =>
     pressReturnInChrome(input.context.abortSignal));
   await waitForPromptSubmitted({

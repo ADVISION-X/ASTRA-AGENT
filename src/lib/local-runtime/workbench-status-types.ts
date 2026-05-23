@@ -10,6 +10,7 @@ export type WorkbenchHealthReport = {
   status: "healthy" | "degraded" | "unhealthy";
   components: WorkbenchHealthComponent[];
   checkedAt: string;
+  sourceFingerprint: string;
 };
 
 export type WorkbenchMissionReadinessReport = {

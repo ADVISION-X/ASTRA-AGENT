@@ -86,21 +86,10 @@ if (!(input instanceof HTMLElement)) {
 input.focus();
 input.click();
 const inputFocused = document.activeElement === input || input.contains(document.activeElement);
-return {status: "success", message: "provider input box focused", pageUrl: location.href, inputFocused};
-`;
-
-export const buildVerifyComposerTextScript = (expectedText: string): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const input = resolveComposerInput();
-const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
-const expected = ${JSON.stringify(expectedText)};
-const normalizedExpected = clip(expected);
 return {
-  status: actual === normalizedExpected ? "success" : "pending",
-  message: actual === normalizedExpected ? "provider composer contains exactly one prompt text" : "provider composer prompt text mismatch",
+  status: inputFocused ? "success" : "pending",
+  message: inputFocused ? "provider input box focused" : "provider input box focus did not stick",
   pageUrl: location.href,
-  composerText: actual,
-  expectedLength: normalizedExpected.length,
-  actualLength: actual.length,
+  inputFocused,
 };
 `;

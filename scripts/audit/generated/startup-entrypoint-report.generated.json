@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T06:19:20.925Z",
+  "generatedAt": "2026-05-23T08:58:15.495Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -25,6 +25,7 @@
     "scripts/startup/lib/process-control.mjs",
     "scripts/startup/lib/service-process.mjs",
     "scripts/startup/lib/service-readiness.mjs",
+    "scripts/startup/lib/source-fingerprint.mjs",
     "scripts/startup/lib/startup-failure-bundle.mjs",
     "scripts/startup/lib/startup-failure-handler.mjs",
     "scripts/startup/lib/startup-log-helpers.mjs",

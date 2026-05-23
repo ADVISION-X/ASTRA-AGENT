@@ -4,6 +4,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { z } from "zod";
 
+import { createId } from "../../lib/local-runtime/ids.js";
 import type {
   DeepResearchInput,
   DeepResearchInteractionPhase,
@@ -55,13 +56,16 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     id TEXT PRIMARY KEY,
     job_id TEXT NOT NULL,
     interaction_id TEXT NOT NULL,
+    model_question_id TEXT NOT NULL,
     ordinal INTEGER NOT NULL,
     title TEXT NOT NULL,
     question_text TEXT NOT NULL,
     purpose TEXT NOT NULL,
     scope TEXT NOT NULL,
     expected_answer_shape TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    UNIQUE(job_id, model_question_id),
+    UNIQUE(job_id, ordinal)
   )`,
   `CREATE TABLE IF NOT EXISTS research_interactions (
     id TEXT PRIMARY KEY,
@@ -132,6 +136,108 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
 
 export const getCurrentTimestamp = (): string => new Date().toISOString();
 
+type SqliteColumnInfo = {
+  name: string;
+};
+
+type LegacySubQuestionRow = {
+  id: string;
+  job_id: string;
+  interaction_id: string;
+  ordinal: number;
+  title: string;
+  question_text: string;
+  purpose: string;
+  scope: string;
+  expected_answer_shape: string;
+  created_at: string;
+};
+
+const hasColumn = (
+  db: Database.Database,
+  tableName: string,
+  columnName: string,
+): boolean =>
+  (db.prepare(`PRAGMA table_info(${tableName})`).all() as SqliteColumnInfo[])
+    .some((column) => column.name === columnName);
+
+const migrateResearchSubQuestionsSchema = (db: Database.Database): void => {
+  if (hasColumn(db, "research_sub_questions", "model_question_id")) return;
+
+  const legacyRows = db.prepare(
+    `SELECT id, job_id, interaction_id, ordinal, title, question_text, purpose, scope,
+      expected_answer_shape, created_at
+    FROM research_sub_questions
+    ORDER BY job_id ASC, ordinal ASC`,
+  ).all() as LegacySubQuestionRow[];
+
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE research_sub_questions_v2 (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        interaction_id TEXT NOT NULL,
+        model_question_id TEXT NOT NULL,
+        ordinal INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        question_text TEXT NOT NULL,
+        purpose TEXT NOT NULL,
+        scope TEXT NOT NULL,
+        expected_answer_shape TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(job_id, model_question_id),
+        UNIQUE(job_id, ordinal)
+      )
+    `);
+    const insert = db.prepare(
+      `INSERT INTO research_sub_questions_v2 (
+        id, job_id, interaction_id, model_question_id, ordinal, title, question_text,
+        purpose, scope, expected_answer_shape, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const idRemap = new Map<string, string>();
+    for (const row of legacyRows) {
+      const systemId = createId("deep_research_sub_question");
+      idRemap.set(`${row.job_id}\u0000${row.id}`, systemId);
+      insert.run(
+        systemId,
+        row.job_id,
+        row.interaction_id,
+        row.id,
+        row.ordinal,
+        row.title,
+        row.question_text,
+        row.purpose,
+        row.scope,
+        row.expected_answer_shape,
+        row.created_at,
+      );
+    }
+    for (const row of legacyRows) {
+      const systemId = idRemap.get(`${row.job_id}\u0000${row.id}`);
+      if (!systemId) continue;
+      db.prepare(
+        `UPDATE research_interactions
+          SET sub_question_id = ?
+          WHERE job_id = ? AND sub_question_id = ?`,
+      ).run(systemId, row.job_id, row.id);
+      db.prepare(
+        `UPDATE research_answers
+          SET sub_question_id = ?
+          WHERE job_id = ? AND sub_question_id = ?`,
+      ).run(systemId, row.job_id, row.id);
+      db.prepare(
+        `UPDATE research_conflict_matrix
+          SET sub_question_id = ?
+          WHERE job_id = ? AND sub_question_id = ?`,
+      ).run(systemId, row.job_id, row.id);
+    }
+    db.exec("DROP TABLE research_sub_questions");
+    db.exec("ALTER TABLE research_sub_questions_v2 RENAME TO research_sub_questions");
+  });
+  migrate();
+};
+
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));
 
@@ -144,6 +250,10 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
   const db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.pragma("synchronous = NORMAL");
+  for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {
+    db.exec(statement);
+  }
+  migrateResearchSubQuestionsSchema(db);
   for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {
     db.exec(statement);
   }
@@ -183,6 +293,7 @@ export const mapSubQuestionRow = (row: {
   id: string;
   job_id: string;
   interaction_id: string;
+  model_question_id: string;
   ordinal: number;
   title: string;
   question_text: string;
@@ -195,9 +306,10 @@ export const mapSubQuestionRow = (row: {
     id: row.id,
     jobId: row.job_id,
     interactionId: row.interaction_id,
+    modelQuestionId: row.model_question_id,
     ordinal: row.ordinal,
     question: {
-      id: row.id,
+      id: row.model_question_id,
       title: row.title,
       questionText: row.question_text,
       purpose: row.purpose,

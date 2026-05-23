@@ -17,6 +17,7 @@ import {
   renderDeepResearchPositivePrompt,
 } from "./deep-research-analysis.prompts.js";
 import type { DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
+import type { ResearchSubQuestion } from "./deep-research-analysis.records.js";
 import {
   persistFalsificationAnswer,
   persistPositiveAnswer,
@@ -31,7 +32,7 @@ import {
 
 type DecompositionSuccess = {
   ok: true;
-  subQuestions: readonly DeepResearchSubQuestion[];
+  subQuestions: readonly ResearchSubQuestion[];
 };
 
 export const runDecompositionPhase = async (
@@ -83,15 +84,12 @@ export const runDecompositionPhase = async (
     }
     return finishPromptFailure(context, decomposition);
   }
-  return {
-    ok: true,
-    subQuestions: decomposition.parsed.subQuestions,
-  };
+  return { ok: true, subQuestions: context.store.listSubQuestions(context.jobId) };
 };
 
 const runPositivePhase = async (
   context: AnalysisExecutionContext,
-  subQuestion: DeepResearchSubQuestion,
+  subQuestion: ResearchSubQuestion,
 ) =>
   runPromptExchange<DeepResearchPositiveAnswer>({
     store: context.store,
@@ -108,7 +106,7 @@ const runPositivePhase = async (
       userQuestion: context.input.userQuestion,
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
-      subQuestion,
+      subQuestion: subQuestion.question,
     }),
     inputRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
     stages: {
@@ -132,7 +130,7 @@ const runPositivePhase = async (
 
 const runFalsificationPhase = async (
   context: AnalysisExecutionContext,
-  subQuestion: DeepResearchSubQuestion,
+  subQuestion: ResearchSubQuestion,
   positiveAnswer: DeepResearchPositiveAnswer,
 ) =>
   runPromptExchange<DeepResearchFalsificationAnswer>({
@@ -150,7 +148,7 @@ const runFalsificationPhase = async (
       userQuestion: context.input.userQuestion,
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
-      subQuestion,
+      subQuestion: subQuestion.question,
       positiveAnswer,
     }),
     inputRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
@@ -175,7 +173,7 @@ const runFalsificationPhase = async (
 
 const runSubQuestionPhase = async (
   context: AnalysisExecutionContext,
-  subQuestion: DeepResearchSubQuestion,
+  subQuestion: ResearchSubQuestion,
 ): Promise<AnalysisOutcome> => {
   const positive = await runPositivePhase(context, subQuestion);
   if (positive.status !== "parsed") {
@@ -194,7 +192,7 @@ const runSubQuestionPhase = async (
 
 export const runSubQuestionPhases = async (
   context: AnalysisExecutionContext,
-  subQuestions: readonly DeepResearchSubQuestion[],
+  subQuestions: readonly ResearchSubQuestion[],
 ): Promise<AnalysisOutcome> => {
   for (const subQuestion of subQuestions) {
     const outcome = await runSubQuestionPhase(context, subQuestion);

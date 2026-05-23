@@ -5,13 +5,9 @@ import {
   waitForAttachmentCountAtLeast as waitForAttachmentCountAtLeastImpl,
 } from "./web-chat-upload-page-actions.js";
 import {
-  buildVerifyComposerTextScript,
   FOCUS_COMPOSER_SCRIPT,
   VERIFY_COMPOSER_FOCUSED_SCRIPT,
 } from "./web-chat-composer-scripts.js";
-import {
-  FIND_COMPOSER_POINT_SCRIPT,
-} from "./web-chat-page-action-scripts.js";
 
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 15_000;
 
@@ -32,27 +28,6 @@ const verifyComposerFocused = (
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: "verify AI web chat composer focus",
     script: VERIFY_COMPOSER_FOCUSED_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-export const findComposerPoint = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "locate AI web chat composer point",
-    script: FIND_COMPOSER_POINT_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-export const verifyComposerText = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-  expectedText: string,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "verify AI web chat composer prompt text",
-    script: buildVerifyComposerTextScript(expectedText),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 

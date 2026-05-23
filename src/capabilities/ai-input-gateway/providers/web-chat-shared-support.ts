@@ -47,6 +47,26 @@ export const readActivePageUrl = async (
   }
 };
 
+export const assertActiveProviderPage = async (input: {
+  browser: BrowserController;
+  providerUrl: string;
+  abortSignal?: AbortSignal;
+  phase: string;
+}): Promise<void> => {
+  const expectedHost = new URL(input.providerUrl).host;
+  const state = await input.browser.evaluateActiveTab<{ pageUrl: string; hostMatches: boolean }>({
+    description: `verify provider page remains active before ${input.phase}`,
+    script: `
+const expectedHost = ${JSON.stringify(expectedHost)};
+return {pageUrl: location.href, hostMatches: location.host === expectedHost};
+`,
+    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+  });
+  if (!state.hostMatches) {
+    throw new Error(`review_required: active Chrome tab left provider page before ${input.phase}; pageUrl=${state.pageUrl}`);
+  }
+};
+
 export const requireBrowser = (context: AiProviderAdapterContext): BrowserController => {
   if (!context.browser) {
     throw new Error("Web chat feed requires a governed BrowserController.");

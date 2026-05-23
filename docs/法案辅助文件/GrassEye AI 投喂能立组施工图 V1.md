@@ -103,3 +103,7 @@ flowchart TD
 - 剪贴板上传逐个文件执行，最多 3 次重试；AppleScript 单步必须有短超时，不能无限阻塞 mission。
 - prompt 发送前必须再次验证附件数量，防止“上传看似成功但发送时附件丢失”。
 - 回复读取必须等待稳定回答，避免把旧会话最后一条回复当作当前视频判断。
+- Web Chat provider 在 upload、prompt paste、submit、response capture 前必须证明当前前台标签仍是 provider host；如果前台已经漂移到 APP 或其他页面，必须 `review_required`，不得继续 paste / submit / capture。
+- prompt paste 前必须验证 composer 焦点真实保留；`focus()` 调用本身不等于授权成功，`inputFocused=false` 不得进入 paste。
+- prompt 文本粘贴后等待 2 秒，然后直接用键盘 Return 提交；不得用 exact composer text verification 作为提交前 gate，提交是否成功由 composer 清空 / generating / 新 assistant 回复证明。
+- submit 后必须在 provider 标签内等待新 assistant 回复稳定；在拿到 provider response 并构建 raw output proof 之前，不得自动恢复 source APP 标签，避免中断尚未发送或尚在生成的 provider 对话。

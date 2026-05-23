@@ -87,18 +87,20 @@ export const saveSubQuestions = (
 ): ResearchSubQuestion[] => {
   const insert = db.prepare(
     `INSERT INTO research_sub_questions (
-      id, job_id, interaction_id, ordinal, title, question_text, purpose, scope,
+      id, job_id, interaction_id, model_question_id, ordinal, title, question_text, purpose, scope,
       expected_answer_shape, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const createdAt = getCurrentTimestamp();
   const rows: ResearchSubQuestion[] = [];
   input.subQuestions.forEach((subQuestion, ordinal) => {
     const parsed = DeepResearchSubQuestionSchema.parse(subQuestion);
+    const id = createId("deep_research_sub_question");
     insert.run(
-      parsed.id,
+      id,
       input.jobId,
       input.interactionId,
+      parsed.id,
       ordinal,
       parsed.title,
       parsed.questionText,
@@ -108,9 +110,10 @@ export const saveSubQuestions = (
       createdAt,
     );
     rows.push(ResearchSubQuestionSchema.parse({
-      id: parsed.id,
+      id,
       jobId: input.jobId,
       interactionId: input.interactionId,
+      modelQuestionId: parsed.id,
       ordinal,
       question: parsed,
       createdAt,

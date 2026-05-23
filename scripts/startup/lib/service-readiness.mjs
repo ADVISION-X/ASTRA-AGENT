@@ -3,7 +3,7 @@ const waitForDelay = (delayMs) =>
     setTimeout(resolve, delayMs);
   });
 
-async function probeHealth(healthUrl) {
+async function probeHealth(healthUrl, expectedSourceFingerprint) {
   const response = await fetch(healthUrl);
   if (!response.ok) {
     throw new Error(`Local workbench health returned HTTP ${response.status}`);
@@ -12,6 +12,12 @@ async function probeHealth(healthUrl) {
   const healthReport = await response.json();
   if (!isWorkbenchHealthReport(healthReport)) {
     throw new Error("Local workbench health did not return a GrassEye health report.");
+  }
+  if (
+    expectedSourceFingerprint
+    && healthReport.sourceFingerprint !== expectedSourceFingerprint
+  ) {
+    throw new Error("Local workbench health source fingerprint is stale.");
   }
   return { contentType, status: healthReport.status };
 }
@@ -24,15 +30,17 @@ function isWorkbenchHealthReport(value) {
     (value.status === "healthy" || value.status === "degraded") &&
     "checkedAt" in value &&
     typeof value.checkedAt === "string" &&
+    "sourceFingerprint" in value &&
+    typeof value.sourceFingerprint === "string" &&
     "components" in value &&
     Array.isArray(value.components)
   );
 }
 
-export async function probeExistingWorkbench({ baseUrl, toFailureReason }) {
+export async function probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint }) {
   const healthUrl = `${baseUrl}/api/health`;
   try {
-    const health = await probeHealth(healthUrl);
+    const health = await probeHealth(healthUrl, expectedSourceFingerprint);
     return {
       mounted: true,
       healthUrl,
@@ -56,6 +64,7 @@ export async function waitForWorkbenchHealth({
   attempts = 20,
   delayMs = 250,
   toFailureReason,
+  expectedSourceFingerprint,
   onStarted,
   onPassed,
 }) {
@@ -66,7 +75,7 @@ export async function waitForWorkbenchHealth({
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const health = await probeHealth(healthUrl);
+      const health = await probeHealth(healthUrl, expectedSourceFingerprint);
       onPassed?.({
         healthUrl,
         contentType: health.contentType,

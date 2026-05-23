@@ -5,6 +5,7 @@ import { assessDependencyState, installDependencies } from "./lib/dependency-che
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { probeExistingWorkbench, waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
+import { buildStartupSourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
@@ -14,6 +15,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..",
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
+const expectedSourceFingerprint = buildStartupSourceFingerprint(rootDir);
 const terminalLogger = createTerminalStructuredLogger();
 const startupRunId = new Date().toISOString();
 const {
@@ -73,7 +75,7 @@ async function runUpdatePreflight(root, flags) {
 async function preparePort() {
   const hotMountStart = Date.now();
   logEvent("STARTUP", "bootstrap", "hot_mount_probe", "started", `probing existing workbench at ${baseUrl}/api/health`);
-  const hotMount = await probeExistingWorkbench({ baseUrl, toFailureReason });
+  const hotMount = await probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint });
   if (hotMount.mounted) {
     logPass("STARTUP", "bootstrap", "hot_mount_probe", "passed", `hot-mounted existing workbench at ${baseUrl}`, {
       refs: [`healthUrl=${hotMount.healthUrl}`, `contentType=${hotMount.contentType}`, `healthStatus=${hotMount.status}`],
@@ -111,6 +113,7 @@ async function startService(root) {
       GRASSEYE_LOG_MODE: "TRACE",
       GRASSEYE_HOST: host,
       GRASSEYE_PORT: String(port),
+      GRASSEYE_SOURCE_FINGERPRINT: expectedSourceFingerprint,
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
@@ -125,6 +128,7 @@ async function verifyAppHealth() {
   await waitForWorkbenchHealth({
     baseUrl,
     toFailureReason,
+    expectedSourceFingerprint,
     onStarted: ({ healthUrl }) => {
       logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing local workbench health at ${healthUrl}`);
     },

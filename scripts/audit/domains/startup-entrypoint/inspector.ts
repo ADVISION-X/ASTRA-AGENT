@@ -14,6 +14,7 @@ const helperPath = "scripts/startup/lib/startup-log-helpers.mjs";
 const readinessPath = "scripts/startup/lib/service-readiness.mjs";
 const processControlPath = "scripts/startup/lib/process-control.mjs";
 const portListenerPath = "scripts/startup/lib/port-listener-ops.mjs";
+const sourceFingerprintPath = "scripts/startup/lib/source-fingerprint.mjs";
 const packagePath = "package.json";
 const inspectorPath = "scripts/audit/domains/startup-entrypoint/inspector.ts";
 
@@ -255,10 +256,63 @@ const inspectRealPortClear = (context: InspectorContext, findings: Finding[], la
   }
 };
 
+const collectHotMountOrderMetrics = (launchSource: SourceFile) => {
+  const hotProbeStart = callStartInFunction(launchSource, "preparePort", "probeExistingWorkbench");
+  const clearStart = callStartInFunction(launchSource, "preparePort", "clearPortListeners");
+  const startServiceStart = callStartInFunction(launchSource, "performLaunch", "startService");
+  const preparePortStart = callStartInFunction(launchSource, "performLaunch", "preparePort");
+  return {
+    hasHotMountedBranch: hasHotMountedReturnBranch(launchSource),
+    probesBeforeClear: hotProbeStart !== undefined && clearStart !== undefined && hotProbeStart < clearStart,
+    preparesBeforeStart: preparePortStart !== undefined && startServiceStart !== undefined && preparePortStart < startServiceStart,
+  };
+};
+
+const hasStringLiteral = (sourceFile: SourceFile, value: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .some((literal) => literal.getLiteralValue() === value);
+
+const hasIdentifier = (sourceFile: SourceFile, value: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => identifier.getText() === value);
+
+const hasObjectPropertyName = (sourceFile: SourceFile, value: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
+    .some((property) => property.getName() === value);
+
+const collectHotMountFreshnessMetrics = (
+  launchSource: SourceFile,
+  readinessSource: SourceFile,
+  sourceFingerprintSource: SourceFile,
+) => ({
+  importsFingerprint: hasNamedImport(launchSource, "source-fingerprint", "buildStartupSourceFingerprint"),
+  computesFingerprint: hasCall(launchSource, "buildStartupSourceFingerprint"),
+  passesFingerprintEnv: hasObjectPropertyName(launchSource, "GRASSEYE_SOURCE_FINGERPRINT"),
+  checksHealthFingerprint: hasIdentifier(readinessSource, "expectedSourceFingerprint")
+    && hasIdentifier(readinessSource, "sourceFingerprint"),
+  sourceUsesSha256: hasStringLiteral(sourceFingerprintSource, "sha256"),
+});
+
+const collectHotMountHealthMetrics = (readinessSource: SourceFile) => {
+  const responseJsonCall = readinessSource
+    .getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) => {
+      const expression = callExpression.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === "json";
+    });
+  return {
+    healthLiteral: hasApiHealthProbe(readinessSource),
+    realFetchCall: hasCall(readinessSource, "fetch"),
+    jsonValidationCall: hasCall(readinessSource, "isWorkbenchHealthReport"),
+    responseJsonCall,
+  };
+};
+
 const inspectHotMountAst = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const launchSource = getProjectSource(context, launchPath);
   const readinessSource = getProjectSource(context, readinessPath);
-  if (!launchSource || !readinessSource) {
+  const sourceFingerprintSource = getProjectSource(context, sourceFingerprintPath);
+  if (!launchSource || !readinessSource || !sourceFingerprintSource) {
     pushFinding(findings, {
       lawId,
       checkId: "startup/hot-mount-ast-source",
@@ -269,30 +323,20 @@ const inspectHotMountAst = (context: InspectorContext, findings: Finding[], lawI
   }
 
   const importsHotMount = hasNamedImport(launchSource, "service-readiness", "probeExistingWorkbench");
-  const hotProbeStart = callStartInFunction(launchSource, "preparePort", "probeExistingWorkbench");
-  const clearStart = callStartInFunction(launchSource, "preparePort", "clearPortListeners");
-  const startServiceStart = callStartInFunction(launchSource, "performLaunch", "startService");
-  const preparePortStart = callStartInFunction(launchSource, "performLaunch", "preparePort");
-  const hasHotMountedBranch = hasHotMountedReturnBranch(launchSource);
-  const probesBeforeClear = hotProbeStart !== undefined && clearStart !== undefined && hotProbeStart < clearStart;
-  const preparesBeforeStart = preparePortStart !== undefined && startServiceStart !== undefined && preparePortStart < startServiceStart;
-  const healthLiteral = hasApiHealthProbe(readinessSource);
-  const realFetchCall = hasCall(readinessSource, "fetch");
-  const jsonValidationCall = hasCall(readinessSource, "isWorkbenchHealthReport");
-  const responseJsonCall = readinessSource
-    .getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((callExpression) => {
-      const expression = callExpression.getExpression();
-      return Node.isPropertyAccessExpression(expression) && expression.getName() === "json";
-    });
+  const metrics = {
+    importsHotMount,
+    ...collectHotMountOrderMetrics(launchSource),
+    ...collectHotMountHealthMetrics(readinessSource),
+    ...collectHotMountFreshnessMetrics(launchSource, readinessSource, sourceFingerprintSource),
+  };
 
-  if (!importsHotMount || !hasHotMountedBranch || !probesBeforeClear || !preparesBeforeStart || !healthLiteral || !realFetchCall || !responseJsonCall || !jsonValidationCall) {
+  if (Object.values(metrics).some((value) => value === false)) {
     pushFinding(findings, {
       lawId,
       checkId: "startup/hot-mount-before-clear",
       filePath: launchPath,
-      message: "Startup must probe /api/health for hot mount before clearing the port or starting a duplicate server.",
-      evidence: JSON.stringify({ importsHotMount, hasHotMountedBranch, probesBeforeClear, preparesBeforeStart, healthLiteral, realFetchCall, responseJsonCall, jsonValidationCall }),
+      message: "Startup must probe /api/health for hot mount before clearing the port, and must reject stale source fingerprints.",
+      evidence: JSON.stringify(metrics),
     });
   }
 };
@@ -304,7 +348,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const reportLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-004-V1");
   const portClearLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-005-V1");
   const hotMountLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-006-V1");
-  const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, processControlPath, portListenerPath, inspectorPath]);
+  const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, processControlPath, portListenerPath, sourceFingerprintPath, inspectorPath]);
   const startupFiles = listStartupFiles().map((filePath) => toRepoPath(resolveFromRepo(filePath)));
   startupFiles.forEach((filePath) => inspectedFiles.add(filePath));
   const findings: Finding[] = [];

@@ -46,6 +46,7 @@ export const ResearchSubQuestionSchema = z.object({
   id: z.string().trim().min(1),
   jobId: z.string().trim().min(1),
   interactionId: z.string().trim().min(1),
+  modelQuestionId: z.string().trim().min(1),
   ordinal: z.number().int().nonnegative(),
   question: DeepResearchSubQuestionSchema,
   createdAt: z.string().datetime(),

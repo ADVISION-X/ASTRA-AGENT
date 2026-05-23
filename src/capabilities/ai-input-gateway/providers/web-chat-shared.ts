@@ -10,6 +10,7 @@ import { openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import {
+  assertActiveProviderPage,
   buildWebChatRawResponse,
   persistWorkspaceAfterResponse,
   readActivePageUrl,
@@ -25,16 +26,21 @@ const submitWebChatPrompt = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
+  providerUrl: string;
   sourcePageUrlBeforeFeed: string | null;
   previousAssistantCount: number;
 }): Promise<void> => {
+  await assertActiveProviderPage({
+    browser: input.browser,
+    providerUrl: input.providerUrl,
+    phase: "prompt submit",
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
   await submitPromptViaClipboard({
     browser: input.browser,
     request: input.request,
     context: input.context,
-    sourceUrl: input.sourcePageUrlBeforeFeed,
     previousAssistantCount: input.previousAssistantCount,
-    restoreSourcePage,
   });
 };
 
@@ -43,6 +49,7 @@ const extractWebChatConversation = async (input: {
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
+  previousAssistantCount: number;
   previousAnswerText: string | null;
 }): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
   await ensureProviderWorkspaceFocused({
@@ -51,12 +58,19 @@ const extractWebChatConversation = async (input: {
     providerUrl: input.providerUrl,
     allowAnyProviderTab: false,
   });
+  await assertActiveProviderPage({
+    browser: input.browser,
+    providerUrl: input.providerUrl,
+    phase: "response capture",
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
   const extracted = await waitForStableAnswer({
     browser: input.browser,
     context: input.context,
     timeoutMs: input.request.timeoutMs,
     pollIntervalMs: POLL_INTERVAL_MS,
     stableRoundsRequired: STABLE_ROUNDS_REQUIRED,
+    minAssistantCount: Math.max(1, input.previousAssistantCount + 1),
     previousAnswerText: input.previousAnswerText,
   });
   return {
@@ -68,7 +82,14 @@ const extractWebChatConversation = async (input: {
 const readPreSubmitConversationState = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  providerUrl: string;
 }): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
+  await assertActiveProviderPage({
+    browser: input.browser,
+    providerUrl: input.providerUrl,
+    phase: "pre-submit conversation snapshot",
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
   const beforeSubmit = await waitForStableAnswer({
     browser: input.browser,
     context: input.context,
@@ -91,17 +112,25 @@ const executeWebChatConversation = async (input: {
   sourcePageUrlBeforeFeed: string | null;
 }): Promise<AiProviderRawResponse> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
+  await assertActiveProviderPage({
+    browser: input.browser,
+    providerUrl: input.providerUrl,
+    phase: "attachment upload",
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
   await pasteFilesViaClipboard(input.browser, input.request, input.context);
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   const preSubmit = await readPreSubmitConversationState({
     browser: input.browser,
     context: input.context,
+    providerUrl: input.providerUrl,
   });
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   await submitWebChatPrompt({
     browser: input.browser,
     request: input.request,
     context: input.context,
+    providerUrl: input.providerUrl,
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     previousAssistantCount: preSubmit.previousAssistantCount,
   });
@@ -110,6 +139,7 @@ const executeWebChatConversation = async (input: {
     request: input.request,
     context: input.context,
     providerUrl: input.providerUrl,
+    previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
   return buildWebChatRawResponse({
@@ -128,8 +158,11 @@ const restoreAfterWebChatFeed = async (input: {
   sourcePageUrlBeforeFeed: string | null;
   response: AiProviderRawResponse | null;
 }): Promise<void> => {
+  if (!input.response) {
+    return;
+  }
   const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
-  if (input.response) input.response.restoredSourcePage = restoredSourcePage;
+  input.response.restoredSourcePage = restoredSourcePage;
   if (restoredSourcePage === false) {
     throw new Error("review_required: source page restoration failed after web chat feed.");
   }
