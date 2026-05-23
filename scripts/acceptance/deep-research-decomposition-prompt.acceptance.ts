@@ -8,6 +8,9 @@ import {
   detectCurrentEventMissingInfo,
   detectFinalSynthesisLeakage,
   parseDecompositionResponse,
+  parseDeepResearchFalsificationResponse,
+  parseDeepResearchFinalReportResponse,
+  parseDeepResearchPositiveResponse,
   renderDecompositionPrompt,
   runDeepResearchDecompositionPhase,
   scoreDecompositionQuality,
@@ -173,6 +176,76 @@ for (const fixture of DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES) {
   assert.equal(fixture.mustHaveRequiredEvidence, true);
   assert.ok(fixture.minQualityScore >= 14);
   assert.ok(fixture.mustCoverDimensions.length > 0);
+}
+
+const validPositiveResponse = {
+  subQuestionId: "deep_research_sub_question_acceptance",
+  answer: "Supportive answer.",
+  keyClaims: ["claim"],
+  supportingReasons: ["reason"],
+  assumptions: ["assumption"],
+  evidenceMentions: ["evidence"],
+  confidence: "medium",
+  limitations: ["limitation"],
+};
+const enumPositive = parseDeepResearchPositiveResponse(JSON.stringify(validPositiveResponse));
+assertStatus(enumPositive.parseStatus, "parsed");
+const numericPositive = parseDeepResearchPositiveResponse(JSON.stringify({
+  ...validPositiveResponse,
+  confidence: 0.82,
+}));
+assertStatus(numericPositive.parseStatus, "failed");
+if (numericPositive.parseStatus === "failed") {
+  assert.match(numericPositive.reason, /invalid_positive_analysis_contract/u);
+}
+
+const validFalsificationResponse = {
+  subQuestionId: "deep_research_sub_question_acceptance",
+  answer: "Opposing answer.",
+  strongestOpposingArguments: ["argument"],
+  contradictionPoints: ["contradiction"],
+  evidenceMentions: ["evidence"],
+  confidence: "medium",
+  limitations: ["limitation"],
+};
+const enumFalsification = parseDeepResearchFalsificationResponse(JSON.stringify(validFalsificationResponse));
+assertStatus(enumFalsification.parseStatus, "parsed");
+const numericFalsification = parseDeepResearchFalsificationResponse(JSON.stringify({
+  ...validFalsificationResponse,
+  confidence: 0.82,
+}));
+assertStatus(numericFalsification.parseStatus, "failed");
+if (numericFalsification.parseStatus === "failed") {
+  assert.match(numericFalsification.reason, /invalid_falsification_contract/u);
+}
+
+const validFinalResponse = {
+  executiveConclusion: "Final conclusion.",
+  confidence: "medium",
+  positiveReasons: ["reason"],
+  strongestOpposingArguments: ["argument"],
+  conflictMatrix: [{
+    subQuestionId: "deep_research_sub_question_acceptance",
+    positiveClaimSummary: "positive",
+    falsificationSummary: "negative",
+    conflictLevel: "medium",
+    evidenceGap: "gap",
+    needsHumanReview: true,
+  }],
+  evidenceGaps: ["gap"],
+  reverseConditions: ["condition"],
+  followUpSignals: ["signal"],
+  limitations: ["limitation"],
+};
+const enumFinal = parseDeepResearchFinalReportResponse(JSON.stringify(validFinalResponse));
+assertStatus(enumFinal.parseStatus, "parsed");
+const numericFinal = parseDeepResearchFinalReportResponse(JSON.stringify({
+  ...validFinalResponse,
+  confidence: 0.82,
+}));
+assertStatus(numericFinal.parseStatus, "failed");
+if (numericFinal.parseStatus === "failed") {
+  assert.match(numericFinal.reason, /invalid_final_report_contract/u);
 }
 
 const flowResult = await runDeepResearchDecompositionPhase({

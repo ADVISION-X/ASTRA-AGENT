@@ -22,6 +22,7 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
+import { inspectConfidenceContract } from "./components/scan-confidence-contract.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
 import { inspectSubQuestionPersistenceIdentity } from "./components/scan-sub-question-persistence-identity.js";
 import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
@@ -403,6 +404,12 @@ const inspectDeepResearchStaticRules = (input: {
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.captureLawId,
+  });
+  inspectConfidenceContract({
+    promptsFile: input.files.promptsFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.lawId,
   });
   inspectDecompositionPromptV2({
     promptFile: input.files.promptFile,

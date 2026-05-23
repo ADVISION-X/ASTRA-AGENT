@@ -1009,6 +1009,33 @@ Final Synthesis -> click 新聊天 -> paste -> Return -> wait response
 不得把 positive、falsification、final synthesis 连续塞进同一个 ChatGPT conversation。  
 实测基线：同一 ChatGPT 会话能回忆上一条随机 marker；点击“新聊天”后，新会话对旧 marker 只能返回 UNKNOWN。
 
+### Confidence 输出合同
+
+Positive、Falsification、Final Synthesis 三类 JSON 输出的 `confidence` 必须是严格枚举：
+
+```txt
+"low" | "medium" | "high"
+```
+
+禁止：
+
+```txt
+0.8
+80
+"80%"
+"high confidence"
+```
+
+parser 必须继续拒绝数字 confidence；不得把 `0.8` 自动转换为 `high`。  
+prompt 必须明确写入：
+
+```txt
+confidence must be exactly one of: "low", "medium", "high".
+Do not output numeric confidence.
+```
+
+实测基线：旧 positive prompt 曾让 GPT 返回 `"confidence": 0.68` 并在 `POSITIVE_PARSE` 被 parser 拒绝；强化合同后，GPT 在 positive、falsification、final 三类页面实测中均返回 `"confidence": "medium"`。
+
 ### Phase 1：无浏览器假数据 smoke
 
 目的：验证 schema、parser、db、export。

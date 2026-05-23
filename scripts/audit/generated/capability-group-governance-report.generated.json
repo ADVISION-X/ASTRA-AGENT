@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T13:06:02.523Z",
+  "generatedAt": "2026-05-23T13:27:20.548Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -69,6 +69,7 @@
     "scripts/audit/domains/code-purity/components/structural-metrics.ts",
     "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
