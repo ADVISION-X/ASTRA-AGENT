@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T22:30:47.695Z",
+  "generatedAt": "2026-05-24T00:13:47.197Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -71,7 +71,8 @@
         "APEX-CODE-PURITY-014-V1",
         "APEX-CODE-PURITY-015-V1",
         "APEX-CODE-PURITY-016-V1",
-        "APEX-CODE-PURITY-017-V1"
+        "APEX-CODE-PURITY-017-V1",
+        "APEX-CODE-PURITY-018-V1"
       ]
     },
     {
@@ -93,7 +94,8 @@
         "GRASSEYE-DEEP-RESEARCH-012-V1",
         "GRASSEYE-DEEP-RESEARCH-013-V1",
         "GRASSEYE-DEEP-RESEARCH-014-V1",
-        "GRASSEYE-DEEP-RESEARCH-015-V1"
+        "GRASSEYE-DEEP-RESEARCH-015-V1",
+        "GRASSEYE-DEEP-RESEARCH-016-V1"
       ]
     },
     {

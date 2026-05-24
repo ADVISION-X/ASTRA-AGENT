@@ -155,9 +155,8 @@ const inspectSmokeRealSurface = (input: {
     lawId: input.lawId,
     checkId: "deep-research/smoke-real-surface",
     symbols: [
-      "parseDeepResearchPositiveResponse",
-      "parseDeepResearchFalsificationResponse",
-      "parseDeepResearchFinalReportResponse",
+      "parseDeepResearchSubQuestionAnalysisResponse",
+      "parseDeepResearchFinalAdjudicationResponse",
       "createDeepResearchRecordStore",
       "buildDeepResearchFinalPackage",
       "exportDeepResearchArtifacts",

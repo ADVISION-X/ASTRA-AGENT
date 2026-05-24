@@ -37,6 +37,7 @@ export type DeepResearchJobSnapshot = {
     currentPhase: DeepResearchPhase;
     interactionCount: number;
     subQuestionCount: number;
+    analysisCount: number;
     positiveCount: number;
     falsificationCount: number;
     exportCount: number;
@@ -88,12 +89,19 @@ export type DeepResearchSubQuestionView = {
   title: string;
   questionText: string;
   purpose: string;
+  whyItMatters: string | null;
+  decisionWeight: ResearchSubQuestion["question"]["decisionWeight"] | null;
+  analysisFocus: string | null;
+  requiredEvidence: string[];
   scope: string;
   expectedAnswerShape: string;
+  priority: ResearchSubQuestion["question"]["priority"] | null;
+  omissionRisk: string | null;
 };
 
 export type DeepResearchAnswerBlockView = {
   interaction: DeepResearchReportInteractionView | null;
+  answerKind: ResearchAnswer["answerKind"];
   answerText: string;
   preview: string;
   confidence: ResearchAnswer["confidence"];
@@ -102,6 +110,7 @@ export type DeepResearchAnswerBlockView = {
   assumptions: string[];
   limitations: string[];
   contradictionPoints: string[];
+  parsedPayload: ResearchAnswer["parsedPayload"];
 };
 
 type DeepResearchConflictMatrixRowView = ResearchConflictMatrix["row"] & {
@@ -139,13 +148,23 @@ export type DeepResearchExportView = {
 };
 
 export type DeepResearchConclusionView = {
+  directAnswer: string;
+  finalVerdict: string;
   executiveConclusion: string;
   confidence: DeepResearchFinalReport["confidence"];
+  rankedConclusions: DeepResearchFinalReport["rankedConclusions"];
+  strongConclusions: string[];
+  conditionalConclusions: string[];
+  weakOrRejectedClaims: string[];
+  decisiveReasons: string[];
   positiveReasons: string[];
   strongestOpposingArguments: string[];
   evidenceGaps: string[];
   reverseConditions: string[];
+  applicability: string[];
+  nonApplicability: string[];
   followUpSignals: string[];
+  multiStageValueAdded: string[];
   limitations: string[];
 };
 
@@ -155,6 +174,7 @@ export type DeepResearchReportViewModel = {
     title: string;
     userQuestion: string;
     analysisGoal: string | null;
+    flowMode: ResearchJob["flowMode"];
     status: ResearchJob["status"];
     phase: ResearchJob["phase"];
     failureReason: string | null;
@@ -173,11 +193,12 @@ export type DeepResearchReportViewModel = {
   };
   subQuestionReports: Array<{
     subQuestion: DeepResearchSubQuestionView;
+    analysis: DeepResearchAnswerBlockView | null;
     positive: DeepResearchAnswerBlockView | null;
     falsification: DeepResearchAnswerBlockView | null;
     conflict: DeepResearchConflictMatrixRowView | null;
   }>;
-  finalSynthesis: {
+  finalAdjudication: {
     interaction: DeepResearchReportInteractionView | null;
     parsedFinalReport: DeepResearchFinalReport | null;
   };

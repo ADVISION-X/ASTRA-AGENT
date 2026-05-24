@@ -1,25 +1,10 @@
-import { Node, SyntaxKind, type Expression } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
 
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
+import type { ZombieReachability } from "./zombie-module-graph.js";
+import { evaluateZombieBooleanExpression } from "./zombie-const-evaluator.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
-
-const resolveLiteralBoolean = (expression: Expression): boolean | undefined => {
-  if (Node.isParenthesizedExpression(expression)) {
-    return resolveLiteralBoolean(expression.getExpression());
-  }
-  if (Node.isTrueLiteral(expression)) {
-    return true;
-  }
-  if (Node.isFalseLiteral(expression)) {
-    return false;
-  }
-  if (Node.isPrefixUnaryExpression(expression) && expression.getOperatorToken() === SyntaxKind.ExclamationToken) {
-    const operand = resolveLiteralBoolean(expression.getOperand());
-    return operand === undefined ? undefined : !operand;
-  }
-  return undefined;
-};
 
 const pushDeadBranchFinding = (
   collector: InventoryFindingCollector,
@@ -45,9 +30,10 @@ const scanIfDeadBranches = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   zombieLawId: string,
-): void => {
+): number => {
+  let deadBranchCount = 0;
   for (const ifStatement of governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.IfStatement)) {
-    const resolved = resolveLiteralBoolean(ifStatement.getExpression());
+    const resolved = evaluateZombieBooleanExpression(ifStatement.getExpression());
     if (resolved === false) {
       const lineNumber = ifStatement.getStartLineNumber();
       pushDeadBranchFinding(collector, {
@@ -57,6 +43,7 @@ const scanIfDeadBranches = (
         reason: `if branch at line ${lineNumber} is guarded by a literal false condition.`,
         message: `${governedFile.repoPath} contains a literal-dead if branch at line ${lineNumber}.`,
       });
+      deadBranchCount += 1;
     }
     const elseStatement = ifStatement.getElseStatement();
     if (resolved === true && elseStatement) {
@@ -68,17 +55,20 @@ const scanIfDeadBranches = (
         reason: `else branch at line ${lineNumber} is unreachable because the condition is literally true.`,
         message: `${governedFile.repoPath} contains an unreachable else branch at line ${lineNumber}.`,
       });
+      deadBranchCount += 1;
     }
   }
+  return deadBranchCount;
 };
 
 const scanConditionalDeadBranches = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   zombieLawId: string,
-): void => {
+): number => {
+  let deadBranchCount = 0;
   for (const conditionalExpression of governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.ConditionalExpression)) {
-    const resolved = resolveLiteralBoolean(conditionalExpression.getCondition());
+    const resolved = evaluateZombieBooleanExpression(conditionalExpression.getCondition());
     if (resolved === undefined) {
       continue;
     }
@@ -92,16 +82,19 @@ const scanConditionalDeadBranches = (
       reason: `ternary branch at line ${lineNumber} is unreachable because the condition is a literal boolean.`,
       message: `${governedFile.repoPath} contains a dead ternary branch at line ${lineNumber}.`,
     });
+    deadBranchCount += 1;
   }
+  return deadBranchCount;
 };
 
 const scanWhileDeadLoops = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   zombieLawId: string,
-): void => {
+): number => {
+  let deadBranchCount = 0;
   for (const whileStatement of governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.WhileStatement)) {
-    if (resolveLiteralBoolean(whileStatement.getExpression()) !== false) {
+    if (evaluateZombieBooleanExpression(whileStatement.getExpression()) !== false) {
       continue;
     }
     const lineNumber = whileStatement.getStartLineNumber();
@@ -112,17 +105,20 @@ const scanWhileDeadLoops = (
       reason: `while loop at line ${lineNumber} is guarded by a literal false condition.`,
       message: `${governedFile.repoPath} contains a dead while loop at line ${lineNumber}.`,
     });
+    deadBranchCount += 1;
   }
+  return deadBranchCount;
 };
 
 const scanForDeadLoops = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   zombieLawId: string,
-): void => {
+): number => {
+  let deadBranchCount = 0;
   for (const forStatement of governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.ForStatement)) {
     const condition = forStatement.getCondition();
-    if (!condition || resolveLiteralBoolean(condition) !== false) {
+    if (!condition || evaluateZombieBooleanExpression(condition) !== false) {
       continue;
     }
     const lineNumber = forStatement.getStartLineNumber();
@@ -133,18 +129,26 @@ const scanForDeadLoops = (
       reason: `for loop at line ${lineNumber} is guarded by a literal false condition.`,
       message: `${governedFile.repoPath} contains a dead for loop at line ${lineNumber}.`,
     });
+    deadBranchCount += 1;
   }
+  return deadBranchCount;
 };
 
 export const scanZombieDeadBranches = (
   collector: InventoryFindingCollector,
   governedFiles: readonly GovernedFile[],
   zombieLawId: string,
-): void => {
+  reachability: ZombieReachability,
+): { deadBranchCount: number } => {
+  let deadBranchCount = 0;
   for (const governedFile of governedFiles) {
-    scanIfDeadBranches(collector, governedFile, zombieLawId);
-    scanConditionalDeadBranches(collector, governedFile, zombieLawId);
-    scanWhileDeadLoops(collector, governedFile, zombieLawId);
-    scanForDeadLoops(collector, governedFile, zombieLawId);
+    if (!reachability.reachableFiles.has(governedFile.repoPath)) {
+      continue;
+    }
+    deadBranchCount += scanIfDeadBranches(collector, governedFile, zombieLawId);
+    deadBranchCount += scanConditionalDeadBranches(collector, governedFile, zombieLawId);
+    deadBranchCount += scanWhileDeadLoops(collector, governedFile, zombieLawId);
+    deadBranchCount += scanForDeadLoops(collector, governedFile, zombieLawId);
   }
+  return { deadBranchCount };
 };

@@ -1,7 +1,7 @@
 {
   "mainQuestion": "按照当前最新的伊朗战争形态，这场战争最可能以哪种形式平息或结束？",
   "questionType": "event",
-  "decompositionStrategy": "Cover the live conflict through facts, causes, impacts, evidence, risks, and falsification checks.",
+  "decompositionStrategy": "Cover the live conflict through facts, causes, impacts, evidence quality, and reversal triggers.",
   "missingInfo": [
     "current date/time for the conflict state",
     "latest reliable sources",
@@ -10,78 +10,67 @@
   "subQuestions": [
     {
       "id": "Q1",
-      "title": "Final outcome",
+      "title": "Final outcome leakage",
       "questionText": "综合所有因素，最终战争最可能怎么结束？",
-      "dimension": "falsification",
-      "purpose": "This improperly asks for the final synthesis.",
-      "requiredEvidence": ["official statements", "independent incident timelines"],
-      "positiveAnalysisFocus": "Evaluate the final outcome directly.",
-      "falsificationFocus": "Challenge the final outcome directly.",
-      "scope": "Includes final synthesis, which should be rejected.",
+      "whyItMatters": "This intentionally violates the law by asking for the final adjudication too early.",
+      "decisionWeight": "high",
+      "analysisFocus": "This fixture intentionally leaks the final judgment into a sub-question.",
+      "requiredEvidence": [
+        "official statements",
+        "independent incident timelines"
+      ],
+      "scope": "Includes final adjudication leakage and should therefore fail quality scoring.",
       "expectedAnswerShape": "Final judgment.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "This fixture exists only to prove that final-adjudication leakage is rejected."
     },
     {
       "id": "Q2",
       "title": "Current facts",
       "questionText": "What verified events define the current conflict state?",
-      "dimension": "facts",
-      "purpose": "Establish the factual baseline.",
-      "requiredEvidence": ["official statements", "independent incident timelines"],
-      "positiveAnalysisFocus": "Evaluate verified current facts.",
-      "falsificationFocus": "Challenge unsupported or stale claims.",
+      "whyItMatters": "The rest of the fixture stays structurally valid so only the leakage is rejected.",
+      "decisionWeight": "high",
+      "analysisFocus": "Evaluate verified current facts.",
+      "requiredEvidence": [
+        "official statements",
+        "independent incident timelines"
+      ],
       "scope": "Include current verified events; exclude final outcome prediction.",
       "expectedAnswerShape": "Timeline and evidence table.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without a valid companion question, the fixture would not prove that only leakage triggered the failure."
     },
     {
       "id": "Q3",
       "title": "Drivers",
       "questionText": "Which drivers explain escalation or de-escalation pressure?",
-      "dimension": "causality",
-      "purpose": "Identify causal variables.",
-      "requiredEvidence": ["actor statements", "incident sequence"],
-      "positiveAnalysisFocus": "Evaluate plausible causal drivers.",
-      "falsificationFocus": "Challenge single-cause explanations.",
-      "scope": "Include drivers and incentives; exclude final probability.",
+      "whyItMatters": "This keeps the fixture otherwise usable for downstream quality checks.",
+      "decisionWeight": "high",
+      "analysisFocus": "Evaluate plausible causal drivers.",
+      "requiredEvidence": [
+        "actor statements",
+        "incident sequence"
+      ],
+      "scope": "Include drivers and incentives; exclude the final adjudication.",
       "expectedAnswerShape": "Driver matrix.",
-      "priority": "high"
-    },
-    {
-      "id": "Q4",
-      "title": "Regional impact",
-      "questionText": "Which regional impacts would change escalation incentives?",
-      "dimension": "impact",
-      "purpose": "Map affected parties and consequences.",
-      "requiredEvidence": ["regional responses", "security alerts"],
-      "positiveAnalysisFocus": "Evaluate impacts that constrain actors.",
-      "falsificationFocus": "Challenge overstated spillover claims.",
-      "scope": "Include regional effects; exclude operational instructions.",
-      "expectedAnswerShape": "Impact map.",
-      "priority": "medium"
-    },
-    {
-      "id": "Q5",
-      "title": "Evidence reliability",
-      "questionText": "Which sources are reliable enough to establish the conflict shape?",
-      "dimension": "evidence",
-      "purpose": "Rank evidence quality.",
-      "requiredEvidence": ["primary-source statements", "independent reporting"],
-      "positiveAnalysisFocus": "Evaluate source reliability.",
-      "falsificationFocus": "Challenge propaganda or outdated reporting.",
-      "scope": "Include source quality; exclude final synthesis.",
-      "expectedAnswerShape": "Source reliability table.",
-      "priority": "medium"
+      "priority": "high",
+      "omissionRisk": "Without this, the fixture would be too thin to look like a lawful decomposition response."
     }
   ],
+  "exhaustivenessCheck": {
+    "keyDimensionsCovered": [
+      "facts",
+      "causality",
+      "final-answer leakage check"
+    ],
+    "knownBlindSpots": [],
+    "whyNoMoreQuestionsAreNeeded": "The fixture is intentionally small because it only exists to prove leakage detection."
+  },
   "qualitySelfCheck": {
-    "coversFacts": true,
-    "coversCausality": true,
-    "coversImpact": true,
-    "coversEvidence": true,
-    "coversFalsification": true,
-    "coversRisks": true,
+    "isNeutral": true,
     "hasNoDuplicateQuestions": true,
-    "isReadyForPositiveAndFalsification": true
+    "hasNoPureFalsificationQuestions": true,
+    "isReadyForIndependentAnalysis": true,
+    "isReadyForFinalAdjudication": true
   }
 }

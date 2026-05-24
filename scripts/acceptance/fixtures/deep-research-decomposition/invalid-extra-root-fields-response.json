@@ -1,9 +1,9 @@
 {
-  "contractId": "deep-research.decomposition.json.v1.1",
+  "contractId": "deep-research.decomposition-output.v2.0",
   "format": "json_object",
   "mainQuestion": "当前伊朗相关冲突会以什么条件降温？",
   "questionType": "event",
-  "decompositionStrategy": "Cover facts, causes, impact, evidence, risks, and falsification without answering the final outcome.",
+  "decompositionStrategy": "Cover facts, causes, evidence, and reversal triggers without answering the final outcome.",
   "missingInfo": [
     "current date/time for the conflict state",
     "latest reliable sources",
@@ -14,24 +14,31 @@
       "id": "Q1",
       "title": "Current facts",
       "questionText": "What verified events define the current conflict state?",
-      "dimension": "facts",
-      "purpose": "Establish the factual baseline.",
-      "requiredEvidence": ["official statements", "independent incident timelines"],
-      "positiveAnalysisFocus": "Evaluate verified current facts.",
-      "falsificationFocus": "Challenge unsupported or stale claims.",
+      "whyItMatters": "The fixture should be otherwise lawful so the forbidden root fields are the true failure reason.",
+      "decisionWeight": "high",
+      "analysisFocus": "Evaluate verified current facts.",
+      "requiredEvidence": [
+        "official statements",
+        "independent incident timelines"
+      ],
       "scope": "Include current verified events; exclude final outcome prediction.",
       "expectedAnswerShape": "Timeline and evidence table.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without a lawful question body, the fixture would fail for multiple reasons instead of only the extra root fields."
     }
   ],
+  "exhaustivenessCheck": {
+    "keyDimensionsCovered": [
+      "facts"
+    ],
+    "knownBlindSpots": [],
+    "whyNoMoreQuestionsAreNeeded": "This fixture exists only to prove that forbidden root metadata is rejected."
+  },
   "qualitySelfCheck": {
-    "coversFacts": true,
-    "coversCausality": true,
-    "coversImpact": true,
-    "coversEvidence": true,
-    "coversFalsification": true,
-    "coversRisks": true,
+    "isNeutral": true,
     "hasNoDuplicateQuestions": true,
-    "isReadyForPositiveAndFalsification": true
+    "hasNoPureFalsificationQuestions": true,
+    "isReadyForIndependentAnalysis": true,
+    "isReadyForFinalAdjudication": true
   }
 }

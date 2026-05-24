@@ -1,0 +1,11 @@
+{
+  "entryScripts": [],
+  "manifest": {
+    "externalEntryFiles": [
+      "src/external-entry.ts"
+    ],
+    "externalEntryExports": [],
+    "lawfulDynamicImports": [],
+    "lawfulDynamicNamespaceConsumers": []
+  }
+}

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-23T22:30:47.695Z",
+  "generatedAt": "2026-05-24T00:13:47.197Z",
   "summary": {
-    "activeLawCount": 120,
-    "coveredLawCount": 120,
+    "activeLawCount": 122,
+    "coveredLawCount": 122,
     "coveragePercent": 100
   },
   "coverage": [
@@ -457,6 +457,16 @@
       ]
     },
     {
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "capabilityDomain": "deep-research-analysis",
       "clauses": [
@@ -598,6 +608,16 @@
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-015-V1",
+      "capabilityDomain": "deep-research-analysis",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/deep-research-analysis/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-016-V1",
       "capabilityDomain": "deep-research-analysis",
       "clauses": [
         {

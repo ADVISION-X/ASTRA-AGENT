@@ -70,9 +70,17 @@ assertText("src/app/workbench-deep-research-panel.ts", "name=\"providerKind\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"maxSubQuestions\"");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-new-toggle");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-form-shell");
+assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-layout-contract=\"history-rail-reader\"");
+assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-scroll-boundary");
 assertText("src/app/workbench-deep-research-history-view.ts", "data-deep-research-history");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-final-card");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-final-adjudication");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-evidence");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-reader-primary");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-side-compact");
+assertText("src/app/workbench-deep-research-styles.ts", "max-height: calc(100vh - 128px)");
+assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(260px, 320px) minmax(0, 1fr)");
+assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
 assertImport(
   "src/app/create-workbench-server.ts",
   "handleDeepResearchRequest",
@@ -88,6 +96,8 @@ assertText("src/lib/local-runtime/workbench-handle.ts", "listDeepResearchAnalysi
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisReport");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisTimeline");
 assertText("src/lib/local-runtime/workbench.ts", "deepResearchAnalysisPublicFacade");
+assertTextInAnyFile(clientRuntimePaths, "Default 1+N+1");
+assertTextInAnyFile(clientRuntimePaths, "Final Adjudication");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");

@@ -1,6 +1,6 @@
 # GrassEye Deep Research Analysis Job Flow 施工图
 
-version: 2026-05-23  
+version: 2026-05-24  
 status: blueprint  
 targetLaw: `GrassEye Deep Research Analysis Job Flow 法案`  
 capabilityDomain: `deep-research-analysis`  
@@ -15,7 +15,7 @@ capabilityDomain: `deep-research-analysis`
 Deep Research Analysis
 ```
 
-它的目标不是让 AI 自主思考，也不是构建通用 Agent，而是把一个用户问题变成一套可追溯、可证伪、可导出的研究流水线。
+它的目标不是让 AI 自主思考，也不是构建通用 Agent，而是把一个用户问题变成一套可追溯、可裁决、可导出的研究流水线。
 
 核心链路：
 
@@ -24,15 +24,12 @@ Deep Research Analysis
   -> AI 拆解问题
   -> DOM 读取拆解回复
   -> 解析并入库子问题
-  -> 逐个发送子问题做正向分析
-  -> DOM 读取正向回答
-  -> 解析并入库正向回答
-  -> 逐个发送证伪请求
-  -> DOM 读取证伪回答
-  -> 解析并入库证伪回答
-  -> 构建最终综合 prompt package
-  -> 发送最终报告请求
-  -> DOM 读取最终报告
+  -> 逐个发送子问题独立分析
+  -> DOM 读取独立分析回答
+  -> 解析并入库分析回答
+  -> 构建 Final Adjudication Package
+  -> 发送最终裁决请求
+  -> DOM 读取最终裁决报告
   -> 入库并导出文件
 ```
 
@@ -111,23 +108,44 @@ runDeepResearchAnalysis(input)
   -> parseDecompositionResponse()
   -> persistSubQuestions()
   -> for each subQuestion:
-       sendPositivePrompt()
-       capturePositiveResponse()
-       parsePositiveResponse()
-       persistPositiveAnswer()
-       sendFalsificationPrompt()
-       captureFalsificationResponse()
-       parseFalsificationResponse()
-       persistFalsificationAnswer()
-  -> buildConflictMatrix()
-  -> buildFinalSynthesisPackage()
-  -> sendFinalSynthesisPrompt()
-  -> captureFinalReport()
-  -> parseFinalReport()
-  -> persistFinalReport()
+       sendSubQuestionAnalysisPrompt()
+       captureSubQuestionAnalysisResponse()
+       parseSubQuestionAnalysisResponse()
+       persistSubQuestionAnalysisAnswer()
+  -> buildFinalAdjudicationPackage()
+  -> sendFinalAdjudicationPrompt()
+  -> captureFinalAdjudicationResponse()
+  -> parseFinalAdjudicationResponse()
+  -> persistFinalAdjudication()
   -> exportResearchBundle()
   -> return result
 ```
+
+## 默认 1+N+1 深度研究流程
+
+默认 runtime flow 必须是：
+
+```txt
+Decomposition
+-> Independent Analysis for each sub-question
+-> Final Adjudication
+```
+
+执行要求：
+
+1. 用户提交问题。
+2. Decomposition Prompt 由 AI 自主拆出 N 个关键问题。
+3. 系统保存 subQuestions。
+4. 系统串行发送每个 subQuestion 的 Independent Analysis Prompt。
+5. 每个分析结果入库。
+6. 系统构建 Final Adjudication Package。
+7. Final Adjudication Prompt 必须裁决原问题。
+8. 系统保存 final adjudication。
+9. final-report.md 展示原始问题、decomposition、N 个 independent analyses、final adjudication、evidence/debug。
+
+默认流程不再机械执行 positive/falsification pair。
+
+除明确标记为 legacy_1_n_n_1 的章节外，本文所有默认实现描述都应按 1+N+1 执行。
 
 ### 3.2 每个阶段的共同动作
 
@@ -419,7 +437,9 @@ ResearchAnswer type=falsification
 
 ---
 
-### 4.5 CONFLICT MATRIX
+### 4.5 LEGACY 1+N+N+1 CONFLICT MATRIX
+
+legacy_1_n_n_1, not default.
 
 系统从数据库生成，不让 AI 凭空生成。
 
@@ -457,17 +477,16 @@ FalsificationAnswer[]
 
 ---
 
-### 4.6 FINAL SYNTHESIS
+### 4.6 FINAL ADJUDICATION
 
 发送内容：
 
 ```txt
-最终综合提示词
+最终裁决提示词
 + 用户原始问题
 + 子问题列表
-+ 正向回答摘要
-+ 证伪回答摘要
-+ 冲突矩阵
++ 每题独立分析回答
++ analysis coverage
 + 输出合同
 ```
 
@@ -475,16 +494,17 @@ AI 必须输出：
 
 ```json
 {
-  "executiveSummary": "...",
-  "finalJudgment": "...",
-  "confidenceLevel": "low | medium | high",
-  "supportingReasons": ["..."],
-  "strongestOpposingArguments": ["..."],
-  "conflictMatrixSummary": "...",
-  "keyAssumptions": ["..."],
+  "directAnswer": "...",
+  "finalVerdict": "...",
+  "confidence": "low | medium | high",
+  "rankedConclusions": ["..."],
+  "strongConclusions": ["..."],
+  "conditionalConclusions": ["..."],
+  "weakOrRejectedClaims": ["..."],
+  "decisiveReasons": ["..."],
   "evidenceGaps": ["..."],
   "reverseConditions": ["..."],
-  "followUpSignals": ["..."],
+  "multiStageValueAdded": ["..."],
   "limitations": ["..."]
 }
 ```
@@ -492,10 +512,12 @@ AI 必须输出：
 必须包含：
 
 ```txt
-反方观点
+直接裁决
+排序结论
+弱化或排除的观点
 证据缺口
 反转条件
-后续观察信号
+多阶段研究额外价值
 limitations
 ```
 
@@ -533,25 +555,19 @@ Analysis Goal:
 Language:
 Max SubQuestions:
 
-## One-line Verdict
-
-## Final Summary
+## Final Adjudication
 
 ## Stage Overview
 
 ## Stage 1: Decomposition
 
 ## Sub-question Q1: ...
-### Positive Analysis
-### Falsification
+### Independent Analysis
 
 ## Sub-question Q2: ...
-### Positive Analysis
-### Falsification
+### Independent Analysis
 
-## Conflict Matrix
-
-## Final Synthesis
+## Final Adjudication Prompt / Raw Response
 
 ## Evidence Index
 ```
@@ -568,9 +584,7 @@ Max SubQuestions:
   "userQuestion": "...",
   "promptVersions": {},
   "subQuestions": [],
-  "positiveAnswers": [],
-  "falsificationAnswers": [],
-  "conflictMatrix": {},
+  "analysisAnswers": [],
   "finalReport": {},
   "recordHashes": {},
   "exportedAt": "..."
@@ -602,13 +616,14 @@ Max SubQuestions:
 ## 唯一人读全流程报告
 
 1. `final-report.md` 是唯一的人读报告。
-2. 报告必须展示完整 `1 + N + N + 1` 全流程，而不是只放最终摘要。
+2. 新 job 的默认报告必须展示完整 `1 + N + 1` 全流程，而不是只放最终摘要。
 3. 报告必须按阶段组织，不能把 prompt、raw response、parsed summary 和 evidence 平铺成一坨。
 4. 每个阶段必须包含：Prompt、AI Raw Response、Parsed Summary、Evidence。
-5. 每个 sub-question 必须有独立的 Positive 和 Falsification 两块。
-6. Final Synthesis 也必须展示 prompt 和 raw response。
+5. 每个 sub-question 必须展示独立分析，不再默认展示 Positive / Falsification 成对区块。
+6. Final Adjudication 也必须展示 prompt 和 raw response。
 7. Evidence Index 必须放在报告末尾，供人快速追溯 interaction / hash / domRef。
-8. `research-bundle.json` 和 `evidence-index.json` 是机器证据，不是第二份人读报告。
+8. legacy_1_n_n_1 job 可以保留 Positive / Falsification / Conflict Matrix 展示，但必须显式标记 legacy。
+9. `research-bundle.json` 和 `evidence-index.json` 是机器证据，不是第二份人读报告。
 
 ---
 

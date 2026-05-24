@@ -1,7 +1,7 @@
 {
   "mainQuestion": "按照当前最新的伊朗战争形态，会以哪种形式平息这场战争？",
   "questionType": "event",
-  "decompositionStrategy": "Separate the ongoing event into factual baseline, causal drivers, affected actors, evidence quality, risk triggers, and falsification checks without producing the final settlement judgment.",
+  "decompositionStrategy": "Separate the live conflict into verified facts, escalation drivers, regional impacts, evidence quality, de-escalation conditions, escalation triggers, diplomatic constraints, and disconfirming signals so the final adjudicator can judge the most plausible end-state later.",
   "missingInfo": [
     "current date/time for the conflict state",
     "latest reliable sources from official, regional, and independent observers",
@@ -12,115 +12,152 @@
       "id": "Q1",
       "title": "Current conflict facts",
       "questionText": "What verified events, actors, and military patterns define the current Iran-related conflict shape?",
-      "dimension": "facts",
-      "purpose": "Establish the current factual baseline before later analysis.",
-      "requiredEvidence": ["official statements", "independent incident timelines", "geolocated reports"],
-      "positiveAnalysisFocus": "Evaluate the verified facts that define the current conflict pattern.",
-      "falsificationFocus": "Challenge stale, unverified, or propaganda-driven claims about the conflict state.",
-      "scope": "Include current observable conflict facts; exclude final outcome prediction.",
+      "whyItMatters": "A final adjudicator cannot judge the likely settlement path without a reliable baseline of what is currently happening.",
+      "decisionWeight": "decisive",
+      "analysisFocus": "Establish the current factual baseline and separate verified conflict facts from stale or propagandistic claims.",
+      "requiredEvidence": [
+        "official statements",
+        "independent incident timelines"
+      ],
+      "scope": "Include current observable conflict facts; exclude any final outcome prediction.",
       "expectedAnswerShape": "Chronology plus actor and incident table.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without this, every later conclusion could rest on an outdated or distorted picture of the conflict."
     },
     {
       "id": "Q2",
       "title": "Escalation drivers",
-      "questionText": "Which incentives and constraints are driving escalation or de-escalation among the main actors?",
-      "dimension": "causality",
-      "purpose": "Identify causal variables that shape possible paths.",
-      "requiredEvidence": ["leader statements", "military posture changes", "diplomatic signals"],
-      "positiveAnalysisFocus": "Evaluate which drivers plausibly explain current actor behavior.",
-      "falsificationFocus": "Challenge single-cause explanations and unsupported intent claims.",
-      "scope": "Include actor incentives and constraints; exclude direct final judgment.",
+      "questionText": "Which incentives and constraints are currently driving escalation or de-escalation among the main actors?",
+      "whyItMatters": "Settlement forms depend on the incentives pushing actors toward restraint, retaliation, or strategic pause.",
+      "decisionWeight": "high",
+      "analysisFocus": "Evaluate military, political, and diplomatic incentives and identify which ones are most likely to move actor behavior.",
+      "requiredEvidence": [
+        "leader statements",
+        "military posture changes"
+      ],
+      "scope": "Include actor incentives and constraints; exclude the final settlement judgment.",
       "expectedAnswerShape": "Driver matrix with evidence strength.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without this, the final adjudicator may describe possible outcomes without explaining the forces pushing toward them."
     },
     {
       "id": "Q3",
       "title": "Regional impact",
-      "questionText": "Which regional security, economic, and diplomatic impacts could alter actors' willingness to continue or de-escalate?",
-      "dimension": "impact",
-      "purpose": "Map consequences that can feed later synthesis.",
-      "requiredEvidence": ["regional government responses", "market and shipping data", "security advisories"],
-      "positiveAnalysisFocus": "Evaluate impacts that create pressure for restraint or continuation.",
-      "falsificationFocus": "Challenge claims that impacts are severe enough to change behavior.",
+      "questionText": "Which regional security, economic, and diplomatic impacts could alter the actors' willingness to continue or de-escalate?",
+      "whyItMatters": "Regional spillovers often create the external pressure that makes a ceasefire, containment, or negotiated pause more or less likely.",
+      "decisionWeight": "high",
+      "analysisFocus": "Assess which regional consequences are significant enough to change incentives rather than merely accompany the conflict.",
+      "requiredEvidence": [
+        "regional government responses",
+        "shipping or market disruption data"
+      ],
       "scope": "Include regional effects; exclude operational or military recommendations.",
       "expectedAnswerShape": "Impact map by actor and channel.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without this, the final answer may ignore the costs that can force actors toward restraint or push them toward escalation."
     },
     {
       "id": "Q4",
       "title": "Evidence reliability",
       "questionText": "Which evidence sources are reliable enough to establish the conflict shape and trend?",
-      "dimension": "evidence",
-      "purpose": "Separate reliable evidence from weak signals.",
-      "requiredEvidence": ["primary-source statements", "independent reporting", "cross-source corroboration"],
-      "positiveAnalysisFocus": "Evaluate source reliability and corroboration strength.",
-      "falsificationFocus": "Challenge outdated reports, circular sourcing, and uncorroborated claims.",
-      "scope": "Include evidence quality; exclude final synthesis.",
+      "whyItMatters": "The adjudicator should know which signals deserve confidence and which ones are too weak to drive the final judgment.",
+      "decisionWeight": "medium",
+      "analysisFocus": "Rank source reliability, corroboration strength, and freshness of evidence across official, regional, and independent reporting.",
+      "requiredEvidence": [
+        "primary-source statements",
+        "cross-source corroboration"
+      ],
+      "scope": "Include evidence quality and source trustworthiness; exclude the final synthesis itself.",
       "expectedAnswerShape": "Source reliability table.",
-      "priority": "medium"
+      "priority": "medium",
+      "omissionRisk": "Without this, weak claims can be overweighted in the final adjudication."
     },
     {
       "id": "Q5",
       "title": "De-escalation pathways",
       "questionText": "Which variables and conditions would support a ceasefire, negotiated pause, containment, or gradual de-escalation path?",
-      "dimension": "risk",
-      "purpose": "Define path variables without choosing the final path.",
-      "requiredEvidence": ["diplomatic channel reports", "ceasefire precedent data", "actor red-line statements"],
-      "positiveAnalysisFocus": "Evaluate conditions that could make de-escalation feasible.",
-      "falsificationFocus": "Challenge whether those conditions are absent, symbolic, or reversible.",
-      "scope": "Include variables and triggers; exclude final probability ranking.",
+      "whyItMatters": "The final adjudicator must compare concrete path conditions instead of jumping straight to a one-shot final answer.",
+      "decisionWeight": "high",
+      "analysisFocus": "Identify the conditions under which each de-escalation path becomes feasible and which path variables matter most.",
+      "requiredEvidence": [
+        "diplomatic channel reporting",
+        "actor red-line statements"
+      ],
+      "scope": "Include path variables and triggers; exclude any direct probability ranking of the final outcome.",
       "expectedAnswerShape": "Path-condition matrix.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without this, the final answer may name a path without the conditions that make it plausible."
     },
     {
       "id": "Q6",
-      "title": "Escalation risks",
+      "title": "Escalation triggers",
       "questionText": "What risk triggers could invalidate a de-escalation interpretation and shift the conflict toward wider escalation?",
-      "dimension": "risk",
-      "purpose": "Identify evidence that would change the later judgment.",
-      "requiredEvidence": ["retaliatory action indicators", "force deployment changes", "allied response signals"],
-      "positiveAnalysisFocus": "Evaluate manageable risks and thresholds.",
-      "falsificationFocus": "Identify triggers that would disprove de-escalation assumptions.",
-      "scope": "Include risk triggers; exclude military action instructions.",
+      "whyItMatters": "A decision-grade answer needs explicit reversal conditions, not just the current leading interpretation.",
+      "decisionWeight": "high",
+      "analysisFocus": "Define the concrete military, diplomatic, or alliance signals that would reverse a de-escalation thesis.",
+      "requiredEvidence": [
+        "retaliatory action indicators",
+        "allied response signals"
+      ],
+      "scope": "Include escalation triggers and thresholds; exclude military action instructions.",
       "expectedAnswerShape": "Risk trigger list with thresholds.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without this, the final adjudicator cannot state what evidence would reverse the judgment."
     },
     {
       "id": "Q7",
       "title": "Diplomatic constraints",
       "questionText": "How do domestic politics, alliances, and back-channel diplomacy constrain each actor's available choices?",
-      "dimension": "causality",
-      "purpose": "Assess constraints that shape feasible outcomes.",
-      "requiredEvidence": ["domestic political statements", "alliance communiques", "diplomatic reporting"],
-      "positiveAnalysisFocus": "Evaluate constraints that make compromise or restraint plausible.",
-      "falsificationFocus": "Challenge whether public statements contradict alleged back-channel signals.",
-      "scope": "Include political and diplomatic constraints; exclude final outcome prediction.",
+      "whyItMatters": "Settlement forms depend not only on battlefield dynamics but also on the political constraints limiting what each actor can accept.",
+      "decisionWeight": "medium",
+      "analysisFocus": "Assess political and alliance constraints that narrow or widen the plausible settlement set for each actor.",
+      "requiredEvidence": [
+        "domestic political statements",
+        "alliance communiques"
+      ],
+      "scope": "Include political and diplomatic constraints; exclude any final settlement prediction.",
       "expectedAnswerShape": "Constraint table by actor.",
-      "priority": "medium"
+      "priority": "medium",
+      "omissionRisk": "Without this, the final answer may overstate theoretically possible paths that are politically unavailable."
     },
     {
       "id": "Q8",
       "title": "Disconfirming evidence",
-      "questionText": "What evidence would disprove the likely interpretation of the conflict trend and force a reassessment?",
-      "dimension": "falsification",
-      "purpose": "Prepare explicit reverse conditions for the final report.",
-      "requiredEvidence": ["new attack patterns", "failed negotiation signals", "contradictory official statements"],
-      "positiveAnalysisFocus": "Evaluate which disconfirming signals are most decision-relevant.",
-      "falsificationFocus": "Stress-test the later synthesis against concrete contrary evidence.",
-      "scope": "Include reverse conditions; exclude producing the final synthesis.",
-      "expectedAnswerShape": "Falsification checklist.",
-      "priority": "high"
+      "questionText": "What evidence would disprove the leading interpretation of the conflict trend and force a reassessment?",
+      "whyItMatters": "The final adjudicator needs explicit disconfirming signals to keep the eventual judgment falsifiable and honest.",
+      "decisionWeight": "high",
+      "analysisFocus": "List the specific contrary signals that would invalidate the current leading interpretation of the conflict trend.",
+      "requiredEvidence": [
+        "new attack patterns",
+        "contradictory official statements"
+      ],
+      "scope": "Include reverse conditions and disconfirming evidence; exclude producing the final judgment itself.",
+      "expectedAnswerShape": "Disconfirming-evidence checklist.",
+      "priority": "high",
+      "omissionRisk": "Without this, the final answer may look certain without clearly defining what would prove it wrong."
     }
   ],
+  "exhaustivenessCheck": {
+    "keyDimensionsCovered": [
+      "facts",
+      "causality",
+      "impact",
+      "evidence reliability",
+      "de-escalation pathways",
+      "escalation triggers",
+      "diplomatic constraints",
+      "disconfirming evidence"
+    ],
+    "knownBlindSpots": [
+      "Real-time battlefield information may still be incomplete."
+    ],
+    "whyNoMoreQuestionsAreNeeded": "These eight sub-questions cover the factual baseline, drivers, impacts, evidence quality, path conditions, reversal triggers, political constraints, and disconfirming evidence needed for a later final adjudication."
+  },
   "qualitySelfCheck": {
-    "coversFacts": true,
-    "coversCausality": true,
-    "coversImpact": true,
-    "coversEvidence": true,
-    "coversFalsification": true,
-    "coversRisks": true,
+    "isNeutral": true,
     "hasNoDuplicateQuestions": true,
-    "isReadyForPositiveAndFalsification": true
+    "hasNoPureFalsificationQuestions": true,
+    "isReadyForIndependentAnalysis": true,
+    "isReadyForFinalAdjudication": true
   }
 }

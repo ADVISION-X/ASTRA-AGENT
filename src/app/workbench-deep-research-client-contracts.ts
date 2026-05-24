@@ -50,12 +50,19 @@ type DeepResearchSubQuestion = {
   title: string;
   questionText: string;
   purpose: string;
+  whyItMatters: string | null;
+  decisionWeight: string | null;
+  analysisFocus: string | null;
+  requiredEvidence: string[];
   scope: string;
   expectedAnswerShape: string;
+  priority: string | null;
+  omissionRisk: string | null;
 };
 
 export type DeepResearchAnswerBlock = {
   interaction: DeepResearchInteraction | null;
+  answerKind: string;
   answerText: string;
   confidence: string;
   keyPoints: string[];
@@ -63,6 +70,7 @@ export type DeepResearchAnswerBlock = {
   assumptions: string[];
   limitations: string[];
   contradictionPoints: string[];
+  parsedPayload: Record<string, unknown>;
 };
 
 type DeepResearchConflict = {
@@ -75,19 +83,40 @@ type DeepResearchConflict = {
 
 type DeepResearchSubQuestionReport = {
   subQuestion: DeepResearchSubQuestion;
+  analysis: DeepResearchAnswerBlock | null;
   positive: DeepResearchAnswerBlock | null;
   falsification: DeepResearchAnswerBlock | null;
   conflict: DeepResearchConflict | null;
 };
 
+type DeepResearchRankedConclusion = {
+  rank: number;
+  conclusion: string;
+  whyItMatters: string;
+  strength: string;
+  appliesTo: string[];
+  doesNotApplyTo: string[];
+  reverseCondition: string;
+};
+
 type DeepResearchConclusion = {
+  directAnswer: string;
+  finalVerdict: string;
   executiveConclusion: string;
   confidence: string;
+  rankedConclusions: DeepResearchRankedConclusion[];
+  strongConclusions: string[];
+  conditionalConclusions: string[];
+  weakOrRejectedClaims: string[];
+  decisiveReasons: string[];
   positiveReasons: string[];
   strongestOpposingArguments: string[];
   evidenceGaps: string[];
   reverseConditions: string[];
+  applicability: string[];
+  nonApplicability: string[];
   followUpSignals: string[];
+  multiStageValueAdded: string[];
   limitations: string[];
 };
 
@@ -119,6 +148,7 @@ export type DeepResearchReport = {
     title: string;
     userQuestion: string;
     analysisGoal: string | null;
+    flowMode: string;
     status: string;
     phase: string;
     failureReason: string | null;
@@ -135,7 +165,7 @@ export type DeepResearchReport = {
     subQuestions: DeepResearchSubQuestion[];
   };
   subQuestionReports: DeepResearchSubQuestionReport[];
-  finalSynthesis: {
+  finalAdjudication: {
     interaction: DeepResearchInteraction | null;
     parsedFinalReport: unknown | null;
   };

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-23T22:31:07.172Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-24T00:14:16.199Z",
+  "status": "FAIL",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,10 +8,16 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "PASS"
+      "status": "FAIL",
+      "error": "One or more audit domains reported findings."
     },
     {
       "name": "typecheck",
+      "status": "FAIL",
+      "error": "typecheck failed with exit code 2"
+    },
+    {
+      "name": "code-purity-zombie-deep",
       "status": "PASS"
     },
     {
@@ -51,8 +57,8 @@
     {
       "capabilityDomain": "architecture-boundary",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/architecture-boundary-report.generated.json"
     },
     {
@@ -65,8 +71,8 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 146,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
@@ -107,8 +113,8 @@
     {
       "capabilityDomain": "local-app-shell",
       "executionGroup": "domain",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/local-app-shell-report.generated.json"
     },
     {

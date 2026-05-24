@@ -242,11 +242,11 @@ const inspectMarkdownSections = (input: {
     "# Deep Research Full Flow Report",
     "## Stage Overview",
     "## Stage 1: Decomposition",
+    "## Analysis Coverage",
     "### Prompt",
     "### AI Raw Response",
-    "### Positive Analysis",
-    "### Falsification",
-    "## Final Synthesis",
+    "### Independent Analysis",
+    "Final Adjudication",
     "## Evidence Index",
   ] as const;
   const missingLiteral = requiredLiterals.find((literal) => !hasStringLiteral(input.sourceFile, literal));
@@ -277,20 +277,24 @@ const inspectMarkdownBuilderCalls = (input: {
   const requiredBuilderCalls = [
     "buildStageOverviewRows",
     "buildDecompositionSection",
-    "buildSubQuestionSection",
-    "buildFinalSynthesisSection",
+    "buildCoverageSection",
+    "buildFinalStageSection",
     "buildEvidenceIndexTable",
   ] as const;
-  const hasBuilderCalls = requiredBuilderCalls.every((callText) =>
+  const hasCoreBuilderCalls = requiredBuilderCalls.every((callText) =>
     renderer?.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().getText() === callText),
   );
-  if (!hasBuilderCalls) {
+  const hasSubQuestionBuilders = ["buildDefaultSubQuestionSection", "buildLegacySubQuestionSection"].every((identifier) =>
+    renderer?.getDescendantsOfKind(SyntaxKind.Identifier)
+      .some((node) => node.getText() === identifier),
+  );
+  if (!hasCoreBuilderCalls || !hasSubQuestionBuilders) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-export-no-summary-only-builder",
       lawId: input.lawId,
       filePath: exportMarkdownPath,
-      message: "Full-flow report renderer must build stage overview, decomposition, sub-question stages, final synthesis, and evidence index instead of summary-only markdown.",
+      message: "Full-flow report renderer must build stage overview, analysis coverage, decomposition, default and legacy sub-question stages, final adjudication, and evidence index instead of summary-only markdown.",
     }));
   }
 };
@@ -378,8 +382,8 @@ const inspectAcceptanceFile = (input: {
   const requiredAssertions = [
     "# Deep Research Full Flow Report",
     "## Stage 1: Decomposition",
-    "## Final Synthesis",
-    "## Conflict Matrix",
+    "## Analysis Coverage",
+    "## Final Adjudication",
     "## Evidence Index",
   ] as const;
   const missingAssertion = requiredAssertions.find((text) => !hasStringLiteral(acceptanceFile, text));

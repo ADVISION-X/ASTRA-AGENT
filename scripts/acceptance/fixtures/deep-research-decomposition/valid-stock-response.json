@@ -1,83 +1,112 @@
 {
   "mainQuestion": "某科技股近期上涨是否由基本面支撑？",
   "questionType": "stock",
-  "decompositionStrategy": "Separate price action, fundamentals, catalysts, valuation, evidence, falsification, and downside risk.",
-  "missingInfo": ["ticker", "market", "time window"],
+  "decompositionStrategy": "Separate the rally into fundamental facts, causality, valuation, evidence reliability, and reversal risk so a later adjudicator can answer the main question directly.",
+  "missingInfo": [
+    "ticker",
+    "market",
+    "time window"
+  ],
   "subQuestions": [
     {
       "id": "Q1",
-      "title": "Revenue and margin facts",
-      "questionText": "What recent revenue, margin, cash-flow, and guidance facts support or weaken the rally?",
-      "dimension": "facts",
-      "purpose": "Establish the fundamental evidence base.",
-      "requiredEvidence": ["latest earnings", "guidance", "cash flow"],
-      "positiveAnalysisFocus": "Identify fundamental metrics that improved enough to justify the rally.",
-      "falsificationFocus": "Check whether improvement is temporary, accounting-driven, or below peers.",
-      "scope": "Include recent company fundamentals; exclude final investment advice.",
-      "expectedAnswerShape": "Evidence table with trend and interpretation.",
-      "priority": "high"
+      "title": "Fundamental facts",
+      "questionText": "What recent revenue, margin, cash-flow, and guidance facts materially support or weaken the rally?",
+      "whyItMatters": "The final adjudicator needs the actual business facts before deciding whether the rally is fundamentally justified.",
+      "decisionWeight": "high",
+      "analysisFocus": "Evaluate the newest fundamental metrics, how large the changes are, and whether they are durable enough to matter.",
+      "requiredEvidence": [
+        "latest earnings release",
+        "management guidance"
+      ],
+      "scope": "Include recent operating performance and management commentary; exclude any buy or sell recommendation.",
+      "expectedAnswerShape": "Fact summary with interpretation and caveats.",
+      "priority": "high",
+      "omissionRisk": "Without this, the final answer could confuse market excitement with real business improvement."
     },
     {
       "id": "Q2",
-      "title": "Causality of the rally",
-      "questionText": "Is the price move mainly caused by fundamental change, sentiment, liquidity, or sector momentum?",
-      "dimension": "causality",
-      "purpose": "Separate business causes from market causes.",
-      "requiredEvidence": ["price-volume data", "sector performance", "news timeline"],
-      "positiveAnalysisFocus": "Connect the rally to company-specific improvements.",
-      "falsificationFocus": "Test whether the move can be explained without fundamentals.",
-      "scope": "Include market and company catalysts; exclude final probability judgment.",
+      "title": "Causality of the move",
+      "questionText": "Is the price move primarily explained by company-specific fundamental change, broader sector momentum, or short-term sentiment?",
+      "whyItMatters": "A rally can look justified even when it is mainly driven by liquidity or narrative rather than fundamentals.",
+      "decisionWeight": "decisive",
+      "analysisFocus": "Compare the timing and strength of company catalysts, sector moves, and sentiment-driven flows.",
+      "requiredEvidence": [
+        "price-volume timeline",
+        "sector performance comparison"
+      ],
+      "scope": "Include company and sector catalysts; exclude the final investability judgment.",
       "expectedAnswerShape": "Cause ranking with evidence strength.",
-      "priority": "high"
+      "priority": "high",
+      "omissionRisk": "Without this, the final adjudicator may over-attribute a market-wide move to company fundamentals."
     },
     {
       "id": "Q3",
-      "title": "Valuation impact",
-      "questionText": "Does the current valuation already price in the expected fundamental improvement?",
-      "dimension": "impact",
-      "purpose": "Evaluate whether upside remains after the rally.",
-      "requiredEvidence": ["valuation multiples", "peer comparison", "earnings estimates"],
-      "positiveAnalysisFocus": "Show where valuation remains reasonable versus growth.",
-      "falsificationFocus": "Identify assumptions required to avoid overvaluation.",
-      "scope": "Include valuation sensitivity; exclude buy or sell recommendations.",
-      "expectedAnswerShape": "Valuation comparison and sensitivity.",
-      "priority": "medium"
+      "title": "Valuation versus improvement",
+      "questionText": "Does the current valuation already price in the plausible fundamental improvement behind the rally?",
+      "whyItMatters": "Even a real business improvement may no longer justify the rally if valuation has already outrun it.",
+      "decisionWeight": "high",
+      "analysisFocus": "Assess whether valuation, estimates, and peer comparisons still leave room for the rally to be called fundamentally supported.",
+      "requiredEvidence": [
+        "valuation multiples",
+        "peer comparison"
+      ],
+      "scope": "Include valuation sensitivity and estimate assumptions; exclude portfolio allocation advice.",
+      "expectedAnswerShape": "Valuation comparison with scenario sensitivity.",
+      "priority": "medium",
+      "omissionRisk": "Without this, the final answer may treat a justified business improvement as sufficient even if the stock is already over-discounting it."
     },
     {
       "id": "Q4",
-      "title": "Evidence quality",
-      "questionText": "Which evidence would most reliably confirm that fundamentals, not hype, support the move?",
-      "dimension": "evidence",
-      "purpose": "Define the proof needed for later analysis.",
-      "requiredEvidence": ["primary filings", "management commentary", "analyst revisions"],
-      "positiveAnalysisFocus": "Prioritize hard evidence over narrative signals.",
-      "falsificationFocus": "Flag evidence gaps and unsupported claims.",
-      "scope": "Include source reliability; exclude final synthesis.",
-      "expectedAnswerShape": "Evidence checklist by reliability.",
-      "priority": "medium"
+      "title": "Evidence reliability",
+      "questionText": "Which evidence sources most credibly confirm or weaken the claim that fundamentals support the move?",
+      "whyItMatters": "The final adjudicator should weight primary evidence more heavily than narrative repetition or thin secondary commentary.",
+      "decisionWeight": "medium",
+      "analysisFocus": "Distinguish primary, corroborated evidence from weak or circular claims and identify where evidence remains incomplete.",
+      "requiredEvidence": [
+        "primary filings",
+        "analyst estimate revisions"
+      ],
+      "scope": "Include source reliability and corroboration strength; exclude the final verdict itself.",
+      "expectedAnswerShape": "Evidence hierarchy with trust assessment.",
+      "priority": "medium",
+      "omissionRisk": "Without this, the final answer may lean on low-quality signals that should not move the conclusion much."
     },
     {
       "id": "Q5",
-      "title": "Risks and reverse conditions",
-      "questionText": "What risks or future evidence would disprove the claim that fundamentals support the rally?",
-      "dimension": "risk",
-      "purpose": "Prepare reverse conditions for falsification.",
-      "requiredEvidence": ["risk factors", "estimate revisions", "competitive data"],
-      "positiveAnalysisFocus": "List manageable risks consistent with a valid fundamental thesis.",
-      "falsificationFocus": "Define specific signals that would break the thesis.",
-      "scope": "Include disconfirming triggers; exclude final investment action.",
-      "expectedAnswerShape": "Risk list with disconfirming triggers.",
-      "priority": "high"
+      "title": "Reverse conditions",
+      "questionText": "What concrete future evidence would reverse the view that fundamentals support the rally?",
+      "whyItMatters": "A decision-grade answer must state what would disconfirm the thesis, not only what currently supports it.",
+      "decisionWeight": "high",
+      "analysisFocus": "Define the specific earnings, demand, margin, or competitive signals that would invalidate the fundamental-support thesis.",
+      "requiredEvidence": [
+        "risk-factor disclosures",
+        "estimate revision trend"
+      ],
+      "scope": "Include disconfirming signals and threshold conditions; exclude explicit trading instructions.",
+      "expectedAnswerShape": "Reversal checklist with trigger conditions.",
+      "priority": "high",
+      "omissionRisk": "Without this, the final adjudicator cannot clearly explain how the judgment would change if the evidence turns."
     }
   ],
+  "exhaustivenessCheck": {
+    "keyDimensionsCovered": [
+      "fundamentals",
+      "causality",
+      "valuation",
+      "evidence reliability",
+      "reversal risk"
+    ],
+    "knownBlindSpots": [
+      "The exact stock ticker and exchange are not provided."
+    ],
+    "whyNoMoreQuestionsAreNeeded": "These five sub-questions cover the factual base, causal explanation, valuation context, evidence quality, and reversal conditions needed for a final adjudication."
+  },
   "qualitySelfCheck": {
-    "coversFacts": true,
-    "coversCausality": true,
-    "coversImpact": true,
-    "coversEvidence": true,
-    "coversFalsification": true,
-    "coversRisks": true,
+    "isNeutral": true,
     "hasNoDuplicateQuestions": true,
-    "isReadyForPositiveAndFalsification": true
+    "hasNoPureFalsificationQuestions": true,
+    "isReadyForIndependentAnalysis": true,
+    "isReadyForFinalAdjudication": true
   }
 }

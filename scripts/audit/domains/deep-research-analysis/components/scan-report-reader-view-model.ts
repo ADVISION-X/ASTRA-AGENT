@@ -92,7 +92,7 @@ const inspectReportBuilder = (input: {
       checkId: "deep-research/report-reader-pair-builder",
       lawId: input.lawId,
       filePath: repoPath,
-      message: "Report view model must pair sub-questions with positive, falsification, and conflict records.",
+      message: "Report view model must pair sub-questions with independent analysis records while still preserving legacy positive, falsification, and conflict support.",
     }));
   }
   const reportQuery = getArrowInitializer(input.queriesFile, "getDeepResearchAnalysisReport");

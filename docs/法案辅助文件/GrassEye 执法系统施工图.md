@@ -111,6 +111,33 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - Code Purity 当前运行态只有 PASS / FAIL；不存在 warning inventory 作为第三态。
 - 一条 code-purity finding 就是 FAIL；finding 里可以携带整改建议，但不会改变二元裁决。
 
+## Code Purity 僵尸面深度执法链路
+
+1. 收集 governed files。
+2. 收集 lawful live entry surfaces。
+3. 建立 AST module graph。
+4. 建立 symbol usage graph。
+5. 区分 type/runtime symbol。
+6. 从 entrypoints 做 reachability。
+7. 从 reachable graph 做 export live proof。
+8. 检测 namespace property-level usage。
+9. 检测 re-export barrel laundering。
+10. 检测 orphan declarations。
+11. 检测 const-folded dead branches。
+12. 检测 commented-out executable code。
+13. 检测 anti-evasion surfaces。
+14. 输出 fail inventory。
+15. 接入 ci-full。
+
+补充约束：
+
+- 正则不属于僵尸结构判断工具。
+- 若某个活性无法通过 AST / symbol / manifest 证明，则必须 FAIL。
+- namespace import 只能证明被访问 property 对应的 export 活；整文件豁免无效。
+- re-export 或 barrel forwarding 本身不构成最终消费证明。
+- dynamic import、manifest load、generated-plan owner load 只允许走显式 lawful entry manifest 或 owner contract。
+- commented-out old implementation 不是可接受备份；一旦能从 comment trivia 解析出可执行或声明结构，就必须 FAIL。
+
 ## READY 标准
 
 - `package.json` 只公开 `ci:full` 作为完整质检入口。

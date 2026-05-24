@@ -50,12 +50,12 @@ const hasForbiddenPromptContractPreparse = (sourceFile: SourceFile): boolean =>
     );
 
 const hasRawOnlyAcceptanceHelper = (sourceFile: SourceFile): boolean => {
-  const hasMalformedAdapter = Boolean(sourceFile.getClass("MalformedPositiveFixtureAdapter"));
+  const hasMalformedAdapter = Boolean(sourceFile.getClass("MalformedAnalysisFixtureAdapter"));
   const hasBoundaryAcceptance = Boolean(
     sourceFile.getFunction("verifyMalformedProviderJsonFailsAtParseNotCapture")
       ?? sourceFile.getVariableDeclaration("verifyMalformedProviderJsonFailsAtParseNotCapture"),
   );
-  const requiredStageLiterals = new Set(["POSITIVE_CAPTURE", "POSITIVE_PARSE"]);
+  const requiredStageLiterals = new Set(["ANALYSIS_CAPTURE", "ANALYSIS_PARSE"]);
   const presentStageLiterals = new Set(sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
     .map((literal) => literal.getLiteralValue())
     .filter((literal) => requiredStageLiterals.has(literal)));
@@ -106,7 +106,7 @@ export const inspectGatewayRawCaptureBoundary = (input: InspectInput): void => {
       checkId: "deep-research/gateway-raw-capture-acceptance",
       lawId: input.lawId,
       filePath: rawCaptureAcceptancePath,
-      message: "Deep Research smoke must prove malformed provider JSON completes POSITIVE_CAPTURE and fails at POSITIVE_PARSE.",
+      message: "Deep Research smoke must prove malformed provider JSON completes ANALYSIS_CAPTURE and fails at ANALYSIS_PARSE.",
     }));
   }
 };

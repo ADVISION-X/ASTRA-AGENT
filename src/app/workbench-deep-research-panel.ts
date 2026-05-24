@@ -2,11 +2,11 @@ import { renderDeepResearchHistoryView } from "./workbench-deep-research-history
 import { renderDeepResearchReportView } from "./workbench-deep-research-report-view.js";
 
 export const renderDeepResearchPanel = (): string => `
-<section class="hidden research-shell" data-job-panel="deep-research">
+<section class="hidden research-shell" data-job-panel="deep-research" data-deep-research-layout-contract="history-rail-reader">
   <header class="research-header">
     <div>
       <h1>Deep Research Analysis</h1>
-      <p class="muted">History library -> final conclusion -> paired analysis -> synthesis -> evidence trace</p>
+      <p class="muted">Report library -> final conclusion -> paired analysis -> synthesis -> evidence trace</p>
     </div>
     <p class="research-disclaimer">This is an AI research report, not a guaranteed prediction. Read reverse conditions, opposing arguments, and evidence gaps before acting.</p>
   </header>
@@ -29,7 +29,7 @@ export const renderDeepResearchPanel = (): string => `
       <div class="actions"><button class="btn" type="submit">Start</button></div>
     </form>
   </section>
-  <section class="research-layout" data-deep-research-layout>
+  <section class="research-layout" data-deep-research-layout data-deep-research-scroll-boundary>
     ${renderDeepResearchHistoryView()}
     ${renderDeepResearchReportView()}
   </section>

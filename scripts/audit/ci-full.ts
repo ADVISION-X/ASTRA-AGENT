@@ -76,6 +76,7 @@ const main = async (): Promise<void> => {
   });
 
   steps.push(await runCommand("typecheck", ["npm", "run", "typecheck"]));
+  steps.push(await runCommand("code-purity-zombie-deep", ["npm", "run", "acceptance:code-purity-zombie-deep"]));
   steps.push(await runCommand("runtime-log-spine", ["npm", "run", "acceptance:runtime-log-spine"]));
   steps.push(await runCommand("deep-research-decomposition-prompt", ["npm", "run", "acceptance:deep-research-decomposition-prompt"]));
   steps.push(await runCommand("deep-research-analysis-smoke", ["npm", "run", "acceptance:deep-research-analysis-smoke"]));

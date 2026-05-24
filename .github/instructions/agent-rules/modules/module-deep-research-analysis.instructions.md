@@ -1,13 +1,13 @@
 ---
 name: "GrassEye Deep Research Analysis Job Flow"
-description: "Governs the Deep Research Analysis job flow: AI-driven decomposition, positive analysis, falsification, final synthesis, DOM capture, parsing, persistence, evidence, logs, and export. This law keeps the job as a fixed research pipeline, not a planner, mission loop, or universal agent."
+description: "Governs the Deep Research Analysis job flow: AI-driven decomposition, independent sub-question analysis, final adjudication, DOM capture, parsing, persistence, evidence, logs, and export. This law keeps the job as a fixed research pipeline, not a planner, mission loop, or universal agent."
 applyTo: "src/plugins/deep-research-analysis/**, src/mediator/**, src/capabilities/**, src/lib/runtime-logs/**, scripts/acceptance/**, scripts/audit/**, .github/instructions/agent-rules/**"
 ---
 
 # GrassEye Deep Research Analysis Job Flow 法案
 
 status: active  
-version: 2026-05-23  
+version: 2026-05-24  
 capabilityDomain: deep-research-analysis  
 tier: P0  
 enforcementMode: machine-blocking  
@@ -32,11 +32,10 @@ Deep Research Analysis 是 GrassEye 的一个固定业务 Job Flow。
 用户问题
   -> AI 拆解
   -> 子问题入库
-  -> 子问题正向分析
-  -> 正向回答入库
-  -> 子问题反向证伪
-  -> 证伪回答入库
-  -> 最终综合报告
+  -> 子问题独立分析
+  -> 分析回答入库
+  -> 最终裁决包构建
+  -> 最终裁决报告
   -> 最终报告入库与文件导出
 ```
 
@@ -113,19 +112,15 @@ DECOMPOSE_SEND
 DECOMPOSE_CAPTURE
 DECOMPOSE_PARSE
 DECOMPOSE_PERSIST
-POSITIVE_SEND
-POSITIVE_CAPTURE
-POSITIVE_PARSE
-POSITIVE_PERSIST
-FALSIFY_SEND
-FALSIFY_CAPTURE
-FALSIFY_PARSE
-FALSIFY_PERSIST
+ANALYSIS_SEND
+ANALYSIS_CAPTURE
+ANALYSIS_PARSE
+ANALYSIS_PERSIST
 FINAL_PACKAGE_BUILD
-FINAL_SEND
-FINAL_CAPTURE
-FINAL_PARSE
-FINAL_PERSIST
+FINAL_ADJUDICATION_SEND
+FINAL_ADJUDICATION_CAPTURE
+FINAL_ADJUDICATION_PARSE
+FINAL_ADJUDICATION_PERSIST
 EXPORT_REPORT
 COMPLETE
 ```
@@ -278,7 +273,7 @@ expectedAnswerShape
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-004-V1] 正向分析必须逐题独立发送并入库
+### [GRASSEYE-DEEP-RESEARCH-004-V1] 独立分析必须逐题独立发送并入库
 
 ```apex-law
 {
@@ -288,7 +283,7 @@ expectedAnswerShape
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "dom+parser+db+runtime-log",
-  "summary": "Each subquestion must be sent as an independent positive analysis interaction and persisted with raw and parsed evidence."
+  "summary": "Each subquestion must be sent as one independent analysis interaction and persisted with raw and parsed evidence."
 }
 ```
 
@@ -297,7 +292,7 @@ expectedAnswerShape
 ```txt
 userQuestion
 subQuestion
-positiveAnalysisPrompt
+subQuestionAnalysisPrompt
 outputContract
 ```
 
@@ -307,12 +302,18 @@ outputContract
 jobId
 subQuestionId
 interactionId
-phase = positive
+phase = analysis
 promptText
 rawResponseText
 rawResponseHash
 parsedAnswer
-keyClaims
+coreFinding
+supportingReasons
+counterConditions
+failureCases
+evidenceQuality
+uncertainties
+impactOnFinalAdjudication
 evidenceMentions
 assumptions
 confidence
@@ -322,15 +323,15 @@ parseStatus
 
 #### 禁止
 
-- 多个子问题混在一个 AI 正向回答中。
+- 多个子问题混在一个 AI 分析回答中。
 - 不保存 promptText。
 - 不保存 rawResponseHash。
-- 正向分析失败仍进入 falsification。
-- 正向分析回答被覆盖而无历史记录。
+- 独立分析失败后把该题伪装为 completed。
+- 独立分析回答被覆盖而无历史记录。
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-005-V1] 证伪阶段必须基于原问题、子问题和正向回答
+### [GRASSEYE-DEEP-RESEARCH-005-V1] 机械证伪不得作为默认流程
 
 ```apex-law
 {
@@ -339,44 +340,33 @@ parseStatus
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "dom+parser+db+runtime-log",
-  "summary": "Each positive analysis must be challenged by a separate falsification interaction using the original question, subquestion, and positive answer."
+  "evidenceMode": "law+ast+schema+db+runtime-log",
+  "summary": "Default runtime must not mechanically execute positive and falsification for every subquestion; targeted challenge may exist later only as non-default flow."
 }
 ```
 
-#### 证伪输入必须包含
+#### 必须
 
 ```txt
-userQuestion
-subQuestion
-positiveAnswer
-falsificationPrompt
-outputContract
-```
-
-#### 证伪输出必须解析为
-
-```txt
-logicalWeaknesses
-missingEvidence
-counterArguments
-overstatedClaims
-ignoredRisks
-alternativeInterpretations
-whatWouldDisprovePositiveAnswer
-falsificationStrength
+AI decomposition owns analytical exhaustiveness.
+Code must not hard-code exhaustive analytical dimensions beyond output contract requirements.
+Each independent analysis must include counter-conditions, failure cases, uncertainty, evidence quality, and impact on final adjudication.
+New jobs must default to flowMode = default_1_n_1.
 ```
 
 #### 禁止
 
-- 证伪阶段重新回答原题而不是质疑正向回答。
-- 证伪阶段缺少 positiveAnswer。
-- 证伪失败后仍把子问题标记为 completed。
-- 把证伪内容当作最终结论。
+```txt
+默认路径调用 falsificationPrompt。
+把子问题拆成纯正向题和纯证伪题的机械对子。
+创建“反证的反证”或双重否定子问题。
+要求 final package 以 positive/falsification pair 才可完成。
+新 job 的 UI 或报告默认展示 paired positive/falsification sections。
+```
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-006-V1] 最终报告只能基于已持久化证据包生成
+### [GRASSEYE-DEEP-RESEARCH-006-V1] 最终裁决只能基于已持久化裁决包生成
 
 ```apex-law
 {
@@ -386,7 +376,7 @@ falsificationStrength
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "db+artifact+hash",
-  "summary": "Final synthesis must be generated from persisted decomposition, positive answers, falsification answers, and conflict matrix, not from transient memory."
+  "summary": "Final adjudication must be generated from persisted decomposition and independent analysis records, not from transient memory."
 }
 ```
 
@@ -395,37 +385,37 @@ falsificationStrength
 ```txt
 userQuestion
 decompositionRecords
-positiveAnswerRecords
-falsificationAnswerRecords
-conflictMatrix
+analysisRecords
+missingAnalysisSubQuestionIds
+analysisCoverage
 recordHashes
-promptVersion
+promptVersions
 outputContract
 ```
 
 #### 最终报告必须包含
 
 ```txt
-executiveSummary
-finalJudgment
-confidenceLevel
-supportingReasons
-strongestOpposingArguments
-conflictMatrixSummary
-keyAssumptions
+directAnswer
+finalVerdict
+rankedConclusions
+strongConclusions
+conditionalConclusions
+weakOrRejectedClaims
+decisiveReasons
 evidenceGaps
 reverseConditions
-followUpSignals
+multiStageValueAdded
 limitations
 ```
 
 #### 禁止
 
 - 只把 raw chat history 直接贴给最终 AI。
-- 漏掉证伪报告。
+- 把缺失 analysis record 的 job 伪装成完整完成。
 - 漏掉 record hash。
-- final report 无反转条件。
-- final report 无 limitations。
+- final adjudication 无反转条件。
+- final adjudication 无 limitations。
 - final report 生成后不入库。
 
 ---
@@ -1055,18 +1045,19 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "db+artifact+hash+acceptance+ast",
-  "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted 1+N+N+1 flow with prompt, raw response, parsed summary, and evidence traceability."
+  "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted default 1+N+1 flow with prompt, raw response, parsed summary, and evidence traceability."
 }
 ```
 
 #### 必须
 
 - Deep Research 只允许一个人读报告：`final-report.md`。
-- `final-report.md` 必须完整展示 decomposition、每个 sub-question 的 positive / falsification、conflict matrix、final synthesis、以及 evidence index。
+- `final-report.md` 对新 job 必须完整展示 decomposition、每个 sub-question 的 independent analysis、final adjudication、以及 evidence index。
 - 每个阶段必须展示 prompt、AI raw response、parsed summary、以及 promptHash / rawResponseHash / domRef 等证据字段。
 - 报告必须基于 persisted records 构建，而不是只使用运行时临时对象。
 - `ResearchInteraction` 必须持久化真正发送给 AI 的 rendered prompt text。
 - 缺失、失败、review_required 的阶段必须显式显示，不得静默省略。
+- legacy job 可以保留 positive / falsification / conflict matrix 展示，但必须显式标记 legacy_1_n_n_1。
 
 #### 允许
 
@@ -1079,3 +1070,50 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
 - 用 promptHash 代替 prompt 内容。
 - 把完整 prompt 或 raw response 只藏在 JSON，不进入 `final-report.md`。
 - 把 `final-report.md` 退化回只包含最终摘要的 summary-only 报告。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-016-V1] Default 1+N+1 Adjudication Flow 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-016-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+schema+ast+db+artifact+acceptance",
+  "summary": "Deep Research default runtime flow must be 1+N+1 with one decomposition interaction, N independent sub-question analysis interactions, and one final adjudication interaction."
+}
+```
+
+#### 法条
+
+Deep Research default runtime flow must be 1+N+1:
+one decomposition interaction,
+N independent sub-question analysis interactions,
+and one final adjudication interaction.
+
+Default runtime must not mechanically execute positive+falsification for every sub-question.
+
+AI decomposition owns analytical exhaustiveness.
+Code must not hard-code exhaustive analytical dimensions beyond output contract requirements.
+
+Each independent sub-question analysis must include:
+core finding,
+supporting reasons,
+counter-conditions,
+failure cases,
+uncertainty,
+evidence quality,
+and impact on final adjudication.
+
+Final adjudication must directly answer the original user question,
+rank conclusions where applicable,
+resolve conflicts,
+identify conditional conclusions,
+reject weakened claims,
+and provide reverse conditions.
+
+Falsification may be introduced later only as targeted challenge mode,
+not as the default flow.

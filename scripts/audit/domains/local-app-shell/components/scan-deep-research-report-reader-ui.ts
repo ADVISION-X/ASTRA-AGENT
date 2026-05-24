@@ -10,6 +10,7 @@ import { getRepoSourcePath } from "../../../shared/source-files.js";
 const panelPath = "src/app/workbench-deep-research-panel.ts";
 const historyViewPath = "src/app/workbench-deep-research-history-view.ts";
 const reportViewPath = "src/app/workbench-deep-research-report-view.ts";
+const stylesPath = "src/app/workbench-deep-research-styles.ts";
 const clientPath = "src/app/workbench-deep-research-client.ts";
 const clientReportSectionsPath = "src/app/workbench-deep-research-client-report-sections.ts";
 const clientSharedPath = "src/app/workbench-deep-research-client-shared.ts";
@@ -228,6 +229,38 @@ const inspectDebugBoundaries = (findings: InspectorFinding[], lawId: string): vo
   }
 };
 
+const inspectLayoutQualityBoundaries = (findings: InspectorFinding[], lawId: string): void => {
+  for (const marker of [
+    "data-deep-research-layout-contract=\"history-rail-reader\"",
+    "data-deep-research-scroll-boundary",
+  ]) {
+    requireText(findings, lawId, panelPath, marker);
+  }
+  for (const marker of [
+    "data-deep-research-reader-primary",
+    "data-deep-research-side-compact",
+  ]) {
+    requireText(findings, lawId, reportViewPath, marker);
+  }
+  for (const marker of [
+    "max-height: calc(100vh - 128px)",
+    "grid-template-columns: minmax(260px, 320px) minmax(0, 1fr)",
+    "grid-template-columns: minmax(0, 1fr);",
+    "grid-template-columns: repeat(4, minmax(0, 1fr))",
+    "research-delivery-strip",
+  ]) {
+    requireText(findings, lawId, stylesPath, marker);
+  }
+  if (readRepoFile(stylesPath).includes("grid-template-columns: minmax(0, 1fr) 240px")) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/deep-research-reader-narrow-column",
+      lawId,
+      filePath: stylesPath,
+      message: "Deep Research reader must not reserve a fixed 240px side column inside the already constrained workspace.",
+    });
+  }
+};
+
 export const inspectDeepResearchReportReaderUi = (input: {
   context: InspectorContext;
   findings: InspectorFinding[];
@@ -235,7 +268,7 @@ export const inspectDeepResearchReportReaderUi = (input: {
   inputLawId: string;
   deliveryLawId: string;
 }): void => {
-  [panelPath, historyViewPath, reportViewPath, ...clientRuntimePaths, routesPath].forEach((repoPath) => {
+  [panelPath, historyViewPath, reportViewPath, stylesPath, ...clientRuntimePaths, routesPath].forEach((repoPath) => {
     input.inspectedFiles.add(repoPath);
   });
   inspectPanelComposition({
@@ -247,6 +280,7 @@ export const inspectDeepResearchReportReaderUi = (input: {
   inspectDeliveryMarkers(input.findings, input.deliveryLawId);
   inspectClientMarkers(input.findings, input.deliveryLawId);
   inspectDebugBoundaries(input.findings, input.deliveryLawId);
+  inspectLayoutQualityBoundaries(input.findings, input.deliveryLawId);
   clientRuntimePaths.forEach((repoPath) => {
     const clientSource = getSourceFile(input.context, repoPath);
     if (clientSource) {

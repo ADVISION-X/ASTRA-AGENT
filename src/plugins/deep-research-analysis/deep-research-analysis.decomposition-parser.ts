@@ -37,14 +37,16 @@ const buildFailure = (
   reason,
 });
 
-const candidateJsonFromText = (normalizedText: string): string => {
-  if (!normalizedText.startsWith("```")) {
-    return normalizedText;
+const extractJsonCandidate = (normalizedText: string): string => {
+  const unfenced = normalizedText.startsWith("```")
+    ? normalizedText.replace(/^```(?:json)?\s*/u, "").replace(/\s*```$/u, "").trim()
+    : normalizedText;
+  const firstBrace = unfenced.indexOf("{");
+  const lastBrace = unfenced.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return unfenced.slice(firstBrace, lastBrace + 1);
   }
-  return normalizedText
-    .replace(/^```(?:json)?\s*/u, "")
-    .replace(/\s*```$/u, "")
-    .trim();
+  return unfenced;
 };
 
 const parseJson = (normalizedText: string): unknown | DecompositionParseFailure => {
@@ -52,7 +54,7 @@ const parseJson = (normalizedText: string): unknown | DecompositionParseFailure 
     return buildFailure(normalizedText, "empty_ai_response");
   }
   try {
-    return JSON.parse(candidateJsonFromText(normalizedText)) as unknown;
+    return JSON.parse(extractJsonCandidate(normalizedText)) as unknown;
   } catch (error) {
     const message = error instanceof Error ? error.message : "invalid_json";
     return buildFailure(normalizedText, `json_parse_failed:${message}`);
@@ -97,14 +99,11 @@ const hasDuplicateQuestionText = (parsed: DeepResearchDecompositionResponse): bo
 };
 
 const hasQualitySelfCheckFailure = (parsed: DeepResearchDecompositionResponse): boolean =>
-  !parsed.qualitySelfCheck.coversFacts
-  || !parsed.qualitySelfCheck.coversCausality
-  || !parsed.qualitySelfCheck.coversImpact
-  || !parsed.qualitySelfCheck.coversEvidence
-  || !parsed.qualitySelfCheck.coversFalsification
-  || !parsed.qualitySelfCheck.coversRisks
+  !parsed.qualitySelfCheck.isNeutral
   || !parsed.qualitySelfCheck.hasNoDuplicateQuestions
-  || !parsed.qualitySelfCheck.isReadyForPositiveAndFalsification;
+  || !parsed.qualitySelfCheck.hasNoPureFalsificationQuestions
+  || !parsed.qualitySelfCheck.isReadyForIndependentAnalysis
+  || !parsed.qualitySelfCheck.isReadyForFinalAdjudication;
 
 export const parseDecompositionResponse = (input: {
   rawText: string;

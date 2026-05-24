@@ -712,8 +712,8 @@ Forbidden remediation:
   "tier": "P0",
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
-  "evidenceMode": "fs+ast+import-graph",
-  "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, or literal-dead code branches."
+  "evidenceMode": "fs+ast+symbol-graph+anti-evasion",
+  "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, literal-dead code branches, or any surface whose liveness cannot be proven."
 }
 ```
 
@@ -728,6 +728,12 @@ Executable maturity must fail when it finds:
 - a zombie-to-zombie import or re-export chain that is falsely treated as proof of life
 - a public boundary, contract, schema, index file, or type-contract treated as automatically live by file category
 - dormant code kept as "maybe later", "temporary backup", or hard-coded false branch cargo
+
+Executable zombie detection must be stricter than the written minimum law.
+When liveness cannot be proven through AST + symbol graph + lawful entry manifest, the surface must fail as zombie-risk.
+
+Regular expressions are forbidden in code-purity zombie detection implementation.
+The inspector must use ts-morph AST, TypeChecker symbols, and explicit anti-evasion guards.
 
 Allowed exemptions:
 
@@ -747,7 +753,52 @@ Forbidden:
 - treating an inbound edge from an unreachable zombie file as proof of life
 - claiming zombie cleanup may wait until after CI turns green
 
-## 24. Enforcement Roadmap
+## 24. Law APEX-CODE-PURITY-018-V1 — Zombie Inspector Anti-Evasion
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-018-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "ast+symbol-graph+anti-evasion",
+  "summary": "Zombie inspection must be AST-level, symbol-level, and anti-evasion strict; unproven liveness fails."
+}
+```
+
+Zombie detection must be AST-level, symbol-level, and anti-evasion level.
+
+It must reject:
+
+- namespace import laundering
+- barrel re-export laundering
+- type-only/runtime confusion
+- public-boundary auto-liveness
+- zombie-to-zombie proof chains
+- dynamic import without explicit lawful live entry manifest
+- identifier-count fallback
+- regex-based structural judgment
+- commented-out executable code
+- const-gated dead branches
+
+Required:
+
+- namespace imports only prove property-level symbol usage that can be traced through AST and symbol references
+- re-export chains only prove life when a final reachable consumer uses the traced symbol
+- type-only liveness and runtime-value liveness remain separate proofs
+- commented-out executable code must fail when comment trivia can be parsed into executable or declarative syntax
+- same-file orphan declarations must use symbol references; symbol resolution failure must fail instead of falling back to name counts
+- lawful dynamic entry surfaces must be declared explicitly and validated by owner-bound manifests
+
+Forbidden:
+
+- blanket liveness for `index.ts`, `schema.ts`, `contract.ts`, `types.ts`, or similar file names
+- namespace object spreading, iteration, or dynamic property access as silent proof of life
+- treating re-export forwarding alone as final consumption proof
+- using source-text regex, string identifier counts, or naming conventions as fake liveness proof
+
+## 25. Enforcement Roadmap
 
 The code-purity inspector should mature in phases.
 
@@ -793,7 +844,7 @@ Must catch before READY may be claimed:
 
 No phase may claim full readiness until its required checks are runner-visible and failure-tested during development.
 
-## 25. Final Readiness Gate
+## 26. Final Readiness Gate
 
 GrassEye code purity may be called READY only when:
 
@@ -817,7 +868,7 @@ Forbidden:
 - PASS by weakening the law silently.
 - PASS by moving forbidden logic into another owner.
 
-## 26. Final Principle
+## 27. Final Principle
 
 ```txt
 If a file cannot explain its owner, it will become a dumping ground.

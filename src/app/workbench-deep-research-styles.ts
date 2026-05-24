@@ -1,7 +1,7 @@
 const WORKBENCH_DEEP_RESEARCH_STYLES = `
 .research-shell {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 .research-shell.hidden { display: none; }
 .research-header,
@@ -20,20 +20,26 @@ const WORKBENCH_DEEP_RESEARCH_STYLES = `
 .research-article-card {
   border: 1px solid var(--line);
   background: var(--panel);
-  border-radius: 12px;
+  border-radius: 8px;
 }
 .research-header {
-  display: grid;
-  gap: 8px;
-  padding: 18px 20px;
-  background:
-    radial-gradient(circle at top left, rgba(22, 116, 95, 0.12), transparent 42%),
-    linear-gradient(180deg, #fbfcf8, #f7f8f4);
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, #fbfcf8, #f7f8f4);
+}
+.research-header h1 {
+  font-size: 24px;
+  line-height: 1.15;
 }
 .research-disclaimer {
   margin: 0;
   color: var(--warn);
   font-size: 12px;
+  max-width: 520px;
+  text-align: right;
 }
 .research-toolbar,
 .research-rail-header,
@@ -49,7 +55,7 @@ const WORKBENCH_DEEP_RESEARCH_STYLES = `
   flex-wrap: wrap;
 }
 .research-toolbar {
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
 .research-kicker {
   margin: 0 0 4px;
@@ -61,22 +67,42 @@ const WORKBENCH_DEEP_RESEARCH_STYLES = `
 }
 .research-toolbar-actions,
 .research-rail-actions,
-.research-export-actions {
+.research-export-actions,
+.research-delivery-strip {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
+.research-delivery-strip {
+  gap: 10px;
+}
+.research-delivery-strip span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fbfcf8;
+  color: var(--muted);
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.research-delivery-strip b {
+  color: var(--ink);
+}
 .research-form-shell {
-  padding: 16px;
+  padding: 14px;
 }
 .research-control {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(260px, 1.4fr) minmax(180px, 0.8fr) minmax(170px, 0.7fr) minmax(150px, 0.6fr);
   gap: 12px;
+  align-items: end;
 }
 textarea {
   width: 100%;
-  min-height: 110px;
+  min-height: 84px;
   border: 1px solid var(--line);
   background: #fff;
   color: var(--ink);
@@ -87,23 +113,32 @@ textarea {
 }
 .research-layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  min-height: 0;
 }
 .research-history,
 .research-reader,
 .research-side-panel {
-  padding: 16px;
+  padding: 14px;
 }
 .research-history {
   display: grid;
   gap: 12px;
   position: sticky;
-  top: 0;
+  top: 12px;
+  max-height: calc(100vh - 128px);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
 }
 .research-search input {
   width: 100%;
+}
+.research-history-list {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
 }
 .research-history-list,
 .research-question-tree,
@@ -125,8 +160,8 @@ textarea {
   text-align: left;
   border: 1px solid var(--line);
   background: #fbfcf8;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 10px;
   cursor: pointer;
   display: grid;
   gap: 8px;
@@ -163,14 +198,15 @@ textarea {
 }
 .research-reader-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
 }
 .research-reader {
   min-width: 0;
+  max-width: 1120px;
 }
 .research-report {
-  gap: 16px;
+  gap: 14px;
 }
 .research-empty-state,
 .research-section,
@@ -184,12 +220,15 @@ textarea {
 }
 .research-empty-state {
   padding: 24px;
+  min-height: 260px;
+  align-content: center;
 }
 .research-report-header h2,
 .research-card-head h2,
 .research-section-head h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
+  line-height: 1.25;
 }
 .research-section {
   gap: 12px;
@@ -202,18 +241,38 @@ textarea {
 }
 .research-side {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
   gap: 12px;
-  position: sticky;
-  top: 0;
+  position: static;
   align-self: start;
+  order: -1;
+}
+.research-side-panel {
+  min-width: 0;
+}
+.research-side .research-side-panel {
+  background: #fbfcf8;
 }
 .research-nav a {
   color: var(--accent-strong);
   text-decoration: none;
   font-weight: 600;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 10px;
+}
+.research-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .research-nav a:hover {
-  text-decoration: underline;
+  border-color: var(--accent-strong);
+  text-decoration: none;
+}
+.research-side-meta-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .research-side-meta-grid div,
 .research-debug-list div {
@@ -260,7 +319,7 @@ textarea {
 }
 .research-stage-grid,
 .research-question-tree {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .research-analysis-card,
 .research-conflict-card,
@@ -274,6 +333,14 @@ textarea {
 .research-card-head,
 .research-empty-state {
   padding: 14px;
+}
+.research-report-header,
+.research-section[data-deep-research-final-card] {
+  padding: 18px;
+}
+.research-section[data-deep-research-final-card] {
+  border-color: rgba(22, 116, 95, 0.28);
+  box-shadow: inset 4px 0 0 var(--accent);
 }
 .research-question-card-full {
   background: #fbfcf8;
@@ -327,11 +394,12 @@ textarea {
   gap: 10px;
 }
 @media (max-width: 1400px) {
-  .research-reader-shell {
-    grid-template-columns: 1fr;
+  .research-layout {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   }
-  .research-side {
-    position: static;
+  .research-stage-grid,
+  .research-question-tree {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 1100px) {
@@ -343,8 +411,22 @@ textarea {
   .research-control {
     grid-template-columns: 1fr;
   }
+  .research-header,
+  .research-toolbar,
+  .research-section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .research-disclaimer {
+    max-width: none;
+    text-align: left;
+  }
   .research-history {
     position: static;
+    max-height: 360px;
+  }
+  .research-side {
+    grid-template-columns: 1fr;
   }
 }
 `;

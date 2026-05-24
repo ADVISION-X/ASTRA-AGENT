@@ -1,16 +1,15 @@
+import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import assert from "node:assert/strict";
 
 import {
   DEEP_RESEARCH_DECOMPOSITION_PROMPT,
   DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES,
   detectCurrentEventMissingInfo,
-  detectFinalSynthesisLeakage,
+  detectFinalAdjudicationLeakage,
   parseDecompositionResponse,
-  parseDeepResearchFalsificationResponse,
-  parseDeepResearchFinalReportResponse,
-  parseDeepResearchPositiveResponse,
+  parseDeepResearchFinalAdjudicationResponse,
+  parseDeepResearchSubQuestionAnalysisResponse,
   renderDecompositionPrompt,
   runDeepResearchDecompositionPhase,
   scoreDecompositionQuality,
@@ -27,7 +26,7 @@ const validFixtureText = readFixture("valid-stock-response.json");
 const validIranFixtureText = readFixture("valid-iran-war-response.json");
 const invalidOldContractText = readFixture("invalid-old-decomposition-response.json");
 const invalidExtraRootFieldsText = readFixture("invalid-extra-root-fields-response.json");
-const invalidFinalSynthesisLeakageText = readFixture("invalid-final-synthesis-leakage-response.json");
+const invalidFinalAdjudicationLeakageText = readFixture("invalid-final-synthesis-leakage-response.json");
 
 const assertStatus = (actual: string, expected: string): void => {
   assert.equal(actual, expected);
@@ -43,11 +42,12 @@ assert.match(rendered, /某科技股近期上涨是否由基本面支撑/u);
 assert.match(rendered, /6/u);
 assert.match(rendered, /Do not include contractId/u);
 assert.match(rendered, /Do not include format/u);
-assert.match(rendered, /dimension must be one of/u);
+assert.match(rendered, /decisionWeight must be one of/u);
+assert.match(rendered, /isReadyForIndependentAnalysis/u);
 assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptId, "deep-research.decomposition");
-assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion, "v1.1.0");
+assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion, "v2.0.0");
 assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.phase, "decompose");
-assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.outputContractId, "deep-research.decomposition-output.v1.1");
+assert.equal(DEEP_RESEARCH_DECOMPOSITION_PROMPT.outputContractId, "deep-research.decomposition-output.v2.0");
 
 const validParse = parseDecompositionResponse({
   rawText: validFixtureText,
@@ -63,6 +63,9 @@ if (!firstSubQuestion || !secondSubQuestion) {
   throw new Error("valid fixture must contain at least two sub-questions");
 }
 assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
+assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.whyItMatters.trim().length > 0));
+assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.analysisFocus.trim().length > 0));
+assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.omissionRisk.trim().length > 0));
 
 const invalidJson = parseDecompositionResponse({
   rawText: "{ invalid",
@@ -118,17 +121,14 @@ const duplicateSubQuestions = parseDecompositionResponse({
   }),
   maxSubQuestions: 6,
 });
-assert.ok(
-  duplicateSubQuestions.parseStatus === "partial_review_required"
-  || duplicateSubQuestions.parseStatus === "failed",
-);
+assertStatus(duplicateSubQuestions.parseStatus, "partial_review_required");
 
 const qualitySelfCheckFalse = parseDecompositionResponse({
   rawText: JSON.stringify({
     ...validParse.parsed,
     qualitySelfCheck: {
       ...validParse.parsed.qualitySelfCheck,
-      coversRisks: false,
+      isReadyForIndependentAnalysis: false,
     },
   }),
   maxSubQuestions: 6,
@@ -152,14 +152,15 @@ assert.ok(validIran.parsed.subQuestions.length >= 8);
 assert.ok(validIran.parsed.subQuestions.length <= 12);
 assert.equal(detectCurrentEventMissingInfo(validIran.parsed), false);
 assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
-assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.positiveAnalysisFocus.trim().length > 0));
-assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.falsificationFocus.trim().length > 0));
-assert.ok(!validIran.parsed.subQuestions.some((subQuestion) => detectFinalSynthesisLeakage(subQuestion.questionText)));
+assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.whyItMatters.trim().length > 0));
+assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.analysisFocus.trim().length > 0));
+assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.omissionRisk.trim().length > 0));
+assert.ok(!validIran.parsed.subQuestions.some((subQuestion) => detectFinalAdjudicationLeakage(subQuestion.questionText)));
 const iranQuality = scoreDecompositionQuality(validIran.parsed);
 assert.equal(iranQuality.status, "passed");
 
 const leakageParse = parseDecompositionResponse({
-  rawText: invalidFinalSynthesisLeakageText,
+  rawText: invalidFinalAdjudicationLeakageText,
   maxSubQuestions: 12,
 });
 assertStatus(leakageParse.parseStatus, "parsed");
@@ -168,7 +169,7 @@ if (leakageParse.parseStatus !== "parsed") {
 }
 const leakageQuality = scoreDecompositionQuality(leakageParse.parsed);
 assert.equal(leakageQuality.status, "failed");
-assert.ok(leakageParse.parsed.subQuestions.some((subQuestion) => detectFinalSynthesisLeakage(subQuestion.questionText)));
+assert.ok(leakageParse.parsed.subQuestions.some((subQuestion) => detectFinalAdjudicationLeakage(subQuestion.questionText)));
 
 assert.ok(DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES.length >= 10);
 for (const fixture of DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES) {
@@ -178,74 +179,67 @@ for (const fixture of DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES) {
   assert.ok(fixture.mustCoverDimensions.length > 0);
 }
 
-const validPositiveResponse = {
+const validAnalysisResponse = {
   subQuestionId: "deep_research_sub_question_acceptance",
-  answer: "Supportive answer.",
+  answer: "Independent analysis answer.",
+  coreFinding: "The local finding supports a conditional positive conclusion.",
   keyClaims: ["claim"],
   supportingReasons: ["reason"],
-  assumptions: ["assumption"],
+  counterConditions: ["condition"],
+  failureCases: ["failure case"],
   evidenceMentions: ["evidence"],
+  evidenceQuality: "moderate",
+  assumptions: ["assumption"],
+  uncertainties: ["uncertainty"],
+  impactOnFinalAdjudication: "Support a conditional yes, not a clean yes.",
   confidence: "medium",
   limitations: ["limitation"],
 };
-const enumPositive = parseDeepResearchPositiveResponse(JSON.stringify(validPositiveResponse));
-assertStatus(enumPositive.parseStatus, "parsed");
-const numericPositive = parseDeepResearchPositiveResponse(JSON.stringify({
-  ...validPositiveResponse,
+const enumAnalysis = parseDeepResearchSubQuestionAnalysisResponse(JSON.stringify(validAnalysisResponse));
+assertStatus(enumAnalysis.parseStatus, "parsed");
+const numericAnalysis = parseDeepResearchSubQuestionAnalysisResponse(JSON.stringify({
+  ...validAnalysisResponse,
   confidence: 0.82,
 }));
-assertStatus(numericPositive.parseStatus, "parsed");
-if (numericPositive.parseStatus === "parsed") {
-  assert.equal(numericPositive.parsed.confidence, "high");
+assertStatus(numericAnalysis.parseStatus, "parsed");
+if (numericAnalysis.parseStatus === "parsed") {
+  assert.equal(numericAnalysis.parsed.confidence, "high");
 }
-const proseWrappedPositive = parseDeepResearchPositiveResponse(`Analysis follows:\n${JSON.stringify({
-  ...validPositiveResponse,
+const proseWrappedAnalysis = parseDeepResearchSubQuestionAnalysisResponse(`Analysis follows:\n${JSON.stringify({
+  ...validAnalysisResponse,
   confidence: "80%",
   extraField: "still allowed",
 })}\nEnd.`);
-assertStatus(proseWrappedPositive.parseStatus, "parsed");
-
-const validFalsificationResponse = {
-  subQuestionId: "deep_research_sub_question_acceptance",
-  answer: "Opposing answer.",
-  strongestOpposingArguments: ["argument"],
-  contradictionPoints: ["contradiction"],
-  evidenceMentions: ["evidence"],
-  confidence: "medium",
-  limitations: ["limitation"],
-};
-const enumFalsification = parseDeepResearchFalsificationResponse(JSON.stringify(validFalsificationResponse));
-assertStatus(enumFalsification.parseStatus, "parsed");
-const numericFalsification = parseDeepResearchFalsificationResponse(JSON.stringify({
-  ...validFalsificationResponse,
-  confidence: 0.82,
-}));
-assertStatus(numericFalsification.parseStatus, "parsed");
-if (numericFalsification.parseStatus === "parsed") {
-  assert.equal(numericFalsification.parsed.confidence, "high");
-}
+assertStatus(proseWrappedAnalysis.parseStatus, "parsed");
 
 const validFinalResponse = {
-  executiveConclusion: "Final conclusion.",
+  directAnswer: "The answer is conditionally yes.",
+  finalVerdict: "conditional",
   confidence: "medium",
-  positiveReasons: ["reason"],
-  strongestOpposingArguments: ["argument"],
-  conflictMatrix: [{
-    subQuestionId: "deep_research_sub_question_acceptance",
-    positiveClaimSummary: "positive",
-    falsificationSummary: "negative",
-    conflictLevel: "medium" as const,
-    evidenceGap: "gap",
-    needsHumanReview: true,
+  rankedConclusions: [{
+    rank: 1,
+    conclusion: "Core evidence supports a conditional yes.",
+    whyItMatters: "This is the strongest conclusion.",
+    strength: "strong" as const,
+    appliesTo: ["base case"],
+    doesNotApplyTo: ["stress case"],
+    reverseCondition: "A severe negative signal would reverse this conclusion.",
   }],
-  evidenceGaps: ["gap"],
-  reverseConditions: ["condition"],
-  followUpSignals: ["signal"],
-  limitations: ["limitation"],
+  strongConclusions: ["Core evidence supports a conditional yes."],
+  conditionalConclusions: ["The conclusion weakens if the main assumption breaks."],
+  weakOrRejectedClaims: ["A clean yes is not supported."],
+  decisiveReasons: ["The strongest sub-question evidence points in one direction."],
+  evidenceGaps: ["Need fresher field data."],
+  reverseConditions: ["A severe negative signal would reverse the judgment."],
+  applicability: ["base case"],
+  nonApplicability: ["stress case"],
+  followUpSignals: ["watch the next earnings update"],
+  multiStageValueAdded: ["The multi-stage flow separated decomposition, analysis, and adjudication."],
+  limitations: ["This is a fixture."],
 };
-const enumFinal = parseDeepResearchFinalReportResponse(JSON.stringify(validFinalResponse));
+const enumFinal = parseDeepResearchFinalAdjudicationResponse(JSON.stringify(validFinalResponse));
 assertStatus(enumFinal.parseStatus, "parsed");
-const numericFinal = parseDeepResearchFinalReportResponse(JSON.stringify({
+const numericFinal = parseDeepResearchFinalAdjudicationResponse(JSON.stringify({
   ...validFinalResponse,
   confidence: 0.82,
 }));
@@ -253,23 +247,24 @@ assertStatus(numericFinal.parseStatus, "parsed");
 if (numericFinal.parseStatus === "parsed") {
   assert.equal(numericFinal.parsed.confidence, "high");
 }
-const fallbackFinal = parseDeepResearchFinalReportResponse(
+const fallbackFinal = parseDeepResearchFinalAdjudicationResponse(
   JSON.stringify({
-    executiveConclusion: "Final conclusion.",
+    executiveConclusion: "Legacy conclusion still parses.",
     confidence: "80%",
   }),
   {
-    conflictMatrix: validFinalResponse.conflictMatrix,
-    strongestOpposingArguments: validFinalResponse.strongestOpposingArguments,
-    evidenceGaps: validFinalResponse.evidenceGaps,
-    reverseConditions: validFinalResponse.reverseConditions,
-    followUpSignals: validFinalResponse.followUpSignals,
-    limitations: validFinalResponse.limitations,
+    positiveReasons: ["legacy reason"],
+    strongestOpposingArguments: ["legacy opposing argument"],
+    evidenceGaps: ["legacy gap"],
+    reverseConditions: ["legacy reverse condition"],
+    followUpSignals: ["legacy follow-up"],
+    limitations: ["legacy limitation"],
   },
 );
 assertStatus(fallbackFinal.parseStatus, "parsed");
 if (fallbackFinal.parseStatus === "parsed") {
-  assert.equal(fallbackFinal.parsed.conflictMatrix.length, 1);
+  assert.equal(fallbackFinal.parsed.confidence, "high");
+  assert.ok(fallbackFinal.parsed.directAnswer.includes("Legacy conclusion"));
 }
 
 const flowResult = await runDeepResearchDecompositionPhase({

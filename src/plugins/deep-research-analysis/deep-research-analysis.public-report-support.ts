@@ -37,8 +37,14 @@ const buildSubQuestionView = (record: ResearchSubQuestion): DeepResearchSubQuest
   title: record.question.title,
   questionText: record.question.questionText,
   purpose: record.question.purpose,
+  whyItMatters: record.question.whyItMatters ?? null,
+  decisionWeight: record.question.decisionWeight ?? null,
+  analysisFocus: record.question.analysisFocus ?? null,
+  requiredEvidence: [...record.question.requiredEvidence],
   scope: record.question.scope,
   expectedAnswerShape: record.question.expectedAnswerShape,
+  priority: record.question.priority ?? null,
+  omissionRisk: record.question.omissionRisk ?? null,
 });
 
 const buildAnswerBlockView = (input: {
@@ -50,6 +56,7 @@ const buildAnswerBlockView = (input: {
   }
   return {
     interaction: input.interaction ?? null,
+    answerKind: input.answer.answerKind,
     answerText: input.answer.answerText,
     preview: truncateText(input.answer.answerText, 360),
     confidence: input.answer.confidence,
@@ -58,6 +65,7 @@ const buildAnswerBlockView = (input: {
     assumptions: [...input.answer.assumptions],
     limitations: [...input.answer.limitations],
     contradictionPoints: [...input.answer.contradictionPoints],
+    parsedPayload: input.answer.parsedPayload,
   };
 };
 
@@ -107,25 +115,40 @@ export const buildStageViews = (input: {
   ];
   for (const report of input.subQuestionReports) {
     const questionLabel = `Q${report.subQuestion.ordinal + 1}: ${report.subQuestion.title}`;
-    stages.push(
-      {
-        id: `stage-${report.subQuestion.id}-positive`,
-        label: `${questionLabel} Positive Analysis`,
+    if (input.job.flowMode === "legacy_1_n_n_1") {
+      stages.push(
+        {
+          id: `stage-${report.subQuestion.id}-positive`,
+          label: `${questionLabel} Positive Analysis`,
+          anchorId: `subquestion-${report.subQuestion.id}`,
+          status: resolveStageStatus(Boolean(report.positive), input.job.status),
+        },
+        {
+          id: `stage-${report.subQuestion.id}-falsification`,
+          label: `${questionLabel} Falsification`,
+          anchorId: `subquestion-${report.subQuestion.id}`,
+          status: resolveStageStatus(Boolean(report.falsification), input.job.status),
+        },
+      );
+    } else {
+      stages.push({
+        id: `stage-${report.subQuestion.id}-analysis`,
+        label: `${questionLabel} Independent Analysis`,
         anchorId: `subquestion-${report.subQuestion.id}`,
-        status: resolveStageStatus(Boolean(report.positive), input.job.status),
-      },
-      {
-        id: `stage-${report.subQuestion.id}-falsification`,
-        label: `${questionLabel} Falsification`,
-        anchorId: `subquestion-${report.subQuestion.id}`,
-        status: resolveStageStatus(Boolean(report.falsification), input.job.status),
-      },
-    );
+        status: resolveStageStatus(Boolean(report.analysis), input.job.status),
+      });
+    }
   }
   stages.push({
-    id: "stage-final-synthesis",
-    label: "Final Synthesis",
-    anchorId: "final-synthesis",
+    id: input.job.flowMode === "legacy_1_n_n_1"
+      ? "stage-final-synthesis"
+      : "stage-final-adjudication",
+    label: input.job.flowMode === "legacy_1_n_n_1"
+      ? "Final Synthesis"
+      : "Final Adjudication",
+    anchorId: input.job.flowMode === "legacy_1_n_n_1"
+      ? "final-synthesis"
+      : "final-adjudication",
     status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.job.status),
   });
   return stages;
@@ -138,13 +161,23 @@ export const buildConclusionView = (
     return null;
   }
   return {
+    directAnswer: report.directAnswer,
+    finalVerdict: report.finalVerdict,
     executiveConclusion: report.executiveConclusion,
     confidence: report.confidence,
+    rankedConclusions: [...report.rankedConclusions],
+    strongConclusions: [...report.strongConclusions],
+    conditionalConclusions: [...report.conditionalConclusions],
+    weakOrRejectedClaims: [...report.weakOrRejectedClaims],
+    decisiveReasons: [...report.decisiveReasons],
     positiveReasons: [...report.positiveReasons],
     strongestOpposingArguments: [...report.strongestOpposingArguments],
     evidenceGaps: [...report.evidenceGaps],
     reverseConditions: [...report.reverseConditions],
+    applicability: [...report.applicability],
+    nonApplicability: [...report.nonApplicability],
     followUpSignals: [...report.followUpSignals],
+    multiStageValueAdded: [...report.multiStageValueAdded],
     limitations: [...report.limitations],
   };
 };
@@ -156,6 +189,9 @@ const buildInteractionHeadline = (input: {
   if (input.interaction.phase === "decomposition") {
     return "Decomposition";
   }
+  if (input.interaction.phase === "final_adjudication") {
+    return "Final Adjudication";
+  }
   if (input.interaction.phase === "final_synthesis") {
     return "Final Synthesis";
   }
@@ -165,6 +201,9 @@ const buildInteractionHeadline = (input: {
   const prefix = subQuestion
     ? `Q${subQuestion.ordinal + 1}: ${subQuestion.title}`
     : input.interaction.subQuestionId ?? "Sub-question";
+  if (input.interaction.phase === "analysis") {
+    return `${prefix} Independent Analysis`;
+  }
   return `${prefix} ${input.interaction.phase === "positive" ? "Positive Analysis" : "Falsification"}`;
 };
 
@@ -181,7 +220,7 @@ export const buildHistoryJobView = (input: {
     title: truncateText(input.job.userQuestion, 84),
     userQuestion: input.job.userQuestion,
     questionSummary: truncateText(
-      finalReport?.executiveConclusion ?? input.job.analysisGoal ?? input.job.userQuestion,
+      finalReport?.directAnswer ?? input.job.analysisGoal ?? input.job.userQuestion,
       180,
     ),
     analysisGoal: input.job.analysisGoal,
@@ -195,7 +234,7 @@ export const buildHistoryJobView = (input: {
     interactionCount: interactions.length,
     exportCount: exports.length,
     finalConfidence: finalReport?.confidence ?? null,
-    finalConclusionPreview: finalReport ? truncateText(finalReport.executiveConclusion, 220) : null,
+    finalConclusionPreview: finalReport ? truncateText(finalReport.directAnswer, 220) : null,
   };
 };
 
@@ -238,13 +277,16 @@ export const buildSubQuestionReports = (input: {
   conflictBySubQuestionId: Map<string, DeepResearchTimelineSnapshot["conflictMatrix"][number]>;
 }): DeepResearchReportViewModel["subQuestionReports"] =>
   input.subQuestions.map((subQuestion) => {
+    const analysisAnswer = input.answerByKindAndSubQuestionId.get(`analysis:${subQuestion.id}`);
     const positiveAnswer = input.answerByKindAndSubQuestionId.get(`positive:${subQuestion.id}`);
     const falsificationAnswer = input.answerByKindAndSubQuestionId.get(`falsification:${subQuestion.id}`);
+    const analysisInteraction = input.timelineByPhaseAndSubQuestionId.get(`analysis:${subQuestion.id}`);
     const positiveInteraction = input.timelineByPhaseAndSubQuestionId.get(`positive:${subQuestion.id}`);
     const falsificationInteraction = input.timelineByPhaseAndSubQuestionId.get(`falsification:${subQuestion.id}`);
     const conflict = input.conflictBySubQuestionId.get(subQuestion.id);
     return {
       subQuestion,
+      analysis: buildAnswerBlockView({ answer: analysisAnswer, interaction: analysisInteraction }),
       positive: buildAnswerBlockView({ answer: positiveAnswer, interaction: positiveInteraction }),
       falsification: buildAnswerBlockView({ answer: falsificationAnswer, interaction: falsificationInteraction }),
       conflict: conflict
@@ -285,6 +327,7 @@ export const buildReportJobView = (
   title: truncateText(snapshot.job.userQuestion, 84),
   userQuestion: snapshot.job.userQuestion,
   analysisGoal: snapshot.job.analysisGoal,
+  flowMode: snapshot.job.flowMode,
   status: snapshot.job.status,
   phase: snapshot.job.phase,
   failureReason: snapshot.job.failureReason,

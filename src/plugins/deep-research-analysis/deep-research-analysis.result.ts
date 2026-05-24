@@ -24,6 +24,13 @@ const DeepResearchConflictLevelSchema = z.enum([
   "critical",
 ]);
 
+const DeepResearchRankedConclusionStrengthSchema = z.enum([
+  "strong",
+  "moderate",
+  "weak",
+  "conditional",
+]);
+
 export const DeepResearchConflictMatrixRowSchema = z.object({
   subQuestionId: z.string().trim().min(1),
   positiveClaimSummary: z.string().trim().min(1),
@@ -33,17 +40,112 @@ export const DeepResearchConflictMatrixRowSchema = z.object({
   needsHumanReview: z.boolean(),
 }).strict();
 
-export const DeepResearchFinalReportSchema = z.object({
+const DeepResearchRankedConclusionSchema = z.object({
+  rank: z.number().int().positive(),
+  conclusion: z.string().trim().min(1),
+  whyItMatters: z.string().trim().min(1),
+  strength: DeepResearchRankedConclusionStrengthSchema,
+  appliesTo: z.array(z.string().trim().min(1)).default([]),
+  doesNotApplyTo: z.array(z.string().trim().min(1)).default([]),
+  reverseCondition: z.string().trim().default(""),
+}).strict();
+
+const DeepResearchNormalizedFinalReportSchema = z.object({
+  directAnswer: z.string().trim().min(1),
+  finalVerdict: z.string().trim().min(1),
+  confidence: DeepResearchReportConfidenceSchema,
+  rankedConclusions: z.array(DeepResearchRankedConclusionSchema).default([]),
+  strongConclusions: z.array(z.string().trim().min(1)).default([]),
+  conditionalConclusions: z.array(z.string().trim().min(1)).default([]),
+  weakOrRejectedClaims: z.array(z.string().trim().min(1)).default([]),
+  decisiveReasons: z.array(z.string().trim().min(1)).default([]),
+  evidenceGaps: z.array(z.string().trim().min(1)).default([]),
+  reverseConditions: z.array(z.string().trim().min(1)).default([]),
+  applicability: z.array(z.string().trim().min(1)).default([]),
+  nonApplicability: z.array(z.string().trim().min(1)).default([]),
+  followUpSignals: z.array(z.string().trim().min(1)).default([]),
+  multiStageValueAdded: z.array(z.string().trim().min(1)).default([]),
+  limitations: z.array(z.string().trim().min(1)).default([]),
+  executiveConclusion: z.string().trim().min(1),
+  positiveReasons: z.array(z.string().trim().min(1)).default([]),
+  strongestOpposingArguments: z.array(z.string().trim().min(1)).default([]),
+  conflictMatrix: z.array(DeepResearchConflictMatrixRowSchema).default([]),
+}).strict();
+
+const DeepResearchLegacyFinalReportSchema = z.object({
   executiveConclusion: z.string().trim().min(1),
   confidence: DeepResearchReportConfidenceSchema,
-  positiveReasons: z.array(z.string().trim().min(1)).min(1),
-  strongestOpposingArguments: z.array(z.string().trim().min(1)).min(1),
-  conflictMatrix: z.array(DeepResearchConflictMatrixRowSchema).min(1),
-  evidenceGaps: z.array(z.string().trim().min(1)).min(1),
-  reverseConditions: z.array(z.string().trim().min(1)).min(1),
-  followUpSignals: z.array(z.string().trim().min(1)).min(1),
-  limitations: z.array(z.string().trim().min(1)).min(1),
+  positiveReasons: z.array(z.string().trim().min(1)).default([]),
+  strongestOpposingArguments: z.array(z.string().trim().min(1)).default([]),
+  conflictMatrix: z.array(DeepResearchConflictMatrixRowSchema).default([]),
+  evidenceGaps: z.array(z.string().trim().min(1)).default([]),
+  reverseConditions: z.array(z.string().trim().min(1)).default([]),
+  followUpSignals: z.array(z.string().trim().min(1)).default([]),
+  limitations: z.array(z.string().trim().min(1)).default([]),
 }).strict();
+
+const DeepResearchModernFinalReportSchema = z.object({
+  directAnswer: z.string().trim().min(1),
+  finalVerdict: z.string().trim().min(1),
+  confidence: DeepResearchReportConfidenceSchema,
+  rankedConclusions: z.array(DeepResearchRankedConclusionSchema).default([]),
+  strongConclusions: z.array(z.string().trim().min(1)).default([]),
+  conditionalConclusions: z.array(z.string().trim().min(1)).default([]),
+  weakOrRejectedClaims: z.array(z.string().trim().min(1)).default([]),
+  decisiveReasons: z.array(z.string().trim().min(1)).default([]),
+  evidenceGaps: z.array(z.string().trim().min(1)).default([]),
+  reverseConditions: z.array(z.string().trim().min(1)).default([]),
+  applicability: z.array(z.string().trim().min(1)).default([]),
+  nonApplicability: z.array(z.string().trim().min(1)).default([]),
+  followUpSignals: z.array(z.string().trim().min(1)).default([]),
+  multiStageValueAdded: z.array(z.string().trim().min(1)).default([]),
+  limitations: z.array(z.string().trim().min(1)).default([]),
+}).strict();
+
+const buildLegacyVerdictLabel = (value: string): string =>
+  value.replace(/\s+/gu, " ").trim().slice(0, 80) || "legacy_report";
+
+const normalizeLegacyFinalReport = (
+  report: z.infer<typeof DeepResearchLegacyFinalReportSchema>,
+) =>
+  DeepResearchNormalizedFinalReportSchema.parse({
+    directAnswer: report.executiveConclusion,
+    finalVerdict: buildLegacyVerdictLabel(report.executiveConclusion),
+    confidence: report.confidence,
+    rankedConclusions: [],
+    strongConclusions: report.positiveReasons,
+    conditionalConclusions: [],
+    weakOrRejectedClaims: report.strongestOpposingArguments,
+    decisiveReasons: report.positiveReasons,
+    evidenceGaps: report.evidenceGaps,
+    reverseConditions: report.reverseConditions,
+    applicability: [],
+    nonApplicability: [],
+    followUpSignals: report.followUpSignals,
+    multiStageValueAdded: [],
+    limitations: report.limitations,
+    executiveConclusion: report.executiveConclusion,
+    positiveReasons: report.positiveReasons,
+    strongestOpposingArguments: report.strongestOpposingArguments,
+    conflictMatrix: report.conflictMatrix,
+  });
+
+const normalizeModernFinalReport = (
+  report: z.infer<typeof DeepResearchModernFinalReportSchema>,
+) =>
+  DeepResearchNormalizedFinalReportSchema.parse({
+    ...report,
+    executiveConclusion: report.directAnswer,
+    positiveReasons: report.decisiveReasons,
+    strongestOpposingArguments: report.weakOrRejectedClaims,
+    conflictMatrix: [],
+  });
+
+export const DeepResearchFinalReportSchema = z.union([
+  DeepResearchNormalizedFinalReportSchema,
+  DeepResearchModernFinalReportSchema.transform(normalizeModernFinalReport),
+  DeepResearchLegacyFinalReportSchema.transform(normalizeLegacyFinalReport),
+]);
 
 const DeepResearchResultSchema = z.object({
   jobId: z.string().trim().min(1),

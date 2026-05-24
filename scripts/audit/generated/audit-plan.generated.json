@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T22:30:47.695Z",
+  "generatedAt": "2026-05-24T00:13:47.197Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -110,17 +110,19 @@
         "APEX-CODE-PURITY-014-V1",
         "APEX-CODE-PURITY-015-V1",
         "APEX-CODE-PURITY-016-V1",
-        "APEX-CODE-PURITY-017-V1"
+        "APEX-CODE-PURITY-017-V1",
+        "APEX-CODE-PURITY-018-V1"
       ],
       "clauseIds": [
         "primary"
       ],
       "evidenceModes": [
         "ast",
+        "ast+symbol-graph+anti-evasion",
         "ast+typecheck",
         "fs",
         "fs+ast",
-        "fs+ast+import-graph",
+        "fs+ast+symbol-graph+anti-evasion",
         "hybrid"
       ],
       "blueprintRefs": []
@@ -145,7 +147,8 @@
         "GRASSEYE-DEEP-RESEARCH-012-V1",
         "GRASSEYE-DEEP-RESEARCH-013-V1",
         "GRASSEYE-DEEP-RESEARCH-014-V1",
-        "GRASSEYE-DEEP-RESEARCH-015-V1"
+        "GRASSEYE-DEEP-RESEARCH-015-V1",
+        "GRASSEYE-DEEP-RESEARCH-016-V1"
       ],
       "clauseIds": [
         "primary"
@@ -163,6 +166,8 @@
         "fs+ast",
         "fs+ast+db+acceptance",
         "fs+db+hash",
+        "law+ast+schema+db+runtime-log",
+        "law+schema+ast+db+artifact+acceptance",
         "parser+db+runtime-log",
         "runtime-log+audit"
       ],

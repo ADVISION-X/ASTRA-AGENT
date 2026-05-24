@@ -30,57 +30,91 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
   private readonly responses = [
     JSON.stringify({
       mainQuestion: "Can Deep Research continue after one sub-question parse failure?",
+      questionType: "business",
+      decompositionStrategy: "Use two independent questions so one analysis can fail while the next still completes.",
+      missingInfo: [],
       subQuestions: [
         {
           id: "Q1",
-          title: "Demand",
-          questionText: "What supports the demand case?",
-          purpose: "Capture supportive demand evidence.",
-          scope: "Demand-side thesis.",
-          expectedAnswerShape: "demand-summary",
+          title: "Broken analysis",
+          questionText: "What happens when one independent analysis response breaks the contract?",
+          whyItMatters: "This proves one local analysis failure does not terminate the entire job.",
+          decisionWeight: "high",
+          analysisFocus: "Observe how the runtime records and carries one malformed analysis response.",
+          requiredEvidence: ["failed interaction", "runtime stage logs"],
+          scope: "Parser fault isolation.",
+          expectedAnswerShape: "fault-isolation-summary",
+          priority: "high",
+          omissionRisk: "Without this, the runtime can silently regress to first-failure-wins behavior."
         },
         {
           id: "Q2",
-          title: "Broken response",
-          questionText: "What happens when one positive response breaks the contract?",
-          purpose: "Prove one sub-question failure stays local.",
-          scope: "Parser fault isolation.",
-          expectedAnswerShape: "fault-isolation-summary",
-        },
-        {
-          id: "Q3",
-          title: "Execution",
-          questionText: "What keeps the execution case alive?",
-          purpose: "Prove later sub-questions still run.",
-          scope: "Execution-side thesis.",
-          expectedAnswerShape: "execution-summary",
-        },
+          title: "Healthy analysis",
+          questionText: "Can a later independent analysis still persist a structured answer after one earlier failure?",
+          whyItMatters: "The final adjudicator needs proof that later sub-questions still run.",
+          decisionWeight: "high",
+          analysisFocus: "Persist one valid analysis record after the first sub-question fails.",
+          requiredEvidence: ["persisted analysis answer", "final adjudication result"],
+          scope: "Later sub-question continuity.",
+          expectedAnswerShape: "continued-execution-summary",
+          priority: "high",
+          omissionRisk: "Without this, the job may still look healthy while actually skipping later analysis work."
+        }
       ],
+      exhaustivenessCheck: {
+        keyDimensionsCovered: ["local failure handling", "continued execution"],
+        knownBlindSpots: [],
+        whyNoMoreQuestionsAreNeeded: "Two sub-questions are sufficient to prove local analysis fault isolation."
+      },
+      qualitySelfCheck: {
+        isNeutral: true,
+        hasNoDuplicateQuestions: true,
+        hasNoPureFalsificationQuestions: true,
+        isReadyForIndependentAnalysis: true,
+        isReadyForFinalAdjudication: true
+      }
     }),
+    '{"subQuestionId":"Q1","answer":"This malformed response should stay local"',
     JSON.stringify({
-      subQuestionId: "Q1",
-      answer: "Demand support remains visible in enterprise automation budgets.",
-      confidence: 0.91,
-    }),
-    JSON.stringify({
-      subQuestionId: "Q1",
-      answer: "Demand can still weaken if pilots underperform.",
-      confidence: "medium-high",
-    }),
-    "This sub-question still has analytical value, but the response is not valid JSON.",
-    JSON.stringify({
-      subQuestionId: "Q3",
-      answer: "Execution remains viable when rollout scope stays narrow.",
-      confidence: "75%",
-    }),
-    JSON.stringify({
-      subQuestionId: "Q3",
-      answer: "Execution can still fail if partners miss deployment targets.",
+      subQuestionId: "Q2",
+      answer: "A later sub-question still persists a valid independent analysis.",
+      coreFinding: "One failed analysis does not stop later sub-questions from running.",
+      keyClaims: ["The second analysis still executes."],
+      supportingReasons: ["The runtime continues after the first malformed response."],
+      counterConditions: ["A full provider outage would still stop all questions."],
+      failureCases: ["If every analysis response is malformed, final package review is still required."],
+      evidenceMentions: ["analysis interaction", "persisted answer row"],
+      evidenceQuality: "moderate",
+      assumptions: ["The later prompt still receives a provider response."],
+      uncertainties: ["This fixture only proves one failed and one successful sub-question."],
+      impactOnFinalAdjudication: "Proceed, but surface the missing analysis gap explicitly.",
       confidence: "medium",
+      limitations: ["This uses deterministic fixture output rather than a live provider."],
     }),
     JSON.stringify({
-      executiveConclusion: "Proceed, but treat missing structured evidence as an explicit gap.",
-      confidence: "0.78",
+      directAnswer: "Proceed with a review-minded conclusion because one analysis is missing but another completed.",
+      finalVerdict: "conditional",
+      confidence: "medium",
+      rankedConclusions: [{
+        rank: 1,
+        conclusion: "At least one independent analysis completed successfully.",
+        whyItMatters: "The final adjudicator still has lawful material to work with.",
+        strength: "moderate",
+        appliesTo: ["default_1_n_1 flow"],
+        doesNotApplyTo: ["all-sub-questions-failed runs"],
+        reverseCondition: "If no analysis completes, the job must stay in review_required.",
+      }],
+      strongConclusions: ["The job continues after one local analysis failure."],
+      conditionalConclusions: ["The final answer must surface the missing analysis gap."],
+      weakOrRejectedClaims: ["A single malformed analysis should kill the whole job."],
+      decisiveReasons: ["A later sub-question still produced a valid structured analysis."],
+      evidenceGaps: ["Missing structured independent analysis record for the failed sub-question."],
+      reverseConditions: ["If later sub-questions also fail, the final adjudication should no longer proceed."],
+      applicability: ["job-flow fault isolation"],
+      nonApplicability: ["zero-analysis runs"],
+      followUpSignals: ["Track missingAnalysisSubQuestionIds in the final package."],
+      multiStageValueAdded: ["The job preserved one usable analysis instead of collapsing at the first parser error."],
+      limitations: ["The fixture only proves one failed and one successful analysis."],
     }),
   ] as const;
 
@@ -118,7 +152,7 @@ export const verifySingleSubQuestionFailureDoesNotKillJob = async (): Promise<vo
   const result = await runDeepResearchAnalysis(
     {
       userQuestion: "Can the research pipeline continue when one sub-question breaks formatting?",
-      analysisGoal: "Verify sub-question fault isolation and final evidence gaps.",
+      analysisGoal: "Verify sub-question fault isolation and explicit missing-analysis evidence gaps.",
       language: "en",
       maxSubQuestions: 4,
       outputFormat: "markdown",
@@ -139,21 +173,21 @@ export const verifySingleSubQuestionFailureDoesNotKillJob = async (): Promise<vo
     throw new Error("Fault isolation fixture must still produce a final report.");
   }
   assert(
-    report.evidenceGaps.some((gap) => gap.includes("Missing structured positive or falsification record")),
+    report.evidenceGaps.some((gap) => gap.includes("Missing structured independent analysis record")),
     `Final report must surface the missing sub-question gap, received ${JSON.stringify(report.evidenceGaps)}.`,
   );
 
   const store = createDeepResearchRecordStore(dataDir);
   try {
     const interactions = store.listInteractions(result.jobId);
-    const failedPositiveInteraction = interactions.find((interaction) =>
-      interaction.phase === "positive" && interaction.parseStatus !== "parsed");
-    assert(Boolean(failedPositiveInteraction), "Fault isolation fixture must persist a failed positive interaction.");
+    const failedAnalysisInteraction = interactions.find((interaction) =>
+      interaction.phase === "analysis" && interaction.parseStatus !== "parsed");
+    assert(Boolean(failedAnalysisInteraction), "Fault isolation fixture must persist a failed analysis interaction.");
 
-    const answers = store.listAnswers({ jobId: result.jobId });
+    const answers = store.listAnswers({ jobId: result.jobId, answerKind: "analysis" });
     assert(
-      answers.length === 4,
-      `Fault isolation fixture should persist only the two complete sub-question pairs, received ${answers.length}.`,
+      answers.length === 1,
+      `Fault isolation fixture should persist only the single complete analysis answer, received ${answers.length}.`,
     );
   } finally {
     store.close();

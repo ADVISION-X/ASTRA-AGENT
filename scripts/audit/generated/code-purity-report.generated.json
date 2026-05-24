@@ -1,30 +1,1329 @@
 {
-  "generatedAt": "2026-05-23T22:30:52.670Z",
+  "antiEvasionFindingCount": 9,
   "capabilityDomain": "code-purity",
+  "commentedOutCodeCount": 12,
+  "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "lawIds": [
-    "APEX-CODE-PURITY-001-V1",
-    "APEX-CODE-PURITY-002-V1",
-    "APEX-CODE-PURITY-003-V1",
-    "APEX-CODE-PURITY-004-V1",
-    "APEX-CODE-PURITY-005-V1",
-    "APEX-CODE-PURITY-006-V1",
-    "APEX-CODE-PURITY-007-V1",
-    "APEX-CODE-PURITY-008-V1",
-    "APEX-CODE-PURITY-009-V1",
-    "APEX-CODE-PURITY-010-V1",
-    "APEX-CODE-PURITY-011-V1",
-    "APEX-CODE-PURITY-012-V1",
-    "APEX-CODE-PURITY-013-V1",
-    "APEX-CODE-PURITY-014-V1",
-    "APEX-CODE-PURITY-015-V1",
-    "APEX-CODE-PURITY-016-V1",
-    "APEX-CODE-PURITY-017-V1"
+  "findings": [
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/ci-full.ts has an over-line function near line 66.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/ci-full.ts",
+      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts has an over-line function near line 54.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts has an over-line function near line 43.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/as-unknown-as",
+      "lawId": "APEX-CODE-PURITY-008-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts uses as unknown as near line 117.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Replace double assertion with schema validation or an explicit narrowing guard.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts has an over-line function near line 47.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts has an over-line function near line 53.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts has an over-line function near line 107.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts has an over-line function near line 53.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/shared/source-module-targets.ts has an over-line function near line 122.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/shared/source-module-targets.ts",
+      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts has an over-line function near line 309.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts has an over-line function near line 311.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts has an over-line function near line 282.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts has an over-line function near line 72.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts has an over-line function near line 132.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts has 579 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-file",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts exports isAntiEvasionFinding without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"isAntiEvasionFinding\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RUNTIME_LOG_GENERATED_JSON without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"RUNTIME_LOG_GENERATED_JSON\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RUNTIME_LOG_GENERATED_MD without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"RUNTIME_LOG_GENERATED_MD\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts exports AmazonInvoiceUploadTaskResumeInput without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts",
+      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"symbolName\":\"AmazonInvoiceUploadTaskResumeInput\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts exports parseDeepResearchFinalReportResponse without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"parseDeepResearchFinalReportResponse\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts exports detectFinalSynthesisLeakage without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"detectFinalSynthesisLeakage\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts exports persistPositiveAnswer without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts exports persistFalsificationAnswer without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistFalsificationAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts exports parseDeepResearchFinalReportResponse without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"parseDeepResearchFinalReportResponse\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts exports persistFalsificationAnswer without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistFalsificationAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts exports persistPositiveAnswer without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts exports detectFinalSynthesisLeakage without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"detectFinalSynthesisLeakage\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts exports ResearchFlowMode without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
+      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"ResearchFlowMode\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration rootDir.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"rootDir\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration host.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"host\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration port.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"port\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration baseUrl.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"baseUrl\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration expectedSourceFingerprint.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"expectedSourceFingerprint\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration terminalLogger.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"terminalLogger\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration startupRunId.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"startupRunId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration ensureDependencies.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"ensureDependencies\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration runUpdatePreflight.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"runUpdatePreflight\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration preparePort.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"preparePort\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration startService.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"startService\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration verifyAppHealth.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"verifyAppHealth\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration isControlledServiceExit.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"isControlledServiceExit\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration toExitFailureReason.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"toExitFailureReason\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration createShutdownHandler.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createShutdownHandler\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration classifyServiceExit.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"classifyServiceExit\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration performLaunch.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"performLaunch\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration openReadyPage.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"openReadyPage\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/launch-grasseye.mjs could not resolve symbol references for top-level declaration main.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"main\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration execFileAsync.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"execFileAsync\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration debugDependencyCheck.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"debugDependencyCheck\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration pathExists.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"pathExists\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration ensureSupportedNodeVersion.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"ensureSupportedNodeVersion\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration buildDependencyPaths.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildDependencyPaths\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration collectDependencyReasons.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"collectDependencyReasons\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-check.mjs could not resolve symbol references for top-level declaration buildDependencyAssessment.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-check.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildDependencyAssessment\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-package-utils.mjs could not resolve symbol references for top-level declaration CONTROLLED_RANGE_PATTERN.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-package-utils.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"CONTROLLED_RANGE_PATTERN\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-state-analysis.mjs could not resolve symbol references for top-level declaration debugDependencyState.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-state-analysis.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"debugDependencyState\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-state-analysis.mjs could not resolve symbol references for top-level declaration pathExists.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-state-analysis.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"pathExists\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/dependency-state-analysis.mjs could not resolve symbol references for top-level declaration appendReason.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/dependency-state-analysis.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"appendReason\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration MACOS_CHROME_APP_CANDIDATES.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"MACOS_CHROME_APP_CANDIDATES\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration toFailureReason.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"toFailureReason\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration escapeAppleScriptString.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"escapeAppleScriptString\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration runSpawn.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"runSpawn\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration buildChromeTabHandoffScript.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildChromeTabHandoffScript\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration handoffToCurrentChromeTab.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"handoffToCurrentChromeTab\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/open-workbench-page.mjs could not resolve symbol references for top-level declaration tryMacOsChromeHandoff.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/open-workbench-page.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"tryMacOsChromeHandoff\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration execFileAsync.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"execFileAsync\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration parsePidList.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"parsePidList\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration toErrorDetails.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"toErrorDetails\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration getErrorCode.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"getErrorCode\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration getErrorStdout.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"getErrorStdout\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration isEmptyListenerCommandError.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"isEmptyListenerCommandError\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration getListeningPidsOnUnix.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"getListeningPidsOnUnix\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/port-listener-ops.mjs could not resolve symbol references for top-level declaration getListeningPidsOnWindows.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/port-listener-ops.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"getListeningPidsOnWindows\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/process-control.mjs could not resolve symbol references for top-level declaration signalListeners.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/process-control.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"signalListeners\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/process-control.mjs could not resolve symbol references for top-level declaration clearAttempt.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/process-control.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"clearAttempt\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs could not resolve symbol references for top-level declaration wireLineStream.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"wireLineStream\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs could not resolve symbol references for top-level declaration runNpmScript.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"runNpmScript\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs could not resolve symbol references for top-level declaration runPreStartScripts.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"runPreStartScripts\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs could not resolve symbol references for top-level declaration buildServiceEnv.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildServiceEnv\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs could not resolve symbol references for top-level declaration spawnLocalServiceProcess.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"spawnLocalServiceProcess\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs could not resolve symbol references for top-level declaration waitForChildSpawn.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"waitForChildSpawn\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-readiness.mjs could not resolve symbol references for top-level declaration waitForDelay.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"waitForDelay\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-readiness.mjs could not resolve symbol references for top-level declaration probeHealth.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"probeHealth\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-readiness.mjs could not resolve symbol references for top-level declaration isWorkbenchHealthReport.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"isWorkbenchHealthReport\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/source-fingerprint.mjs could not resolve symbol references for top-level declaration FINGERPRINT_ROOTS.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/source-fingerprint.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"FINGERPRINT_ROOTS\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/source-fingerprint.mjs could not resolve symbol references for top-level declaration INCLUDED_EXTENSIONS.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/source-fingerprint.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"INCLUDED_EXTENSIONS\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/source-fingerprint.mjs could not resolve symbol references for top-level declaration walkFiles.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/source-fingerprint.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"walkFiles\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/startup-failure-bundle.mjs could not resolve symbol references for top-level declaration sanitizeTimestamp.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/startup-failure-bundle.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"sanitizeTimestamp\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/startup-failure-handler.mjs could not resolve symbol references for top-level declaration FAILURE_ACTIONS.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/startup-failure-handler.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"FAILURE_ACTIONS\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/startup-failure-handler.mjs could not resolve symbol references for top-level declaration ownerForFailure.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/startup-failure-handler.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"ownerForFailure\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/startup-failure-handler.mjs could not resolve symbol references for top-level declaration actionableForFailure.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/startup-failure-handler.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"actionableForFailure\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/startup-log-helpers.mjs could not resolve symbol references for top-level declaration createStructuredLoggers.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/startup-log-helpers.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createStructuredLoggers\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/startup-log-helpers.mjs could not resolve symbol references for top-level declaration createRuntimeLogHelpers.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/startup-log-helpers.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createRuntimeLogHelpers\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration STANDARD_META_KEYS.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"STANDARD_META_KEYS\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration AI_SUMMARY_META_KEYS.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"AI_SUMMARY_META_KEYS\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration FAILURE_DEBUG_META_KEYS.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"FAILURE_DEBUG_META_KEYS\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration normalizeText.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"normalizeText\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration formatMetaValue.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"formatMetaValue\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration pushMeta.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"pushMeta\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration appendNamedMeta.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"appendNamedMeta\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration buildEventBody.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildEventBody\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration buildEventMeta.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildEventMeta\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration renderEvent.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"renderEvent\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration parseStructuredChildLine.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"parseStructuredChildLine\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration createEmitter.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createEmitter\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration createRuntimePayloadRelay.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createRuntimePayloadRelay\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration relayStructuredStdoutLine.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"relayStructuredStdoutLine\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration createStdoutRelay.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createStdoutRelay\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-log.mjs could not resolve symbol references for top-level declaration createStderrRelay.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-log.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"createStderrRelay\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration FAIL_STATUSES.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"FAIL_STATUSES\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration PASS_STATUSES.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"PASS_STATUSES\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration normalizeText.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"normalizeText\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration resolveLevel.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"resolveLevel\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration isFailureDebugStatus.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"isFailureDebugStatus\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration resolveFailureSnapshot.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"resolveFailureSnapshot\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration resolvePayloadRefs.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"resolvePayloadRefs\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildFailureDebugProjection.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildFailureDebugProjection\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration resolveRelayMessage.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"resolveRelayMessage\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildRuntimeRelayClassification.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildRuntimeRelayClassification\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildRuntimeRelayOwnership.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildRuntimeRelayOwnership\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildRuntimeRelayTraceIds.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildRuntimeRelayTraceIds\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildRuntimeRelayExecutionMetadata.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildRuntimeRelayExecutionMetadata\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildRuntimeRelayTraceMetadata.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildRuntimeRelayTraceMetadata\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/symbol-resolution-unavailable",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/terminal-structured-runtime-relay.mjs could not resolve symbol references for top-level declaration buildRuntimeRelayDecisionMetadata.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Repair symbol resolution for the declaration; identifier-count fallback is forbidden.\",\"role\":\"startup-script\",\"symbolName\":\"buildRuntimeRelayDecisionMetadata\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-douyin-video-once.ts contains commented-out executable code near line 27.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-douyin-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/local-runtime/contract.ts contains commented-out executable code near line 1.",
+      "severity": "fatal",
+      "filePath": "src/lib/local-runtime/contract.ts",
+      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/event-types.ts contains commented-out executable code near line 3.",
+      "severity": "fatal",
+      "filePath": "src/lib/runtime-logs/event-types.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/logger.ts contains commented-out executable code near line 2.",
+      "severity": "fatal",
+      "filePath": "src/lib/runtime-logs/logger.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/logger.ts contains commented-out executable code near line 68.",
+      "severity": "fatal",
+      "filePath": "src/lib/runtime-logs/logger.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/mode.ts contains commented-out executable code near line 3.",
+      "severity": "fatal",
+      "filePath": "src/lib/runtime-logs/mode.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/mode.ts contains commented-out executable code near line 18.",
+      "severity": "fatal",
+      "filePath": "src/lib/runtime-logs/mode.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/redaction.ts contains commented-out executable code near line 41.",
+      "severity": "fatal",
+      "filePath": "src/lib/runtime-logs/redaction.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/storage/hash.ts contains commented-out executable code near line 1.",
+      "severity": "fatal",
+      "filePath": "src/lib/storage/hash.ts",
+      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/storage/refs.ts contains commented-out executable code near line 1.",
+      "severity": "fatal",
+      "filePath": "src/lib/storage/refs.ts",
+      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/storage/schema.ts contains commented-out executable code near line 1.",
+      "severity": "fatal",
+      "filePath": "src/lib/storage/schema.ts",
+      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/commented-out-executable-code",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/lib/storage/storage-port.ts contains commented-out executable code near line 23.",
+      "severity": "fatal",
+      "filePath": "src/lib/storage/storage-port.ts",
+      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/barrel-reexport-laundering",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts re-exports parseDeepResearchFinalReportResponse without any final reachable consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"parseDeepResearchFinalReportResponse\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/barrel-reexport-laundering",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts re-exports detectFinalSynthesisLeakage without any final reachable consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"detectFinalSynthesisLeakage\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/barrel-reexport-laundering",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts re-exports persistFalsificationAnswer without any final reachable consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
+      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"persistFalsificationAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/barrel-reexport-laundering",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts re-exports persistPositiveAnswer without any final reachable consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
+      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/void-keepalive-evasion",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts uses void projectFileCount as a keepalive-looking escape.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/void-keepalive-evasion",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/runtime-log-spine/inspector.ts uses void context.project.getSourceFiles().length as a keepalive-looking escape.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
+      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/void-keepalive-evasion",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/startup/lib/service-process.mjs uses void child as a keepalive-looking escape.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-process.mjs",
+      "evidence": "{\"owner\":\"startup\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"startup-script\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/void-keepalive-evasion",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts uses void promptHash as a keepalive-looking escape.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/void-keepalive-evasion",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts uses void rawResponseHash as a keepalive-looking escape.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
   ],
-  "status": "PASS",
-  "findings": [],
+  "generatedAt": "2026-05-24T00:13:58.640Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/deep-research-analysis-raw-capture-boundary.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
@@ -70,6 +1369,7 @@
     "scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts",
     "scripts/audit/domains/code-purity/components/code-purity-report-writer.ts",
     "scripts/audit/domains/code-purity/components/scan-audit-truth.ts",
+    "scripts/audit/domains/code-purity/components/scan-code-purity-no-regex.ts",
     "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
     "scripts/audit/domains/code-purity/components/scan-structural-budgets.ts",
     "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts",
@@ -80,7 +1380,18 @@
     "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
     "scripts/audit/domains/code-purity/components/structural-metrics.ts",
+    "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
+    "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
+    "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
+    "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+    "scripts/audit/domains/code-purity/components/zombie-live-entrypoints.ts",
+    "scripts/audit/domains/code-purity/components/zombie-module-graph.ts",
+    "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts",
+    "scripts/audit/domains/code-purity/components/zombie-reexport-trace.ts",
     "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts",
+    "scripts/audit/domains/code-purity/components/zombie-symbol-graph.ts",
+    "scripts/audit/domains/code-purity/components/zombie-symbol-usage.ts",
+    "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
@@ -455,5 +1766,265 @@
     "src/types/evidence.ts",
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
-  ]
+  ],
+  "lawIds": [
+    "APEX-CODE-PURITY-001-V1",
+    "APEX-CODE-PURITY-002-V1",
+    "APEX-CODE-PURITY-003-V1",
+    "APEX-CODE-PURITY-004-V1",
+    "APEX-CODE-PURITY-005-V1",
+    "APEX-CODE-PURITY-006-V1",
+    "APEX-CODE-PURITY-007-V1",
+    "APEX-CODE-PURITY-008-V1",
+    "APEX-CODE-PURITY-009-V1",
+    "APEX-CODE-PURITY-010-V1",
+    "APEX-CODE-PURITY-011-V1",
+    "APEX-CODE-PURITY-012-V1",
+    "APEX-CODE-PURITY-013-V1",
+    "APEX-CODE-PURITY-014-V1",
+    "APEX-CODE-PURITY-015-V1",
+    "APEX-CODE-PURITY-016-V1",
+    "APEX-CODE-PURITY-017-V1",
+    "APEX-CODE-PURITY-018-V1"
+  ],
+  "liveEntryPoints": [
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+      "reason": "package.json script acceptance:amazon-invoice-upload-smoke",
+      "scriptName": "acceptance:amazon-invoice-upload-smoke"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
+      "reason": "package.json script acceptance:code-purity-zombie-deep",
+      "scriptName": "acceptance:code-purity-zombie-deep"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
+      "reason": "package.json script acceptance:deep-research-analysis-smoke",
+      "scriptName": "acceptance:deep-research-analysis-smoke"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-app-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-app-ui",
+      "scriptName": "acceptance:deep-research-app-ui"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-decomposition-prompt",
+      "scriptName": "acceptance:deep-research-decomposition-prompt"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-report-export.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-report-export",
+      "scriptName": "acceptance:deep-research-report-export"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-report-reader-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-report-reader-ui",
+      "scriptName": "acceptance:deep-research-report-reader-ui"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-live-dom-probe.ts",
+      "reason": "package.json script dev:facebook-live-dom-probe",
+      "scriptName": "dev:facebook-live-dom-probe"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-product-video-mining-ai-upload.acceptance.ts",
+      "reason": "package.json script acceptance:facebook-product-video-mining",
+      "scriptName": "acceptance:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
+      "reason": "package.json script acceptance:facebook-product-video-mining",
+      "scriptName": "acceptance:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-product-video-mining-failure-diagnosis.acceptance.ts",
+      "reason": "package.json script acceptance:facebook-product-video-mining",
+      "scriptName": "acceptance:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
+      "reason": "package.json script acceptance:facebook-product-video-mining",
+      "scriptName": "acceptance:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
+      "reason": "package.json script acceptance:facebook-product-video-mining",
+      "scriptName": "acceptance:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+      "reason": "package.json script acceptance:facebook-product-video-mining",
+      "scriptName": "acceptance:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+      "reason": "package.json script acceptance:runtime-log-spine",
+      "scriptName": "acceptance:runtime-log-spine"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/runtime-log-redaction.acceptance.ts",
+      "reason": "package.json script acceptance:runtime-log-spine",
+      "scriptName": "acceptance:runtime-log-spine"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
+      "reason": "package.json script acceptance:runtime-log-spine",
+      "scriptName": "acceptance:runtime-log-spine"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+      "reason": "package.json script acceptance:runtime-log-spine",
+      "scriptName": "acceptance:runtime-log-spine"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+      "reason": "package.json script acceptance:video-download-telegram-web",
+      "scriptName": "acceptance:video-download-telegram-web"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/ci-full.ts",
+      "reason": "package.json script ci:full",
+      "scriptName": "ci:full"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/codex-entry-gate.ts",
+      "reason": "package.json script codex:entry-gate",
+      "scriptName": "codex:entry-gate"
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/capability-group-governance/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/code-purity/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/run-inspector.ts",
+      "reason": "package.json script audit:facebook-log-coverage",
+      "scriptName": "audit:facebook-log-coverage"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+      "reason": "package.json script audit:facebook-product-video-mining",
+      "scriptName": "audit:facebook-product-video-mining"
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/runtime-log-spine/run-inspector.ts",
+      "reason": "package.json script audit:runtime-log-spine",
+      "scriptName": "audit:runtime-log-spine"
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/startup/launch-grasseye.mjs",
+      "reason": "package.json script grasseye:start",
+      "scriptName": "grasseye:start"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "src/app/server.ts",
+      "reason": "package.json script internal:app-server:dev",
+      "scriptName": "internal:app-server:dev"
+    }
+  ],
+  "liveExportCount": 1139,
+  "orphanDeclarationCount": 0,
+  "reachableFileCount": 443,
+  "status": "FAIL",
+  "unreachableFileCount": 1,
+  "zombieExportCount": 13,
+  "zombieSummary": {
+    "antiEvasionFindingCount": 9,
+    "commentedOutCodeCount": 12,
+    "deadBranchCount": 0,
+    "liveExportCount": 1139,
+    "orphanDeclarationCount": 0,
+    "reachableFileCount": 443,
+    "unreachableFileCount": 1,
+    "zombieExportCount": 13
+  }
 }

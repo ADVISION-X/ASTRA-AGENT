@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T22:30:54.563Z",
+  "generatedAt": "2026-05-24T00:14:01.064Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -17,7 +17,8 @@
     "GRASSEYE-DEEP-RESEARCH-012-V1",
     "GRASSEYE-DEEP-RESEARCH-013-V1",
     "GRASSEYE-DEEP-RESEARCH-014-V1",
-    "GRASSEYE-DEEP-RESEARCH-015-V1"
+    "GRASSEYE-DEEP-RESEARCH-015-V1",
+    "GRASSEYE-DEEP-RESEARCH-016-V1"
   ],
   "status": "PASS",
   "findings": [],

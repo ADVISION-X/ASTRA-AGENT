@@ -5,12 +5,16 @@ import {
   buildRenderedDeepResearchPromptHash,
   decompositionPrompt,
   falsificationPrompt,
+  finalAdjudicationPrompt,
   finalSynthesisPrompt,
   positiveAnalysisPrompt,
   renderDeepResearchDecompositionPrompt,
   renderDeepResearchFalsificationPrompt,
+  renderDeepResearchFinalAdjudicationPrompt,
   renderDeepResearchFinalSynthesisPrompt,
   renderDeepResearchPositivePrompt,
+  renderDeepResearchSubQuestionAnalysisPrompt,
+  subQuestionAnalysisPrompt,
 } from "./deep-research-analysis.prompts.js";
 import type {
   ResearchAnswer,
@@ -33,7 +37,13 @@ const truncateText = (value: string, maxLength = 220): string => {
 };
 
 type VerifiedPrompt = {
-  prompt: typeof decompositionPrompt | typeof positiveAnalysisPrompt | typeof falsificationPrompt | typeof finalSynthesisPrompt;
+  prompt:
+    | typeof decompositionPrompt
+    | typeof subQuestionAnalysisPrompt
+    | typeof positiveAnalysisPrompt
+    | typeof falsificationPrompt
+    | typeof finalAdjudicationPrompt
+    | typeof finalSynthesisPrompt;
   promptText: string;
 };
 
@@ -51,6 +61,27 @@ const renderDecompositionVerifiedPrompt = (input: {
     }),
   }
   : null;
+
+const renderAnalysisVerifiedPrompt = (input: {
+  interaction: ResearchInteraction;
+  job: ResearchJob;
+  subQuestionById: Map<string, ResearchSubQuestion>;
+}): VerifiedPrompt | null => {
+  const subQuestion = input.interaction.subQuestionId
+    ? input.subQuestionById.get(input.interaction.subQuestionId)
+    : null;
+  return subQuestion
+    ? {
+      prompt: subQuestionAnalysisPrompt,
+      promptText: renderDeepResearchSubQuestionAnalysisPrompt({
+        userQuestion: input.job.userQuestion,
+        analysisGoal: input.job.analysisGoal,
+        language: input.job.language,
+        subQuestion: subQuestion.question,
+      }),
+    }
+    : null;
+};
 
 const renderPositiveVerifiedPrompt = (input: {
   interaction: ResearchInteraction;
@@ -106,6 +137,22 @@ const renderFalsificationVerifiedPrompt = (input: {
     : null;
 };
 
+const renderFinalAdjudicationVerifiedPrompt = (input: {
+  finalPackage: DeepResearchFinalPackage | null;
+  interaction: ResearchInteraction;
+  job: ResearchJob;
+}): VerifiedPrompt | null => input.interaction.phase === "final_adjudication" && input.finalPackage
+  ? {
+    prompt: finalAdjudicationPrompt,
+    promptText: renderDeepResearchFinalAdjudicationPrompt({
+      userQuestion: input.job.userQuestion,
+      analysisGoal: input.job.analysisGoal,
+      language: input.job.language,
+      finalPackage: input.finalPackage,
+    }),
+  }
+  : null;
+
 const renderFinalSynthesisVerifiedPrompt = (input: {
   finalPackage: DeepResearchFinalPackage | null;
   interaction: ResearchInteraction;
@@ -132,10 +179,14 @@ const renderVerifiedPrompt = (input: {
   switch (input.interaction.phase) {
     case "decomposition":
       return renderDecompositionVerifiedPrompt(input);
+    case "analysis":
+      return renderAnalysisVerifiedPrompt(input);
     case "positive":
       return renderPositiveVerifiedPrompt(input);
     case "falsification":
       return renderFalsificationVerifiedPrompt(input);
+    case "final_adjudication":
+      return renderFinalAdjudicationVerifiedPrompt(input);
     case "final_synthesis":
       return renderFinalSynthesisVerifiedPrompt(input);
     default:
@@ -206,7 +257,11 @@ export const buildParsedEntry = (input: {
       parsedRecordIds: records.map((record) => record.id),
     };
   }
-  if (input.interaction.phase === "positive" || input.interaction.phase === "falsification") {
+  if (
+    input.interaction.phase === "analysis"
+    || input.interaction.phase === "positive"
+    || input.interaction.phase === "falsification"
+  ) {
     const answer = input.answersByInteractionId.get(input.interaction.id);
     if (!answer) {
       return {
@@ -229,7 +284,7 @@ export const buildParsedEntry = (input: {
     };
   }
   return {
-    parsedSummary: truncateText(input.finalReportRecord.report.executiveConclusion),
+    parsedSummary: truncateText(input.finalReportRecord.report.directAnswer),
     parsedJson: input.finalReportRecord.report,
     parsedRecordIds: [input.finalReportRecord.id],
   };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T22:30:54.678Z",
+  "generatedAt": "2026-05-24T00:14:01.187Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,8 +9,17 @@
     "APEX-LOCAL-APP-SHELL-004-V1",
     "APEX-LOCAL-APP-SHELL-005-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "local-app-shell/deep-research-reader-marker",
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-deep-research-report-view.ts must contain data-deep-research-final-synthesis.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-deep-research-report-view.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "src/app/create-workbench-server.ts",
@@ -22,6 +31,7 @@
     "src/app/workbench-deep-research-panel.ts",
     "src/app/workbench-deep-research-report-view.ts",
     "src/app/workbench-deep-research-routes.ts",
+    "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",

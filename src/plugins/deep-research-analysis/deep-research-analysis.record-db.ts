@@ -11,6 +11,7 @@ import type {
   DeepResearchJobStatus,
   DeepResearchParseStatus,
   DeepResearchPhase,
+  DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
 import type {
   DeepResearchConflictMatrixRow,
@@ -46,6 +47,7 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     language TEXT NOT NULL,
     max_sub_questions INTEGER NOT NULL,
     output_format TEXT NOT NULL,
+    flow_mode TEXT NOT NULL DEFAULT 'default_1_n_1',
     status TEXT NOT NULL,
     phase TEXT NOT NULL,
     failure_reason TEXT,
@@ -62,8 +64,14 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     title TEXT NOT NULL,
     question_text TEXT NOT NULL,
     purpose TEXT NOT NULL,
+    why_it_matters TEXT,
+    decision_weight TEXT,
+    analysis_focus TEXT,
+    required_evidence_json TEXT NOT NULL DEFAULT '[]',
     scope TEXT NOT NULL,
     expected_answer_shape TEXT NOT NULL,
+    priority TEXT,
+    omission_risk TEXT,
     created_at TEXT NOT NULL,
     UNIQUE(job_id, model_question_id),
     UNIQUE(job_id, ordinal)
@@ -98,6 +106,7 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     assumptions_json TEXT NOT NULL,
     limitations_json TEXT NOT NULL,
     contradiction_points_json TEXT NOT NULL,
+    parsed_payload_json TEXT NOT NULL DEFAULT '{}',
     confidence TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
@@ -182,8 +191,14 @@ const createSubQuestionsV2Table = (db: Database.Database): void => {
       title TEXT NOT NULL,
       question_text TEXT NOT NULL,
       purpose TEXT NOT NULL,
+      why_it_matters TEXT,
+      decision_weight TEXT,
+      analysis_focus TEXT,
+      required_evidence_json TEXT NOT NULL DEFAULT '[]',
       scope TEXT NOT NULL,
       expected_answer_shape TEXT NOT NULL,
+      priority TEXT,
+      omission_risk TEXT,
       created_at TEXT NOT NULL,
       UNIQUE(job_id, model_question_id),
       UNIQUE(job_id, ordinal)
@@ -198,8 +213,9 @@ const copyLegacySubQuestionRows = (
   const insert = db.prepare(
     `INSERT INTO research_sub_questions_v2 (
       id, job_id, interaction_id, model_question_id, ordinal, title, question_text,
-      purpose, scope, expected_answer_shape, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      purpose, why_it_matters, decision_weight, analysis_focus, required_evidence_json,
+      scope, expected_answer_shape, priority, omission_risk, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const idRemap = new Map<string, string>();
   for (const row of legacyRows) {
@@ -214,8 +230,14 @@ const copyLegacySubQuestionRows = (
       row.title,
       row.question_text,
       row.purpose,
+      null,
+      null,
+      null,
+      "[]",
       row.scope,
       row.expected_answer_shape,
+      null,
+      null,
       row.created_at,
     );
   }
@@ -269,8 +291,64 @@ const migrateResearchInteractionsRenderedPromptText = (db: Database.Database): v
   ).run(LEGACY_RENDERED_PROMPT_TEXT);
 };
 
+const migrateResearchJobsFlowMode = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_jobs", "flow_mode")) {
+    db.exec("ALTER TABLE research_jobs ADD COLUMN flow_mode TEXT");
+  }
+  db.prepare(
+    `UPDATE research_jobs
+     SET flow_mode = ?
+     WHERE flow_mode IS NULL OR trim(flow_mode) = ''`,
+  ).run("legacy_1_n_n_1");
+};
+
+const migrateResearchSubQuestionStructuredFields = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_sub_questions", "why_it_matters")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN why_it_matters TEXT");
+  }
+  if (!hasColumn(db, "research_sub_questions", "decision_weight")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN decision_weight TEXT");
+  }
+  if (!hasColumn(db, "research_sub_questions", "analysis_focus")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN analysis_focus TEXT");
+  }
+  if (!hasColumn(db, "research_sub_questions", "required_evidence_json")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN required_evidence_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!hasColumn(db, "research_sub_questions", "priority")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN priority TEXT");
+  }
+  if (!hasColumn(db, "research_sub_questions", "omission_risk")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN omission_risk TEXT");
+  }
+  db.prepare(
+    `UPDATE research_sub_questions
+     SET required_evidence_json = '[]'
+     WHERE required_evidence_json IS NULL OR trim(required_evidence_json) = ''`,
+  ).run();
+};
+
+const migrateResearchAnswersParsedPayload = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_answers", "parsed_payload_json")) {
+    db.exec("ALTER TABLE research_answers ADD COLUMN parsed_payload_json TEXT NOT NULL DEFAULT '{}' ");
+  }
+  db.prepare(
+    `UPDATE research_answers
+     SET parsed_payload_json = '{}'
+     WHERE parsed_payload_json IS NULL OR trim(parsed_payload_json) = ''`,
+  ).run();
+};
+
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));
+
+const parseUnknownRecord = (value: string): Record<string, unknown> => {
+  const parsed = JSON.parse(value) as unknown;
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>;
+  }
+  return {};
+};
 
 export const resolveDeepResearchDbPath = (dataDir: string): string =>
   path.join(dataDir, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH);
@@ -286,6 +364,9 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
   }
   migrateResearchSubQuestionsSchema(db);
   migrateResearchInteractionsRenderedPromptText(db);
+  migrateResearchJobsFlowMode(db);
+  migrateResearchSubQuestionStructuredFields(db);
+  migrateResearchAnswersParsedPayload(db);
   for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {
     db.exec(statement);
   }
@@ -299,6 +380,7 @@ export const mapJobRow = (row: {
   language: DeepResearchInput["language"];
   max_sub_questions: number;
   output_format: DeepResearchInput["outputFormat"];
+  flow_mode: ResearchJob["flowMode"] | null;
   status: DeepResearchJobStatus;
   phase: DeepResearchPhase;
   failure_reason: string | null;
@@ -313,6 +395,7 @@ export const mapJobRow = (row: {
     language: row.language,
     maxSubQuestions: row.max_sub_questions,
     outputFormat: row.output_format,
+    flowMode: row.flow_mode ?? "legacy_1_n_n_1",
     status: row.status,
     phase: row.phase,
     failureReason: row.failure_reason,
@@ -330,8 +413,14 @@ export const mapSubQuestionRow = (row: {
   title: string;
   question_text: string;
   purpose: string;
+  why_it_matters: string | null;
+  decision_weight: DeepResearchSubQuestion["decisionWeight"] | null;
+  analysis_focus: string | null;
+  required_evidence_json: string;
   scope: string;
   expected_answer_shape: string;
+  priority: DeepResearchSubQuestion["priority"] | null;
+  omission_risk: string | null;
   created_at: string;
 }): ResearchSubQuestion =>
   ResearchSubQuestionSchema.parse({
@@ -345,8 +434,14 @@ export const mapSubQuestionRow = (row: {
       title: row.title,
       questionText: row.question_text,
       purpose: row.purpose,
+      ...(row.why_it_matters ? { whyItMatters: row.why_it_matters } : {}),
+      ...(row.decision_weight ? { decisionWeight: row.decision_weight } : {}),
+      ...(row.analysis_focus ? { analysisFocus: row.analysis_focus } : {}),
+      requiredEvidence: parseStringArray(row.required_evidence_json),
       scope: row.scope,
       expectedAnswerShape: row.expected_answer_shape,
+      ...(row.priority ? { priority: row.priority } : {}),
+      ...(row.omission_risk ? { omissionRisk: row.omission_risk } : {}),
     },
     createdAt: row.created_at,
   });
@@ -400,6 +495,7 @@ export const mapAnswerRow = (row: {
   assumptions_json: string;
   limitations_json: string;
   contradiction_points_json: string;
+  parsed_payload_json: string;
   confidence: "low" | "medium" | "high";
   created_at: string;
 }): ResearchAnswer =>
@@ -415,6 +511,7 @@ export const mapAnswerRow = (row: {
     assumptions: parseStringArray(row.assumptions_json),
     limitations: parseStringArray(row.limitations_json),
     contradictionPoints: parseStringArray(row.contradiction_points_json),
+    parsedPayload: parseUnknownRecord(row.parsed_payload_json),
     confidence: row.confidence,
     createdAt: row.created_at,
   });

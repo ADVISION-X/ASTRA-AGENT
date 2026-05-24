@@ -17,8 +17,11 @@ const qualityFilePath = "src/plugins/deep-research-analysis/deep-research-analys
 
 const requiredPromptTerms = [
   "requiredEvidence",
-  "positiveAnalysisFocus",
-  "falsificationFocus",
+  "whyItMatters",
+  "decisionWeight",
+  "analysisFocus",
+  "omissionRisk",
+  "exhaustivenessCheck",
   "qualitySelfCheck",
   "missingInfo",
   "Do not include contractId",
@@ -31,6 +34,7 @@ const exactRootFields = [
   "decompositionStrategy",
   "missingInfo",
   "subQuestions",
+  "exhaustivenessCheck",
   "qualitySelfCheck",
 ] as const;
 
@@ -38,14 +42,14 @@ const exactSubQuestionFields = [
   "id",
   "title",
   "questionText",
-  "dimension",
-  "purpose",
+  "whyItMatters",
+  "decisionWeight",
+  "analysisFocus",
   "requiredEvidence",
-  "positiveAnalysisFocus",
-  "falsificationFocus",
   "scope",
   "expectedAnswerShape",
   "priority",
+  "omissionRisk",
 ] as const;
 
 const getObjectPropertyLiteralText = (
@@ -160,7 +164,9 @@ const inspectQualityCoverage = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const leakageHelper = qualityFile?.getFunction("detectFinalSynthesisLeakage")
+  const leakageHelper = qualityFile?.getFunction("detectFinalAdjudicationLeakage")
+    ?? qualityFile?.getVariableDeclaration("detectFinalAdjudicationLeakage")
+    ?? qualityFile?.getFunction("detectFinalSynthesisLeakage")
     ?? qualityFile?.getVariableDeclaration("detectFinalSynthesisLeakage");
   if (!leakageHelper) {
     pushFinding(findings, lawId, qualityFilePath, "deep-research/final-synthesis-leakage-quality", "Quality scorer must define detectFinalSynthesisLeakage.");
@@ -168,9 +174,11 @@ const inspectQualityCoverage = (
   const scoreFunction = qualityFile?.getFunction("scoreDecompositionQuality")
     ?? qualityFile?.getVariableDeclaration("scoreDecompositionQuality");
   const callsLeakage = scoreFunction?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "detectFinalSynthesisLeakage") ?? false;
+    .some((call) =>
+      Node.isIdentifier(call.getExpression())
+      && ["detectFinalAdjudicationLeakage", "detectFinalSynthesisLeakage"].includes(call.getExpression().getText())) ?? false;
   if (!callsLeakage) {
-    pushFinding(findings, lawId, qualityFilePath, "deep-research/final-synthesis-leakage-quality-call", "scoreDecompositionQuality must call detectFinalSynthesisLeakage.");
+    pushFinding(findings, lawId, qualityFilePath, "deep-research/final-synthesis-leakage-quality-call", "scoreDecompositionQuality must call the final-adjudication leakage detector.");
   }
 };
 

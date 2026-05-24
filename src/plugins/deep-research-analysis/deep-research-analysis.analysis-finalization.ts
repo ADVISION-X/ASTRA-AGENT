@@ -1,16 +1,17 @@
 import { RuntimeFailureClass } from "../../lib/runtime-logs/index.js";
 import { stableJsonHash } from "../../lib/storage/hash.js";
-import { buildDeepResearchConflictMatrix } from "./deep-research-analysis.conflict-matrix.js";
 import { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
 import { buildDeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
 import {
   logDeepResearchExportCompleted,
   logDeepResearchFinalPackageBuilt,
   logDeepResearchJobCompleted,
-  logDeepResearchRecordPersisted,
 } from "./deep-research-analysis.logging.js";
-import { parseDeepResearchFinalReportResponse } from "./deep-research-analysis.parser.js";
-import { finalSynthesisPrompt, renderDeepResearchFinalSynthesisPrompt } from "./deep-research-analysis.prompts.js";
+import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-analysis.parser.js";
+import {
+  finalAdjudicationPrompt,
+  renderDeepResearchFinalAdjudicationPrompt,
+} from "./deep-research-analysis.prompts.js";
 import { type DeepResearchFinalReport, type DeepResearchResult } from "./deep-research-analysis.result.js";
 import {
   type FlowStageHandle,
@@ -34,34 +35,67 @@ type FinalReportSuccess = {
   finalReport: DeepResearchFinalReport;
 };
 
+const readPayloadString = (
+  payload: Record<string, unknown>,
+  key: string,
+): string | null => {
+  const value = payload[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+};
+
+const readPayloadStringArray = (
+  payload: Record<string, unknown>,
+  key: string,
+): string[] => {
+  const value = payload[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
 const uniqueStrings = (values: readonly string[]): string[] =>
   [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 
-const buildFinalReportFallback = (
+const buildFinalAdjudicationFallback = (
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
 ) => {
   const fallback = {
-    conflictMatrix: finalPackage.conflictMatrix,
     positiveReasons: uniqueStrings(
-      finalPackage.positiveAnswerRecords.map((record) =>
-        record.keyPoints[0] ?? record.answerText),
+      finalPackage.analysisRecords.map((record) =>
+        readPayloadString(record.parsedPayload, "coreFinding")
+        ?? record.keyPoints[0]
+        ?? record.answerText),
     ),
     strongestOpposingArguments: uniqueStrings(
-      finalPackage.falsificationAnswerRecords.map((record) =>
-        record.keyPoints[0] ?? record.answerText),
+      finalPackage.analysisRecords.flatMap((record) => [
+        ...record.contradictionPoints,
+        ...readPayloadStringArray(record.parsedPayload, "failureCases"),
+      ]),
     ),
     evidenceGaps: uniqueStrings([
-      ...finalPackage.conflictMatrix.map((row) => row.evidenceGap),
-      ...finalPackage.missingSubQuestionIds.map((subQuestionId) =>
-        `Missing structured positive or falsification record for ${subQuestionId}.`),
+      ...finalPackage.missingAnalysisSubQuestionIds.map((subQuestionId) =>
+        `Missing structured independent analysis record for ${subQuestionId}.`),
     ]),
+    reverseConditions: uniqueStrings(
+      finalPackage.analysisRecords.flatMap((record) => record.contradictionPoints),
+    ),
+    followUpSignals: uniqueStrings(
+      finalPackage.analysisRecords.flatMap((record) => [
+        ...readPayloadStringArray(record.parsedPayload, "uncertainties"),
+        ...readPayloadStringArray(record.parsedPayload, "failureCases"),
+      ]),
+    ),
   };
-  if (finalPackage.missingSubQuestionIds.length === 0) {
+  if (finalPackage.missingAnalysisSubQuestionIds.length === 0) {
     return fallback;
   }
   return {
     ...fallback,
-    limitations: [`Structured analysis is incomplete for: ${finalPackage.missingSubQuestionIds.join(", ")}.`],
+    limitations: [`Structured independent analysis is incomplete for: ${finalPackage.missingAnalysisSubQuestionIds.join(", ")}.`],
   };
 };
 
@@ -93,29 +127,10 @@ const failFinalPackageStage = (
   };
 };
 
-const logConflictMatrixRows = (
-  context: AnalysisExecutionContext,
-  rowCount: number,
-  firstRowId: string | null,
-) => {
-  if (rowCount === 0) {
-    return;
-  }
-  logDeepResearchRecordPersisted({
-    logger: context.runtimeLogger,
-    traceContext: context.traceContext,
-    phase: "FINAL_PACKAGE_BUILD",
-    recordType: "conflict-matrix",
-    recordId: firstRowId ?? context.jobId,
-    count: rowCount,
-  });
-};
-
 const completeFinalPackageStage = (input: {
   context: AnalysisExecutionContext;
   finalPackageStage: FlowStageHandle;
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
-  conflictRowCount: number;
 }) => {
   const { finalPackageStage } = input;
   const finalPackageHash = stableJsonHash(input.finalPackage);
@@ -131,7 +146,8 @@ const completeFinalPackageStage = (input: {
     durationMs: Math.max(0, Date.now() - finalPackageStage.startedAt),
     hashes: { packageHash: finalPackageHash },
     metrics: {
-      conflictRowCount: input.conflictRowCount,
+      analysisRecordCount: input.finalPackage.analysisRecords.length,
+      missingAnalysisCount: input.finalPackage.missingAnalysisSubQuestionIds.length,
       recordHashCount: Object.keys(input.finalPackage.recordHashes).length,
     },
   });
@@ -250,32 +266,23 @@ export const buildFinalPackageStage = (
     }),
     stageName: "FINAL_PACKAGE_BUILD",
   });
-  const conflictMatrixResult = buildDeepResearchConflictMatrix({
-    store: context.store,
-    jobId: context.jobId,
-  });
-  if (conflictMatrixResult.status !== "completed") {
+  let finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  try {
+    finalPackage = buildDeepResearchFinalPackage({
+      store: context.store,
+      jobId: context.jobId,
+    });
+  } catch (error) {
     return failFinalPackageStage(
       context,
       finalPackageStage,
-      conflictMatrixResult.reason,
+      error instanceof Error ? error.message : "deep_research_final_package_build_failed",
     );
   }
-  const firstRow = conflictMatrixResult.rows[0];
-  logConflictMatrixRows(
-    context,
-    conflictMatrixResult.rows.length,
-    firstRow ? firstRow.id : null,
-  );
-  const finalPackage = buildDeepResearchFinalPackage({
-    store: context.store,
-    jobId: context.jobId,
-  });
   completeFinalPackageStage({
     context,
     finalPackageStage,
     finalPackage,
-    conflictRowCount: conflictMatrixResult.rows.length,
   });
   return { ok: true, finalPackage };
 };
@@ -293,9 +300,9 @@ export const runFinalReportPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: finalSynthesisPrompt,
-    promptKey: "final-synthesis",
-    renderedPromptText: renderDeepResearchFinalSynthesisPrompt({
+    prompt: finalAdjudicationPrompt,
+    promptKey: "final-adjudication",
+    renderedPromptText: renderDeepResearchFinalAdjudicationPrompt({
       userQuestion: context.input.userQuestion,
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
@@ -304,15 +311,15 @@ export const runFinalReportPhase = async (
     inputRefs: [`job:${context.jobId}:final-package`],
     maxInputChars: 45_000,
     stages: {
-      send: "FINAL_SEND",
-      capture: "FINAL_CAPTURE",
-      parse: "FINAL_PARSE",
-      persist: "FINAL_PERSIST",
+      send: "FINAL_ADJUDICATION_SEND",
+      capture: "FINAL_ADJUDICATION_CAPTURE",
+      parse: "FINAL_ADJUDICATION_PARSE",
+      persist: "FINAL_ADJUDICATION_PERSIST",
     },
     parse: (rawText) =>
-      parseDeepResearchFinalReportResponse(
+      parseDeepResearchFinalAdjudicationResponse(
         rawText,
-        buildFinalReportFallback(finalPackage),
+        buildFinalAdjudicationFallback(finalPackage),
       ),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) => {

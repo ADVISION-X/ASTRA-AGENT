@@ -1,25 +1,21 @@
 import type {
   DeepResearchDecompositionResponse,
-  DeepResearchFalsificationAnswer,
-  DeepResearchPositiveAnswer,
+  DeepResearchSubQuestionAnalysisAnswer,
 } from "./deep-research-analysis.parser.js";
 import {
   parseDeepResearchDecompositionResponse,
-  parseDeepResearchFalsificationResponse,
-  parseDeepResearchPositiveResponse,
+  parseDeepResearchSubQuestionAnalysisResponse,
 } from "./deep-research-analysis.parser.js";
 import {
   decompositionPrompt,
-  falsificationPrompt,
-  positiveAnalysisPrompt,
   renderDeepResearchDecompositionPrompt,
-  renderDeepResearchFalsificationPrompt,
-  renderDeepResearchPositivePrompt,
+  renderDeepResearchSubQuestionAnalysisPrompt,
+  subQuestionAnalysisPrompt,
 } from "./deep-research-analysis.prompts.js";
+import type { DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
 import type { ResearchSubQuestion } from "./deep-research-analysis.records.js";
 import {
-  persistFalsificationAnswer,
-  persistPositiveAnswer,
+  persistAnalysisAnswer,
   runPromptExchange,
 } from "./deep-research-analysis.prompt-exchange.js";
 import {
@@ -33,6 +29,23 @@ type DecompositionSuccess = {
   ok: true;
   subQuestions: readonly ResearchSubQuestion[];
 };
+
+const toPersistedSubQuestion = (
+  subQuestion: DeepResearchDecompositionResponse["subQuestions"][number],
+): DeepResearchSubQuestion => ({
+  id: subQuestion.id,
+  title: subQuestion.title,
+  questionText: subQuestion.questionText,
+  purpose: subQuestion.whyItMatters,
+  whyItMatters: subQuestion.whyItMatters,
+  decisionWeight: subQuestion.decisionWeight,
+  analysisFocus: subQuestion.analysisFocus,
+  requiredEvidence: [...subQuestion.requiredEvidence],
+  scope: subQuestion.scope,
+  expectedAnswerShape: subQuestion.expectedAnswerShape,
+  priority: subQuestion.priority,
+  omissionRisk: subQuestion.omissionRisk,
+});
 
 export const runDecompositionPhase = async (
   context: AnalysisExecutionContext,
@@ -66,7 +79,7 @@ export const runDecompositionPhase = async (
       const subQuestions = context.store.saveSubQuestions({
         jobId: context.jobId,
         interactionId: interaction.id,
-        subQuestions: parsed.subQuestions,
+        subQuestions: parsed.subQuestions.map(toPersistedSubQuestion),
       });
       return {
         recordType: "sub-question",
@@ -87,11 +100,11 @@ export const runDecompositionPhase = async (
   return { ok: true, subQuestions: context.store.listSubQuestions(context.jobId) };
 };
 
-const runPositivePhase = async (
+const runAnalysisPhase = async (
   context: AnalysisExecutionContext,
   subQuestion: ResearchSubQuestion,
 ) =>
-  runPromptExchange<DeepResearchPositiveAnswer>({
+  runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
@@ -100,9 +113,9 @@ const runPositivePhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: positiveAnalysisPrompt,
-    promptKey: `positive:${subQuestion.id}`,
-    renderedPromptText: renderDeepResearchPositivePrompt({
+    prompt: subQuestionAnalysisPrompt,
+    promptKey: `analysis:${subQuestion.id}`,
+    renderedPromptText: renderDeepResearchSubQuestionAnalysisPrompt({
       userQuestion: context.input.userQuestion,
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
@@ -110,16 +123,16 @@ const runPositivePhase = async (
     }),
     inputRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
     stages: {
-      send: "POSITIVE_SEND",
-      capture: "POSITIVE_CAPTURE",
-      parse: "POSITIVE_PARSE",
-      persist: "POSITIVE_PERSIST",
+      send: "ANALYSIS_SEND",
+      capture: "ANALYSIS_CAPTURE",
+      parse: "ANALYSIS_PARSE",
+      persist: "ANALYSIS_PERSIST",
     },
     subQuestionId: subQuestion.id,
-    parse: parseDeepResearchPositiveResponse,
+    parse: parseDeepResearchSubQuestionAnalysisResponse,
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) =>
-      persistPositiveAnswer({
+      persistAnalysisAnswer({
         store: context.store,
         jobId: context.jobId,
         interaction,
@@ -128,63 +141,34 @@ const runPositivePhase = async (
       }),
   });
 
-const runFalsificationPhase = async (
-  context: AnalysisExecutionContext,
-  subQuestion: ResearchSubQuestion,
-  positiveAnswer: DeepResearchPositiveAnswer,
-) =>
-  runPromptExchange<DeepResearchFalsificationAnswer>({
-    store: context.store,
-    runtimeLogger: context.runtimeLogger,
-    traceContext: context.traceContext,
-    stageLogger: context.stageLogger,
-    sender: context.sender,
-    recordHashes: context.recordHashes,
-    jobId: context.jobId,
-    providerKind: context.providerKind,
-    prompt: falsificationPrompt,
-    promptKey: `falsification:${subQuestion.id}`,
-    renderedPromptText: renderDeepResearchFalsificationPrompt({
-      userQuestion: context.input.userQuestion,
-      analysisGoal: context.input.analysisGoal,
-      language: context.input.language,
-      subQuestion: subQuestion.question,
-      positiveAnswer,
-    }),
-    inputRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
-    stages: {
-      send: "FALSIFY_SEND",
-      capture: "FALSIFY_CAPTURE",
-      parse: "FALSIFY_PARSE",
-      persist: "FALSIFY_PERSIST",
-    },
-    subQuestionId: subQuestion.id,
-    parse: parseDeepResearchFalsificationResponse,
-    successRecordCount: () => 1,
-    persist: ({ interaction, parsed }) =>
-      persistFalsificationAnswer({
-        store: context.store,
-        jobId: context.jobId,
-        interaction,
-        subQuestionId: subQuestion.id,
-        parsed,
-      }),
-  });
+const rememberFailedAnalysisHashes = (input: {
+  context: AnalysisExecutionContext;
+  subQuestionId: string;
+  promptHash: string;
+  rawResponseHash?: string;
+}): void => {
+  input.context.recordHashes[`analysis-failure:${input.subQuestionId}:prompt`] = input.promptHash;
+  if (input.rawResponseHash) {
+    input.context.recordHashes[`analysis-failure:${input.subQuestionId}:response`] = input.rawResponseHash;
+  }
+};
+
+type SubQuestionPhaseOutcome = {
+  completed: boolean;
+};
 
 const runSubQuestionPhase = async (
   context: AnalysisExecutionContext,
   subQuestion: ResearchSubQuestion,
-): Promise<{ completed: boolean }> => {
-  const positive = await runPositivePhase(context, subQuestion);
-  if (positive.status !== "parsed") {
-    return { completed: false };
-  }
-  const falsification = await runFalsificationPhase(
-    context,
-    subQuestion,
-    positive.parsed,
-  );
-  if (falsification.status !== "parsed") {
+) : Promise<SubQuestionPhaseOutcome> => {
+  const analysis = await runAnalysisPhase(context, subQuestion);
+  if (analysis.status !== "parsed") {
+    rememberFailedAnalysisHashes({
+      context,
+      subQuestionId: subQuestion.id,
+      promptHash: analysis.promptHash,
+      rawResponseHash: analysis.rawResponseHash,
+    });
     return { completed: false };
   }
   return { completed: true };

@@ -251,6 +251,10 @@ export const capturePromptOutput = async (
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
+    case "ANALYSIS_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
     case "POSITIVE_CAPTURE": {
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
@@ -261,6 +265,10 @@ export const capturePromptOutput = async (
     }
     case "FINAL_CAPTURE": {
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
+    case "FINAL_ADJUDICATION_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
     default:
@@ -356,6 +364,10 @@ export const parsePromptOutput = <TParsed>(
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PARSE" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
+    case "ANALYSIS_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
     case "POSITIVE_PARSE": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_PARSE" });
       return continueParsePromptOutput({ ...input, parseStage });
@@ -366,6 +378,10 @@ export const parsePromptOutput = <TParsed>(
     }
     case "FINAL_PARSE": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
+    case "FINAL_ADJUDICATION_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PARSE" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
     default:
@@ -432,6 +448,10 @@ export const persistPromptOutput = <TParsed>(
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
+    case "ANALYSIS_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
     case "POSITIVE_PERSIST": {
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
@@ -442,6 +462,10 @@ export const persistPromptOutput = <TParsed>(
     }
     case "FINAL_PERSIST": {
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    case "FINAL_ADJUDICATION_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
     default:

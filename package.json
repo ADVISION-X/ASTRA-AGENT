@@ -20,6 +20,7 @@
     "audit:facebook-log-coverage": "node --import tsx scripts/audit/domains/facebook-product-video-mining-log-coverage/run-inspector.ts",
     "acceptance:runtime-log-spine": "node --import tsx scripts/acceptance/runtime-log-redaction.acceptance.ts && node --import tsx scripts/acceptance/runtime-log-stage-pair.acceptance.ts && node --import tsx scripts/acceptance/runtime-log-debug-bundle.acceptance.ts && node --import tsx scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "acceptance:facebook-log-coverage": "node --import tsx scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-failure-diagnosis.acceptance.ts",
+    "acceptance:code-purity-zombie-deep": "node --import tsx scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "acceptance:deep-research-decomposition-prompt": "node --import tsx scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
     "acceptance:deep-research-report-export": "node --import tsx scripts/acceptance/deep-research-report-export.acceptance.ts",

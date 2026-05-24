@@ -132,6 +132,7 @@ const listJobs = (input: {
 const inferCurrentPhase = (input: {
   job: ResearchJob;
   subQuestions: readonly ResearchSubQuestion[];
+  analysisAnswers: readonly ResearchAnswer[];
   positiveAnswers: readonly ResearchAnswer[];
   falsificationAnswers: readonly ResearchAnswer[];
   finalReport: DeepResearchFinalReport | null;
@@ -143,11 +144,20 @@ const inferCurrentPhase = (input: {
   if (input.exports.length > 0) {
     return "EXPORT_REPORT";
   }
-  if (input.finalReport) {
-    return "FINAL_PERSIST";
-  }
   if (input.subQuestions.length === 0) {
     return "DECOMPOSE_PARSE";
+  }
+  if (input.job.flowMode === "default_1_n_1") {
+    if (input.analysisAnswers.length < input.subQuestions.length) {
+      return "ANALYSIS_PERSIST";
+    }
+    if (input.finalReport) {
+      return "FINAL_ADJUDICATION_PERSIST";
+    }
+    return "FINAL_PACKAGE_BUILD";
+  }
+  if (input.finalReport) {
+    return "FINAL_PERSIST";
   }
   if (input.positiveAnswers.length < input.subQuestions.length) {
     return "POSITIVE_PERSIST";
@@ -166,6 +176,7 @@ const buildJobSnapshot = (input: {
   finalReport: DeepResearchFinalReport | null;
   exports: readonly ResearchExport[];
 }): DeepResearchJobSnapshot => {
+  const analysisAnswers = input.answers.filter((record) => record.answerKind === "analysis");
   const positiveAnswers = input.answers.filter((record) => record.answerKind === "positive");
   const falsificationAnswers = input.answers.filter((record) => record.answerKind === "falsification");
   return {
@@ -174,6 +185,7 @@ const buildJobSnapshot = (input: {
       currentPhase: inferCurrentPhase({
         job: input.job,
         subQuestions: input.subQuestions,
+        analysisAnswers,
         positiveAnswers,
         falsificationAnswers,
         finalReport: input.finalReport,
@@ -181,6 +193,7 @@ const buildJobSnapshot = (input: {
       }),
       interactionCount: input.interactions.length,
       subQuestionCount: input.subQuestions.length,
+      analysisCount: analysisAnswers.length,
       positiveCount: positiveAnswers.length,
       falsificationCount: falsificationAnswers.length,
       exportCount: input.exports.length,
@@ -238,6 +251,7 @@ const buildTimelineEntries = (input: {
     };
   });
 };
+
 const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null =>
   withStore(dataDir, (store) => {
     const job = store.getJob(jobId);
@@ -255,7 +269,8 @@ const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTime
         .filter((record) => record.answerKind === "positive")
         .map((record) => [record.subQuestionId, record]),
     );
-    const finalPackage = interactions.some((record) => record.phase === "final_synthesis")
+    const finalPackage = interactions.some((record) =>
+      record.phase === "final_synthesis" || record.phase === "final_adjudication")
       ? buildDeepResearchFinalPackage({ store, jobId })
       : null;
     const timeline = buildTimelineEntries({
@@ -328,7 +343,7 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
   const decompositionInteraction = snapshot.timeline.find((entry) => entry.phase === "decomposition") ?? null;
   const finalInteraction = [...snapshot.timeline]
     .reverse()
-    .find((entry) => entry.phase === "final_synthesis") ?? null;
+    .find((entry) => entry.phase === "final_adjudication" || entry.phase === "final_synthesis") ?? null;
   return {
     job: buildReportJobView(snapshot),
     conclusion: buildConclusionView(snapshot.finalReport),
@@ -344,7 +359,7 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       subQuestions,
     },
     subQuestionReports,
-    finalSynthesis: {
+    finalAdjudication: {
       interaction: finalInteraction,
       parsedFinalReport: snapshot.finalReport,
     },

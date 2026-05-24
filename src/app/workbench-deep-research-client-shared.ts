@@ -166,10 +166,25 @@ function renderInteractionDebug(interaction: DeepResearchEvidence | DeepResearch
   ].join("");
 }
 
+function readPayloadString(payload: Record<string, unknown>, key: string): string {
+  const value = payload[key];
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, emptyText: string): string {
   if (!block) {
     return `<article class="research-analysis-card"><h3>${escapeText(title)}</h3><p class="muted">${escapeText(emptyText)}</p></article>`;
   }
+  const coreFinding = readPayloadString(block.parsedPayload, "coreFinding");
+  const impactOnFinalAdjudication = readPayloadString(block.parsedPayload, "impactOnFinalAdjudication");
+  const failureCases = asArray(block.parsedPayload.failureCases);
+  const uncertainties = asArray(block.parsedPayload.uncertainties);
+  const keyClaimTitle = block.answerKind === "falsification"
+    ? "Strongest Opposing Arguments"
+    : "Key Claims";
+  const contradictionTitle = block.answerKind === "analysis"
+    ? "Counter Conditions"
+    : "Contradiction Points";
   return `
     <article class="research-analysis-card">
       <div class="research-analysis-head">
@@ -181,11 +196,30 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
         className: "response-pre",
         previewLimit: 420,
       })}
-      ${renderListSection(title === "Positive Analysis" ? "Key Claims" : "Contradiction Points", title === "Positive Analysis" ? block.keyPoints : block.contradictionPoints, {
-        emptyText: title === "Positive Analysis" ? "No key claims recorded." : "No contradiction points recorded.",
+      ${coreFinding ? renderExpandableText("Core Finding", coreFinding, {
+        summaryLabel: "More",
+        className: "response-pre",
+        previewLimit: 280,
+      }) : ""}
+      ${impactOnFinalAdjudication ? renderExpandableText("Impact On Final Adjudication", impactOnFinalAdjudication, {
+        summaryLabel: "More",
+        className: "response-pre",
+        previewLimit: 280,
+      }) : ""}
+      ${renderListSection(keyClaimTitle, block.keyPoints, {
+        emptyText: block.answerKind === "falsification"
+          ? "No opposing arguments recorded."
+          : "No key claims recorded.",
       })}
+      ${block.answerKind !== "positive" ? renderListSection(contradictionTitle, block.contradictionPoints, {
+        emptyText: block.answerKind === "analysis"
+          ? "No counter conditions recorded."
+          : "No contradiction points recorded.",
+      }) : ""}
+      ${failureCases.length ? renderListSection("Failure Cases", failureCases, { emptyText: "No failure cases recorded." }) : ""}
       ${renderListSection("Evidence Mentions", block.evidenceMentions, { emptyText: "No evidence mentions recorded." })}
       ${renderListSection("Assumptions", block.assumptions, { emptyText: "No assumptions recorded." })}
+      ${uncertainties.length ? renderListSection("Uncertainties", uncertainties, { emptyText: "No uncertainties recorded." }) : ""}
       ${renderListSection("Limitations", block.limitations, { emptyText: "No limitations recorded." })}
       ${renderInteractionDebug(block.interaction)}
     </article>`;
@@ -230,7 +264,7 @@ function renderEmptyReader(message: string): void {
   setResearchHtml("[data-deep-research-empty]", `
     <p class="research-kicker">Report Reader</p>
     <h2>${escapeText(message || "Select a report from history")}</h2>
-    <p class="muted">The reader will show final conclusion, decomposition, paired positive and falsification analysis, final synthesis, and evidence trace.</p>`);
+    <p class="muted">The reader will show decomposition, independent analysis, final adjudication, exports, and evidence trace.</p>`);
   setResearchHtml("[data-deep-research-nav]", '<p class="muted">No report selected.</p>');
   setResearchHtml("[data-deep-research-meta]", '<p class="muted">No metadata available.</p>');
 }

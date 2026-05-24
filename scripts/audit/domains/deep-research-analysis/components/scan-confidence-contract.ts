@@ -10,17 +10,16 @@ const confidenceRuleSnippets = [
   "If a preferred field is unavailable, omit it instead of inventing evidence.",
 ] as const;
 
+const promptNames = [
+  "subQuestionAnalysisPrompt",
+  "finalAdjudicationPrompt",
+] as const;
+
 const promptSpecificSnippets: Partial<Record<typeof promptNames[number], readonly string[]>> = {
-  finalSynthesisPrompt: [
-    "you may omit conflictMatrix",
+  finalAdjudicationPrompt: [
+    "finalVerdict should be a concise label",
   ],
 };
-
-const promptNames = [
-  "positiveAnalysisPrompt",
-  "falsificationPrompt",
-  "finalSynthesisPrompt",
-] as const;
 
 const readPromptTextLiterals = (
   sourceFile: SourceFile,
@@ -62,7 +61,7 @@ export const inspectConfidenceContract = (input: {
       checkId: "deep-research/confidence-contract",
       lawId: input.lawId,
       filePath: getRepoSourcePath(input.promptsFile),
-      message: `${promptName} must prioritize analytical content over exact formatting and must allow runtime confidence normalization.`,
+      message: `${promptName} must prioritize analytical content over exact formatting and must allow runtime confidence normalization in the default 1+N+1 flow.`,
     }));
   }
 };

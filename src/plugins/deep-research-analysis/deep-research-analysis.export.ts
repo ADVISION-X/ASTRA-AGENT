@@ -70,14 +70,18 @@ const buildEvidenceIndexEntries = (input: {
         .forEach((record) => entries.push({ ...base, parsedRecordId: record.id }));
       return;
     }
-    if (interaction.phase === "positive" || interaction.phase === "falsification") {
+    if (
+      interaction.phase === "analysis"
+      || interaction.phase === "positive"
+      || interaction.phase === "falsification"
+    ) {
       input.answers
         .filter((record) => record.interactionId === interaction.id)
         .forEach((record) => entries.push({ ...base, parsedRecordId: record.id }));
       return;
     }
     if (
-      interaction.phase === "final_synthesis"
+      (interaction.phase === "final_adjudication" || interaction.phase === "final_synthesis")
       && input.finalReportRecord
       && input.finalReportRecord.interactionId === interaction.id
     ) {
@@ -123,8 +127,12 @@ const buildResearchBundle = (input: {
 }) => ({
   jobId: input.finalPackage.jobId,
   userQuestion: input.finalPackage.userQuestion,
+  flowMode: input.finalPackage.flowMode,
   promptVersions: input.finalPackage.promptVersions,
   subQuestions: input.finalPackage.decompositionRecords,
+  analysisAnswers: input.finalPackage.analysisRecords,
+  analysisCoverage: input.finalPackage.analysisCoverage,
+  missingAnalysisSubQuestionIds: input.finalPackage.missingAnalysisSubQuestionIds,
   positiveAnswers: input.finalPackage.positiveAnswerRecords,
   falsificationAnswers: input.finalPackage.falsificationAnswerRecords,
   conflictMatrix: input.finalPackage.conflictMatrix,

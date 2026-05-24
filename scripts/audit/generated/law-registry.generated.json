@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-23T22:30:47.695Z",
+  "generatedAt": "2026-05-24T00:13:47.197Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -775,10 +775,21 @@
       "tier": "P0",
       "capabilityDomain": "code-purity",
       "enforcementMode": "auto",
-      "evidenceMode": "fs+ast+import-graph",
-      "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, or literal-dead code branches.",
+      "evidenceMode": "fs+ast+symbol-graph+anti-evasion",
+      "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, literal-dead code branches, or any surface whose liveness cannot be proven.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 16
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+symbol-graph+anti-evasion",
+      "summary": "Zombie inspection must be AST-level, symbol-level, and anti-evasion strict; unproven liveness fails.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 17
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
@@ -820,7 +831,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "dom+parser+db+runtime-log",
-      "summary": "Each subquestion must be sent as an independent positive analysis interaction and persisted with raw and parsed evidence.",
+      "summary": "Each subquestion must be sent as one independent analysis interaction and persisted with raw and parsed evidence.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 3
     },
@@ -830,8 +841,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "dom+parser+db+runtime-log",
-      "summary": "Each positive analysis must be challenged by a separate falsification interaction using the original question, subquestion, and positive answer.",
+      "evidenceMode": "law+ast+schema+db+runtime-log",
+      "summary": "Default runtime must not mechanically execute positive and falsification for every subquestion; targeted challenge may exist later only as non-default flow.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 4
     },
@@ -842,7 +853,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "db+artifact+hash",
-      "summary": "Final synthesis must be generated from persisted decomposition, positive answers, falsification answers, and conflict matrix, not from transient memory.",
+      "summary": "Final adjudication must be generated from persisted decomposition and independent analysis records, not from transient memory.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 5
     },
@@ -941,9 +952,20 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "db+artifact+hash+acceptance+ast",
-      "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted 1+N+N+1 flow with prompt, raw response, parsed summary, and evidence traceability.",
+      "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted default 1+N+1 flow with prompt, raw response, parsed summary, and evidence traceability.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 14
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+schema+ast+db+artifact+acceptance",
+      "summary": "Deep Research default runtime flow must be 1+N+1 with one decomposition interaction, N independent sub-question analysis interactions, and one final adjudication interaction.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 15
     },
     {
       "lawId": "APEX-DOM-001-V1",

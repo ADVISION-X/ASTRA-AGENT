@@ -1,210 +1,240 @@
-import { Node, SyntaxKind, type Identifier, type Node as MorphNode, type SourceFile, type Statement } from "ts-morph";
+import { Node, type Identifier, type Node as MorphNode, type Statement } from "ts-morph";
 
+import { toRepoPath } from "../../../shared/paths.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
+import type { ZombieReachability } from "./zombie-module-graph.js";
+import {
+  classifyZombieReferenceUsage,
+  isMeaningfulZombieReference,
+} from "./zombie-symbol-usage.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
 
 const isWithinSelfBoundary = (referenceNode: MorphNode, selfBoundary: MorphNode): boolean =>
   referenceNode === selfBoundary
   || referenceNode.getAncestors().some((ancestor) => ancestor === selfBoundary);
 
-const collectIdentifierCounts = (sourceFile: SourceFile): Map<string, number> => {
-  const identifierCounts = new Map<string, number>();
-  for (const identifier of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
-    const currentCount = identifierCounts.get(identifier.getText()) ?? 0;
-    identifierCounts.set(identifier.getText(), currentCount + 1);
-  }
-  return identifierCounts;
-};
-
-const isTypeScriptSource = (sourceFile: SourceFile): boolean => /\.(?:ts|tsx)$/u.test(sourceFile.getBaseName());
-
 const hasLiveSameFileReference = (
   nameNode: Identifier,
   selfBoundary: MorphNode,
+  reachability: ZombieReachability,
+): boolean =>
+  nameNode.findReferencesAsNodes().some((referenceNode) => {
+    if (referenceNode === nameNode || isWithinSelfBoundary(referenceNode, selfBoundary)) {
+      return false;
+    }
+    if (!reachability.reachableFiles.has(toRepoPath(referenceNode.getSourceFile().getFilePath()))) {
+      return false;
+    }
+    return isMeaningfulZombieReference(classifyZombieReferenceUsage(referenceNode));
+  });
+
+const pushOrphanDeclarationFinding = (
+  collector: InventoryFindingCollector,
   input: {
-    identifierCounts: ReadonlyMap<string, number>;
-    preferIdentifierFallback: boolean;
+    declarationKind: string;
+    governedFile: GovernedFile;
+    nameNode: MorphNode | undefined;
+    selfBoundary: MorphNode;
+    zombieLawId: string;
+    antiEvasionLawId: string;
+    reachability: ZombieReachability;
   },
-): boolean => {
-  if (input.preferIdentifierFallback) {
-    return (input.identifierCounts.get(nameNode.getText()) ?? 0) > 1;
+): number => {
+  if (!input.nameNode || !Node.isIdentifier(input.nameNode)) {
+    return 0;
   }
   try {
-    return nameNode.findReferencesAsNodes().some((referenceNode) =>
-      referenceNode.getSourceFile() === nameNode.getSourceFile()
-      && referenceNode !== nameNode
-      && !isWithinSelfBoundary(referenceNode, selfBoundary)
-    );
-  } catch {
-    return (input.identifierCounts.get(nameNode.getText()) ?? 0) > 1;
+    if (hasLiveSameFileReference(input.nameNode, input.selfBoundary, input.reachability)) {
+      return 0;
+    }
+  } catch (error) {
+    pushZombieFinding(collector, {
+      checkId: "code-purity/symbol-resolution-unavailable",
+      declarationKind: input.declarationKind,
+      governedFile: input.governedFile,
+      lawId: input.antiEvasionLawId,
+      reason: `Symbol references for ${input.nameNode.getText()} could not be resolved: ${error instanceof Error ? error.message : String(error)}`,
+      remediation: "Repair symbol resolution for the declaration; identifier-count fallback is forbidden.",
+      symbolName: input.nameNode.getText(),
+      message: `${input.governedFile.repoPath} could not resolve symbol references for top-level declaration ${input.nameNode.getText()}.`,
+    });
+    return 0;
   }
-};
-
-const pushUnusedNamedDeclaration = (
-  unusedDeclarations: Array<{ kind: string; name: string }>,
-  input: {
-    kind: string;
-    nameNode: MorphNode | undefined;
-    exported: boolean;
-    selfBoundary: MorphNode;
-    identifierCounts: ReadonlyMap<string, number>;
-    preferIdentifierFallback: boolean;
-  },
-): void => {
-  if (!input.nameNode || input.exported || !Node.isIdentifier(input.nameNode)) {
-    return;
-  }
-  if (!hasLiveSameFileReference(input.nameNode, input.selfBoundary, input)) {
-    unusedDeclarations.push({ kind: input.kind, name: input.nameNode.getText() });
-  }
+  pushZombieFinding(collector, {
+    checkId: "code-purity/zombie-top-level-declaration",
+    declarationKind: input.declarationKind,
+    governedFile: input.governedFile,
+    lawId: input.zombieLawId,
+    reason: `Top-level ${input.declarationKind} ${input.nameNode.getText()} has no live symbol reference in the reachable graph.`,
+    remediation: "Delete the declaration or reconnect it to a real reachable caller in active source.",
+    symbolName: input.nameNode.getText(),
+    message: `${input.governedFile.repoPath} keeps an orphan top-level ${input.declarationKind} named ${input.nameNode.getText()}.`,
+  });
+  return 1;
 };
 
 const collectUnusedFunctionDeclaration = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
   statement: Statement,
-  identifierCounts: ReadonlyMap<string, number>,
-  preferIdentifierFallback: boolean,
-  unusedDeclarations: Array<{ kind: string; name: string }>,
-): boolean => {
-  if (Node.isFunctionDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, {
-      kind: "function",
-      nameNode: statement.getNameNode(),
-      exported: statement.isExported(),
-      identifierCounts,
-      preferIdentifierFallback,
-      selfBoundary: statement,
-    });
-    return true;
+  zombieLawId: string,
+  antiEvasionLawId: string,
+  reachability: ZombieReachability,
+): number => {
+  if (!Node.isFunctionDeclaration(statement) || statement.isExported()) {
+    return 0;
   }
-  return false;
+  return pushOrphanDeclarationFinding(collector, {
+    antiEvasionLawId,
+    declarationKind: "function",
+    governedFile,
+    nameNode: statement.getNameNode(),
+    reachability,
+    selfBoundary: statement,
+    zombieLawId,
+  });
 };
 
 const collectUnusedClassLikeDeclaration = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
   statement: Statement,
-  identifierCounts: ReadonlyMap<string, number>,
-  preferIdentifierFallback: boolean,
-  unusedDeclarations: Array<{ kind: string; name: string }>,
-): boolean => {
+  zombieLawId: string,
+  antiEvasionLawId: string,
+  reachability: ZombieReachability,
+): number => {
   if (Node.isClassDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, {
-      kind: "class",
+    if (statement.isExported()) {
+      return 0;
+    }
+    return pushOrphanDeclarationFinding(collector, {
+      antiEvasionLawId,
+      declarationKind: "class",
+      governedFile,
       nameNode: statement.getNameNode(),
-      exported: statement.isExported(),
-      identifierCounts,
-      preferIdentifierFallback,
+      reachability,
       selfBoundary: statement,
+      zombieLawId,
     });
-    return true;
   }
   if (Node.isEnumDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, {
-      kind: "enum",
+    if (statement.isExported()) {
+      return 0;
+    }
+    return pushOrphanDeclarationFinding(collector, {
+      antiEvasionLawId,
+      declarationKind: "enum",
+      governedFile,
       nameNode: statement.getNameNode(),
-      exported: statement.isExported(),
-      identifierCounts,
-      preferIdentifierFallback,
+      reachability,
       selfBoundary: statement,
+      zombieLawId,
     });
-    return true;
   }
-  return false;
+  return 0;
 };
 
 const collectUnusedTypeDeclaration = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
   statement: Statement,
-  identifierCounts: ReadonlyMap<string, number>,
-  preferIdentifierFallback: boolean,
-  unusedDeclarations: Array<{ kind: string; name: string }>,
-): boolean => {
+  zombieLawId: string,
+  antiEvasionLawId: string,
+  reachability: ZombieReachability,
+): number => {
   if (Node.isInterfaceDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, {
-      kind: "interface",
+    if (statement.isExported()) {
+      return 0;
+    }
+    return pushOrphanDeclarationFinding(collector, {
+      antiEvasionLawId,
+      declarationKind: "interface",
+      governedFile,
       nameNode: statement.getNameNode(),
-      exported: statement.isExported(),
-      identifierCounts,
-      preferIdentifierFallback,
+      reachability,
       selfBoundary: statement,
+      zombieLawId,
     });
-    return true;
   }
   if (Node.isTypeAliasDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, {
-      kind: "type alias",
+    if (statement.isExported()) {
+      return 0;
+    }
+    return pushOrphanDeclarationFinding(collector, {
+      antiEvasionLawId,
+      declarationKind: "type-alias",
+      governedFile,
       nameNode: statement.getNameNode(),
-      exported: statement.isExported(),
-      identifierCounts,
-      preferIdentifierFallback,
+      reachability,
       selfBoundary: statement,
+      zombieLawId,
     });
-    return true;
   }
-  return false;
+  return 0;
 };
 
 const collectUnusedVariableDeclarations = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
   statement: Statement,
-  identifierCounts: ReadonlyMap<string, number>,
-  preferIdentifierFallback: boolean,
-  unusedDeclarations: Array<{ kind: string; name: string }>,
-): void => {
+  zombieLawId: string,
+  antiEvasionLawId: string,
+  reachability: ZombieReachability,
+): number => {
   if (!Node.isVariableStatement(statement) || statement.isExported()) {
-    return;
+    return 0;
   }
+  let orphanCount = 0;
   for (const declaration of statement.getDeclarations()) {
-    const nameNode = declaration.getNameNode();
-    if (Node.isIdentifier(nameNode) && !hasLiveSameFileReference(nameNode, declaration, {
-      identifierCounts,
-      preferIdentifierFallback,
-    })) {
-      unusedDeclarations.push({ kind: "variable", name: nameNode.getText() });
-    }
+    orphanCount += pushOrphanDeclarationFinding(collector, {
+      antiEvasionLawId,
+      declarationKind: "variable",
+      governedFile,
+      nameNode: declaration.getNameNode(),
+      reachability,
+      selfBoundary: declaration,
+      zombieLawId,
+    });
   }
+  return orphanCount;
 };
 
 const collectUnusedDeclarationsFromStatement = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
   statement: Statement,
-  identifierCounts: ReadonlyMap<string, number>,
-  preferIdentifierFallback: boolean,
-  unusedDeclarations: Array<{ kind: string; name: string }>,
-): void => {
-  if (collectUnusedFunctionDeclaration(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations)) {
-    return;
-  }
-  if (collectUnusedClassLikeDeclaration(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations)) {
-    return;
-  }
-  if (collectUnusedTypeDeclaration(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations)) {
-    return;
-  }
-  collectUnusedVariableDeclarations(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations);
-};
-
-const collectUnusedTopLevelDeclarations = (sourceFile: SourceFile): Array<{ kind: string; name: string }> => {
-  const identifierCounts = collectIdentifierCounts(sourceFile);
-  const preferIdentifierFallback = !isTypeScriptSource(sourceFile);
-  const unusedDeclarations: Array<{ kind: string; name: string }> = [];
-  for (const statement of sourceFile.getStatements()) {
-    collectUnusedDeclarationsFromStatement(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations);
-  }
-  return unusedDeclarations;
-};
+  zombieLawId: string,
+  antiEvasionLawId: string,
+  reachability: ZombieReachability,
+): number =>
+  collectUnusedFunctionDeclaration(collector, governedFile, statement, zombieLawId, antiEvasionLawId, reachability)
+  + collectUnusedClassLikeDeclaration(collector, governedFile, statement, zombieLawId, antiEvasionLawId, reachability)
+  + collectUnusedTypeDeclaration(collector, governedFile, statement, zombieLawId, antiEvasionLawId, reachability)
+  + collectUnusedVariableDeclarations(collector, governedFile, statement, zombieLawId, antiEvasionLawId, reachability);
 
 export const scanZombieDeclarations = (
   collector: InventoryFindingCollector,
   governedFiles: readonly GovernedFile[],
   zombieLawId: string,
-): void => {
+  antiEvasionLawId: string,
+  reachability: ZombieReachability,
+): { orphanDeclarationCount: number } => {
+  let orphanDeclarationCount = 0;
   for (const governedFile of governedFiles) {
-    for (const declaration of collectUnusedTopLevelDeclarations(governedFile.sourceFile)) {
-      pushZombieFinding(collector, {
-        checkId: "code-purity/zombie-top-level-declaration",
+    if (!reachability.reachableFiles.has(governedFile.repoPath)) {
+      continue;
+    }
+    for (const statement of governedFile.sourceFile.getStatements()) {
+      orphanDeclarationCount += collectUnusedDeclarationsFromStatement(
+        collector,
         governedFile,
-        lawId: zombieLawId,
-        reason: `Top-level ${declaration.kind} ${declaration.name} has no live identifier usage in the file.`,
-        remediation: "Delete the declaration or reconnect it to a real caller in the same active source file.",
-        message: `${governedFile.repoPath} keeps an orphan top-level ${declaration.kind} named ${declaration.name}.`,
-      });
+        statement,
+        zombieLawId,
+        antiEvasionLawId,
+        reachability,
+      );
     }
   }
+  return { orphanDeclarationCount };
 };

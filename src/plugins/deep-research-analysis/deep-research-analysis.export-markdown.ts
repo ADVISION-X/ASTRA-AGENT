@@ -11,6 +11,7 @@ import type {
   DeepResearchFinalReport,
 } from "./deep-research-analysis.result.js";
 import {
+  buildAnalysisParsedSection,
   buildConflictMatrixTable,
   buildEvidenceIndexTable,
   buildEvidenceLines,
@@ -58,7 +59,7 @@ const buildDecompositionSection = (input: {
     "### AI Raw Response",
     buildRawResponseBlock(input.interaction),
     "",
-    "### Parsed SubQuestions",
+    "### Parsed Sub-Questions",
     ...subQuestionBlocks,
     "",
     "### Evidence",
@@ -66,7 +67,34 @@ const buildDecompositionSection = (input: {
   ].join("\n");
 };
 
-const buildSubQuestionSection = (input: {
+const buildDefaultSubQuestionSection = (input: {
+  subQuestion: ResearchSubQuestion;
+  analysisInteraction: ResearchInteraction | null;
+  analysisAnswer: ResearchAnswer | null;
+}): string => [
+  `## Sub-question ${input.subQuestion.modelQuestionId}: ${input.subQuestion.question.title}`,
+  "",
+  buildSubQuestionMetadata(input.subQuestion),
+  "",
+  "### Independent Analysis",
+  "",
+  "#### Prompt",
+  buildPromptBlock(input.analysisInteraction),
+  "",
+  "#### AI Raw Response",
+  buildRawResponseBlock(input.analysisInteraction),
+  "",
+  "#### Parsed Independent Analysis",
+  buildAnalysisParsedSection({
+    interaction: input.analysisInteraction,
+    answer: input.analysisAnswer,
+  }),
+  "",
+  "#### Evidence",
+  buildEvidenceLines(input.analysisInteraction),
+].join("\n");
+
+const buildLegacySubQuestionSection = (input: {
   subQuestion: ResearchSubQuestion;
   positiveInteraction: ResearchInteraction | null;
   falsificationInteraction: ResearchInteraction | null;
@@ -112,64 +140,96 @@ const buildSubQuestionSection = (input: {
   buildEvidenceLines(input.falsificationInteraction),
 ].join("\n");
 
-const buildFinalSummarySection = (finalReport: DeepResearchFinalReport | null): string => {
-  if (!finalReport) {
+const buildDecisionSummarySection = (input: {
+  finalPackage: DeepResearchFinalPackage;
+  finalReport: DeepResearchFinalReport | null;
+}): string => {
+  if (!input.finalReport) {
     return [
       "## Final Summary",
       "",
       "Final report not available.",
     ].join("\n");
   }
+  const decisiveReasons = input.finalReport.decisiveReasons.length > 0
+    ? input.finalReport.decisiveReasons
+    : input.finalReport.positiveReasons;
+  const opposingClaims = input.finalReport.weakOrRejectedClaims.length > 0
+    ? input.finalReport.weakOrRejectedClaims
+    : input.finalReport.strongestOpposingArguments;
   return [
     "## Final Summary",
     "",
-    "### Positive Reasons",
-    buildMarkdownList(finalReport.positiveReasons),
+    `Flow Mode: ${input.finalPackage.flowMode}`,
+    `Direct Answer: ${input.finalReport.directAnswer}`,
+    `Final Verdict: ${input.finalReport.finalVerdict}`,
+    `Confidence: ${input.finalReport.confidence}`,
     "",
-    "### Strongest Opposing Arguments",
-    buildMarkdownList(finalReport.strongestOpposingArguments),
+    "### Decisive Reasons",
+    buildMarkdownList(decisiveReasons),
+    "",
+    "### Weak Or Rejected Claims",
+    buildMarkdownList(opposingClaims),
     "",
     "### Evidence Gaps",
-    buildMarkdownList(finalReport.evidenceGaps),
+    buildMarkdownList(input.finalReport.evidenceGaps),
     "",
     "### Reverse Conditions",
-    buildMarkdownList(finalReport.reverseConditions),
+    buildMarkdownList(input.finalReport.reverseConditions),
     "",
     "### Follow-up Signals",
-    buildMarkdownList(finalReport.followUpSignals),
+    buildMarkdownList(input.finalReport.followUpSignals),
     "",
     "### Limitations",
-    buildMarkdownList(finalReport.limitations),
+    buildMarkdownList(input.finalReport.limitations),
   ].join("\n");
 };
 
-const buildFinalSynthesisSection = (input: {
+const buildCoverageSection = (finalPackage: DeepResearchFinalPackage): string => [
+  "## Analysis Coverage",
+  "",
+  `Total Sub-Questions: ${String(finalPackage.analysisCoverage.totalSubQuestionCount)}`,
+  `Analyzed Sub-Questions: ${String(finalPackage.analysisCoverage.analyzedSubQuestionCount)}`,
+  `Missing Analysis Count: ${String(finalPackage.analysisCoverage.missingSubQuestionCount)}`,
+  `Coverage Ratio: ${String(finalPackage.analysisCoverage.coverageRatio)}`,
+  "",
+  "### Missing Analysis Sub-Questions",
+  buildMarkdownList(finalPackage.missingAnalysisSubQuestionIds, "- none"),
+].join("\n");
+
+const buildFinalStageSection = (input: {
   interaction: ResearchInteraction | null;
   finalReport: DeepResearchFinalReport | null;
+  flowMode: DeepResearchFinalPackage["flowMode"];
 }): string => {
-  const finalReport = input.finalReport;
-  const parsedSection = !finalReport
-    ? [
-      "Final report not available.",
-    ].join("\n")
+  const sectionLabel = input.flowMode === "legacy_1_n_n_1"
+    ? "Final Synthesis"
+    : "Final Adjudication";
+  const parsedSection = !input.finalReport
+    ? "Final report not available."
     : [
-      `executiveConclusion: ${finalReport.executiveConclusion}`,
-      `confidence: ${finalReport.confidence}`,
-      "positiveReasons",
-      buildMarkdownList(finalReport.positiveReasons),
-      "strongestOpposingArguments",
-      buildMarkdownList(finalReport.strongestOpposingArguments),
+      `directAnswer: ${input.finalReport.directAnswer}`,
+      `finalVerdict: ${input.finalReport.finalVerdict}`,
+      `confidence: ${input.finalReport.confidence}`,
+      "decisiveReasons",
+      buildMarkdownList(input.finalReport.decisiveReasons.length > 0
+        ? input.finalReport.decisiveReasons
+        : input.finalReport.positiveReasons),
+      "weakOrRejectedClaims",
+      buildMarkdownList(input.finalReport.weakOrRejectedClaims.length > 0
+        ? input.finalReport.weakOrRejectedClaims
+        : input.finalReport.strongestOpposingArguments),
       "evidenceGaps",
-      buildMarkdownList(finalReport.evidenceGaps),
+      buildMarkdownList(input.finalReport.evidenceGaps),
       "reverseConditions",
-      buildMarkdownList(finalReport.reverseConditions),
+      buildMarkdownList(input.finalReport.reverseConditions),
       "followUpSignals",
-      buildMarkdownList(finalReport.followUpSignals),
+      buildMarkdownList(input.finalReport.followUpSignals),
       "limitations",
-      buildMarkdownList(finalReport.limitations),
+      buildMarkdownList(input.finalReport.limitations),
     ].join("\n\n");
   return [
-    "## Final Synthesis",
+    `## ${sectionLabel}`,
     "",
     "### Final Prompt",
     buildPromptBlock(input.interaction),
@@ -205,11 +265,14 @@ const buildMarkdownContext = (input: {
   );
   const finalReport = input.persisted.finalReportRecord?.report ?? input.finalReport;
   const decompositionInteraction = findInteraction(input.persisted.interactions, "decomposition");
+  const finalPhase = input.finalPackage.flowMode === "legacy_1_n_n_1"
+    ? "final_synthesis"
+    : "final_adjudication";
   const finalInteraction = input.persisted.finalReportRecord
     ? input.persisted.interactions.find(
       (interaction) => interaction.id === input.persisted.finalReportRecord?.interactionId,
-    ) ?? findInteraction(input.persisted.interactions, "final_synthesis")
-    : findInteraction(input.persisted.interactions, "final_synthesis");
+    ) ?? findInteraction(input.persisted.interactions, finalPhase)
+    : findInteraction(input.persisted.interactions, finalPhase);
   return {
     subQuestionById,
     finalReport,
@@ -221,6 +284,7 @@ const buildMarkdownContext = (input: {
 };
 
 const buildReportMetadataLines = (input: {
+  finalPackage: DeepResearchFinalPackage;
   persisted: DeepResearchPersistedExportState;
   finalReport: DeepResearchFinalReport | null;
 }): string[] => [
@@ -230,6 +294,7 @@ const buildReportMetadataLines = (input: {
   `Created At: ${input.persisted.job.createdAt}`,
   `Updated At: ${input.persisted.job.updatedAt}`,
   `Status: ${input.persisted.job.status}`,
+  `Flow Mode: ${input.finalPackage.flowMode}`,
   `Question: ${input.persisted.job.userQuestion}`,
   `Analysis Goal: ${toDisplayValue(input.persisted.job.analysisGoal)}`,
   `Language: ${input.persisted.job.language}`,
@@ -238,7 +303,7 @@ const buildReportMetadataLines = (input: {
   "## One-line Verdict",
   "",
   input.finalReport
-    ? [`Final Conclusion: ${input.finalReport.executiveConclusion}`, `Confidence: ${input.finalReport.confidence}`].join("\n")
+    ? [`Direct Answer: ${input.finalReport.directAnswer}`, `Confidence: ${input.finalReport.confidence}`].join("\n")
     : "Final report not available.",
   "",
 ];
@@ -248,6 +313,11 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
   finalReport: DeepResearchFinalReport | null;
   persisted: DeepResearchPersistedExportState;
 }): string => {
+  const analysisAnswerBySubQuestionId = new Map(
+    input.persisted.answers
+      .filter((answer) => answer.answerKind === "analysis")
+      .map((answer) => [answer.subQuestionId, answer]),
+  );
   const positiveAnswerBySubQuestionId = new Map(
     input.persisted.answers
       .filter((answer) => answer.answerKind === "positive")
@@ -259,6 +329,7 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
       .map((answer) => [answer.subQuestionId, answer]),
   );
   const stageRows = buildStageOverviewRows({
+    job: input.persisted.job,
     interactions: input.persisted.interactions,
     subQuestions: input.persisted.subQuestions,
     finalReportRecord: input.persisted.finalReportRecord,
@@ -268,21 +339,34 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
     stageRows,
   });
   const subQuestionSections = input.persisted.subQuestions.map((subQuestion) =>
-    buildSubQuestionSection({
-      subQuestion,
-      positiveInteraction: findInteraction(input.persisted.interactions, "positive", subQuestion.id),
-      falsificationInteraction: findInteraction(input.persisted.interactions, "falsification", subQuestion.id),
-      positiveAnswer: positiveAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-      falsificationAnswer: falsificationAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-    }));
+    input.finalPackage.flowMode === "legacy_1_n_n_1"
+      ? buildLegacySubQuestionSection({
+        subQuestion,
+        positiveInteraction: findInteraction(input.persisted.interactions, "positive", subQuestion.id),
+        falsificationInteraction: findInteraction(input.persisted.interactions, "falsification", subQuestion.id),
+        positiveAnswer: positiveAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+        falsificationAnswer: falsificationAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+      })
+      : buildDefaultSubQuestionSection({
+        subQuestion,
+        analysisInteraction: findInteraction(input.persisted.interactions, "analysis", subQuestion.id),
+        analysisAnswer: analysisAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+      }));
 
-  return [
+  const sections = [
     ...buildReportMetadataLines({
+      finalPackage: input.finalPackage,
       persisted: input.persisted,
       finalReport: context.finalReport,
     }),
-    buildFinalSummarySection(context.finalReport),
+    buildDecisionSummarySection({
+      finalPackage: input.finalPackage,
+      finalReport: context.finalReport,
+    }),
     "",
+    ...(input.finalPackage.flowMode === "default_1_n_1"
+      ? [buildCoverageSection(input.finalPackage), ""]
+      : []),
     "## Stage Overview",
     "",
     buildStageOverviewTable(stageRows),
@@ -293,13 +377,18 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
     }),
     "",
     ...subQuestionSections.flatMap((section) => [section, ""]),
-    "## Conflict Matrix",
-    "",
-    buildConflictMatrixTable(context.conflictMatrixRows, context.subQuestionById),
-    "",
-    buildFinalSynthesisSection({
+    ...(input.finalPackage.flowMode === "legacy_1_n_n_1"
+      ? [
+        "## Conflict Matrix",
+        "",
+        buildConflictMatrixTable(context.conflictMatrixRows, context.subQuestionById),
+        "",
+      ]
+      : []),
+    buildFinalStageSection({
       interaction: context.finalInteraction,
       finalReport: context.finalReport,
+      flowMode: input.finalPackage.flowMode,
     }),
     "",
     "## Evidence Index",
@@ -308,5 +397,7 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
       buildInteractionEvidence(input.persisted.interactions),
       context.subQuestionById,
     ),
-  ].join("\n").trimEnd() + "\n";
+  ];
+
+  return sections.join("\n").trimEnd() + "\n";
 };

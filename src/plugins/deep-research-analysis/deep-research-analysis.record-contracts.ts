@@ -19,13 +19,17 @@ export const DeepResearchProviderKindSchema = z.enum([
   "gpt-web-chat",
 ]);
 
-const ResearchAnswerKindSchema = z.enum(["positive", "falsification"]);
+const ResearchAnswerKindSchema = z.enum(["analysis", "positive", "falsification"]);
+
+const ResearchFlowModeSchema = z.enum(["default_1_n_1", "legacy_1_n_n_1"]);
 
 const ResearchExportKindSchema = z.enum([
   "final-report.md",
   "research-bundle.json",
   "evidence-index.json",
 ]);
+
+const ResearchParsedPayloadSchema = z.record(z.string(), z.unknown()).default({});
 
 export const LEGACY_RENDERED_PROMPT_TEXT =
   "[legacy interaction did not persist rendered prompt text]";
@@ -37,6 +41,7 @@ export const ResearchJobSchema = z.object({
   language: DeepResearchInputSchema.shape.language,
   maxSubQuestions: DeepResearchInputSchema.shape.maxSubQuestions,
   outputFormat: DeepResearchInputSchema.shape.outputFormat,
+  flowMode: ResearchFlowModeSchema.default("default_1_n_1"),
   status: DeepResearchJobStatusSchema,
   phase: DeepResearchPhaseSchema,
   failureReason: z.string().trim().min(1).nullable().default(null),
@@ -84,8 +89,9 @@ export const ResearchAnswerSchema = z.object({
   keyPoints: z.array(z.string().trim().min(1)).default([]),
   evidenceMentions: z.array(z.string().trim().min(1)).default([]),
   assumptions: z.array(z.string().trim().min(1)).default([]),
-  limitations: z.array(z.string().trim().min(1)).min(1),
+  limitations: z.array(z.string().trim().min(1)).default([]),
   contradictionPoints: z.array(z.string().trim().min(1)).default([]),
+  parsedPayload: ResearchParsedPayloadSchema,
   confidence: z.enum(["low", "medium", "high"]),
   createdAt: z.string().datetime(),
 }).strict();
@@ -123,6 +129,7 @@ export type ResearchSubQuestion = z.infer<typeof ResearchSubQuestionSchema>;
 export type ResearchInteraction = z.infer<typeof ResearchInteractionSchema>;
 export type ResearchAnswer = z.infer<typeof ResearchAnswerSchema>;
 export type ResearchAnswerKind = z.infer<typeof ResearchAnswerKindSchema>;
+export type ResearchFlowMode = z.infer<typeof ResearchFlowModeSchema>;
 export type ResearchConflictMatrix = z.infer<typeof ResearchConflictMatrixSchema>;
 export type ResearchFinalReportRecord = z.infer<typeof ResearchFinalReportRecordSchema>;
 export type ResearchExport = z.infer<typeof ResearchExportSchema>;

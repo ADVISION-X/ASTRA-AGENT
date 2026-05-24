@@ -5,7 +5,25 @@ import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import { scanStructuralTypeEscapes } from "./scan-structural-type-escapes.js";
 
-const bannedPathTokenPattern = /(bridge|compatibility|legacy|shadow|fallback|universal-agent|planner|next-action|action-plan|mission-loop|nerve-bus|commander-console)/u;
+const bannedPathTokens = [
+  "bridge",
+  "compatibility",
+  "legacy",
+  "shadow",
+  "fallback",
+  "universal-agent",
+  "planner",
+  "next-action",
+  "action-plan",
+  "mission-loop",
+  "nerve-bus",
+  "commander-console",
+] as const;
+
+const pathHasBannedToken = (repoPath: string): boolean => {
+  const normalized = repoPath.toLowerCase();
+  return bannedPathTokens.some((token) => normalized.includes(token));
+};
 
 const pushSourceAtomicityFinding = (
   collector: InventoryFindingCollector,
@@ -39,7 +57,7 @@ const scanPathBudget = (
   sourceAtomicityLawId: string,
   bridgeLawId: string,
 ): void => {
-  if (bannedPathTokenPattern.test(governedFile.repoPath)) {
+  if (pathHasBannedToken(governedFile.repoPath)) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/banned-active-path",
       governedFile,

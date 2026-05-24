@@ -23,28 +23,74 @@ export type FileBudget = {
 
 const sourceFileBudget: FileBudget = { label: "active executable source file", maxLines: 500 };
 
-const schemaLikeFilePattern = /(schema|contract|types?|result)\.tsx?$/u;
+const schemaLikeStemTokens = new Set(["schema", "contract", "type", "types", "result"]);
 
 const resolveByPrefix = (repoPath: string, rules: readonly (readonly [string, string])[]): string | null =>
   rules.find(([prefix]) => repoPath.startsWith(prefix))?.[1] ?? null;
 
-const resolveByPattern = (repoPath: string, rules: readonly (readonly [RegExp, string])[]): string | null =>
-  rules.find(([pattern]) => pattern.test(repoPath))?.[1] ?? null;
+const getPathSegments = (repoPath: string): string[] => repoPath.split("/").filter((segment) => segment.length > 0);
 
-const resolvePluginOwner = (repoPath: string): string | null => {
-  const match = /^src\/plugins\/([^/]+)\//u.exec(repoPath);
-  return match ? `plugin:${match[1]}` : null;
+const getFileName = (repoPath: string): string => {
+  const segments = getPathSegments(repoPath);
+  return segments.at(-1) ?? "";
 };
 
-const resolveCapabilityOwner = (repoPath: string): string | null => {
-  const match = /^src\/capabilities\/([^/]+)\//u.exec(repoPath);
-  return match ? `capability:${match[1]}` : null;
+const trimTypeScriptExtension = (fileName: string): string => {
+  for (const extension of [".tsx", ".ts", ".jsx", ".js", ".mjs"]) {
+    if (fileName.endsWith(extension)) {
+      return fileName.slice(0, fileName.length - extension.length);
+    }
+  }
+  return fileName;
 };
 
-const resolveAuditOwner = (repoPath: string): string | null => {
-  const match = /^scripts\/audit\/domains\/([^/]+)\//u.exec(repoPath);
-  return match ? `audit:${match[1]}` : null;
+const isSchemaLikeFile = (repoPath: string): boolean =>
+  trimTypeScriptExtension(getFileName(repoPath))
+    .split(".")
+    .some((token) => schemaLikeStemTokens.has(token));
+
+const resolveOwnedSegment = (repoPath: string, prefix: string, ownerPrefix: string): string | null => {
+  if (!repoPath.startsWith(prefix)) {
+    return null;
+  }
+  const remainder = repoPath.slice(prefix.length);
+  const ownerId = remainder.split("/")[0];
+  return ownerId ? `${ownerPrefix}:${ownerId}` : null;
 };
+
+const isAuditInspectorPath = (repoPath: string): boolean => {
+  const segments = getPathSegments(repoPath);
+  return segments.length === 5
+    && segments[0] === "scripts"
+    && segments[1] === "audit"
+    && segments[2] === "domains"
+    && segments[4] === "inspector.ts";
+};
+
+const isPluginFlowPath = (repoPath: string): boolean =>
+  repoPath.startsWith("src/plugins/") && getFileName(repoPath).endsWith(".flow.ts");
+
+const isCapabilityFacadePath = (repoPath: string): boolean => {
+  if (!repoPath.startsWith("src/capabilities/")) {
+    return false;
+  }
+  const segments = getPathSegments(repoPath);
+  return segments.length === 4 && segments[3] === "index.ts";
+};
+
+const isCapabilityRuntimePath = (repoPath: string): boolean => {
+  if (!repoPath.startsWith("src/capabilities/")) {
+    return false;
+  }
+  const segments = getPathSegments(repoPath);
+  return segments.length >= 5 && (segments[3] === "runtime" || segments[3] === "children");
+};
+
+const resolvePluginOwner = (repoPath: string): string | null => resolveOwnedSegment(repoPath, "src/plugins/", "plugin");
+
+const resolveCapabilityOwner = (repoPath: string): string | null => resolveOwnedSegment(repoPath, "src/capabilities/", "capability");
+
+const resolveAuditOwner = (repoPath: string): string | null => resolveOwnedSegment(repoPath, "scripts/audit/domains/", "audit");
 
 const resolveSourceOwner = (repoPath: string): string | null =>
   resolveByPrefix(repoPath, [
@@ -80,7 +126,7 @@ export const resolveCodePurityOwner = (repoPath: string): string =>
   "unknown";
 
 const resolveScriptRole = (repoPath: string): CodePurityRole | null =>
-  (resolveByPattern(repoPath, [[/^scripts\/audit\/domains\/[^/]+\/inspector\.ts$/u, "audit-inspector"]] as const) as CodePurityRole | null) ??
+  (isAuditInspectorPath(repoPath) ? "audit-inspector" : null) ??
   (resolveByPrefix(repoPath, [
     ["scripts/audit/", "audit-phase"],
     ["scripts/acceptance/", "acceptance-smoke"],
@@ -88,24 +134,25 @@ const resolveScriptRole = (repoPath: string): CodePurityRole | null =>
   ]) as CodePurityRole | null);
 
 const resolvePluginRole = (repoPath: string): CodePurityRole | null =>
-  (resolveByPattern(repoPath, [[/^src\/plugins\/[^/]+\/.*\.flow\.ts$/u, "job-flow"]] as const) as CodePurityRole | null) ??
-  (repoPath.startsWith("src/plugins/") && schemaLikeFilePattern.test(repoPath)
+  (isPluginFlowPath(repoPath) ? "job-flow" : null) ??
+  (repoPath.startsWith("src/plugins/") && isSchemaLikeFile(repoPath)
     ? "job-schema"
     : repoPath.startsWith("src/plugins/")
       ? "job-step"
       : null);
 
 const resolveCapabilityPatternRole = (repoPath: string): CodePurityRole | null =>
-  resolveByPattern(repoPath, [
-    [/^src\/capabilities\/[^/]+\/index\.ts$/u, "ability-group"],
-    [/^src\/capabilities\/[^/]+\/(runtime|children)\//u, "child-ability"],
-  ] as const) as CodePurityRole | null;
+  isCapabilityFacadePath(repoPath)
+    ? "ability-group"
+    : isCapabilityRuntimePath(repoPath)
+      ? "child-ability"
+      : null;
 
 const resolveCapabilitySurfaceRole = (repoPath: string): CodePurityRole | null => {
   if (repoPath.startsWith("src/capabilities/dom-automation/runtime/") || repoPath.startsWith("src/lib/browser/")) {
     return "browser-primitive";
   }
-  if (repoPath.startsWith("src/capabilities/") && (repoPath.includes("/contracts/") || schemaLikeFilePattern.test(repoPath))) {
+  if (repoPath.startsWith("src/capabilities/") && (repoPath.includes("/contracts/") || isSchemaLikeFile(repoPath))) {
     return "type-contract";
   }
   return repoPath.startsWith("src/capabilities/") ? "ability-group" : null;
@@ -129,7 +176,7 @@ const resolveRootSourceRole = (repoPath: string): CodePurityRole | null =>
   ]) as CodePurityRole | null);
 
 const resolveFallbackSourceRole = (repoPath: string): CodePurityRole =>
-  repoPath.startsWith("src/types/") || schemaLikeFilePattern.test(repoPath) ? "type-contract" : "infrastructure";
+  repoPath.startsWith("src/types/") || isSchemaLikeFile(repoPath) ? "type-contract" : "infrastructure";
 
 const resolveSourceRole = (repoPath: string): CodePurityRole =>
   resolveRootSourceRole(repoPath) ??

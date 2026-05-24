@@ -113,6 +113,11 @@ const startPromptSend = (input: {
       completeSendStage(sendStage);
       return;
     }
+    case "ANALYSIS_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_SEND" });
+      completeSendStage(sendStage);
+      return;
+    }
     case "POSITIVE_SEND": {
       const sendStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_SEND" });
       completeSendStage(sendStage);
@@ -125,6 +130,11 @@ const startPromptSend = (input: {
     }
     case "FINAL_SEND": {
       const sendStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_SEND" });
+      completeSendStage(sendStage);
+      return;
+    }
+    case "FINAL_ADJUDICATION_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_SEND" });
       completeSendStage(sendStage);
       return;
     }

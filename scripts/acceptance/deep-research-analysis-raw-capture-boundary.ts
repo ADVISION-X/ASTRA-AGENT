@@ -17,7 +17,7 @@ const assert = (condition: unknown, message: string): void => {
   if (!condition) throw new Error(message);
 };
 
-class MalformedPositiveFixtureAdapter implements AiProviderAdapter {
+class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
   readonly providerKind = "gemini-api" as const;
 
   private cursor = 0;
@@ -25,28 +25,38 @@ class MalformedPositiveFixtureAdapter implements AiProviderAdapter {
   private readonly responses = [
     JSON.stringify({
       mainQuestion: "Can Deep Research preserve raw AI output before business parsing?",
+      questionType: "business",
+      decompositionStrategy: "Use one bounded question to test the raw-capture boundary.",
+      missingInfo: [],
       subQuestions: [
         {
           id: "Q1",
           title: "Raw capture boundary",
-          questionText: "Does capture succeed when the provider returns malformed JSON?",
-          purpose: "Prove transport and business parsing stay separated.",
+          questionText: "Does capture succeed when the provider returns malformed JSON for one independent analysis?",
+          whyItMatters: "This proves transport and business parsing stay separated under the default 1+N+1 flow.",
+          decisionWeight: "high",
+          analysisFocus: "Check whether raw output is captured before the parser rejects malformed JSON.",
+          requiredEvidence: ["runtime logs", "persisted interaction"],
           scope: "Deep Research capture and parse stages.",
           expectedAnswerShape: "raw-capture-boundary-proof",
-        },
+          priority: "high",
+          omissionRisk: "Without this, malformed provider output can be mistaken for a transport failure."
+        }
       ],
-      qualitySelfCheck: {
-        coversFacts: true,
-        coversCausality: true,
-        coversImpact: true,
-        coversEvidence: true,
-        coversFalsification: true,
-        coversRisks: true,
-        hasNoDuplicateQuestions: true,
-        isReadyForPositiveAndFalsification: true,
+      exhaustivenessCheck: {
+        keyDimensionsCovered: ["capture boundary"],
+        knownBlindSpots: [],
+        whyNoMoreQuestionsAreNeeded: "One question is enough to prove the capture-parse boundary."
       },
+      qualitySelfCheck: {
+        isNeutral: true,
+        hasNoDuplicateQuestions: true,
+        hasNoPureFalsificationQuestions: true,
+        isReadyForIndependentAnalysis: true,
+        isReadyForFinalAdjudication: true
+      }
     }),
-    "{\"subQuestionId\":\"Q1\",\"answer\":\"The provider replied with useful text but malformed JSON.\",\"keyClaims\":[\"Capture must not be the business parser\"],\"supportingReasons\":[\"The raw output exists and must reach Deep Research parse\"],\"assumptions\":[],\"evidenceMentions\":[],\"confidence\":\"medium\",\"limitations\":[\"The closing array bracket is intentionally missing\"}",
+    '{"subQuestionId":"Q1","answer":"The provider replied with useful text but malformed JSON."',
   ] as const;
 
   async feed(input: AiFeedInput): Promise<AiProviderRawResponse> {
@@ -58,7 +68,7 @@ class MalformedPositiveFixtureAdapter implements AiProviderAdapter {
     return {
       rawText,
       modelName: "fixture-gemini-model",
-      runtimeName: "deep-research-malformed-fixture-adapter",
+      runtimeName: "deep-research-malformed-analysis-fixture-adapter",
       transport: "api",
       webChatUrl: null,
       sourcePageUrlBeforeFeed: null,
@@ -83,14 +93,14 @@ export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promi
   const aiInputGateway = createAiInputGatewayAbilityGroup({
     dataDir,
     adapters: {
-      "gemini-api": new MalformedPositiveFixtureAdapter(),
+      "gemini-api": new MalformedAnalysisFixtureAdapter(),
     },
   });
 
   const result = await runDeepResearchAnalysis(
     {
-      userQuestion: "Can raw capture be separated from positive parsing?",
-      analysisGoal: "Verify malformed provider JSON reaches the Deep Research parser.",
+      userQuestion: "Can raw capture be separated from independent analysis parsing?",
+      analysisGoal: "Verify malformed provider JSON reaches the Deep Research parser under the default 1+N+1 flow.",
       language: "en",
       maxSubQuestions: 2,
       outputFormat: "markdown",
@@ -105,9 +115,12 @@ export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promi
     },
   );
 
-  assert(result.status === "review_required", "Malformed positive JSON without any completed pair should end in review_required.");
-  assert(result.phase === "FINAL_PACKAGE_BUILD", `Malformed positive JSON should block at FINAL_PACKAGE_BUILD after POSITIVE_PARSE fails, received ${result.phase}.`);
-  assert(result.reviewReason === "no_complete_positive_falsification_pairs", `Expected minimum-material review reason, received ${result.reviewReason}.`);
+  assert(result.status === "review_required", "Malformed analysis JSON without any completed analysis record should end in review_required.");
+  assert(result.phase === "FINAL_PACKAGE_BUILD", `Malformed analysis JSON should block at FINAL_PACKAGE_BUILD after ANALYSIS_PARSE fails, received ${result.phase}.`);
+  assert(
+    (result.reviewReason ?? "").includes("missing persisted independent analysis records"),
+    `Expected missing independent analysis review reason, received ${result.reviewReason}.`,
+  );
 
   const lines = readFileSync(runtimeLogBundlePath, "utf8").trim().split("\n").filter(Boolean);
   const events = lines.map((line) => JSON.parse(line) as {
@@ -117,14 +130,14 @@ export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promi
   });
   const captureCompleted = events.some((event) =>
     event.eventType === "RUNTIME_STAGE_COMPLETED"
-    && event.payload?.stageName === "POSITIVE_CAPTURE"
+    && event.payload?.stageName === "ANALYSIS_CAPTURE"
     && typeof event.refs?.domRef === "string"
     && event.refs.domRef.length > 0,
   );
   const parseFailed = events.some((event) =>
     event.eventType === "RUNTIME_STAGE_FAILED"
-    && event.payload?.stageName === "POSITIVE_PARSE",
+    && event.payload?.stageName === "ANALYSIS_PARSE",
   );
-  assert(captureCompleted, "Raw provider output must complete POSITIVE_CAPTURE before parser failure.");
-  assert(parseFailed, "Malformed provider JSON must be rejected by POSITIVE_PARSE.");
+  assert(captureCompleted, "Raw provider output must complete ANALYSIS_CAPTURE before parser failure.");
+  assert(parseFailed, "Malformed provider JSON must be rejected by ANALYSIS_PARSE.");
 };

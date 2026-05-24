@@ -4,6 +4,7 @@ const finalSynthesisLeakagePatterns = [
   /最终判断/u,
   /最终概率/u,
   /最终结论/u,
+  /最终答案/u,
   /是否值得买入/u,
   /应该买入/u,
   /最终路径是什么/u,
@@ -14,6 +15,7 @@ const finalSynthesisLeakagePatterns = [
   /final judgment/iu,
   /final probability/iu,
   /final conclusion/iu,
+  /final answer/iu,
   /most likely final outcome/iu,
 ] as const;
 
@@ -48,12 +50,14 @@ const scopeSignals = [/scope/iu, /conflict scope/iu, /event scope/iu, /事件范
 const matchesAny = (value: string, patterns: readonly RegExp[]): boolean =>
   patterns.some((pattern) => pattern.test(value));
 
-export const detectFinalSynthesisLeakage = (questionText: string): boolean => {
+export const detectFinalAdjudicationLeakage = (questionText: string): boolean => {
   if (matchesAny(questionText, allowedFinalSynthesisFeederPatterns)) {
     return false;
   }
   return matchesAny(questionText, finalSynthesisLeakagePatterns);
 };
+
+export const detectFinalSynthesisLeakage = detectFinalAdjudicationLeakage;
 
 export const detectCurrentEventMissingInfo = (input: DeepResearchDecompositionResponse): boolean => {
   if (!matchesAny(input.mainQuestion, currentEventSignals)) {
@@ -70,27 +74,39 @@ export const scoreDecompositionQuality = (input: DeepResearchDecompositionRespon
   score: number;
   passScore: number;
 } => {
-  const passScore = 24;
+  const passScore = 16;
   let score = 0;
-  const dimensions = new Set<string>();
   let hasHardFailure = false;
   for (const subQuestion of input.subQuestions) {
-    dimensions.add(subQuestion.dimension);
     score += subQuestion.requiredEvidence.length >= 2 ? 2 : 0;
-    score += subQuestion.falsificationFocus.trim() ? 2 : 0;
-    score += subQuestion.positiveAnalysisFocus.trim() ? 1 : 0;
+    score += subQuestion.whyItMatters.trim() ? 1 : 0;
+    score += subQuestion.analysisFocus.trim() ? 2 : 0;
+    score += subQuestion.omissionRisk.trim() ? 1 : 0;
     if (
       subQuestion.requiredEvidence.length < 2
-      || !subQuestion.falsificationFocus.trim()
-      || !subQuestion.positiveAnalysisFocus.trim()
-      || detectFinalSynthesisLeakage(subQuestion.questionText)
+      || !subQuestion.whyItMatters.trim()
+      || !subQuestion.analysisFocus.trim()
+      || !subQuestion.omissionRisk.trim()
+      || detectFinalAdjudicationLeakage(subQuestion.questionText)
     ) {
       hasHardFailure = true;
     }
   }
-  score += dimensions.size * 2;
-  score += input.qualitySelfCheck.isReadyForPositiveAndFalsification ? 2 : 0;
-  if (dimensions.size < 5 || detectCurrentEventMissingInfo(input)) {
+  score += Math.min(input.exhaustivenessCheck.keyDimensionsCovered.length, 6);
+  score += input.exhaustivenessCheck.knownBlindSpots.length > 0 ? 1 : 0;
+  score += input.qualitySelfCheck.isNeutral ? 1 : 0;
+  score += input.qualitySelfCheck.hasNoDuplicateQuestions ? 1 : 0;
+  score += input.qualitySelfCheck.hasNoPureFalsificationQuestions ? 1 : 0;
+  score += input.qualitySelfCheck.isReadyForIndependentAnalysis ? 1 : 0;
+  score += input.qualitySelfCheck.isReadyForFinalAdjudication ? 1 : 0;
+  if (
+    !input.qualitySelfCheck.isNeutral
+    || !input.qualitySelfCheck.hasNoDuplicateQuestions
+    || !input.qualitySelfCheck.hasNoPureFalsificationQuestions
+    || !input.qualitySelfCheck.isReadyForIndependentAnalysis
+    || !input.qualitySelfCheck.isReadyForFinalAdjudication
+    || detectCurrentEventMissingInfo(input)
+  ) {
     hasHardFailure = true;
   }
   return {

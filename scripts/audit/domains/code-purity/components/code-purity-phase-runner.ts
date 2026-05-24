@@ -5,14 +5,16 @@ import {
   writeCodePurityInventoryReport,
   type CodePurityInventoryItem,
 } from "./code-purity-report-writer.js";
+import { scanCodePurityNoRegex } from "./scan-code-purity-no-regex.js";
 import { scanAuditTruth } from "./scan-audit-truth.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
 import { scanStructuralBudgets } from "./scan-structural-budgets.js";
-import { scanZombieSurfaces } from "./scan-zombie-surfaces.js";
+import { scanZombieSurfaces, type ZombieScanSummary } from "./scan-zombie-surfaces.js";
 
 type CodePurityPhaseRun = {
   findings: InspectorFinding[];
   inspectedFiles: string[];
+  summary: ZombieScanSummary;
 };
 
 const dedupeFindings = (findings: readonly InspectorFinding[]): InspectorFinding[] => {
@@ -41,11 +43,13 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   const governedFiles = collectCodePurityGovernedFiles(context.project);
   const structuralScan = scanStructuralBudgets(governedFiles, context.planEntry.lawIds);
   const ownerBoundaryScan = scanOwnerBoundaries(governedFiles, context.planEntry.lawIds);
-  const zombieScan = scanZombieSurfaces(governedFiles, context.planEntry.lawIds);
+  const zombieScan = scanZombieSurfaces(context, governedFiles, context.planEntry.lawIds);
+  const noRegexFindings = scanCodePurityNoRegex(context.project, context.planEntry.lawIds);
   const auditTruthFindings = scanAuditTruth(context, context.planEntry.lawIds);
   const findings = dedupeFindings([
     ...structuralScan.findings,
     ...ownerBoundaryScan.findings,
+    ...noRegexFindings,
     ...zombieScan.findings,
     ...auditTruthFindings,
   ]);
@@ -71,5 +75,6 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   return {
     findings: dedupeFindings(findings),
     inspectedFiles: governedFiles.map((governedFile) => governedFile.repoPath),
+    summary: zombieScan.summary,
   };
 };

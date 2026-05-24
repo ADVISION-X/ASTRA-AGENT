@@ -18,6 +18,10 @@ export const DeepResearchPhaseSchema = z.enum([
   "DECOMPOSE_CAPTURE",
   "DECOMPOSE_PARSE",
   "DECOMPOSE_PERSIST",
+  "ANALYSIS_SEND",
+  "ANALYSIS_CAPTURE",
+  "ANALYSIS_PARSE",
+  "ANALYSIS_PERSIST",
   "POSITIVE_SEND",
   "POSITIVE_CAPTURE",
   "POSITIVE_PARSE",
@@ -27,6 +31,10 @@ export const DeepResearchPhaseSchema = z.enum([
   "FALSIFY_PARSE",
   "FALSIFY_PERSIST",
   "FINAL_PACKAGE_BUILD",
+  "FINAL_ADJUDICATION_SEND",
+  "FINAL_ADJUDICATION_CAPTURE",
+  "FINAL_ADJUDICATION_PARSE",
+  "FINAL_ADJUDICATION_PERSIST",
   "FINAL_SEND",
   "FINAL_CAPTURE",
   "FINAL_PARSE",
@@ -37,8 +45,10 @@ export const DeepResearchPhaseSchema = z.enum([
 
 export const DeepResearchInteractionPhaseSchema = z.enum([
   "decomposition",
+  "analysis",
   "positive",
   "falsification",
+  "final_adjudication",
   "final_synthesis",
 ]);
 
@@ -53,8 +63,14 @@ export const DeepResearchSubQuestionSchema = z.object({
   title: z.string().trim().min(1),
   questionText: z.string().trim().min(1),
   purpose: z.string().trim().min(1),
+  whyItMatters: z.string().trim().min(1).optional(),
+  decisionWeight: z.enum(["decisive", "high", "medium", "low"]).optional(),
+  analysisFocus: z.string().trim().min(1).optional(),
+  requiredEvidence: z.array(z.string().trim().min(1)).default([]),
   scope: z.string().trim().min(1),
   expectedAnswerShape: z.string().trim().min(1),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+  omissionRisk: z.string().trim().min(1).optional(),
 }).strict();
 
 export const DeepResearchInputSchema = z.object({

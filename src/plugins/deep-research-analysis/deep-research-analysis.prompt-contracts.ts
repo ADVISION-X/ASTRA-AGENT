@@ -11,8 +11,10 @@ export type DecompositionPromptRenderInput = {
 
 const DeepResearchPromptIdSchema = z.enum([
   "deep-research.decomposition",
+  "deep-research.sub-question-analysis",
   "deep-research.positive-analysis",
   "deep-research.falsification",
+  "deep-research.final-adjudication",
   "deep-research.final-synthesis",
 ]);
 

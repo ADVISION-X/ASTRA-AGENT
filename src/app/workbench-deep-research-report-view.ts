@@ -1,10 +1,10 @@
 export const renderDeepResearchReportView = (): string => `
 <div class="research-reader-shell" data-deep-research-reader-shell>
-  <main class="research-reader" data-deep-research-reader>
+  <main class="research-reader" data-deep-research-reader data-deep-research-reader-primary>
     <section class="research-empty-state" data-deep-research-empty>
       <p class="research-kicker">Report Reader</p>
       <h2>Select a report from history</h2>
-      <p class="muted">The final conclusion, decomposition, paired positive and falsification analysis, final synthesis, and evidence trace will appear here.</p>
+      <p class="muted">The final conclusion, decomposition, independent analysis, final adjudication, and evidence trace will appear here.</p>
     </section>
     <article class="research-report hidden" data-deep-research-report>
       <header class="research-report-header" data-deep-research-report-header></header>
@@ -12,11 +12,11 @@ export const renderDeepResearchReportView = (): string => `
       <section class="research-section" data-deep-research-stage-overview></section>
       <section class="research-section" id="decomposition" data-deep-research-decomposition></section>
       <section class="research-section" data-deep-research-subquestions></section>
-      <section class="research-section" id="final-synthesis" data-deep-research-final-synthesis></section>
+      <section class="research-section" id="final-adjudication" data-deep-research-final-adjudication></section>
       <section class="research-section" id="evidence" data-deep-research-evidence></section>
     </article>
   </main>
-  <aside class="research-side" data-deep-research-side>
+  <aside class="research-side" data-deep-research-side data-deep-research-side-compact>
     <section class="research-side-panel">
       <p class="research-kicker">Report Navigation</p>
       <nav class="research-nav" data-deep-research-nav></nav>

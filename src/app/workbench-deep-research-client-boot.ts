@@ -58,6 +58,7 @@ async function loadSelectedReport(
 ): Promise<DeepResearchReport> {
   setSelectedJobId(state, jobId);
   const report = await readResearchJson<DeepResearchReport>(`/api/deep-research-analysis/report?jobId=${encodeURIComponent(jobId)}`);
+  state.formOpen = false;
   renderHistory(state);
   renderSelectedReport(state, report);
   if (!options.skipHistoryRefresh) {
@@ -188,6 +189,7 @@ function handleDeepResearchDomReady(state: DeepResearchClientState): void {
       if (!jobId) {
         return undefined;
       }
+      state.formOpen = false;
       return loadSelectedReport(state, jobId, { skipHistoryRefresh: true });
     })
     .catch((error) => writeActivity(`deep research history load failed: ${error.message}`, "bad"));

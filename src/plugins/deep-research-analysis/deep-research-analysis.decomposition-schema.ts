@@ -1,17 +1,5 @@
 import { z } from "zod";
 
-const DEEP_RESEARCH_DECOMPOSITION_DIMENSIONS = [
-  "facts",
-  "causality",
-  "impact",
-  "evidence",
-  "risk",
-  "market",
-  "valuation",
-  "operations",
-  "falsification",
-] as const;
-
 const DeepResearchQuestionTypeSchema = z.enum([
   "stock",
   "event",
@@ -19,36 +7,48 @@ const DeepResearchQuestionTypeSchema = z.enum([
   "business",
   "product",
   "strategy",
+  "finance",
+  "crypto",
+  "macro",
   "general",
   "unknown",
 ]);
 
-const DeepResearchDecompositionDimensionSchema = z.enum(DEEP_RESEARCH_DECOMPOSITION_DIMENSIONS);
+const DeepResearchDecisionWeightSchema = z.enum([
+  "decisive",
+  "high",
+  "medium",
+  "low",
+]);
+
 const DeepResearchDecompositionPrioritySchema = z.enum(["low", "medium", "high"]);
 
 const DeepResearchDecompositionSubQuestionSchema = z.object({
   id: z.string().trim().min(1),
   title: z.string().trim().min(1),
   questionText: z.string().trim().min(1),
-  dimension: DeepResearchDecompositionDimensionSchema,
-  purpose: z.string().trim().min(1),
+  whyItMatters: z.string().trim().min(1),
+  decisionWeight: DeepResearchDecisionWeightSchema,
+  analysisFocus: z.string().trim().min(1),
   requiredEvidence: z.array(z.string().trim().min(1)).min(2),
-  positiveAnalysisFocus: z.string().trim().min(1),
-  falsificationFocus: z.string().trim().min(1),
   scope: z.string().trim().min(1),
   expectedAnswerShape: z.string().trim().min(1),
   priority: DeepResearchDecompositionPrioritySchema,
+  omissionRisk: z.string().trim().min(1),
+}).strict();
+
+const DeepResearchDecompositionExhaustivenessCheckSchema = z.object({
+  keyDimensionsCovered: z.array(z.string().trim().min(1)).min(1),
+  knownBlindSpots: z.array(z.string().trim().min(1)).default([]),
+  whyNoMoreQuestionsAreNeeded: z.string().trim().min(1),
 }).strict();
 
 const DeepResearchDecompositionQualitySelfCheckSchema = z.object({
-  coversFacts: z.boolean(),
-  coversCausality: z.boolean(),
-  coversImpact: z.boolean(),
-  coversEvidence: z.boolean(),
-  coversFalsification: z.boolean(),
-  coversRisks: z.boolean(),
+  isNeutral: z.boolean(),
   hasNoDuplicateQuestions: z.boolean(),
-  isReadyForPositiveAndFalsification: z.boolean(),
+  hasNoPureFalsificationQuestions: z.boolean(),
+  isReadyForIndependentAnalysis: z.boolean(),
+  isReadyForFinalAdjudication: z.boolean(),
 }).strict();
 
 export const DeepResearchDecompositionResponseSchema = z.object({
@@ -57,6 +57,7 @@ export const DeepResearchDecompositionResponseSchema = z.object({
   decompositionStrategy: z.string().trim().min(1),
   missingInfo: z.array(z.string().trim().min(1)).default([]),
   subQuestions: z.array(DeepResearchDecompositionSubQuestionSchema).min(1),
+  exhaustivenessCheck: DeepResearchDecompositionExhaustivenessCheckSchema,
   qualitySelfCheck: DeepResearchDecompositionQualitySelfCheckSchema,
 }).strict();
 

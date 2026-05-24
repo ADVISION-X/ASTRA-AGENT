@@ -113,16 +113,16 @@ const inspectAnalysisFile = (input: InspectInput, analysisFile: SourceFile | und
 };
 
 const inspectFinalPackageFile = (input: InspectInput, finalPackageFile: SourceFile | undefined): void => {
-  const hasMissingSubQuestionIds = finalPackageFile
+  const hasMissingAnalysisSubQuestionIds = finalPackageFile
     ? finalPackageFile.getDescendantsOfKind(SyntaxKind.Identifier)
-      .some((identifier) => identifier.getText() === "missingSubQuestionIds")
+      .some((identifier) => identifier.getText() === "missingAnalysisSubQuestionIds")
     : false;
-  if (!finalPackageFile || !hasMissingSubQuestionIds) {
+  if (!finalPackageFile || !hasMissingAnalysisSubQuestionIds) {
     input.findings.push(createFinding({
       checkId: "deep-research/final-package-missing-sub-questions",
       lawId: input.lawId,
       filePath: finalPackagePath,
-      message: "Final package must carry missingSubQuestionIds so final synthesis can surface evidence gaps instead of failing the whole job early.",
+      message: "Final package must carry missingAnalysisSubQuestionIds so final adjudication can surface evidence gaps instead of failing the whole job early.",
     }));
   }
 };
@@ -136,7 +136,7 @@ const inspectSmokeHelper = (input: InspectInput, smokeFile: SourceFile | undefin
     : false;
   const helperHasEvidenceGapAssertion = helperFile
     ? helperFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .some((literal) => literal.getLiteralValue().includes("Missing structured positive or falsification record"))
+      .some((literal) => literal.getLiteralValue().includes("Missing structured independent analysis record"))
     : false;
   const smokeWiresHelper = smokeFile
     ? smokeImportsHelper(smokeFile) && smokeCallsHelper(smokeFile)

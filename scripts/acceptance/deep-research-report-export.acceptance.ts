@@ -30,38 +30,49 @@ const buildSubQuestionFixture = () => [
     title: "Market demand",
     questionText: "How durable is market demand over the next three years?",
     purpose: "Measure top-line demand strength.",
+    whyItMatters: "The final adjudicator needs durable demand evidence before supporting entry.",
+    decisionWeight: "decisive" as const,
+    analysisFocus: "Evaluate whether buyer demand is durable enough to justify entry timing.",
+    requiredEvidence: ["buyer capex trend", "automation ROI data"],
     scope: "Global robotics warehouse demand from 2026 to 2028.",
     expectedAnswerShape: "demand-summary",
+    priority: "high" as const,
+    omissionRisk: "Without this, the final answer can mistake a niche signal for a real market.",
   },
   {
     id: "Q2",
     title: "Pricing power",
     questionText: "Can the entrant preserve pricing power against incumbent vendors?",
     purpose: "Assess gross margin resilience.",
+    whyItMatters: "A market can be attractive while still destroying economics through pricing pressure.",
+    decisionWeight: "high" as const,
+    analysisFocus: "Assess whether incumbents or buyer concentration compress price and margin potential.",
+    requiredEvidence: ["peer pricing evidence", "replacement-cycle data"],
     scope: "Competitive pricing and replacement cycles.",
     expectedAnswerShape: "pricing-summary",
+    priority: "medium" as const,
+    omissionRisk: "Without this, the final answer may overstate the value of demand without checking monetization quality.",
   },
   {
     id: "Q3",
     title: "Execution readiness",
     questionText: "What execution dependencies dominate the first twelve months?",
     purpose: "Expose rollout dependencies.",
+    whyItMatters: "Entry quality depends on whether the first year of execution is feasible.",
+    decisionWeight: "high" as const,
+    analysisFocus: "Identify the operational dependencies that determine whether launch execution remains realistic.",
+    requiredEvidence: ["implementation benchmarks", "service capacity evidence"],
     scope: "Implementation, integration, and service capacity.",
     expectedAnswerShape: "execution-summary",
-  },
-  {
-    id: "Q4",
-    title: "Downside triggers",
-    questionText: "Which downside triggers would invalidate the entry thesis fastest?",
-    purpose: "Identify hard reversal signals.",
-    scope: "Commercial, operational, and partner-driven failure modes.",
-    expectedAnswerShape: "downside-summary",
+    priority: "high" as const,
+    omissionRisk: "Without this, the final adjudication may describe a good market without a workable launch path.",
   },
 ] as const;
 
-const buildPositiveRawResponse = (subQuestionId: string, ordinal: number) => buildJsonText({
+const buildAnalysisRawResponse = (subQuestionId: string, ordinal: number) => buildJsonText({
   subQuestionId,
-  answer: `Positive answer for ${subQuestionId}.`,
+  answer: `Independent analysis answer for ${subQuestionId}.`,
+  coreFinding: `Core finding for ${subQuestionId}.`,
   keyClaims: [
     `${subQuestionId} key claim A`,
     `${subQuestionId} key claim B`,
@@ -70,38 +81,22 @@ const buildPositiveRawResponse = (subQuestionId: string, ordinal: number) => bui
     `${subQuestionId} supporting reason ${ordinal}-1`,
     `${subQuestionId} supporting reason ${ordinal}-2`,
   ],
-  assumptions: [`${subQuestionId} assumption`],
+  counterConditions: [
+    `${subQuestionId} counter condition ${ordinal}-1`,
+  ],
+  failureCases: [
+    `${subQuestionId} failure case ${ordinal}-1`,
+  ],
   evidenceMentions: [`${subQuestionId} evidence mention`],
+  evidenceQuality: ordinal % 2 === 0 ? "moderate" : "strong",
+  assumptions: [`${subQuestionId} assumption`],
+  uncertainties: [`${subQuestionId} uncertainty`],
+  impactOnFinalAdjudication: `${subQuestionId} impact on final adjudication.`,
   confidence: ordinal % 2 === 0 ? "medium" : "high",
-  limitations: [`${subQuestionId} positive limitation`],
-});
-
-const buildFalsificationRawResponse = (subQuestionId: string, ordinal: number) => buildJsonText({
-  subQuestionId,
-  answer: `Falsification answer for ${subQuestionId}.`,
-  strongestOpposingArguments: [
-    `${subQuestionId} strongest opposing argument A`,
-    `${subQuestionId} strongest opposing argument B`,
-  ],
-  contradictionPoints: [
-    `${subQuestionId} contradiction point ${ordinal}-1`,
-    `${subQuestionId} contradiction point ${ordinal}-2`,
-  ],
-  evidenceMentions: [`${subQuestionId} falsification evidence mention`],
-  confidence: ordinal % 2 === 0 ? "low" : "medium",
-  limitations: [`${subQuestionId} falsification limitation`],
+  limitations: [`${subQuestionId} analysis limitation`],
 });
 
 const createPromptText = (label: string): string => `${label}\nReturn a structured JSON object.`;
-
-type ConflictRowFixture = {
-  subQuestionId: string;
-  positiveClaimSummary: string;
-  falsificationSummary: string;
-  conflictLevel: "high" | "medium";
-  evidenceGap: string;
-  needsHumanReview: true;
-};
 
 const createParsedInteraction = (input: {
   store: DeepResearchStore;
@@ -133,101 +128,49 @@ const createParsedInteraction = (input: {
   providerProofJson: input.providerProofJson,
 });
 
-const savePositiveAnalysis = (input: {
+const saveAnalysis = (input: {
   store: DeepResearchStore;
   jobId: string;
   subQuestion: Awaited<ReturnType<DeepResearchStore["saveSubQuestions"]>>[number];
   ordinal: number;
 }): void => {
-  const rawResponseText = buildPositiveRawResponse(input.subQuestion.modelQuestionId, input.ordinal + 1);
+  const rawResponseText = buildAnalysisRawResponse(input.subQuestion.modelQuestionId, input.ordinal + 1);
   const interaction = createParsedInteraction({
     store: input.store,
     jobId: input.jobId,
-    phase: "positive",
+    phase: "analysis",
     subQuestionId: input.subQuestion.id,
-    promptId: "deep-research.positive",
-    promptVersion: "v5",
-    promptHash: `sha256:positive-${input.subQuestion.modelQuestionId}-prompt`,
-    renderedPromptText: createPromptText(`Positive prompt for ${input.subQuestion.modelQuestionId}.`),
-    domRef: `artifact://positive/${input.subQuestion.modelQuestionId}`,
+    promptId: "deep-research.sub-question-analysis",
+    promptVersion: "v1.0.0",
+    promptHash: `sha256:analysis-${input.subQuestion.modelQuestionId}-prompt`,
+    renderedPromptText: createPromptText(`Independent analysis prompt for ${input.subQuestion.modelQuestionId}.`),
+    domRef: `artifact://analysis/${input.subQuestion.modelQuestionId}`,
     rawResponseText,
-    rawResponseHash: `sha256:positive-${input.subQuestion.modelQuestionId}-raw`,
-    providerProofJson: buildJsonText({ provider: "fixture", phase: "positive", id: input.subQuestion.modelQuestionId }),
+    rawResponseHash: `sha256:analysis-${input.subQuestion.modelQuestionId}-raw`,
+    providerProofJson: buildJsonText({ provider: "fixture", phase: "analysis", id: input.subQuestion.modelQuestionId }),
   });
   input.store.saveAnswer({
     jobId: input.jobId,
     interactionId: interaction.id,
     subQuestionId: input.subQuestion.id,
-    answerKind: "positive",
-    answerText: `Positive answer for ${input.subQuestion.modelQuestionId}.`,
+    answerKind: "analysis",
+    answerText: `Independent analysis answer for ${input.subQuestion.modelQuestionId}.`,
     keyPoints: [
       `${input.subQuestion.modelQuestionId} key claim A`,
       `${input.subQuestion.modelQuestionId} key claim B`,
     ],
     evidenceMentions: [`${input.subQuestion.modelQuestionId} evidence mention`],
     assumptions: [`${input.subQuestion.modelQuestionId} assumption`],
-    limitations: [`${input.subQuestion.modelQuestionId} positive limitation`],
+    limitations: [`${input.subQuestion.modelQuestionId} analysis limitation`],
+    contradictionPoints: [`${input.subQuestion.modelQuestionId} counter condition 1`],
+    parsedPayload: {
+      coreFinding: `Core finding for ${input.subQuestion.modelQuestionId}.`,
+      failureCases: [`${input.subQuestion.modelQuestionId} failure case 1`],
+      uncertainties: [`${input.subQuestion.modelQuestionId} uncertainty`],
+      impactOnFinalAdjudication: `${input.subQuestion.modelQuestionId} impact on final adjudication.`,
+    },
     confidence: input.ordinal % 2 === 0 ? "high" : "medium",
   });
-};
-
-const saveFalsificationAnalysis = (input: {
-  store: DeepResearchStore;
-  jobId: string;
-  subQuestion: Awaited<ReturnType<DeepResearchStore["saveSubQuestions"]>>[number];
-  ordinal: number;
-}): void => {
-  const rawResponseText = buildFalsificationRawResponse(input.subQuestion.modelQuestionId, input.ordinal + 1);
-  const interaction = createParsedInteraction({
-    store: input.store,
-    jobId: input.jobId,
-    phase: "falsification",
-    subQuestionId: input.subQuestion.id,
-    promptId: "deep-research.falsification",
-    promptVersion: "v5",
-    promptHash: `sha256:falsification-${input.subQuestion.modelQuestionId}-prompt`,
-    renderedPromptText: createPromptText(`Falsification prompt for ${input.subQuestion.modelQuestionId}.`),
-    domRef: `artifact://falsification/${input.subQuestion.modelQuestionId}`,
-    rawResponseText,
-    rawResponseHash: `sha256:falsification-${input.subQuestion.modelQuestionId}-raw`,
-    providerProofJson: buildJsonText({ provider: "fixture", phase: "falsification", id: input.subQuestion.modelQuestionId }),
-  });
-  input.store.saveAnswer({
-    jobId: input.jobId,
-    interactionId: interaction.id,
-    subQuestionId: input.subQuestion.id,
-    answerKind: "falsification",
-    answerText: `Falsification answer for ${input.subQuestion.modelQuestionId}.`,
-    keyPoints: [
-      `${input.subQuestion.modelQuestionId} strongest opposing argument A`,
-      `${input.subQuestion.modelQuestionId} strongest opposing argument B`,
-    ],
-    evidenceMentions: [`${input.subQuestion.modelQuestionId} falsification evidence mention`],
-    limitations: [`${input.subQuestion.modelQuestionId} falsification limitation`],
-    contradictionPoints: [
-      `${input.subQuestion.modelQuestionId} contradiction point 1`,
-      `${input.subQuestion.modelQuestionId} contradiction point 2`,
-    ],
-    confidence: input.ordinal % 2 === 0 ? "medium" : "low",
-  });
-};
-
-const persistSubQuestionAnalysis = (
-  store: DeepResearchStore,
-  jobId: string,
-  subQuestion: Awaited<ReturnType<DeepResearchStore["saveSubQuestions"]>>[number],
-  ordinal: number,
-): ConflictRowFixture => {
-  savePositiveAnalysis({ store, jobId, subQuestion, ordinal });
-  saveFalsificationAnalysis({ store, jobId, subQuestion, ordinal });
-  return {
-    subQuestionId: subQuestion.id,
-    positiveClaimSummary: `${subQuestion.modelQuestionId} positive claim summary`,
-    falsificationSummary: `${subQuestion.modelQuestionId} falsification summary`,
-    conflictLevel: ordinal % 2 === 0 ? "high" as const : "medium" as const,
-    evidenceGap: `${subQuestion.modelQuestionId} evidence gap`,
-    needsHumanReview: true,
-  };
 };
 
 const persistDecompositionFixture = (input: {
@@ -235,13 +178,43 @@ const persistDecompositionFixture = (input: {
   job: Awaited<ReturnType<DeepResearchStore["createJob"]>>;
   modelSubQuestions: ReturnType<typeof buildSubQuestionFixture>;
 }) => {
-  const rawResponseText = buildJsonText({ mainQuestion: input.job.userQuestion, subQuestions: input.modelSubQuestions });
+  const rawResponseText = buildJsonText({
+    mainQuestion: input.job.userQuestion,
+    questionType: "business",
+    decompositionStrategy: "Split the market-entry question into demand, pricing, and execution.",
+    missingInfo: [],
+    subQuestions: input.modelSubQuestions.map((subQuestion) => ({
+      id: subQuestion.id,
+      title: subQuestion.title,
+      questionText: subQuestion.questionText,
+      whyItMatters: subQuestion.whyItMatters,
+      decisionWeight: subQuestion.decisionWeight,
+      analysisFocus: subQuestion.analysisFocus,
+      requiredEvidence: subQuestion.requiredEvidence,
+      scope: subQuestion.scope,
+      expectedAnswerShape: subQuestion.expectedAnswerShape,
+      priority: subQuestion.priority,
+      omissionRisk: subQuestion.omissionRisk,
+    })),
+    exhaustivenessCheck: {
+      keyDimensionsCovered: ["demand", "pricing", "execution"],
+      knownBlindSpots: [],
+      whyNoMoreQuestionsAreNeeded: "These three sub-questions are sufficient for the report export fixture.",
+    },
+    qualitySelfCheck: {
+      isNeutral: true,
+      hasNoDuplicateQuestions: true,
+      hasNoPureFalsificationQuestions: true,
+      isReadyForIndependentAnalysis: true,
+      isReadyForFinalAdjudication: true,
+    },
+  });
   const interaction = createParsedInteraction({
     store: input.store,
     jobId: input.job.id,
     phase: "decomposition",
     promptId: "deep-research.decomposition",
-    promptVersion: "v3",
+    promptVersion: "v2.0.0",
     promptHash: "sha256:decomposition-prompt",
     renderedPromptText: createPromptText("Decomposition prompt for the main question."),
     domRef: "artifact://decomposition",
@@ -256,34 +229,55 @@ const persistDecompositionFixture = (input: {
   });
 };
 
-const buildFinalReportFixture = (conflictRows: readonly ConflictRowFixture[]): DeepResearchFinalReport => ({
-  executiveConclusion: "The company should only enter through a staged partner-led beachhead.",
+const buildFinalReportFixture = (): DeepResearchFinalReport => ({
+  directAnswer: "The company should only enter through a staged partner-led beachhead.",
+  finalVerdict: "conditional",
   confidence: "medium",
-  positiveReasons: [
+  rankedConclusions: [{
+    rank: 1,
+    conclusion: "Demand exists, but execution must stay narrow.",
+    whyItMatters: "This is the gating conclusion for entry.",
+    strength: "strong",
+    appliesTo: ["partner-led narrow launch"],
+    doesNotApplyTo: ["broad immediate rollout"],
+    reverseCondition: "Weak partner delivery or weak demand would reverse the conclusion.",
+  }],
+  strongConclusions: [
     "Demand exists in labor-constrained warehouses.",
-    "Partner-led delivery can reduce time-to-value.",
   ],
-  strongestOpposingArguments: [
-    "Integration failure can erase ROI credibility.",
-    "Pricing pressure can compress the first deployment margin.",
+  conditionalConclusions: [
+    "Execution remains conditional on staged scope and delivery partners.",
   ],
-  conflictMatrix: [...conflictRows],
+  weakOrRejectedClaims: [
+    "A broad immediate launch is not justified.",
+  ],
+  decisiveReasons: [
+    "Demand is real, but execution quality is the gating constraint.",
+  ],
   evidenceGaps: [
-    "Need live pilot conversion data.",
-    "Need partner deployment benchmarks.",
+    "Need live partner deployment benchmarks.",
   ],
   reverseConditions: [
-    "If pilot conversion drops materially, reverse the thesis.",
-    "If partner deployment lead time slips, reverse the thesis.",
+    "If partner deployment quality weakens materially, reverse the thesis.",
+  ],
+  applicability: [
+    "staged partner-led launch plans",
+  ],
+  nonApplicability: [
+    "broad immediate rollout plans",
   ],
   followUpSignals: [
-    "Pilot-to-rollout conversion rate.",
-    "Deployment time-to-value.",
+    "Deployment time-to-value in the first three accounts.",
   ],
-  limitations: ["This acceptance uses persisted fixtures rather than a live provider."],
+  multiStageValueAdded: [
+    "Independent sub-question analysis separated demand, pricing, and execution before final adjudication.",
+  ],
+  limitations: [
+    "This acceptance uses persisted fixtures rather than a live provider.",
+  ],
 });
 
-const persistFinalSynthesisFixture = (input: {
+const persistFinalAdjudicationFixture = (input: {
   store: DeepResearchStore;
   jobId: string;
   finalReport: DeepResearchFinalReport;
@@ -292,15 +286,15 @@ const persistFinalSynthesisFixture = (input: {
   const interaction = createParsedInteraction({
     store: input.store,
     jobId: input.jobId,
-    phase: "final_synthesis",
-    promptId: "deep-research.final-synthesis",
-    promptVersion: "v6",
-    promptHash: "sha256:final-synthesis-prompt",
-    renderedPromptText: createPromptText("Final synthesis prompt for all persisted records."),
-    domRef: "artifact://final-synthesis",
+    phase: "final_adjudication",
+    promptId: "deep-research.final-adjudication",
+    promptVersion: "v1.0.0",
+    promptHash: "sha256:final-adjudication-prompt",
+    renderedPromptText: createPromptText("Final adjudication prompt for all persisted records."),
+    domRef: "artifact://final-adjudication",
     rawResponseText,
-    rawResponseHash: "sha256:final-synthesis-raw",
-    providerProofJson: buildJsonText({ provider: "fixture", phase: "final" }),
+    rawResponseHash: "sha256:final-adjudication-raw",
+    providerProofJson: buildJsonText({ provider: "fixture", phase: "final-adjudication" }),
   });
   input.store.saveFinalReport({ jobId: input.jobId, interactionId: interaction.id, report: input.finalReport });
 };
@@ -315,11 +309,11 @@ const persistCompletedResearchFixture = (store: DeepResearchStore) => {
   });
   const modelSubQuestions = buildSubQuestionFixture();
   const persistedSubQuestions = persistDecompositionFixture({ store, job, modelSubQuestions });
-  const conflictRows = persistedSubQuestions.map((subQuestion, ordinal) =>
-    persistSubQuestionAnalysis(store, job.id, subQuestion, ordinal));
-  store.saveConflictMatrixRows({ jobId: job.id, rows: conflictRows });
-  const finalReport = buildFinalReportFixture(conflictRows);
-  persistFinalSynthesisFixture({ store, jobId: job.id, finalReport });
+  persistedSubQuestions.forEach((subQuestion, ordinal) => {
+    saveAnalysis({ store, jobId: job.id, subQuestion, ordinal });
+  });
+  const finalReport = buildFinalReportFixture();
+  persistFinalAdjudicationFixture({ store, jobId: job.id, finalReport });
   store.updateJobState({ jobId: job.id, status: "completed", phase: "EXPORT_REPORT" });
   return { job, finalReport };
 };
@@ -337,24 +331,21 @@ const assertFullFlowReport = (input: {
   assert(reportText.includes("# Deep Research Full Flow Report"), "Report must use the full-flow heading.");
   assert(reportText.includes(input.job.userQuestion), "Report must include the user question.");
   assert(reportText.includes("## Stage 1: Decomposition"), "Report must include the decomposition stage.");
-  assert(reportText.includes("### Prompt"), "Report must include prompt sections.");
-  assert(reportText.includes("### AI Raw Response"), "Report must include raw AI response sections.");
-  assert(reportText.includes("### Parsed SubQuestions"), "Report must include parsed sub-question output.");
-  assert(reportText.includes("## Final Synthesis"), "Report must include final synthesis.");
-  assert(reportText.includes("## Conflict Matrix"), "Report must include the conflict matrix.");
+  assert(reportText.includes("## Analysis Coverage"), "Report must include analysis coverage.");
+  assert(reportText.includes("### Independent Analysis"), "Report must include independent analysis sections.");
+  assert(reportText.includes("## Final Adjudication"), "Report must include final adjudication.");
   assert(reportText.includes("## Evidence Index"), "Report must include the evidence index.");
   assert(reportText.includes("sha256:decomposition-prompt"), "Report must expose promptHash values.");
-  assert(reportText.includes("sha256:positive-Q1-raw"), "Report must expose rawResponseHash values.");
-  assert(reportText.includes("DOM Ref: artifact://positive/Q1"), "Report must expose domRef values.");
+  assert(reportText.includes("sha256:analysis-Q1-raw"), "Report must expose rawResponseHash values.");
+  assert(reportText.includes("DOM Ref: artifact://analysis/Q1"), "Report must expose domRef values.");
   assert(reportText.includes("Decomposition prompt for the main question."), "Report must include persisted prompt text.");
-  assert(reportText.includes("Final synthesis prompt for all persisted records."), "Report must include the final synthesis prompt text.");
-  assert(reportText.includes("Positive answer for Q1."), "Report must include persisted positive content.");
-  assert(reportText.includes("Falsification answer for Q4."), "Report must include persisted falsification content.");
-  assert(countOccurrences(reportText, "## Sub-question Q") === 4, "Report must include four sub-question sections.");
-  assert(countOccurrences(reportText, "### Positive Analysis") === 4, "Report must include four positive analysis blocks.");
-  assert(countOccurrences(reportText, "### Falsification") === 4, "Report must include four falsification blocks.");
-  assert(!reportText.includes("# Deep Research Final Report"), "Report must not regress to the summary-only heading.");
-  assert(input.store.listExports(input.job.id).length === 3, "Export records must still contain the three artifact kinds.");
+  assert(reportText.includes("Final adjudication prompt for all persisted records."), "Report must include the final adjudication prompt text.");
+  assert(reportText.includes("Independent analysis answer for Q1."), "Report must include persisted analysis content.");
+  assert(countOccurrences(reportText, "### Independent Analysis") === 3, "Report must include three independent analysis blocks.");
+  assert(!reportText.includes("### Falsification"), "Default-flow report must not regress to falsification blocks.");
+  assert(!reportText.includes("## Conflict Matrix"), "Default-flow report must not emit a conflict matrix section.");
+  assert(!reportText.includes("## Final Synthesis"), "Default-flow report must not regress to final synthesis.");
+  assert(input.store.listExports(input.job.id).length === 3, "Export records must contain the three artifact kinds.");
 };
 
 function main(): void {
@@ -363,12 +354,33 @@ function main(): void {
   try {
     const { job, finalReport } = persistCompletedResearchFixture(store);
     const finalPackage = buildDeepResearchFinalPackage({ store, jobId: job.id });
-    const artifacts = exportDeepResearchArtifacts({ dataDir, store, jobId: job.id, finalPackage, finalReport });
-    assertFullFlowReport({ store, job, reportPath: artifacts.finalReportMarkdown.filePath });
-    process.stdout.write("[DEEP-RESEARCH-REPORT-EXPORT][PASS] final-report.md exposes the full persisted 1+N+N+1 flow in one human-readable report.\n");
+    const artifacts = exportDeepResearchArtifacts({
+      dataDir,
+      store,
+      jobId: job.id,
+      finalPackage,
+      finalReport,
+    });
+
+    assert(finalPackage.flowMode === "default_1_n_1", "Report-export fixture must target the default flow mode.");
+    assert(finalPackage.analysisRecords.length === 3, "Report-export fixture must persist three analysis records.");
+
+    const bundle = JSON.parse(readFileSync(artifacts.researchBundle.filePath, "utf8")) as {
+      flowMode: string;
+      analysisAnswers: unknown[];
+    };
+    assert(bundle.flowMode === "default_1_n_1", "Research bundle must expose the default flow mode.");
+    assert(bundle.analysisAnswers.length === 3, "Research bundle must expose three analysis answers.");
+
+    assertFullFlowReport({
+      store,
+      job,
+      reportPath: artifacts.finalReportMarkdown.filePath,
+    });
   } finally {
     store.close();
   }
 }
 
 main();
+process.stdout.write("[ACCEPTANCE][deep-research-report-export] PASS\n");

@@ -18,9 +18,16 @@ export type GovernedFile = {
   sourceFile: SourceFile;
 };
 
-const normalizedTestLikePathPattern = /(^|\/)(tests?|fixtures?|__tests__)(\/|$)|\.fixture\.[cm]?[jt]sx?$/u;
+const ignoredPathSegments = new Set(["test", "tests", "fixture", "fixtures", "__tests__"]);
+const fixtureFileExtensions = [".ts", ".tsx", ".js", ".jsx", ".mjs"];
 
-const isGovernedPath = (repoPath: string): boolean => !normalizedTestLikePathPattern.test(repoPath);
+const hasIgnoredSegment = (repoPath: string): boolean =>
+  repoPath.split("/").some((segment) => ignoredPathSegments.has(segment));
+
+const hasFixtureSuffix = (repoPath: string): boolean =>
+  fixtureFileExtensions.some((extension) => repoPath.endsWith(`.fixture${extension}`));
+
+const isGovernedPath = (repoPath: string): boolean => !hasIgnoredSegment(repoPath) && !hasFixtureSuffix(repoPath);
 
 export const collectCodePurityGovernedFiles = (project: Project): GovernedFile[] =>
   listActiveSourceFiles(project)

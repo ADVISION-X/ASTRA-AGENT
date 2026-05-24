@@ -91,9 +91,10 @@ export const saveSubQuestions = (
 ): ResearchSubQuestion[] => {
   const insert = db.prepare(
     `INSERT INTO research_sub_questions (
-      id, job_id, interaction_id, model_question_id, ordinal, title, question_text, purpose, scope,
-      expected_answer_shape, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, job_id, interaction_id, model_question_id, ordinal, title, question_text, purpose,
+      why_it_matters, decision_weight, analysis_focus, required_evidence_json,
+      scope, expected_answer_shape, priority, omission_risk, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const createdAt = getCurrentTimestamp();
   const rows: ResearchSubQuestion[] = [];
@@ -109,8 +110,14 @@ export const saveSubQuestions = (
       parsed.title,
       parsed.questionText,
       parsed.purpose,
+      parsed.whyItMatters ?? null,
+      parsed.decisionWeight ?? null,
+      parsed.analysisFocus ?? null,
+      JSON.stringify(parsed.requiredEvidence),
       parsed.scope,
       parsed.expectedAnswerShape,
+      parsed.priority ?? null,
+      parsed.omissionRisk ?? null,
       createdAt,
     );
     rows.push(ResearchSubQuestionSchema.parse({
@@ -146,6 +153,7 @@ export const saveAnswer = (
     assumptions?: readonly string[];
     limitations: readonly string[];
     contradictionPoints?: readonly string[];
+    parsedPayload?: Record<string, unknown>;
     confidence: ResearchAnswer["confidence"];
   },
 ): ResearchAnswer => {
@@ -155,8 +163,8 @@ export const saveAnswer = (
     `INSERT INTO research_answers (
       id, job_id, interaction_id, sub_question_id, answer_kind, answer_text,
       key_points_json, evidence_mentions_json, assumptions_json, limitations_json,
-      contradiction_points_json, confidence, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      contradiction_points_json, parsed_payload_json, confidence, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.jobId,
@@ -169,6 +177,7 @@ export const saveAnswer = (
     JSON.stringify(input.assumptions ?? []),
     JSON.stringify(input.limitations),
     JSON.stringify(input.contradictionPoints ?? []),
+    JSON.stringify(input.parsedPayload ?? {}),
     input.confidence,
     createdAt,
   );

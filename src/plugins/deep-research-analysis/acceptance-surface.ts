@@ -5,9 +5,11 @@ export {
 export { buildDeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
 export { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
 export {
+  parseDeepResearchFinalAdjudicationResponse,
   parseDeepResearchFalsificationResponse,
   parseDeepResearchFinalReportResponse,
   parseDeepResearchPositiveResponse,
+  parseDeepResearchSubQuestionAnalysisResponse,
 } from "./deep-research-analysis.parser.js";
 export { createDeepResearchRecordStore } from "./deep-research-analysis.records.js";
 export {
@@ -16,6 +18,7 @@ export {
 } from "./deep-research-analysis.decomposition-prompt.js";
 export { parseDecompositionResponse } from "./deep-research-analysis.decomposition-parser.js";
 export {
+  detectFinalAdjudicationLeakage,
   detectCurrentEventMissingInfo,
   detectFinalSynthesisLeakage,
   scoreDecompositionQuality,

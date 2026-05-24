@@ -8,9 +8,8 @@ import {
   buildDeepResearchFinalPackage,
   createDeepResearchRecordStore,
   exportDeepResearchArtifacts,
-  parseDeepResearchFalsificationResponse,
-  parseDeepResearchFinalReportResponse,
-  parseDeepResearchPositiveResponse,
+  parseDeepResearchFinalAdjudicationResponse,
+  parseDeepResearchSubQuestionAnalysisResponse,
   runDeepResearchAnalysis,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
 import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
@@ -29,173 +28,121 @@ const REQUIRED_STAGE_NAMES = [
   "DECOMPOSE_CAPTURE",
   "DECOMPOSE_PARSE",
   "DECOMPOSE_PERSIST",
-  "POSITIVE_SEND",
-  "POSITIVE_CAPTURE",
-  "POSITIVE_PARSE",
-  "POSITIVE_PERSIST",
-  "FALSIFY_SEND",
-  "FALSIFY_CAPTURE",
-  "FALSIFY_PARSE",
-  "FALSIFY_PERSIST",
+  "ANALYSIS_SEND",
+  "ANALYSIS_CAPTURE",
+  "ANALYSIS_PARSE",
+  "ANALYSIS_PERSIST",
   "FINAL_PACKAGE_BUILD",
-  "FINAL_SEND",
-  "FINAL_CAPTURE",
-  "FINAL_PARSE",
-  "FINAL_PERSIST",
+  "FINAL_ADJUDICATION_SEND",
+  "FINAL_ADJUDICATION_CAPTURE",
+  "FINAL_ADJUDICATION_PARSE",
+  "FINAL_ADJUDICATION_PERSIST",
   "EXPORT_REPORT",
 ] as const;
 
 const FIXTURE_RESPONSES = [
   JSON.stringify({
     mainQuestion: "Should the company enter the robotics warehouse market?",
+    questionType: "business",
+    decompositionStrategy: "Split the market-entry thesis into demand and execution viability so a final adjudicator can judge the answer directly.",
+    missingInfo: [],
     subQuestions: [
       {
         id: "Q1",
-        title: "Demand outlook",
-        questionText: "What is the near-term demand outlook for robotics warehouses?",
-        dimension: "market demand",
-        purpose: "Measure top-line market pull.",
-        requiredEvidence: ["budget data", "labor market data"],
-        positiveAnalysisFocus: "Demand growth and ROI support.",
-        falsificationFocus: "Demand softness and failed pilot risk.",
-        scope: "2026-2028 global enterprise warehouse robotics.",
-        expectedAnswerShape: "market-demand-summary",
+        title: "Demand durability",
+        questionText: "How durable is warehouse robotics demand over the next 24 months?",
+        whyItMatters: "Entry should not proceed unless there is durable demand support.",
+        decisionWeight: "decisive",
+        analysisFocus: "Evaluate whether buyer demand remains strong enough to justify market entry timing.",
+        requiredEvidence: ["buyer capex plans", "automation ROI benchmarks"],
+        scope: "Enterprise warehouse robotics demand over the next 24 months.",
+        expectedAnswerShape: "neutral demand assessment",
         priority: "high",
+        omissionRisk: "Without this, the final answer cannot distinguish a real market from a temporary narrative."
       },
       {
         id: "Q2",
-        title: "Execution risk",
-        questionText: "What execution risks would likely block entry success?",
-        dimension: "execution risk",
-        purpose: "Measure downside and feasibility.",
-        requiredEvidence: ["deployment benchmarks", "partner capability"],
-        positiveAnalysisFocus: "Execution path and mitigations.",
-        falsificationFocus: "Integration and sales-cycle blockers.",
-        scope: "Product, go-to-market, and integration risks.",
-        expectedAnswerShape: "risk-summary",
+        title: "Execution feasibility",
+        questionText: "What execution constraints are most likely to block a successful entry?",
+        whyItMatters: "Even strong demand does not justify entry if execution barriers dominate the outcome.",
+        decisionWeight: "high",
+        analysisFocus: "Identify integration, channel, deployment, and operating risks that materially affect feasibility.",
+        requiredEvidence: ["deployment benchmarks", "partner capability evidence"],
+        scope: "Execution constraints for the first 24 months of entry.",
+        expectedAnswerShape: "execution feasibility summary",
         priority: "high",
-      },
+        omissionRisk: "Without this, the final adjudicator may confuse demand support with practical readiness."
+      }
     ],
-    questionType: "business",
-    decompositionStrategy: "Split the market-entry thesis into demand and execution-risk dimensions.",
-    missingInfo: [],
-    qualitySelfCheck: {
-      coversFacts: true,
-      coversCausality: true,
-      coversImpact: true,
-      coversEvidence: true,
-      coversFalsification: true,
-      coversRisks: true,
-      hasNoDuplicateQuestions: true,
-      isReadyForPositiveAndFalsification: true,
+    exhaustivenessCheck: {
+      keyDimensionsCovered: ["demand", "execution feasibility"],
+      knownBlindSpots: [],
+      whyNoMoreQuestionsAreNeeded: "Demand durability and execution feasibility are the two decision-dominant dimensions for this entry question."
     },
+    qualitySelfCheck: {
+      isNeutral: true,
+      hasNoDuplicateQuestions: true,
+      hasNoPureFalsificationQuestions: true,
+      isReadyForIndependentAnalysis: true,
+      isReadyForFinalAdjudication: true
+    }
   }),
   JSON.stringify({
     subQuestionId: "Q1",
-    answer: "Demand appears strong in large fulfillment networks with labor shortages and uptime pressure.",
-    keyClaims: [
-      "Large warehouse operators are budgeting for automation upgrades.",
-      "Labor scarcity supports robotics ROI.",
-    ],
-    supportingReasons: [
-      "Operators need higher throughput with fewer workers.",
-      "Capital budgets favor measurable cost savings.",
-    ],
-    assumptions: ["Capital markets remain open for automation spending."],
-    evidenceMentions: ["automation capex programs", "fulfillment labor shortages"],
+    answer: "Demand appears durable enough to justify serious market-entry consideration.",
+    coreFinding: "Demand remains durable enough to support entry evaluation.",
+    keyClaims: ["Large operators continue funding automation upgrades."],
+    supportingReasons: ["Labor pressure and throughput demands keep ROI attractive."],
+    counterConditions: ["A logistics downturn would weaken buyer urgency."],
+    failureCases: ["A severe recession could materially delay automation budgets."],
+    evidenceMentions: ["automation capex plans", "warehouse labor constraints"],
+    evidenceQuality: "moderate",
+    assumptions: ["No severe macro recession."],
+    uncertainties: ["Public buyer pipeline evidence is incomplete."],
+    impactOnFinalAdjudication: "Supports a measured market-entry recommendation if execution remains manageable.",
     confidence: "high",
-    limitations: ["Assumes stable macro demand across major logistics markets."],
-  }),
-  JSON.stringify({
-    subQuestionId: "Q1",
-    answer: "Demand could stall if deployments underperform or macro demand weakens.",
-    strongestOpposingArguments: [
-      "Warehouse buyers may delay adoption after failed pilots.",
-      "Integration timelines can erode short-term ROI confidence.",
-    ],
-    contradictionPoints: [
-      "Pilot fatigue can reduce urgency.",
-      "Budget scrutiny can pause multi-site rollouts.",
-    ],
-    evidenceMentions: ["slow pilot conversion", "integration overruns"],
-    confidence: "medium",
-    limitations: ["Negative case depends on pilot data not yet fully public."],
+    limitations: ["Public buyer pipeline evidence is incomplete."],
   }),
   JSON.stringify({
     subQuestionId: "Q2",
-    answer: "Execution risk is concentrated in integration complexity and long enterprise sales cycles.",
-    keyClaims: [
-      "ERP and WMS integration can delay value realization.",
-      "Enterprise procurement cycles slow expansion.",
-    ],
-    supportingReasons: [
-      "Warehouse software stacks are heterogeneous.",
-      "Safety and uptime requirements increase certification load.",
-    ],
-    assumptions: ["The entrant lacks a mature partner channel at launch."],
-    evidenceMentions: ["multi-system integration", "enterprise approval bottlenecks"],
-    confidence: "high",
-    limitations: ["Risk profile improves if the entrant acquires an integration partner."],
+    answer: "Execution risk is manageable only with a narrow workflow launch and strong delivery partners.",
+    coreFinding: "Execution is feasible, but only under a staged entry model.",
+    keyClaims: ["Integration complexity is the main operational constraint."],
+    supportingReasons: ["A narrow workflow and partner-led rollout reduce initial execution load."],
+    counterConditions: ["Weak partner quality or broad scope would sharply raise failure risk."],
+    failureCases: ["A broad first release without delivery partners would likely fail."],
+    evidenceMentions: ["integration benchmarks", "partner rollout model"],
+    evidenceQuality: "moderate",
+    assumptions: ["A credible implementation partner is available."],
+    uncertainties: ["Partner quality still needs live validation."],
+    impactOnFinalAdjudication: "Supports entry only as a staged, partner-assisted launch.",
+    confidence: "medium",
+    limitations: ["Partner quality still needs live validation."],
   }),
   JSON.stringify({
-    subQuestionId: "Q2",
-    answer: "Execution risk may be lower if the market entrant starts with one narrow workflow and channel partners.",
-    strongestOpposingArguments: [
-      "Partner-led rollout can shrink implementation burden.",
-      "A single-workflow entry strategy reduces technical scope.",
-    ],
-    contradictionPoints: [
-      "Risk can be staged rather than absorbed upfront.",
-      "Channel leverage can offset enterprise sales friction.",
-    ],
-    evidenceMentions: ["narrow workflow launch", "partner implementation model"],
+    directAnswer: "The company should consider entering, but only through a staged partner-led beachhead.",
+    finalVerdict: "conditional",
     confidence: "medium",
-    limitations: ["This mitigation depends on finding credible channel partners early."],
-  }),
-  JSON.stringify({
-    executiveConclusion: "The company should explore entry, but only through a narrow workflow beachhead with explicit integration partners and a staged rollout.",
-    confidence: "medium",
-    positiveReasons: [
-      "Demand signals are real in labor-constrained warehouses.",
-      "Buyers have incentive to fund automation when ROI is clear.",
-    ],
-    strongestOpposingArguments: [
-      "Integration failure can destroy ROI credibility.",
-      "Budget scrutiny can delay adoption despite interest.",
-    ],
-    conflictMatrix: [
-      {
-        subQuestionId: "Q1",
-        positiveClaimSummary: "Large operators continue budgeting for automation.",
-        falsificationSummary: "Demand can pause after weak pilots or macro softness.",
-        conflictLevel: "medium",
-        evidenceGap: "Need stronger public pilot conversion data.",
-        needsHumanReview: true,
-      },
-      {
-        subQuestionId: "Q2",
-        positiveClaimSummary: "Execution risk is manageable with staged scope.",
-        falsificationSummary: "Integration complexity remains the main blocker.",
-        conflictLevel: "high",
-        evidenceGap: "Need partner capability and rollout evidence.",
-        needsHumanReview: true,
-      },
-    ],
-    evidenceGaps: [
-      "Public pilot conversion data is limited.",
-      "Need validated partner execution benchmarks.",
-    ],
-    reverseConditions: [
-      "If pilot conversion data weakens materially, entry thesis should reverse.",
-      "If channel partners cannot shorten deployment time, execution thesis weakens.",
-    ],
-    followUpSignals: [
-      "Pilot-to-rollout conversion rates.",
-      "Deployment time-to-value in first three customer accounts.",
-    ],
-    limitations: [
-      "This report relies on simulated fixture responses rather than live provider data.",
-    ],
+    rankedConclusions: [{
+      rank: 1,
+      conclusion: "Demand is durable enough to justify entry evaluation.",
+      whyItMatters: "Without durable demand, no entry case survives.",
+      strength: "strong",
+      appliesTo: ["Enterprise warehouse automation buyers"],
+      doesNotApplyTo: ["Severe recession scenarios"],
+      reverseCondition: "A sustained logistics downturn would weaken this conclusion.",
+    }],
+    strongConclusions: ["Demand support is real in labor-constrained warehouses."],
+    conditionalConclusions: ["Execution only works as a staged partner-led launch."],
+    weakOrRejectedClaims: ["A broad immediate rollout is not justified."],
+    decisiveReasons: ["Demand is durable and execution can be narrowed to a feasible beachhead."],
+    evidenceGaps: ["Partner deployment quality still needs live validation."],
+    reverseConditions: ["If partner execution quality is weak, the entry thesis should reverse."],
+    applicability: ["Measured warehouse robotics entry decisions"],
+    nonApplicability: ["Immediate full-scale launch decisions"],
+    followUpSignals: ["Track partner deployment time-to-value in the first customer accounts."],
+    multiStageValueAdded: ["Independent analysis separated local findings before the final adjudication."],
+    limitations: ["This smoke uses deterministic fixture responses rather than a live provider."],
   }),
 ] as const;
 
@@ -234,9 +181,8 @@ const assert = (condition: unknown, message: string): void => {
 const parseJsonFile = <T>(filePath: string): T => JSON.parse(readFileSync(filePath, "utf8")) as T;
 
 const verifySmokeUsesRealSurfaces = (): void => {
-  assert(typeof parseDeepResearchPositiveResponse === "function", "Positive parser must be imported by smoke.");
-  assert(typeof parseDeepResearchFalsificationResponse === "function", "Falsification parser must be imported by smoke.");
-  assert(typeof parseDeepResearchFinalReportResponse === "function", "Final parser must be imported by smoke.");
+  assert(typeof parseDeepResearchSubQuestionAnalysisResponse === "function", "Analysis parser must be imported by smoke.");
+  assert(typeof parseDeepResearchFinalAdjudicationResponse === "function", "Final adjudication parser must be imported by smoke.");
   assert(typeof buildDeepResearchFinalPackage === "function", "Final package builder must be imported by smoke.");
   assert(typeof exportDeepResearchArtifacts === "function", "Export function must be imported by smoke.");
 };
@@ -246,7 +192,6 @@ const verifyRuntimeLogCoverage = (bundlePath: string): void => {
   const lines = readFileSync(bundlePath, "utf8").trim().split("\n").filter(Boolean);
   const events = lines.map((line) => JSON.parse(line) as {
     eventType: string;
-    status?: string;
     payload?: { stageName?: string };
   });
   assert(events.some((event) => event.eventType === "DEEP_RESEARCH_JOB_STARTED"), "Missing DEEP_RESEARCH_JOB_STARTED event.");
@@ -273,34 +218,32 @@ const verifyPersistedResearchState = (
   try {
     const job = store.getJob(result.jobId);
     assert(job?.status === "completed", "Persisted research job should be completed.");
+    assert(job?.flowMode === "default_1_n_1", "Smoke fixture must persist the default 1+N+1 flow mode.");
 
     const subQuestions = store.listSubQuestions(result.jobId);
-    assert(subQuestions.length >= 2, `Expected at least 2 sub-questions, received ${subQuestions.length}.`);
+    assert(subQuestions.length === 2, `Expected 2 sub-questions, received ${subQuestions.length}.`);
     assert(subQuestions[0]?.id !== subQuestions[0]?.modelQuestionId, "Database sub-question ID must differ from modelQuestionId.");
     assert(subQuestions[0]?.modelQuestionId === "Q1", "Persisted Q1 must preserve modelQuestionId.");
     assert(subQuestions[0]?.question.id === "Q1", "Persisted display question ID must remain Q1.");
 
     const interactions = store.listInteractions(result.jobId);
-    assert(interactions.length === 6, `Expected 6 persisted interactions, received ${interactions.length}.`);
+    assert(interactions.length === 4, `Expected 4 persisted interactions, received ${interactions.length}.`);
     interactions.forEach((interaction) => {
       assert(Boolean(interaction.promptHash), `Interaction ${interaction.id} is missing promptHash.`);
       assert(Boolean(interaction.rawResponseHash), `Interaction ${interaction.id} is missing rawResponseHash.`);
       assert(Boolean(interaction.parseStatus), `Interaction ${interaction.id} is missing parseStatus.`);
     });
 
-    const positiveAnswers = store.listAnswers({ jobId: result.jobId, answerKind: "positive" });
-    const falsificationAnswers = store.listAnswers({ jobId: result.jobId, answerKind: "falsification" });
-    assert(positiveAnswers.length === 2, `Expected 2 positive answers, received ${positiveAnswers.length}.`);
-    assert(falsificationAnswers.length === 2, `Expected 2 falsification answers, received ${falsificationAnswers.length}.`);
-
-    const conflictMatrix = store.listConflictMatrix(result.jobId);
-    assert(conflictMatrix.length === 2, `Expected 2 conflict matrix rows, received ${conflictMatrix.length}.`);
+    const analysisAnswers = store.listAnswers({ jobId: result.jobId, answerKind: "analysis" });
+    assert(analysisAnswers.length === 2, `Expected 2 analysis answers, received ${analysisAnswers.length}.`);
 
     const finalReport = store.getLatestFinalReport(result.jobId);
     assert(finalReport !== null, "Expected a persisted final report record.");
     const finalPackage = buildDeepResearchFinalPackage({ store, jobId: result.jobId });
-    assert(finalPackage.positiveAnswerRecords.length === 2, "Final package must read persisted positive records.");
-    assert(finalPackage.falsificationAnswerRecords.length === 2, "Final package must read persisted falsification records.");
+    assert(finalPackage.flowMode === "default_1_n_1", "Final package must stay on the default flow mode.");
+    assert(finalPackage.analysisRecords.length === 2, "Final package must read persisted analysis records.");
+    assert(finalPackage.missingAnalysisSubQuestionIds.length === 0, "Final package should have no missing analysis records in the smoke fixture.");
+    assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.json.v1.0", "Smoke fixture must target the final adjudication contract.");
 
     const exports = store.listExports(result.jobId);
     assert(exports.length === 3, `Expected 3 export records, received ${exports.length}.`);
@@ -316,12 +259,43 @@ const verifyPersistedResearchState = (
     assert(existsSync(bundleExport.filePath), "research-bundle.json file was not written.");
     assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
 
-    const evidenceIndex = parseJsonFile<Array<{ interactionId: string; parsedRecordId: string }>>(evidenceExport.filePath);
-    assert(evidenceIndex.length >= 7, `Expected at least 7 evidence index rows, received ${evidenceIndex.length}.`);
+    const evidenceIndex = parseJsonFile<Array<{ interactionId: string; parsedRecordId?: string }>>(evidenceExport.filePath);
+    assert(evidenceIndex.length >= 4, `Expected at least 4 evidence index rows, received ${evidenceIndex.length}.`);
   } finally {
     store.close();
   }
 };
+
+const buildModelSubQuestions = () => [
+  {
+    id: "Q1",
+    title: "Repeated first question",
+    questionText: "Can Q1 appear in another job?",
+    purpose: "Prove model IDs are job-local.",
+    whyItMatters: "The system must preserve model IDs without reusing database primary keys across jobs.",
+    decisionWeight: "medium" as const,
+    analysisFocus: "Track whether database IDs remain job-scoped.",
+    requiredEvidence: ["database primary keys", "modelQuestionId field"],
+    scope: "Deep Research persistence.",
+    expectedAnswerShape: "identity-proof",
+    priority: "medium" as const,
+    omissionRisk: "Without this, two jobs can silently collide on sub-question identity.",
+  },
+  {
+    id: "Q2",
+    title: "Repeated second question",
+    questionText: "Can Q2 appear in another job?",
+    purpose: "Prove ordinal boundaries are job-local.",
+    whyItMatters: "Ordinal and model IDs must stay stable without becoming the database primary key.",
+    decisionWeight: "medium" as const,
+    analysisFocus: "Verify persistence identity boundaries across jobs.",
+    requiredEvidence: ["database rows", "modelQuestionId field"],
+    scope: "Deep Research persistence.",
+    expectedAnswerShape: "identity-proof",
+    priority: "medium" as const,
+    omissionRisk: "Without this, repeated model IDs can appear lawful while corrupting persistence identity.",
+  },
+] as const;
 
 const verifySubQuestionIdsAreJobScoped = (): void => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-id-scope-"));
@@ -334,64 +308,46 @@ const verifySubQuestionIdsAreJobScoped = (): void => {
       maxSubQuestions: 4,
       outputFormat: "markdown" as const,
     };
-    const modelSubQuestions = [
-      {
-        id: "Q1",
-        title: "Repeated first question",
-        questionText: "Can Q1 appear in another job?",
-        purpose: "Prove model IDs are job-local.",
-        scope: "Deep Research persistence.",
-        expectedAnswerShape: "identity-proof",
-      },
-      {
-        id: "Q2",
-        title: "Repeated second question",
-        questionText: "Can Q2 appear in another job?",
-        purpose: "Prove ordinal boundaries are job-local.",
-        scope: "Deep Research persistence.",
-        expectedAnswerShape: "identity-proof",
-      },
-    ];
+    const modelSubQuestions = buildModelSubQuestions();
     const firstJob = store.createJob(input);
     const firstInteraction = store.createInteraction({
       jobId: firstJob.id,
       phase: "decomposition",
       promptId: "acceptance.identity",
       promptVersion: "v1",
-      promptHash: "sha256:first",
-      renderedPromptText: "acceptance identity rendered prompt first",
-      rawResponseText: JSON.stringify({ subQuestions: modelSubQuestions }),
+      promptHash: "sha256:first-prompt",
+      renderedPromptText: "identity prompt",
+      rawResponseText: JSON.stringify({}),
       rawResponseHash: "sha256:first-raw",
       parseStatus: "parsed",
     });
-    const firstRows = store.saveSubQuestions({
+    const firstRecords = store.saveSubQuestions({
       jobId: firstJob.id,
       interactionId: firstInteraction.id,
       subQuestions: modelSubQuestions,
     });
+
     const secondJob = store.createJob(input);
     const secondInteraction = store.createInteraction({
       jobId: secondJob.id,
       phase: "decomposition",
       promptId: "acceptance.identity",
       promptVersion: "v1",
-      promptHash: "sha256:second",
-      renderedPromptText: "acceptance identity rendered prompt second",
-      rawResponseText: JSON.stringify({ subQuestions: modelSubQuestions }),
+      promptHash: "sha256:second-prompt",
+      renderedPromptText: "identity prompt",
+      rawResponseText: JSON.stringify({}),
       rawResponseHash: "sha256:second-raw",
       parseStatus: "parsed",
     });
-    const secondRows = store.saveSubQuestions({
+    const secondRecords = store.saveSubQuestions({
       jobId: secondJob.id,
       interactionId: secondInteraction.id,
       subQuestions: modelSubQuestions,
     });
 
-    assert(firstRows[0]?.id !== secondRows[0]?.id, "Repeated Q1 must receive distinct database IDs across jobs.");
-    assert(firstRows[0]?.modelQuestionId === "Q1", "First job Q1 must preserve modelQuestionId.");
-    assert(secondRows[0]?.modelQuestionId === "Q1", "Second job Q1 must preserve modelQuestionId.");
-    assert(firstRows[0]?.question.id === "Q1", "First job display question ID must remain Q1.");
-    assert(secondRows[0]?.question.id === "Q1", "Second job display question ID must remain Q1.");
+    assert(firstRecords[0]?.modelQuestionId === "Q1", "First job must preserve Q1 as modelQuestionId.");
+    assert(secondRecords[0]?.modelQuestionId === "Q1", "Second job must preserve Q1 as modelQuestionId.");
+    assert(firstRecords[0]?.id !== secondRecords[0]?.id, "Database IDs must remain job-scoped even when modelQuestionId repeats.");
   } finally {
     store.close();
   }
@@ -399,10 +355,7 @@ const verifySubQuestionIdsAreJobScoped = (): void => {
 
 async function main(): Promise<void> {
   verifySmokeUsesRealSurfaces();
-  verifySubQuestionIdsAreJobScoped();
-  await verifyMalformedProviderJsonFailsAtParseNotCapture();
-  await verifySingleSubQuestionFailureDoesNotKillJob();
-  const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-"));
+  const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-smoke-"));
   const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-smoke.jsonl");
   const runtimeLogger = createRuntimeLogger({
     terminalEnabled: false,
@@ -411,18 +364,17 @@ async function main(): Promise<void> {
       redact: false,
     },
   });
-  const adapter = new SequentialFixtureAdapter();
   const aiInputGateway = createAiInputGatewayAbilityGroup({
     dataDir,
     adapters: {
-      "gemini-api": adapter,
+      "gemini-api": new SequentialFixtureAdapter(),
     },
   });
 
   const result = await runDeepResearchAnalysis(
     {
       userQuestion: "Should the company enter the robotics warehouse market?",
-      analysisGoal: "Assess whether entry is justified and under what conditions.",
+      analysisGoal: "Assess whether entry is justified within 24 months.",
       language: "en",
       maxSubQuestions: 4,
       outputFormat: "markdown",
@@ -437,12 +389,15 @@ async function main(): Promise<void> {
     },
   );
 
-  assert(result.status === "success", `Deep Research smoke expected success but received ${JSON.stringify(result)}.`);
-  assert(result.report !== null, "Deep Research smoke expected a final report.");
-  assert(Object.keys(result.recordHashes).length > 0, "Deep Research smoke expected non-empty record hashes.");
-  verifyPersistedResearchState(dataDir, result);
+  assert(result.status === "success", `Expected smoke success, received ${JSON.stringify(result)}.`);
+  assert(result.phase === "COMPLETE", `Expected COMPLETE phase, received ${result.phase}.`);
+  assert(result.report?.finalVerdict === "conditional", "Smoke report must persist the final adjudication verdict.");
   verifyRuntimeLogCoverage(runtimeLogBundlePath);
-  process.stdout.write("[DEEP-RESEARCH-ANALYSIS-SMOKE][PASS] full fixed research pipeline completed with persisted records, exports, and runtime logs.\n");
+  verifyPersistedResearchState(dataDir, result);
+  verifySubQuestionIdsAreJobScoped();
+  await verifyMalformedProviderJsonFailsAtParseNotCapture();
+  await verifySingleSubQuestionFailureDoesNotKillJob();
+  process.stdout.write("[ACCEPTANCE][deep-research-analysis-smoke] PASS\n");
 }
 
 await main();

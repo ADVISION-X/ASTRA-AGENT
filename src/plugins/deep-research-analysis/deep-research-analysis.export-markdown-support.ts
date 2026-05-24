@@ -1,14 +1,17 @@
 import {
   parseDeepResearchFalsificationResponse,
   parseDeepResearchPositiveResponse,
+  parseDeepResearchSubQuestionAnalysisResponse,
   type DeepResearchFalsificationAnswer,
   type DeepResearchPositiveAnswer,
+  type DeepResearchSubQuestionAnalysisAnswer,
 } from "./deep-research-analysis.parser.js";
 import {
   LEGACY_RENDERED_PROMPT_TEXT,
   type ResearchAnswer,
   type ResearchFinalReportRecord,
   type ResearchInteraction,
+  type ResearchJob,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
 import type { DeepResearchConflictMatrixRow } from "./deep-research-analysis.result.js";
@@ -87,10 +90,14 @@ const buildInteractionPhaseLabel = (phase: ResearchInteraction["phase"]): string
   switch (phase) {
     case "decomposition":
       return "Decomposition";
+    case "analysis":
+      return "Independent Analysis";
     case "positive":
       return "Positive Analysis";
     case "falsification":
       return "Falsification";
+    case "final_adjudication":
+      return "Final Adjudication";
     case "final_synthesis":
       return "Final Synthesis";
     default:
@@ -118,6 +125,7 @@ export const findInteraction = (
 };
 
 export const buildStageOverviewRows = (input: {
+  job: ResearchJob;
   interactions: readonly ResearchInteraction[];
   subQuestions: readonly ResearchSubQuestion[];
   finalReportRecord: ResearchFinalReportRecord | null;
@@ -132,30 +140,43 @@ export const buildStageOverviewRows = (input: {
   });
   order += 1;
   for (const subQuestion of input.subQuestions) {
+    if (input.job.flowMode === "legacy_1_n_n_1") {
+      rows.push({
+        order,
+        phase: "Positive Analysis",
+        subQuestionLabel: buildSubQuestionLabel(subQuestion),
+        interaction: findInteraction(input.interactions, "positive", subQuestion.id),
+      });
+      order += 1;
+      rows.push({
+        order,
+        phase: "Falsification",
+        subQuestionLabel: buildSubQuestionLabel(subQuestion),
+        interaction: findInteraction(input.interactions, "falsification", subQuestion.id),
+      });
+      order += 1;
+      continue;
+    }
     rows.push({
       order,
-      phase: "Positive Analysis",
+      phase: "Independent Analysis",
       subQuestionLabel: buildSubQuestionLabel(subQuestion),
-      interaction: findInteraction(input.interactions, "positive", subQuestion.id),
-    });
-    order += 1;
-    rows.push({
-      order,
-      phase: "Falsification",
-      subQuestionLabel: buildSubQuestionLabel(subQuestion),
-      interaction: findInteraction(input.interactions, "falsification", subQuestion.id),
+      interaction: findInteraction(input.interactions, "analysis", subQuestion.id),
     });
     order += 1;
   }
+  const finalPhase = input.job.flowMode === "legacy_1_n_n_1"
+    ? "final_synthesis"
+    : "final_adjudication";
   rows.push({
     order,
-    phase: "Final Synthesis",
+    phase: input.job.flowMode === "legacy_1_n_n_1" ? "Final Synthesis" : "Final Adjudication",
     subQuestionLabel: "-",
     interaction:
       (input.finalReportRecord
         ? input.interactions.find((interaction) => interaction.id === input.finalReportRecord?.interactionId)
         : null)
-      ?? findInteraction(input.interactions, "final_synthesis"),
+      ?? findInteraction(input.interactions, finalPhase),
   });
   return rows;
 };
@@ -206,10 +227,27 @@ export const buildSubQuestionMetadata = (subQuestion: ResearchSubQuestion): stri
   `Database SubQuestion ID: ${subQuestion.id}`,
   `Model Question ID: ${subQuestion.modelQuestionId}`,
   `Question: ${subQuestion.question.questionText}`,
-  `Purpose: ${subQuestion.question.purpose}`,
+  `Purpose: ${subQuestion.question.whyItMatters ?? subQuestion.question.purpose}`,
+  ...(subQuestion.question.analysisFocus ? [`Analysis Focus: ${subQuestion.question.analysisFocus}`] : []),
+  ...(subQuestion.question.decisionWeight ? [`Decision Weight: ${subQuestion.question.decisionWeight}`] : []),
+  ...(subQuestion.question.priority ? [`Priority: ${subQuestion.question.priority}`] : []),
   `Scope: ${subQuestion.question.scope}`,
   `Expected Answer Shape: ${subQuestion.question.expectedAnswerShape}`,
+  ...(subQuestion.question.requiredEvidence.length > 0
+    ? [`Required Evidence: ${subQuestion.question.requiredEvidence.join("; ")}`]
+    : []),
+  ...(subQuestion.question.omissionRisk ? [`Omission Risk: ${subQuestion.question.omissionRisk}`] : []),
 ].join("\n");
+
+const reparseAnalysisInteraction = (
+  interaction: ResearchInteraction | null,
+): DeepResearchSubQuestionAnalysisAnswer | null => {
+  if (!interaction) {
+    return null;
+  }
+  const parsed = parseDeepResearchSubQuestionAnalysisResponse(interaction.rawResponseText);
+  return parsed.parseStatus === "parsed" ? parsed.parsed : null;
+};
 
 const reparsePositiveInteraction = (
   interaction: ResearchInteraction | null,
@@ -252,6 +290,68 @@ const buildStageStatus = (input: {
     ].join("\n");
   }
   return "Status: available";
+};
+
+const readPayloadString = (payload: Record<string, unknown>, key: string): string[] => {
+  const value = payload[key];
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value.trim()];
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+  return [];
+};
+
+export const buildAnalysisParsedSection = (input: {
+  interaction: ResearchInteraction | null;
+  answer: ResearchAnswer | null;
+}): string => {
+  const reparsed = reparseAnalysisInteraction(input.interaction);
+  const payload = input.answer?.parsedPayload ?? {};
+  const answerText = input.answer?.answerText ?? reparsed?.answer ?? "Analysis answer: MISSING";
+  const confidence = input.answer?.confidence ?? reparsed?.confidence ?? "unavailable";
+  const coreFinding = readPayloadString(payload, "coreFinding")[0] ?? reparsed?.coreFinding ?? "unavailable";
+  const impactOnFinalAdjudication = readPayloadString(payload, "impactOnFinalAdjudication")[0]
+    ?? reparsed?.impactOnFinalAdjudication
+    ?? "unavailable";
+  const keyClaims = input.answer?.keyPoints ?? reparsed?.keyClaims ?? [];
+  const counterConditions = input.answer?.contradictionPoints ?? reparsed?.counterConditions ?? [];
+  const failureCases = readPayloadString(payload, "failureCases");
+  const evidenceMentions = input.answer?.evidenceMentions ?? reparsed?.evidenceMentions ?? [];
+  const assumptions = input.answer?.assumptions ?? reparsed?.assumptions ?? [];
+  const uncertainties = readPayloadString(payload, "uncertainties") ?? reparsed?.uncertainties ?? [];
+  const limitations = input.answer?.limitations ?? reparsed?.limitations ?? [];
+  return [
+    buildStageStatus({
+      interaction: input.interaction,
+      answer: input.answer,
+      stageName: "Independent Analysis",
+    }),
+    `Answer: ${answerText}`,
+    `Confidence: ${confidence}`,
+    "Core Finding",
+    buildMarkdownList(coreFinding === "unavailable" ? [] : [coreFinding], "- unavailable"),
+    "Key Claims",
+    buildMarkdownList(keyClaims, "- unavailable"),
+    "Counter Conditions",
+    buildMarkdownList(counterConditions, "- unavailable"),
+    "Failure Cases",
+    buildMarkdownList(failureCases, "- none"),
+    "Evidence Mentions",
+    buildMarkdownList(evidenceMentions, "- unavailable"),
+    "Assumptions",
+    buildMarkdownList(assumptions, "- none"),
+    "Uncertainties",
+    buildMarkdownList(uncertainties, "- none"),
+    "Impact On Final Adjudication",
+    buildMarkdownList(impactOnFinalAdjudication === "unavailable" ? [] : [impactOnFinalAdjudication], "- unavailable"),
+    "Limitations",
+    buildMarkdownList(limitations, "- unavailable"),
+  ].join("\n\n");
 };
 
 export const buildPositiveParsedSection = (input: {

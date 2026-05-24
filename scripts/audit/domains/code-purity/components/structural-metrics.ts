@@ -46,7 +46,7 @@ const functionLikeKinds = [
   SyntaxKind.SetAccessor,
 ] as const;
 
-const suppressedDirectivePattern = /@ts-ignore|@ts-expect-error|eslint-disable/u;
+const suppressedDirectiveTokens = ["@ts-ignore", "@ts-expect-error", "eslint-disable"];
 
 export const collectFunctionLikes = (governedFile: GovernedFile): BudgetFunctionNode[] =>
   functionLikeKinds.flatMap((kind) => governedFile.sourceFile.getDescendantsOfKind(kind)) as BudgetFunctionNode[];
@@ -80,7 +80,7 @@ export const collectDirectiveComments = (governedFile: GovernedFile): { line: nu
       }
       seenRanges.add(key);
       const text = range.getText();
-      if (!suppressedDirectivePattern.test(text)) {
+      if (!suppressedDirectiveTokens.some((token) => text.includes(token))) {
         continue;
       }
       directives.push({
