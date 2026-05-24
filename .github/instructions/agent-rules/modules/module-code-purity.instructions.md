@@ -882,7 +882,66 @@ Forbidden:
 - checking only import and re-export while leaving dynamic or side-effect edges outside the owner boundary verdict
 - allowing side-effect or dynamic syntax to bypass plugin/capability/mediator/shared-scope rules
 
-## 28. Enforcement Roadmap
+## 28. Law APEX-CODE-PURITY-022-V1 — Runtime-Rooted Declaration Liveness
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-022-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "ast+symbol-graph+declaration-graph",
+  "summary": "Reachable files must still prove declaration-level liveness from runtime or type roots; dead export helper chains and dead internal subgraphs must fail."
+}
+```
+
+File reachability is necessary but insufficient.
+
+Required:
+
+- top-level declarations in reachable files must be judged by a runtime-rooted or type-rooted declaration graph
+- live roots may come only from lawful top-level executable code, final live export consumers, lawful manifest entry exports, or lawful type consumers
+- helper declarations referenced only by dead exports must fail as dead-export helper subgraphs
+- helper declarations referenced only inside dead internal chains must fail as dead internal declaration subgraphs
+- symbol resolution failure must fail as unproven runtime-rooted liveness rather than silently keeping the declaration alive
+
+Forbidden:
+
+- treating any same-file reference as proof of life
+- allowing a dead export to keep its helper chain alive
+- allowing a reachable file to keep dead internal declaration islands because one neighboring export is live
+
+## 29. Law APEX-CODE-PURITY-023-V1 — Registry / Object Bag Property-Level Liveness
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-023-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "ast+symbol-graph+property-usage+manifest",
+  "summary": "Object bags, registries, and handler maps must prove liveness at property level; whole-bag imports do not keep every entry alive."
+}
+```
+
+Bag-level reachability is not property-level proof.
+
+Required:
+
+- exported object bags, registries, and handler maps must prove which properties are actually consumed
+- `handlers.foo` may prove only `foo`; it must not keep sibling entries alive
+- dynamic bag access must fail unless the consumer, registry file, and registry export are declared explicitly in a lawful manifest
+- lawful dynamic registry consumers are strict exemptions, not generic false-positive trash bins
+
+Forbidden:
+
+- treating `import { handlers }` as proof that all handler entries are live
+- allowing `Object.keys`, `Object.values`, `Object.entries`, computed indexing, or other dynamic bag reads to bypass property-level proof without lawful manifest ownership
+- using registry or handler bags as laundering surfaces for dead flows
+
+## 30. Enforcement Roadmap
 
 The code-purity inspector should mature in phases.
 
@@ -928,7 +987,7 @@ Must catch before READY may be claimed:
 
 No phase may claim full readiness until its required checks are runner-visible and failure-tested during development.
 
-## 29. Final Readiness Gate
+## 31. Final Readiness Gate
 
 GrassEye code purity may be called READY only when:
 
@@ -939,10 +998,14 @@ GrassEye code purity may be called READY only when:
 - no fake runtime path exists in active source truth
 - no bridge / compatibility / legacy dual path exists
 - no zombie file, zombie export, orphan declaration, or literal-dead branch remains in active source truth
+- no dead-export helper subgraph, dead internal declaration subgraph, unused object-bag entry, or dynamic registry laundering remains in active source truth
 - no type escape was introduced
 - no generated artifact was hand-edited as truth
 - audit output is runner-visible
 - remediation inventory, when emitted, appears only inside a FAIL result
+
+Executable enforcement is a floor, not a ceiling.
+If the written law does not name an obvious rot surface yet the inspector can prove the rot through the same owner truth, the inspector must still fail it.
 
 Forbidden:
 
@@ -952,7 +1015,7 @@ Forbidden:
 - PASS by weakening the law silently.
 - PASS by moving forbidden logic into another owner.
 
-## 27. Final Principle
+## 32. Final Principle
 
 ```txt
 If a file cannot explain its owner, it will become a dumping ground.
@@ -964,3 +1027,6 @@ If Codex can patch dirty files without paying down structure, the system will ro
 
 Therefore: strict owner boundaries first, zombie deletion second, truthful runtime third, small files fourth, full automation fifth.
 ```
+
+The written law is the minimum contract.
+Code Purity enforcement must be stricter than the text when the same AST / symbol / manifest evidence can prove a stronger corruption surface.

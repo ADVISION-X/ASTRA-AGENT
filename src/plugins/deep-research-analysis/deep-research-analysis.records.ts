@@ -61,70 +61,77 @@ export type {
 
 type DeepResearchDatabaseHandle = ReturnType<typeof createDeepResearchDatabase>;
 
-const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchRecordStore, "createJob" | "updateJobState" | "getJob" | "deleteJob"> => {
-  const getJob = (jobId: string): ResearchJob | null => {
+const createGetJobOperation = (db: DeepResearchDatabaseHandle) =>
+  (jobId: string): ResearchJob | null => {
     const row = db.prepare(`SELECT * FROM research_jobs WHERE id = ?`).get(jobId) as Parameters<typeof mapJobRow>[0] | undefined;
     return row ? mapJobRow(row) : null;
   };
 
-  const createJob = (input: DeepResearchInput): ResearchJob => {
-    const parsedInput = DeepResearchInputSchema.parse(input);
-    const id = createId("deep_research_job");
-    const createdAt = getCurrentTimestamp();
-    db.prepare(
-      `INSERT INTO research_jobs (
-        id, user_question, analysis_goal, language, max_sub_questions, output_format,
-        flow_mode, status, phase, failure_reason, review_reason, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      id,
-      parsedInput.userQuestion,
-      parsedInput.analysisGoal,
-      parsedInput.language,
-      parsedInput.maxSubQuestions,
-      parsedInput.outputFormat,
-      "default_1_n_1",
-      "queued",
-      "INTAKE",
-      null,
-      null,
-      createdAt,
-      createdAt,
-    );
-    const job = getJob(id);
-    if (!job) {
-      throw new Error(`Deep research job ${id} was not persisted.`);
-    }
-    return job;
-  };
+const createCreateJobOperation = (
+  db: DeepResearchDatabaseHandle,
+  getJob: (jobId: string) => ResearchJob | null,
+) => (input: DeepResearchInput): ResearchJob => {
+  const parsedInput = DeepResearchInputSchema.parse(input);
+  const id = createId("deep_research_job");
+  const createdAt = getCurrentTimestamp();
+  db.prepare(
+    `INSERT INTO research_jobs (
+      id, user_question, analysis_goal, language, max_sub_questions, output_format,
+      flow_mode, status, phase, failure_reason, review_reason, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    parsedInput.userQuestion,
+    parsedInput.analysisGoal,
+    parsedInput.language,
+    parsedInput.maxSubQuestions,
+    parsedInput.outputFormat,
+    "default_1_n_1",
+    "queued",
+    "INTAKE",
+    null,
+    null,
+    createdAt,
+    createdAt,
+  );
+  const job = getJob(id);
+  if (!job) {
+    throw new Error(`Deep research job ${id} was not persisted.`);
+  }
+  return job;
+};
 
-  const updateJobState = (input: {
-    jobId: string;
-    status: DeepResearchJobStatus;
-    phase: DeepResearchPhase;
-    failureReason?: string | null;
-    reviewReason?: string | null;
-  }): ResearchJob => {
-    db.prepare(
-      `UPDATE research_jobs
-       SET status = ?, phase = ?, failure_reason = ?, review_reason = ?, updated_at = ?
-       WHERE id = ?`,
-    ).run(
-      input.status,
-      input.phase,
-      input.failureReason ?? null,
-      input.reviewReason ?? null,
-      getCurrentTimestamp(),
-      input.jobId,
-    );
-    const job = getJob(input.jobId);
-    if (!job) {
-      throw new Error(`Deep research job ${input.jobId} was not found after update.`);
-    }
-    return job;
-  };
+const createUpdateJobStateOperation = (
+  db: DeepResearchDatabaseHandle,
+  getJob: (jobId: string) => ResearchJob | null,
+) => (input: {
+  jobId: string;
+  status: DeepResearchJobStatus;
+  phase: DeepResearchPhase;
+  failureReason?: string | null;
+  reviewReason?: string | null;
+}): ResearchJob => {
+  db.prepare(
+    `UPDATE research_jobs
+     SET status = ?, phase = ?, failure_reason = ?, review_reason = ?, updated_at = ?
+     WHERE id = ?`,
+  ).run(
+    input.status,
+    input.phase,
+    input.failureReason ?? null,
+    input.reviewReason ?? null,
+    getCurrentTimestamp(),
+    input.jobId,
+  );
+  const job = getJob(input.jobId);
+  if (!job) {
+    throw new Error(`Deep research job ${input.jobId} was not found after update.`);
+  }
+  return job;
+};
 
-  const deleteJob = (jobId: string): boolean => {
+const createDeleteJobOperation = (db: DeepResearchDatabaseHandle) =>
+  (jobId: string): boolean => {
     const deleted = db.transaction(() => {
       db.prepare(`DELETE FROM research_exports WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_final_reports WHERE job_id = ?`).run(jobId);
@@ -137,11 +144,13 @@ const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchR
     return deleted > 0;
   };
 
+const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchRecordStore, "createJob" | "updateJobState" | "getJob" | "deleteJob"> => {
+  const getJob = createGetJobOperation(db);
   return {
-    createJob,
-    updateJobState,
+    createJob: createCreateJobOperation(db, getJob),
+    updateJobState: createUpdateJobStateOperation(db, getJob),
     getJob,
-    deleteJob,
+    deleteJob: createDeleteJobOperation(db),
   };
 };
 

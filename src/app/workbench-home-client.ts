@@ -22,6 +22,7 @@ const readJson = async (url, options) => {
 };
 const showJob = (job) => {
   state.job = job;
+  document.body.dataset.activeJob = job;
   document.querySelectorAll("[data-job-card]").forEach((card) => {
     card.setAttribute("aria-pressed", String(card.dataset.jobCard === job));
   });

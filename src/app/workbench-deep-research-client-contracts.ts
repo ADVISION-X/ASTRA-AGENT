@@ -102,6 +102,7 @@ type DeepResearchRankedConclusion = {
 type DeepResearchConclusion = {
   directAnswer: string;
   finalVerdict: string;
+  oneSentenceDecision: string;
   executiveConclusion: string;
   confidence: string;
   rankedConclusions: DeepResearchRankedConclusion[];
@@ -118,6 +119,7 @@ type DeepResearchConclusion = {
   followUpSignals: string[];
   multiStageValueAdded: string[];
   limitations: string[];
+  references: string[];
 };
 
 type DeepResearchStage = {
@@ -135,6 +137,30 @@ export type DeepResearchExportRecord = {
   fileHash: string;
   payloadHash: string;
   createdAt: string;
+};
+
+export type DeepResearchBusinessDeck = {
+  generatedAt: string | null;
+  outlineExport: DeepResearchExportRecord | null;
+  pptxExport: DeepResearchExportRecord | null;
+  deckTitle: string | null;
+  deckSubtitle: string | null;
+  audience: string | null;
+  slideCount: number;
+  warnings: string[];
+  preservationSummary: {
+    usedRankedConclusionCount: number;
+    usedReverseConditionCount: number;
+    usedEvidenceGapCount: number;
+    usedReferenceCount: number;
+    omittedItemCount: number;
+  } | null;
+  slideSummaries: Array<{
+    slideNumber: number;
+    slideType: string;
+    title: string;
+    headline: string;
+  }>;
 };
 
 export type DeepResearchEvidence = DeepResearchInteraction & {
@@ -169,6 +195,7 @@ export type DeepResearchReport = {
     interaction: DeepResearchInteraction | null;
     parsedFinalReport: unknown | null;
   };
+  businessDeck: DeepResearchBusinessDeck | null;
   evidence: DeepResearchEvidence[];
   exports: DeepResearchExportRecord[];
 };
@@ -186,6 +213,7 @@ export type DeepResearchStartPayload = {
 export type DeepResearchExportPayload = {
   textContent?: string;
   jsonContent?: unknown;
+  base64Content?: string;
   contentType?: string;
   fileName?: string;
 };

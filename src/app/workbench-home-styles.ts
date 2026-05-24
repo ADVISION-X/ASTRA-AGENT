@@ -59,6 +59,9 @@ button, input, select {
   grid-template-columns: 240px minmax(420px, 1fr) 330px;
   gap: 0;
 }
+body[data-active-job="deep-research"] .main {
+  grid-template-columns: 220px minmax(760px, 1fr) 280px;
+}
 .rail, .ledger {
   min-width: 0;
   padding: 16px;

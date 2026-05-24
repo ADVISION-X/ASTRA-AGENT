@@ -7,6 +7,7 @@ import {
   buildDeepResearchFinalPackage,
   type DeepResearchFinalPackage,
 } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
 import {
   createDeepResearchRecordStore,
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
@@ -51,17 +52,19 @@ export type DeepResearchExportArtifactPayload = {
   kind: ResearchExportKind;
   fileName: string;
   filePath: string;
-  contentType: "text/markdown" | "application/json";
+  contentType: "text/markdown" | "application/json" | "application/vnd.openxmlformats-officedocument.presentationml.presentation";
   fileHash: string;
   payloadHash: string;
   textContent?: string;
   jsonContent?: unknown;
+  base64Content?: string;
 };
 
 const JOB_STATUSES: readonly ResearchJob["status"][] = [
   "queued",
   "running",
   "completed",
+  "deck_export_partial",
   "review_required",
   "failed",
 ];
@@ -147,25 +150,46 @@ const inferCurrentPhase = (input: {
   if (input.subQuestions.length === 0) {
     return "DECOMPOSE_PARSE";
   }
-  if (input.job.flowMode === "default_1_n_1") {
-    if (input.analysisAnswers.length < input.subQuestions.length) {
-      return "ANALYSIS_PERSIST";
-    }
-    if (input.finalReport) {
-      return "FINAL_ADJUDICATION_PERSIST";
-    }
-    return "FINAL_PACKAGE_BUILD";
+  return input.job.flowMode === "default_1_n_1" || input.job.flowMode === "default_1_n_1_1"
+    ? inferDefaultFlowPhase({
+      subQuestions: input.subQuestions,
+      analysisAnswers: input.analysisAnswers,
+      finalReport: input.finalReport,
+    })
+    : inferLegacyFlowPhase({
+      subQuestions: input.subQuestions,
+      positiveAnswers: input.positiveAnswers,
+      falsificationAnswers: input.falsificationAnswers,
+      finalReport: input.finalReport,
+    });
+};
+
+const inferDefaultFlowPhase = (input: {
+  subQuestions: readonly ResearchSubQuestion[];
+  analysisAnswers: readonly ResearchAnswer[];
+  finalReport: DeepResearchFinalReport | null;
+}): DeepResearchPhase => {
+  if (input.analysisAnswers.length < input.subQuestions.length) {
+    return "ANALYSIS_PERSIST";
   }
+  return input.finalReport ? "FINAL_ADJUDICATION_PERSIST" : "FINAL_PACKAGE_BUILD";
+};
+
+const inferLegacyFlowPhase = (input: {
+  subQuestions: readonly ResearchSubQuestion[];
+  positiveAnswers: readonly ResearchAnswer[];
+  falsificationAnswers: readonly ResearchAnswer[];
+  finalReport: DeepResearchFinalReport | null;
+}): DeepResearchPhase => {
   if (input.finalReport) {
     return "FINAL_PERSIST";
   }
   if (input.positiveAnswers.length < input.subQuestions.length) {
     return "POSITIVE_PERSIST";
   }
-  if (input.falsificationAnswers.length < input.subQuestions.length) {
-    return "FALSIFY_PERSIST";
-  }
-  return "FINAL_PACKAGE_BUILD";
+  return input.falsificationAnswers.length < input.subQuestions.length
+    ? "FALSIFY_PERSIST"
+    : "FINAL_PACKAGE_BUILD";
 };
 
 const buildJobSnapshot = (input: {
@@ -344,6 +368,12 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
   const finalInteraction = [...snapshot.timeline]
     .reverse()
     .find((entry) => entry.phase === "final_adjudication" || entry.phase === "final_synthesis") ?? null;
+  const exportViews = buildReportExportViews(snapshot.exports);
+  const outlineExport = snapshot.exports.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null;
+  const pptxExport = snapshot.exports.find((entry) => entry.exportKind === "business-deck.pptx") ?? null;
+  const deckOutline = outlineExport
+    ? JSON.parse(readFileSync(outlineExport.filePath, "utf8")) as DeepResearchBusinessDeckOutline
+    : null;
   return {
     job: buildReportJobView(snapshot),
     conclusion: buildConclusionView(snapshot.finalReport),
@@ -363,8 +393,35 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       interaction: finalInteraction,
       parsedFinalReport: snapshot.finalReport,
     },
+    businessDeck: outlineExport
+      ? {
+        generatedAt: pptxExport?.createdAt ?? outlineExport.createdAt,
+        outlineExport: exportViews.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null,
+        pptxExport: exportViews.find((entry) => entry.exportKind === "business-deck.pptx") ?? null,
+        deckTitle: deckOutline?.deckTitle ?? null,
+        deckSubtitle: deckOutline?.deckSubtitle ?? null,
+        audience: deckOutline?.audience ?? null,
+        slideCount: deckOutline?.slides.length ?? 0,
+        warnings: deckOutline?.deckWarnings ?? [],
+        preservationSummary: deckOutline
+          ? {
+            usedRankedConclusionCount: deckOutline.contentPreservationSummary.usedRankedConclusionCount,
+            usedReverseConditionCount: deckOutline.contentPreservationSummary.usedReverseConditionCount,
+            usedEvidenceGapCount: deckOutline.contentPreservationSummary.usedEvidenceGapCount,
+            usedReferenceCount: deckOutline.contentPreservationSummary.usedReferenceCount,
+            omittedItemCount: deckOutline.contentPreservationSummary.omittedItems.length,
+          }
+          : null,
+        slideSummaries: deckOutline?.slides.map((slide) => ({
+          slideNumber: slide.slideNumber,
+          slideType: slide.slideType,
+          title: slide.title,
+          headline: slide.headline,
+        })) ?? [],
+      }
+      : null,
     evidence: buildEvidenceViews({ timeline: snapshot.timeline, subQuestionById }),
-    exports: buildReportExportViews(snapshot.exports),
+    exports: exportViews,
   };
 };
 
@@ -441,6 +498,18 @@ export const getDeepResearchExportArtifact = (input: {
         fileHash: exported.fileHash,
         payloadHash: exported.payloadHash,
         textContent: readFileSync(exported.filePath, "utf8"),
+      };
+    }
+    if (input.kind === "business-deck.pptx") {
+      return {
+        jobId: input.jobId,
+        kind: input.kind,
+        fileName,
+        filePath: exported.filePath,
+        contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        fileHash: exported.fileHash,
+        payloadHash: exported.payloadHash,
+        base64Content: readFileSync(exported.filePath).toString("base64"),
       };
     }
     return {

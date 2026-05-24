@@ -75,8 +75,17 @@ function exportActionLabel(kind: string): string {
   if (kind === "final-report.md") {
     return "Open final report";
   }
+  if (kind === "decision-package.json") {
+    return "Open decision package";
+  }
   if (kind === "research-bundle.json") {
-    return "Download report";
+    return "Download research bundle";
+  }
+  if (kind === "business-deck-outline.json") {
+    return "Open deck outline";
+  }
+  if (kind === "business-deck.pptx") {
+    return "Download PPT";
   }
   return "Download evidence index";
 }

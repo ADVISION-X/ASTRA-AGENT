@@ -24,10 +24,6 @@ import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provid
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
 
-const track = (inspectedFiles: Set<string>, sourceFile: SourceFile | undefined): void => {
-  if (sourceFile) inspectedFiles.add(getRepoSourcePath(sourceFile));
-};
-
 const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyName: string): string | null => {
   const property = objectLiteral.getProperty(propertyName);
   if (!property || !Node.isPropertyAssignment(property)) return null;
@@ -434,8 +430,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     smokeFile: getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts"),
     ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
   };
-  Object.values(files)
-    .forEach((sourceFile) => track(inspectedFiles, sourceFile));
+  Object.values(files).forEach((sourceFile) => {
+    if (sourceFile) {
+      inspectedFiles.add(getRepoSourcePath(sourceFile));
+    }
+  });
   const astCoverageCount = files.flowFile?.getDescendantsOfKind(SyntaxKind.CallExpression).length ?? 0;
 
   inspectDeepResearchStaticRules({

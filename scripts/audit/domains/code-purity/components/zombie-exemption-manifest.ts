@@ -27,10 +27,18 @@ export type ZombieDynamicNamespaceExemption = {
   targetFilePath: string;
 };
 
+export type ZombieDynamicRegistryConsumerExemption = {
+  consumerFilePath: string;
+  reason: string;
+  registryExportName: string;
+  registryFilePath: string;
+};
+
 export type ZombieExemptionManifest = {
   externalEntryExports: readonly ZombieEntryExportExemption[];
   externalEntryFiles: readonly ZombieEntryFileExemption[];
   lawfulDynamicImports: readonly ZombieDynamicImportExemption[];
+  lawfulDynamicRegistryConsumers: readonly ZombieDynamicRegistryConsumerExemption[];
   lawfulDynamicNamespaceConsumers: readonly ZombieDynamicNamespaceExemption[];
   lawfulSideEffectImports: readonly ZombieSideEffectImportExemption[];
 };
@@ -39,6 +47,7 @@ export const zombieExemptionManifest: ZombieExemptionManifest = {
   externalEntryExports: [],
   externalEntryFiles: [],
   lawfulDynamicImports: [],
+  lawfulDynamicRegistryConsumers: [],
   lawfulDynamicNamespaceConsumers: [],
   lawfulSideEffectImports: [],
 };
@@ -80,4 +89,16 @@ export const isLawfulDynamicNamespaceConsumer = (
 ): boolean =>
   manifest.lawfulDynamicNamespaceConsumers.some(
     (entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath,
+  );
+
+export const isLawfulDynamicRegistryConsumer = (
+  manifest: ZombieExemptionManifest,
+  consumerFilePath: string,
+  registryFilePath: string,
+  registryExportName: string,
+): boolean =>
+  manifest.lawfulDynamicRegistryConsumers.some(
+    (entry) => entry.consumerFilePath === consumerFilePath
+      && entry.registryFilePath === registryFilePath
+      && entry.registryExportName === registryExportName,
   );

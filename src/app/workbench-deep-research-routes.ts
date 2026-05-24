@@ -14,6 +14,7 @@ const DEEP_RESEARCH_JOB_STATUSES = [
   "queued",
   "running",
   "completed",
+  "deck_export_partial",
   "review_required",
   "failed",
 ] as const;
@@ -21,6 +22,9 @@ const DEEP_RESEARCH_JOB_STATUSES = [
 const DEEP_RESEARCH_EXPORT_KINDS = [
   "final-report.md",
   "research-bundle.json",
+  "decision-package.json",
+  "business-deck-outline.json",
+  "business-deck.pptx",
   "evidence-index.json",
 ] as const;
 
@@ -267,6 +271,24 @@ const handleDeleteJobRequest = async (
   return true;
 };
 
+type DeepResearchRouteHandler = () => Promise<boolean>;
+
+const buildDeepResearchRouteHandlers = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Record<string, DeepResearchRouteHandler> => ({
+  "POST:/api/deep-research-analysis/start": () => handleStartRequest(request, response, workbench),
+  "GET:/api/deep-research-analysis/job": () => handleJobRequest(response, workbench, url),
+  "DELETE:/api/deep-research-analysis/job": () => handleDeleteJobRequest(response, workbench, url),
+  "GET:/api/deep-research-analysis/history": () => handleHistoryRequest(response, workbench, url),
+  "GET:/api/deep-research-analysis/report": () => handleReportRequest(response, workbench, url),
+  "GET:/api/deep-research-analysis/latest": () => handleLatestRequest(response, workbench),
+  "GET:/api/deep-research-analysis/timeline": () => handleTimelineRequest(response, workbench, url),
+  "GET:/api/deep-research-analysis/export": () => handleExportRequest(response, workbench, url),
+});
+
 export const handleDeepResearchRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -274,29 +296,6 @@ export const handleDeepResearchRequest = async (
   url: URL,
 ): Promise<boolean> => {
   const routeKey = `${request.method}:${url.pathname}`;
-  if (routeKey === "POST:/api/deep-research-analysis/start") {
-    return handleStartRequest(request, response, workbench);
-  }
-  if (routeKey === "GET:/api/deep-research-analysis/job") {
-    return handleJobRequest(response, workbench, url);
-  }
-  if (routeKey === "DELETE:/api/deep-research-analysis/job") {
-    return handleDeleteJobRequest(response, workbench, url);
-  }
-  if (routeKey === "GET:/api/deep-research-analysis/history") {
-    return handleHistoryRequest(response, workbench, url);
-  }
-  if (routeKey === "GET:/api/deep-research-analysis/report") {
-    return handleReportRequest(response, workbench, url);
-  }
-  if (routeKey === "GET:/api/deep-research-analysis/latest") {
-    return handleLatestRequest(response, workbench);
-  }
-  if (routeKey === "GET:/api/deep-research-analysis/timeline") {
-    return handleTimelineRequest(response, workbench, url);
-  }
-  if (routeKey === "GET:/api/deep-research-analysis/export") {
-    return handleExportRequest(response, workbench, url);
-  }
-  return false;
+  const handler = buildDeepResearchRouteHandlers(request, response, workbench, url)[routeKey];
+  return handler ? handler() : false;
 };

@@ -37,11 +37,6 @@ export const runDeepResearchDecompositionPhase = async (
 	input: Parameters<typeof runDeepResearchDecompositionPhaseCore>[0],
 ): Promise<Awaited<ReturnType<typeof runDeepResearchDecompositionPhaseCore>>> => {
 	const result = await runDeepResearchDecompositionPhaseCore(input);
-	const { promptHash, rawResponseHash } = captureLawfulDecompositionEvidence(
-		input,
-		result,
-	);
-	void promptHash;
-	void rawResponseHash;
+	captureLawfulDecompositionEvidence(input, result);
 	return result;
 };

@@ -507,6 +507,9 @@ generated plan 必须与真实 owner inspector 面一一对应。
 - generated plan 指向不存在或已删除的 owner inspector
 - 以旧 summary 或旧 report 冒充当前 owner coverage 真相
 
+质检系统的文字法条是最低边界，不是最高边界。
+只要 owner inspector 能用同一条 AST / project / generated-plan 主裁链证明更强的漂移、假覆盖、假执行、或明显腐烂面，就必须直接 FAIL，不能用“法条还没细写到这句”作为放过理由。
+
 ## [APEX-AUDIT-009-V1] 删除优先级
 
 ```apex-law

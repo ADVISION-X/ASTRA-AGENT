@@ -5,10 +5,12 @@ import { createInventoryFindingCollector } from "./code-purity-finding-collector
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { CodePurityInventoryItem } from "./code-purity-report-writer.js";
 import { scanZombieDeadBranches } from "./scan-zombie-dead-branches.js";
-import { scanZombieDeclarations } from "./scan-zombie-declarations.js";
+import { scanZombieInternalSubgraphs } from "./scan-zombie-internal-subgraphs.js";
+import { scanZombieObjectBags } from "./scan-zombie-object-bags.js";
 import { scanZombieReferenceSurfaces } from "./scan-zombie-reference-surfaces.js";
 import { scanZombieAntiEvasion, scanZombieInspectorSelfProof } from "./zombie-anti-evasion.js";
 import { collectZombieCommentedCodeHits } from "./zombie-commented-code.js";
+import { buildZombieDeclarationLiveGraph } from "./zombie-declaration-live-graph.js";
 import { zombieExemptionManifest, type ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
 import { collectZombieLiveEntrypoints, type ZombieLiveEntryPoint } from "./zombie-live-entrypoints.js";
 import { buildZombieModuleGraph, collectZombieReachableFiles } from "./zombie-module-graph.js";
@@ -162,12 +164,27 @@ export const scanZombieSurfaces = (
     reachability: state.reachability,
     symbolGraph: state.symbolGraph,
   }, state.zombieLawId);
-  const declarationSummary = scanZombieDeclarations(
-    collector,
+  const declarationGraph = buildZombieDeclarationLiveGraph({
     governedFiles,
+    liveExportSymbolIds: referenceSummary.liveExportSymbolIds,
+    manifest: state.manifest,
+    reachability: state.reachability,
+    symbolGraph: state.symbolGraph,
+  });
+  scanZombieObjectBags({
+    antiEvasionLawId: state.antiEvasionLawId,
+    collector,
+    liveExportSymbolIds: referenceSummary.liveExportSymbolIds,
+    manifest: state.manifest,
+    moduleGraph: state.moduleGraph,
+    symbolGraph: state.symbolGraph,
+    zombieLawId: state.zombieLawId,
+  });
+  const declarationSummary = scanZombieInternalSubgraphs(
+    collector,
+    declarationGraph,
     state.zombieLawId,
     state.antiEvasionLawId,
-    state.reachability,
   );
   const deadBranchSummary = scanZombieDeadBranches(collector, governedFiles, state.zombieLawId, state.reachability);
   const commentedOutCodeCount = scanReachableCommentedCode(

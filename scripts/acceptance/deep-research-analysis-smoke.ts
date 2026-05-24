@@ -38,6 +38,10 @@ const REQUIRED_STAGE_NAMES = [
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
   "FINAL_ADJUDICATION_PERSIST",
+  "DECK_SEND",
+  "DECK_CAPTURE",
+  "DECK_PARSE",
+  "DECK_PERSIST",
   "EXPORT_REPORT",
 ] as const;
 
@@ -145,6 +149,121 @@ const FIXTURE_RESPONSES = [
     multiStageValueAdded: ["Independent analysis separated local findings before the final adjudication."],
     limitations: ["This smoke uses deterministic fixture responses rather than a live provider."],
   }),
+  JSON.stringify({
+    deckTitle: "Robotics Warehouse Entry Decision Deck",
+    deckSubtitle: "Default 1+N+1 decision presentation",
+    audience: "executive",
+    sourceDecisionPackageId: "fixture-decision-package",
+    sourceFinalReportId: "fixture-final-report",
+    verdictPreservationCheck: {
+      directAnswerPreserved: true,
+      finalVerdictPreserved: true,
+      confidencePreserved: true,
+      rankedConclusionsPreserved: true,
+      reverseConditionsPreserved: true,
+      evidenceGapsPreserved: true,
+      limitationsPreserved: true,
+      noNewFactsAdded: true,
+    },
+    slides: [
+      {
+        slideNumber: 1,
+        slideType: "cover",
+        title: "Warehouse Entry Decision",
+        headline: "Staged partner-led beachhead is the only supported entry path.",
+        bullets: ["Use the final adjudication unchanged.", "Do not broaden scope before validation."],
+        visualSuggestion: "Title slide with decision banner.",
+        speakerNotes: "Open with the decision and remind the room this deck preserves the adjudicated answer.",
+        evidenceRefs: ["automation capex plans"],
+        mustNotDrop: ["conditional verdict"],
+      },
+      {
+        slideNumber: 2,
+        slideType: "decision",
+        title: "One-Sentence Decision",
+        headline: "Enter only through a staged partner-led beachhead.",
+        bullets: ["Demand is durable enough for evaluation.", "Execution only works with a narrow launch."],
+        visualSuggestion: "Decision card with confidence badge.",
+        speakerNotes: "State the direct answer exactly once and anchor confidence as medium.",
+        evidenceRefs: ["automation capex plans", "integration benchmarks"],
+        mustNotDrop: ["directAnswer", "confidence"],
+      },
+      {
+        slideNumber: 3,
+        slideType: "ranking",
+        title: "Ranked Conclusions",
+        headline: "Demand survives scrutiny, but execution narrows the launch shape.",
+        bullets: ["Demand remains durable enough to support entry evaluation.", "A broad immediate rollout remains rejected."],
+        visualSuggestion: "Ranked bar list.",
+        speakerNotes: "Tie the ranked conclusion directly to the final verdict.",
+        evidenceRefs: ["automation capex plans"],
+        mustNotDrop: ["ranked conclusions", "weak or rejected claims"],
+      },
+      {
+        slideNumber: 4,
+        slideType: "logic_map",
+        title: "Why This Judgment Wins",
+        headline: "Demand support and constrained execution together define the winning path.",
+        bullets: ["Demand support is real in labor-constrained warehouses.", "Partner-led delivery reduces execution load."],
+        visualSuggestion: "Logic map from demand to staged launch.",
+        speakerNotes: "Explain how the sub-question answers converge on the conditional verdict.",
+        evidenceRefs: ["automation capex plans", "partner rollout model"],
+        mustNotDrop: ["decisive reasons"],
+      },
+      {
+        slideNumber: 5,
+        slideType: "risk",
+        title: "Risks And Reverse Conditions",
+        headline: "Weak partner execution or broad scope would reverse the thesis.",
+        bullets: ["If partner execution quality is weak, reverse the thesis.", "A broad immediate rollout is not justified."],
+        visualSuggestion: "Risk matrix.",
+        speakerNotes: "Keep reverse conditions explicit; do not soften them.",
+        evidenceRefs: ["partner rollout model"],
+        mustNotDrop: ["reverse conditions"],
+      },
+      {
+        slideNumber: 6,
+        slideType: "limitation",
+        title: "Evidence Gaps And Limitations",
+        headline: "The deck must preserve remaining evidence gaps and fixture limitations.",
+        bullets: ["Partner deployment quality still needs live validation.", "This smoke uses deterministic fixture responses rather than a live provider."],
+        visualSuggestion: "Gap list.",
+        speakerNotes: "Say clearly what still needs validation.",
+        evidenceRefs: ["partner rollout model"],
+        mustNotDrop: ["evidence gaps", "limitations"],
+      },
+      {
+        slideNumber: 7,
+        slideType: "signal",
+        title: "Follow-Up Signals",
+        headline: "Track proof of execution quality in the first deployments.",
+        bullets: ["Track partner deployment time-to-value in the first customer accounts."],
+        visualSuggestion: "Signal tracker.",
+        speakerNotes: "Follow-up signals convert the thesis into a monitoring plan.",
+        evidenceRefs: ["partner rollout model"],
+        mustNotDrop: ["follow-up signals"],
+      },
+      {
+        slideNumber: 8,
+        slideType: "reference",
+        title: "References",
+        headline: "Every decision slide traces back to the persisted research record.",
+        bullets: ["automation capex plans", "integration benchmarks", "partner rollout model"],
+        visualSuggestion: "Reference appendix.",
+        speakerNotes: "Close with the supporting reference set.",
+        evidenceRefs: ["automation capex plans", "integration benchmarks", "partner rollout model"],
+        mustNotDrop: ["references"],
+      },
+    ],
+    deckWarnings: [],
+    contentPreservationSummary: {
+      usedRankedConclusionCount: 1,
+      usedReverseConditionCount: 1,
+      usedEvidenceGapCount: 1,
+      usedReferenceCount: 3,
+      omittedItems: [],
+    },
+  }),
 ] as const;
 
 class SequentialFixtureAdapter implements AiProviderAdapter {
@@ -228,7 +347,7 @@ const verifyPersistedResearchState = (
     assert(subQuestions[0]?.question.id === "Q1", "Persisted display question ID must remain Q1.");
 
     const interactions = store.listInteractions(result.jobId);
-    assert(interactions.length === 4, `Expected 4 persisted interactions, received ${interactions.length}.`);
+    assert(interactions.length === 5, `Expected 5 persisted interactions, received ${interactions.length}.`);
     interactions.forEach((interaction) => {
       assert(Boolean(interaction.promptHash), `Interaction ${interaction.id} is missing promptHash.`);
       assert(Boolean(interaction.rawResponseHash), `Interaction ${interaction.id} is missing rawResponseHash.`);
@@ -262,21 +381,31 @@ const verifyPersistedResearchState = (
     assert(!finalPromptText.includes("legacyMissingPositiveFalsificationSubQuestionIds"), "Final adjudication prompt must not receive legacy missing sub-question IDs for default flow.");
 
     const exports = store.listExports(result.jobId);
-    assert(exports.length === 3, `Expected 3 export records, received ${exports.length}.`);
+    assert(exports.length === 5, `Expected 5 export records, received ${exports.length}.`);
 
     const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
-    const bundleExport = exports.find((record) => record.exportKind === "research-bundle.json");
+    const decisionPackageExport = exports.find((record) => record.exportKind === "decision-package.json");
+    const deckOutlineExport = exports.find((record) => record.exportKind === "business-deck-outline.json");
+    const deckPptxExport = exports.find((record) => record.exportKind === "business-deck.pptx");
     const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
     if (!finalReportExport) throw new Error("Missing final-report.md export record.");
-    if (!bundleExport) throw new Error("Missing research-bundle.json export record.");
+    if (!decisionPackageExport) throw new Error("Missing decision-package.json export record.");
+    if (!deckOutlineExport) throw new Error("Missing business-deck-outline.json export record.");
+    if (!deckPptxExport) throw new Error("Missing business-deck.pptx export record.");
     if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
     assert(existsSync(finalReportExport.filePath), "final-report.md file was not written.");
-    assert(existsSync(bundleExport.filePath), "research-bundle.json file was not written.");
+    assert(existsSync(decisionPackageExport.filePath), "decision-package.json file was not written.");
+    assert(existsSync(deckOutlineExport.filePath), "business-deck-outline.json file was not written.");
+    assert(existsSync(deckPptxExport.filePath), "business-deck.pptx file was not written.");
     assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
 
+    const deckOutline = parseJsonFile<{ slides: unknown[]; audience: string }>(deckOutlineExport.filePath);
+    assert(deckOutline.audience === "executive", "Deck outline must preserve the audience field.");
+    assert(deckOutline.slides.length === 8, "Deck outline must persist all required slide categories.");
+
     const evidenceIndex = parseJsonFile<Array<{ interactionId: string; parsedRecordId?: string }>>(evidenceExport.filePath);
-    assert(evidenceIndex.length >= 4, `Expected at least 4 evidence index rows, received ${evidenceIndex.length}.`);
+    assert(evidenceIndex.length >= 5, `Expected at least 5 evidence index rows, received ${evidenceIndex.length}.`);
   } finally {
     store.close();
   }

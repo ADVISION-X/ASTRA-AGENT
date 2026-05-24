@@ -48,6 +48,10 @@ const DeepResearchDefaultFinalPackageSchema = DeepResearchFinalPackageBaseSchema
   flowMode: z.literal("default_1_n_1"),
 }).strict();
 
+const DeepResearchBusinessDeckFinalPackageSchema = DeepResearchFinalPackageBaseSchema.extend({
+  flowMode: z.literal("default_1_n_1_1"),
+}).strict();
+
 const DeepResearchLegacyFinalPackageSchema = DeepResearchFinalPackageBaseSchema.extend({
   flowMode: z.literal("legacy_1_n_n_1"),
   positiveAnswerRecords: z.array(z.unknown()).default([]),
@@ -58,6 +62,7 @@ const DeepResearchLegacyFinalPackageSchema = DeepResearchFinalPackageBaseSchema.
 
 const DeepResearchFinalPackageSchema = z.discriminatedUnion("flowMode", [
   DeepResearchDefaultFinalPackageSchema,
+  DeepResearchBusinessDeckFinalPackageSchema,
   DeepResearchLegacyFinalPackageSchema,
 ]);
 
@@ -80,7 +85,7 @@ type DeepResearchFinalPackageBase = {
 };
 
 export type DeepResearchDefaultFinalPackage = DeepResearchFinalPackageBase & {
-  flowMode: "default_1_n_1";
+  flowMode: "default_1_n_1" | "default_1_n_1_1";
 };
 
 export type DeepResearchLegacyFinalPackage = DeepResearchFinalPackageBase & {
@@ -162,95 +167,144 @@ const buildAnalysisCoverage = (
   };
 };
 
+type DeepResearchFinalPackageState = {
+  job: ResearchJob;
+  subQuestions: ResearchSubQuestion[];
+  analysisAnswers: ResearchAnswer[];
+  positiveAnswers: ResearchAnswer[];
+  falsificationAnswers: ResearchAnswer[];
+  conflictMatrix: DeepResearchConflictMatrixRow[];
+  interactions: ResearchInteraction[];
+  missingAnalysisSubQuestionIds: string[];
+  legacyMissingPositiveFalsificationSubQuestionIds: string[];
+};
+
+const loadDeepResearchFinalPackageState = (
+  store: DeepResearchRecordStore,
+  jobId: string,
+): DeepResearchFinalPackageState => {
+  const job = store.getJob(jobId);
+  if (!job) {
+    throw new Error(`Deep research job ${jobId} was not found.`);
+  }
+  const subQuestions = store.listSubQuestions(jobId);
+  const analysisAnswers = store.listAnswers({ jobId, answerKind: "analysis" });
+  const positiveAnswers = store.listAnswers({ jobId, answerKind: "positive" });
+  const falsificationAnswers = store.listAnswers({ jobId, answerKind: "falsification" });
+  const conflictMatrix = store.listConflictMatrix(jobId).map((record) => record.row);
+  const interactions = store.listInteractions(jobId);
+  const analysisSubQuestionIds = new Set(analysisAnswers.map((answer) => answer.subQuestionId));
+  const positiveSubQuestionIds = new Set(positiveAnswers.map((answer) => answer.subQuestionId));
+  const falsificationSubQuestionIds = new Set(falsificationAnswers.map((answer) => answer.subQuestionId));
+  return {
+    job,
+    subQuestions,
+    analysisAnswers,
+    positiveAnswers,
+    falsificationAnswers,
+    conflictMatrix,
+    interactions,
+    missingAnalysisSubQuestionIds: subQuestions
+      .filter((subQuestion) => !analysisSubQuestionIds.has(subQuestion.id))
+      .map((subQuestion) => subQuestion.id),
+    legacyMissingPositiveFalsificationSubQuestionIds: subQuestions
+      .filter((subQuestion) =>
+        !positiveSubQuestionIds.has(subQuestion.id)
+        || !falsificationSubQuestionIds.has(subQuestion.id))
+      .map((subQuestion) => subQuestion.id),
+  };
+};
+
+const validateDeepResearchFinalPackageState = (
+  jobId: string,
+  state: DeepResearchFinalPackageState,
+): void => {
+  if (state.subQuestions.length === 0) {
+    throw new Error(`Deep research job ${jobId} has no persisted sub-question records.`);
+  }
+  if (state.job.flowMode === "default_1_n_1" && state.analysisAnswers.length === 0) {
+    throw new Error(`Deep research job ${jobId} is missing persisted independent analysis records.`);
+  }
+  if (
+    state.job.flowMode === "legacy_1_n_n_1"
+    && (
+      state.positiveAnswers.length === 0
+      || state.falsificationAnswers.length === 0
+      || state.conflictMatrix.length === 0
+    )
+  ) {
+    throw new Error(`Deep research job ${jobId} has no persisted conflict matrix.`);
+  }
+};
+
+const buildDeepResearchFinalPackageBase = (
+  state: DeepResearchFinalPackageState,
+): DeepResearchFinalPackageBase => ({
+  jobId: state.job.id,
+  userQuestion: state.job.userQuestion,
+  analysisGoal: state.job.analysisGoal,
+  decompositionRecords: state.subQuestions,
+  analysisRecords: state.analysisAnswers,
+  analysisCoverage: buildAnalysisCoverage(state.subQuestions, state.analysisAnswers),
+  missingAnalysisSubQuestionIds: state.missingAnalysisSubQuestionIds,
+  recordHashes: {},
+  promptVersions: buildPromptVersionMap(state.interactions),
+  outputContract: state.job.flowMode === "legacy_1_n_n_1"
+    ? finalSynthesisPrompt.expectedOutputContract
+    : finalAdjudicationPrompt.expectedOutputContract,
+});
+
+const buildLegacyFinalPackage = (
+  baseFinalPackage: DeepResearchFinalPackageBase,
+  state: DeepResearchFinalPackageState,
+): DeepResearchLegacyFinalPackage => ({
+  ...baseFinalPackage,
+  flowMode: "legacy_1_n_n_1",
+  positiveAnswerRecords: state.positiveAnswers,
+  falsificationAnswerRecords: state.falsificationAnswers,
+  conflictMatrix: state.conflictMatrix,
+  legacyMissingPositiveFalsificationSubQuestionIds:
+    state.legacyMissingPositiveFalsificationSubQuestionIds,
+  recordHashes: buildRecordHashes({
+    job: state.job,
+    subQuestions: state.subQuestions,
+    analysisAnswers: state.analysisAnswers,
+    missingAnalysisSubQuestionIds: state.missingAnalysisSubQuestionIds,
+    interactions: state.interactions,
+    legacy: {
+      positiveAnswers: state.positiveAnswers,
+      falsificationAnswers: state.falsificationAnswers,
+      conflictMatrix: state.conflictMatrix,
+      legacyMissingPositiveFalsificationSubQuestionIds:
+        state.legacyMissingPositiveFalsificationSubQuestionIds,
+    },
+  }),
+});
+
+const buildDefaultFinalPackage = (
+  baseFinalPackage: DeepResearchFinalPackageBase,
+  state: DeepResearchFinalPackageState,
+): DeepResearchDefaultFinalPackage => ({
+  ...baseFinalPackage,
+  flowMode: "default_1_n_1",
+  recordHashes: buildRecordHashes({
+    job: state.job,
+    subQuestions: state.subQuestions,
+    analysisAnswers: state.analysisAnswers,
+    missingAnalysisSubQuestionIds: state.missingAnalysisSubQuestionIds,
+    interactions: state.interactions,
+  }),
+});
+
 export const buildDeepResearchFinalPackage = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
 }): DeepResearchFinalPackage => {
-  const job = input.store.getJob(input.jobId);
-  if (!job) {
-    throw new Error(`Deep research job ${input.jobId} was not found.`);
-  }
-
-  const subQuestions = input.store.listSubQuestions(input.jobId);
-  const analysisAnswers = input.store.listAnswers({ jobId: input.jobId, answerKind: "analysis" });
-  const positiveAnswers = input.store.listAnswers({ jobId: input.jobId, answerKind: "positive" });
-  const falsificationAnswers = input.store.listAnswers({ jobId: input.jobId, answerKind: "falsification" });
-  const conflictMatrix = input.store.listConflictMatrix(input.jobId).map((record) => record.row);
-  const interactions = input.store.listInteractions(input.jobId);
-  const analysisSubQuestionIds = new Set(analysisAnswers.map((answer) => answer.subQuestionId));
-  const positiveSubQuestionIds = new Set(positiveAnswers.map((answer) => answer.subQuestionId));
-  const falsificationSubQuestionIds = new Set(falsificationAnswers.map((answer) => answer.subQuestionId));
-  const missingAnalysisSubQuestionIds = subQuestions
-    .filter((subQuestion) => !analysisSubQuestionIds.has(subQuestion.id))
-    .map((subQuestion) => subQuestion.id);
-  const legacyMissingPositiveFalsificationSubQuestionIds = subQuestions
-    .filter((subQuestion) =>
-      !positiveSubQuestionIds.has(subQuestion.id)
-      || !falsificationSubQuestionIds.has(subQuestion.id))
-    .map((subQuestion) => subQuestion.id);
-
-  if (subQuestions.length === 0) {
-    throw new Error(`Deep research job ${input.jobId} has no persisted sub-question records.`);
-  }
-  if (job.flowMode === "default_1_n_1" && analysisAnswers.length === 0) {
-    throw new Error(`Deep research job ${input.jobId} is missing persisted independent analysis records.`);
-  }
-  if (
-    job.flowMode === "legacy_1_n_n_1"
-    && (positiveAnswers.length === 0 || falsificationAnswers.length === 0 || conflictMatrix.length === 0)
-  ) {
-    throw new Error(`Deep research job ${input.jobId} has no persisted conflict matrix.`);
-  }
-
-  const baseFinalPackage: DeepResearchFinalPackageBase = {
-    jobId: job.id,
-    userQuestion: job.userQuestion,
-    analysisGoal: job.analysisGoal,
-    decompositionRecords: subQuestions,
-    analysisRecords: analysisAnswers,
-    analysisCoverage: buildAnalysisCoverage(subQuestions, analysisAnswers),
-    missingAnalysisSubQuestionIds,
-    recordHashes: {},
-    promptVersions: buildPromptVersionMap(interactions),
-    outputContract: job.flowMode === "legacy_1_n_n_1"
-      ? finalSynthesisPrompt.expectedOutputContract
-      : finalAdjudicationPrompt.expectedOutputContract,
-  };
-
-  const finalPackage: DeepResearchFinalPackage = job.flowMode === "legacy_1_n_n_1"
-    ? {
-      ...baseFinalPackage,
-      flowMode: job.flowMode,
-      positiveAnswerRecords: positiveAnswers,
-      falsificationAnswerRecords: falsificationAnswers,
-      conflictMatrix,
-      legacyMissingPositiveFalsificationSubQuestionIds,
-      recordHashes: buildRecordHashes({
-        job,
-        subQuestions,
-        analysisAnswers,
-        missingAnalysisSubQuestionIds,
-        interactions,
-        legacy: {
-          positiveAnswers,
-          falsificationAnswers,
-          conflictMatrix,
-          legacyMissingPositiveFalsificationSubQuestionIds,
-        },
-      }),
-    }
-    : {
-      ...baseFinalPackage,
-      flowMode: job.flowMode,
-      recordHashes: buildRecordHashes({
-        job,
-        subQuestions,
-        analysisAnswers,
-        missingAnalysisSubQuestionIds,
-        interactions,
-      }),
-    };
-
-  DeepResearchFinalPackageSchema.parse(finalPackage);
-  return finalPackage;
+  const state = loadDeepResearchFinalPackageState(input.store, input.jobId);
+  validateDeepResearchFinalPackageState(input.jobId, state);
+  const baseFinalPackage = buildDeepResearchFinalPackageBase(state);
+  const finalPackage: DeepResearchFinalPackage = state.job.flowMode === "legacy_1_n_n_1"
+    ? buildLegacyFinalPackage(baseFinalPackage, state)
+    : buildDefaultFinalPackage(baseFinalPackage, state);
+  return DeepResearchFinalPackageSchema.parse(finalPackage) as DeepResearchFinalPackage;
 };

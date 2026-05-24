@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T01:32:19.552Z",
+  "generatedAt": "2026-05-24T02:01:27.010Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -140,7 +140,9 @@
         "APEX-CODE-PURITY-018-V1",
         "APEX-CODE-PURITY-019-V1",
         "APEX-CODE-PURITY-020-V1",
-        "APEX-CODE-PURITY-021-V1"
+        "APEX-CODE-PURITY-021-V1",
+        "APEX-CODE-PURITY-022-V1",
+        "APEX-CODE-PURITY-023-V1"
       ],
       "clauseIds": [
         "primary"
@@ -150,6 +152,8 @@
         "ast+module-graph",
         "ast+module-graph+manifest",
         "ast+symbol-graph+anti-evasion",
+        "ast+symbol-graph+declaration-graph",
+        "ast+symbol-graph+property-usage+manifest",
         "ast+typecheck",
         "fs",
         "fs+ast",

@@ -53,6 +53,7 @@ const DeepResearchRankedConclusionSchema = z.object({
 const DeepResearchNormalizedFinalReportSchema = z.object({
   directAnswer: z.string().trim().min(1),
   finalVerdict: z.string().trim().min(1),
+  oneSentenceDecision: z.string().trim().min(1).optional(),
   confidence: DeepResearchReportConfidenceSchema,
   rankedConclusions: z.array(DeepResearchRankedConclusionSchema).default([]),
   strongConclusions: z.array(z.string().trim().min(1)).default([]),
@@ -66,6 +67,7 @@ const DeepResearchNormalizedFinalReportSchema = z.object({
   followUpSignals: z.array(z.string().trim().min(1)).default([]),
   multiStageValueAdded: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
+  references: z.array(z.string().trim().min(1)).default([]),
   executiveConclusion: z.string().trim().min(1),
   positiveReasons: z.array(z.string().trim().min(1)).default([]),
   strongestOpposingArguments: z.array(z.string().trim().min(1)).default([]),
@@ -82,11 +84,13 @@ const DeepResearchLegacyFinalReportSchema = z.object({
   reverseConditions: z.array(z.string().trim().min(1)).default([]),
   followUpSignals: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
+  references: z.array(z.string().trim().min(1)).default([]),
 }).strict();
 
 const DeepResearchModernFinalReportSchema = z.object({
   directAnswer: z.string().trim().min(1),
   finalVerdict: z.string().trim().min(1),
+  oneSentenceDecision: z.string().trim().min(1).optional(),
   confidence: DeepResearchReportConfidenceSchema,
   rankedConclusions: z.array(DeepResearchRankedConclusionSchema).default([]),
   strongConclusions: z.array(z.string().trim().min(1)).default([]),
@@ -100,6 +104,7 @@ const DeepResearchModernFinalReportSchema = z.object({
   followUpSignals: z.array(z.string().trim().min(1)).default([]),
   multiStageValueAdded: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
+  references: z.array(z.string().trim().min(1)).default([]),
 }).strict();
 
 const buildLegacyVerdictLabel = (value: string): string =>
@@ -111,6 +116,7 @@ const normalizeLegacyFinalReport = (
   DeepResearchNormalizedFinalReportSchema.parse({
     directAnswer: report.executiveConclusion,
     finalVerdict: buildLegacyVerdictLabel(report.executiveConclusion),
+    oneSentenceDecision: report.executiveConclusion,
     confidence: report.confidence,
     rankedConclusions: [],
     strongConclusions: report.positiveReasons,
@@ -124,6 +130,7 @@ const normalizeLegacyFinalReport = (
     followUpSignals: report.followUpSignals,
     multiStageValueAdded: [],
     limitations: report.limitations,
+    references: report.references,
     executiveConclusion: report.executiveConclusion,
     positiveReasons: report.positiveReasons,
     strongestOpposingArguments: report.strongestOpposingArguments,
@@ -135,6 +142,7 @@ const normalizeModernFinalReport = (
 ) =>
   DeepResearchNormalizedFinalReportSchema.parse({
     ...report,
+    oneSentenceDecision: report.oneSentenceDecision ?? report.directAnswer,
     executiveConclusion: report.directAnswer,
     positiveReasons: report.decisiveReasons,
     strongestOpposingArguments: report.weakOrRejectedClaims,

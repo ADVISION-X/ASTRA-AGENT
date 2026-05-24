@@ -232,6 +232,7 @@ const persistDecompositionFixture = (input: {
 const buildFinalReportFixture = (): DeepResearchFinalReport => ({
   directAnswer: "The company should only enter through a staged partner-led beachhead.",
   finalVerdict: "conditional",
+  oneSentenceDecision: "Enter only through a staged partner-led beachhead.",
   confidence: "medium",
   executiveConclusion: "The company should only enter through a staged partner-led beachhead.",
   rankedConclusions: [{
@@ -282,6 +283,11 @@ const buildFinalReportFixture = (): DeepResearchFinalReport => ({
   ],
   limitations: [
     "This acceptance uses persisted fixtures rather than a live provider.",
+  ],
+  references: [
+    "buyer capex trend",
+    "peer pricing evidence",
+    "implementation benchmarks",
   ],
 });
 
@@ -353,16 +359,16 @@ const assertFullFlowReport = (input: {
   assert(!reportText.includes("### Falsification"), "Default-flow report must not regress to falsification blocks.");
   assert(!reportText.includes("## Conflict Matrix"), "Default-flow report must not emit a conflict matrix section.");
   assert(!reportText.includes("## Final Synthesis"), "Default-flow report must not regress to final synthesis.");
-  assert(input.store.listExports(input.job.id).length === 3, "Export records must contain the three artifact kinds.");
+  assert(input.store.listExports(input.job.id).length === 3, "Export records must contain the three non-deck artifact kinds for this fixture.");
 };
 
-function main(): void {
+async function main(): Promise<void> {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-report-export-"));
   const store = createDeepResearchRecordStore(dataDir);
   try {
     const { job, finalReport } = persistCompletedResearchFixture(store);
     const finalPackage = buildDeepResearchFinalPackage({ store, jobId: job.id });
-    const artifacts = exportDeepResearchArtifacts({
+    const artifacts = await exportDeepResearchArtifacts({
       dataDir,
       store,
       jobId: job.id,
@@ -373,12 +379,14 @@ function main(): void {
     assert(finalPackage.flowMode === "default_1_n_1", "Report-export fixture must target the default flow mode.");
     assert(finalPackage.analysisRecords.length === 3, "Report-export fixture must persist three analysis records.");
 
-    const bundle = JSON.parse(readFileSync(artifacts.researchBundle.filePath, "utf8")) as {
+    const decisionPackage = JSON.parse(readFileSync(artifacts.decisionPackage.filePath, "utf8")) as {
       flowMode: string;
       analysisAnswers: unknown[];
     };
-    assert(bundle.flowMode === "default_1_n_1", "Research bundle must expose the default flow mode.");
-    assert(bundle.analysisAnswers.length === 3, "Research bundle must expose three analysis answers.");
+    assert(decisionPackage.flowMode === "default_1_n_1", "Decision package must expose the default flow mode.");
+    assert(decisionPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
+    assert(artifacts.businessDeckOutline === null, "Report-export fixture should not synthesize deck exports without a persisted deck outline.");
+    assert(artifacts.businessDeckPptx === null, "Report-export fixture should not synthesize a PPTX without a persisted deck outline.");
 
     assertFullFlowReport({
       store,
@@ -390,5 +398,5 @@ function main(): void {
   }
 }
 
-main();
+await main();
 process.stdout.write("[ACCEPTANCE][deep-research-report-export] PASS\n");

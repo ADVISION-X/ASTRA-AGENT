@@ -1,6 +1,6 @@
 import { getListeningProcessIds, terminateProcess, waitForDelay } from "./port-listener-ops.mjs";
 
-export { releaseLocalService, startLocalService, stopLocalService } from "./service-process.mjs";
+export { startLocalService, stopLocalService } from "./service-process.mjs";
 
 async function signalListeners(processIds, signal, logger) {
   for (const processId of processIds) {

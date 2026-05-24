@@ -1,5 +1,6 @@
 import type {
   DeepResearchClientState,
+  DeepResearchExportRecord,
   DeepResearchReport,
 } from "./workbench-deep-research-client-contracts.js";
 import { deepResearchClientSharedRuntime } from "./workbench-deep-research-client-shared.js";
@@ -271,6 +272,62 @@ function renderFinalAdjudication(report: DeepResearchReport): void {
     </div>`);
 }
 
+function renderBusinessDeck(report: DeepResearchReport): void {
+  if (!report.businessDeck) {
+    setResearchHtml("[data-deep-research-business-deck]", `
+      <div class="research-section-head">
+        <div>
+          <p class="research-kicker">Business Deck</p>
+          <h2>Deck artifacts are not persisted yet</h2>
+        </div>
+      </div>
+      <p class="muted">The deck secretary runs after final adjudication and persists the outline before PPTX export.</p>`);
+    return;
+  }
+  const actionableExports = [report.businessDeck.pptxExport, report.businessDeck.outlineExport]
+    .filter((record): record is DeepResearchExportRecord => Boolean(record));
+  const actionButtons = actionableExports
+    .map((record) => `<button class="btn secondary" type="button" data-deep-research-export="${escapeText(record.exportKind)}">${escapeText(exportActionLabel(record.exportKind))}</button>`)
+    .join("");
+  setResearchHtml("[data-deep-research-business-deck]", `
+    <div class="research-section-head">
+      <div>
+        <p class="research-kicker">Business Deck</p>
+        <h2>${escapeText(report.businessDeck.deckTitle || "Business decision presentation")}</h2>
+      </div>
+    </div>
+    ${report.businessDeck.deckSubtitle ? `<p class="research-lead">${escapeText(report.businessDeck.deckSubtitle)}</p>` : ""}
+    ${renderMetaRow([
+      report.businessDeck.audience ? `audience ${report.businessDeck.audience}` : null,
+      `${report.businessDeck.slideCount} slides`,
+      report.businessDeck.generatedAt ? formatDateTime(report.businessDeck.generatedAt) : null,
+    ])}
+    <div class="research-delivery-strip">${actionButtons || '<span class="muted">No deck artifact buttons available yet.</span>'}</div>
+    <div class="research-summary-grid">
+      ${renderListSection("Deck Warnings", report.businessDeck.warnings, { emptyText: "No deck warnings recorded." })}
+      ${report.businessDeck.preservationSummary ? renderListSection("Preservation Summary", [
+        `Ranked conclusions used: ${report.businessDeck.preservationSummary.usedRankedConclusionCount}`,
+        `Reverse conditions used: ${report.businessDeck.preservationSummary.usedReverseConditionCount}`,
+        `Evidence gaps used: ${report.businessDeck.preservationSummary.usedEvidenceGapCount}`,
+        `References used: ${report.businessDeck.preservationSummary.usedReferenceCount}`,
+        `Omitted items: ${report.businessDeck.preservationSummary.omittedItemCount}`,
+      ]) : ""}
+    </div>
+    <section class="research-copy-block">
+      <h3>Slide Outline</h3>
+      <div class="research-question-tree">
+        ${report.businessDeck.slideSummaries.length
+          ? report.businessDeck.slideSummaries.map((slide) => `
+            <article class="research-question-card">
+              <h4>#${escapeText(slide.slideNumber)} ${escapeText(slide.title)}</h4>
+              <p>${escapeText(slide.headline)}</p>
+              ${renderMetaRow([slide.slideType])}
+            </article>`).join("")
+          : '<p class="muted">No slide outline recorded.</p>'}
+      </div>
+    </section>`);
+}
+
 function renderEvidence(report: DeepResearchReport): void {
   setResearchHtml("[data-deep-research-evidence]", `
     <details class="research-evidence-root">
@@ -351,6 +408,7 @@ function renderSidePanels(report: DeepResearchReport): void {
       id: "final-adjudication",
       label: isLegacyFlow(report) ? "Final Synthesis" : "Final Adjudication",
     },
+    ...(!isLegacyFlow(report) ? [{ id: "business-deck", label: "Business Deck" }] : []),
     { id: "evidence", label: "Evidence" },
   ];
   setResearchHtml("[data-deep-research-nav]", navigation.map((item) => `<a href="#${escapeText(item.id)}">${escapeText(item.label)}</a>`).join(""));
@@ -380,6 +438,7 @@ function renderSelectedReport(state: DeepResearchClientState, report: DeepResear
   renderDecomposition(report);
   renderSubQuestions(report);
   renderFinalAdjudication(report);
+  renderBusinessDeck(report);
   renderEvidence(report);
   renderSidePanels(report);
   renderLedger({
@@ -410,6 +469,7 @@ export const deepResearchClientReportFunctions = [
   renderDefaultSubQuestionSection,
   renderSubQuestions,
   renderFinalAdjudication,
+  renderBusinessDeck,
   renderEvidence,
   renderSidePanels,
   renderSelectedReport,

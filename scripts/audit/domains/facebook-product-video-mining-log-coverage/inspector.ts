@@ -105,7 +105,6 @@ const buildFacebookCoverageReport = (
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const projectFileCount = context.project.getSourceFiles().length;
   const sectionRuns = collectSectionRuns(context);
   const sections = toSectionList(sectionRuns);
   const findings = sections.flatMap((section) => section.findings);
@@ -113,7 +112,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const reportSections = buildReportSections(sections);
   const missingMandatoryStages = collectMissingMandatoryStages(sectionRuns.stage.stageCoverage);
   const report = buildFacebookCoverageReport(sectionRuns, reportSections, findings, missingMandatoryStages);
-  void projectFileCount;
 
   writeFacebookLogCoverageReport(report);
 

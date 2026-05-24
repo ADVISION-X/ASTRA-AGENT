@@ -1,390 +1,633 @@
 {
-  "antiEvasionFindingCount": 9,
+  "antiEvasionFindingCount": 0,
   "capabilityDomain": "code-purity",
-  "commentedOutCodeCount": 12,
+  "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/app/workbench-deep-research-routes.ts has an over-line function near line 270.",
+      "message": "scripts/acceptance/deep-research-analysis-smoke.ts has 548 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
-      "filePath": "src/app/workbench-deep-research-routes.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts has an over-line function near line 309.",
+      "message": "scripts/acceptance/deep-research-analysis-smoke.ts has an over-line function near line 333.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts has an over-line function near line 315.",
+      "message": "scripts/acceptance/deep-research-business-deck.acceptance.ts has an over-line function near line 21.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/acceptance/deep-research-business-deck.acceptance.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts has an over-line function near line 165.",
+      "message": "scripts/audit/domains/code-purity/components/zombie-call-graph.ts has an over-line function near line 119.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-call-graph.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts has an over-line function near line 282.",
+      "message": "scripts/audit/domains/code-purity/components/zombie-registry-bag-usage.ts has an over-line function near line 53.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-registry-bag-usage.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/as-unknown-as",
+      "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts has an over-line function near line 70.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts uses as unknown as near line 34.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts has an over-line function near line 132.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace double assertion with schema validation or an explicit narrowing guard.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts has 579 lines and exceeds the active executable source file red line.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts has 518 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts has an over-line function near line 64.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.export.ts has an over-line function near line 188.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts has 526 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts has an over-line function near line 351.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-file",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
+      "message": "scripts/audit/domains/code-purity/components/scan-zombie-declarations.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-declarations.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RUNTIME_LOG_GENERATED_JSON without any provable final consumer.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts exports getBusinessDeckPptxMimeType without any provable final consumer.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"RUNTIME_LOG_GENERATED_JSON\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"getBusinessDeckPptxMimeType\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RUNTIME_LOG_GENERATED_MD without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"RUNTIME_LOG_GENERATED_MD\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/source-files.ts exports listOwnerInspectorFiles without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/shared/source-files.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"listOwnerInspectorFiles\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/startup/lib/process-control.mjs exports releaseLocalService without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/process-control.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"releaseLocalService\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/startup/lib/service-process.mjs exports releaseLocalService without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-process.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"releaseLocalService\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts exports AmazonInvoiceUploadTaskResumeInput without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"symbolName\":\"AmazonInvoiceUploadTaskResumeInput\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts exports persistPositiveAnswer without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts exports persistFalsificationAnswer without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistFalsificationAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts exports persistFalsificationAnswer without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistFalsificationAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts exports persistPositiveAnswer without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts exports ResearchFlowMode without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"ResearchFlowMode\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/capabilities/video-download/children/download-douyin-video-once.ts contains commented-out executable code near line 27.",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts exposes object bag zombieExemptionManifest to dynamic access overrides.manifest ?? zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts keeps unused object bag property externalEntryExports in zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"externalEntryExports\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts keeps unused object bag property externalEntryFiles in zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"externalEntryFiles\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts keeps unused object bag property lawfulDynamicImports in zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"lawfulDynamicImports\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts keeps unused object bag property lawfulDynamicRegistryConsumers in zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"lawfulDynamicRegistryConsumers\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts keeps unused object bag property lawfulDynamicNamespaceConsumers in zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"lawfulDynamicNamespaceConsumers\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts keeps unused object bag property lawfulSideEffectImports in zombieExemptionManifest.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"lawfulSideEffectImports\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts exposes object bag lawfulDomZombieExportsByFile to dynamic access lawfulDomZombieExportsByFile[governedFile.repoPath].",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
+      "evidence": "{\"owner\":\"audit:dom-automation\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts keeps unused object bag property [domSurface.publicFacade] in lawfulDomZombieExportsByFile.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
+      "evidence": "{\"owner\":\"audit:dom-automation\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"requiredChildFunctionExports\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts keeps unused object bag property \"src/capabilities/dom-automation/runtime/dom-locator.ts\" in lawfulDomZombieExportsByFile.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
+      "evidence": "{\"owner\":\"audit:dom-automation\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"allowedMigrationFunctionExports\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts exposes object bag geminiApiAdapter to dynamic access input.adapter ?? geminiApiAdapter.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts keeps unused object bag property providerKind in geminiApiAdapter.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"ability-group\",\"symbolName\":\"providerKind\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts exposes object bag geminiWebChatAdapter to dynamic access input.adapter ?? geminiWebChatAdapter.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts keeps unused object bag property providerKind in geminiWebChatAdapter.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"ability-group\",\"symbolName\":\"providerKind\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts exposes object bag gptWebChatAdapter to dynamic access input.adapter ?? gptWebChatAdapter.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts keeps unused object bag property providerKind in gptWebChatAdapter.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"ability-group\",\"symbolName\":\"providerKind\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-bilibili-video-once.ts exposes object bag downloadBilibiliVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-bilibili-video-once.ts keeps unused object bag property abilityGroupId in downloadBilibiliVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-bilibili-video-once.ts keeps unused object bag property childCapabilityId in downloadBilibiliVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-bilibili-video-once.ts keeps unused object bag property execute in downloadBilibiliVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-douyin-video-once.ts exposes object bag downloadDouyinVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
       "filePath": "src/capabilities/video-download/children/download-douyin-video-once.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-douyin-video-once.ts keeps unused object bag property abilityGroupId in downloadDouyinVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-douyin-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-douyin-video-once.ts keeps unused object bag property childCapabilityId in downloadDouyinVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-douyin-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-douyin-video-once.ts keeps unused object bag property execute in downloadDouyinVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-douyin-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/local-runtime/contract.ts contains commented-out executable code near line 1.",
+      "message": "src/capabilities/video-download/children/download-facebook-video-once.ts exposes object bag downloadFacebookVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/local-runtime/contract.ts",
-      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-facebook-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-facebook-video-once.ts keeps unused object bag property abilityGroupId in downloadFacebookVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-facebook-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-facebook-video-once.ts keeps unused object bag property childCapabilityId in downloadFacebookVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-facebook-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-facebook-video-once.ts keeps unused object bag property execute in downloadFacebookVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-facebook-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/event-types.ts contains commented-out executable code near line 3.",
+      "message": "src/capabilities/video-download/children/download-instagram-video-once.ts exposes object bag downloadInstagramVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/event-types.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-instagram-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-instagram-video-once.ts keeps unused object bag property abilityGroupId in downloadInstagramVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-instagram-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-instagram-video-once.ts keeps unused object bag property childCapabilityId in downloadInstagramVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-instagram-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-instagram-video-once.ts keeps unused object bag property execute in downloadInstagramVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-instagram-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/logger.ts contains commented-out executable code near line 2.",
+      "message": "src/capabilities/video-download/children/download-telegram-web-video-once.ts exposes object bag downloadTelegramWebVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/logger.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-telegram-web-video-once.ts keeps unused object bag property abilityGroupId in downloadTelegramWebVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-telegram-web-video-once.ts keeps unused object bag property childCapabilityId in downloadTelegramWebVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-telegram-web-video-once.ts keeps unused object bag property execute in downloadTelegramWebVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/logger.ts contains commented-out executable code near line 68.",
+      "message": "src/capabilities/video-download/children/download-tiktok-video-once.ts exposes object bag downloadTikTokVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/logger.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-tiktok-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-tiktok-video-once.ts keeps unused object bag property abilityGroupId in downloadTikTokVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-tiktok-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-tiktok-video-once.ts keeps unused object bag property childCapabilityId in downloadTikTokVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-tiktok-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/mode.ts contains commented-out executable code near line 3.",
+      "message": "src/capabilities/video-download/children/download-web-video-once.ts exposes object bag downloadWebVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/mode.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-web-video-once.ts keeps unused object bag property abilityGroupId in downloadWebVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-web-video-once.ts keeps unused object bag property childCapabilityId in downloadWebVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-web-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/mode.ts contains commented-out executable code near line 18.",
+      "message": "src/capabilities/video-download/children/download-x-video-once.ts exposes object bag downloadXVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/mode.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-x-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-x-video-once.ts keeps unused object bag property abilityGroupId in downloadXVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-x-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-x-video-once.ts keeps unused object bag property childCapabilityId in downloadXVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-x-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-x-video-once.ts keeps unused object bag property execute in downloadXVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-x-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/redaction.ts contains commented-out executable code near line 41.",
+      "message": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts exposes object bag downloadXiaohongshuVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/redaction.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts keeps unused object bag property abilityGroupId in downloadXiaohongshuVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts keeps unused object bag property childCapabilityId in downloadXiaohongshuVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts keeps unused object bag property execute in downloadXiaohongshuVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/storage/hash.ts contains commented-out executable code near line 1.",
+      "message": "src/capabilities/video-download/children/download-youtube-video-once.ts exposes object bag downloadYoutubeVideoOnce to dynamic access [\n  downloadWebVideoOnce,\n  downloadFacebookVideoOnce,\n  downloadTikTokVideoOnce,\n  downloadInstagramVideoOnce,\n  downloadBilibiliVideoOnce,\n  downloadDouyinVideoOnce,\n  downloadXVideoOnce,\n  downloadXiaohongshuVideoOnce,\n  downloadYoutubeVideoOnce,\n  downloadTelegramWebVideoOnce,\n].",
       "severity": "fatal",
-      "filePath": "src/lib/storage/hash.ts",
-      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/children/download-youtube-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-youtube-video-once.ts keeps unused object bag property abilityGroupId in downloadYoutubeVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-youtube-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"abilityGroupId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-youtube-video-once.ts keeps unused object bag property childCapabilityId in downloadYoutubeVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-youtube-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"childCapabilityId\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/children/download-youtube-video-once.ts keeps unused object bag property execute in downloadYoutubeVideoOnce.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/children/download-youtube-video-once.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"child-ability\",\"symbolName\":\"execute\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "primary",
-      "message": "src/lib/storage/refs.ts contains commented-out executable code near line 1.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts exposes object bag businessDeckSecretaryPrompt to dynamic access prompt: businessDeckSecretaryPrompt.",
       "severity": "fatal",
-      "filePath": "src/lib/storage/refs.ts",
-      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
-      "lawId": "APEX-CODE-PURITY-018-V1",
+      "checkId": "code-purity/object-bag-unused-property",
+      "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/lib/storage/schema.ts contains commented-out executable code near line 1.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts keeps unused object bag property promptVersion in businessDeckSecretaryPrompt.",
       "severity": "fatal",
-      "filePath": "src/lib/storage/schema.ts",
-      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptVersion\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/commented-out-executable-code",
-      "lawId": "APEX-CODE-PURITY-018-V1",
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/lib/storage/storage-port.ts contains commented-out executable code near line 23.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts keeps dead helper PPTX_MIME_TYPE alive only through a dead export subgraph.",
       "severity": "fatal",
-      "filePath": "src/lib/storage/storage-port.ts",
-      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dynamic-import-nonliteral",
-      "lawId": "APEX-CODE-PURITY-020-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/core/run-generated-plan.ts uses non-literal dynamic import moduleUrl.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/core/run-generated-plan.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Replace the computed dynamic import with a literal import target or an explicit owner-local loader map.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "scripts/startup/lib/process-control.mjs re-exports releaseLocalService without any final reachable consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/process-control.mjs",
-      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"startup\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"startup-script\",\"symbolName\":\"releaseLocalService\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts re-exports persistFalsificationAnswer without any final reachable consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"persistFalsificationAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts re-exports persistPositiveAnswer without any final reachable consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts uses void projectFileCount as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/inspector.ts uses void context.project.getSourceFiles().length as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "scripts/startup/lib/service-process.mjs uses void child as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-process.mjs",
-      "evidence": "{\"owner\":\"startup\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"startup-script\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts uses void promptHash as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts uses void rawResponseHash as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"PPTX_MIME_TYPE\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-24T01:32:28.422Z",
+  "generatedAt": "2026-05-24T02:01:38.855Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
@@ -394,6 +637,7 @@
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
+    "scripts/acceptance/deep-research-business-deck.acceptance.ts",
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "scripts/acceptance/deep-research-report-export.acceptance.ts",
     "scripts/acceptance/deep-research-report-reader-ui.acceptance.ts",
@@ -444,17 +688,23 @@
     "scripts/audit/domains/code-purity/components/scan-structural-type-escapes.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-dead-branches.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-declarations.ts",
+    "scripts/audit/domains/code-purity/components/scan-zombie-internal-subgraphs.ts",
+    "scripts/audit/domains/code-purity/components/scan-zombie-object-bags.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
     "scripts/audit/domains/code-purity/components/structural-metrics.ts",
     "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
+    "scripts/audit/domains/code-purity/components/zombie-call-graph.ts",
     "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
     "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
+    "scripts/audit/domains/code-purity/components/zombie-declaration-live-graph.ts",
     "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
     "scripts/audit/domains/code-purity/components/zombie-live-entrypoints.ts",
     "scripts/audit/domains/code-purity/components/zombie-module-graph.ts",
     "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts",
+    "scripts/audit/domains/code-purity/components/zombie-object-bag-liveness.ts",
     "scripts/audit/domains/code-purity/components/zombie-reexport-trace.ts",
+    "scripts/audit/domains/code-purity/components/zombie-registry-bag-usage.ts",
     "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts",
     "scripts/audit/domains/code-purity/components/zombie-symbol-graph.ts",
     "scripts/audit/domains/code-purity/components/zombie-symbol-usage.ts",
@@ -751,7 +1001,11 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -780,6 +1034,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-result-ops.ts",
@@ -856,7 +1111,9 @@
     "APEX-CODE-PURITY-018-V1",
     "APEX-CODE-PURITY-019-V1",
     "APEX-CODE-PURITY-020-V1",
-    "APEX-CODE-PURITY-021-V1"
+    "APEX-CODE-PURITY-021-V1",
+    "APEX-CODE-PURITY-022-V1",
+    "APEX-CODE-PURITY-023-V1"
   ],
   "liveEntryPoints": [
     {
@@ -894,6 +1151,12 @@
       "filePath": "scripts/acceptance/deep-research-app-ui.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-app-ui",
       "scriptName": "acceptance:deep-research-app-ui"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-business-deck.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-business-deck",
+      "scriptName": "acceptance:deep-research-business-deck"
     },
     {
       "entryKind": "package-script",
@@ -1112,20 +1375,20 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1185,
-  "orphanDeclarationCount": 0,
-  "reachableFileCount": 447,
+  "liveExportCount": 1220,
+  "orphanDeclarationCount": 1,
+  "reachableFileCount": 459,
   "status": "FAIL",
   "unreachableFileCount": 1,
-  "zombieExportCount": 11,
+  "zombieExportCount": 1,
   "zombieSummary": {
-    "antiEvasionFindingCount": 9,
-    "commentedOutCodeCount": 12,
+    "antiEvasionFindingCount": 0,
+    "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1185,
-    "orphanDeclarationCount": 0,
-    "reachableFileCount": 447,
+    "liveExportCount": 1220,
+    "orphanDeclarationCount": 1,
+    "reachableFileCount": 459,
     "unreachableFileCount": 1,
-    "zombieExportCount": 11
+    "zombieExportCount": 1
   }
 }

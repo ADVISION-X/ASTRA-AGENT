@@ -34,7 +34,3 @@ export type AmazonInvoiceUploadTaskStartInput = {
   mission: AmazonInvoiceUploadMissionInput;
   invoicePdf: AmazonInvoiceUploadPdfFile;
 };
-
-export type AmazonInvoiceUploadTaskResumeInput = {
-  taskId: string;
-};

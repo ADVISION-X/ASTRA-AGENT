@@ -247,7 +247,7 @@ const inspectLayoutQualityBoundaries = (findings: InspectorFinding[], lawId: str
     "max-height: min(320px, 34vh)",
     "grid-template-columns: minmax(0, 1fr)",
     "grid-template-columns: minmax(0, 1fr);",
-    "repeat(auto-fit, minmax(260px, 1fr))",
+    "repeat(auto-fit, minmax(320px, 1fr))",
     "line-height: 1.65",
     "research-debug-root",
     "research-delivery-strip",

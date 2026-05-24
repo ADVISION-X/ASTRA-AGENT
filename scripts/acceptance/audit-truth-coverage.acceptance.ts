@@ -90,6 +90,18 @@ export const inspectDomain = async (context: { project: { getSourceFiles(): Arra
   };
 };
 `,
+  "scripts/audit/domains/regex/inspector.ts": `
+export const inspectDomain = async (context: { project: { getSourceFiles(): Array<{ getFullText(): string }> } }) => {
+  const files = context.project.getSourceFiles();
+  const hasAlpha = /alpha/u.test(files[0]?.getFullText() ?? "");
+  return {
+    capabilityDomain: "regex",
+    reportedLawIds: ["APEX-AUDIT-TRUTH-001-V1"],
+    findings: hasAlpha ? [] : [],
+    inspectedFiles: [],
+  };
+};
+`,
 });
 
 const projectUsageOutput = await inspectDomain(
@@ -122,6 +134,14 @@ assert.equal(
   }),
   true,
   "audit-truth should fail tracked source-text judgment in owner inspectors.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/source-regex-judgment",
+    fileIncludes: "/scripts/audit/domains/regex/inspector.ts",
+  }),
+  true,
+  "audit-truth should fail regex-based structural judgment in owner inspectors.",
 );
 assert.equal(
   hasFinding(projectUsageOutput.findings, {

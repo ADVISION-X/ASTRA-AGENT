@@ -350,7 +350,7 @@ textarea {
 .research-summary-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .research-analysis-grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 .research-stage-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-.research-question-tree { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.research-question-tree { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .research-analysis-card,
 .research-conflict-card,
 .research-question-card,

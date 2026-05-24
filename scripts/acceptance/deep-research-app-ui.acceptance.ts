@@ -63,6 +63,8 @@ assertImport(
 );
 assertCall("src/app/workbench-home-page.ts", "renderDeepResearchPanel");
 assertText("src/app/workbench-home-page.ts", "data-job-card=\"deep-research\"");
+assertText("src/app/workbench-home-client.ts", "document.body.dataset.activeJob = job");
+assertText("src/app/workbench-home-styles.ts", "body[data-active-job=\"deep-research\"] .main");
 assertText("src/app/workbench-deep-research-panel.ts", "data-job-panel=\"deep-research\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"userQuestion\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"language\"");
@@ -81,7 +83,7 @@ assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research
 assertText("src/app/workbench-deep-research-styles.ts", "max-height: min(320px, 34vh)");
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr)");
 assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
-assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(260px, 1fr))");
+assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(320px, 1fr))");
 assertText("src/app/workbench-deep-research-styles.ts", "research-debug-root");
 assertText("src/app/workbench-deep-research-report-view.ts", "research-reading-rhythm");
 assertImport(
@@ -95,6 +97,11 @@ assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-anal
 assertText("src/app/workbench-deep-research-routes.ts", "DELETE:/api/deep-research-analysis/job");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/report");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/timeline");
+assertText("src/app/workbench-deep-research-routes.ts", "decision-package.json");
+assertText("src/app/workbench-deep-research-routes.ts", "business-deck-outline.json");
+assertText("src/app/workbench-deep-research-routes.ts", "business-deck.pptx");
+assertText("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", "decision-package.json");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-business-deck");
 assertText("src/lib/local-runtime/workbench-handle.ts", "startDeepResearchAnalysis");
 assertText("src/lib/local-runtime/workbench-handle.ts", "listDeepResearchAnalysisJobs");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisReport");
@@ -106,6 +113,7 @@ assertTextInAnyFile(clientRuntimePaths, "Final Adjudication");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");
+assertTextInAnyFile(clientRuntimePaths, "Business Deck");
 assertTextInAnyFile(clientRuntimePaths, "refreshHistory");
 assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
 assertTextInAnyFile(clientRuntimePaths, "data-deep-research-delete-job");

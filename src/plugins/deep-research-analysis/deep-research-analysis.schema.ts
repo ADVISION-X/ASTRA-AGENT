@@ -8,6 +8,7 @@ export const DeepResearchJobStatusSchema = z.enum([
   "queued",
   "running",
   "completed",
+  "deck_export_partial",
   "review_required",
   "failed",
 ]);
@@ -35,6 +36,11 @@ export const DeepResearchPhaseSchema = z.enum([
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
   "FINAL_ADJUDICATION_PERSIST",
+  "DECK_SEND",
+  "DECK_CAPTURE",
+  "DECK_PARSE",
+  "DECK_PERSIST",
+  "DECK_EXPORT",
   "FINAL_SEND",
   "FINAL_CAPTURE",
   "FINAL_PARSE",
@@ -49,11 +55,13 @@ export const DeepResearchInteractionPhaseSchema = z.enum([
   "positive",
   "falsification",
   "final_adjudication",
+  "deck",
   "final_synthesis",
 ]);
 
 export const DeepResearchParseStatusSchema = z.enum([
   "parsed",
+  "parsed_with_trailing_noise",
   "partial_review_required",
   "failed",
 ]);

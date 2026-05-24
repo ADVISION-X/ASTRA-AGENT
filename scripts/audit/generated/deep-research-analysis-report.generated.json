@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T01:32:30.430Z",
+  "generatedAt": "2026-05-24T02:01:40.930Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,8 +20,41 @@
     "GRASSEYE-DEEP-RESEARCH-015-V1",
     "GRASSEYE-DEEP-RESEARCH-016-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "deep-research/sub-question-model-id-mapping",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-003-V1",
+      "clauseId": "primary",
+      "message": "mapSubQuestionRow must map model_question_id to modelQuestionId and question.id.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts"
+    },
+    {
+      "checkId": "deep-research/final-synthesis-leakage-quality-call",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
+      "clauseId": "primary",
+      "message": "scoreDecompositionQuality must call the final-adjudication leakage detector.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"
+    },
+    {
+      "checkId": "deep-research/smoke-export-assertion",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-013-V1",
+      "clauseId": "primary",
+      "message": "Smoke must verify research-bundle.json.",
+      "severity": "fatal",
+      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts"
+    },
+    {
+      "checkId": "deep-research/report-export-no-summary-only-builder",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-015-V1",
+      "clauseId": "primary",
+      "message": "Full-flow report renderer must build stage overview, analysis coverage, decomposition, default and legacy sub-question stages, final adjudication, and evidence index instead of summary-only markdown.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts"
+    }
+  ],
   "inspectedFiles": [
     "package.json",
     "scripts/acceptance/deep-research-analysis-raw-capture-boundary.ts",
@@ -41,7 +74,11 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -70,6 +107,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-result-ops.ts",

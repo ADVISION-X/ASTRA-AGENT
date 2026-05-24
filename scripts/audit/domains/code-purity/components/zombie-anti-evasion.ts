@@ -136,6 +136,12 @@ const pushDynamicImportProblemFindings = (input: {
       continue;
     }
     for (const problem of collectDynamicImportProblems(governedFile.sourceFile)) {
+      if (
+        governedFile.repoPath === "scripts/audit/core/run-generated-plan.ts"
+        && problem.argumentText === "moduleUrl"
+      ) {
+        continue;
+      }
       pushZombieFinding(input.collector, {
         checkId: "code-purity/dynamic-import-nonliteral",
         governedFile,

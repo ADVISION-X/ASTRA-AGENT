@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-24T01:32:30.579Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-24T02:01:41.069Z",
+  "status": "FAIL",
   "inspectorFileCount": 14,
   "generatedPlanEntryCount": 14,
   "inspectedFiles": [
@@ -33,5 +33,22 @@
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/video-download-capability/manifest.json"
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "audit-truth/inspector-project-usage",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts"
+    },
+    {
+      "checkId": "audit-truth/inspector-project-usage",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/runtime-log-spine/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts"
+    }
+  ]
 }

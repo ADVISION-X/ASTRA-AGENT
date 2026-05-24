@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T01:32:19.552Z",
+  "generatedAt": "2026-05-24T02:01:27.010Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -861,6 +861,28 @@
       "summary": "Owner-boundary enforcement must cover import, re-export, dynamic import, and side-effect import uniformly.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 20
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-022-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+symbol-graph+declaration-graph",
+      "summary": "Reachable files must still prove declaration-level liveness from runtime or type roots; dead export helper chains and dead internal subgraphs must fail.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 21
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-023-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+symbol-graph+property-usage+manifest",
+      "summary": "Object bags, registries, and handler maps must prove liveness at property level; whole-bag imports do not keep every entry alive.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 22
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",

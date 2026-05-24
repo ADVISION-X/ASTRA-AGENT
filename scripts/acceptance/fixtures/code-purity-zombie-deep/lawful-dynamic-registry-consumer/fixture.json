@@ -1,0 +1,14 @@
+{
+  "entryScripts": [
+    "src/main.ts"
+  ],
+  "manifest": {
+    "lawfulDynamicRegistryConsumers": [
+      {
+        "consumerFilePath": "src/main.ts",
+        "registryExportName": "registry",
+        "registryFilePath": "src/module.ts"
+      }
+    ]
+  }
+}

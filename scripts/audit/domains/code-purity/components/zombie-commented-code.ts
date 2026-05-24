@@ -73,7 +73,13 @@ const commentedControlStatementKinds = new Set([
   ts.SyntaxKind.TryStatement,
 ]);
 
-const isCommentedDeclarationOrControlStatement = (statement: ts.Statement): boolean => {
+const isCommentedDeclarationOrControlStatement = (
+  statement: ts.Statement,
+  diagnosticsCount: number,
+): boolean => {
+  if (diagnosticsCount > 0) {
+    return false;
+  }
   return commentedDeclarationKinds.has(statement.kind)
     || commentedControlStatementKinds.has(statement.kind);
 };
@@ -93,7 +99,7 @@ const isExecutableCommentExpression = (
 };
 
 const isCommentedExecutableStatement = (statement: ts.Statement, diagnosticsCount: number): boolean => {
-  return isCommentedDeclarationOrControlStatement(statement)
+  return isCommentedDeclarationOrControlStatement(statement, diagnosticsCount)
     || isExecutableCommentExpression(statement, diagnosticsCount);
 };
 

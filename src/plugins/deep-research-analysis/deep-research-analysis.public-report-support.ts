@@ -92,8 +92,17 @@ const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string => 
   if (exportKind === "final-report.md") {
     return "Final report";
   }
+  if (exportKind === "decision-package.json") {
+    return "Decision package";
+  }
   if (exportKind === "research-bundle.json") {
     return "Research bundle";
+  }
+  if (exportKind === "business-deck-outline.json") {
+    return "Business deck outline";
+  }
+  if (exportKind === "business-deck.pptx") {
+    return "Business deck PPTX";
   }
   return "Evidence index";
 };
@@ -151,6 +160,17 @@ export const buildStageViews = (input: {
       : "final-adjudication",
     status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.job.status),
   });
+  if (input.job.flowMode === "default_1_n_1" || input.job.flowMode === "default_1_n_1_1") {
+    stages.push({
+      id: "stage-business-deck",
+      label: "Business Deck",
+      anchorId: "business-deck",
+      status: resolveStageStatus(
+        input.job.status === "completed" || input.job.status === "deck_export_partial",
+        input.job.status,
+      ),
+    });
+  }
   return stages;
 };
 
@@ -163,6 +183,7 @@ export const buildConclusionView = (
   return {
     directAnswer: report.directAnswer,
     finalVerdict: report.finalVerdict,
+    oneSentenceDecision: report.oneSentenceDecision ?? report.directAnswer,
     executiveConclusion: report.executiveConclusion,
     confidence: report.confidence,
     rankedConclusions: [...report.rankedConclusions],
@@ -179,6 +200,7 @@ export const buildConclusionView = (
     followUpSignals: [...report.followUpSignals],
     multiStageValueAdded: [...report.multiStageValueAdded],
     limitations: [...report.limitations],
+    references: [...report.references],
   };
 };
 
@@ -191,6 +213,9 @@ const buildInteractionHeadline = (input: {
   }
   if (input.interaction.phase === "final_adjudication") {
     return "Final Adjudication";
+  }
+  if (input.interaction.phase === "deck") {
+    return "Business Deck Secretary";
   }
   if (input.interaction.phase === "final_synthesis") {
     return "Final Synthesis";

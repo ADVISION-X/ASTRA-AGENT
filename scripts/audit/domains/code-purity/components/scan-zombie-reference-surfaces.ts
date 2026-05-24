@@ -15,6 +15,7 @@ import {
 
 export type ZombieReferenceSurfaceSummary = {
   liveExportCount: number;
+  liveExportSymbolIds: Set<string>;
   unreachableFileCount: number;
   zombieExportCount: number;
 };
@@ -184,8 +185,9 @@ const scanZombieExports = (
   },
   antiEvasionLawId: string,
   zombieLawId: string,
-): { liveExportCount: number; zombieExportCount: number } => {
+): { liveExportCount: number; liveExportSymbolIds: Set<string>; zombieExportCount: number } => {
   let liveExportCount = 0;
+  const liveExportSymbolIds = new Set<string>();
   let zombieExportCount = 0;
 
   pushSymbolResolutionFailures(collector, {
@@ -218,13 +220,14 @@ const scanZombieExports = (
       );
       if (status === "live") {
         liveExportCount += 1;
+        liveExportSymbolIds.add(exportSymbol.symbolId);
       }
       if (status === "zombie") {
-      zombieExportCount += 1;
+        zombieExportCount += 1;
       }
     }
   }
-  return { liveExportCount, zombieExportCount };
+  return { liveExportCount, liveExportSymbolIds, zombieExportCount };
 };
 
 export const scanZombieReferenceSurfaces = (
@@ -243,6 +246,7 @@ export const scanZombieReferenceSurfaces = (
   const exportSummary = scanZombieExports(collector, input, input.antiEvasionLawId, zombieLawId);
   return {
     liveExportCount: exportSummary.liveExportCount,
+    liveExportSymbolIds: exportSummary.liveExportSymbolIds,
     unreachableFileCount,
     zombieExportCount: exportSummary.zombieExportCount,
   };

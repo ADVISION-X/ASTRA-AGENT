@@ -18,7 +18,6 @@ import {
   type AmazonInvoiceUploadAdminOpenInput,
   type AmazonInvoiceUploadAdminOpenResult,
   type AmazonInvoiceUploadMissionStartResult,
-  type AmazonInvoiceUploadTaskResumeInput,
   type AmazonInvoiceUploadTaskStartInput,
 } from "./amazon-invoice-upload-task-service.types.js";
 

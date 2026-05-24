@@ -93,7 +93,7 @@ assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: 
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr);");
 assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
 assertText("src/app/workbench-deep-research-styles.ts", "line-height: 1.65");
-assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(260px, 1fr))");
+assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(320px, 1fr))");
 assertText("src/app/workbench-deep-research-styles.ts", "box-shadow: inset 5px 0 0 var(--accent)");
 assertText("src/app/workbench-deep-research-styles.ts", "research-debug-root");
 assertNoTextInAnyFile(["src/app/workbench-deep-research-styles.ts"], "grid-template-columns: minmax(0, 1fr) 240px");

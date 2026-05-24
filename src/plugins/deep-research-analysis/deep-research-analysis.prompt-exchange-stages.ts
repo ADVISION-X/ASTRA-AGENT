@@ -271,6 +271,10 @@ export const capturePromptOutput = async (
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
+    case "DECK_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "DECK_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
     default:
       throw new Error(`Unsupported Deep Research capture stage ${input.stage}.`);
   }
@@ -384,6 +388,10 @@ export const parsePromptOutput = <TParsed>(
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PARSE" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
+    case "DECK_PARSE": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
     default:
       throw new Error(`Unsupported Deep Research parse stage ${input.stage}.`);
   }
@@ -466,6 +474,10 @@ export const persistPromptOutput = <TParsed>(
     }
     case "FINAL_ADJUDICATION_PERSIST": {
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    case "DECK_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
     default:

@@ -118,10 +118,6 @@ export async function startLocalService({
   return { child, waitForExit };
 }
 
-export function releaseLocalService(child) {
-  void child;
-}
-
 export async function stopLocalService(child, signal = "SIGTERM") {
   if (!child || child.exitCode !== null || child.signalCode !== null) {
     return;

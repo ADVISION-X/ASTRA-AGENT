@@ -121,8 +121,13 @@ async function downloadDeepResearchExport(state: DeepResearchClientState, kind: 
     return;
   }
   const exported = await readResearchJson<DeepResearchExportPayload>(`/api/deep-research-analysis/export?jobId=${encodeURIComponent(state.selectedJobId)}&kind=${encodeURIComponent(kind)}`);
-  const text = exported.textContent || JSON.stringify(exported.jsonContent, null, 2);
-  const blob = new Blob([text], { type: exported.contentType || "application/octet-stream" });
+  const blob = exported.base64Content
+    ? new Blob([
+      Uint8Array.from(atob(exported.base64Content), (character) => character.charCodeAt(0)),
+    ], { type: exported.contentType || "application/octet-stream" })
+    : new Blob([
+      exported.textContent || JSON.stringify(exported.jsonContent, null, 2),
+    ], { type: exported.contentType || "application/octet-stream" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = exported.fileName || kind;

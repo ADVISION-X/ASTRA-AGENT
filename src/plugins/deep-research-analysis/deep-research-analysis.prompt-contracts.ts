@@ -15,6 +15,7 @@ const DeepResearchPromptIdSchema = z.enum([
   "deep-research.positive-analysis",
   "deep-research.falsification",
   "deep-research.final-adjudication",
+  "deep-research.business-deck-secretary",
   "deep-research.final-synthesis",
 ]);
 

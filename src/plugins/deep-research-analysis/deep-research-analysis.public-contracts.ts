@@ -147,9 +147,34 @@ export type DeepResearchExportView = {
   createdAt: string;
 };
 
+export type DeepResearchBusinessDeckView = {
+  generatedAt: string | null;
+  outlineExport: DeepResearchExportView | null;
+  pptxExport: DeepResearchExportView | null;
+  deckTitle: string | null;
+  deckSubtitle: string | null;
+  audience: string | null;
+  slideCount: number;
+  warnings: string[];
+  preservationSummary: {
+    usedRankedConclusionCount: number;
+    usedReverseConditionCount: number;
+    usedEvidenceGapCount: number;
+    usedReferenceCount: number;
+    omittedItemCount: number;
+  } | null;
+  slideSummaries: Array<{
+    slideNumber: number;
+    slideType: string;
+    title: string;
+    headline: string;
+  }>;
+};
+
 export type DeepResearchConclusionView = {
   directAnswer: string;
   finalVerdict: string;
+  oneSentenceDecision: string;
   executiveConclusion: string;
   confidence: DeepResearchFinalReport["confidence"];
   rankedConclusions: DeepResearchFinalReport["rankedConclusions"];
@@ -166,6 +191,7 @@ export type DeepResearchConclusionView = {
   followUpSignals: string[];
   multiStageValueAdded: string[];
   limitations: string[];
+  references: string[];
 };
 
 export type DeepResearchReportViewModel = {
@@ -202,6 +228,7 @@ export type DeepResearchReportViewModel = {
     interaction: DeepResearchReportInteractionView | null;
     parsedFinalReport: DeepResearchFinalReport | null;
   };
+  businessDeck: DeepResearchBusinessDeckView | null;
   evidence: DeepResearchEvidenceView[];
   exports: DeepResearchExportView[];
 };

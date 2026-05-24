@@ -173,3 +173,43 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 2. Deep Research completed 至少要绑定最终报告证据与 record hash 证据。
 3. Facebook completed 至少要绑定视频证据字段或等价证据汇总字段。
 4. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。
+
+## Code Purity 生产级终局肃清链路
+
+1. 文件级 reachability 只回答“文件有没有接上线”，不回答“文件里的每个声明是不是活着”。
+2. declaration liveness 必须从 runtime-rooted / type-rooted roots 出发，而不是从“同文件有人提过它”出发。
+3. exported bag / registry / handler map 的整体存活，不等于内部每个 property / entry 存活。
+4. dynamic import、side-effect import、dynamic registry access 默认危险；没有 manifest 主权就直接 FAIL。
+5. Code Purity 的 machine verdict 可以比法条文字更严；法条缺一句，不等于明显腐烂面就合法。
+
+## Runtime-rooted Declaration Graph
+
+1. lawful package entry、manifest entry、final live export consumer、lawful type consumer 才能成为 declaration roots。
+2. 从 dead export 指向的 helper chain 不能反向证明 helper 活着。
+3. reachable file 内部如果存在只在 dead internal chain 里互相引用的 declaration subgraph，必须照样 FAIL。
+4. symbol resolution 一旦失效，不允许退回 identifier count 或 source text 搜索；结论只能是 liveness unproven。
+
+## Registry/Object Bag Property-level Liveness
+
+1. `handlers.newFlow` 只能证明 `newFlow` 活，不得顺带证明 `oldFlow` 也活。
+2. `Object.keys/values/entries`、computed indexing、for-in、spread 等 bag-level 动态访问默认按 laundering 处理。
+3. lawful dynamic registry consumer 必须同时绑定 consumer file、registry file、registry export，不能做宽泛豁免。
+4. handler map、registry bag、普通 object bag 都属于 property-level liveness 主裁范围。
+
+## Audit Truth 全链路覆盖
+
+1. active law 没进入 generated registry / matrix / plan，不算执法成立。
+2. owner inspector 不进入 runner、不写 report、不进 ci-full summary，都不算执行闭环。
+3. 旧 summary、旧 report、旧 generated artifact 不能作为当前 run 的通过证据。
+
+## Runtime Evidence Truth
+
+1. completed 必须绑定 evidence chain，而不是只绑定状态名。
+2. required raw response、parsed report、artifact/export 缺失时，completed 不成立。
+3. 可容忍的缺失项必须写清 reason；没有 reason 的缺失不属于 lawful completion。
+
+## PR Zombie Delta Gate
+
+1. 新增 zombie finding、object bag dynamic usage、runtime evidence gap、audit uncovered law，都不能进入主线。
+2. delta gate 负责挡新增垃圾，不负责豁免旧垃圾。
+3. 主线允许修旧债，但不允许在修旧债时再引入新的死面或假绿链路。

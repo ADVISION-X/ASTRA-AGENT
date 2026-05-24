@@ -36,9 +36,6 @@ export type RuntimeLogSpinePhase = {
   metrics?: Record<string, number>;
 };
 
-export const RUNTIME_LOG_GENERATED_JSON = "scripts/audit/generated/runtime-log-spine-report.generated.json";
-export const RUNTIME_LOG_GENERATED_MD = "scripts/audit/generated/runtime-log-spine-report.generated.md";
-
 export const RUNTIME_LOG_REQUIRED_FILES = [
   "src/lib/runtime-logs/event-types.ts",
   "src/lib/runtime-logs/failure-classes.ts",

@@ -21,11 +21,14 @@ export const DeepResearchProviderKindSchema = z.enum([
 
 const ResearchAnswerKindSchema = z.enum(["analysis", "positive", "falsification"]);
 
-const ResearchFlowModeSchema = z.enum(["default_1_n_1", "legacy_1_n_n_1"]);
+const ResearchFlowModeSchema = z.enum(["default_1_n_1", "default_1_n_1_1", "legacy_1_n_n_1"]);
 
 const ResearchExportKindSchema = z.enum([
   "final-report.md",
   "research-bundle.json",
+  "decision-package.json",
+  "business-deck-outline.json",
+  "business-deck.pptx",
   "evidence-index.json",
 ]);
 
@@ -41,7 +44,7 @@ export const ResearchJobSchema = z.object({
   language: DeepResearchInputSchema.shape.language,
   maxSubQuestions: DeepResearchInputSchema.shape.maxSubQuestions,
   outputFormat: DeepResearchInputSchema.shape.outputFormat,
-  flowMode: ResearchFlowModeSchema.default("default_1_n_1"),
+  flowMode: ResearchFlowModeSchema.default("default_1_n_1_1"),
   status: DeepResearchJobStatusSchema,
   phase: DeepResearchPhaseSchema,
   failureReason: z.string().trim().min(1).nullable().default(null),
@@ -129,7 +132,6 @@ export type ResearchSubQuestion = z.infer<typeof ResearchSubQuestionSchema>;
 export type ResearchInteraction = z.infer<typeof ResearchInteractionSchema>;
 export type ResearchAnswer = z.infer<typeof ResearchAnswerSchema>;
 export type ResearchAnswerKind = z.infer<typeof ResearchAnswerKindSchema>;
-export type ResearchFlowMode = z.infer<typeof ResearchFlowModeSchema>;
 export type ResearchConflictMatrix = z.infer<typeof ResearchConflictMatrixSchema>;
 export type ResearchFinalReportRecord = z.infer<typeof ResearchFinalReportRecordSchema>;
 export type ResearchExport = z.infer<typeof ResearchExportSchema>;

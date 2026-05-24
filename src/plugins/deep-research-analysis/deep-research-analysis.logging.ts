@@ -258,7 +258,7 @@ export const logDeepResearchExportCompleted = (input: {
   phase: DeepResearchPhase;
   exportDir: string;
   finalReportHash: string;
-  researchBundleHash: string;
+  decisionPackageHash: string;
   evidenceIndexHash: string;
 }): void => {
   emitDeepResearchEvent({
@@ -271,7 +271,7 @@ export const logDeepResearchExportCompleted = (input: {
     refs: { exportDir: input.exportDir },
     hashes: {
       finalReportHash: input.finalReportHash,
-      researchBundleHash: input.researchBundleHash,
+      decisionPackageHash: input.decisionPackageHash,
       evidenceIndexHash: input.evidenceIndexHash,
     },
   });

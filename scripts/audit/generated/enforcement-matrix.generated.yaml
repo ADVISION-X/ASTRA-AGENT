@@ -1,4 +1,4 @@
-generatedAt: "2026-05-24T01:32:19.552Z"
+generatedAt: "2026-05-24T02:01:27.010Z"
 rows:
   - capabilityDomain: "architecture-boundary"
     manifestPath: "scripts/audit/domains/architecture-boundary/manifest.json"
@@ -71,6 +71,8 @@ rows:
       - "APEX-CODE-PURITY-019-V1"
       - "APEX-CODE-PURITY-020-V1"
       - "APEX-CODE-PURITY-021-V1"
+      - "APEX-CODE-PURITY-022-V1"
+      - "APEX-CODE-PURITY-023-V1"
   - capabilityDomain: "deep-research-analysis"
     manifestPath: "scripts/audit/domains/deep-research-analysis/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/deep-research-analysis/inspector.ts"

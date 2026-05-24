@@ -20,6 +20,11 @@ type FixtureManifestConfig = {
   externalEntryExports?: Array<{ exportName: string; filePath: string }>;
   externalEntryFiles?: string[];
   lawfulDynamicImports?: Array<{ consumerFilePath: string; targetFilePath: string }>;
+  lawfulDynamicRegistryConsumers?: Array<{
+    consumerFilePath: string;
+    registryExportName: string;
+    registryFilePath: string;
+  }>;
   lawfulDynamicNamespaceConsumers?: Array<{ consumerFilePath: string; targetFilePath: string }>;
   lawfulSideEffectImports?: Array<{ consumerFilePath: string; targetFilePath: string }>;
 };
@@ -109,6 +114,12 @@ const buildManifest = (runtimeRepoPath: string, manifest: FixtureManifestConfig 
     consumerFilePath: prefixRuntimePath(runtimeRepoPath, entry.consumerFilePath),
     reason: "fixture dynamic import exemption",
     targetFilePath: prefixRuntimePath(runtimeRepoPath, entry.targetFilePath),
+  })),
+  lawfulDynamicRegistryConsumers: (manifest?.lawfulDynamicRegistryConsumers ?? []).map((entry) => ({
+    consumerFilePath: prefixRuntimePath(runtimeRepoPath, entry.consumerFilePath),
+    reason: "fixture dynamic registry exemption",
+    registryExportName: entry.registryExportName,
+    registryFilePath: prefixRuntimePath(runtimeRepoPath, entry.registryFilePath),
   })),
   lawfulDynamicNamespaceConsumers: (manifest?.lawfulDynamicNamespaceConsumers ?? []).map((entry) => ({
     consumerFilePath: prefixRuntimePath(runtimeRepoPath, entry.consumerFilePath),
@@ -254,6 +265,50 @@ assertNoFinding("named-import-alias", {
 assertHasFinding("orphan-top-level-declaration", {
   checkId: "code-purity/zombie-top-level-declaration",
   symbolName: "dead",
+});
+assertHasFinding("dead-export-internal-helper", {
+  checkId: "code-purity/dead-export-helper-subgraph",
+  symbolName: "deadHelper",
+});
+assertHasFinding("reachable-file-dead-internal-subgraph", {
+  checkId: "code-purity/dead-internal-declaration-subgraph",
+  symbolName: "deadHelper",
+});
+assertHasFinding("dead-export-nested-helper-chain", {
+  checkId: "code-purity/dead-export-helper-subgraph",
+  symbolName: "deadHelper",
+});
+assertHasFinding("dead-export-nested-helper-chain", {
+  checkId: "code-purity/dead-internal-declaration-subgraph",
+  symbolName: "deadLeaf",
+});
+assertHasFinding("dead-class-used-only-by-dead-export", {
+  checkId: "code-purity/dead-export-helper-subgraph",
+  symbolName: "DeadClass",
+});
+assertHasFinding("dead-type-used-only-by-dead-type-export", {
+  checkId: "code-purity/dead-export-helper-subgraph",
+  symbolName: "DeadShape",
+});
+assertHasFinding("handler-map-unused-entry", {
+  checkId: "code-purity/handler-map-unused-entry",
+  symbolName: "oldFlow",
+});
+assertHasFinding("object-bag-unused-property", {
+  checkId: "code-purity/object-bag-unused-property",
+  symbolName: "oldFlow",
+});
+assertHasFinding("object-bag-dynamic-usage", {
+  checkId: "code-purity/object-bag-dynamic-usage",
+});
+assertHasFinding("registry-bag-laundering", {
+  checkId: "code-purity/registry-bag-laundering",
+});
+assertNoFinding("lawful-dynamic-registry-consumer", {
+  checkId: "code-purity/registry-bag-laundering",
+});
+assertNoFinding("lawful-dynamic-registry-consumer", {
+  checkId: "code-purity/object-bag-unused-property",
 });
 assertHasFinding("identifier-count-false-proof", {
   checkId: "code-purity/zombie-top-level-declaration",

@@ -306,51 +306,89 @@ const readPayloadString = (payload: Record<string, unknown>, key: string): strin
   return [];
 };
 
+const takeFirstDefined = <T>(...values: readonly (T | null | undefined)[]): T | undefined =>
+  values.find((value): value is T => value !== undefined && value !== null);
+
+const takeFirstDefinedList = (
+  ...values: ReadonlyArray<readonly string[] | null | undefined>
+): string[] => [...(takeFirstDefined(...values) ?? [])];
+
+type AnalysisParsedSectionData = {
+  answerText: string;
+  confidence: string;
+  coreFinding: string;
+  impactOnFinalAdjudication: string;
+  keyClaims: string[];
+  counterConditions: string[];
+  failureCases: string[];
+  evidenceMentions: string[];
+  assumptions: string[];
+  uncertainties: string[];
+  limitations: string[];
+};
+
+const buildAnalysisParsedSectionData = (input: {
+  interaction: ResearchInteraction | null;
+  answer: ResearchAnswer | null;
+}): AnalysisParsedSectionData => {
+  const reparsed = reparseAnalysisInteraction(input.interaction);
+  const payload = input.answer?.parsedPayload ?? {};
+  return {
+    answerText: takeFirstDefined(input.answer?.answerText, reparsed?.answer, "Analysis answer: MISSING")
+      ?? "Analysis answer: MISSING",
+    confidence: takeFirstDefined(input.answer?.confidence, reparsed?.confidence, "unavailable")
+      ?? "unavailable",
+    coreFinding: takeFirstDefined(readPayloadString(payload, "coreFinding")[0], reparsed?.coreFinding, "unavailable")
+      ?? "unavailable",
+    impactOnFinalAdjudication: takeFirstDefined(
+      readPayloadString(payload, "impactOnFinalAdjudication")[0],
+      reparsed?.impactOnFinalAdjudication,
+      "unavailable",
+    ) ?? "unavailable",
+    keyClaims: takeFirstDefinedList(input.answer?.keyPoints, reparsed?.keyClaims),
+    counterConditions: takeFirstDefinedList(input.answer?.contradictionPoints, reparsed?.counterConditions),
+    failureCases: takeFirstDefinedList(readPayloadString(payload, "failureCases"), reparsed?.failureCases),
+    evidenceMentions: takeFirstDefinedList(input.answer?.evidenceMentions, reparsed?.evidenceMentions),
+    assumptions: takeFirstDefinedList(input.answer?.assumptions, reparsed?.assumptions),
+    uncertainties: takeFirstDefinedList(readPayloadString(payload, "uncertainties"), reparsed?.uncertainties),
+    limitations: takeFirstDefinedList(input.answer?.limitations, reparsed?.limitations),
+  };
+};
+
 export const buildAnalysisParsedSection = (input: {
   interaction: ResearchInteraction | null;
   answer: ResearchAnswer | null;
 }): string => {
-  const reparsed = reparseAnalysisInteraction(input.interaction);
-  const payload = input.answer?.parsedPayload ?? {};
-  const answerText = input.answer?.answerText ?? reparsed?.answer ?? "Analysis answer: MISSING";
-  const confidence = input.answer?.confidence ?? reparsed?.confidence ?? "unavailable";
-  const coreFinding = readPayloadString(payload, "coreFinding")[0] ?? reparsed?.coreFinding ?? "unavailable";
-  const impactOnFinalAdjudication = readPayloadString(payload, "impactOnFinalAdjudication")[0]
-    ?? reparsed?.impactOnFinalAdjudication
-    ?? "unavailable";
-  const keyClaims = input.answer?.keyPoints ?? reparsed?.keyClaims ?? [];
-  const counterConditions = input.answer?.contradictionPoints ?? reparsed?.counterConditions ?? [];
-  const failureCases = readPayloadString(payload, "failureCases");
-  const evidenceMentions = input.answer?.evidenceMentions ?? reparsed?.evidenceMentions ?? [];
-  const assumptions = input.answer?.assumptions ?? reparsed?.assumptions ?? [];
-  const uncertainties = readPayloadString(payload, "uncertainties") ?? reparsed?.uncertainties ?? [];
-  const limitations = input.answer?.limitations ?? reparsed?.limitations ?? [];
+  const data = buildAnalysisParsedSectionData(input);
   return [
     buildStageStatus({
       interaction: input.interaction,
       answer: input.answer,
       stageName: "Independent Analysis",
     }),
-    `Answer: ${answerText}`,
-    `Confidence: ${confidence}`,
+    `Answer: ${data.answerText}`,
+    `Confidence: ${data.confidence}`,
     "Core Finding",
-    buildMarkdownList(coreFinding === "unavailable" ? [] : [coreFinding], "- unavailable"),
+    buildMarkdownList(data.coreFinding === "unavailable" ? [] : [data.coreFinding], "- unavailable"),
     "Key Claims",
-    buildMarkdownList(keyClaims, "- unavailable"),
+    buildMarkdownList(data.keyClaims, "- unavailable"),
     "Counter Conditions",
-    buildMarkdownList(counterConditions, "- unavailable"),
+    buildMarkdownList(data.counterConditions, "- unavailable"),
     "Failure Cases",
-    buildMarkdownList(failureCases, "- none"),
+    buildMarkdownList(data.failureCases, "- none"),
     "Evidence Mentions",
-    buildMarkdownList(evidenceMentions, "- unavailable"),
+    buildMarkdownList(data.evidenceMentions, "- unavailable"),
     "Assumptions",
-    buildMarkdownList(assumptions, "- none"),
+    buildMarkdownList(data.assumptions, "- none"),
     "Uncertainties",
-    buildMarkdownList(uncertainties, "- none"),
+    buildMarkdownList(data.uncertainties, "- none"),
     "Impact On Final Adjudication",
-    buildMarkdownList(impactOnFinalAdjudication === "unavailable" ? [] : [impactOnFinalAdjudication], "- unavailable"),
+    buildMarkdownList(
+      data.impactOnFinalAdjudication === "unavailable" ? [] : [data.impactOnFinalAdjudication],
+      "- unavailable",
+    ),
     "Limitations",
-    buildMarkdownList(limitations, "- unavailable"),
+    buildMarkdownList(data.limitations, "- unavailable"),
   ].join("\n\n");
 };
 

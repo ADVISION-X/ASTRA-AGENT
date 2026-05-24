@@ -29,6 +29,7 @@ export const forbiddenRuntimeFields = [
 export const promptTextAllowedFiles = new Set([
   "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
 ]);
 

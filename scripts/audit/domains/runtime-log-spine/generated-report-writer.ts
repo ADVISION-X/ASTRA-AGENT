@@ -4,8 +4,6 @@ import { resolve } from "node:path";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 import { generatedDir } from "../../shared/paths.js";
 import {
-  RUNTIME_LOG_GENERATED_JSON,
-  RUNTIME_LOG_GENERATED_MD,
   type RuntimeLogSpineFinding,
   type RuntimeLogSpinePhase,
 } from "./constants.js";

@@ -283,6 +283,20 @@ const buildFinalReportCandidate = (
   candidate: Record<string, unknown>,
   fallback: FinalReportNormalizationFallback,
 ) => {
+  const directAnswerReport = buildDirectAnswerFinalReport(candidate, fallback);
+  if (directAnswerReport) {
+    return {
+      ok: true as const,
+      value: directAnswerReport,
+    };
+  }
+  return buildLegacyFinalReportCandidate(candidate, fallback);
+};
+
+const buildDirectAnswerFinalReport = (
+  candidate: Record<string, unknown>,
+  fallback: FinalReportNormalizationFallback,
+): DeepResearchFinalReport | null => {
   const directAnswer = takeFirstString(candidate, ["directAnswer", "answer"]);
   const finalVerdict = takeFirstString(candidate, ["finalVerdict", "verdict"]);
   const confidence = normalizeConfidenceValue(
@@ -290,53 +304,70 @@ const buildFinalReportCandidate = (
     ?? candidate.confidenceScore
     ?? candidate.confidenceLevel,
   );
-  if (directAnswer && finalVerdict && confidence) {
-    return {
-      ok: true as const,
-      value: {
-        directAnswer,
-        finalVerdict,
-        confidence,
-        rankedConclusions: normalizeRankedConclusions(candidate.rankedConclusions),
-        strongConclusions: takeFirstStringArray(candidate, ["strongConclusions"]),
-        conditionalConclusions: takeFirstStringArray(candidate, ["conditionalConclusions"]),
-        weakOrRejectedClaims: takeFallbackArray(
-          takeFirstStringArray(candidate, ["weakOrRejectedClaims", "rejectedClaims", "strongestOpposingArguments"]),
-          fallback.strongestOpposingArguments,
-        ),
-        decisiveReasons: takeFallbackArray(
-          takeFirstStringArray(candidate, ["decisiveReasons", "reasons", "positiveReasons"]),
-          fallback.positiveReasons,
-        ),
-        evidenceGaps: takeFallbackArray(
-          takeFirstStringArray(candidate, ["evidenceGaps", "gaps"]),
-          fallback.evidenceGaps,
-        ),
-        reverseConditions: takeFallbackArray(
-          takeFirstStringArray(candidate, ["reverseConditions", "reversalConditions"]),
-          fallback.reverseConditions,
-        ),
-        applicability: takeFirstStringArray(candidate, ["applicability", "appliesTo"]),
-        nonApplicability: takeFirstStringArray(candidate, ["nonApplicability", "doesNotApplyTo"]),
-        followUpSignals: takeFallbackArray(
-          takeFirstStringArray(candidate, ["followUpSignals", "followUps", "watchSignals"]),
-          fallback.followUpSignals,
-        ),
-        multiStageValueAdded: takeFirstStringArray(candidate, ["multiStageValueAdded"]),
-        limitations: takeFallbackArray(
-          takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-          fallback.limitations ?? buildDefaultLimitations(),
-        ),
-      },
-    };
+  if (!directAnswer || !finalVerdict || !confidence) {
+    return null;
   }
+  const decisiveReasons = takeFallbackArray(
+    takeFirstStringArray(candidate, ["decisiveReasons", "reasons", "positiveReasons"]),
+    fallback.positiveReasons,
+  );
+  const opposingArguments = takeFallbackArray(
+    takeFirstStringArray(candidate, ["weakOrRejectedClaims", "rejectedClaims", "strongestOpposingArguments"]),
+    fallback.strongestOpposingArguments,
+  );
+  const conflictMatrix = normalizeConflictMatrixRows(candidate.conflictMatrix);
+  return {
+    directAnswer,
+    finalVerdict,
+    oneSentenceDecision: takeFirstString(candidate, ["oneSentenceDecision"]) ?? directAnswer,
+    confidence,
+    rankedConclusions: normalizeRankedConclusions(candidate.rankedConclusions),
+    strongConclusions: takeFirstStringArray(candidate, ["strongConclusions"]),
+    conditionalConclusions: takeFirstStringArray(candidate, ["conditionalConclusions"]),
+    weakOrRejectedClaims: opposingArguments,
+    decisiveReasons,
+    evidenceGaps: takeFallbackArray(
+      takeFirstStringArray(candidate, ["evidenceGaps", "gaps"]),
+      fallback.evidenceGaps,
+    ),
+    reverseConditions: takeFallbackArray(
+      takeFirstStringArray(candidate, ["reverseConditions", "reversalConditions"]),
+      fallback.reverseConditions,
+    ),
+    applicability: takeFirstStringArray(candidate, ["applicability", "appliesTo"]),
+    nonApplicability: takeFirstStringArray(candidate, ["nonApplicability", "doesNotApplyTo"]),
+    followUpSignals: takeFallbackArray(
+      takeFirstStringArray(candidate, ["followUpSignals", "followUps", "watchSignals"]),
+      fallback.followUpSignals,
+    ),
+    multiStageValueAdded: takeFirstStringArray(candidate, ["multiStageValueAdded"]),
+    limitations: takeFallbackArray(
+      takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
+      fallback.limitations ?? buildDefaultLimitations(),
+    ),
+    references: takeFirstStringArray(candidate, ["references", "sourceNotes"]),
+    executiveConclusion: takeFirstString(candidate, ["executiveConclusion"]) ?? directAnswer,
+    positiveReasons: decisiveReasons,
+    strongestOpposingArguments: opposingArguments,
+    conflictMatrix,
+  };
+};
 
+const buildLegacyFinalReportCandidate = (
+  candidate: Record<string, unknown>,
+  fallback: FinalReportNormalizationFallback,
+) => {
   const executiveConclusion = takeFirstString(candidate, [
     "executiveConclusion",
     "conclusion",
     "summary",
     "finalConclusion",
   ]);
+  const confidence = normalizeConfidenceValue(
+    candidate.confidence
+    ?? candidate.confidenceScore
+    ?? candidate.confidenceLevel,
+  );
   if (!executiveConclusion || !confidence) {
     return { ok: false as const, reason: "missing_direct_answer_or_legacy_conclusion" };
   }
@@ -377,7 +408,6 @@ const buildFinalReportCandidate = (
     },
   };
 };
-
 export const parseDeepResearchDecompositionResponse = (input: {
   rawText: string;
   maxSubQuestions: number;

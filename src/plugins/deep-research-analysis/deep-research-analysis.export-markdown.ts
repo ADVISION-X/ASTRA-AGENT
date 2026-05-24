@@ -67,6 +67,28 @@ const buildDecompositionSection = (input: {
   ].join("\n");
 };
 
+type PersistedAnswerMaps = {
+  analysisAnswerBySubQuestionId: Map<string, ResearchAnswer>;
+  positiveAnswerBySubQuestionId: Map<string, ResearchAnswer>;
+  falsificationAnswerBySubQuestionId: Map<string, ResearchAnswer>;
+};
+
+const buildAnswerMapByKind = (
+  answers: readonly ResearchAnswer[],
+  answerKind: ResearchAnswer["answerKind"],
+): Map<string, ResearchAnswer> =>
+  new Map(
+    answers
+      .filter((answer) => answer.answerKind === answerKind)
+      .map((answer) => [answer.subQuestionId, answer]),
+  );
+
+const buildPersistedAnswerMaps = (answers: readonly ResearchAnswer[]): PersistedAnswerMaps => ({
+  analysisAnswerBySubQuestionId: buildAnswerMapByKind(answers, "analysis"),
+  positiveAnswerBySubQuestionId: buildAnswerMapByKind(answers, "positive"),
+  falsificationAnswerBySubQuestionId: buildAnswerMapByKind(answers, "falsification"),
+});
+
 const buildDefaultSubQuestionSection = (input: {
   subQuestion: ResearchSubQuestion;
   analysisInteraction: ResearchInteraction | null;
@@ -139,6 +161,23 @@ const buildLegacySubQuestionSection = (input: {
   "#### Evidence",
   buildEvidenceLines(input.falsificationInteraction),
 ].join("\n");
+
+const buildReportMetadataLines = (input: {
+  finalPackage: DeepResearchFinalPackage;
+  persisted: DeepResearchPersistedExportState;
+  finalReport: DeepResearchFinalReport | null;
+}): string[] => [
+  "# Deep Research Full Flow Report",
+  "",
+  `Job ID: ${input.persisted.job.id}`,
+  `User Question: ${input.persisted.job.userQuestion}`,
+  `Analysis Goal: ${toDisplayValue(input.persisted.job.analysisGoal)}`,
+  `Flow Mode: ${input.finalPackage.flowMode}`,
+  `Job Status: ${input.persisted.job.status}`,
+  `Updated At: ${input.persisted.job.updatedAt}`,
+  `Final Report Available: ${input.finalReport ? "yes" : "no"}`,
+  "",
+];
 
 const buildDecisionSummarySection = (input: {
   finalPackage: DeepResearchFinalPackage;
@@ -264,52 +303,91 @@ const buildMarkdownContext = (input: {
     input.persisted.subQuestions.map((subQuestion) => [subQuestion.id, subQuestion]),
   );
   const finalReport = input.persisted.finalReportRecord?.report ?? input.finalReport;
-  const decompositionInteraction = findInteraction(input.persisted.interactions, "decomposition");
-  const finalPhase = input.finalPackage.flowMode === "legacy_1_n_n_1"
-    ? "final_synthesis"
-    : "final_adjudication";
-  const finalInteraction = input.persisted.finalReportRecord
-    ? input.persisted.interactions.find(
-      (interaction) => interaction.id === input.persisted.finalReportRecord?.interactionId,
-    ) ?? findInteraction(input.persisted.interactions, finalPhase)
-    : findInteraction(input.persisted.interactions, finalPhase);
   return {
     subQuestionById,
     finalReport,
     stageRows: input.stageRows,
-    decompositionInteraction,
-    finalInteraction,
-    conflictMatrixRows: finalReport?.conflictMatrix ?? (
-      input.finalPackage.flowMode === "legacy_1_n_n_1"
-        ? input.finalPackage.conflictMatrix
-        : []
-    ),
+    decompositionInteraction: findInteraction(input.persisted.interactions, "decomposition"),
+    finalInteraction: input.finalPackage.flowMode === "legacy_1_n_n_1"
+      ? findInteraction(input.persisted.interactions, "final_synthesis")
+      : findInteraction(input.persisted.interactions, "final_adjudication"),
+    conflictMatrixRows: input.finalPackage.flowMode === "legacy_1_n_n_1"
+      ? input.finalPackage.conflictMatrix
+      : [],
   };
 };
 
-const buildReportMetadataLines = (input: {
+const buildSubQuestionSections = (input: {
   finalPackage: DeepResearchFinalPackage;
   persisted: DeepResearchPersistedExportState;
-  finalReport: DeepResearchFinalReport | null;
+  answerMaps: PersistedAnswerMaps;
+}): string[] =>
+  input.persisted.subQuestions.map((subQuestion) =>
+    input.finalPackage.flowMode === "legacy_1_n_n_1"
+      ? buildLegacySubQuestionSection({
+        subQuestion,
+        positiveInteraction: findInteraction(input.persisted.interactions, "positive", subQuestion.id),
+        falsificationInteraction: findInteraction(input.persisted.interactions, "falsification", subQuestion.id),
+        positiveAnswer: input.answerMaps.positiveAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+        falsificationAnswer: input.answerMaps.falsificationAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+      })
+      : buildDefaultSubQuestionSection({
+        subQuestion,
+        analysisInteraction: findInteraction(input.persisted.interactions, "analysis", subQuestion.id),
+        analysisAnswer: input.answerMaps.analysisAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+      }),
+  );
+
+const buildFullFlowReportSections = (input: {
+  finalPackage: DeepResearchFinalPackage;
+  persisted: DeepResearchPersistedExportState;
+  context: DeepResearchMarkdownContext;
+  stageRows: ReturnType<typeof buildStageOverviewRows>;
+  subQuestionSections: readonly string[];
 }): string[] => [
-  "# Deep Research Full Flow Report",
+  ...buildReportMetadataLines({
+    finalPackage: input.finalPackage,
+    persisted: input.persisted,
+    finalReport: input.context.finalReport,
+  }),
+  buildDecisionSummarySection({
+    finalPackage: input.finalPackage,
+    finalReport: input.context.finalReport,
+  }),
   "",
-  `Job ID: ${input.persisted.job.id}`,
-  `Created At: ${input.persisted.job.createdAt}`,
-  `Updated At: ${input.persisted.job.updatedAt}`,
-  `Status: ${input.persisted.job.status}`,
-  `Flow Mode: ${input.finalPackage.flowMode}`,
-  `Question: ${input.persisted.job.userQuestion}`,
-  `Analysis Goal: ${toDisplayValue(input.persisted.job.analysisGoal)}`,
-  `Language: ${input.persisted.job.language}`,
-  `Max SubQuestions: ${String(input.persisted.job.maxSubQuestions)}`,
+  ...((input.finalPackage.flowMode === "default_1_n_1" || input.finalPackage.flowMode === "default_1_n_1_1")
+    ? [buildCoverageSection(input.finalPackage), ""]
+    : []),
+  "## Stage Overview",
   "",
-  "## One-line Verdict",
+  buildStageOverviewTable(input.stageRows),
   "",
-  input.finalReport
-    ? [`Direct Answer: ${input.finalReport.directAnswer}`, `Confidence: ${input.finalReport.confidence}`].join("\n")
-    : "Final report not available.",
+  buildDecompositionSection({
+    interaction: input.context.decompositionInteraction,
+    subQuestions: input.persisted.subQuestions,
+  }),
   "",
+  ...input.subQuestionSections.flatMap((section) => [section, ""]),
+  ...(input.finalPackage.flowMode === "legacy_1_n_n_1"
+    ? [
+      "## Conflict Matrix",
+      "",
+      buildConflictMatrixTable(input.context.conflictMatrixRows, input.context.subQuestionById),
+      "",
+    ]
+    : []),
+  buildFinalStageSection({
+    interaction: input.context.finalInteraction,
+    finalReport: input.context.finalReport,
+    flowMode: input.finalPackage.flowMode,
+  }),
+  "",
+  "## Evidence Index",
+  "",
+  buildEvidenceIndexTable(
+    buildInteractionEvidence(input.persisted.interactions),
+    input.context.subQuestionById,
+  ),
 ];
 
 export const buildDeepResearchFullFlowReportMarkdown = (input: {
@@ -317,21 +395,7 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
   finalReport: DeepResearchFinalReport | null;
   persisted: DeepResearchPersistedExportState;
 }): string => {
-  const analysisAnswerBySubQuestionId = new Map(
-    input.persisted.answers
-      .filter((answer) => answer.answerKind === "analysis")
-      .map((answer) => [answer.subQuestionId, answer]),
-  );
-  const positiveAnswerBySubQuestionId = new Map(
-    input.persisted.answers
-      .filter((answer) => answer.answerKind === "positive")
-      .map((answer) => [answer.subQuestionId, answer]),
-  );
-  const falsificationAnswerBySubQuestionId = new Map(
-    input.persisted.answers
-      .filter((answer) => answer.answerKind === "falsification")
-      .map((answer) => [answer.subQuestionId, answer]),
-  );
+  const answerMaps = buildPersistedAnswerMaps(input.persisted.answers);
   const stageRows = buildStageOverviewRows({
     job: input.persisted.job,
     interactions: input.persisted.interactions,
@@ -342,66 +406,16 @@ export const buildDeepResearchFullFlowReportMarkdown = (input: {
     ...input,
     stageRows,
   });
-  const subQuestionSections = input.persisted.subQuestions.map((subQuestion) =>
-    input.finalPackage.flowMode === "legacy_1_n_n_1"
-      ? buildLegacySubQuestionSection({
-        subQuestion,
-        positiveInteraction: findInteraction(input.persisted.interactions, "positive", subQuestion.id),
-        falsificationInteraction: findInteraction(input.persisted.interactions, "falsification", subQuestion.id),
-        positiveAnswer: positiveAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-        falsificationAnswer: falsificationAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-      })
-      : buildDefaultSubQuestionSection({
-        subQuestion,
-        analysisInteraction: findInteraction(input.persisted.interactions, "analysis", subQuestion.id),
-        analysisAnswer: analysisAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-      }));
-
-  const sections = [
-    ...buildReportMetadataLines({
-      finalPackage: input.finalPackage,
-      persisted: input.persisted,
-      finalReport: context.finalReport,
-    }),
-    buildDecisionSummarySection({
-      finalPackage: input.finalPackage,
-      finalReport: context.finalReport,
-    }),
-    "",
-    ...(input.finalPackage.flowMode === "default_1_n_1"
-      ? [buildCoverageSection(input.finalPackage), ""]
-      : []),
-    "## Stage Overview",
-    "",
-    buildStageOverviewTable(stageRows),
-    "",
-    buildDecompositionSection({
-      interaction: context.decompositionInteraction,
-      subQuestions: input.persisted.subQuestions,
-    }),
-    "",
-    ...subQuestionSections.flatMap((section) => [section, ""]),
-    ...(input.finalPackage.flowMode === "legacy_1_n_n_1"
-      ? [
-        "## Conflict Matrix",
-        "",
-        buildConflictMatrixTable(context.conflictMatrixRows, context.subQuestionById),
-        "",
-      ]
-      : []),
-    buildFinalStageSection({
-      interaction: context.finalInteraction,
-      finalReport: context.finalReport,
-      flowMode: input.finalPackage.flowMode,
-    }),
-    "",
-    "## Evidence Index",
-    "",
-    buildEvidenceIndexTable(
-      buildInteractionEvidence(input.persisted.interactions),
-      context.subQuestionById,
-    ),
-  ];
-
-  return sections.join("\n").trimEnd() + "\n";
+  const subQuestionSections = buildSubQuestionSections({
+    finalPackage: input.finalPackage,
+    persisted: input.persisted,
+    answerMaps,
+  });
+  return buildFullFlowReportSections({
+    finalPackage: input.finalPackage,
+    persisted: input.persisted,
+    context,
+    stageRows,
+    subQuestionSections,
+  }).join("\n").trimEnd() + "\n";
 };

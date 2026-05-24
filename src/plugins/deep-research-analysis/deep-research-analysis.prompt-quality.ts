@@ -47,6 +47,11 @@ const currentDateSignals = [/current date/iu, /date\/time/iu, /当前日期/u, /
 const latestSourceSignals = [/latest reliable sources/iu, /latest source/iu, /最新可靠来源/u, /最新来源/u] as const;
 const scopeSignals = [/scope/iu, /conflict scope/iu, /event scope/iu, /事件范围/u, /冲突范围/u] as const;
 
+type DecompositionQualityScore = {
+  score: number;
+  hasHardFailure: boolean;
+};
+
 const matchesAny = (value: string, patterns: readonly RegExp[]): boolean =>
   patterns.some((pattern) => pattern.test(value));
 
@@ -67,6 +72,45 @@ export const detectCurrentEventMissingInfo = (input: DeepResearchDecompositionRe
     || !matchesAny(missingInfoText, scopeSignals);
 };
 
+const scoreSubQuestionQuality = (
+  subQuestion: DeepResearchDecompositionResponse["subQuestions"][number],
+): DecompositionQualityScore => {
+  const score = (subQuestion.requiredEvidence.length >= 2 ? 2 : 0)
+    + (subQuestion.whyItMatters.trim() ? 1 : 0)
+    + (subQuestion.analysisFocus.trim() ? 2 : 0)
+    + (subQuestion.omissionRisk.trim() ? 1 : 0);
+  return {
+    score,
+    hasHardFailure:
+      subQuestion.requiredEvidence.length < 2
+      || !subQuestion.whyItMatters.trim()
+      || !subQuestion.analysisFocus.trim()
+      || !subQuestion.omissionRisk.trim()
+      || detectFinalAdjudicationLeakage(subQuestion.questionText),
+  };
+};
+
+const scoreExhaustivenessCheck = (input: DeepResearchDecompositionResponse): number =>
+  Math.min(input.exhaustivenessCheck.keyDimensionsCovered.length, 6)
+  + (input.exhaustivenessCheck.knownBlindSpots.length > 0 ? 1 : 0);
+
+const scoreQualitySelfCheck = (
+  input: DeepResearchDecompositionResponse,
+): DecompositionQualityScore => ({
+  score:
+    (input.qualitySelfCheck.isNeutral ? 1 : 0)
+    + (input.qualitySelfCheck.hasNoDuplicateQuestions ? 1 : 0)
+    + (input.qualitySelfCheck.hasNoPureFalsificationQuestions ? 1 : 0)
+    + (input.qualitySelfCheck.isReadyForIndependentAnalysis ? 1 : 0)
+    + (input.qualitySelfCheck.isReadyForFinalAdjudication ? 1 : 0),
+  hasHardFailure:
+    !input.qualitySelfCheck.isNeutral
+    || !input.qualitySelfCheck.hasNoDuplicateQuestions
+    || !input.qualitySelfCheck.hasNoPureFalsificationQuestions
+    || !input.qualitySelfCheck.isReadyForIndependentAnalysis
+    || !input.qualitySelfCheck.isReadyForFinalAdjudication,
+});
+
 export const scoreDecompositionQuality = (input: DeepResearchDecompositionResponse): {
   status: "passed" | "failed";
   score: number;
@@ -76,37 +120,16 @@ export const scoreDecompositionQuality = (input: DeepResearchDecompositionRespon
   let score = 0;
   let hasHardFailure = false;
   for (const subQuestion of input.subQuestions) {
-    score += subQuestion.requiredEvidence.length >= 2 ? 2 : 0;
-    score += subQuestion.whyItMatters.trim() ? 1 : 0;
-    score += subQuestion.analysisFocus.trim() ? 2 : 0;
-    score += subQuestion.omissionRisk.trim() ? 1 : 0;
-    if (
-      subQuestion.requiredEvidence.length < 2
-      || !subQuestion.whyItMatters.trim()
-      || !subQuestion.analysisFocus.trim()
-      || !subQuestion.omissionRisk.trim()
-      || detectFinalAdjudicationLeakage(subQuestion.questionText)
-    ) {
-      hasHardFailure = true;
-    }
+    const subQuestionQuality = scoreSubQuestionQuality(subQuestion);
+    score += subQuestionQuality.score;
+    hasHardFailure = hasHardFailure || subQuestionQuality.hasHardFailure;
   }
-  score += Math.min(input.exhaustivenessCheck.keyDimensionsCovered.length, 6);
-  score += input.exhaustivenessCheck.knownBlindSpots.length > 0 ? 1 : 0;
-  score += input.qualitySelfCheck.isNeutral ? 1 : 0;
-  score += input.qualitySelfCheck.hasNoDuplicateQuestions ? 1 : 0;
-  score += input.qualitySelfCheck.hasNoPureFalsificationQuestions ? 1 : 0;
-  score += input.qualitySelfCheck.isReadyForIndependentAnalysis ? 1 : 0;
-  score += input.qualitySelfCheck.isReadyForFinalAdjudication ? 1 : 0;
-  if (
-    !input.qualitySelfCheck.isNeutral
-    || !input.qualitySelfCheck.hasNoDuplicateQuestions
-    || !input.qualitySelfCheck.hasNoPureFalsificationQuestions
-    || !input.qualitySelfCheck.isReadyForIndependentAnalysis
-    || !input.qualitySelfCheck.isReadyForFinalAdjudication
-    || detectCurrentEventMissingInfo(input)
-  ) {
-    hasHardFailure = true;
-  }
+  score += scoreExhaustivenessCheck(input);
+  const selfCheckQuality = scoreQualitySelfCheck(input);
+  score += selfCheckQuality.score;
+  hasHardFailure = hasHardFailure
+    || selfCheckQuality.hasHardFailure
+    || detectCurrentEventMissingInfo(input);
   return {
     status: !hasHardFailure && score >= passScore ? "passed" : "failed",
     score,

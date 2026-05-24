@@ -153,7 +153,7 @@ const completeFinalPackageStage = (input: {
   });
 };
 
-const runExportStage = (
+const runExportStage = async (
   context: AnalysisExecutionContext,
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
   finalReport: DeepResearchFinalReport,
@@ -170,7 +170,7 @@ const runExportStage = (
     }),
     stageName: "EXPORT_REPORT",
   });
-  const exportArtifacts = exportDeepResearchArtifacts({
+  const exportArtifacts = await exportDeepResearchArtifacts({
     dataDir: context.dataDir,
     store: context.store,
     jobId: context.jobId,
@@ -183,7 +183,7 @@ const runExportStage = (
     phase: "EXPORT_REPORT",
     exportDir: exportArtifacts.exportDir,
     finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
-    researchBundleHash: exportArtifacts.researchBundle.fileHash,
+    decisionPackageHash: exportArtifacts.decisionPackage.fileHash,
     evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
   });
   exportStage.complete({
@@ -191,7 +191,7 @@ const runExportStage = (
     refs: { exportDir: exportArtifacts.exportDir },
     hashes: {
       finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
-      researchBundleHash: exportArtifacts.researchBundle.fileHash,
+      decisionPackageHash: exportArtifacts.decisionPackage.fileHash,
       evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
     },
   });
@@ -201,14 +201,20 @@ const runExportStage = (
 const buildMergedRecordHashes = (input: {
   context: AnalysisExecutionContext;
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
-  exportArtifacts: ReturnType<typeof exportDeepResearchArtifacts>;
+  exportArtifacts: Awaited<ReturnType<typeof exportDeepResearchArtifacts>>;
   finalReportRecord: ReturnType<AnalysisExecutionContext["store"]["getLatestFinalReport"]>;
 }) => ({
   ...input.finalPackage.recordHashes,
   ...input.context.recordHashes,
   exportFinalReportHash: input.exportArtifacts.finalReportMarkdown.fileHash,
-  exportResearchBundleHash: input.exportArtifacts.researchBundle.fileHash,
+  exportDecisionPackageHash: input.exportArtifacts.decisionPackage.fileHash,
   exportEvidenceIndexHash: input.exportArtifacts.evidenceIndex.fileHash,
+  ...(input.exportArtifacts.businessDeckOutline
+    ? { exportBusinessDeckOutlineHash: input.exportArtifacts.businessDeckOutline.fileHash }
+    : {}),
+  ...(input.exportArtifacts.businessDeckPptx
+    ? { exportBusinessDeckPptxHash: input.exportArtifacts.businessDeckPptx.fileHash }
+    : {}),
   ...(input.finalReportRecord
     ? {
         [`finalReport:${input.finalReportRecord.id}`]:
@@ -341,12 +347,12 @@ export const runFinalReportPhase = async (
   return { ok: true, finalReport: finalReport.parsed };
 };
 
-export const completeSuccessfulRun = (
+export const completeSuccessfulRun = async (
   context: AnalysisExecutionContext,
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
   finalReport: DeepResearchFinalReport,
-): DeepResearchResult => {
-  const exportArtifacts = runExportStage(context, finalPackage, finalReport);
+): Promise<DeepResearchResult> => {
+  const exportArtifacts = await runExportStage(context, finalPackage, finalReport);
   const finalReportRecord = context.store.getLatestFinalReport(context.jobId);
   const mergedRecordHashes = buildMergedRecordHashes({
     context,
@@ -354,6 +360,25 @@ export const completeSuccessfulRun = (
     exportArtifacts,
     finalReportRecord,
   });
+  if (exportArtifacts.status === "deck_export_partial") {
+    context.store.updateJobState({
+      jobId: context.jobId,
+      status: "deck_export_partial",
+      phase: "COMPLETE",
+      failureReason: null,
+      reviewReason: exportArtifacts.failureReason,
+    });
+    return {
+      jobId: context.jobId,
+      status: "review_required",
+      jobStatus: "deck_export_partial",
+      phase: "COMPLETE",
+      report: finalReport,
+      recordHashes: mergedRecordHashes,
+      failureReason: null,
+      reviewReason: exportArtifacts.failureReason,
+    };
+  }
   return markJobCompleted({
     context,
     finalReport,

@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { stableJsonHash } from "../../lib/storage/hash.js";
+import { type DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
+import {
+  generateDeepResearchBusinessDeckPptx,
+} from "./deep-research-analysis.deck-pptx.js";
 import { buildDeepResearchFullFlowReportMarkdown } from "./deep-research-analysis.export-markdown.js";
 import type {
   DeepResearchFinalReport,
@@ -30,9 +34,13 @@ type DeepResearchEvidenceIndexEntry = {
 
 type DeepResearchExportArtifacts = {
   finalReportMarkdown: ResearchExport;
-  researchBundle: ResearchExport;
+  decisionPackage: ResearchExport;
+  businessDeckOutline: ResearchExport | null;
+  businessDeckPptx: ResearchExport | null;
   evidenceIndex: ResearchExport;
   exportDir: string;
+  status: "completed" | "deck_export_partial";
+  failureReason: string | null;
 };
 
 type DeepResearchPersistedExportState = {
@@ -41,6 +49,7 @@ type DeepResearchPersistedExportState = {
   interactions: ResearchInteraction[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
+  exports: ResearchExport[];
 };
 
 const buildTextHash = (value: string): string =>
@@ -54,6 +63,7 @@ const buildEvidenceIndexEntries = (input: {
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
   finalReportRecord: ResearchFinalReportRecord | null;
+  deckOutlineExport: ResearchExport | null;
 }): DeepResearchEvidenceIndexEntry[] => {
   const entries: DeepResearchEvidenceIndexEntry[] = [];
   input.interactions.forEach((interaction) => {
@@ -86,6 +96,13 @@ const buildEvidenceIndexEntries = (input: {
       && input.finalReportRecord.interactionId === interaction.id
     ) {
       entries.push({ ...base, parsedRecordId: input.finalReportRecord.id });
+      return;
+    }
+    if (
+      interaction.phase === "deck"
+      && input.deckOutlineExport
+    ) {
+      entries.push({ ...base, parsedRecordId: input.deckOutlineExport.id });
     }
   });
   return entries;
@@ -106,6 +123,7 @@ const loadPersistedExportState = (
     interactions: store.listInteractions(jobId),
     subQuestions: store.listSubQuestions(jobId),
     answers: store.listAnswers({ jobId }),
+    exports: store.listExports(jobId),
   };
 };
 
@@ -121,7 +139,7 @@ const writeJsonArtifact = <TPayload>(filePath: string, payload: TPayload): { fil
   return { filePath, fileHash };
 };
 
-const buildResearchBundle = (input: {
+const buildDecisionPackage = (input: {
   finalPackage: DeepResearchFinalPackage;
   finalReport: DeepResearchFinalReport;
 }) => ({
@@ -147,13 +165,33 @@ const buildResearchBundle = (input: {
   recordHashes: input.finalPackage.recordHashes,
 });
 
-export const exportDeepResearchArtifacts = (input: {
+const buildBinaryHash = (value: Uint8Array): string =>
+  "sha256:" + createHash("sha256").update(value).digest("hex");
+
+const loadPersistedDeckOutline = (input: {
+  persisted: DeepResearchPersistedExportState;
+}): {
+  exportRecord: ResearchExport;
+  outline: DeepResearchBusinessDeckOutline;
+} | null => {
+  const outlineExport = input.persisted.exports.find((record) => record.exportKind === "business-deck-outline.json");
+  if (!outlineExport) {
+    return null;
+  }
+  const outline = JSON.parse(readFileSync(outlineExport.filePath, "utf8")) as DeepResearchBusinessDeckOutline;
+  return {
+    exportRecord: outlineExport,
+    outline,
+  };
+};
+
+export const exportDeepResearchArtifacts = async (input: {
   dataDir: string;
   store: DeepResearchRecordStore;
   jobId: string;
   finalPackage: DeepResearchFinalPackage;
   finalReport: DeepResearchFinalReport;
-}): DeepResearchExportArtifacts => {
+}): Promise<DeepResearchExportArtifacts> => {
   const exportDir = buildExportDir(input.dataDir, input.jobId);
   mkdirSync(exportDir, { recursive: true });
   const persisted = loadPersistedExportState(input.store, input.jobId);
@@ -165,19 +203,49 @@ export const exportDeepResearchArtifacts = (input: {
   });
   const finalReportArtifact = writeTextArtifact(path.join(exportDir, "final-report.md"), finalReportMarkdownText);
 
-  const researchBundle = buildResearchBundle({
+  const decisionPackage = buildDecisionPackage({
     finalPackage: input.finalPackage,
     finalReport: persisted.finalReportRecord?.report ?? input.finalReport,
   });
-  const researchBundleArtifact = writeJsonArtifact(path.join(exportDir, "research-bundle.json"), researchBundle);
+  const decisionPackageArtifact = writeJsonArtifact(path.join(exportDir, "decision-package.json"), decisionPackage);
+
+  const persistedDeckOutline = loadPersistedDeckOutline({ persisted });
 
   const evidenceIndex = buildEvidenceIndexEntries({
     interactions: persisted.interactions,
     subQuestions: persisted.subQuestions,
     answers: persisted.answers,
     finalReportRecord: persisted.finalReportRecord,
+    deckOutlineExport: persistedDeckOutline?.exportRecord ?? null,
   });
   const evidenceIndexArtifact = writeJsonArtifact(path.join(exportDir, "evidence-index.json"), evidenceIndex);
+
+  let businessDeckPptx: ResearchExport | null = null;
+  let status: DeepResearchExportArtifacts["status"] = "completed";
+  let failureReason: string | null = null;
+  if (persistedDeckOutline) {
+    try {
+      const pptxFilePath = await generateDeepResearchBusinessDeckPptx({
+        outputDir: exportDir,
+        outline: persistedDeckOutline.outline,
+      });
+      const pptxBuffer = readFileSync(pptxFilePath);
+      businessDeckPptx = input.store.saveExport({
+        jobId: input.jobId,
+        exportKind: "business-deck.pptx",
+        filePath: pptxFilePath,
+        fileHash: buildBinaryHash(pptxBuffer),
+        payload: {
+          slideCount: persistedDeckOutline.outline.slides.length,
+          outlineExportId: persistedDeckOutline.exportRecord.id,
+          warnings: persistedDeckOutline.outline.deckWarnings,
+        },
+      });
+    } catch (error) {
+      status = "deck_export_partial";
+      failureReason = error instanceof Error ? error.message : "pptx_generation_failed";
+    }
+  }
 
   return {
     finalReportMarkdown: input.store.saveExport({
@@ -187,13 +255,15 @@ export const exportDeepResearchArtifacts = (input: {
       fileHash: finalReportArtifact.fileHash,
       payload: { finalReportHash: finalReportArtifact.fileHash, content: finalReportMarkdownText },
     }),
-    researchBundle: input.store.saveExport({
+    decisionPackage: input.store.saveExport({
       jobId: input.jobId,
-      exportKind: "research-bundle.json",
-      filePath: researchBundleArtifact.filePath,
-      fileHash: researchBundleArtifact.fileHash,
-      payload: researchBundle,
+      exportKind: "decision-package.json",
+      filePath: decisionPackageArtifact.filePath,
+      fileHash: decisionPackageArtifact.fileHash,
+      payload: decisionPackage,
     }),
+    businessDeckOutline: persistedDeckOutline?.exportRecord ?? null,
+    businessDeckPptx,
     evidenceIndex: input.store.saveExport({
       jobId: input.jobId,
       exportKind: "evidence-index.json",
@@ -202,5 +272,7 @@ export const exportDeepResearchArtifacts = (input: {
       payload: evidenceIndex,
     }),
     exportDir,
+    status,
+    failureReason,
   };
 };

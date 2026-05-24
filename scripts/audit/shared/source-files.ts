@@ -20,9 +20,4 @@ export const listActiveSourceFiles = (project: Project): SourceFile[] =>
     .filter((sourceFile) => !sourceFile.isDeclarationFile() && isActiveRepoPath(getRepoSourcePath(sourceFile)))
     .sort((left, right) => getRepoSourcePath(left).localeCompare(getRepoSourcePath(right)));
 
-export const listOwnerInspectorFiles = (project: Project): SourceFile[] =>
-  listActiveSourceFiles(project).filter((sourceFile) =>
-    /^scripts\/audit\/domains\/[^/]+\/inspector\.ts$/u.test(getRepoSourcePath(sourceFile)),
-  );
-
 export const lineCountOf = (sourceFile: SourceFile): number => sourceFile.getEndLineNumber();
