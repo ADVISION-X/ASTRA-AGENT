@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T15:47:52.658Z",
+  "generatedAt": "2026-05-24T16:38:20.658Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -15,6 +15,7 @@
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "src/app/create-workbench-server.ts",
     "src/app/workbench-deep-research-client-boot.ts",
+    "src/app/workbench-deep-research-client-delivery-sections.ts",
     "src/app/workbench-deep-research-client-report-sections.ts",
     "src/app/workbench-deep-research-client-shared.ts",
     "src/app/workbench-deep-research-client.ts",

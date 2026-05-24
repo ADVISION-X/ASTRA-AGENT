@@ -91,10 +91,10 @@ src/plugins/deep-research-analysis/
 
 scripts/acceptance/
   deep-research-analysis-smoke.ts
-  deep-research-business-deck.acceptance.ts
-  deep-research-deck-secretary-boundary.acceptance.ts
-  deep-research-deck-artifacts.acceptance.ts
-  deep-research-deck-ui.acceptance.ts
+  deep-research-ai-html-report.acceptance.ts
+  deep-research-html-prompt-boundary.acceptance.ts
+  deep-research-html-artifact-persist.acceptance.ts
+  deep-research-ppt-optional-demotion.acceptance.ts
 
 scripts/audit/domains/deep-research-analysis/
   manifest.json

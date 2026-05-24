@@ -23,10 +23,10 @@ const REQUIRED_STAGE_NAMES = [
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
   "FINAL_ADJUDICATION_PERSIST",
-  "DECK_PPT_SEND",
-  "DECK_PPT_CAPTURE",
-  "DECK_PPT_ARTIFACT_DETECT",
-  "DECK_PPT_PERSIST",
+  "HTML_REPORT_SEND",
+  "HTML_REPORT_CAPTURE",
+  "HTML_REPORT_DETECT",
+  "HTML_REPORT_PERSIST",
   "EXPORT_REPORT",
 ] as const;
 
@@ -127,16 +127,16 @@ const verifyPersistedExports = (
 
   const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
   const decisionPackageExport = exports.find((record) => record.exportKind === "decision-package.json");
-  const deckPptxExport = exports.find((record) => record.exportKind === "business-deck.ai-pptx");
+  const businessHtmlExport = exports.find((record) => record.exportKind === "business-report.html");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
   if (!finalReportExport) throw new Error("Missing final-report.md export record.");
   if (!decisionPackageExport) throw new Error("Missing decision-package.json export record.");
-  if (!deckPptxExport) throw new Error("Missing business-deck.ai-pptx export record.");
+  if (!businessHtmlExport) throw new Error("Missing business-report.html export record.");
   if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
   assert(existsSync(finalReportExport.filePath), "final-report.md file was not written.");
   assert(existsSync(decisionPackageExport.filePath), "decision-package.json file was not written.");
-  assert(existsSync(deckPptxExport.filePath), "business-deck.ai-pptx file was not written.");
+  assert(existsSync(businessHtmlExport.filePath), "business-report.html file was not written.");
   assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
 
   const evidenceIndex = parseJsonFile<Array<{ interactionId: string; parsedRecordId?: string }>>(evidenceExport.filePath);

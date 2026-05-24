@@ -17,7 +17,7 @@ import type {
 } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-import { inspectBusinessDeckNoTextCeiling } from "./scan-business-deck-no-text-ceiling.js";
+import { inspectBusinessHtmlReportNoTextCeiling } from "./scan-business-html-report-no-text-ceiling.js";
 
 const recordContractsPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts";
 const recordInteractionOpsPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts";
@@ -71,6 +71,19 @@ const getObjectLiteralArgument = (
     : null;
 };
 
+const hasBusinessHtmlExportSelection = (sourceFile: SourceFile): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
+    if (expression.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken) {
+      return false;
+    }
+    const left = expression.getLeft();
+    const right = expression.getRight();
+    return Node.isPropertyAccessExpression(left)
+      && left.getName() === "exportKind"
+      && Node.isStringLiteral(right)
+      && right.getLiteralValue() === "business-report.html";
+  });
+
 const inspectRenderedPromptSchema = (input: {
   context: InspectorContext;
   findings: InspectorFinding[];
@@ -102,21 +115,18 @@ const inspectRenderedPromptSchema = (input: {
   }
 
   const exportKinds = getEnumValues(sourceFile, "ResearchExportKindSchema");
-  const markdownKinds = exportKinds.filter((value) => value.endsWith(".md"));
-  if (markdownKinds.length !== 1 || markdownKinds[0] !== "final-report.md") {
+  const humanReadableKinds = exportKinds.filter((value) => value.endsWith(".md") || value.endsWith(".html"));
+  const requiredHumanReadableKinds = ["final-report.md", "business-report.html"] as const;
+  const hasExpectedHumanReadableKinds = requiredHumanReadableKinds.every((kind) => humanReadableKinds.includes(kind));
+  if (!hasExpectedHumanReadableKinds || humanReadableKinds.length !== requiredHumanReadableKinds.length) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-export-single-human-report-kind",
       lawId: input.lawId,
       filePath: recordContractsPath,
-      message: "ResearchExportKindSchema must expose exactly one human-readable report kind: final-report.md.",
+      message: "ResearchExportKindSchema must expose exactly two human-readable report kinds: final-report.md and business-report.html.",
     }));
   }
-  const requiredMachineArtifacts = [
-    "decision-package.json",
-    "business-deck-outline.json",
-    "business-deck.pptx",
-    "evidence-index.json",
-  ] as const;
+  const requiredMachineArtifacts = ["decision-package.json", "evidence-index.json"] as const;
   const missingMachineArtifact = requiredMachineArtifacts.find((artifact) => !exportKinds.includes(artifact));
   if (missingMachineArtifact) {
     input.findings.push(createFinding({
@@ -214,6 +224,14 @@ const inspectExportOwner = (input: {
       lawId: input.lawId,
       filePath: exportOwnerPath,
       message: "exportDeepResearchArtifacts must build final-report.md from finalPackage, finalReport, and persisted export state.",
+    }));
+  }
+  if (!hasBusinessHtmlExportSelection(sourceFile)) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/report-export-primary-html",
+      lawId: input.lawId,
+      filePath: exportOwnerPath,
+      message: "exportDeepResearchArtifacts must load persisted business-report.html as the primary business report export.",
     }));
   }
 };
@@ -468,8 +486,8 @@ export const inspectFullFlowReportExport = (input: {
   inspectRenderedPromptSchema(input);
   inspectRenderedPromptPersistence(input);
   inspectExportOwner(input);
-  inspectBusinessDeckNoTextCeiling({
-    deckStageFile: getSourceFile(input.context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts"),
+  inspectBusinessHtmlReportNoTextCeiling({
+    htmlReportStageFile: getSourceFile(input.context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.deckTextCeilingLawId,

@@ -17,6 +17,7 @@ import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 import {
   type DeepResearchJobSnapshot,
+  type DeepResearchPrimaryBusinessReportView,
   type DeepResearchReportViewModel,
   type DeepResearchTimelineEntry,
   type DeepResearchTimelineSnapshot,
@@ -310,7 +311,7 @@ export const buildPrimaryBusinessReportView = (input: {
   job: DeepResearchTimelineSnapshot["job"];
   exports: DeepResearchTimelineSnapshot["exports"];
   exportViews: ReturnType<typeof buildReportExportViews>;
-}) => {
+}): DeepResearchPrimaryBusinessReportView => {
   const htmlExport = selectBusinessHtmlExport(input.exports);
   const htmlExportView = input.exportViews.find((entry) => entry.exportKind === "business-report.html") ?? null;
   const payload = readExportPayload(htmlExport);

@@ -117,18 +117,13 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
       multiStageValueAdded: ["The job preserved two usable analyses instead of collapsing at the first parser error."],
       limitations: ["The fixture proves one parsed_text_fallback analysis and one fully structured analysis."],
     }),
-    "fixture-pptx-artifact",
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head><body><main><h1>Fault Isolation</h1><p>The job completed with one parsed_text_fallback analysis and one structured analysis.</p></main></body></html>",
   ] as const;
 
   async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
     let rawText = this.responses[this.cursor];
     if (!rawText) {
       throw new Error(`No fault-isolation fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
-    }
-    if (rawText === "fixture-pptx-artifact") {
-      const artifactPath = path.join(context.dataDir, "fault-isolation-business-deck.pptx");
-      writeFileSync(artifactPath, Buffer.from("fault isolation pptx bytes"));
-      rawText = `PPTX_ARTIFACT_PATH=${artifactPath}`;
     }
     this.cursor += 1;
     return {

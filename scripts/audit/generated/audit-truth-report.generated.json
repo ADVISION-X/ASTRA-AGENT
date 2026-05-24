@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-24T15:47:52.890Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-24T16:38:20.871Z",
+  "status": "PASS",
   "inspectorFileCount": 14,
   "generatedPlanEntryCount": 14,
   "inspectedFiles": [
@@ -56,18 +56,17 @@
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/code-purity/manifest.json",
-    "scripts/audit/domains/deep-research-analysis/components/scan-ai-ppt-artifact-flow.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-governance.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-business-ppt-prompt-boundary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-ai-html-report-flow.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-prompt-boundary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-report-no-text-ceiling.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-gateway-raw-capture-boundary.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-local-ppt-fallback-demotion.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-no-deck-outline-primary.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-ppt-artifact-download.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-html-report-artifact-persist.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-no-html-content-rejudgment.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-ppt-demoted-to-optional.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
@@ -157,22 +156,5 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": [
-    {
-      "checkId": "audit-truth/source-text-judgment",
-      "lawId": "APEX-AUDIT-TRUTH-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts uses source-text judgment deckStageText.includes(\"maxInputChars: Number.MAX_SAFE_INTEGER\") on tracked ts-morph text.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts"
-    },
-    {
-      "checkId": "audit-truth/source-text-judgment",
-      "lawId": "APEX-AUDIT-TRUTH-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts uses source-text judgment helperFile.getFullText().includes(\"report.evidenceGaps.some\") on tracked ts-morph text.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts"
-    }
-  ]
+  "findings": []
 }

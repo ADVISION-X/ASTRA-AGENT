@@ -141,22 +141,10 @@ const continueParsePromptOutput = <TParsed>(
   return { parsed: parsed as SuccessfulParserResult<TParsed>, recordCount };
 };
 
-export const parsePromptOutput = <TParsed>(
+const handlePrimaryParseStages = <TParsed>(
   input: ParsePromptOutputInput<TParsed>,
-): ParseSuccess<TParsed> | PromptExchangeFailure => {
-  input.store.updateJobState({
-    jobId: input.jobId,
-    status: "running",
-    phase: input.stage,
-  });
-  const startFields = buildFlowStageStartFields({
-    traceContext: input.traceContext,
-    preview: input.preview,
-    hashes: {
-      promptHash: input.promptHash,
-      rawResponseHash: input.gatewayResult.rawOutputHash,
-    },
-  });
+  startFields: ReturnType<typeof buildFlowStageStartFields>,
+): ParseSuccess<TParsed> | PromptExchangeFailure | null => {
   switch (input.stage) {
     case "DECOMPOSE_PARSE": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PARSE" });
@@ -178,8 +166,22 @@ export const parsePromptOutput = <TParsed>(
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PARSE" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
+    default:
+      return null;
+  }
+};
+
+const handleExtendedParseStages = <TParsed>(
+  input: ParsePromptOutputInput<TParsed>,
+  startFields: ReturnType<typeof buildFlowStageStartFields>,
+): ParseSuccess<TParsed> | PromptExchangeFailure | null => {
+  switch (input.stage) {
     case "FINAL_ADJUDICATION_PARSE": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PARSE" });
+      return continueParsePromptOutput({ ...input, parseStage });
+    }
+    case "HTML_REPORT_DETECT": {
+      const parseStage = input.stageLogger.start({ ...startFields, stageName: "HTML_REPORT_DETECT" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
     case "DECK_PARSE": {
@@ -191,6 +193,33 @@ export const parsePromptOutput = <TParsed>(
       return continueParsePromptOutput({ ...input, parseStage });
     }
     default:
-      throw new Error(`Unsupported Deep Research parse stage ${input.stage}.`);
+      return null;
   }
+};
+
+export const parsePromptOutput = <TParsed>(
+  input: ParsePromptOutputInput<TParsed>,
+): ParseSuccess<TParsed> | PromptExchangeFailure => {
+  input.store.updateJobState({
+    jobId: input.jobId,
+    status: "running",
+    phase: input.stage,
+  });
+  const startFields = buildFlowStageStartFields({
+    traceContext: input.traceContext,
+    preview: input.preview,
+    hashes: {
+      promptHash: input.promptHash,
+      rawResponseHash: input.gatewayResult.rawOutputHash,
+    },
+  });
+  const primaryResult = handlePrimaryParseStages(input, startFields);
+  if (primaryResult) {
+    return primaryResult;
+  }
+  const extendedResult = handleExtendedParseStages(input, startFields);
+  if (extendedResult) {
+    return extendedResult;
+  }
+  throw new Error(`Unsupported Deep Research parse stage ${input.stage}.`);
 };

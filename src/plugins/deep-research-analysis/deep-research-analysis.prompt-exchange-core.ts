@@ -108,6 +108,83 @@ const finishStartedPromptSend = (sendStage: ReturnType<StageLogger["start"]>, in
   }
 };
 
+const handlePrimarySendStages = (input: {
+  stageLogger: StageLogger;
+  startFields: ReturnType<typeof buildFlowStageStartFields>;
+  stage: DeepResearchPhase;
+  runtimeLogger: RuntimeLogger;
+  traceContext: StageTraceContext;
+  prompt: DeepResearchPrompt;
+  promptHash: string;
+  subQuestionId?: string;
+}): boolean => {
+  switch (input.stage) {
+    case "DECOMPOSE_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "DECOMPOSE_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "ANALYSIS_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "ANALYSIS_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "POSITIVE_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "POSITIVE_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "FALSIFY_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "FALSIFY_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "FINAL_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "FINAL_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    default:
+      return false;
+  }
+};
+
+const handleExtendedSendStages = (input: {
+  stageLogger: StageLogger;
+  startFields: ReturnType<typeof buildFlowStageStartFields>;
+  stage: DeepResearchPhase;
+  runtimeLogger: RuntimeLogger;
+  traceContext: StageTraceContext;
+  prompt: DeepResearchPrompt;
+  promptHash: string;
+  subQuestionId?: string;
+}): boolean => {
+  switch (input.stage) {
+    case "FINAL_ADJUDICATION_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "FINAL_ADJUDICATION_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "HTML_REPORT_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "HTML_REPORT_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "DECK_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "DECK_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    case "DECK_PPT_SEND": {
+      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "DECK_PPT_SEND" });
+      finishStartedPromptSend(sendStage, input);
+      return true;
+    }
+    default:
+      return false;
+  }
+};
+
 const startPromptSend = (input: {
   store: DeepResearchRecordStore;
   runtimeLogger: RuntimeLogger;
@@ -130,42 +207,20 @@ const startPromptSend = (input: {
     preview: input.preview,
     hashes: { promptHash: input.promptHash },
   });
-  switch (input.stage) {
-    case "DECOMPOSE_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "ANALYSIS_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "POSITIVE_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "FALSIFY_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "FINAL_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "FINAL_ADJUDICATION_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "DECK_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "DECK_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    case "DECK_PPT_SEND": {
-      const sendStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PPT_SEND" });
-      return finishStartedPromptSend(sendStage, input);
-    }
-    default:
-      throw new Error(`Unsupported Deep Research send stage ${input.stage}.`);
+  const sharedInput = {
+    stageLogger: input.stageLogger,
+    startFields,
+    stage: input.stage,
+    runtimeLogger: input.runtimeLogger,
+    traceContext: input.traceContext,
+    prompt: input.prompt,
+    promptHash: input.promptHash,
+    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+  };
+  if (handlePrimarySendStages(sharedInput) || handleExtendedSendStages(sharedInput)) {
+    return;
   }
+  throw new Error(`Unsupported Deep Research send stage ${input.stage}.`);
 };
 
 const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => {

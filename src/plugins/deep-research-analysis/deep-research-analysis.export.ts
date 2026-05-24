@@ -289,7 +289,7 @@ export const exportDeepResearchArtifacts = async (input: {
     prepared,
   });
   if (!savedArtifacts.businessHtmlReport) {
-    throw new Error("Primary business HTML report export is missing.");
+    throw new Error("Deep Research primary business HTML report is missing.");
   }
   const businessHtmlReport = savedArtifacts.businessHtmlReport;
 

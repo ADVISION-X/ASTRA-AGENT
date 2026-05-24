@@ -69,10 +69,10 @@ const lawfulDynamicRegistryConsumers: readonly ZombieDynamicRegistryConsumerExem
     reason: "Default GPT web-chat adapter is intentionally passed as a full provider contract.",
   },
   {
-    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
-    registryExportName: "businessDeckSecretaryPrompt",
-    reason: "Deck stage passes the full prompt contract as a bounded prompt asset.",
+    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+    registryExportName: "businessHtmlReportPublisherPrompt",
+    reason: "HTML report stage passes the full prompt contract as a bounded prompt asset.",
   },
   {
     consumerFilePath: "src/capabilities/video-download/registry.ts",

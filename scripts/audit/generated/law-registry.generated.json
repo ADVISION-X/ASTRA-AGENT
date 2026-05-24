@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T15:45:07.272Z",
+  "generatedAt": "2026-05-24T16:38:05.474Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1101,7 +1101,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "db+artifact+hash+acceptance",
-      "summary": "When a business deck outline exists, export must persist business-deck-outline.json and business-deck.pptx with recorded hashes, evidence-index traceability, and explicit partial-failure handling.",
+      "summary": "When an optional business deck outline or PPTX exists, export must persist it with hashes and evidence-index traceability, but it must not block the primary business-report.html completion.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 19
     },
@@ -1112,51 +1112,51 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "app-shell+acceptance+ast",
-      "summary": "Workbench must expose Business Deck as a delivery section after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts.",
+      "summary": "Workbench must expose the Primary Business Report and the Optional Presentation Deck after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 20
     },
     {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-025-V1",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-029-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+ast+artifact+acceptance",
-      "summary": "The final business deck stage must use advanced AI to generate the primary downloadable PowerPoint artifact; local template PPT generation is not the primary business deck path.",
+      "summary": "The final business report stage must use advanced AI to generate the final business HTML decision report, and business-report.html is the primary presentation artifact.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 21
     },
     {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-026-V1",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-030-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "artifact+db+hash+runtime-log+acceptance",
-      "summary": "The final PPT runtime is delivery-only: send complete decision materials, wait for AI completion, detect/download/persist PPTX, and expose it without slide-level semantic re-judgment.",
+      "summary": "The final HTML runtime is delivery-only: send complete decision materials, wait for AI completion, detect HTML artifact or raw HTML text, persist business-report.html, and expose it without brittle semantic re-judgment.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 22
     },
     {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-027-V1",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-031-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+acceptance+ast",
-      "summary": "PPT content preservation must be governed by prompt instructions to the AI, not brittle slide-content validators.",
+      "summary": "HTML report content preservation must be governed by prompt instructions to the AI, not brittle section-level validators.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 23
     },
     {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-028-V1",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-032-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "db+artifact+ui+acceptance+ast",
-      "summary": "Local template PPT generation may exist only as fallback and must be explicitly demoted from AI-generated business PPT success.",
+      "summary": "PPTX may exist only as an optional derived presentation artifact and must never fail the primary Deep Research HTML report when business-report.html exists.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 24
     },

@@ -1,4 +1,4 @@
-import type { WebChatArtifactCandidate } from "./web-chat-artifact-detector.js";
+import type { WebChatArtifactCandidate } from "./web-chat-artifact-types.js";
 
 const WEB_CHAT_HTML_MIME_TYPE = "text/html";
 

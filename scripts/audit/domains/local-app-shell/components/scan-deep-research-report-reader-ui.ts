@@ -13,10 +13,17 @@ const reportViewPath = "src/app/workbench-deep-research-report-view.ts";
 const stylesPath = "src/app/workbench-deep-research-styles.ts";
 const clientPath = "src/app/workbench-deep-research-client.ts";
 const clientReportSectionsPath = "src/app/workbench-deep-research-client-report-sections.ts";
+const clientDeliverySectionsPath = "src/app/workbench-deep-research-client-delivery-sections.ts";
 const clientSharedPath = "src/app/workbench-deep-research-client-shared.ts";
 const clientBootPath = "src/app/workbench-deep-research-client-boot.ts";
 const routesPath = "src/app/workbench-deep-research-routes.ts";
-const clientRuntimePaths = [clientPath, clientReportSectionsPath, clientSharedPath, clientBootPath] as const;
+const clientRuntimePaths = [
+  clientPath,
+  clientReportSectionsPath,
+  clientDeliverySectionsPath,
+  clientSharedPath,
+  clientBootPath,
+] as const;
 
 const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
 
@@ -172,6 +179,7 @@ const inspectDeliveryMarkers = (findings: InspectorFinding[], lawId: string): vo
   for (const marker of [
     "data-deep-research-reader-shell",
     "data-deep-research-final-card",
+    "data-deep-research-primary-business-report",
     "data-deep-research-business-deck",
     "data-deep-research-stage-overview",
     "data-deep-research-decomposition",
@@ -195,13 +203,17 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
     "Default 1+N+1+1",
     "Independent Analysis",
     "Final Adjudication",
-    "Business PPT",
+    "Primary Business Report",
+    "Open HTML Report",
+    "Download HTML Report",
+    "Optional Presentation Deck",
     "Open PPT",
     "Download PPT",
     "Open Deck Outline",
-    "Deck not generated",
-    "AI-generated PPT",
-    "Local fallback PPT generated",
+    "HTML report not generated",
+    "Presentation deck not generated",
+    "AI-generated HTML decision report",
+    "PPT is optional and does not block the primary business HTML report.",
     "Generated At",
     "Deck Warnings",
     "Evidence / Debug",
@@ -244,13 +256,14 @@ const inspectDebugBoundaries = (findings: InspectorFinding[], lawId: string): vo
 const inspectBusinessDeckDeliveryOrder = (findings: InspectorFinding[], lawId: string): void => {
   const reportViewText = readRepoFile(reportViewPath);
   const finalCardIndex = reportViewText.indexOf("data-deep-research-final-card");
+  const primaryBusinessReportIndex = reportViewText.indexOf("data-deep-research-primary-business-report");
   const businessDeckIndex = reportViewText.indexOf("data-deep-research-business-deck");
-  if (!(finalCardIndex >= 0 && businessDeckIndex > finalCardIndex)) {
+  if (!(finalCardIndex >= 0 && primaryBusinessReportIndex > finalCardIndex && businessDeckIndex > primaryBusinessReportIndex)) {
     pushFinding(findings, {
       checkId: "local-app-shell/deep-research-business-deck-order",
       lawId,
       filePath: reportViewPath,
-      message: "Business Deck section must stay after the Decision Card in the report view.",
+      message: "Primary Business Report must stay after the Decision Card, and Optional Presentation Deck must stay after the Primary Business Report in the report view.",
     });
   }
 };

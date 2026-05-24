@@ -8,6 +8,7 @@ const project = new Project({ tsConfigFilePath: "tsconfig.json" });
 const clientRuntimePaths = [
   "src/app/workbench-deep-research-client.ts",
   "src/app/workbench-deep-research-client-report-sections.ts",
+  "src/app/workbench-deep-research-client-delivery-sections.ts",
   "src/app/workbench-deep-research-client-shared.ts",
   "src/app/workbench-deep-research-client-boot.ts",
 ] as const;
@@ -88,6 +89,8 @@ assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-nav");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-meta");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-reader-primary");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-primary-business-report");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-business-deck");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-side-compact");
 assertText("src/app/workbench-deep-research-styles.ts", "max-height: min(320px, 34vh)");
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr)");
@@ -108,6 +111,10 @@ assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
 assertTextInAnyFile(clientRuntimePaths, "renderSelectedReport");
 assertTextInAnyFile(clientRuntimePaths, "Independent Analysis");
 assertTextInAnyFile(clientRuntimePaths, "Final Adjudication");
+assertTextInAnyFile(clientRuntimePaths, "Primary Business Report");
+assertTextInAnyFile(clientRuntimePaths, "Open HTML Report");
+assertTextInAnyFile(clientRuntimePaths, "Download HTML Report");
+assertTextInAnyFile(clientRuntimePaths, "Optional Presentation Deck");
 assertTextInAnyFile(clientRuntimePaths, "Evidence / Debug");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");

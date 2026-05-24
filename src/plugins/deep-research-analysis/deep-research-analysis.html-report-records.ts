@@ -3,12 +3,6 @@ export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND =
 
 export const DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE = "text/html" as const;
 
-export type DeepResearchBusinessHtmlReportStatus =
-  | "business_html_report_generated"
-  | "business_html_artifact_missing"
-  | "business_html_invalid_file"
-  | "business_html_persist_failed";
-
 export type DeepResearchBusinessHtmlSourceKind =
   | "html_artifact"
   | "raw_html_text";

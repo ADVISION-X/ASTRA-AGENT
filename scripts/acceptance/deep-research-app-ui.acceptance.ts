@@ -7,6 +7,7 @@ const project = new Project({ tsConfigFilePath: "tsconfig.json" });
 const clientRuntimePaths = [
   "src/app/workbench-deep-research-client.ts",
   "src/app/workbench-deep-research-client-report-sections.ts",
+  "src/app/workbench-deep-research-client-delivery-sections.ts",
   "src/app/workbench-deep-research-client-shared.ts",
   "src/app/workbench-deep-research-client-boot.ts",
 ] as const;
@@ -101,9 +102,12 @@ assertText("src/app/workbench-deep-research-routes.ts", "DELETE:/api/deep-resear
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/report");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/timeline");
 assertText("src/app/workbench-deep-research-routes.ts", "decision-package.json");
+assertText("src/app/workbench-deep-research-routes.ts", "business-report.html");
 assertText("src/app/workbench-deep-research-routes.ts", "business-deck-outline.json");
 assertText("src/app/workbench-deep-research-routes.ts", "business-deck.ai-pptx");
 assertText("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", "decision-package.json");
+assertText("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", "business-report.html");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-primary-business-report");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-business-deck");
 assertText("src/lib/local-runtime/workbench-handle.ts", "startDeepResearchAnalysis");
 assertText("src/lib/local-runtime/workbench-handle.ts", "listDeepResearchAnalysisJobs");
@@ -112,17 +116,21 @@ assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysis
 assertText("src/lib/local-runtime/workbench-handle.ts", "deleteDeepResearchAnalysisJob");
 assertText("src/lib/local-runtime/workbench.ts", "deepResearchAnalysisPublicFacade");
 assertTextInAnyFile(clientRuntimePaths, "Final Adjudication");
+assertTextInAnyFile(clientRuntimePaths, "Primary Business Report");
+assertTextInAnyFile(clientRuntimePaths, "Open HTML Report");
+assertTextInAnyFile(clientRuntimePaths, "Download HTML Report");
+assertTextInAnyFile(clientRuntimePaths, "Optional Presentation Deck");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");
-assertTextInAnyFile(clientRuntimePaths, "Business PPT");
 assertTextInAnyFile(clientRuntimePaths, "Default 1+N+1+1");
 assertTextInAnyFile(clientRuntimePaths, "Open PPT");
 assertTextInAnyFile(clientRuntimePaths, "Download PPT");
 assertTextInAnyFile(clientRuntimePaths, "Open Deck Outline");
-assertTextInAnyFile(clientRuntimePaths, "Deck not generated");
-assertTextInAnyFile(clientRuntimePaths, "AI-generated PPT");
-assertTextInAnyFile(clientRuntimePaths, "Local fallback PPT generated");
+assertTextInAnyFile(clientRuntimePaths, "HTML report not generated");
+assertTextInAnyFile(clientRuntimePaths, "Presentation deck not generated");
+assertTextInAnyFile(clientRuntimePaths, "AI-generated HTML decision report");
+assertTextInAnyFile(clientRuntimePaths, "PPT is optional and does not block the primary business HTML report.");
 assertTextInAnyFile(clientRuntimePaths, "refreshHistory");
 assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
 assertTextInAnyFile(clientRuntimePaths, "data-deep-research-delete-job");

@@ -27,7 +27,7 @@ const captureAndParseFiles = {
   promptExchangeStages: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
   analysisSubQuestions: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
   analysisFinalization: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
-  deckStage: "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts",
+  htmlReportStage: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
   decompositionPhase: "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
 } as const;
 
@@ -285,7 +285,7 @@ export const inspectCaptureAndParseResilience = (input: InspectInput): void => {
   const promptExchangeStagesFile = getSourceFile(input.context, captureAndParseFiles.promptExchangeStages);
   const analysisSubQuestionsFile = getSourceFile(input.context, captureAndParseFiles.analysisSubQuestions);
   const analysisFinalizationFile = getSourceFile(input.context, captureAndParseFiles.analysisFinalization);
-  const deckStageFile = getSourceFile(input.context, captureAndParseFiles.deckStage);
+  const htmlReportStageFile = getSourceFile(input.context, captureAndParseFiles.htmlReportStage);
   const decompositionPhaseFile = getSourceFile(input.context, captureAndParseFiles.decompositionPhase);
 
   for (const repoPath of Object.values(captureAndParseFiles)) {
@@ -310,11 +310,11 @@ export const inspectCaptureAndParseResilience = (input: InspectInput): void => {
   inspectTimeoutBudget({
     findings: input.findings,
     lawId: input.lawId,
-    sourceFile: deckStageFile,
+    sourceFile: htmlReportStageFile,
     minimumMs: 1_800_000,
-    checkId: "deep-research/business-ppt-timeout-budget",
-    filePath: captureAndParseFiles.deckStage,
-    message: "Business PPT artifact generation must use a long timeout budget suitable for AI deck generation and download handoff.",
+    checkId: "deep-research/business-html-report-timeout-budget",
+    filePath: captureAndParseFiles.htmlReportStage,
+    message: "Business HTML report generation must use a long timeout budget suitable for AI report generation and delivery persistence.",
   });
   inspectTimeoutBudget({
     findings: input.findings,

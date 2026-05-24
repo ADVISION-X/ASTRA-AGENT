@@ -89,32 +89,84 @@ const resolveStageStatus = (
   return "pending";
 };
 
-const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string => {
-  if (exportKind === "business-report.html") {
-    return "Primary business HTML report";
+const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
+  "business-report.html": "Primary business HTML report",
+  "final-report.md": "Final report",
+  "decision-package.json": "Decision package",
+  "research-bundle.json": "Research bundle",
+  "business-deck-outline.json": "Business deck outline",
+  "business-deck.pptx": "Business deck PPTX",
+  "business-deck.ai-pptx": "AI-generated business PPT",
+  "business-deck.local-pptx": "Local fallback business PPT",
+};
+
+const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string =>
+  exportLabels[exportKind] ?? "Evidence index";
+
+const buildSubQuestionStageViews = (input: {
+  flowMode: ResearchJob["flowMode"];
+  jobStatus: ResearchJob["status"];
+  subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
+}): DeepResearchStageView[] =>
+  input.subQuestionReports.flatMap((report) => {
+    const questionLabel = `Q${report.subQuestion.ordinal + 1}: ${report.subQuestion.title}`;
+    if (input.flowMode === "legacy_1_n_n_1") {
+      return [
+        {
+          id: `stage-${report.subQuestion.id}-positive`,
+          label: `${questionLabel} Positive Analysis`,
+          anchorId: `subquestion-${report.subQuestion.id}`,
+          status: resolveStageStatus(Boolean(report.positive), input.jobStatus),
+        },
+        {
+          id: `stage-${report.subQuestion.id}-falsification`,
+          label: `${questionLabel} Falsification`,
+          anchorId: `subquestion-${report.subQuestion.id}`,
+          status: resolveStageStatus(Boolean(report.falsification), input.jobStatus),
+        },
+      ];
+    }
+    return [{
+      id: `stage-${report.subQuestion.id}-analysis`,
+      label: `${questionLabel} Independent Analysis`,
+      anchorId: `subquestion-${report.subQuestion.id}`,
+      status: resolveStageStatus(Boolean(report.analysis), input.jobStatus),
+    }];
+  });
+
+const buildFinalStageView = (input: {
+  flowMode: ResearchJob["flowMode"];
+  jobStatus: ResearchJob["status"];
+  finalInteraction: DeepResearchTimelineEntry | null;
+  finalReport: DeepResearchFinalReport | null;
+}): DeepResearchStageView => ({
+  id: input.flowMode === "legacy_1_n_n_1"
+    ? "stage-final-synthesis"
+    : "stage-final-adjudication",
+  label: input.flowMode === "legacy_1_n_n_1"
+    ? "Final Synthesis"
+    : "Final Adjudication",
+  anchorId: input.flowMode === "legacy_1_n_n_1"
+    ? "final-synthesis"
+    : "final-adjudication",
+  status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.jobStatus),
+});
+
+const buildBusinessHtmlStageView = (input: {
+  flowMode: ResearchJob["flowMode"];
+  jobStatus: ResearchJob["status"];
+  exports: readonly ResearchExport[];
+}): DeepResearchStageView | null => {
+  if (!(input.flowMode === "default_1_n_1" || input.flowMode === "default_1_n_1_1")) {
+    return null;
   }
-  if (exportKind === "final-report.md") {
-    return "Final report";
-  }
-  if (exportKind === "decision-package.json") {
-    return "Decision package";
-  }
-  if (exportKind === "research-bundle.json") {
-    return "Research bundle";
-  }
-  if (exportKind === "business-deck-outline.json") {
-    return "Business deck outline";
-  }
-  if (exportKind === "business-deck.pptx") {
-    return "Business deck PPTX";
-  }
-  if (exportKind === "business-deck.ai-pptx") {
-    return "AI-generated business PPT";
-  }
-  if (exportKind === "business-deck.local-pptx") {
-    return "Local fallback business PPT";
-  }
-  return "Evidence index";
+  const hasBusinessHtmlReport = input.exports.some((entry) => entry.exportKind === "business-report.html");
+  return {
+    id: "stage-business-html-report",
+    label: "Business HTML Report",
+    anchorId: "business-report",
+    status: resolveStageStatus(hasBusinessHtmlReport, input.jobStatus),
+  };
 };
 
 export const buildStageViews = (input: {
@@ -132,53 +184,25 @@ export const buildStageViews = (input: {
       anchorId: "decomposition",
       status: resolveStageStatus(Boolean(input.decompositionInteraction), input.job.status),
     },
+    ...buildSubQuestionStageViews({
+      flowMode: input.job.flowMode,
+      jobStatus: input.job.status,
+      subQuestionReports: input.subQuestionReports,
+    }),
+    buildFinalStageView({
+      flowMode: input.job.flowMode,
+      jobStatus: input.job.status,
+      finalInteraction: input.finalInteraction,
+      finalReport: input.finalReport,
+    }),
   ];
-  for (const report of input.subQuestionReports) {
-    const questionLabel = `Q${report.subQuestion.ordinal + 1}: ${report.subQuestion.title}`;
-    if (input.job.flowMode === "legacy_1_n_n_1") {
-      stages.push(
-        {
-          id: `stage-${report.subQuestion.id}-positive`,
-          label: `${questionLabel} Positive Analysis`,
-          anchorId: `subquestion-${report.subQuestion.id}`,
-          status: resolveStageStatus(Boolean(report.positive), input.job.status),
-        },
-        {
-          id: `stage-${report.subQuestion.id}-falsification`,
-          label: `${questionLabel} Falsification`,
-          anchorId: `subquestion-${report.subQuestion.id}`,
-          status: resolveStageStatus(Boolean(report.falsification), input.job.status),
-        },
-      );
-    } else {
-      stages.push({
-        id: `stage-${report.subQuestion.id}-analysis`,
-        label: `${questionLabel} Independent Analysis`,
-        anchorId: `subquestion-${report.subQuestion.id}`,
-        status: resolveStageStatus(Boolean(report.analysis), input.job.status),
-      });
-    }
-  }
-  stages.push({
-    id: input.job.flowMode === "legacy_1_n_n_1"
-      ? "stage-final-synthesis"
-      : "stage-final-adjudication",
-    label: input.job.flowMode === "legacy_1_n_n_1"
-      ? "Final Synthesis"
-      : "Final Adjudication",
-    anchorId: input.job.flowMode === "legacy_1_n_n_1"
-      ? "final-synthesis"
-      : "final-adjudication",
-    status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.job.status),
+  const businessHtmlStage = buildBusinessHtmlStageView({
+    flowMode: input.job.flowMode,
+    jobStatus: input.job.status,
+    exports: input.exports,
   });
-  if (input.job.flowMode === "default_1_n_1" || input.job.flowMode === "default_1_n_1_1") {
-    const hasBusinessHtmlReport = input.exports.some((entry) => entry.exportKind === "business-report.html");
-    stages.push({
-      id: "stage-business-html-report",
-      label: "Business HTML Report",
-      anchorId: "business-report",
-      status: resolveStageStatus(hasBusinessHtmlReport, input.job.status),
-    });
+  if (businessHtmlStage) {
+    stages.push(businessHtmlStage);
   }
   return stages;
 };

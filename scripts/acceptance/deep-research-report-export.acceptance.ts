@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -313,8 +313,48 @@ const persistFinalAdjudicationFixture = (input: {
   input.store.saveFinalReport({ jobId: input.jobId, interactionId: interaction.id, report: input.finalReport });
 };
 
-const persistCompletedResearchFixture = (store: DeepResearchStore) => {
-  const job = store.createJob({
+const persistBusinessHtmlReportFixture = (input: {
+  store: DeepResearchStore;
+  dataDir: string;
+  jobId: string;
+}): void => {
+  const filePath = path.join(
+    input.dataDir,
+    "deep-research-analysis",
+    "exports",
+    input.jobId,
+    "business-report.html",
+  );
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, [
+    "<!DOCTYPE html>",
+    "<html>",
+    "<head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head>",
+    "<body><main><h1>Decision</h1><p>Enter only through a staged partner-led beachhead.</p></main></body>",
+    "</html>",
+  ].join(""), "utf8");
+  input.store.saveExport({
+    jobId: input.jobId,
+    exportKind: "business-report.html",
+    filePath,
+    fileHash: "sha256:business-html-report",
+    payload: {
+      exportKind: "business-report.html",
+      filePath,
+      fileHash: "sha256:business-html-report",
+      sourceKind: "raw_html_text",
+      status: "business_html_report_generated",
+      generatedAt: "2026-05-24T00:00:00.000Z",
+      fileSizeBytes: readFileSync(filePath, "utf8").length,
+    },
+  });
+};
+
+const persistCompletedResearchFixture = (input: {
+  store: DeepResearchStore;
+  dataDir: string;
+}) => {
+  const job = input.store.createJob({
     userQuestion: "Should the company enter the robotics warehouse market?",
     analysisGoal: "Produce one full-flow human-readable report for debugging and delivery.",
     language: "en",
@@ -322,13 +362,14 @@ const persistCompletedResearchFixture = (store: DeepResearchStore) => {
     outputFormat: "markdown",
   });
   const modelSubQuestions = buildSubQuestionFixture();
-  const persistedSubQuestions = persistDecompositionFixture({ store, job, modelSubQuestions });
+  const persistedSubQuestions = persistDecompositionFixture({ store: input.store, job, modelSubQuestions });
   persistedSubQuestions.forEach((subQuestion, ordinal) => {
-    saveAnalysis({ store, jobId: job.id, subQuestion, ordinal });
+    saveAnalysis({ store: input.store, jobId: job.id, subQuestion, ordinal });
   });
   const finalReport = buildFinalReportFixture();
-  persistFinalAdjudicationFixture({ store, jobId: job.id, finalReport });
-  store.updateJobState({ jobId: job.id, status: "completed", phase: "EXPORT_REPORT" });
+  persistFinalAdjudicationFixture({ store: input.store, jobId: job.id, finalReport });
+  persistBusinessHtmlReportFixture({ store: input.store, dataDir: input.dataDir, jobId: job.id });
+  input.store.updateJobState({ jobId: job.id, status: "completed", phase: "EXPORT_REPORT" });
   return { job, finalReport };
 };
 
@@ -359,14 +400,14 @@ const assertFullFlowReport = (input: {
   assert(!reportText.includes("### Falsification"), "Default-flow report must not regress to falsification blocks.");
   assert(!reportText.includes("## Conflict Matrix"), "Default-flow report must not emit a conflict matrix section.");
   assert(!reportText.includes("## Final Synthesis"), "Default-flow report must not regress to final synthesis.");
-  assert(input.store.listExports(input.job.id).length === 3, "Export records must contain the three non-deck artifact kinds for this fixture.");
+  assert(input.store.listExports(input.job.id).length === 4, "Export records must contain final-report.md, decision-package.json, business-report.html, and evidence-index.json for this fixture.");
 };
 
 async function main(): Promise<void> {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-report-export-"));
   const store = createDeepResearchRecordStore(dataDir);
   try {
-    const { job, finalReport } = persistCompletedResearchFixture(store);
+    const { job, finalReport } = persistCompletedResearchFixture({ store, dataDir });
     const finalPackage = buildDeepResearchFinalPackage({ store, jobId: job.id });
     const artifacts = await exportDeepResearchArtifacts({
       dataDir,
@@ -385,6 +426,7 @@ async function main(): Promise<void> {
     };
     assert(decisionPackage.flowMode === "default_1_n_1_1", "Decision package must expose the default 1+N+1+1 flow mode.");
     assert(decisionPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
+    assert(artifacts.businessHtmlReport.exportKind === "business-report.html", "Report-export fixture must preserve the primary business HTML report export.");
     assert(artifacts.businessDeckOutline === null, "Report-export fixture should not synthesize deck exports without a persisted deck outline.");
     assert(artifacts.businessDeckPptx === null, "Report-export fixture should not synthesize a PPTX without a persisted deck outline.");
 

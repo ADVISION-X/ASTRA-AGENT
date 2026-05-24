@@ -87,22 +87,10 @@ const continuePersistPromptOutput = <TParsed>(
   };
 };
 
-export const persistPromptOutput = <TParsed>(
+const handlePrimaryPersistStages = <TParsed>(
   input: PersistPromptOutputInput<TParsed>,
+  startFields: ReturnType<typeof buildFlowStageStartFields>,
 ) => {
-  input.store.updateJobState({
-    jobId: input.jobId,
-    status: "running",
-    phase: input.stage,
-  });
-  const startFields = buildFlowStageStartFields({
-    traceContext: input.traceContext,
-    preview: input.preview,
-    hashes: {
-      promptHash: input.promptHash,
-      rawResponseHash: input.parsed.rawResponseHash,
-    },
-  });
   switch (input.stage) {
     case "DECOMPOSE_PERSIST": {
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PERSIST" });
@@ -124,8 +112,22 @@ export const persistPromptOutput = <TParsed>(
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
+    default:
+      return null;
+  }
+};
+
+const handleExtendedPersistStages = <TParsed>(
+  input: PersistPromptOutputInput<TParsed>,
+  startFields: ReturnType<typeof buildFlowStageStartFields>,
+) => {
+  switch (input.stage) {
     case "FINAL_ADJUDICATION_PERSIST": {
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PERSIST" });
+      return continuePersistPromptOutput({ ...input, persistStage });
+    }
+    case "HTML_REPORT_PERSIST": {
+      const persistStage = input.stageLogger.start({ ...startFields, stageName: "HTML_REPORT_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
     case "DECK_PERSIST": {
@@ -137,6 +139,33 @@ export const persistPromptOutput = <TParsed>(
       return continuePersistPromptOutput({ ...input, persistStage });
     }
     default:
-      throw new Error(`Unsupported Deep Research persist stage ${input.stage}.`);
+      return null;
   }
+};
+
+export const persistPromptOutput = <TParsed>(
+  input: PersistPromptOutputInput<TParsed>,
+) => {
+  input.store.updateJobState({
+    jobId: input.jobId,
+    status: "running",
+    phase: input.stage,
+  });
+  const startFields = buildFlowStageStartFields({
+    traceContext: input.traceContext,
+    preview: input.preview,
+    hashes: {
+      promptHash: input.promptHash,
+      rawResponseHash: input.parsed.rawResponseHash,
+    },
+  });
+  const primaryResult = handlePrimaryPersistStages(input, startFields);
+  if (primaryResult) {
+    return primaryResult;
+  }
+  const extendedResult = handleExtendedPersistStages(input, startFields);
+  if (extendedResult) {
+    return extendedResult;
+  }
+  throw new Error(`Unsupported Deep Research persist stage ${input.stage}.`);
 };

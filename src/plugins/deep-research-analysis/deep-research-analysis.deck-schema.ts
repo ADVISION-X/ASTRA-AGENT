@@ -42,7 +42,7 @@ export const DeepResearchBusinessDeckSlideSchema = z.object({
   mustNotDrop: z.array(z.string().trim().min(1)).min(1),
 }).strict();
 
-export const DeepResearchBusinessDeckOutlineSchema = z.object({
+const DeepResearchBusinessDeckOutlineSchema = z.object({
   deckTitle: z.string().trim().min(1),
   deckSubtitle: z.string().trim().optional(),
   audience: DeepResearchBusinessDeckAudienceSchema,

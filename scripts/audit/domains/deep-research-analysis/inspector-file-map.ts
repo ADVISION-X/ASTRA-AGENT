@@ -15,21 +15,22 @@ export type DeepResearchAuditFiles = {
   qualityFile: SourceFile | undefined;
   schemaFile: SourceFile | undefined;
   recordsFile: SourceFile | undefined;
-  deckPromptFile: SourceFile | undefined;
-  pptArtifactPromptFile: SourceFile | undefined;
-  deckSchemaFile: SourceFile | undefined;
-  deckParserFile: SourceFile | undefined;
-  deckStageFile: SourceFile | undefined;
+  htmlReportPromptFile: SourceFile | undefined;
+  htmlReportStageFile: SourceFile | undefined;
+  htmlReportRecordsFile: SourceFile | undefined;
   exportFile: SourceFile | undefined;
+  analysisFinalizationFile: SourceFile | undefined;
   decompositionAcceptanceFile: SourceFile | undefined;
   smokeFile: SourceFile | undefined;
-  businessDeckAcceptanceFile: SourceFile | undefined;
-  deckSecretaryBoundaryAcceptanceFile: SourceFile | undefined;
-  deckArtifactsAcceptanceFile: SourceFile | undefined;
-  aiPptDetectorFile: SourceFile | undefined;
-  aiPptDownloadFile: SourceFile | undefined;
+  htmlReportAcceptanceFile: SourceFile | undefined;
+  htmlPromptBoundaryAcceptanceFile: SourceFile | undefined;
+  htmlArtifactPersistAcceptanceFile: SourceFile | undefined;
+  pptOptionalDemotionAcceptanceFile: SourceFile | undefined;
+  aiHtmlDetectorFile: SourceFile | undefined;
+  aiHtmlDownloadFile: SourceFile | undefined;
   recordContractsFile: SourceFile | undefined;
   clientReportSectionsFile: SourceFile | undefined;
+  clientDeliverySectionsFile: SourceFile | undefined;
   ciFullFile: SourceFile | undefined;
 };
 
@@ -48,20 +49,21 @@ export const buildDeepResearchAuditFiles = (context: InspectorContext): DeepRese
   qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),
   schemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts"),
   recordsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.records.ts"),
-  deckPromptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts"),
-  pptArtifactPromptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts"),
-  deckSchemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts"),
-  deckParserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts"),
-  deckStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts"),
+  htmlReportPromptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts"),
+  htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+  htmlReportRecordsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts"),
   exportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.export.ts"),
+  analysisFinalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
   decompositionAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts"),
   smokeFile: getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts"),
-  businessDeckAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-business-deck.acceptance.ts"),
-  deckSecretaryBoundaryAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-deck-secretary-boundary.acceptance.ts"),
-  deckArtifactsAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-deck-artifacts.acceptance.ts"),
-  aiPptDetectorFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-artifact-detector.ts"),
-  aiPptDownloadFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-artifact-download.ts"),
+  htmlReportAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-ai-html-report.acceptance.ts"),
+  htmlPromptBoundaryAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-prompt-boundary.acceptance.ts"),
+  htmlArtifactPersistAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-artifact-persist.acceptance.ts"),
+  pptOptionalDemotionAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-ppt-optional-demotion.acceptance.ts"),
+  aiHtmlDetectorFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-detector.ts"),
+  aiHtmlDownloadFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-download.ts"),
   recordContractsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts"),
   clientReportSectionsFile: getSourceFile(context, "src/app/workbench-deep-research-client-report-sections.ts"),
+  clientDeliverySectionsFile: getSourceFile(context, "src/app/workbench-deep-research-client-delivery-sections.ts"),
   ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
 });

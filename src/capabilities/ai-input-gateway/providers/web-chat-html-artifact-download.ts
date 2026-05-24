@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import type { WebChatArtifactCandidate } from "./web-chat-artifact-detector.js";
+import type { WebChatArtifactCandidate } from "./web-chat-artifact-types.js";
 import { calculateFileSha256 } from "./web-chat-download-support.js";
 
 const WEB_CHAT_HTML_MIME_TYPE = "text/html";

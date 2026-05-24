@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -134,13 +134,13 @@ const FIXTURE_RESPONSES = [
     multiStageValueAdded: ["Independent analysis separated local findings before the final adjudication."],
     limitations: ["This smoke uses deterministic fixture responses rather than a live provider."],
   }),
-  "fixture-pptx-artifact",
+  "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head><body><main><h1>Decision</h1><p>The company should consider entering, but only through a staged partner-led beachhead.</p></main></body></html>",
 ] as const;
 
 const REQUIRED_SMOKE_EXPORTS = [
   "final-report.md",
   "decision-package.json",
-  "business-deck.ai-pptx",
+  "business-report.html",
   "evidence-index.json",
 ] as const;
 
@@ -159,11 +159,6 @@ class SequentialFixtureAdapter implements AiProviderAdapter {
     let rawText = FIXTURE_RESPONSES[this.cursor];
     if (!rawText) {
       throw new Error(`No fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
-    }
-    if (rawText === "fixture-pptx-artifact") {
-      const artifactPath = path.join(context.dataDir, "fixture-business-deck.pptx");
-      writeFileSync(artifactPath, Buffer.from("fixture pptx bytes"));
-      rawText = `PPTX_ARTIFACT_PATH=${artifactPath}`;
     }
     this.cursor += 1;
     return {

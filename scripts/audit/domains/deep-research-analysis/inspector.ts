@@ -13,13 +13,12 @@ import { getRepoSourcePath } from "../../shared/source-files.js";
 import { buildDeepResearchAuditFiles, type DeepResearchAuditFiles } from "./inspector-file-map.js";
 import { inspectCaptureAndSmokeRules } from "./inspector-capture-and-smoke.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
-import { inspectBusinessDeckGovernance } from "./components/scan-business-deck-governance.js";
-import { inspectAiPptArtifactFlow } from "./components/scan-ai-ppt-artifact-flow.js";
-import { inspectBusinessPptPromptBoundary } from "./components/scan-business-ppt-prompt-boundary.js";
+import { inspectAiHtmlReportFlow } from "./components/scan-ai-html-report-flow.js";
+import { inspectBusinessHtmlPromptBoundary } from "./components/scan-business-html-prompt-boundary.js";
 import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
-import { inspectLocalPptFallbackDemotion } from "./components/scan-local-ppt-fallback-demotion.js";
-import { inspectNoDeckOutlinePrimary } from "./components/scan-no-deck-outline-primary.js";
-import { inspectPptArtifactDownload } from "./components/scan-ppt-artifact-download.js";
+import { inspectHtmlReportArtifactPersist } from "./components/scan-html-report-artifact-persist.js";
+import { inspectPptDemotedToOptional } from "./components/scan-ppt-demoted-to-optional.js";
+import { inspectNoHtmlContentRejudgment } from "./components/scan-no-html-content-rejudgment.js";
 import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
 import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
 
@@ -341,44 +340,50 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
   inspectCoreStaticRules(input);
   inspectCaptureAndSmokeRules(input);
   inspectDeliveryRules(input);
-  inspectBusinessDeckGovernance({
+  inspectAiHtmlReportFlow({
     context: input.context,
-    files: input.files,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-  });
-  inspectAiPptArtifactFlow({
-    context: input.context,
-    deckStageFile: input.files.deckStageFile,
+    analysisRunnerFile: input.files.analysisRunnerFile,
+    htmlReportStageFile: input.files.htmlReportStageFile,
     schemaFile: input.files.schemaFile,
+    acceptanceFile: input.files.htmlReportAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });
-  inspectBusinessPptPromptBoundary({
+  inspectBusinessHtmlPromptBoundary({
     context: input.context,
-    promptFile: input.files.pptArtifactPromptFile,
+    promptFile: input.files.htmlReportPromptFile,
+    ciFullFile: input.files.ciFullFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });
-  inspectPptArtifactDownload({
+  inspectHtmlReportArtifactPersist({
     context: input.context,
-    detectorFile: input.files.aiPptDetectorFile,
-    downloadFile: input.files.aiPptDownloadFile,
+    detectorFile: input.files.aiHtmlDetectorFile,
+    downloadFile: input.files.aiHtmlDownloadFile,
     exportFile: input.files.exportFile,
+    recordsFile: input.files.htmlReportRecordsFile,
     recordContractsFile: input.files.recordContractsFile,
+    ciFullFile: input.files.ciFullFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });
-  inspectLocalPptFallbackDemotion({
+  inspectPptDemotedToOptional({
     context: input.context,
     exportFile: input.files.exportFile,
-    uiFile: input.files.clientReportSectionsFile,
+    finalizationFile: input.files.analysisFinalizationFile,
+    deliveryFile: input.files.clientDeliverySectionsFile,
+    reportSectionsFile: input.files.clientReportSectionsFile,
+    acceptanceFile: input.files.pptOptionalDemotionAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });
-  inspectNoDeckOutlinePrimary({
+  inspectNoHtmlContentRejudgment({
     context: input.context,
-    deckStageFile: input.files.deckStageFile,
+    promptFile: input.files.htmlReportPromptFile,
+    htmlReportStageFile: input.files.htmlReportStageFile,
+    htmlReportExportFile: input.files.exportFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });

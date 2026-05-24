@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -24,8 +24,6 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
   readonly providerKind = "gemini-api" as const;
 
   private cursor = 0;
-
-  constructor(private readonly pptxFixturePath: string) {}
 
   private readonly responses = () => [
     JSON.stringify({
@@ -63,9 +61,7 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
     }),
     '{"subQuestionId":"Q1","answer":"The provider replied with useful text but malformed JSON."',
     "Raw capture remained separate from business parsing. The malformed independent analysis reply was preserved as raw output, normalized as a narrative fallback answer, and it still supports the final adjudication.",
-    JSON.stringify({
-      pptxArtifactPath: this.pptxFixturePath,
-    }),
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head><body><main><h1>Boundary Proof</h1><p>Malformed analysis JSON still normalized through text fallback and preserved the successful Deep Research flow.</p></main></body></html>",
   ] as const;
 
   async feed(input: AiFeedInput): Promise<AiProviderRawResponse> {
@@ -91,7 +87,6 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
 
 const createMalformedAnalysisFixtureRuntime = (input: {
   dataDir: string;
-  pptxFixturePath: string;
   runtimeLogBundlePath: string;
 }) => {
   const runtimeLogger = createRuntimeLogger({
@@ -104,7 +99,7 @@ const createMalformedAnalysisFixtureRuntime = (input: {
   const aiInputGateway = createAiInputGatewayAbilityGroup({
     dataDir: input.dataDir,
     adapters: {
-      "gemini-api": new MalformedAnalysisFixtureAdapter(input.pptxFixturePath),
+      "gemini-api": new MalformedAnalysisFixtureAdapter(),
     },
   });
   return { runtimeLogger, aiInputGateway };
@@ -157,11 +152,8 @@ const assertRuntimeCaptureBoundary = (runtimeLogBundlePath: string): void => {
 export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promise<void> => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-raw-only-"));
   const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-raw-only.jsonl");
-  const pptxFixturePath = path.join(dataDir, "fixture-business-deck.pptx");
-  writeFileSync(pptxFixturePath, "fixture-pptx", "utf8");
   const { runtimeLogger, aiInputGateway } = createMalformedAnalysisFixtureRuntime({
     dataDir,
-    pptxFixturePath,
     runtimeLogBundlePath,
   });
 

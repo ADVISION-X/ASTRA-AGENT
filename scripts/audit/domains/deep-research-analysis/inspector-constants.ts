@@ -7,11 +7,19 @@ export const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
   "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
   "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
   "scripts/acceptance/deep-research-analysis-smoke.ts",
+  "scripts/acceptance/deep-research-ai-html-report.acceptance.ts",
+  "scripts/acceptance/deep-research-html-prompt-boundary.acceptance.ts",
+  "scripts/acceptance/deep-research-html-artifact-persist.acceptance.ts",
+  "scripts/acceptance/deep-research-ppt-optional-demotion.acceptance.ts",
   "scripts/acceptance/deep-research-report-export.acceptance.ts",
 ] as const;
 
@@ -29,7 +37,7 @@ export const forbiddenRuntimeFields = [
 export const promptTextAllowedFiles = new Set([
   "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
 ]);
 

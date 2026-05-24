@@ -119,19 +119,10 @@ const continueCapturePromptOutput = async (
   return { gatewayResult, domRef };
 };
 
-export const capturePromptOutput = async (
+const handlePrimaryCaptureStages = async (
   input: CapturePromptOutputInput,
-): Promise<CaptureSuccess | ReturnType<typeof buildGatewayFailure>> => {
-  input.store.updateJobState({
-    jobId: input.jobId,
-    status: "running",
-    phase: input.stage,
-  });
-  const startFields = buildFlowStageStartFields({
-    traceContext: input.traceContext,
-    preview: input.preview,
-    hashes: { promptHash: input.promptHash },
-  });
+  startFields: ReturnType<typeof buildFlowStageStartFields>,
+): Promise<CaptureSuccess | ReturnType<typeof buildGatewayFailure> | null> => {
   switch (input.stage) {
     case "DECOMPOSE_CAPTURE": {
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_CAPTURE" });
@@ -153,8 +144,22 @@ export const capturePromptOutput = async (
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
+    default:
+      return null;
+  }
+};
+
+const handleExtendedCaptureStages = async (
+  input: CapturePromptOutputInput,
+  startFields: ReturnType<typeof buildFlowStageStartFields>,
+): Promise<CaptureSuccess | ReturnType<typeof buildGatewayFailure> | null> => {
+  switch (input.stage) {
     case "FINAL_ADJUDICATION_CAPTURE": {
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_CAPTURE" });
+      return continueCapturePromptOutput({ ...input, captureStage });
+    }
+    case "HTML_REPORT_CAPTURE": {
+      const captureStage = input.stageLogger.start({ ...startFields, stageName: "HTML_REPORT_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
     case "DECK_CAPTURE": {
@@ -166,6 +171,30 @@ export const capturePromptOutput = async (
       return continueCapturePromptOutput({ ...input, captureStage });
     }
     default:
-      throw new Error(`Unsupported Deep Research capture stage ${input.stage}.`);
+      return null;
   }
+};
+
+export const capturePromptOutput = async (
+  input: CapturePromptOutputInput,
+): Promise<CaptureSuccess | ReturnType<typeof buildGatewayFailure>> => {
+  input.store.updateJobState({
+    jobId: input.jobId,
+    status: "running",
+    phase: input.stage,
+  });
+  const startFields = buildFlowStageStartFields({
+    traceContext: input.traceContext,
+    preview: input.preview,
+    hashes: { promptHash: input.promptHash },
+  });
+  const primaryResult = await handlePrimaryCaptureStages(input, startFields);
+  if (primaryResult) {
+    return primaryResult;
+  }
+  const extendedResult = await handleExtendedCaptureStages(input, startFields);
+  if (extendedResult) {
+    return extendedResult;
+  }
+  throw new Error(`Unsupported Deep Research capture stage ${input.stage}.`);
 };
