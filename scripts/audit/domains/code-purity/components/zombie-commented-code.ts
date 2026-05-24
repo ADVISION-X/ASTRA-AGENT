@@ -44,41 +44,57 @@ const stripBlockCommentMarkers = (text: string): string => {
 const normalizeCommentText = (text: string): string =>
   text.startsWith("/*") ? stripBlockCommentMarkers(text) : stripLineCommentMarkers(text);
 
-const isCommentedExecutableStatement = (statement: ts.Statement, diagnosticsCount: number): boolean => {
-  switch (statement.kind) {
-    case ts.SyntaxKind.ImportDeclaration:
-    case ts.SyntaxKind.ExportDeclaration:
-    case ts.SyntaxKind.ExportAssignment:
-    case ts.SyntaxKind.FunctionDeclaration:
-    case ts.SyntaxKind.ClassDeclaration:
-    case ts.SyntaxKind.InterfaceDeclaration:
-    case ts.SyntaxKind.TypeAliasDeclaration:
-    case ts.SyntaxKind.EnumDeclaration:
-    case ts.SyntaxKind.IfStatement:
-    case ts.SyntaxKind.ForStatement:
-    case ts.SyntaxKind.ForInStatement:
-    case ts.SyntaxKind.ForOfStatement:
-    case ts.SyntaxKind.WhileStatement:
-    case ts.SyntaxKind.DoStatement:
-    case ts.SyntaxKind.SwitchStatement:
-    case ts.SyntaxKind.TryStatement:
-    case ts.SyntaxKind.VariableStatement:
-    case ts.SyntaxKind.ReturnStatement:
-    case ts.SyntaxKind.ThrowStatement:
-      return true;
-    case ts.SyntaxKind.ExpressionStatement: {
-      if (diagnosticsCount > 0) {
-        return false;
-      }
-      const expression = (statement as ts.ExpressionStatement).expression;
-      return expression.kind === ts.SyntaxKind.CallExpression
-        || expression.kind === ts.SyntaxKind.AwaitExpression
-        || expression.kind === ts.SyntaxKind.NewExpression
-        || expression.kind === ts.SyntaxKind.BinaryExpression;
-    }
-    default:
-      return false;
+type ParsedCommentSourceFile = ts.SourceFile & {
+  parseDiagnostics?: readonly ts.Diagnostic[];
+};
+
+const commentedDeclarationKinds = new Set([
+  ts.SyntaxKind.ImportDeclaration,
+  ts.SyntaxKind.ExportDeclaration,
+  ts.SyntaxKind.ExportAssignment,
+  ts.SyntaxKind.FunctionDeclaration,
+  ts.SyntaxKind.ClassDeclaration,
+  ts.SyntaxKind.InterfaceDeclaration,
+  ts.SyntaxKind.TypeAliasDeclaration,
+  ts.SyntaxKind.EnumDeclaration,
+  ts.SyntaxKind.VariableStatement,
+  ts.SyntaxKind.ReturnStatement,
+  ts.SyntaxKind.ThrowStatement,
+]);
+
+const commentedControlStatementKinds = new Set([
+  ts.SyntaxKind.IfStatement,
+  ts.SyntaxKind.ForStatement,
+  ts.SyntaxKind.ForInStatement,
+  ts.SyntaxKind.ForOfStatement,
+  ts.SyntaxKind.WhileStatement,
+  ts.SyntaxKind.DoStatement,
+  ts.SyntaxKind.SwitchStatement,
+  ts.SyntaxKind.TryStatement,
+]);
+
+const isCommentedDeclarationOrControlStatement = (statement: ts.Statement): boolean => {
+  return commentedDeclarationKinds.has(statement.kind)
+    || commentedControlStatementKinds.has(statement.kind);
+};
+
+const isExecutableCommentExpression = (
+  statement: ts.Statement,
+  diagnosticsCount: number,
+): boolean => {
+  if (!ts.isExpressionStatement(statement) || diagnosticsCount > 0) {
+    return false;
   }
+  const { expression } = statement;
+  return expression.kind === ts.SyntaxKind.CallExpression
+    || expression.kind === ts.SyntaxKind.AwaitExpression
+    || expression.kind === ts.SyntaxKind.NewExpression
+    || expression.kind === ts.SyntaxKind.BinaryExpression;
+};
+
+const isCommentedExecutableStatement = (statement: ts.Statement, diagnosticsCount: number): boolean => {
+  return isCommentedDeclarationOrControlStatement(statement)
+    || isExecutableCommentExpression(statement, diagnosticsCount);
 };
 
 const collectCommentRanges = (sourceFile: SourceFile): Array<{ line: number; text: string }> => {
@@ -114,7 +130,7 @@ export const collectZombieCommentedCodeHits = (sourceFile: SourceFile): ZombieCo
       true,
       ts.ScriptKind.TS,
     );
-    const diagnostics = (parsed as unknown as { parseDiagnostics?: readonly ts.Diagnostic[] }).parseDiagnostics ?? [];
+    const diagnostics = (parsed as ParsedCommentSourceFile).parseDiagnostics ?? [];
     if (parsed.statements.length === 0) {
       continue;
     }

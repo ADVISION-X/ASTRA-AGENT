@@ -798,7 +798,91 @@ Forbidden:
 - treating re-export forwarding alone as final consumption proof
 - using source-text regex, string identifier counts, or naming conventions as fake liveness proof
 
-## 25. Enforcement Roadmap
+## 25. Law APEX-CODE-PURITY-019-V1 — Side-Effect Import Manifest Proof
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-019-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "ast+module-graph+manifest",
+  "summary": "Side-effect imports must not act as hidden liveness or boundary proof without explicit lawful manifest ownership."
+}
+```
+
+Side-effect import is runtime-rooted and therefore cannot be treated as harmless background wiring.
+
+Required:
+
+- side-effect import must be declared explicitly by consumer file and target file in the lawful manifest when it is needed
+- side-effect import must still obey the same owner-boundary law that applies to normal imports
+- zombie reachability must not accept a side-effect import edge unless lawful manifest proof exists
+
+Forbidden:
+
+- using side-effect import as silent keepalive or zombie laundering
+- treating side-effect import as boundary-free because it exposes no bindings
+- keeping active side-effect imports that have no explicit owner-local reason
+
+## 26. Law APEX-CODE-PURITY-020-V1 — Dynamic Import Literal Truth
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-020-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "ast+module-graph+manifest",
+  "summary": "Dynamic imports must remain literal, resolvable, manifest-declared, and owner-boundary lawful."
+}
+```
+
+Dynamic import is allowed only as an explicit owner-known runtime edge.
+
+Required:
+
+- dynamic import specifier must be a literal string or no-substitution template literal
+- governed dynamic import targets must resolve through AST/module resolution, not source-text guessing
+- lawful dynamic imports must be declared explicitly in the owner-local manifest
+- dynamic import owner-boundary checks must be identical to static import owner-boundary checks
+
+Forbidden:
+
+- non-literal dynamic import in governed source
+- runtime-computed dynamic import used to hide target ownership
+- treating unresolved dynamic import as ignorable because the target cannot be proven
+
+## 27. Law APEX-CODE-PURITY-021-V1 — Owner Boundary Edge Completeness
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-021-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "ast+module-graph",
+  "summary": "Owner-boundary enforcement must cover import, re-export, dynamic import, and side-effect import uniformly."
+}
+```
+
+Owner-boundary truth is about dependency edges, not syntax comfort.
+
+Required:
+
+- boundary scanners must judge import, re-export, dynamic import, and side-effect import from the same resolved edge graph
+- an edge kind that reaches the same forbidden target must fail under the same owner law
+- barrel or side-effect syntax must not create a second owner-boundary lane
+
+Forbidden:
+
+- checking only import and re-export while leaving dynamic or side-effect edges outside the owner boundary verdict
+- allowing side-effect or dynamic syntax to bypass plugin/capability/mediator/shared-scope rules
+
+## 28. Enforcement Roadmap
 
 The code-purity inspector should mature in phases.
 
@@ -844,7 +928,7 @@ Must catch before READY may be claimed:
 
 No phase may claim full readiness until its required checks are runner-visible and failure-tested during development.
 
-## 26. Final Readiness Gate
+## 29. Final Readiness Gate
 
 GrassEye code purity may be called READY only when:
 

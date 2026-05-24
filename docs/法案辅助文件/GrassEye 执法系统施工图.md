@@ -107,7 +107,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - 活性必须从 lawful roots reachability 判定，不得把 zombie 文件的入边当作活性证明。
 - 合法豁免只允许来自 `package.json` 脚本入口、generated-plan owner inspector 动态装载、或现役 law 明确授权的外部入口。
 - 不允许按 `index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别整类豁免。
-- owner-boundary 检查必须覆盖 import 与 re-export；barrel laundering 视为同级违法。
+- owner-boundary 检查必须覆盖 import、re-export、dynamic import、side-effect import；barrel laundering 视为同级违法。
 - Code Purity 当前运行态只有 PASS / FAIL；不存在 warning inventory 作为第三态。
 - 一条 code-purity finding 就是 FAIL；finding 里可以携带整改建议，但不会改变二元裁决。
 
@@ -135,7 +135,9 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - 若某个活性无法通过 AST / symbol / manifest 证明，则必须 FAIL。
 - namespace import 只能证明被访问 property 对应的 export 活；整文件豁免无效。
 - re-export 或 barrel forwarding 本身不构成最终消费证明。
-- dynamic import、manifest load、generated-plan owner load 只允许走显式 lawful entry manifest 或 owner contract。
+- dynamic import、side-effect import、manifest load、generated-plan owner load 只允许走显式 lawful entry manifest 或 owner contract。
+- non-literal dynamic import 不是可接受柔性写法；在 governed source 中必须直接 FAIL。
+- side-effect import 不得作为隐形 keepalive 或 owner-boundary 逃逸边。
 - commented-out old implementation 不是可接受备份；一旦能从 comment trivia 解析出可执行或声明结构，就必须 FAIL。
 
 ## READY 标准
@@ -149,3 +151,17 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - `static-clause-coverage.generated.json` 对 active laws 保持 100%。
 - Code Purity 对僵尸代码、僵尸文件、僵尸段落保持零容忍；任一 zombie finding 直接阻断 READY。
 - 最终 summary 只回答：当前真实代码是否符合当前法案和当前施工图。
+
+## CI 真绿硬边界链路
+
+1. audit-system 负责 law / manifest / generated artifact / runner 主链完整性。
+2. audit-truth 负责 owner inspector 的 AST-first 执法真值与 generated-plan owner coverage 真值。
+3. code-purity 负责 active source 的结构真值。
+4. runtime-truth 负责 completed evidence contract 真值。
+5. ci-full-summary 只汇报已真实执行的步骤与结果，不制造第二真相。
+
+补充要求：
+
+- owner inspector 不使用 `context.project` 视为执法真值缺失。
+- generated plan 漏接真实 owner inspector 视为 CI 真绿硬边界失效。
+- 旧 summary、旧 report、旧 generated artifact 不得被当作当前 run 的通过证明。

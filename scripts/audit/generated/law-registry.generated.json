@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T00:13:47.197Z",
+  "generatedAt": "2026-05-24T00:56:02.254Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -790,6 +790,39 @@
       "summary": "Zombie inspection must be AST-level, symbol-level, and anti-evasion strict; unproven liveness fails.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 17
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-019-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+module-graph+manifest",
+      "summary": "Side-effect imports must not act as hidden liveness or boundary proof without explicit lawful manifest ownership.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 18
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-020-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+module-graph+manifest",
+      "summary": "Dynamic imports must remain literal, resolvable, manifest-declared, and owner-boundary lawful.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 19
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-021-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+module-graph",
+      "summary": "Owner-boundary enforcement must cover import, re-export, dynamic import, and side-effect import uniformly.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 20
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",

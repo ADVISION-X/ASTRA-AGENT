@@ -310,12 +310,12 @@ export const parseJsonObject = (rawText: string): DeepResearchParserResult<unkno
   }
 };
 
-export const refineSchemaResult = <T>(input: {
+export const refineSchemaResult = <TSchema extends z.ZodTypeAny>(input: {
   parsedJson: DeepResearchParserResult<unknown>;
-  schema: z.ZodType<T>;
+  schema: TSchema;
   missingRequiredReason: string;
   partialReviewOnCustomIssue?: boolean;
-}): DeepResearchParserResult<T> => {
+}): DeepResearchParserResult<z.output<TSchema>> => {
   if (input.parsedJson.parseStatus !== "parsed") {
     return input.parsedJson;
   }
@@ -341,13 +341,13 @@ type NormalizerResult =
   | { ok: true; value: unknown }
   | { ok: false; reason: string };
 
-export const normalizeWithSchema = <T>(input: {
+export const normalizeWithSchema = <TSchema extends z.ZodTypeAny>(input: {
   parsedJson: DeepResearchParserResult<unknown>;
-  schema: z.ZodType<T>;
+  schema: TSchema;
   normalize: (value: Record<string, unknown>) => NormalizerResult;
   missingRequiredReason: string;
   partialReviewOnCustomIssue?: boolean;
-}): DeepResearchParserResult<T> => {
+}): DeepResearchParserResult<z.output<TSchema>> => {
   if (input.parsedJson.parseStatus !== "parsed") {
     return input.parsedJson;
   }

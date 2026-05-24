@@ -50,6 +50,38 @@ const toZombieConstBoolean = (value: ZombieConstValue): boolean => {
   return false;
 };
 
+const compareOrderedNumbers = (left: number, right: number, operator: string): boolean | undefined => {
+  if (operator === ">") {
+    return left > right;
+  }
+  if (operator === ">=") {
+    return left >= right;
+  }
+  if (operator === "<") {
+    return left < right;
+  }
+  if (operator === "<=") {
+    return left <= right;
+  }
+  return undefined;
+};
+
+const compareOrderedStrings = (left: string, right: string, operator: string): boolean | undefined => {
+  if (operator === ">") {
+    return left > right;
+  }
+  if (operator === ">=") {
+    return left >= right;
+  }
+  if (operator === "<") {
+    return left < right;
+  }
+  if (operator === "<=") {
+    return left <= right;
+  }
+  return undefined;
+};
+
 const compareZombieConstValues = (
   left: ZombieConstValue,
   right: ZombieConstValue,
@@ -60,32 +92,10 @@ const compareZombieConstValues = (
     return operator === "===" ? equal : !equal;
   }
   if (left.kind === "number" && right.kind === "number") {
-    if (operator === ">") {
-      return left.value > right.value;
-    }
-    if (operator === ">=") {
-      return left.value >= right.value;
-    }
-    if (operator === "<") {
-      return left.value < right.value;
-    }
-    if (operator === "<=") {
-      return left.value <= right.value;
-    }
+    return compareOrderedNumbers(left.value, right.value, operator);
   }
   if (left.kind === "string" && right.kind === "string") {
-    if (operator === ">") {
-      return left.value > right.value;
-    }
-    if (operator === ">=") {
-      return left.value >= right.value;
-    }
-    if (operator === "<") {
-      return left.value < right.value;
-    }
-    if (operator === "<=") {
-      return left.value <= right.value;
-    }
+    return compareOrderedStrings(left.value, right.value, operator);
   }
   return undefined;
 };
@@ -104,6 +114,100 @@ const resolveConstDeclaration = (identifier: Identifier): VariableDeclaration | 
   }) as VariableDeclaration | undefined;
 };
 
+const evaluateLiteralConstValue = (expression: Expression): ZombieConstValue | undefined => {
+  if (Node.isTrueLiteral(expression)) {
+    return { kind: "boolean", value: true };
+  }
+  if (Node.isFalseLiteral(expression)) {
+    return { kind: "boolean", value: false };
+  }
+  if (Node.isNumericLiteral(expression)) {
+    return { kind: "number", value: Number(expression.getLiteralValue()) };
+  }
+  if (Node.isStringLiteral(expression) || Node.isNoSubstitutionTemplateLiteral(expression)) {
+    return { kind: "string", value: expression.getLiteralValue() };
+  }
+  if (expression.getKind() === SyntaxKind.NullKeyword) {
+    return { kind: "null", value: null };
+  }
+  return undefined;
+};
+
+const evaluateIdentifierConstValue = (
+  identifier: Identifier,
+  visited: Set<number>,
+): ZombieConstValue | undefined => {
+  if (identifier.getText() === "undefined") {
+    return { kind: "undefined", value: undefined };
+  }
+  const declaration = resolveConstDeclaration(identifier);
+  const initializer = declaration?.getInitializer();
+  return initializer ? evaluateZombieConstValue(initializer, visited) : undefined;
+};
+
+const evaluateUnaryConstValue = (
+  expression: MorphNode,
+  visited: Set<number>,
+): ZombieConstValue | undefined => {
+  if (!Node.isPrefixUnaryExpression(expression)) {
+    return undefined;
+  }
+  const operandValue = evaluateZombieConstValue(expression.getOperand(), visited);
+  if (!operandValue) {
+    return undefined;
+  }
+  if (expression.getOperatorToken() === SyntaxKind.ExclamationToken) {
+    return { kind: "boolean", value: !toZombieConstBoolean(operandValue) };
+  }
+  if (operandValue.kind === "number" && expression.getOperatorToken() === SyntaxKind.MinusToken) {
+    return { kind: "number", value: -operandValue.value };
+  }
+  if (operandValue.kind === "number" && expression.getOperatorToken() === SyntaxKind.PlusToken) {
+    return { kind: "number", value: operandValue.value };
+  }
+  return undefined;
+};
+
+const evaluateBooleanCallConstValue = (
+  expression: MorphNode,
+  visited: Set<number>,
+): ZombieConstValue | undefined => {
+  if (!Node.isCallExpression(expression) || expression.getExpression().getText() !== "Boolean") {
+    return undefined;
+  }
+  const argument = expression.getArguments()[0];
+  if (!argument || !Node.isExpression(argument)) {
+    return undefined;
+  }
+  const value = evaluateZombieConstValue(argument, visited);
+  return value ? { kind: "boolean", value: toZombieConstBoolean(value) } : undefined;
+};
+
+const evaluateBinaryConstValue = (
+  expression: MorphNode,
+  visited: Set<number>,
+): ZombieConstValue | undefined => {
+  if (!Node.isBinaryExpression(expression)) {
+    return undefined;
+  }
+  const operator = expression.getOperatorToken().getText();
+  const leftValue = evaluateZombieConstValue(expression.getLeft(), visited);
+  const rightValue = evaluateZombieConstValue(expression.getRight(), visited);
+  if (!leftValue || !rightValue) {
+    return undefined;
+  }
+  if (operator === "&&" || operator === "||") {
+    return {
+      kind: "boolean",
+      value: operator === "&&"
+        ? toZombieConstBoolean(leftValue) && toZombieConstBoolean(rightValue)
+        : toZombieConstBoolean(leftValue) || toZombieConstBoolean(rightValue),
+    };
+  }
+  const comparison = compareZombieConstValues(leftValue, rightValue, operator);
+  return comparison === undefined ? undefined : { kind: "boolean", value: comparison };
+};
+
 const evaluateZombieConstValue = (
   expression: Expression,
   visited: Set<number>,
@@ -115,75 +219,24 @@ const evaluateZombieConstValue = (
   }
   visited.add(currentStart);
 
-  if (Node.isTrueLiteral(current)) {
-    return { kind: "boolean", value: true };
-  }
-  if (Node.isFalseLiteral(current)) {
-    return { kind: "boolean", value: false };
-  }
-  if (Node.isNumericLiteral(current)) {
-    return { kind: "number", value: Number(current.getLiteralValue()) };
-  }
-  if (Node.isStringLiteral(current) || Node.isNoSubstitutionTemplateLiteral(current)) {
-    return { kind: "string", value: current.getLiteralValue() };
-  }
-  if (current.getKind() === SyntaxKind.NullKeyword) {
-    return { kind: "null", value: null };
+  const literalValue = evaluateLiteralConstValue(current);
+  if (literalValue) {
+    return literalValue;
   }
   if (Node.isIdentifier(current)) {
-    if (current.getText() === "undefined") {
-      return { kind: "undefined", value: undefined };
-    }
-    const declaration = resolveConstDeclaration(current);
-    const initializer = declaration?.getInitializer();
-    return initializer ? evaluateZombieConstValue(initializer, visited) : undefined;
+    return evaluateIdentifierConstValue(current, visited);
   }
-  if (Node.isPrefixUnaryExpression(current)) {
-    const operandValue = evaluateZombieConstValue(current.getOperand(), visited);
-    if (!operandValue) {
-      return undefined;
-    }
-    if (current.getOperatorToken() === SyntaxKind.ExclamationToken) {
-      return { kind: "boolean", value: !toZombieConstBoolean(operandValue) };
-    }
-    if (operandValue.kind === "number" && current.getOperatorToken() === SyntaxKind.MinusToken) {
-      return { kind: "number", value: -operandValue.value };
-    }
-    if (operandValue.kind === "number" && current.getOperatorToken() === SyntaxKind.PlusToken) {
-      return { kind: "number", value: operandValue.value };
-    }
+  const unaryValue = evaluateUnaryConstValue(current, visited);
+  if (unaryValue) {
+    return unaryValue;
   }
-  if (Node.isCallExpression(current) && current.getExpression().getText() === "Boolean") {
-    const argument = current.getArguments()[0];
-    if (argument && Node.isExpression(argument)) {
-      const value = evaluateZombieConstValue(argument, visited);
-      if (value) {
-        return { kind: "boolean", value: toZombieConstBoolean(value) };
-      }
-    }
+  const booleanCallValue = evaluateBooleanCallConstValue(current, visited);
+  if (booleanCallValue) {
+    return booleanCallValue;
   }
-  if (Node.isBinaryExpression(current)) {
-    const operator = current.getOperatorToken().getText();
-    if (operator === "&&" || operator === "||") {
-      const leftValue = evaluateZombieConstValue(current.getLeft(), visited);
-      const rightValue = evaluateZombieConstValue(current.getRight(), visited);
-      if (!leftValue || !rightValue) {
-        return undefined;
-      }
-      return {
-        kind: "boolean",
-        value: operator === "&&"
-          ? toZombieConstBoolean(leftValue) && toZombieConstBoolean(rightValue)
-          : toZombieConstBoolean(leftValue) || toZombieConstBoolean(rightValue),
-      };
-    }
-    const leftValue = evaluateZombieConstValue(current.getLeft(), visited);
-    const rightValue = evaluateZombieConstValue(current.getRight(), visited);
-    if (!leftValue || !rightValue) {
-      return undefined;
-    }
-    const comparison = compareZombieConstValues(leftValue, rightValue, operator);
-    return comparison === undefined ? undefined : { kind: "boolean", value: comparison };
+  const binaryValue = evaluateBinaryConstValue(current, visited);
+  if (binaryValue) {
+    return binaryValue;
   }
 
   return undefined;

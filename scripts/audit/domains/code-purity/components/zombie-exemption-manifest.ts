@@ -15,6 +15,12 @@ export type ZombieDynamicImportExemption = {
   targetFilePath: string;
 };
 
+export type ZombieSideEffectImportExemption = {
+  consumerFilePath: string;
+  reason: string;
+  targetFilePath: string;
+};
+
 export type ZombieDynamicNamespaceExemption = {
   consumerFilePath: string;
   reason: string;
@@ -26,6 +32,7 @@ export type ZombieExemptionManifest = {
   externalEntryFiles: readonly ZombieEntryFileExemption[];
   lawfulDynamicImports: readonly ZombieDynamicImportExemption[];
   lawfulDynamicNamespaceConsumers: readonly ZombieDynamicNamespaceExemption[];
+  lawfulSideEffectImports: readonly ZombieSideEffectImportExemption[];
 };
 
 export const zombieExemptionManifest: ZombieExemptionManifest = {
@@ -33,6 +40,7 @@ export const zombieExemptionManifest: ZombieExemptionManifest = {
   externalEntryFiles: [],
   lawfulDynamicImports: [],
   lawfulDynamicNamespaceConsumers: [],
+  lawfulSideEffectImports: [],
 };
 
 export const isLawfulManifestEntryFile = (
@@ -53,6 +61,15 @@ export const isLawfulDynamicImport = (
   targetFilePath: string,
 ): boolean =>
   manifest.lawfulDynamicImports.some(
+    (entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath,
+  );
+
+export const isLawfulSideEffectImport = (
+  manifest: ZombieExemptionManifest,
+  consumerFilePath: string,
+  targetFilePath: string,
+): boolean =>
+  manifest.lawfulSideEffectImports.some(
     (entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath,
   );
 

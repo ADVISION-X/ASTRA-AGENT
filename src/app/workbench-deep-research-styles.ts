@@ -113,7 +113,7 @@ textarea {
 }
 .research-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   min-height: 0;
@@ -126,17 +126,14 @@ textarea {
 .research-history {
   display: grid;
   gap: 12px;
-  position: sticky;
-  top: 12px;
-  max-height: calc(100vh - 128px);
   grid-template-rows: auto auto minmax(0, 1fr);
-  overflow: hidden;
+  overflow: visible;
 }
 .research-search input {
   width: 100%;
 }
 .research-history-list {
-  min-height: 0;
+  max-height: min(320px, 34vh);
   overflow: auto;
   padding-right: 2px;
 }
@@ -164,11 +161,13 @@ textarea {
   padding: 10px;
   cursor: pointer;
   display: grid;
+  grid-template-columns: minmax(180px, 0.85fr) minmax(260px, 1.35fr) auto minmax(220px, auto);
+  align-items: center;
   gap: 8px;
 }
 .research-history-item.selected {
   border-color: var(--accent-strong);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
   background: #f4fbf8;
 }
 .research-history-item h3,
@@ -185,6 +184,21 @@ textarea {
 .research-empty-state p,
 .research-lead {
   margin: 0;
+}
+.research-history-title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.research-history-title span,
+.research-history-summary {
+  color: var(--muted);
+  font-size: 12px;
+}
+.research-history-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .research-history-top,
 .research-meta-row {
@@ -203,7 +217,7 @@ textarea {
 }
 .research-reader {
   min-width: 0;
-  max-width: 1120px;
+  max-width: none;
 }
 .research-report {
   gap: 14px;
@@ -394,9 +408,6 @@ textarea {
   gap: 10px;
 }
 @media (max-width: 1400px) {
-  .research-layout {
-    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  }
   .research-stage-grid,
   .research-question-tree {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -422,8 +433,10 @@ textarea {
     text-align: left;
   }
   .research-history {
-    position: static;
-    max-height: 360px;
+    max-height: none;
+  }
+  .research-history-item {
+    grid-template-columns: 1fr;
   }
   .research-side {
     grid-template-columns: 1fr;

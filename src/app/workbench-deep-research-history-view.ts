@@ -1,9 +1,9 @@
 export const renderDeepResearchHistoryView = (): string => `
-<aside class="research-history" data-deep-research-history-shell>
+<section class="research-history" data-deep-research-history-shell>
   <header class="research-rail-header">
     <div>
       <p class="research-kicker">Report History</p>
-      <h2>History</h2>
+      <h2>Recent Reports</h2>
     </div>
     <div class="research-rail-actions">
       <button class="btn secondary" type="button" data-deep-research-latest>Latest</button>
@@ -15,4 +15,4 @@ export const renderDeepResearchHistoryView = (): string => `
     <input name="historySearch" placeholder="Find by title, question, or status" data-deep-research-history-search />
   </label>
   <div class="research-history-list" data-deep-research-history></div>
-</aside>`;
+</section>`;

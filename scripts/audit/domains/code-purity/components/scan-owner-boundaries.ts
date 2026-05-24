@@ -12,6 +12,7 @@ import {
   type InventoryFindingCollector,
 } from "./code-purity-finding-collector.js";
 import {
+  normalizeCodePurityPath,
   resolveCodePurityOwner,
 } from "./code-purity-owner-model.js";
 import type { CodePurityInventoryItem } from "./code-purity-report-writer.js";
@@ -19,18 +20,20 @@ import type { CodePurityInventoryItem } from "./code-purity-report-writer.js";
 const getPathSegments = (repoPath: string): string[] => repoPath.split("/").filter((segment) => segment.length > 0);
 
 const isPrivateCapabilityPath = (repoPath: string): boolean => {
-  if (!repoPath.startsWith("src/capabilities/")) {
+  const normalizedPath = normalizeCodePurityPath(repoPath);
+  if (!normalizedPath.startsWith("src/capabilities/")) {
     return false;
   }
-  const segments = getPathSegments(repoPath);
+  const segments = getPathSegments(normalizedPath);
   return segments.length >= 5 && (segments[3] === "runtime" || segments[3] === "children");
 };
 
 const isPublicCapabilityFacadePath = (repoPath: string): boolean => {
-  if (!repoPath.startsWith("src/capabilities/")) {
+  const normalizedPath = normalizeCodePurityPath(repoPath);
+  if (!normalizedPath.startsWith("src/capabilities/")) {
     return false;
   }
-  const segments = getPathSegments(repoPath);
+  const segments = getPathSegments(normalizedPath);
   return segments.length === 4 && segments[3] === "index.ts";
 };
 
@@ -39,7 +42,13 @@ const isCapabilityOwner = (owner: string): boolean => owner.startsWith("capabili
 const isPluginOwner = (owner: string): boolean => owner.startsWith("plugin:");
 
 const describeEdgeVerb = (edgeKind: SourceModuleTarget["edgeKind"]): string =>
-  edgeKind === "re-export" ? "re-exports" : "imports";
+  edgeKind === "re-export"
+    ? "re-exports"
+    : edgeKind === "dynamic-import"
+      ? "dynamically imports"
+      : edgeKind === "side-effect-import"
+        ? "side-effect imports"
+        : "imports";
 
 type OwnerBoundaryScanResult = {
   findings: InspectorFinding[];
@@ -83,7 +92,9 @@ const scanCapabilityBoundary = (
   directTargetOwner: string,
   abilityLawId: string,
 ): void => {
-  if (governedFile.repoPath.startsWith("src/capabilities/") && directTarget.targetPath.startsWith("src/plugins/")) {
+  const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
+  const targetPath = normalizeCodePurityPath(directTarget.targetPath);
+  if (sourcePath.startsWith("src/capabilities/") && targetPath.startsWith("src/plugins/")) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/capability-imports-plugin",
       governedFile,
@@ -93,7 +104,7 @@ const scanCapabilityBoundary = (
     });
   }
   if (
-    governedFile.repoPath.startsWith("src/capabilities/") &&
+    sourcePath.startsWith("src/capabilities/") &&
     isCapabilityOwner(directTargetOwner) &&
     directTargetOwner !== governedFile.owner
   ) {
@@ -114,25 +125,27 @@ const scanPluginBoundary = (
   directTargetOwner: string,
   jobFlowLawId: string,
 ): void => {
+  const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
+  const targetPath = normalizeCodePurityPath(directTarget.targetPath);
   if (
-    governedFile.repoPath.startsWith("src/plugins/") &&
-    directTarget.targetPath.startsWith("src/capabilities/") &&
-    !isPublicCapabilityFacadePath(directTarget.targetPath)
+    sourcePath.startsWith("src/plugins/") &&
+    targetPath.startsWith("src/capabilities/") &&
+    !isPublicCapabilityFacadePath(targetPath)
   ) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/plugin-non-facade-capability-import",
       governedFile,
       lawId: jobFlowLawId,
-      reason: isPrivateCapabilityPath(directTarget.targetPath)
+      reason: isPrivateCapabilityPath(targetPath)
         ? `Plugin directly ${describeEdgeVerb(directTarget.edgeKind)} private capability runtime ${directTarget.targetPath}.`
         : `Plugin directly ${describeEdgeVerb(directTarget.edgeKind)} non-facade capability file ${directTarget.targetPath}.`,
-      message: isPrivateCapabilityPath(directTarget.targetPath)
+      message: isPrivateCapabilityPath(targetPath)
         ? `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} private ability runtime or child file ${directTarget.targetPath}.`
         : `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} non-facade ability-group code ${directTarget.targetPath}.`,
     });
   }
   if (
-    governedFile.repoPath.startsWith("src/plugins/") &&
+    sourcePath.startsWith("src/plugins/") &&
     isPluginOwner(directTargetOwner) &&
     directTargetOwner !== governedFile.owner
   ) {
@@ -152,8 +165,9 @@ const scanMediatorBoundary = (
   directTarget: SourceModuleTarget,
   mediatorLawId: string,
 ): void => {
+  const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
   if (
-    governedFile.repoPath.startsWith("src/mediator/") &&
+    sourcePath.startsWith("src/mediator/") &&
     (directTarget.targetPath.startsWith("src/lib/browser/") || isPrivateCapabilityPath(directTarget.targetPath))
   ) {
     pushBoundaryFinding(collector, {
@@ -173,8 +187,9 @@ const scanChildAbilityBoundary = (
   directTargetOwner: string,
   childAbilityLawId: string,
 ): void => {
+  const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
   if (
-    isPrivateCapabilityPath(governedFile.repoPath) &&
+    isPrivateCapabilityPath(sourcePath) &&
     isCapabilityOwner(directTargetOwner) &&
     directTargetOwner !== governedFile.owner
   ) {
@@ -194,21 +209,23 @@ const scanSharedBoundary = (
   directTarget: SourceModuleTarget,
   sharedScopeLawId: string,
 ): void => {
+  const sourcePath = normalizeCodePurityPath(governedFile.repoPath);
+  const targetPath = normalizeCodePurityPath(directTarget.targetPath);
   if (
-    governedFile.repoPath.startsWith("src/lib/") &&
-    !governedFile.repoPath.startsWith("src/lib/local-runtime/") &&
-    (directTarget.targetPath.startsWith("src/plugins/") || directTarget.targetPath.startsWith("src/capabilities/"))
+    sourcePath.startsWith("src/lib/") &&
+    !sourcePath.startsWith("src/lib/local-runtime/") &&
+    (targetPath.startsWith("src/plugins/") || targetPath.startsWith("src/capabilities/"))
   ) {
     pushBoundaryFinding(collector, {
-      checkId: directTarget.targetPath.startsWith("src/plugins/")
+      checkId: targetPath.startsWith("src/plugins/")
         ? "code-purity/shared-scope-plugin-import"
         : "code-purity/shared-scope-capability-import",
       governedFile,
       lawId: sharedScopeLawId,
-      reason: directTarget.targetPath.startsWith("src/plugins/")
+      reason: targetPath.startsWith("src/plugins/")
         ? `Shared infrastructure ${describeEdgeVerb(directTarget.edgeKind)} plugin-owned code ${directTarget.targetPath}.`
         : `Shared infrastructure ${describeEdgeVerb(directTarget.edgeKind)} capability-owned code ${directTarget.targetPath}.`,
-      message: directTarget.targetPath.startsWith("src/plugins/")
+      message: targetPath.startsWith("src/plugins/")
         ? `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} plugin-owned business flow code ${directTarget.targetPath}.`
         : `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} capability-owned code ${directTarget.targetPath}.`,
     });
@@ -225,7 +242,7 @@ export const scanOwnerBoundaries = (governedFiles: readonly GovernedFile[], lawI
 
   for (const governedFile of governedFiles) {
     for (const directTarget of collectResolvedModuleTargets(governedFile.sourceFile)) {
-      if (!directTarget.targetPath.startsWith("src/")) {
+      if (!normalizeCodePurityPath(directTarget.targetPath).startsWith("src/")) {
         continue;
       }
       const directTargetOwner = resolveCodePurityOwner(directTarget.targetPath);

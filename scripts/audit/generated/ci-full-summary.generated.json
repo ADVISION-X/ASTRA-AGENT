@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T00:14:16.199Z",
+  "generatedAt": "2026-05-24T00:43:25.957Z",
   "status": "FAIL",
   "steps": [
     {
@@ -13,8 +13,7 @@
     },
     {
       "name": "typecheck",
-      "status": "FAIL",
-      "error": "typecheck failed with exit code 2"
+      "status": "PASS"
     },
     {
       "name": "code-purity-zombie-deep",
@@ -57,8 +56,8 @@
     {
       "capabilityDomain": "architecture-boundary",
       "executionGroup": "foundation",
-      "status": "FAIL",
-      "findingCount": 1,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/architecture-boundary-report.generated.json"
     },
     {
@@ -72,7 +71,7 @@
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
       "status": "FAIL",
-      "findingCount": 146,
+      "findingCount": 140,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
@@ -113,8 +112,8 @@
     {
       "capabilityDomain": "local-app-shell",
       "executionGroup": "domain",
-      "status": "FAIL",
-      "findingCount": 1,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/local-app-shell-report.generated.json"
     },
     {

@@ -67,7 +67,7 @@ const buildSubQuestionFixture = () => [
     priority: "high" as const,
     omissionRisk: "Without this, the final adjudication may describe a good market without a workable launch path.",
   },
-] as const;
+];
 
 const buildAnalysisRawResponse = (subQuestionId: string, ordinal: number) => buildJsonText({
   subQuestionId,
@@ -233,6 +233,7 @@ const buildFinalReportFixture = (): DeepResearchFinalReport => ({
   directAnswer: "The company should only enter through a staged partner-led beachhead.",
   finalVerdict: "conditional",
   confidence: "medium",
+  executiveConclusion: "The company should only enter through a staged partner-led beachhead.",
   rankedConclusions: [{
     rank: 1,
     conclusion: "Demand exists, but execution must stay narrow.",
@@ -245,15 +246,22 @@ const buildFinalReportFixture = (): DeepResearchFinalReport => ({
   strongConclusions: [
     "Demand exists in labor-constrained warehouses.",
   ],
+  positiveReasons: [
+    "Demand exists in labor-constrained warehouses.",
+  ],
   conditionalConclusions: [
     "Execution remains conditional on staged scope and delivery partners.",
   ],
   weakOrRejectedClaims: [
     "A broad immediate launch is not justified.",
   ],
+  strongestOpposingArguments: [
+    "A broad immediate launch is not justified.",
+  ],
   decisiveReasons: [
     "Demand is real, but execution quality is the gating constraint.",
   ],
+  conflictMatrix: [],
   evidenceGaps: [
     "Need live partner deployment benchmarks.",
   ],

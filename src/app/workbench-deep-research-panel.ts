@@ -2,7 +2,7 @@ import { renderDeepResearchHistoryView } from "./workbench-deep-research-history
 import { renderDeepResearchReportView } from "./workbench-deep-research-report-view.js";
 
 export const renderDeepResearchPanel = (): string => `
-<section class="hidden research-shell" data-job-panel="deep-research" data-deep-research-layout-contract="history-rail-reader">
+<section class="hidden research-shell" data-job-panel="deep-research" data-deep-research-layout-contract="history-table-reader">
   <header class="research-header">
     <div>
       <h1>Deep Research Analysis</h1>

@@ -175,7 +175,7 @@ const inspectDeliveryMarkers = (findings: InspectorFinding[], lawId: string): vo
     "data-deep-research-stage-overview",
     "data-deep-research-decomposition",
     "data-deep-research-subquestions",
-    "data-deep-research-final-synthesis",
+    "data-deep-research-final-adjudication",
     "data-deep-research-evidence",
     "data-deep-research-nav",
     "data-deep-research-meta",
@@ -191,8 +191,8 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
     "refreshHistory",
     "loadSelectedReport",
     "renderSelectedReport",
-    "Positive Analysis",
-    "Falsification",
+    "Independent Analysis",
+    "Final Adjudication",
     "Evidence / Debug",
     "Show Full Prompt",
     "Show Full AI Response",
@@ -231,7 +231,7 @@ const inspectDebugBoundaries = (findings: InspectorFinding[], lawId: string): vo
 
 const inspectLayoutQualityBoundaries = (findings: InspectorFinding[], lawId: string): void => {
   for (const marker of [
-    "data-deep-research-layout-contract=\"history-rail-reader\"",
+    "data-deep-research-layout-contract=\"history-table-reader\"",
     "data-deep-research-scroll-boundary",
   ]) {
     requireText(findings, lawId, panelPath, marker);
@@ -243,8 +243,8 @@ const inspectLayoutQualityBoundaries = (findings: InspectorFinding[], lawId: str
     requireText(findings, lawId, reportViewPath, marker);
   }
   for (const marker of [
-    "max-height: calc(100vh - 128px)",
-    "grid-template-columns: minmax(260px, 320px) minmax(0, 1fr)",
+    "max-height: min(320px, 34vh)",
+    "grid-template-columns: minmax(0, 1fr)",
     "grid-template-columns: minmax(0, 1fr);",
     "grid-template-columns: repeat(4, minmax(0, 1fr))",
     "research-delivery-strip",

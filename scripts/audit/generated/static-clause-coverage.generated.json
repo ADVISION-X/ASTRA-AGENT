@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-24T00:13:47.197Z",
+  "generatedAt": "2026-05-24T00:56:02.254Z",
   "summary": {
-    "activeLawCount": 122,
-    "coveredLawCount": 122,
+    "activeLawCount": 125,
+    "coveredLawCount": 125,
     "coveragePercent": 100
   },
   "coverage": [
@@ -458,6 +458,36 @@
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-019-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-020-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-021-V1",
       "capabilityDomain": "code-purity",
       "clauses": [
         {

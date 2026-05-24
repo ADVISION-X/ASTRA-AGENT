@@ -1,96 +1,14 @@
 {
-  "generatedAt": "2026-05-24T00:13:58.639Z",
-  "itemCount": 146,
+  "generatedAt": "2026-05-24T00:56:12.030Z",
+  "itemCount": 131,
   "items": [
     {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/ci-full.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/dynamic-import-nonliteral",
+      "filePath": "scripts/audit/core/run-generated-plan.ts",
+      "lawId": "APEX-CODE-PURITY-020-V1",
       "owner": "audit-core",
-      "reason": "Function near line 66 breaks function budget: await count 11 exceeds red line 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 54 breaks function budget: physical line count 88 exceeds red line 75; cyclomatic complexity 20 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 43 breaks function budget: physical line count 99 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:code-purity",
-      "reason": "Export isAntiEvasionFinding has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "symbolName": "isAntiEvasionFinding",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/as-unknown-as",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
-      "lawId": "APEX-CODE-PURITY-008-V1",
-      "owner": "audit:code-purity",
-      "reason": "as unknown as appears near line 117.",
-      "remediation": "Replace double assertion with schema validation or an explicit narrowing guard.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 47 breaks function budget: cyclomatic complexity 26 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 53 breaks function budget: return branch count 10 exceeds red line 8; cyclomatic complexity 17 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 107 breaks function budget: physical line count 84 exceeds red line 75; return branch count 18 exceeds red line 8; cyclomatic complexity 34 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 53 breaks function budget: cyclomatic complexity 18 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "reason": "Dynamic import uses non-literal specifier moduleUrl; owner and liveness truth cannot be proven from runtime-computed targets.",
+      "remediation": "Replace the computed dynamic import with a literal import target or an explicit owner-local loader map.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
@@ -138,16 +56,6 @@
       "reason": "Void expression void context.project.getSourceFiles().length looks like a keepalive escape instead of real usage proof.",
       "remediation": "Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.",
       "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/shared/source-module-targets.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit-core",
-      "reason": "Function near line 122 breaks function budget: physical line count 77 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -1446,58 +1354,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "declarationKind": "re-export",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Barrel re-export parseDeepResearchFinalReportResponse forwards src/plugins/deep-research-analysis/deep-research-analysis.parser.ts without any final reachable consumer.",
-      "remediation": "Delete the unused re-export or reconnect a real final consumer for the symbol.",
-      "role": "job-step",
-      "symbolName": "parseDeepResearchFinalReportResponse",
-      "usageKind": "re-export",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "declarationKind": "re-export",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Barrel re-export detectFinalSynthesisLeakage forwards src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts without any final reachable consumer.",
-      "remediation": "Delete the unused re-export or reconnect a real final consumer for the symbol.",
-      "role": "job-step",
-      "symbolName": "detectFinalSynthesisLeakage",
-      "usageKind": "re-export",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export parseDeepResearchFinalReportResponse only survives through a re-export chain and has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "symbolName": "parseDeepResearchFinalReportResponse",
-      "usageKind": "re-export",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export detectFinalSynthesisLeakage only survives through a re-export chain and has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "symbolName": "detectFinalSynthesisLeakage",
-      "usageKind": "re-export",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/zombie-export",
       "declarationKind": "variable",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
@@ -1584,19 +1440,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export parseDeepResearchFinalReportResponse only survives through a re-export chain and has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "symbolName": "parseDeepResearchFinalReportResponse",
-      "usageKind": "re-export",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/barrel-reexport-laundering",
       "declarationKind": "re-export",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
@@ -1653,22 +1496,9 @@
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Function near line 72 breaks function budget: cyclomatic complexity 25 exceeds red line 16.",
+      "reason": "Function near line 70 breaks function budget: cyclomatic complexity 25 exceeds red line 16.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export detectFinalSynthesisLeakage only survives through a re-export chain and has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "symbolName": "detectFinalSynthesisLeakage",
-      "usageKind": "re-export",
       "verificationCommand": "npm run ci:full"
     },
     {

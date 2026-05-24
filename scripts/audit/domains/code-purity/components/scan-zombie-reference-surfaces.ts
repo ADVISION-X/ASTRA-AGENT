@@ -51,6 +51,128 @@ const scanZombieFiles = (
   return unreachableFileCount;
 };
 
+const pushSymbolResolutionFailures = (
+  collector: InventoryFindingCollector,
+  input: {
+    antiEvasionLawId: string;
+    moduleGraph: ZombieModuleGraph;
+    reachability: ZombieReachability;
+    symbolGraph: ZombieSymbolGraph;
+  },
+): void => {
+  for (const resolutionFailure of input.symbolGraph.resolutionFailures) {
+    const governedFile = input.moduleGraph.filesByPath.get(resolutionFailure.exportingFile);
+    if (!governedFile || !input.reachability.reachableFiles.has(governedFile.repoPath)) {
+      continue;
+    }
+    pushZombieFinding(collector, {
+      checkId: "code-purity/symbol-resolution-unavailable",
+      declarationKind: resolutionFailure.localDeclarationName ? "export" : undefined,
+      governedFile,
+      lawId: input.antiEvasionLawId,
+      reason: `Symbol graph could not resolve references for export ${resolutionFailure.exportName}: ${resolutionFailure.error}`,
+      remediation: "Repair ts-morph symbol resolution for this export; unprovable liveness must fail instead of falling back to string counting.",
+      symbolName: resolutionFailure.exportName,
+      message: `${governedFile.repoPath} could not resolve symbol references for export ${resolutionFailure.exportName}.`,
+    });
+  }
+};
+
+const collectExportReferenceState = (
+  exportSymbol: ZombieExportSymbol,
+  input: {
+    namespaceUsage: ZombieNamespaceUsageReport;
+    reachability: ZombieReachability;
+    symbolGraph: ZombieSymbolGraph;
+  },
+) => {
+  const reachableReferences = (input.symbolGraph.referencesBySymbol.get(exportSymbol.symbolId) ?? []).filter(
+    (reference) => input.reachability.reachableFiles.has(reference.referencingFile),
+  );
+  const meaningfulReferences = reachableReferences.filter((reference) => isMeaningfulZombieReference(reference.usageKind));
+  const namespacePropertyUsageCount = countNamespacePropertyUsage(exportSymbol, input.namespaceUsage);
+  return {
+    hasRuntimeUsage: meaningfulReferences.some((reference) => isZombieRuntimeUsage(reference.usageKind))
+      || namespacePropertyUsageCount > 0,
+    hasTypeUsage: meaningfulReferences.some((reference) => isZombieTypeUsage(reference.usageKind)),
+    meaningfulReferences,
+    reachableReferences,
+  };
+};
+
+const buildZombieExportFailure = (
+  exportSymbol: ZombieExportSymbol,
+  reachableReferences: ReturnType<typeof collectExportReferenceState>["reachableReferences"],
+  hasRuntimeUsage: boolean,
+  hasTypeUsage: boolean,
+): { reason: string; usageKind?: string } => {
+  if (hasTypeUsage && !hasRuntimeUsage && exportSymbol.isRuntimeValue) {
+    return {
+      reason: `Export ${exportSymbol.exportName} is only used in type positions; type-only usage does not prove runtime liveness.`,
+      usageKind: "type",
+    };
+  }
+  if (reachableReferences.some((reference) => reference.usageKind === "re-export")) {
+    return {
+      reason: `Export ${exportSymbol.exportName} only survives through a re-export chain and has no final reachable consumer.`,
+      usageKind: "re-export",
+    };
+  }
+  if (reachableReferences.some((reference) => reference.usageKind === "import-binding")) {
+    return {
+      reason: `Export ${exportSymbol.exportName} is imported but never used by a reachable consumer.`,
+      usageKind: "import-binding",
+    };
+  }
+  return {
+    reason: `Export ${exportSymbol.exportName} has no final reachable consumer.`,
+  };
+};
+
+const scanZombieExportSymbol = (
+  collector: InventoryFindingCollector,
+  input: {
+    manifest: ZombieExemptionManifest;
+    governedFile: ZombieModuleGraph["filesByPath"] extends Map<string, infer T> ? T : never;
+    namespaceUsage: ZombieNamespaceUsageReport;
+    reachability: ZombieReachability;
+    symbolGraph: ZombieSymbolGraph;
+    zombieLawId: string;
+  },
+  exportSymbol: ZombieExportSymbol,
+): "live" | "skip" | "zombie" => {
+  if (isLawfulZombieExport(input.governedFile, exportSymbol.exportName, input.manifest)) {
+    return "skip";
+  }
+  const referenceState = collectExportReferenceState(exportSymbol, input);
+  const isLive = exportSymbol.isTypeOnly
+    ? referenceState.hasTypeUsage
+    : exportSymbol.isRuntimeValue
+      ? referenceState.hasRuntimeUsage
+      : referenceState.meaningfulReferences.length > 0;
+  if (isLive) {
+    return "live";
+  }
+  const failure = buildZombieExportFailure(
+    exportSymbol,
+    referenceState.reachableReferences,
+    referenceState.hasRuntimeUsage,
+    referenceState.hasTypeUsage,
+  );
+  pushZombieFinding(collector, {
+    checkId: "code-purity/zombie-export",
+    declarationKind: exportSymbol.declarationKind,
+    governedFile: input.governedFile,
+    lawId: input.zombieLawId,
+    reason: failure.reason,
+    remediation: "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+    symbolName: exportSymbol.exportName,
+    usageKind: failure.usageKind,
+    message: `${input.governedFile.repoPath} exports ${exportSymbol.exportName} without any provable final consumer.`,
+  });
+  return "zombie";
+};
+
 const scanZombieExports = (
   collector: InventoryFindingCollector,
   input: {
@@ -66,22 +188,12 @@ const scanZombieExports = (
   let liveExportCount = 0;
   let zombieExportCount = 0;
 
-  for (const resolutionFailure of input.symbolGraph.resolutionFailures) {
-    const governedFile = input.moduleGraph.filesByPath.get(resolutionFailure.exportingFile);
-    if (!governedFile || !input.reachability.reachableFiles.has(governedFile.repoPath)) {
-      continue;
-    }
-    pushZombieFinding(collector, {
-      checkId: "code-purity/symbol-resolution-unavailable",
-      declarationKind: resolutionFailure.localDeclarationName ? "export" : undefined,
-      governedFile,
-      lawId: antiEvasionLawId,
-      reason: `Symbol graph could not resolve references for export ${resolutionFailure.exportName}: ${resolutionFailure.error}`,
-      remediation: "Repair ts-morph symbol resolution for this export; unprovable liveness must fail instead of falling back to string counting.",
-      symbolName: resolutionFailure.exportName,
-      message: `${governedFile.repoPath} could not resolve symbol references for export ${resolutionFailure.exportName}.`,
-    });
-  }
+  pushSymbolResolutionFailures(collector, {
+    antiEvasionLawId,
+    moduleGraph: input.moduleGraph,
+    reachability: input.reachability,
+    symbolGraph: input.symbolGraph,
+  });
 
   for (const [filePath, exportSymbols] of input.symbolGraph.exportsByFile) {
     const governedFile = input.moduleGraph.filesByPath.get(filePath);
@@ -92,49 +204,24 @@ const scanZombieExports = (
       if (isLawfulZombieExport(governedFile, exportSymbol.exportName, input.manifest)) {
         continue;
       }
-      const reachableReferences = (input.symbolGraph.referencesBySymbol.get(exportSymbol.symbolId) ?? []).filter(
-        (reference) => input.reachability.reachableFiles.has(reference.referencingFile),
+      const status = scanZombieExportSymbol(
+        collector,
+        {
+          governedFile,
+          manifest: input.manifest,
+          namespaceUsage: input.namespaceUsage,
+          reachability: input.reachability,
+          symbolGraph: input.symbolGraph,
+          zombieLawId,
+        },
+        exportSymbol,
       );
-      const meaningfulReferences = reachableReferences.filter((reference) => isMeaningfulZombieReference(reference.usageKind));
-      const namespacePropertyUsageCount = countNamespacePropertyUsage(exportSymbol, input.namespaceUsage);
-      const hasTypeUsage = meaningfulReferences.some((reference) => isZombieTypeUsage(reference.usageKind));
-      const hasRuntimeUsage = meaningfulReferences.some((reference) => isZombieRuntimeUsage(reference.usageKind))
-        || namespacePropertyUsageCount > 0;
-      const isLive = exportSymbol.isTypeOnly
-        ? hasTypeUsage
-        : exportSymbol.isRuntimeValue
-          ? hasRuntimeUsage
-          : meaningfulReferences.length > 0;
-      if (isLive) {
+      if (status === "live") {
         liveExportCount += 1;
-        continue;
       }
-
-      let usageKind: string | undefined;
-      let reason = `Export ${exportSymbol.exportName} has no final reachable consumer.`;
-      if (hasTypeUsage && !hasRuntimeUsage && exportSymbol.isRuntimeValue) {
-        usageKind = "type";
-        reason = `Export ${exportSymbol.exportName} is only used in type positions; type-only usage does not prove runtime liveness.`;
-      } else if (reachableReferences.some((reference) => reference.usageKind === "re-export")) {
-        usageKind = "re-export";
-        reason = `Export ${exportSymbol.exportName} only survives through a re-export chain and has no final reachable consumer.`;
-      } else if (reachableReferences.some((reference) => reference.usageKind === "import-binding")) {
-        usageKind = "import-binding";
-        reason = `Export ${exportSymbol.exportName} is imported but never used by a reachable consumer.`;
-      }
-
-      pushZombieFinding(collector, {
-        checkId: "code-purity/zombie-export",
-        declarationKind: exportSymbol.declarationKind,
-        governedFile,
-        lawId: zombieLawId,
-        reason,
-        remediation: "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-        symbolName: exportSymbol.exportName,
-        usageKind,
-        message: `${governedFile.repoPath} exports ${exportSymbol.exportName} without any provable final consumer.`,
-      });
+      if (status === "zombie") {
       zombieExportCount += 1;
+      }
     }
   }
   return { liveExportCount, zombieExportCount };

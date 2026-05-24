@@ -427,6 +427,86 @@ lawId 级覆盖不能证明法条级覆盖。
 - 单一 artifacts 生成器
 - 单一 audit-system 元质检脚本
 
+## [APEX-AUDIT-TRUTH-001-V1] Inspector 执法真值
+
+```apex-law
+{
+  "lawId": "APEX-AUDIT-TRUTH-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "audit-truth",
+  "enforcementMode": "meta",
+  "evidenceMode": "ast+project",
+  "summary": "Owner inspectors must use project-backed AST evidence and must not launder source-text search into structural judgment.",
+  "appliesTo": [
+    "scripts/audit/**/*.{ts,js,mjs}"
+  ],
+  "forbidden": [
+    "Owner inspector skipping context.project.",
+    "getText/getFullText string search used as structural verdict.",
+    "Text-search anti-evasion pretending to be AST-first enforcement."
+  ]
+}
+```
+
+### 主题
+Inspector 执法真值
+
+### 法条
+所有 owner inspector 必须通过 `context.project` 进入 ts-morph project 真相。
+
+凡涉及结构、owner、graph、entry、coverage、runtime contract 等 TS-facing 判断：
+
+- 主裁必须来自 AST / symbol / project graph
+- `getText`、`getFullText`、`includes`、`match`、`test` 只能作为辅助线索，不能变成 verdict 真相
+- inspector 若不接入 `context.project`，视为无法证明 AST-first enforcement
+
+### 禁止
+
+- inspector 不使用 `context.project`
+- 把 source text 搜索包装成 anti-evasion 或 coverage 判断
+- 用 tracked text variable 做 `includes` / `match` / `test` 后宣称是结构判断
+
+## [APEX-AUDIT-TRUTH-002-V1] Generated Plan Owner Coverage Truth
+
+```apex-law
+{
+  "lawId": "APEX-AUDIT-TRUTH-002-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "audit-truth",
+  "enforcementMode": "meta",
+  "evidenceMode": "generated-plan+project",
+  "summary": "Generated plan must cover every owner inspector exactly once and must not contain orphan owner paths.",
+  "appliesTo": [
+    "scripts/audit/**/*.{ts,js,mjs,json}"
+  ],
+  "forbidden": [
+    "Owner inspector missing from generated plan.",
+    "Generated plan pointing to orphan owner inspector path.",
+    "Plan truth and real inspector surface drifting apart."
+  ]
+}
+```
+
+### 主题
+Generated Plan Owner Coverage Truth
+
+### 法条
+generated plan 必须与真实 owner inspector 面一一对应。
+
+至少要求：
+
+- 每个真实 owner inspector 都有且只有一个 generated-plan entry
+- generated-plan entry 指向的 owner inspector 必须真实存在于 project 中
+- owner coverage 漂移必须 machine-blocking，而不是留给人工猜测
+
+### 禁止
+
+- 新增 owner inspector 但 generated plan 不接入
+- generated plan 指向不存在或已删除的 owner inspector
+- 以旧 summary 或旧 report 冒充当前 owner coverage 真相
+
 ## [APEX-AUDIT-009-V1] 删除优先级
 
 ```apex-law

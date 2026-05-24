@@ -5,6 +5,7 @@ import {
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import {
   isLawfulDynamicImport,
+  isLawfulSideEffectImport,
   type ZombieExemptionManifest,
 } from "./zombie-exemption-manifest.js";
 
@@ -20,6 +21,7 @@ export type ZombieModuleGraph = {
 
 export type ZombieReachability = {
   blockedDynamicImports: SourceModuleBinding[];
+  blockedSideEffectImports: SourceModuleBinding[];
   reachableFiles: Set<string>;
 };
 
@@ -71,6 +73,7 @@ export const collectZombieReachableFiles = (input: {
 }): ZombieReachability => {
   const reachableFiles = new Set<string>();
   const blockedDynamicImports: SourceModuleBinding[] = [];
+  const blockedSideEffectImports: SourceModuleBinding[] = [];
   const pendingFiles = [...input.entryFiles];
 
   while (pendingFiles.length > 0) {
@@ -84,6 +87,10 @@ export const collectZombieReachableFiles = (input: {
         blockedDynamicImports.push(edge);
         continue;
       }
+      if (edge.edgeKind === "side-effect-import" && !isLawfulSideEffectImport(input.manifest, edge.sourcePath, edge.targetPath)) {
+        blockedSideEffectImports.push(edge);
+        continue;
+      }
       if (!reachableFiles.has(edge.targetPath)) {
         pendingFiles.push(edge.targetPath);
       }
@@ -92,6 +99,7 @@ export const collectZombieReachableFiles = (input: {
 
   return {
     blockedDynamicImports,
+    blockedSideEffectImports,
     reachableFiles,
   };
 };

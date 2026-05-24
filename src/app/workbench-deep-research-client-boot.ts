@@ -128,6 +128,7 @@ async function downloadDeepResearchExport(state: DeepResearchClientState, kind: 
   link.download = exported.fileName || kind;
   link.click();
   URL.revokeObjectURL(link.href);
+  writeActivity(`deep research export ready: ${exported.fileName || kind}`, "ok");
 }
 
 function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEvent): void {

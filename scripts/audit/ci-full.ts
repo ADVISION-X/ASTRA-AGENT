@@ -11,6 +11,27 @@ type StepResult = {
   error?: string | undefined;
 };
 
+type CommandSpec = {
+  command: readonly [string, ...string[]];
+  name: string;
+};
+
+type PlanRunResult = Awaited<ReturnType<typeof runGeneratedPlan>>;
+
+const ciCommands: readonly CommandSpec[] = [
+  { name: "typecheck", command: ["npm", "run", "typecheck"] },
+  { name: "code-purity-zombie-deep", command: ["npm", "run", "acceptance:code-purity-zombie-deep"] },
+  { name: "audit-truth-coverage", command: ["npm", "run", "acceptance:audit-truth-coverage"] },
+  { name: "runtime-log-spine", command: ["npm", "run", "acceptance:runtime-log-spine"] },
+  { name: "deep-research-decomposition-prompt", command: ["npm", "run", "acceptance:deep-research-decomposition-prompt"] },
+  { name: "deep-research-analysis-smoke", command: ["npm", "run", "acceptance:deep-research-analysis-smoke"] },
+  { name: "deep-research-report-export", command: ["npm", "run", "acceptance:deep-research-report-export"] },
+  { name: "deep-research-report-reader-ui", command: ["npm", "run", "acceptance:deep-research-report-reader-ui"] },
+  { name: "deep-research-app-ui", command: ["npm", "run", "acceptance:deep-research-app-ui"] },
+  { name: "amazon-invoice-upload-smoke", command: ["npm", "run", "acceptance:amazon-invoice-upload-smoke"] },
+  { name: "facebook-product-video-mining", command: ["npm", "run", "acceptance:facebook-product-video-mining"] },
+];
+
 const runCommand = async (
   name: string,
   command: readonly [string, ...string[]],
@@ -63,28 +84,43 @@ const writeSummary = (summary: {
   );
 };
 
-const main = async (): Promise<void> => {
+const runGeneratedPlanStep = async (): Promise<{ planRun: PlanRunResult; step: StepResult }> => {
+  const planRun = await runGeneratedPlan();
+  return {
+    planRun,
+    step: {
+      name: "run-generated-plan",
+      status: planRun.hasFailures ? "FAIL" : "PASS",
+      error: planRun.hasFailures ? "One or more audit domains reported findings." : undefined,
+    },
+  };
+};
+
+const runCiCommands = async (): Promise<StepResult[]> => {
+  const stepResults: StepResult[] = [];
+  for (const step of ciCommands) {
+    stepResults.push(await runCommand(step.name, step.command));
+  }
+  return stepResults;
+};
+
+const collectCiSteps = async (): Promise<{ planRun: PlanRunResult; steps: StepResult[] }> => {
   const steps: StepResult[] = [];
   buildAuditArtifacts();
   steps.push({ name: "build-audit-artifacts", status: "PASS" });
 
-  const planRun = await runGeneratedPlan();
-  steps.push({
-    name: "run-generated-plan",
-    status: planRun.hasFailures ? "FAIL" : "PASS",
-    error: planRun.hasFailures ? "One or more audit domains reported findings." : undefined,
-  });
+  const generatedPlanStep = await runGeneratedPlanStep();
+  steps.push(generatedPlanStep.step);
+  steps.push(...await runCiCommands());
 
-  steps.push(await runCommand("typecheck", ["npm", "run", "typecheck"]));
-  steps.push(await runCommand("code-purity-zombie-deep", ["npm", "run", "acceptance:code-purity-zombie-deep"]));
-  steps.push(await runCommand("runtime-log-spine", ["npm", "run", "acceptance:runtime-log-spine"]));
-  steps.push(await runCommand("deep-research-decomposition-prompt", ["npm", "run", "acceptance:deep-research-decomposition-prompt"]));
-  steps.push(await runCommand("deep-research-analysis-smoke", ["npm", "run", "acceptance:deep-research-analysis-smoke"]));
-  steps.push(await runCommand("deep-research-report-export", ["npm", "run", "acceptance:deep-research-report-export"]));
-  steps.push(await runCommand("deep-research-report-reader-ui", ["npm", "run", "acceptance:deep-research-report-reader-ui"]));
-  steps.push(await runCommand("deep-research-app-ui", ["npm", "run", "acceptance:deep-research-app-ui"]));
-  steps.push(await runCommand("amazon-invoice-upload-smoke", ["npm", "run", "acceptance:amazon-invoice-upload-smoke"]));
-  steps.push(await runCommand("facebook-product-video-mining", ["npm", "run", "acceptance:facebook-product-video-mining"]));
+  return {
+    planRun: generatedPlanStep.planRun,
+    steps,
+  };
+};
+
+const main = async (): Promise<void> => {
+  const { planRun, steps } = await collectCiSteps();
 
   const hasFailures = planRun.hasFailures || steps.some((step) => step.status === "FAIL");
   writeSummary({

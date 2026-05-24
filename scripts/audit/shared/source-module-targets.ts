@@ -13,11 +13,19 @@ import {
 import { toRepoPath } from "./paths.js";
 
 export type SourceModuleTarget = {
-  edgeKind: "import" | "re-export";
+  edgeKind: "dynamic-import" | "import" | "re-export" | "side-effect-import";
   exposedNames: string[];
   namedBindings: string[];
   namespaceImport: boolean;
   targetPath: string;
+};
+
+export type SourceDynamicImportProblem = {
+  argumentText: string;
+  column: number;
+  line: number;
+  problemKind: "non-literal";
+  sourcePath: string;
 };
 
 export type SourceModuleBinding = {
@@ -76,6 +84,20 @@ const createSourceModuleBinding = (
   };
 };
 
+const createDynamicImportProblem = (
+  sourceFile: SourceFile,
+  start: number,
+  input: Omit<SourceDynamicImportProblem, "column" | "line" | "sourcePath">,
+): SourceDynamicImportProblem => {
+  const location = buildBindingLocation(sourceFile, start);
+  return {
+    ...input,
+    column: location.column,
+    line: location.line,
+    sourcePath: toRepoPath(sourceFile.getFilePath()),
+  };
+};
+
 const buildImportTarget = (sourceFile: SourceFile, importDeclaration: ImportDeclaration): SourceModuleTarget | undefined => {
   const targetPath = resolveModuleTargetPath(
     sourceFile,
@@ -119,6 +141,99 @@ const buildReExportTarget = (sourceFile: SourceFile, exportDeclaration: ExportDe
   };
 };
 
+const pushDefaultImportBinding = (
+  bindings: SourceModuleBinding[],
+  sourceFile: SourceFile,
+  importDeclaration: ImportDeclaration,
+  targetPath: string,
+): void => {
+  const defaultImport = importDeclaration.getDefaultImport();
+  if (!defaultImport) {
+    return;
+  }
+  bindings.push(
+    createSourceModuleBinding(sourceFile, importDeclaration.getStart(), {
+      defaultImportLocalName: defaultImport.getText(),
+      edgeKind: "import",
+      exposedSymbolName: null,
+      importedSymbolName: "default",
+      isTypeOnly: importDeclaration.isTypeOnly(),
+      localSymbolName: defaultImport.getText(),
+      namespaceLocalName: null,
+      targetPath,
+    }),
+  );
+};
+
+const pushNamedImportBindings = (
+  bindings: SourceModuleBinding[],
+  sourceFile: SourceFile,
+  importDeclaration: ImportDeclaration,
+  targetPath: string,
+): void => {
+  for (const namedImport of importDeclaration.getNamedImports()) {
+    bindings.push(
+      createSourceModuleBinding(sourceFile, namedImport.getStart(), {
+        defaultImportLocalName: null,
+        edgeKind: "import",
+        exposedSymbolName: null,
+        importedSymbolName: namedImport.getNameNode().getText(),
+        isTypeOnly: importDeclaration.isTypeOnly() || namedImport.isTypeOnly(),
+        localSymbolName: namedImport.getAliasNode()?.getText() ?? namedImport.getNameNode().getText(),
+        namespaceLocalName: null,
+        targetPath,
+      }),
+    );
+  }
+};
+
+const pushNamespaceImportBinding = (
+  bindings: SourceModuleBinding[],
+  sourceFile: SourceFile,
+  importDeclaration: ImportDeclaration,
+  targetPath: string,
+): void => {
+  const namespaceImport = importDeclaration.getNamespaceImport();
+  if (!namespaceImport) {
+    return;
+  }
+  bindings.push(
+    createSourceModuleBinding(sourceFile, namespaceImport.getStart(), {
+      defaultImportLocalName: null,
+      edgeKind: "import",
+      exposedSymbolName: null,
+      importedSymbolName: null,
+      isTypeOnly: importDeclaration.isTypeOnly(),
+      localSymbolName: namespaceImport.getText(),
+      namespaceLocalName: namespaceImport.getText(),
+      targetPath,
+    }),
+  );
+};
+
+const pushSideEffectImportBinding = (
+  bindings: SourceModuleBinding[],
+  sourceFile: SourceFile,
+  importDeclaration: ImportDeclaration,
+  targetPath: string,
+): void => {
+  if (bindings.length > 0) {
+    return;
+  }
+  bindings.push(
+    createSourceModuleBinding(sourceFile, importDeclaration.getStart(), {
+      defaultImportLocalName: null,
+      edgeKind: "side-effect-import",
+      exposedSymbolName: null,
+      importedSymbolName: null,
+      isTypeOnly: false,
+      localSymbolName: null,
+      namespaceLocalName: null,
+      targetPath,
+    }),
+  );
+};
+
 const collectImportBindings = (sourceFile: SourceFile, importDeclaration: ImportDeclaration): SourceModuleBinding[] => {
   const targetPath = resolveModuleTargetPath(
     sourceFile,
@@ -130,69 +245,10 @@ const collectImportBindings = (sourceFile: SourceFile, importDeclaration: Import
   }
 
   const bindings: SourceModuleBinding[] = [];
-  const declarationIsTypeOnly = importDeclaration.isTypeOnly();
-  const start = importDeclaration.getStart();
-  const defaultImport = importDeclaration.getDefaultImport();
-  if (defaultImport) {
-    bindings.push(
-      createSourceModuleBinding(sourceFile, start, {
-        defaultImportLocalName: defaultImport.getText(),
-        edgeKind: "import",
-        exposedSymbolName: null,
-        importedSymbolName: "default",
-        isTypeOnly: declarationIsTypeOnly,
-        localSymbolName: defaultImport.getText(),
-        namespaceLocalName: null,
-        targetPath,
-      }),
-    );
-  }
-
-  for (const namedImport of importDeclaration.getNamedImports()) {
-    bindings.push(
-      createSourceModuleBinding(sourceFile, namedImport.getStart(), {
-        defaultImportLocalName: null,
-        edgeKind: "import",
-        exposedSymbolName: null,
-        importedSymbolName: namedImport.getNameNode().getText(),
-        isTypeOnly: declarationIsTypeOnly || namedImport.isTypeOnly(),
-        localSymbolName: namedImport.getAliasNode()?.getText() ?? namedImport.getNameNode().getText(),
-        namespaceLocalName: null,
-        targetPath,
-      }),
-    );
-  }
-
-  const namespaceImport = importDeclaration.getNamespaceImport();
-  if (namespaceImport) {
-    bindings.push(
-      createSourceModuleBinding(sourceFile, namespaceImport.getStart(), {
-        defaultImportLocalName: null,
-        edgeKind: "import",
-        exposedSymbolName: null,
-        importedSymbolName: null,
-        isTypeOnly: declarationIsTypeOnly,
-        localSymbolName: namespaceImport.getText(),
-        namespaceLocalName: namespaceImport.getText(),
-        targetPath,
-      }),
-    );
-  }
-
-  if (bindings.length === 0) {
-    bindings.push(
-      createSourceModuleBinding(sourceFile, start, {
-        defaultImportLocalName: null,
-        edgeKind: "side-effect-import",
-        exposedSymbolName: null,
-        importedSymbolName: null,
-        isTypeOnly: false,
-        localSymbolName: null,
-        namespaceLocalName: null,
-        targetPath,
-      }),
-    );
-  }
+  pushDefaultImportBinding(bindings, sourceFile, importDeclaration, targetPath);
+  pushNamedImportBindings(bindings, sourceFile, importDeclaration, targetPath);
+  pushNamespaceImportBinding(bindings, sourceFile, importDeclaration, targetPath);
+  pushSideEffectImportBinding(bindings, sourceFile, importDeclaration, targetPath);
 
   return bindings;
 };
@@ -277,6 +333,53 @@ const collectDynamicImportBindings = (sourceFile: SourceFile): SourceModuleBindi
   return bindings;
 };
 
+const buildSupplementalTargetFromBinding = (binding: SourceModuleBinding): SourceModuleTarget => ({
+  edgeKind: binding.edgeKind,
+  exposedNames: [],
+  namedBindings: [],
+  namespaceImport: false,
+  targetPath: binding.targetPath,
+});
+
+const collectSupplementalEdgeTargets = (sourceFile: SourceFile): SourceModuleTarget[] => {
+  const targets: SourceModuleTarget[] = [];
+  const seenTargets = new Set<string>();
+
+  for (const binding of collectResolvedModuleBindings(sourceFile)) {
+    if (binding.edgeKind !== "dynamic-import" && binding.edgeKind !== "side-effect-import") {
+      continue;
+    }
+    const key = `${binding.edgeKind}:${binding.targetPath}`;
+    if (seenTargets.has(key)) {
+      continue;
+    }
+    seenTargets.add(key);
+    targets.push(buildSupplementalTargetFromBinding(binding));
+  }
+
+  return targets;
+};
+
+export const collectDynamicImportProblems = (sourceFile: SourceFile): SourceDynamicImportProblem[] => {
+  const problems: SourceDynamicImportProblem[] = [];
+  for (const callExpression of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    if (!isDynamicImportCall(callExpression)) {
+      continue;
+    }
+    const argument = callExpression.getArguments()[0];
+    if (!argument || Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument)) {
+      continue;
+    }
+    problems.push(
+      createDynamicImportProblem(sourceFile, callExpression.getStart(), {
+        argumentText: argument.getText(),
+        problemKind: "non-literal",
+      }),
+    );
+  }
+  return problems;
+};
+
 export const collectResolvedModuleTargets = (sourceFile: SourceFile): SourceModuleTarget[] => {
   const targets: SourceModuleTarget[] = [];
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
@@ -291,6 +394,7 @@ export const collectResolvedModuleTargets = (sourceFile: SourceFile): SourceModu
       targets.push(target);
     }
   }
+  targets.push(...collectSupplementalEdgeTargets(sourceFile));
   return targets;
 };
 

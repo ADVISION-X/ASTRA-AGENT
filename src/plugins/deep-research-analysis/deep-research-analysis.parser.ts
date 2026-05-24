@@ -424,9 +424,3 @@ export const parseDeepResearchFinalAdjudicationResponse = (
     normalize: (candidate) => buildFinalReportCandidate(candidate, fallback),
     missingRequiredReason: "invalid_final_adjudication_contract",
   });
-
-export const parseDeepResearchFinalReportResponse = (
-  rawText: string,
-  fallback: FinalReportNormalizationFallback = {},
-): DeepResearchParserResult<DeepResearchFinalReport> =>
-  parseDeepResearchFinalAdjudicationResponse(rawText, fallback);

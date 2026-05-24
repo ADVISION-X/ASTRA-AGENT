@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T00:13:47.197Z",
+  "generatedAt": "2026-05-24T00:56:02.254Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -72,7 +72,10 @@
         "APEX-CODE-PURITY-015-V1",
         "APEX-CODE-PURITY-016-V1",
         "APEX-CODE-PURITY-017-V1",
-        "APEX-CODE-PURITY-018-V1"
+        "APEX-CODE-PURITY-018-V1",
+        "APEX-CODE-PURITY-019-V1",
+        "APEX-CODE-PURITY-020-V1",
+        "APEX-CODE-PURITY-021-V1"
       ]
     },
     {

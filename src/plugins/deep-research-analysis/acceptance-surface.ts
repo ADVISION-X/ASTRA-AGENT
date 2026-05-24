@@ -7,7 +7,6 @@ export { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js"
 export {
   parseDeepResearchFinalAdjudicationResponse,
   parseDeepResearchFalsificationResponse,
-  parseDeepResearchFinalReportResponse,
   parseDeepResearchPositiveResponse,
   parseDeepResearchSubQuestionAnalysisResponse,
 } from "./deep-research-analysis.parser.js";
@@ -20,7 +19,6 @@ export { parseDecompositionResponse } from "./deep-research-analysis.decompositi
 export {
   detectFinalAdjudicationLeakage,
   detectCurrentEventMissingInfo,
-  detectFinalSynthesisLeakage,
   scoreDecompositionQuality,
 } from "./deep-research-analysis.prompt-quality.js";
 export { DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES } from "./deep-research-analysis.prompt-regression.js";

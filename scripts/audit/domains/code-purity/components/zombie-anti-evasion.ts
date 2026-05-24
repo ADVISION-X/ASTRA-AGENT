@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Node, SyntaxKind } from "ts-morph";
 
 import type { InspectorContext } from "../../../shared/inspector-contracts.js";
+import { collectDynamicImportProblems } from "../../../shared/source-module-targets.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
@@ -10,16 +11,6 @@ import type { ZombieModuleGraph, ZombieReachability } from "./zombie-module-grap
 import type { ZombieNamespaceUsageReport } from "./zombie-namespace-usage.js";
 import type { ZombieBarrelLaunderingSurface } from "./zombie-reexport-trace.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
-
-const countAntiEvasionCheckIds = new Set([
-  "code-purity/barrel-reexport-laundering",
-  "code-purity/dynamic-import-without-manifest",
-  "code-purity/namespace-dynamic-usage",
-  "code-purity/no-regex",
-  "code-purity/symbol-resolution-unavailable",
-  "code-purity/void-keepalive-evasion",
-  "code-purity/zombie-inspector-self-proof",
-]);
 
 const readPackageScripts = (): Record<string, string> => {
   const parsed = JSON.parse(readFileSync(resolveFromRepo("package.json"), "utf8")) as {
@@ -58,14 +49,11 @@ const pushVoidKeepaliveFindings = (
   return findingCount;
 };
 
-export const scanZombieAntiEvasion = (input: {
+const pushNamespaceDynamicUsageFindings = (input: {
   antiEvasionLawId: string;
-  barrelLaunderingSurfaces: readonly ZombieBarrelLaunderingSurface[];
   collector: InventoryFindingCollector;
-  governedFiles: readonly GovernedFile[];
   moduleGraph: ZombieModuleGraph;
   namespaceUsage: ZombieNamespaceUsageReport;
-  reachability: ZombieReachability;
 }): number => {
   let findingCount = 0;
   for (const dynamicUsage of input.namespaceUsage.dynamicUsages) {
@@ -83,7 +71,16 @@ export const scanZombieAntiEvasion = (input: {
     });
     findingCount += 1;
   }
+  return findingCount;
+};
 
+const pushBlockedDynamicImportFindings = (input: {
+  collector: InventoryFindingCollector;
+  dynamicImportLawId: string;
+  moduleGraph: ZombieModuleGraph;
+  reachability: ZombieReachability;
+}): number => {
+  let findingCount = 0;
   for (const blockedDynamicImport of input.reachability.blockedDynamicImports) {
     const governedFile = input.moduleGraph.filesByPath.get(blockedDynamicImport.sourcePath);
     if (!governedFile) {
@@ -92,13 +89,88 @@ export const scanZombieAntiEvasion = (input: {
     pushZombieFinding(input.collector, {
       checkId: "code-purity/dynamic-import-without-manifest",
       governedFile,
-      lawId: input.antiEvasionLawId,
+      lawId: input.dynamicImportLawId,
       reason: `Dynamic import to ${blockedDynamicImport.targetPath} is not declared in the lawful live entry manifest.`,
       remediation: "Make the import static or declare the dynamic entry in the lawful zombie exemption manifest.",
       message: `${governedFile.repoPath} dynamically imports ${blockedDynamicImport.targetPath} without lawful manifest proof.`,
     });
     findingCount += 1;
   }
+  return findingCount;
+};
+
+const pushBlockedSideEffectImportFindings = (input: {
+  collector: InventoryFindingCollector;
+  moduleGraph: ZombieModuleGraph;
+  reachability: ZombieReachability;
+  sideEffectImportLawId: string;
+}): number => {
+  let findingCount = 0;
+  for (const blockedSideEffectImport of input.reachability.blockedSideEffectImports) {
+    const governedFile = input.moduleGraph.filesByPath.get(blockedSideEffectImport.sourcePath);
+    if (!governedFile) {
+      continue;
+    }
+    pushZombieFinding(input.collector, {
+      checkId: "code-purity/side-effect-import-without-manifest",
+      governedFile,
+      lawId: input.sideEffectImportLawId,
+      reason: `Side-effect import to ${blockedSideEffectImport.targetPath} is not declared in the lawful live entry manifest.`,
+      remediation: "Delete the side-effect import, convert it to a lawful static import, or declare the side-effect edge explicitly in the manifest.",
+      message: `${governedFile.repoPath} side-effect imports ${blockedSideEffectImport.targetPath} without lawful manifest proof.`,
+    });
+    findingCount += 1;
+  }
+  return findingCount;
+};
+
+const pushDynamicImportProblemFindings = (input: {
+  collector: InventoryFindingCollector;
+  dynamicImportLawId: string;
+  governedFiles: readonly GovernedFile[];
+  reachableFiles: ReadonlySet<string>;
+}): number => {
+  let findingCount = 0;
+  for (const governedFile of input.governedFiles) {
+    if (!input.reachableFiles.has(governedFile.repoPath)) {
+      continue;
+    }
+    for (const problem of collectDynamicImportProblems(governedFile.sourceFile)) {
+      pushZombieFinding(input.collector, {
+        checkId: "code-purity/dynamic-import-nonliteral",
+        governedFile,
+        lawId: input.dynamicImportLawId,
+        reason: `Dynamic import uses non-literal specifier ${problem.argumentText}; owner and liveness truth cannot be proven from runtime-computed targets.`,
+        remediation: "Replace the computed dynamic import with a literal import target or an explicit owner-local loader map.",
+        message: `${governedFile.repoPath} uses non-literal dynamic import ${problem.argumentText}.`,
+      });
+      findingCount += 1;
+    }
+  }
+  return findingCount;
+};
+
+export const scanZombieAntiEvasion = (input: {
+  antiEvasionLawId: string;
+  dynamicImportLawId: string;
+  barrelLaunderingSurfaces: readonly ZombieBarrelLaunderingSurface[];
+  collector: InventoryFindingCollector;
+  governedFiles: readonly GovernedFile[];
+  moduleGraph: ZombieModuleGraph;
+  namespaceUsage: ZombieNamespaceUsageReport;
+  reachability: ZombieReachability;
+  sideEffectImportLawId: string;
+}): number => {
+  let findingCount = 0;
+  findingCount += pushNamespaceDynamicUsageFindings(input);
+  findingCount += pushBlockedDynamicImportFindings(input);
+  findingCount += pushBlockedSideEffectImportFindings(input);
+  findingCount += pushDynamicImportProblemFindings({
+    collector: input.collector,
+    dynamicImportLawId: input.dynamicImportLawId,
+    governedFiles: input.governedFiles,
+    reachableFiles: input.reachability.reachableFiles,
+  });
 
   for (const surface of input.barrelLaunderingSurfaces) {
     const governedFile = input.moduleGraph.filesByPath.get(surface.exportingFile);
@@ -185,5 +257,3 @@ export const scanZombieInspectorSelfProof = (input: {
   );
   return 1;
 };
-
-export const isAntiEvasionFinding = (checkId: string): boolean => countAntiEvasionCheckIds.has(checkId);

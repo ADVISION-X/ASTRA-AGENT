@@ -9,6 +9,7 @@ const DEEP_RESEARCH_CLIENT_FUNCTIONS = [
 ] as const;
 
 export const renderWorkbenchDeepResearchClient = (): string => [
+  "const __name = (target) => target;",
   ...DEEP_RESEARCH_CLIENT_FUNCTIONS.map((fn) => `${fn.toString()};`),
   "bootWorkbenchDeepResearchClient();",
 ].join("\n");

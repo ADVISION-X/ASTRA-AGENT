@@ -25,6 +25,19 @@ const sourceFileBudget: FileBudget = { label: "active executable source file", m
 
 const schemaLikeStemTokens = new Set(["schema", "contract", "type", "types", "result"]);
 
+export const normalizeCodePurityPath = (repoPath: string): string => {
+  for (const marker of ["src/", "scripts/"]) {
+    if (repoPath.startsWith(marker)) {
+      return repoPath;
+    }
+    const markerIndex = repoPath.indexOf(`/${marker}`);
+    if (markerIndex >= 0) {
+      return repoPath.slice(markerIndex + 1);
+    }
+  }
+  return repoPath;
+};
+
 const resolveByPrefix = (repoPath: string, rules: readonly (readonly [string, string])[]): string | null =>
   rules.find(([prefix]) => repoPath.startsWith(prefix))?.[1] ?? null;
 
@@ -116,14 +129,16 @@ const resolveScriptOwner = (repoPath: string): string | null => {
   ]) ?? (repoPath.startsWith("scripts/audit/") ? "audit-core" : null);
 };
 
-export const resolveCodePurityOwner = (repoPath: string): string =>
-  resolvePluginOwner(repoPath) ??
-  resolveCapabilityOwner(repoPath) ??
-  resolveAuditOwner(repoPath) ??
-  resolveSourceOwner(repoPath) ??
-  resolveLibOwner(repoPath) ??
-  resolveScriptOwner(repoPath) ??
+export const resolveCodePurityOwner = (repoPath: string): string => {
+  const normalizedPath = normalizeCodePurityPath(repoPath);
+  return resolvePluginOwner(normalizedPath) ??
+  resolveCapabilityOwner(normalizedPath) ??
+  resolveAuditOwner(normalizedPath) ??
+  resolveSourceOwner(normalizedPath) ??
+  resolveLibOwner(normalizedPath) ??
+  resolveScriptOwner(normalizedPath) ??
   "unknown";
+};
 
 const resolveScriptRole = (repoPath: string): CodePurityRole | null =>
   (isAuditInspectorPath(repoPath) ? "audit-inspector" : null) ??
@@ -185,6 +200,9 @@ const resolveSourceRole = (repoPath: string): CodePurityRole =>
   resolveLibraryRole(repoPath) ??
   resolveFallbackSourceRole(repoPath);
 
-export const resolveCodePurityRole = (repoPath: string): CodePurityRole => resolveScriptRole(repoPath) ?? resolveSourceRole(repoPath);
+export const resolveCodePurityRole = (repoPath: string): CodePurityRole => {
+  const normalizedPath = normalizeCodePurityPath(repoPath);
+  return resolveScriptRole(normalizedPath) ?? resolveSourceRole(normalizedPath);
+};
 
 export const resolveCodePurityBudget = (_repoPath: string, _role: CodePurityRole): FileBudget => sourceFileBudget;

@@ -1,0 +1,13 @@
+{
+  "entryScripts": [
+    "src/entry.ts"
+  ],
+  "manifest": {
+    "lawfulSideEffectImports": [
+      {
+        "consumerFilePath": "src/bootstrap.ts",
+        "targetFilePath": "src/side-effect.ts"
+      }
+    ]
+  }
+}

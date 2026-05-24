@@ -6,7 +6,13 @@ import { Project } from "ts-morph";
 
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../audit/shared/paths.js";
+import {
+  resolveCodePurityBudget,
+  resolveCodePurityOwner,
+  resolveCodePurityRole,
+} from "../audit/domains/code-purity/components/code-purity-owner-model.js";
 import type { GovernedFile } from "../audit/domains/code-purity/components/code-purity-governed-files.js";
+import { scanOwnerBoundaries } from "../audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan-zombie-surfaces.js";
 import type { ZombieExemptionManifest } from "../audit/domains/code-purity/components/zombie-exemption-manifest.js";
 
@@ -15,6 +21,7 @@ type FixtureManifestConfig = {
   externalEntryFiles?: string[];
   lawfulDynamicImports?: Array<{ consumerFilePath: string; targetFilePath: string }>;
   lawfulDynamicNamespaceConsumers?: Array<{ consumerFilePath: string; targetFilePath: string }>;
+  lawfulSideEffectImports?: Array<{ consumerFilePath: string; targetFilePath: string }>;
 };
 
 type FixtureConfig = {
@@ -22,7 +29,18 @@ type FixtureConfig = {
   manifest?: FixtureManifestConfig;
 };
 
-const LAW_IDS = ["APEX-CODE-PURITY-017-V1", "APEX-CODE-PURITY-018-V1"];
+const LAW_IDS = [
+  "APEX-CODE-PURITY-004-V1",
+  "APEX-CODE-PURITY-005-V1",
+  "APEX-CODE-PURITY-006-V1",
+  "APEX-CODE-PURITY-007-V1",
+  "APEX-CODE-PURITY-011-V1",
+  "APEX-CODE-PURITY-017-V1",
+  "APEX-CODE-PURITY-018-V1",
+  "APEX-CODE-PURITY-019-V1",
+  "APEX-CODE-PURITY-020-V1",
+  "APEX-CODE-PURITY-021-V1",
+];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 
@@ -52,14 +70,18 @@ const createRuntimeProject = (runtimeDir: string): Project => {
 const buildFixtureGovernedFiles = (project: Project, runtimeRepoPath: string): GovernedFile[] =>
   project.getSourceFiles()
     .filter((sourceFile) => !sourceFile.isDeclarationFile())
-    .map((sourceFile) => ({
-      budget: { label: "fixture source file", maxLines: 500 },
-      lineCount: sourceFile.getEndLineNumber(),
-      owner: "fixture",
-      repoPath: toRepoPath(sourceFile.getFilePath()),
-      role: "job-step" as const,
-      sourceFile,
-    }))
+    .map((sourceFile) => {
+      const repoPath = toRepoPath(sourceFile.getFilePath());
+      const role = resolveCodePurityRole(repoPath);
+      return {
+        budget: resolveCodePurityBudget(repoPath, role),
+        lineCount: sourceFile.getEndLineNumber(),
+        owner: resolveCodePurityOwner(repoPath),
+        repoPath,
+        role,
+        sourceFile,
+      };
+    })
     .filter((governedFile) => governedFile.repoPath.startsWith(`${runtimeRepoPath}/src/`))
     .sort((left, right) => left.repoPath.localeCompare(right.repoPath));
 
@@ -91,6 +113,11 @@ const buildManifest = (runtimeRepoPath: string, manifest: FixtureManifestConfig 
   lawfulDynamicNamespaceConsumers: (manifest?.lawfulDynamicNamespaceConsumers ?? []).map((entry) => ({
     consumerFilePath: prefixRuntimePath(runtimeRepoPath, entry.consumerFilePath),
     reason: "fixture dynamic namespace exemption",
+    targetFilePath: prefixRuntimePath(runtimeRepoPath, entry.targetFilePath),
+  })),
+  lawfulSideEffectImports: (manifest?.lawfulSideEffectImports ?? []).map((entry) => ({
+    consumerFilePath: prefixRuntimePath(runtimeRepoPath, entry.consumerFilePath),
+    reason: "fixture side-effect import exemption",
     targetFilePath: prefixRuntimePath(runtimeRepoPath, entry.targetFilePath),
   })),
 });
@@ -154,8 +181,15 @@ const runFixtureCase = (caseName: string) => {
       packageScripts: buildPackageScripts(fixtureConfig.entryScripts, runtimeRepoPath),
     },
   );
+  const ownerBoundaryResult = scanOwnerBoundaries(governedFiles, LAW_IDS);
 
-  return { governedFiles, result, runtimeRepoPath };
+  return {
+    governedFiles,
+    result: {
+      findings: [...result.findings, ...ownerBoundaryResult.findings],
+    },
+    runtimeRepoPath,
+  };
 };
 
 const assertHasFinding = (
@@ -239,6 +273,31 @@ assertNoFinding("lawful-manifest-entry", {
 });
 assertNoFinding("lawful-manifest-entry", {
   checkId: "code-purity/zombie-export",
+});
+assertHasFinding("side-effect-import-laundering", {
+  checkId: "code-purity/side-effect-import-without-manifest",
+});
+assertNoFinding("lawful-side-effect-import", {
+  checkId: "code-purity/side-effect-import-without-manifest",
+});
+assertNoFinding("lawful-side-effect-import", {
+  checkId: "code-purity/zombie-file",
+  fileIncludes: "/lawful-side-effect-import/src/side-effect.ts",
+});
+assertHasFinding("dynamic-import-nonliteral", {
+  checkId: "code-purity/dynamic-import-nonliteral",
+});
+assertHasFinding("dynamic-import-owner-boundary-violation", {
+  checkId: "code-purity/plugin-non-facade-capability-import",
+});
+assertNoFinding("dynamic-import-owner-boundary-violation", {
+  checkId: "code-purity/dynamic-import-without-manifest",
+});
+assertHasFinding("side-effect-import-owner-boundary-violation", {
+  checkId: "code-purity/plugin-non-facade-capability-import",
+});
+assertNoFinding("side-effect-import-owner-boundary-violation", {
+  checkId: "code-purity/side-effect-import-without-manifest",
 });
 
 const zombieChainResult = runFixtureCase("zombie-to-zombie-chain").result;

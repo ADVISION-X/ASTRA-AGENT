@@ -40,15 +40,25 @@ type ZombieScanOverrides = {
   packageScripts?: Readonly<Record<string, string>>;
 };
 
-export const scanZombieSurfaces = (
+type ZombieGraphState = {
+  antiEvasionLawId: string;
+  dynamicImportLawId: string;
+  liveEntryState: ReturnType<typeof collectZombieLiveEntrypoints>;
+  manifest: ZombieExemptionManifest;
+  moduleGraph: ReturnType<typeof buildZombieModuleGraph>;
+  namespaceUsage: ReturnType<typeof scanZombieNamespaceUsage>;
+  reachability: ReturnType<typeof collectZombieReachableFiles>;
+  sideEffectImportLawId: string;
+  symbolGraph: ReturnType<typeof buildZombieSymbolGraph>;
+  zombieLawId: string;
+};
+
+const buildZombieGraphState = (
   context: InspectorContext,
   governedFiles: readonly GovernedFile[],
+  overrides: ZombieScanOverrides,
   lawIds: readonly string[],
-  overrides: ZombieScanOverrides = {},
-): ZombieScanResult => {
-  const collector = createInventoryFindingCollector();
-  const zombieLawId = selectLawId(lawIds, "APEX-CODE-PURITY-017-V1");
-  const antiEvasionLawId = selectLawId(lawIds, "APEX-CODE-PURITY-018-V1");
+): ZombieGraphState => {
   const manifest = overrides.manifest ?? zombieExemptionManifest;
   const liveEntryState = collectZombieLiveEntrypoints({
     generatedPlan: context.generatedPlan,
@@ -62,33 +72,33 @@ export const scanZombieSurfaces = (
     manifest,
     moduleGraph,
   });
-  const symbolGraph = buildZombieSymbolGraph(governedFiles);
-  const namespaceUsage = scanZombieNamespaceUsage({
+  return {
+    antiEvasionLawId: selectLawId(lawIds, "APEX-CODE-PURITY-018-V1"),
+    dynamicImportLawId: selectLawId(lawIds, "APEX-CODE-PURITY-020-V1"),
+    liveEntryState,
     manifest,
     moduleGraph,
-    reachableFiles: reachability.reachableFiles,
-  });
-
-  const referenceSummary = scanZombieReferenceSurfaces(collector, {
-    antiEvasionLawId,
-    manifest,
-    moduleGraph,
-    namespaceUsage,
+    namespaceUsage: scanZombieNamespaceUsage({
+      manifest,
+      moduleGraph,
+      reachableFiles: reachability.reachableFiles,
+    }),
     reachability,
-    symbolGraph,
-  }, zombieLawId);
-  const declarationSummary = scanZombieDeclarations(
-    collector,
-    governedFiles,
-    zombieLawId,
-    antiEvasionLawId,
-    reachability,
-  );
-  const deadBranchSummary = scanZombieDeadBranches(collector, governedFiles, zombieLawId, reachability);
+    sideEffectImportLawId: selectLawId(lawIds, "APEX-CODE-PURITY-019-V1"),
+    symbolGraph: buildZombieSymbolGraph(governedFiles),
+    zombieLawId: selectLawId(lawIds, "APEX-CODE-PURITY-017-V1"),
+  };
+};
 
+const scanReachableCommentedCode = (
+  collector: ReturnType<typeof createInventoryFindingCollector>,
+  antiEvasionLawId: string,
+  governedFiles: readonly GovernedFile[],
+  reachableFiles: ReadonlySet<string>,
+): number => {
   let commentedOutCodeCount = 0;
   for (const governedFile of governedFiles) {
-    if (!reachability.reachableFiles.has(governedFile.repoPath)) {
+    if (!reachableFiles.has(governedFile.repoPath)) {
       continue;
     }
     for (const hit of collectZombieCommentedCodeHits(governedFile.sourceFile)) {
@@ -103,25 +113,70 @@ export const scanZombieSurfaces = (
       commentedOutCodeCount += 1;
     }
   }
+  return commentedOutCodeCount;
+};
 
+const scanAntiEvasionFindings = (
+  collector: ReturnType<typeof createInventoryFindingCollector>,
+  context: InspectorContext,
+  governedFiles: readonly GovernedFile[],
+  state: ZombieGraphState,
+): number => {
   let antiEvasionFindingCount = scanZombieAntiEvasion({
-    antiEvasionLawId,
+    antiEvasionLawId: state.antiEvasionLawId,
+    dynamicImportLawId: state.dynamicImportLawId,
     barrelLaunderingSurfaces: collectZombieBarrelLaunderingSurfaces({
-      reachableFiles: reachability.reachableFiles,
-      symbolGraph,
+      reachableFiles: state.reachability.reachableFiles,
+      symbolGraph: state.symbolGraph,
     }),
     collector,
     governedFiles,
-    moduleGraph,
-    namespaceUsage,
-    reachability,
+    moduleGraph: state.moduleGraph,
+    namespaceUsage: state.namespaceUsage,
+    reachability: state.reachability,
+    sideEffectImportLawId: state.sideEffectImportLawId,
   });
   antiEvasionFindingCount += scanZombieInspectorSelfProof({
-    antiEvasionLawId,
+    antiEvasionLawId: state.antiEvasionLawId,
     collector,
     context,
     inspectedFileCount: governedFiles.length,
   });
+  return antiEvasionFindingCount;
+};
+
+export const scanZombieSurfaces = (
+  context: InspectorContext,
+  governedFiles: readonly GovernedFile[],
+  lawIds: readonly string[],
+  overrides: ZombieScanOverrides = {},
+): ZombieScanResult => {
+  const collector = createInventoryFindingCollector();
+  const state = buildZombieGraphState(context, governedFiles, overrides, lawIds);
+
+  const referenceSummary = scanZombieReferenceSurfaces(collector, {
+    antiEvasionLawId: state.antiEvasionLawId,
+    manifest: state.manifest,
+    moduleGraph: state.moduleGraph,
+    namespaceUsage: state.namespaceUsage,
+    reachability: state.reachability,
+    symbolGraph: state.symbolGraph,
+  }, state.zombieLawId);
+  const declarationSummary = scanZombieDeclarations(
+    collector,
+    governedFiles,
+    state.zombieLawId,
+    state.antiEvasionLawId,
+    state.reachability,
+  );
+  const deadBranchSummary = scanZombieDeadBranches(collector, governedFiles, state.zombieLawId, state.reachability);
+  const commentedOutCodeCount = scanReachableCommentedCode(
+    collector,
+    state.antiEvasionLawId,
+    governedFiles,
+    state.reachability.reachableFiles,
+  );
+  const antiEvasionFindingCount = scanAntiEvasionFindings(collector, context, governedFiles, state);
 
   return {
     findings: collector.findings,
@@ -130,10 +185,10 @@ export const scanZombieSurfaces = (
       antiEvasionFindingCount,
       commentedOutCodeCount,
       deadBranchCount: deadBranchSummary.deadBranchCount,
-      liveEntryPoints: liveEntryState.liveEntryPoints,
+      liveEntryPoints: state.liveEntryState.liveEntryPoints,
       liveExportCount: referenceSummary.liveExportCount,
       orphanDeclarationCount: declarationSummary.orphanDeclarationCount,
-      reachableFileCount: reachability.reachableFiles.size,
+      reachableFileCount: state.reachability.reachableFiles.size,
       unreachableFileCount: referenceSummary.unreachableFileCount,
       zombieExportCount: referenceSummary.zombieExportCount,
     },

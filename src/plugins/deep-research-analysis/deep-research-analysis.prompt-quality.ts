@@ -57,8 +57,6 @@ export const detectFinalAdjudicationLeakage = (questionText: string): boolean =>
   return matchesAny(questionText, finalSynthesisLeakagePatterns);
 };
 
-export const detectFinalSynthesisLeakage = detectFinalAdjudicationLeakage;
-
 export const detectCurrentEventMissingInfo = (input: DeepResearchDecompositionResponse): boolean => {
   if (!matchesAny(input.mainQuestion, currentEventSignals)) {
     return false;

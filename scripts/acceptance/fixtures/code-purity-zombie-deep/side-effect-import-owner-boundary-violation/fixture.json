@@ -1,0 +1,13 @@
+{
+  "entryScripts": [
+    "src/plugins/demo/entry.ts"
+  ],
+  "manifest": {
+    "lawfulSideEffectImports": [
+      {
+        "consumerFilePath": "src/plugins/demo/entry.ts",
+        "targetFilePath": "src/capabilities/widget/runtime/private.ts"
+      }
+    ]
+  }
+}

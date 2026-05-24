@@ -242,14 +242,16 @@ function renderHistory(state: DeepResearchClientState): void {
     const selected = job.id === state.selectedJobId;
     return `
       <button class="research-history-item${selected ? " selected" : ""}" type="button" data-deep-research-select-job="${escapeText(job.id)}" aria-pressed="${selected}">
+        <div class="research-history-title">
+          <h3>${escapeText(job.title)}</h3>
+          <span>${escapeText(formatDateTime(job.updatedAt))}</span>
+        </div>
+        <p class="research-history-summary">${escapeText(job.questionSummary)}</p>
         <div class="research-history-top">
           ${renderStatusBadge(job.status)}
           ${renderConfidenceBadge(job.finalConfidence)}
         </div>
-        <h3>${escapeText(job.title)}</h3>
-        <p>${escapeText(job.questionSummary)}</p>
         ${renderMetaRow([
-          formatDateTime(job.updatedAt),
           `${job.subQuestionCount} subquestions`,
           `${job.interactionCount} interactions`,
           `${job.exportCount} exports`,
@@ -298,6 +300,7 @@ export const deepResearchClientSharedRuntime = {
   renderJsonDetails,
   renderExportButtons,
   renderInteractionDebug,
+  readPayloadString,
   renderAnswerCard,
   renderHistory,
   renderEmptyReader,
@@ -324,6 +327,7 @@ export const deepResearchClientSharedFunctions = [
   renderJsonDetails,
   renderExportButtons,
   renderInteractionDebug,
+  readPayloadString,
   renderAnswerCard,
   renderHistory,
   renderEmptyReader,

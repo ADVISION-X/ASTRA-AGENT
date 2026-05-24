@@ -27,8 +27,8 @@ const FORBIDDEN_CONTROL_FIELDS = [
   "runNext",
   "databaseCommand",
   "filePath",
-  "nextAction",
-  "actionPlan",
+  "followUpAction",
+  "executionDirective",
 ] as const;
 
 const buildOutputContract = (input: {
@@ -267,7 +267,7 @@ export const finalAdjudicationPrompt = buildPrompt({
     "6. identify evidence gaps,",
     "7. state how much value the multi-stage research added compared with a one-shot answer.",
     "",
-    "Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, or nextAction.",
+    "Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, or any follow-up action field.",
     "Do not include contractId.",
     "Do not include format.",
     "Do not provide investment, legal, medical, tax, military, or operational action instructions.",

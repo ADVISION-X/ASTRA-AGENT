@@ -70,7 +70,7 @@ assertText("src/app/workbench-deep-research-panel.ts", "name=\"providerKind\"");
 assertText("src/app/workbench-deep-research-panel.ts", "name=\"maxSubQuestions\"");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-new-toggle");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-form-shell");
-assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-layout-contract=\"history-rail-reader\"");
+assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-layout-contract=\"history-table-reader\"");
 assertText("src/app/workbench-deep-research-panel.ts", "data-deep-research-scroll-boundary");
 assertText("src/app/workbench-deep-research-history-view.ts", "data-deep-research-history");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-final-card");
@@ -78,8 +78,8 @@ assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-evidence");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-reader-primary");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-side-compact");
-assertText("src/app/workbench-deep-research-styles.ts", "max-height: calc(100vh - 128px)");
-assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(260px, 320px) minmax(0, 1fr)");
+assertText("src/app/workbench-deep-research-styles.ts", "max-height: min(320px, 34vh)");
+assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr)");
 assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
 assertImport(
   "src/app/create-workbench-server.ts",

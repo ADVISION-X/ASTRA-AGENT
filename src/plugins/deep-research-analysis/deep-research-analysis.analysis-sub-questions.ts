@@ -1,7 +1,7 @@
 import type {
-  DeepResearchDecompositionResponse,
   DeepResearchSubQuestionAnalysisAnswer,
 } from "./deep-research-analysis.parser.js";
+import type { DeepResearchDecompositionResponse } from "./deep-research-analysis.decomposition-schema.js";
 import {
   parseDeepResearchDecompositionResponse,
   parseDeepResearchSubQuestionAnalysisResponse,
@@ -145,7 +145,7 @@ const rememberFailedAnalysisHashes = (input: {
   context: AnalysisExecutionContext;
   subQuestionId: string;
   promptHash: string;
-  rawResponseHash?: string;
+  rawResponseHash: string | undefined;
 }): void => {
   input.context.recordHashes[`analysis-failure:${input.subQuestionId}:prompt`] = input.promptHash;
   if (input.rawResponseHash) {

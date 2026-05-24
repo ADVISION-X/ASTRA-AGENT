@@ -1,91 +1,10 @@
 {
-  "antiEvasionFindingCount": 9,
+  "antiEvasionFindingCount": 8,
   "capabilityDomain": "code-purity",
   "commentedOutCodeCount": 12,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/ci-full.ts has an over-line function near line 66.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/ci-full.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts has an over-line function near line 54.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts has an over-line function near line 43.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/as-unknown-as",
-      "lawId": "APEX-CODE-PURITY-008-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts uses as unknown as near line 117.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Replace double assertion with schema validation or an explicit narrowing guard.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts has an over-line function near line 47.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts has an over-line function near line 53.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts has an over-line function near line 107.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts has an over-line function near line 53.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/source-module-targets.ts has an over-line function near line 122.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/shared/source-module-targets.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
@@ -117,7 +36,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts has an over-line function near line 72.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts has an over-line function near line 70.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -153,15 +72,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts exports isAntiEvasionFinding without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:code-purity\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"isAntiEvasionFinding\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RUNTIME_LOG_GENERATED_JSON without any provable final consumer.",
       "severity": "fatal",
       "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
@@ -189,24 +99,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts exports parseDeepResearchFinalReportResponse without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"parseDeepResearchFinalReportResponse\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts exports detectFinalSynthesisLeakage without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"detectFinalSynthesisLeakage\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts exports persistPositiveAnswer without any provable final consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
@@ -225,15 +117,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts exports parseDeepResearchFinalReportResponse without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"parseDeepResearchFinalReportResponse\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts exports persistFalsificationAnswer without any provable final consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
@@ -247,15 +130,6 @@
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
       "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"persistPositiveAnswer\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts exports detectFinalSynthesisLeakage without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"detectFinalSynthesisLeakage\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-export",
@@ -1239,22 +1113,13 @@
       "evidence": "{\"owner\":\"storage\",\"remediation\":\"Delete the commented-out executable code instead of keeping it as backup cargo.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "lawId": "APEX-CODE-PURITY-018-V1",
+      "checkId": "code-purity/dynamic-import-nonliteral",
+      "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts re-exports parseDeepResearchFinalReportResponse without any final reachable consumer.",
+      "message": "scripts/audit/core/run-generated-plan.ts uses non-literal dynamic import moduleUrl.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"parseDeepResearchFinalReportResponse\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/barrel-reexport-laundering",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/acceptance-surface.ts re-exports detectFinalSynthesisLeakage without any final reachable consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
-      "evidence": "{\"declarationKind\":\"re-export\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused re-export or reconnect a real final consumer for the symbol.\",\"role\":\"job-step\",\"symbolName\":\"detectFinalSynthesisLeakage\",\"usageKind\":\"re-export\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/audit/core/run-generated-plan.ts",
+      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Replace the computed dynamic import with a literal import target or an explicit owner-local loader map.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/barrel-reexport-laundering",
@@ -1320,7 +1185,7 @@
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-24T00:13:58.640Z",
+  "generatedAt": "2026-05-24T00:56:12.031Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
@@ -1785,7 +1650,10 @@
     "APEX-CODE-PURITY-015-V1",
     "APEX-CODE-PURITY-016-V1",
     "APEX-CODE-PURITY-017-V1",
-    "APEX-CODE-PURITY-018-V1"
+    "APEX-CODE-PURITY-018-V1",
+    "APEX-CODE-PURITY-019-V1",
+    "APEX-CODE-PURITY-020-V1",
+    "APEX-CODE-PURITY-021-V1"
   ],
   "liveEntryPoints": [
     {
@@ -2011,20 +1879,20 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1139,
+  "liveExportCount": 1144,
   "orphanDeclarationCount": 0,
   "reachableFileCount": 443,
   "status": "FAIL",
   "unreachableFileCount": 1,
-  "zombieExportCount": 13,
+  "zombieExportCount": 8,
   "zombieSummary": {
-    "antiEvasionFindingCount": 9,
+    "antiEvasionFindingCount": 8,
     "commentedOutCodeCount": 12,
     "deadBranchCount": 0,
-    "liveExportCount": 1139,
+    "liveExportCount": 1144,
     "orphanDeclarationCount": 0,
     "reachableFileCount": 443,
     "unreachableFileCount": 1,
-    "zombieExportCount": 13
+    "zombieExportCount": 8
   }
 }

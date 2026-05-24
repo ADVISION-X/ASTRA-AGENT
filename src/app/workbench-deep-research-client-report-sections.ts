@@ -26,11 +26,13 @@ const {
   toggleResearchHidden,
 } = deepResearchClientSharedRuntime;
 
-const isLegacyFlow = (report: DeepResearchReport): boolean =>
-  report.job.flowMode === "legacy_1_n_n_1";
+function isLegacyFlow(report: DeepResearchReport): boolean {
+  return report.job.flowMode === "legacy_1_n_n_1";
+}
 
-const renderFlowLabel = (report: DeepResearchReport): string =>
-  isLegacyFlow(report) ? "Legacy 1+N+N+1" : "Default 1+N+1";
+function renderFlowLabel(report: DeepResearchReport): string {
+  return isLegacyFlow(report) ? "Legacy 1+N+N+1" : "Default 1+N+1";
+}
 
 function renderReportHeader(report: DeepResearchReport): void {
   setResearchHtml("[data-deep-research-report-header]", `
@@ -397,10 +399,15 @@ export const deepResearchClientReportRuntime = {
 } as const;
 
 export const deepResearchClientReportFunctions = [
+  isLegacyFlow,
+  renderFlowLabel,
   renderReportHeader,
+  renderRankedConclusions,
   renderConclusionCard,
   renderStageOverview,
   renderDecomposition,
+  renderLegacySubQuestionSection,
+  renderDefaultSubQuestionSection,
   renderSubQuestions,
   renderFinalAdjudication,
   renderEvidence,

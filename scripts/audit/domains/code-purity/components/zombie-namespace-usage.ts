@@ -50,6 +50,57 @@ const findNamespaceImportNode = (
   return undefined;
 };
 
+const collectNamespaceReferenceUsage = (
+  manifest: ZombieExemptionManifest,
+  edge: ZombieModuleGraph["importEdges"][number],
+  namespaceImportNode: NonNullable<ReturnType<typeof findNamespaceImportNode>>,
+): ZombieNamespaceUsageReport => {
+  const propertyUsages: ZombieNamespacePropertyUsage[] = [];
+  const dynamicUsages: ZombieNamespaceDynamicUsage[] = [];
+
+  for (const referenceNode of namespaceImportNode.findReferencesAsNodes()) {
+    if (referenceNode === namespaceImportNode) {
+      continue;
+    }
+    const parent = referenceNode.getParent();
+    if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === referenceNode) {
+      propertyUsages.push({
+        consumerFilePath: edge.sourcePath,
+        line: referenceNode.getStartLineNumber(),
+        propertyName: parent.getName(),
+        targetFilePath: edge.targetPath,
+      });
+      continue;
+    }
+    if (parent && Node.isElementAccessExpression(parent) && parent.getExpression() === referenceNode) {
+      const argument = parent.getArgumentExpression();
+      if (argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))) {
+        propertyUsages.push({
+          consumerFilePath: edge.sourcePath,
+          line: referenceNode.getStartLineNumber(),
+          propertyName: argument.getLiteralValue(),
+          targetFilePath: edge.targetPath,
+        });
+        continue;
+      }
+    }
+    if (isLawfulDynamicNamespaceConsumer(manifest, edge.sourcePath, edge.targetPath)) {
+      continue;
+    }
+    dynamicUsages.push({
+      consumerFilePath: edge.sourcePath,
+      line: referenceNode.getStartLineNumber(),
+      sourceText: referenceNode.getParent()?.getText() ?? referenceNode.getText(),
+      targetFilePath: edge.targetPath,
+    });
+  }
+
+  return {
+    dynamicUsages,
+    propertyUsages,
+  };
+};
+
 export const scanZombieNamespaceUsage = (input: {
   manifest: ZombieExemptionManifest;
   moduleGraph: ZombieModuleGraph;
@@ -71,42 +122,9 @@ export const scanZombieNamespaceUsage = (input: {
     if (!namespaceImportNode) {
       continue;
     }
-    for (const referenceNode of namespaceImportNode.findReferencesAsNodes()) {
-      if (referenceNode === namespaceImportNode) {
-        continue;
-      }
-      const parent = referenceNode.getParent();
-      if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === referenceNode) {
-        propertyUsages.push({
-          consumerFilePath: edge.sourcePath,
-          line: referenceNode.getStartLineNumber(),
-          propertyName: parent.getName(),
-          targetFilePath: edge.targetPath,
-        });
-        continue;
-      }
-      if (parent && Node.isElementAccessExpression(parent) && parent.getExpression() === referenceNode) {
-        const argument = parent.getArgumentExpression();
-        if (argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))) {
-          propertyUsages.push({
-            consumerFilePath: edge.sourcePath,
-            line: referenceNode.getStartLineNumber(),
-            propertyName: argument.getLiteralValue(),
-            targetFilePath: edge.targetPath,
-          });
-          continue;
-        }
-      }
-      if (isLawfulDynamicNamespaceConsumer(input.manifest, edge.sourcePath, edge.targetPath)) {
-        continue;
-      }
-      dynamicUsages.push({
-        consumerFilePath: edge.sourcePath,
-        line: referenceNode.getStartLineNumber(),
-        sourceText: referenceNode.getParent()?.getText() ?? referenceNode.getText(),
-        targetFilePath: edge.targetPath,
-      });
-    }
+    const referenceUsage = collectNamespaceReferenceUsage(input.manifest, edge, namespaceImportNode);
+    propertyUsages.push(...referenceUsage.propertyUsages);
+    dynamicUsages.push(...referenceUsage.dynamicUsages);
   }
 
   return {

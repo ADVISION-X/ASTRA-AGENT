@@ -295,7 +295,7 @@ const buildModelSubQuestions = () => [
     priority: "medium" as const,
     omissionRisk: "Without this, repeated model IDs can appear lawful while corrupting persistence identity.",
   },
-] as const;
+];
 
 const verifySubQuestionIdsAreJobScoped = (): void => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-id-scope-"));
