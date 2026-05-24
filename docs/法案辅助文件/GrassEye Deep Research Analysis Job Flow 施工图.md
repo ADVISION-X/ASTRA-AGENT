@@ -245,6 +245,11 @@ GPT Web Chat 自身可把长输入处理成文件，GrassEye 不在此阶段额�
 真实敏感材料排除、文件数量/大小、timeout、cooldown、tab ownership、provider proof 和 raw output proof 仍由 AI Input Gateway 负责；这里的“敏感材料”指真实 cookie、access token、password、session、browser storage 内容或未过滤私密字段，不是普通研究文本里出现这些词就一刀切失败。
 Deep Research 使用 GPT Web Chat 时，每次回答落完 raw proof 后必须关闭当前 provider 标签页；下一题必须重新打开 fresh provider tab，再点击“新聊天”。
 
+ChatGPT 将超长粘贴内容折叠成 composer 内的 pasted text card 是正常 provider 行为，不是错误、不是用户上传文件、也不是 GrassEye 文件大小治理对象。  
+AI Input Gateway 在 GPT Web Chat 提交阶段必须实证识别 composer 内的 pasted text card 可见状态，例如中文界面的“已粘贴的文本”和英文界面的 `pasted text` 可见卡片；检测到卡片 ready 后，必须沿用同一次 composer payload 提交，不得丢弃、重写、截断、改走第二套实现或等待到 response capture 超时。  
+该识别只服务 transport submit proof：先确认 provider composer payload 已 ready，再触发既定提交动作并用 assistant count / generating / composer cleared 证明提交成功。它不得演化成通用 AI 文件管理器、prompt 内容审查器、文件大小限制器或业务判断器。  
+Owner 审计必须 AST 固化此 submit path：删除 pasted text card detector、send-button action、submit 调用链或 owner inspector 接入时，`ci:full` 必须失败。
+
 ## 最后 +1：AI 生成商业 HTML 决策报告，系统只做交付搬运工
 
 默认最终交付主流程改为 AI Business HTML Report generation：

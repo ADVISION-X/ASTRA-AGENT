@@ -12,6 +12,7 @@ const webChatProviderHandoffFiles = [
   "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
 ] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -61,6 +62,9 @@ const hasNumericToken = (sourceFile: SourceFile, expected: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)
     .some((literal) => literal.getText() === expected);
 
+const hasVariableOrFunction = (sourceFile: SourceFile | undefined, symbolName: string): boolean =>
+  Boolean(sourceFile?.getVariableDeclaration(symbolName) || sourceFile?.getFunction(symbolName));
+
 const functionHasEarlyResponseNullReturn = (sourceFile: SourceFile, functionName: string): boolean => {
   const declaration = sourceFile.getVariableDeclaration(functionName);
   const initializer = declaration?.getInitializer();
@@ -87,6 +91,7 @@ type WebChatHandoffFiles = {
   supportFile: SourceFile | undefined;
   submitFile: SourceFile | undefined;
   pageActionsFile: SourceFile | undefined;
+  composerScriptsFile: SourceFile | undefined;
 };
 
 const loadWebChatHandoffFiles = (context: InspectorContext): WebChatHandoffFiles => ({
@@ -96,6 +101,7 @@ const loadWebChatHandoffFiles = (context: InspectorContext): WebChatHandoffFiles
   supportFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts"),
   submitFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"),
   pageActionsFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts"),
+  composerScriptsFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts"),
 });
 
 const trackWebChatHandoffFiles = (
@@ -257,6 +263,73 @@ const inspectSubmitDiscipline = (input: {
       message: "Web chat prompt submission must wait 2 seconds after paste and submit with one keyboard Return action.",
     }));
   }
+
+};
+
+const inspectPastedTextCardSubmitPath = (input: {
+  submitFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  if (!input.submitFile) return;
+  const submitImports = getImportedSymbolNames(input.submitFile, "./web-chat-page-actions.js");
+  const hasSubmitPath = submitImports.has("waitForChatGptPastedTextCardReady")
+    && submitImports.has("clickChatGptSendButton")
+    && countIdentifierCalls(input.submitFile, "waitForChatGptPastedTextCardReady") > 0
+    && countIdentifierCalls(input.submitFile, "clickChatGptSendButton") > 0;
+  if (!hasSubmitPath) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/web-chat-pasted-text-card-submit-path",
+      lawId: input.lawId,
+      filePath: getRepoSourcePath(input.submitFile),
+      message: "GPT Web Chat submission must detect ChatGPT pasted-text composer cards and submit the existing composer payload instead of waiting until response capture times out.",
+    }));
+  }
+};
+
+const inspectPastedTextCardPageActions = (input: {
+  pageActionsFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  const pageActionImports = input.pageActionsFile
+    ? getImportedSymbolNames(input.pageActionsFile, "./web-chat-composer-scripts.js")
+    : new Set<string>();
+  const exposesPageActions = Boolean(input.pageActionsFile)
+    && pageActionImports.has("CHATGPT_PASTED_TEXT_CARD_READY_SCRIPT")
+    && pageActionImports.has("CLICK_CHATGPT_SEND_BUTTON_SCRIPT")
+    && hasVariableOrFunction(input.pageActionsFile, "waitForChatGptPastedTextCardReady")
+    && hasVariableOrFunction(input.pageActionsFile, "clickChatGptSendButton");
+  if (!exposesPageActions) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/web-chat-pasted-text-card-page-actions",
+      lawId: input.lawId,
+      filePath: input.pageActionsFile ? getRepoSourcePath(input.pageActionsFile) : "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+      message: "Provider page actions must expose AST-visible pasted-text-card readiness and send-button actions for GPT Web Chat.",
+    }));
+  }
+};
+
+const inspectPastedTextCardScriptProof = (input: {
+  composerScriptsFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  if (
+    !input.composerScriptsFile
+    || !input.composerScriptsFile.getVariableDeclaration("CHATGPT_PASTED_TEXT_CARD_READY_SCRIPT")
+    || !input.composerScriptsFile.getVariableDeclaration("CLICK_CHATGPT_SEND_BUTTON_SCRIPT")
+    || !hasLiteralText(input.composerScriptsFile, "已粘贴的文本")
+    || !hasLiteralText(input.composerScriptsFile, "pasted text")
+    || !hasLiteralText(input.composerScriptsFile, "chatgpt pasted text card ready for submit")
+  ) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/web-chat-pasted-text-card-script-proof",
+      lawId: input.lawId,
+      filePath: input.composerScriptsFile ? getRepoSourcePath(input.composerScriptsFile) : "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+      message: "Composer scripts must contain the production-proven ChatGPT pasted-text card detector and send button action.",
+    }));
+  }
 };
 
 export const inspectWebChatProviderHandoff = (input: {
@@ -274,5 +347,12 @@ export const inspectWebChatProviderHandoff = (input: {
   });
   inspectProviderPageAssertion({ files, findings: input.findings, lawId: input.lawId });
   inspectNewChatIsolation({ openFile: files.openFile, findings: input.findings, lawId: input.lawId });
-  inspectSubmitDiscipline({ submitFile: files.submitFile, findings: input.findings, lawId: input.lawId });
+  inspectSubmitDiscipline({
+    submitFile: files.submitFile,
+    findings: input.findings,
+    lawId: input.lawId,
+  });
+  inspectPastedTextCardSubmitPath({ submitFile: files.submitFile, findings: input.findings, lawId: input.lawId });
+  inspectPastedTextCardPageActions({ pageActionsFile: files.pageActionsFile, findings: input.findings, lawId: input.lawId });
+  inspectPastedTextCardScriptProof({ composerScriptsFile: files.composerScriptsFile, findings: input.findings, lawId: input.lawId });
 };

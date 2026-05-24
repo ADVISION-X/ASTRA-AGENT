@@ -5,6 +5,8 @@ import {
   waitForAttachmentCountAtLeast as waitForAttachmentCountAtLeastImpl,
 } from "./web-chat-upload-page-actions.js";
 import {
+  CHATGPT_PASTED_TEXT_CARD_READY_SCRIPT,
+  CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
   FOCUS_COMPOSER_SCRIPT,
   VERIFY_COMPOSER_FOCUSED_SCRIPT,
 } from "./web-chat-composer-scripts.js";
@@ -61,3 +63,40 @@ export const waitForComposerFocused = async (
   }
   throw new Error(`review_required: provider input did not keep focus; last=${lastMessage}`);
 };
+
+const readChatGptPastedTextCard = (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+): Promise<WebChatEvaluation> =>
+  browser.evaluateActiveTab<WebChatEvaluation>({
+    description: "detect ChatGPT pasted text composer card",
+    script: CHATGPT_PASTED_TEXT_CARD_READY_SCRIPT,
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });
+
+export const waitForChatGptPastedTextCardReady = async (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+  timeoutMs: number,
+): Promise<WebChatEvaluation | null> => {
+  const deadline = Date.now() + Math.min(timeoutMs, 8_000);
+  while (Date.now() < deadline) {
+    const evaluation = await readChatGptPastedTextCard(browser, context);
+    if (evaluation.status === "success") return evaluation;
+    if (evaluation.status === "review_required" || evaluation.status === "failed") {
+      throw new Error(`${evaluation.status}: ${evaluation.message}`);
+    }
+    await browser.wait(250);
+  }
+  return null;
+};
+
+export const clickChatGptSendButton = (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+): Promise<WebChatEvaluation> =>
+  browser.evaluateActiveTab<WebChatEvaluation>({
+    description: "click ChatGPT send button for pasted text card",
+    script: CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });

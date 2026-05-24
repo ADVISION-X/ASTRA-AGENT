@@ -9,8 +9,10 @@ import {
   verifyPromptSubmitted,
 } from "./web-chat-submit-page-actions.js";
 import {
+  clickChatGptSendButton,
   focusComposer,
   waitForAttachmentCountAtLeast,
+  waitForChatGptPastedTextCardReady,
   waitForComposerFocused,
 } from "./web-chat-page-actions.js";
 import { clearComposer } from "./web-chat-upload-page-actions.js";
@@ -34,20 +36,20 @@ const waitForPromptSubmitted = async (input: {
   promptText: string;
   previousAssistantCount: number;
   timeoutMs: number;
-}): Promise<void> => {
+}): Promise<boolean> => {
   const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider submit result was not checked";
   while (Date.now() < deadline) {
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
       verifyPromptSubmitted(input.browser, input.context, input.promptText, input.previousAssistantCount));
     lastMessage = `${submitted.status}: ${submitted.message}`;
-    if (submitted.status === "success") return;
+    if (submitted.status === "success") return true;
     if (submitted.status === "review_required" || submitted.status === "failed") {
       throw new Error(lastMessage);
     }
     await input.browser.wait(750);
   }
-  throw new Error(`review_required: provider prompt was not submitted; last=${lastMessage}`);
+  return false;
 };
 
 type SubmitPromptViaClipboardInput = {
@@ -84,16 +86,37 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
     await withWebChatStep("verify_attachments_before_submit", () =>
       waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
   }
+  const pastedTextCard = expectedAttachmentCount === 0
+    ? await withWebChatStep("detect_chatgpt_pasted_text_card_before_submit", () =>
+      waitForChatGptPastedTextCardReady(input.browser, input.context, 8_000))
+    : null;
   await input.browser.wait(2_000);
   await withWebChatStep("press_return_after_prompt_paste", () =>
     pressReturnInChrome(input.context.abortSignal));
-  await waitForPromptSubmitted({
+  const submittedAfterReturn = await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,
     promptText: input.request.textPrompt,
     previousAssistantCount: input.previousAssistantCount,
-    timeoutMs: input.request.timeoutMs,
+    timeoutMs: pastedTextCard ? 8_000 : input.request.timeoutMs,
   });
+  if (submittedAfterReturn) return;
+  if (pastedTextCard) {
+    const clicked = await withWebChatStep("click_send_for_chatgpt_pasted_text_card", () =>
+      clickChatGptSendButton(input.browser, input.context));
+    if (clicked.status !== "success") {
+      throw new Error(`${clicked.status}: ${clicked.message}`);
+    }
+    const submittedAfterClick = await waitForPromptSubmitted({
+      browser: input.browser,
+      context: input.context,
+      promptText: input.request.textPrompt,
+      previousAssistantCount: input.previousAssistantCount,
+      timeoutMs: input.request.timeoutMs,
+    });
+    if (submittedAfterClick) return;
+  }
+  throw new Error("review_required: provider prompt was not submitted after pasted text card handling.");
 };
 
 export const submitPromptViaClipboard = async (input: SubmitPromptViaClipboardInput): Promise<void> => {

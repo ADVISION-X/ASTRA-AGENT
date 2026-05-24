@@ -65,6 +65,68 @@ if (result.count === expectedCount && result.scope === "global") {
 return {status: "pending", message: "waiting for provider attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
 `;
 
+export const CHATGPT_PASTED_TEXT_CARD_READY_SCRIPT = `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const input = resolveComposerInput();
+const findComposerRoot = () => {
+  if (!(input instanceof HTMLElement)) return null;
+  let cursor = input;
+  for (let depth = 0; depth < 8 && cursor; depth += 1) {
+    if (cursor.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']")) {
+      return cursor;
+    }
+    cursor = cursor.parentElement;
+  }
+  return input.parentElement;
+};
+const root = findComposerRoot();
+const visibleText = clip(root?.innerText || "");
+const hasPastedTextCard = Boolean(root)
+  && (visibleText.includes("已粘贴的文本")
+    || visibleText.toLowerCase().includes("pasted text")
+    || visibleText.toLowerCase().includes("pasted content"));
+const sendButton = root?.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']");
+const sendReady = sendButton instanceof HTMLButtonElement
+  ? !sendButton.disabled && sendButton.getAttribute("aria-disabled") !== "true"
+  : sendButton instanceof HTMLElement;
+return {
+  status: hasPastedTextCard && sendReady ? "success" : "pending",
+  message: hasPastedTextCard
+    ? sendReady
+      ? "chatgpt pasted text card ready for submit"
+      : "chatgpt pasted text card waiting for send readiness"
+    : "chatgpt pasted text card not present",
+  pageUrl: location.href,
+  attachmentCount: hasPastedTextCard ? 1 : 0,
+  attachmentScope: hasPastedTextCard ? "input" : "none",
+  inputFocused: Boolean(input instanceof HTMLElement && (document.activeElement === input || input.contains(document.activeElement))),
+};
+`;
+
+export const CLICK_CHATGPT_SEND_BUTTON_SCRIPT = `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const input = resolveComposerInput();
+let root = input instanceof HTMLElement ? input : document.body;
+for (let depth = 0; depth < 8 && root; depth += 1) {
+  if (root.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']")) {
+    break;
+  }
+  root = root.parentElement;
+}
+const sendButton = root?.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']");
+if (!(sendButton instanceof HTMLElement)) {
+  return {status: "review_required", message: "provider send button not found", pageUrl: location.href};
+}
+const disabled = sendButton instanceof HTMLButtonElement
+  ? sendButton.disabled || sendButton.getAttribute("aria-disabled") === "true"
+  : sendButton.getAttribute("aria-disabled") === "true";
+if (disabled) {
+  return {status: "pending", message: "provider send button is disabled", pageUrl: location.href};
+}
+sendButton.click();
+return {status: "success", message: "provider send button clicked", pageUrl: location.href};
+`;
+
 export const VERIFY_COMPOSER_FOCUSED_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
