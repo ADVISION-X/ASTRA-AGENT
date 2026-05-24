@@ -61,7 +61,7 @@ export type {
 
 type DeepResearchDatabaseHandle = ReturnType<typeof createDeepResearchDatabase>;
 
-const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchRecordStore, "createJob" | "updateJobState" | "getJob"> => {
+const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchRecordStore, "createJob" | "updateJobState" | "getJob" | "deleteJob"> => {
   const getJob = (jobId: string): ResearchJob | null => {
     const row = db.prepare(`SELECT * FROM research_jobs WHERE id = ?`).get(jobId) as Parameters<typeof mapJobRow>[0] | undefined;
     return row ? mapJobRow(row) : null;
@@ -124,10 +124,24 @@ const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchR
     return job;
   };
 
+  const deleteJob = (jobId: string): boolean => {
+    const deleted = db.transaction(() => {
+      db.prepare(`DELETE FROM research_exports WHERE job_id = ?`).run(jobId);
+      db.prepare(`DELETE FROM research_final_reports WHERE job_id = ?`).run(jobId);
+      db.prepare(`DELETE FROM research_conflict_matrix WHERE job_id = ?`).run(jobId);
+      db.prepare(`DELETE FROM research_answers WHERE job_id = ?`).run(jobId);
+      db.prepare(`DELETE FROM research_sub_questions WHERE job_id = ?`).run(jobId);
+      db.prepare(`DELETE FROM research_interactions WHERE job_id = ?`).run(jobId);
+      return db.prepare(`DELETE FROM research_jobs WHERE id = ?`).run(jobId).changes;
+    })();
+    return deleted > 0;
+  };
+
   return {
     createJob,
     updateJobState,
     getJob,
+    deleteJob,
   };
 };
 
@@ -143,6 +157,7 @@ export type DeepResearchRecordStore = {
     reviewReason?: string | null;
   }): ResearchJob;
   getJob(jobId: string): ResearchJob | null;
+  deleteJob(jobId: string): boolean;
   createInteraction(input: {
     jobId: string;
     phase: DeepResearchInteractionPhase;

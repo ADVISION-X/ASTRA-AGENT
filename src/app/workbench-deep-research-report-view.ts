@@ -6,7 +6,7 @@ export const renderDeepResearchReportView = (): string => `
       <h2>Select a report from history</h2>
       <p class="muted">The final conclusion, decomposition, independent analysis, final adjudication, and evidence trace will appear here.</p>
     </section>
-    <article class="research-report hidden" data-deep-research-report>
+    <article class="research-report hidden research-reading-rhythm" data-deep-research-report>
       <header class="research-report-header" data-deep-research-report-header></header>
       <section class="research-section" id="conclusion" data-deep-research-final-card></section>
       <section class="research-section" data-deep-research-stage-overview></section>

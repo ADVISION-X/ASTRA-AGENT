@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T00:56:02.254Z",
+  "generatedAt": "2026-05-24T01:32:19.552Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -378,6 +378,44 @@
       "blockIndex": 7
     },
     {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-truth",
+      "enforcementMode": "meta",
+      "evidenceMode": "ast+project",
+      "summary": "Owner inspectors must use project-backed AST evidence and must not launder source-text search into structural judgment.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs}"
+      ],
+      "forbidden": [
+        "Owner inspector skipping context.project.",
+        "getText/getFullText string search used as structural verdict.",
+        "Text-search anti-evasion pretending to be AST-first enforcement."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-truth",
+      "enforcementMode": "meta",
+      "evidenceMode": "generated-plan+project",
+      "summary": "Generated plan must cover every owner inspector exactly once and must not contain orphan owner paths.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "Owner inspector missing from generated plan.",
+        "Generated plan pointing to orphan owner inspector path.",
+        "Plan truth and real inspector surface drifting apart."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 9
+    },
+    {
       "lawId": "APEX-AUDIT-009-V1",
       "status": "active",
       "tier": "P0",
@@ -394,7 +432,7 @@
         "Generated and source files with overlapping authority."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 10
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
@@ -405,7 +443,7 @@
       "evidenceMode": "hybrid",
       "summary": "Executable audit outputs must be binary PASS/FAIL results only and must not introduce warning-grade verdict tiers.",
       "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 11
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-001-V1",
@@ -1616,6 +1654,17 @@
       "blockIndex": 4
     },
     {
+      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "runtime-truth",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-contract",
+      "summary": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
+      "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
+      "blockIndex": 0
+    },
+    {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "status": "active",
       "tier": "P0",
@@ -1624,7 +1673,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Runtime facts must enter the single Runtime Log Spine instead of console or private log channels.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 0
+      "blockIndex": 1
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
@@ -1635,7 +1684,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Every runtime event must declare FLOW, DEBUG, or TRACE visibility and must not leak debug payload into FLOW.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
@@ -1646,7 +1695,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Mission, run, round, step, capability, AI, and recovery events must carry trace context.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
@@ -1657,7 +1706,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Any branch that changes execution direction must emit a structured runtime event before it returns, skips, retries, or throws.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
@@ -1668,7 +1717,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Mandatory stages must emit paired started and terminal events with duration, reason, and failure details.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
@@ -1679,7 +1728,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Large artifacts, DOM, AI raw output, and binary content must be referenced by refs and hashes instead of embedded inline.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 6
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
@@ -1690,7 +1739,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "All runtime sinks must redact secrets, storage data, signed URLs, and base64-like material before output.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 7
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
@@ -1701,7 +1750,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Production mode must default to FLOW while DEBUG and TRACE remain explicit opt-in visibility levels.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 8
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
@@ -1712,7 +1761,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "DEBUG and TRACE logging must preserve enough evidence to explain one round down to single actions and retries.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 9
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
@@ -1723,7 +1772,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Failed, skipped, and review-required events must carry classified failure metadata instead of free text alone.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
@@ -1734,7 +1783,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "All key terminal stage events must record duration and configured timeout evidence where applicable.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
@@ -1745,7 +1794,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Each mission must produce a replayable debug bundle or emit structured bundle-write failure evidence.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 11
+      "blockIndex": 12
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
@@ -1756,7 +1805,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "AI request, upload, response, parse, and validation paths must emit provider proof, refs, hashes, and statuses.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 12
+      "blockIndex": 13
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
@@ -1767,7 +1816,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Browser and DOM actions must log before state, attempted action, after state, duration, and failure class.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 13
+      "blockIndex": 14
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
@@ -1778,7 +1827,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Every recovery and fallback path must emit a linked recovery trail tied to the originating failure.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 14
+      "blockIndex": 15
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
@@ -1789,7 +1838,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Each plugin and capability must maintain a machine-enforced logging matrix for mandatory stages and contracts.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 15
+      "blockIndex": 16
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
@@ -1800,7 +1849,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "All runtime event types must come from the central event registry instead of free string literals.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 16
+      "blockIndex": 17
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
@@ -1811,7 +1860,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "CI must emit machine-readable and human-readable runtime log coverage reports with mandatory stage and failure coverage.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 17
+      "blockIndex": 18
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
@@ -1822,7 +1871,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Any failed or review-required round must be diagnosable from runtime logs without rerunning the mission.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 18
+      "blockIndex": 19
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
@@ -1833,7 +1882,7 @@
       "evidenceMode": "law+blueprint+ast+runtime-contract",
       "summary": "Automation, AI, DOM, browser, artifact, navigation, and recovery changes must satisfy log law before merge.",
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 19
+      "blockIndex": 20
     },
     {
       "lawId": "APEX-STARTUP-001-V1",

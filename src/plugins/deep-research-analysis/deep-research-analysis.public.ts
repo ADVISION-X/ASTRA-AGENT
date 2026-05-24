@@ -12,6 +12,7 @@ import {
   getDeepResearchExportArtifact,
   getLatestDeepResearchAnalysisJob,
   listDeepResearchAnalysisHistory,
+  deleteDeepResearchAnalysisJob,
 } from "./deep-research-analysis.public-queries.js";
 export type {
   DeepResearchHistorySnapshot,
@@ -29,6 +30,7 @@ export const deepResearchAnalysisPublicFacade = {
   getLatestDeepResearchAnalysisJob,
   getDeepResearchAnalysisTimeline,
   getDeepResearchExportArtifact,
+  deleteDeepResearchAnalysisJob,
 } as const;
 export type DeepResearchAnalysisStartInput = DeepResearchInput & {
   providerKind: DeepResearchAnalysisContext["providerKind"];

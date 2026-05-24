@@ -22,22 +22,18 @@ import type {
 const DeepResearchAnalysisCoverageSchema = z.object({
   totalSubQuestionCount: z.number().int().nonnegative(),
   analyzedSubQuestionCount: z.number().int().nonnegative(),
-  missingSubQuestionCount: z.number().int().nonnegative(),
+  missingAnalysisSubQuestionCount: z.number().int().nonnegative(),
   coverageRatio: z.number().min(0).max(1),
 }).strict();
 
-const DeepResearchFinalPackageSchema = z.object({
+const DeepResearchFinalPackageBaseSchema = z.object({
   jobId: z.string().trim().min(1),
   userQuestion: z.string().trim().min(1),
-  flowMode: z.enum(["default_1_n_1", "legacy_1_n_n_1"]),
+  analysisGoal: z.string().trim().min(1).nullable(),
   decompositionRecords: z.array(z.unknown()),
   analysisRecords: z.array(z.unknown()),
   analysisCoverage: DeepResearchAnalysisCoverageSchema,
   missingAnalysisSubQuestionIds: z.array(z.string().trim().min(1)).default([]),
-  positiveAnswerRecords: z.array(z.unknown()).default([]),
-  falsificationAnswerRecords: z.array(z.unknown()).default([]),
-  conflictMatrix: z.array(z.unknown()).default([]),
-  missingSubQuestionIds: z.array(z.string().trim().min(1)).default([]),
   recordHashes: z.record(z.string(), z.string()),
   promptVersions: z.record(z.string(), z.string()),
   outputContract: z.object({
@@ -48,26 +44,60 @@ const DeepResearchFinalPackageSchema = z.object({
   }).strict(),
 }).strict();
 
-export type DeepResearchFinalPackage = {
+const DeepResearchDefaultFinalPackageSchema = DeepResearchFinalPackageBaseSchema.extend({
+  flowMode: z.literal("default_1_n_1"),
+}).strict();
+
+const DeepResearchLegacyFinalPackageSchema = DeepResearchFinalPackageBaseSchema.extend({
+  flowMode: z.literal("legacy_1_n_n_1"),
+  positiveAnswerRecords: z.array(z.unknown()).default([]),
+  falsificationAnswerRecords: z.array(z.unknown()).default([]),
+  conflictMatrix: z.array(z.unknown()).default([]),
+  legacyMissingPositiveFalsificationSubQuestionIds: z.array(z.string().trim().min(1)).default([]),
+}).strict();
+
+const DeepResearchFinalPackageSchema = z.discriminatedUnion("flowMode", [
+  DeepResearchDefaultFinalPackageSchema,
+  DeepResearchLegacyFinalPackageSchema,
+]);
+
+type DeepResearchFinalPackageBase = {
   jobId: string;
   userQuestion: string;
-  flowMode: ResearchJob["flowMode"];
+  analysisGoal: string | null;
   decompositionRecords: ResearchSubQuestion[];
   analysisRecords: ResearchAnswer[];
   analysisCoverage: {
     totalSubQuestionCount: number;
     analyzedSubQuestionCount: number;
-    missingSubQuestionCount: number;
+    missingAnalysisSubQuestionCount: number;
     coverageRatio: number;
   };
   missingAnalysisSubQuestionIds: string[];
-  positiveAnswerRecords: ResearchAnswer[];
-  falsificationAnswerRecords: ResearchAnswer[];
-  conflictMatrix: DeepResearchConflictMatrixRow[];
-  missingSubQuestionIds: string[];
   recordHashes: Record<string, string>;
   promptVersions: Record<string, string>;
   outputContract: DeepResearchPromptOutputContract;
+};
+
+export type DeepResearchDefaultFinalPackage = DeepResearchFinalPackageBase & {
+  flowMode: "default_1_n_1";
+};
+
+export type DeepResearchLegacyFinalPackage = DeepResearchFinalPackageBase & {
+  flowMode: "legacy_1_n_n_1";
+  positiveAnswerRecords: ResearchAnswer[];
+  falsificationAnswerRecords: ResearchAnswer[];
+  conflictMatrix: DeepResearchConflictMatrixRow[];
+  legacyMissingPositiveFalsificationSubQuestionIds: string[];
+};
+
+export type DeepResearchFinalPackage = DeepResearchDefaultFinalPackage | DeepResearchLegacyFinalPackage;
+
+type LegacyHashInput = {
+  positiveAnswers: readonly ResearchAnswer[];
+  falsificationAnswers: readonly ResearchAnswer[];
+  conflictMatrix: readonly DeepResearchConflictMatrixRow[];
+  legacyMissingPositiveFalsificationSubQuestionIds: readonly string[];
 };
 
 const buildPromptVersionMap = (interactions: readonly ResearchInteraction[]): Record<string, string> =>
@@ -84,22 +114,25 @@ const buildRecordHashes = (input: {
   job: ResearchJob;
   subQuestions: readonly ResearchSubQuestion[];
   analysisAnswers: readonly ResearchAnswer[];
-  positiveAnswers: readonly ResearchAnswer[];
-  falsificationAnswers: readonly ResearchAnswer[];
-  conflictMatrix: readonly DeepResearchConflictMatrixRow[];
   missingAnalysisSubQuestionIds: readonly string[];
-  missingSubQuestionIds: readonly string[];
   interactions: readonly ResearchInteraction[];
+  legacy?: LegacyHashInput;
 }): Record<string, string> => {
   const hashes: Record<string, string> = {};
   appendHashes(hashes, `job:${input.job.id}`, input.job);
   input.subQuestions.forEach((record) => appendHashes(hashes, `subQuestion:${record.id}`, record));
   input.analysisAnswers.forEach((record) => appendHashes(hashes, `analysis:${record.id}`, record));
-  input.positiveAnswers.forEach((record) => appendHashes(hashes, `positive:${record.id}`, record));
-  input.falsificationAnswers.forEach((record) => appendHashes(hashes, `falsification:${record.id}`, record));
-  input.conflictMatrix.forEach((record) => appendHashes(hashes, `conflict:${record.subQuestionId}`, record));
   appendHashes(hashes, `missing-analysis-sub-questions:${input.job.id}`, input.missingAnalysisSubQuestionIds);
-  appendHashes(hashes, `missing-sub-questions:${input.job.id}`, input.missingSubQuestionIds);
+  if (input.legacy) {
+    input.legacy.positiveAnswers.forEach((record) => appendHashes(hashes, `positive:${record.id}`, record));
+    input.legacy.falsificationAnswers.forEach((record) => appendHashes(hashes, `falsification:${record.id}`, record));
+    input.legacy.conflictMatrix.forEach((record) => appendHashes(hashes, `conflict:${record.subQuestionId}`, record));
+    appendHashes(
+      hashes,
+      `legacy-missing-positive-falsification-sub-questions:${input.job.id}`,
+      input.legacy.legacyMissingPositiveFalsificationSubQuestionIds,
+    );
+  }
   input.interactions.forEach((record) => {
     hashes[`interaction:${record.id}:prompt`] = record.promptHash;
     hashes[`interaction:${record.id}:response`] = record.rawResponseHash;
@@ -115,14 +148,14 @@ const buildAnalysisCoverage = (
   const analyzedSubQuestionCount = new Set(
     analysisAnswers.map((answer) => answer.subQuestionId),
   ).size;
-  const missingSubQuestionCount = Math.max(
+  const missingAnalysisSubQuestionCount = Math.max(
     0,
     totalSubQuestionCount - analyzedSubQuestionCount,
   );
   return {
     totalSubQuestionCount,
     analyzedSubQuestionCount,
-    missingSubQuestionCount,
+    missingAnalysisSubQuestionCount,
     coverageRatio: totalSubQuestionCount === 0
       ? 0
       : analyzedSubQuestionCount / totalSubQuestionCount,
@@ -150,7 +183,7 @@ export const buildDeepResearchFinalPackage = (input: {
   const missingAnalysisSubQuestionIds = subQuestions
     .filter((subQuestion) => !analysisSubQuestionIds.has(subQuestion.id))
     .map((subQuestion) => subQuestion.id);
-  const missingSubQuestionIds = subQuestions
+  const legacyMissingPositiveFalsificationSubQuestionIds = subQuestions
     .filter((subQuestion) =>
       !positiveSubQuestionIds.has(subQuestion.id)
       || !falsificationSubQuestionIds.has(subQuestion.id))
@@ -169,34 +202,54 @@ export const buildDeepResearchFinalPackage = (input: {
     throw new Error(`Deep research job ${input.jobId} has no persisted conflict matrix.`);
   }
 
-  const finalPackage: DeepResearchFinalPackage = {
+  const baseFinalPackage: DeepResearchFinalPackageBase = {
     jobId: job.id,
     userQuestion: job.userQuestion,
-    flowMode: job.flowMode,
+    analysisGoal: job.analysisGoal,
     decompositionRecords: subQuestions,
     analysisRecords: analysisAnswers,
     analysisCoverage: buildAnalysisCoverage(subQuestions, analysisAnswers),
     missingAnalysisSubQuestionIds,
-    positiveAnswerRecords: positiveAnswers,
-    falsificationAnswerRecords: falsificationAnswers,
-    conflictMatrix,
-    missingSubQuestionIds,
-    recordHashes: buildRecordHashes({
-      job,
-      subQuestions,
-      analysisAnswers,
-      positiveAnswers,
-      falsificationAnswers,
-      conflictMatrix,
-      missingAnalysisSubQuestionIds,
-      missingSubQuestionIds,
-      interactions,
-    }),
+    recordHashes: {},
     promptVersions: buildPromptVersionMap(interactions),
     outputContract: job.flowMode === "legacy_1_n_n_1"
       ? finalSynthesisPrompt.expectedOutputContract
       : finalAdjudicationPrompt.expectedOutputContract,
   };
+
+  const finalPackage: DeepResearchFinalPackage = job.flowMode === "legacy_1_n_n_1"
+    ? {
+      ...baseFinalPackage,
+      flowMode: job.flowMode,
+      positiveAnswerRecords: positiveAnswers,
+      falsificationAnswerRecords: falsificationAnswers,
+      conflictMatrix,
+      legacyMissingPositiveFalsificationSubQuestionIds,
+      recordHashes: buildRecordHashes({
+        job,
+        subQuestions,
+        analysisAnswers,
+        missingAnalysisSubQuestionIds,
+        interactions,
+        legacy: {
+          positiveAnswers,
+          falsificationAnswers,
+          conflictMatrix,
+          legacyMissingPositiveFalsificationSubQuestionIds,
+        },
+      }),
+    }
+    : {
+      ...baseFinalPackage,
+      flowMode: job.flowMode,
+      recordHashes: buildRecordHashes({
+        job,
+        subQuestions,
+        analysisAnswers,
+        missingAnalysisSubQuestionIds,
+        interactions,
+      }),
+    };
 
   DeepResearchFinalPackageSchema.parse(finalPackage);
   return finalPackage;

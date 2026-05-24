@@ -61,6 +61,14 @@ Deep Research Analysis 是独立 job flow。页面只负责展示它的输入、
 
 Raw JSON 只能作为折叠审计视图存在，用于排障，不得替代最终报告、export refs 或 evidence refs。
 
+Deep Research 文字报告不得呈现为临时调试页。完成态阅读器必须具备：
+
+- 明确的最终结论视觉焦点。
+- 适合长中文段落的 `line-height`、段落间距和阅读宽度。
+- 自适应网格，避免把长内容压进 4 个瘦列。
+- Prompt、Raw AI Response、Parsed JSON 等审计材料默认折叠到 evidence/details。
+- 历史记录、导航、metadata、正文之间有清晰层级，不得让 debug 信息压过报告本体。
+
 ## Amazon 输入面
 
 Amazon invoice upload 必须收集：

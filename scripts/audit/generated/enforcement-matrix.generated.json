@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T00:56:02.254Z",
+  "generatedAt": "2026-05-24T01:32:19.552Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -33,6 +33,15 @@
         "APEX-AUDIT-008-V1",
         "APEX-AUDIT-009-V1",
         "APEX-AUDIT-010-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "audit-truth",
+      "manifestPath": "scripts/audit/domains/audit-truth/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/audit-truth/inspector.ts",
+      "lawIds": [
+        "APEX-AUDIT-TRUTH-001-V1",
+        "APEX-AUDIT-TRUTH-002-V1"
       ]
     },
     {
@@ -189,6 +198,14 @@
         "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
         "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
         "GRASSEYE-RUNTIME-LOG-SPINE-020-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "runtime-truth",
+      "manifestPath": "scripts/audit/domains/runtime-truth/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/runtime-truth/inspector.ts",
+      "lawIds": [
+        "APEX-RUNTIME-TRUTH-001-V1"
       ]
     },
     {

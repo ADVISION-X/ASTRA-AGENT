@@ -362,3 +362,13 @@ ArrowDown
 - 用单一 DOM signature 差异证明新视频。
 - 因单条视频 download/comment/AI/navigation 失败直接停止全部 mission。
 - 新增第二套 navigation flow、AI planner、bridge、fallback mainline 或 shadow controller。
+
+## Runtime Completed Evidence Dependency
+
+Facebook mining 的 `completed` 终态只能在视频证据链成立时出现。
+
+至少要求：
+
+- completed run contract 必须携带视频证据字段或等价证据汇总字段
+- completed 不能只靠 `savedProductCount >= targetProductCount` 之类计数条件成立
+- promoted video artifact proof 缺失时不得宣称 completed

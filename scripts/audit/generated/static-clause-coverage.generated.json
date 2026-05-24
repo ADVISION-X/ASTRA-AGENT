@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-24T00:56:02.254Z",
+  "generatedAt": "2026-05-24T01:32:19.552Z",
   "summary": {
-    "activeLawCount": 125,
-    "coveredLawCount": 125,
+    "activeLawCount": 128,
+    "coveredLawCount": 128,
     "coveragePercent": 100
   },
   "coverage": [
@@ -203,6 +203,26 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "capabilityDomain": "audit-truth",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-truth/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "capabilityDomain": "audit-truth",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-truth/manifest.json"
         }
       ]
     },
@@ -1203,6 +1223,16 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/runtime-log-spine/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
+      "capabilityDomain": "runtime-truth",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/runtime-truth/manifest.json"
         }
       ]
     },

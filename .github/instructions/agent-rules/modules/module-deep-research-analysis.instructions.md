@@ -875,6 +875,16 @@ pass-without-falsification
 
 只要 smoke 失败，Deep Research Analysis 不得声明完成。
 
+#### Runtime Completed Evidence Dependency
+
+Deep Research 的 `completed` / `success` 结果必须绑定最终报告证据与持久化哈希证据。
+
+禁止把 `completed` 合同写成：
+
+- final report 可以为空
+- record hash proof 可以默认为空对象
+- completed 只是阶段名，缺少最终证据引用
+
 ---
 
 ### [GRASSEYE-DEEP-RESEARCH-014-V1] Report Reader UX 主权

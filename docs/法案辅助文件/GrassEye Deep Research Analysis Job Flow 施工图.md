@@ -255,6 +255,32 @@ Strongest Opposing Arguments
 Reverse Conditions
 ```
 
+### 3.5 文字密集报告阅读质量
+
+Deep Research 的主要交付物是长文本报告，UI 必须按“可阅读报告产品”施工，而不是按调试面板堆字段。
+
+必须固化以下质量线：
+
+```txt
+report reader has a dedicated reading rhythm
+final conclusion has visual priority over debug evidence
+sub-question cards use adaptive grids, never fixed skinny columns
+Prompt / Raw AI response / parsed JSON stay behind explicit evidence details
+section cards use spacing, line-height, and contrast to create reading hierarchy
+```
+
+禁止：
+
+```txt
+四列以上把长中文内容压成窄栏
+Prompt / Raw Response 默认展开刷屏
+所有段落使用同一种灰白卡片导致主次不可分
+最终结论与普通 debug block 同权重
+只靠 raw evidence 证明页面有内容
+```
+
+对口验收必须检查 `research-reading-rhythm`、自适应 report grid、`research-debug-root`、最终结论视觉优先级样式，防止页面回归为枯燥调试流。
+
 全流程必须按树状结构展示：
 
 ```txt

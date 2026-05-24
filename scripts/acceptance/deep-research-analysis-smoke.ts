@@ -12,6 +12,7 @@ import {
   parseDeepResearchSubQuestionAnalysisResponse,
   runDeepResearchAnalysis,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
+import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.prompts.js";
 import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 import type {
   AiProviderAdapter,
@@ -243,7 +244,22 @@ const verifyPersistedResearchState = (
     assert(finalPackage.flowMode === "default_1_n_1", "Final package must stay on the default flow mode.");
     assert(finalPackage.analysisRecords.length === 2, "Final package must read persisted analysis records.");
     assert(finalPackage.missingAnalysisSubQuestionIds.length === 0, "Final package should have no missing analysis records in the smoke fixture.");
+    assert(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount === 0, "Final package should report zero missing analysis rows in the smoke fixture.");
+    assert(!("positiveAnswerRecords" in finalPackage), "Default final package must not expose legacy positiveAnswerRecords.");
+    assert(!("falsificationAnswerRecords" in finalPackage), "Default final package must not expose legacy falsificationAnswerRecords.");
+    assert(!("conflictMatrix" in finalPackage), "Default final package must not expose legacy conflictMatrix.");
+    assert(!("legacyMissingPositiveFalsificationSubQuestionIds" in finalPackage), "Default final package must not expose legacy missing sub-question IDs.");
     assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.json.v1.0", "Smoke fixture must target the final adjudication contract.");
+    const finalPromptText = renderDeepResearchFinalAdjudicationPrompt({
+      userQuestion: job?.userQuestion ?? "",
+      analysisGoal: job?.analysisGoal ?? null,
+      language: job?.language ?? "zh-CN",
+      finalPackage,
+    });
+    assert(!finalPromptText.includes("positiveAnswerRecords"), "Final adjudication prompt must not receive legacy positiveAnswerRecords for default flow.");
+    assert(!finalPromptText.includes("falsificationAnswerRecords"), "Final adjudication prompt must not receive legacy falsificationAnswerRecords for default flow.");
+    assert(!finalPromptText.includes("conflictMatrix"), "Final adjudication prompt must not receive legacy conflictMatrix for default flow.");
+    assert(!finalPromptText.includes("legacyMissingPositiveFalsificationSubQuestionIds"), "Final adjudication prompt must not receive legacy missing sub-question IDs for default flow.");
 
     const exports = store.listExports(result.jobId);
     assert(exports.length === 3, `Expected 3 export records, received ${exports.length}.`);

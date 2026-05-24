@@ -1,3 +1,3 @@
-import "./side-effect.ts";
+import "./side-effect.js";
 
 export const boot = true;

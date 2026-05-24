@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 
 import Database from "better-sqlite3";
@@ -398,6 +398,27 @@ export const getDeepResearchAnalysisReport = (input: {
   dataDir: string;
   jobId: string;
 }): DeepResearchReportViewModel | null => buildReportViewModel(input.dataDir, input.jobId);
+
+export const deleteDeepResearchAnalysisJob = (input: {
+  dataDir: string;
+  jobId: string;
+}): { deleted: boolean; jobId: string } =>
+  withStore(input.dataDir, (store) => {
+    const job = store.getJob(input.jobId);
+    if (!job) {
+      return { deleted: false, jobId: input.jobId };
+    }
+    const exportedPaths = store.listExports(input.jobId).map((record) => record.filePath);
+    const deleted = store.deleteJob(input.jobId);
+    for (const filePath of exportedPaths) {
+      rmSync(filePath, { force: true });
+    }
+    rmSync(path.join(input.dataDir, "deep-research-analysis", "exports", input.jobId), {
+      force: true,
+      recursive: true,
+    });
+    return { deleted, jobId: input.jobId };
+  });
 
 export const getDeepResearchExportArtifact = (input: {
   dataDir: string;

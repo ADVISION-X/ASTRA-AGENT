@@ -77,6 +77,7 @@ assertText("src/app/workbench-deep-research-history-view.ts", "data-deep-researc
 assertText("src/app/workbench-deep-research-history-view.ts", "data-deep-research-history");
 assertText("src/app/workbench-deep-research-history-view.ts", "data-deep-research-history-search");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-reader-shell");
+assertText("src/app/workbench-deep-research-report-view.ts", "research-reading-rhythm");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-final-card");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-stage-overview");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-decomposition");
@@ -91,6 +92,10 @@ assertText("src/app/workbench-deep-research-styles.ts", "max-height: min(320px, 
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr)");
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr);");
 assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
+assertText("src/app/workbench-deep-research-styles.ts", "line-height: 1.65");
+assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(260px, 1fr))");
+assertText("src/app/workbench-deep-research-styles.ts", "box-shadow: inset 5px 0 0 var(--accent)");
+assertText("src/app/workbench-deep-research-styles.ts", "research-debug-root");
 assertNoTextInAnyFile(["src/app/workbench-deep-research-styles.ts"], "grid-template-columns: minmax(0, 1fr) 240px");
 assertTextInAnyFile(clientRuntimePaths, "refreshHistory");
 assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
@@ -101,6 +106,7 @@ assertTextInAnyFile(clientRuntimePaths, "Evidence / Debug");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");
+assertTextInAnyFile(clientRuntimePaths, "Interaction Evidence");
 assertNoTextInAnyFile(clientRuntimePaths, "Raw result record");
 assertNoTextInAnyFile(clientRuntimePaths, "View raw final report JSON");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/history");

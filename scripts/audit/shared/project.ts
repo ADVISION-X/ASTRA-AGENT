@@ -5,6 +5,9 @@ import { resolveFromRepo } from "./paths.js";
 export const createAuditProject = (): Project => {
   const project = new Project({
     tsConfigFilePath: resolveFromRepo("tsconfig.json"),
+    compilerOptions: {
+      allowJs: true,
+    },
   });
 
   project.addSourceFilesAtPaths([

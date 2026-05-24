@@ -1,3 +1,3 @@
-import "../../capabilities/widget/runtime/private.ts";
+import "../../capabilities/widget/runtime/private.js";
 
 export const ready = true;

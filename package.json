@@ -22,6 +22,8 @@
     "acceptance:facebook-log-coverage": "node --import tsx scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-failure-diagnosis.acceptance.ts",
     "acceptance:code-purity-zombie-deep": "node --import tsx scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "acceptance:audit-truth-coverage": "node --import tsx scripts/acceptance/audit-truth-coverage.acceptance.ts",
+    "acceptance:ci-summary-truth": "node --import tsx scripts/acceptance/ci-summary-truth.acceptance.ts",
+    "acceptance:runtime-truth-completed-evidence": "node --import tsx scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "acceptance:deep-research-decomposition-prompt": "node --import tsx scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
     "acceptance:deep-research-report-export": "node --import tsx scripts/acceptance/deep-research-report-export.acceptance.ts",

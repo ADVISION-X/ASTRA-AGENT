@@ -1,3 +1,3 @@
-const featurePath = "./feature.ts";
+const featurePath = "./feature.js";
 
 void import(featurePath);

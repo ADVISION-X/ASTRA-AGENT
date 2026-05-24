@@ -81,6 +81,9 @@ assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research
 assertText("src/app/workbench-deep-research-styles.ts", "max-height: min(320px, 34vh)");
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr)");
 assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
+assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(260px, 1fr))");
+assertText("src/app/workbench-deep-research-styles.ts", "research-debug-root");
+assertText("src/app/workbench-deep-research-report-view.ts", "research-reading-rhythm");
 assertImport(
   "src/app/create-workbench-server.ts",
   "handleDeepResearchRequest",
@@ -89,12 +92,14 @@ assertImport(
 assertCall("src/app/create-workbench-server.ts", "handleDeepResearchRequest");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/start");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/history");
+assertText("src/app/workbench-deep-research-routes.ts", "DELETE:/api/deep-research-analysis/job");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/report");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/timeline");
 assertText("src/lib/local-runtime/workbench-handle.ts", "startDeepResearchAnalysis");
 assertText("src/lib/local-runtime/workbench-handle.ts", "listDeepResearchAnalysisJobs");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisReport");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisTimeline");
+assertText("src/lib/local-runtime/workbench-handle.ts", "deleteDeepResearchAnalysisJob");
 assertText("src/lib/local-runtime/workbench.ts", "deepResearchAnalysisPublicFacade");
 assertTextInAnyFile(clientRuntimePaths, "Default 1+N+1");
 assertTextInAnyFile(clientRuntimePaths, "Final Adjudication");
@@ -103,7 +108,10 @@ assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");
 assertTextInAnyFile(clientRuntimePaths, "refreshHistory");
 assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
+assertTextInAnyFile(clientRuntimePaths, "data-deep-research-delete-job");
+assertTextInAnyFile(clientRuntimePaths, "Interaction Evidence");
 assertText("src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts", "buildTimelineSnapshot");
+assertText("src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts", "deleteDeepResearchAnalysisJob");
 assertWorkbenchInlineScriptCompiles();
 
 process.stdout.write("[ACCEPTANCE][deep-research-app-ui] PASS\n");

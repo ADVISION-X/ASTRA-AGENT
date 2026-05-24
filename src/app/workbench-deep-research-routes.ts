@@ -249,6 +249,24 @@ const handleExportRequest = async (
   return true;
 };
 
+const handleDeleteJobRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const jobId = readJobId(response, url);
+  if (!jobId) {
+    return true;
+  }
+  const result = await workbench.deleteDeepResearchAnalysisJob(jobId);
+  if (!result.deleted) {
+    writeJson(response, 404, { error: "job_not_found" });
+    return true;
+  }
+  writeJson(response, 200, result);
+  return true;
+};
+
 export const handleDeepResearchRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -261,6 +279,9 @@ export const handleDeepResearchRequest = async (
   }
   if (routeKey === "GET:/api/deep-research-analysis/job") {
     return handleJobRequest(response, workbench, url);
+  }
+  if (routeKey === "DELETE:/api/deep-research-analysis/job") {
+    return handleDeleteJobRequest(response, workbench, url);
   }
   if (routeKey === "GET:/api/deep-research-analysis/history") {
     return handleHistoryRequest(response, workbench, url);

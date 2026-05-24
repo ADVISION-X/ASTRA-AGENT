@@ -190,7 +190,7 @@ const buildCoverageSection = (finalPackage: DeepResearchFinalPackage): string =>
   "",
   `Total Sub-Questions: ${String(finalPackage.analysisCoverage.totalSubQuestionCount)}`,
   `Analyzed Sub-Questions: ${String(finalPackage.analysisCoverage.analyzedSubQuestionCount)}`,
-  `Missing Analysis Count: ${String(finalPackage.analysisCoverage.missingSubQuestionCount)}`,
+  `Missing Analysis Count: ${String(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount)}`,
   `Coverage Ratio: ${String(finalPackage.analysisCoverage.coverageRatio)}`,
   "",
   "### Missing Analysis Sub-Questions",
@@ -279,7 +279,11 @@ const buildMarkdownContext = (input: {
     stageRows: input.stageRows,
     decompositionInteraction,
     finalInteraction,
-    conflictMatrixRows: finalReport?.conflictMatrix ?? input.finalPackage.conflictMatrix,
+    conflictMatrixRows: finalReport?.conflictMatrix ?? (
+      input.finalPackage.flowMode === "legacy_1_n_n_1"
+        ? input.finalPackage.conflictMatrix
+        : []
+    ),
   };
 };
 

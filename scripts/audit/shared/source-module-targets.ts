@@ -44,15 +44,30 @@ export type SourceModuleBinding = {
 
 const candidateSuffixes = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx", "/index.js", "/index.jsx", "/index.mjs"];
 
+const runtimeSpecifierExtensions = [".js", ".jsx", ".mjs"];
+
+const buildCandidateBasePaths = (sourceFile: SourceFile, moduleSpecifierValue: string): string[] => {
+  const directBasePath = resolve(dirname(sourceFile.getFilePath()), moduleSpecifierValue);
+  const basePaths = [directBasePath];
+  for (const extension of runtimeSpecifierExtensions) {
+    if (moduleSpecifierValue.endsWith(extension)) {
+      basePaths.push(directBasePath.slice(0, -extension.length));
+      break;
+    }
+  }
+  return [...new Set(basePaths)];
+};
+
 const resolveRelativeTargetPath = (sourceFile: SourceFile, moduleSpecifierValue: string): string | undefined => {
   if (!moduleSpecifierValue.startsWith("./") && !moduleSpecifierValue.startsWith("../")) {
     return undefined;
   }
-  const candidateBasePath = resolve(dirname(sourceFile.getFilePath()), moduleSpecifierValue);
-  for (const suffix of candidateSuffixes) {
-    const candidatePath = `${candidateBasePath}${suffix}`;
-    if (existsSync(candidatePath)) {
-      return toRepoPath(candidatePath);
+  for (const candidateBasePath of buildCandidateBasePaths(sourceFile, moduleSpecifierValue)) {
+    for (const suffix of candidateSuffixes) {
+      const candidatePath = `${candidateBasePath}${suffix}`;
+      if (existsSync(candidatePath)) {
+        return toRepoPath(candidatePath);
+      }
     }
   }
   return undefined;

@@ -1,0 +1,21 @@
+{
+  "capabilityDomain": "runtime-truth",
+  "ownerInspectorPath": "scripts/audit/domains/runtime-truth/inspector.ts",
+  "executionGroup": "meta",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "requiredAnchors": [
+        "## CI 真绿硬边界链路",
+        "## Runtime Evidence Truth 链路"
+      ]
+    }
+  ],
+  "description": "Enforces completed-runtime evidence truth on Deep Research and Facebook mining contracts."
+}

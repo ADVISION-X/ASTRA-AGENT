@@ -1,3 +1,3 @@
-import { boot } from "./bootstrap.ts";
+import { boot } from "./bootstrap.js";
 
 void boot;

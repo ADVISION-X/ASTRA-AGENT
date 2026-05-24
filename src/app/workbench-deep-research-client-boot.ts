@@ -131,8 +131,34 @@ async function downloadDeepResearchExport(state: DeepResearchClientState, kind: 
   writeActivity(`deep research export ready: ${exported.fileName || kind}`, "ok");
 }
 
+async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: string): Promise<void> {
+  if (!jobId || !confirm("Delete this Deep Research report and its exported artifacts?")) {
+    return;
+  }
+  await readResearchJson(`/api/deep-research-analysis/job?jobId=${encodeURIComponent(jobId)}`, {
+    method: "DELETE",
+  });
+  if (state.selectedJobId === jobId) {
+    state.selectedJobId = "";
+    localStorage.removeItem("grasseye:lastDeepResearchJobId");
+    stopPolling(state);
+  }
+  writeActivity("deep research report deleted", "ok");
+  const nextJobId = await refreshHistory(state);
+  if (nextJobId) {
+    await loadSelectedReport(state, nextJobId, { skipHistoryRefresh: true });
+  }
+}
+
 function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEvent): void {
   const target = event.target instanceof Element ? event.target : null;
+  const deleteJob = target?.closest("[data-deep-research-delete-job]");
+  if (deleteJob) {
+    deleteDeepResearchJob(state, deleteJob.getAttribute("data-deep-research-delete-job") || "").catch((error) => {
+      writeActivity(`deep research delete failed: ${error.message}`, "bad");
+    });
+    return;
+  }
   const selectedJob = target?.closest("[data-deep-research-select-job]");
   if (selectedJob) {
     loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "").catch((error) => {
@@ -217,6 +243,7 @@ export const deepResearchClientBootFunctions = [
   loadLatestReport,
   startDeepResearch,
   downloadDeepResearchExport,
+  deleteDeepResearchJob,
   handleDeepResearchClick,
   handleDeepResearchInput,
   handleDeepResearchDomReady,

@@ -170,7 +170,6 @@ const buildReportJson = (
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  void context.project.getSourceFiles().length;
   const inspectorFiles = listAuditTruthOwnerInspectorFiles(context);
   const inspectedFiles = new Set<string>();
   const findings: InspectorFinding[] = [];

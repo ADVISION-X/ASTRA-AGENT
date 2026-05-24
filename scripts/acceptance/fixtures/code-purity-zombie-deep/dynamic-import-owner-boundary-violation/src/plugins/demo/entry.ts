@@ -1,5 +1,5 @@
 export const run = async (): Promise<void> => {
-  await import("../../capabilities/widget/runtime/private.ts");
+  await import("../../capabilities/widget/runtime/private.js");
 };
 
 void run();

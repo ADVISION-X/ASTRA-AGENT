@@ -304,6 +304,13 @@ const buildDeepResearchQueryHandle = (context: DeepResearchHandleContext) => ({
       kind: input.kind,
     });
   },
+  async deleteDeepResearchAnalysisJob(jobId: string) {
+    context.executions.delete(jobId);
+    return deepResearchAnalysisPublicFacade.deleteDeepResearchAnalysisJob({
+      dataDir: context.dataDir,
+      jobId,
+    });
+  },
 });
 
 const buildDeepResearchAnalysisHandle = (

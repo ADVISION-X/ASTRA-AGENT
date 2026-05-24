@@ -165,3 +165,11 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - owner inspector 不使用 `context.project` 视为执法真值缺失。
 - generated plan 漏接真实 owner inspector 视为 CI 真绿硬边界失效。
 - 旧 summary、旧 report、旧 generated artifact 不得被当作当前 run 的通过证明。
+- ci-full-summary 的每个 step 必须记录 `command`、`startedAt`、`endedAt`、`durationMs`，否则不构成当前 run 的可审计执行证据。
+
+## Runtime Evidence Truth 链路
+
+1. completed 结果必须由 runtime contract 本身携带证据字段，而不是依赖调用者脑补。
+2. Deep Research completed 至少要绑定最终报告证据与 record hash 证据。
+3. Facebook completed 至少要绑定视频证据字段或等价证据汇总字段。
+4. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。

@@ -6,7 +6,7 @@ export const renderDeepResearchPanel = (): string => `
   <header class="research-header">
     <div>
       <h1>Deep Research Analysis</h1>
-      <p class="muted">Report library -> final conclusion -> paired analysis -> synthesis -> evidence trace</p>
+      <p class="muted">Report library -> final conclusion -> independent analysis -> adjudication -> evidence trace</p>
     </div>
     <p class="research-disclaimer">This is an AI research report, not a guaranteed prediction. Read reverse conditions, opposing arguments, and evidence gaps before acting.</p>
   </header>

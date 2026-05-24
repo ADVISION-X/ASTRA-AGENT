@@ -151,7 +151,7 @@ function renderInteractionDebug(interaction: DeepResearchEvidence | DeepResearch
   if (!interaction) {
     return "";
   }
-  return [
+  const body = [
     renderExpandableText("Prompt", interaction.promptText || "", {
       summaryLabel: "Show Full Prompt",
       className: "prompt-pre",
@@ -164,6 +164,7 @@ function renderInteractionDebug(interaction: DeepResearchEvidence | DeepResearch
     }),
     renderJsonDetails("Parsed Result", interaction.parsedJson, "Show Parsed Result"),
   ].join("");
+  return `<details class="research-debug-root"><summary>Interaction Evidence</summary>${body}</details>`;
 }
 
 function readPayloadString(payload: Record<string, unknown>, key: string): string {
@@ -241,22 +242,25 @@ function renderHistory(state: DeepResearchClientState): void {
   setResearchHtml("[data-deep-research-history]", jobs.map((job) => {
     const selected = job.id === state.selectedJobId;
     return `
-      <button class="research-history-item${selected ? " selected" : ""}" type="button" data-deep-research-select-job="${escapeText(job.id)}" aria-pressed="${selected}">
-        <div class="research-history-title">
-          <h3>${escapeText(job.title)}</h3>
-          <span>${escapeText(formatDateTime(job.updatedAt))}</span>
-        </div>
-        <p class="research-history-summary">${escapeText(job.questionSummary)}</p>
+      <article class="research-history-item${selected ? " selected" : ""}">
+        <button class="research-history-select" type="button" data-deep-research-select-job="${escapeText(job.id)}" aria-pressed="${selected}">
+          <div class="research-history-title">
+            <h3>${escapeText(job.title)}</h3>
+            <span>${escapeText(formatDateTime(job.updatedAt))}</span>
+          </div>
+          <p class="research-history-summary">${escapeText(job.questionSummary)}</p>
+        </button>
         <div class="research-history-top">
           ${renderStatusBadge(job.status)}
           ${renderConfidenceBadge(job.finalConfidence)}
         </div>
+        <button class="btn secondary research-history-delete" type="button" data-deep-research-delete-job="${escapeText(job.id)}" aria-label="Delete ${escapeText(job.title)}">Delete</button>
         ${renderMetaRow([
           `${job.subQuestionCount} subquestions`,
           `${job.interactionCount} interactions`,
           `${job.exportCount} exports`,
         ])}
-      </button>`;
+      </article>`;
   }).join(""));
 }
 

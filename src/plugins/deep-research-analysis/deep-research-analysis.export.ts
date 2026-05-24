@@ -127,15 +127,22 @@ const buildResearchBundle = (input: {
 }) => ({
   jobId: input.finalPackage.jobId,
   userQuestion: input.finalPackage.userQuestion,
+  analysisGoal: input.finalPackage.analysisGoal,
   flowMode: input.finalPackage.flowMode,
   promptVersions: input.finalPackage.promptVersions,
   subQuestions: input.finalPackage.decompositionRecords,
   analysisAnswers: input.finalPackage.analysisRecords,
   analysisCoverage: input.finalPackage.analysisCoverage,
   missingAnalysisSubQuestionIds: input.finalPackage.missingAnalysisSubQuestionIds,
-  positiveAnswers: input.finalPackage.positiveAnswerRecords,
-  falsificationAnswers: input.finalPackage.falsificationAnswerRecords,
-  conflictMatrix: input.finalPackage.conflictMatrix,
+  ...(input.finalPackage.flowMode === "legacy_1_n_n_1"
+    ? {
+      positiveAnswers: input.finalPackage.positiveAnswerRecords,
+      falsificationAnswers: input.finalPackage.falsificationAnswerRecords,
+      conflictMatrix: input.finalPackage.conflictMatrix,
+      legacyMissingPositiveFalsificationSubQuestionIds:
+        input.finalPackage.legacyMissingPositiveFalsificationSubQuestionIds,
+    }
+    : {}),
   finalReport: input.finalReport,
   recordHashes: input.finalPackage.recordHashes,
 });

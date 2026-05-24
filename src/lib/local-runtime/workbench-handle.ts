@@ -119,4 +119,7 @@ export type GrassEyeWorkbenchHandle = {
     jobId: string;
     kind: DeepResearchExportArtifactPayload["kind"];
   }) => Promise<DeepResearchExportArtifactPayload | null>;
+  deleteDeepResearchAnalysisJob: (
+    jobId: string,
+  ) => Promise<{ deleted: boolean; jobId: string }>;
 };
