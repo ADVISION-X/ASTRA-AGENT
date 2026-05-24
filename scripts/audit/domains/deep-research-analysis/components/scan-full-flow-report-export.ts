@@ -17,6 +17,7 @@ import type {
 } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
+import { inspectBusinessDeckNoTextCeiling } from "./scan-business-deck-no-text-ceiling.js";
 
 const recordContractsPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts";
 const recordInteractionOpsPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts";
@@ -462,10 +463,17 @@ export const inspectFullFlowReportExport = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
+  deckTextCeilingLawId: string;
 }): void => {
   inspectRenderedPromptSchema(input);
   inspectRenderedPromptPersistence(input);
   inspectExportOwner(input);
+  inspectBusinessDeckNoTextCeiling({
+    deckStageFile: getSourceFile(input.context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts"),
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.deckTextCeilingLawId,
+  });
   inspectMarkdownRenderer(input);
   inspectAcceptanceAndCi(input);
 };

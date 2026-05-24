@@ -69,7 +69,7 @@ const verifyPersistedJobCore = (
 } => {
   const job = store.getJob(result.jobId);
   assert(job?.status === "completed", "Persisted research job should be completed.");
-  assert(job?.flowMode === "default_1_n_1", "Smoke fixture must persist the default 1+N+1 flow mode.");
+  assert(job?.flowMode === "default_1_n_1_1", "Smoke fixture must persist the default 1+N+1+1 flow mode.");
 
   const subQuestions = store.listSubQuestions(result.jobId);
   assert(subQuestions.length === 2, `Expected 2 sub-questions, received ${subQuestions.length}.`);
@@ -97,7 +97,7 @@ const verifyPersistedFinalPackage = (input: {
   job: ReturnType<ReturnType<typeof createDeepResearchRecordStore>["getJob"]>;
 }): void => {
   const finalPackage = buildDeepResearchFinalPackage({ store: input.store, jobId: input.jobId });
-  assert(finalPackage.flowMode === "default_1_n_1", "Final package must stay on the default flow mode.");
+  assert(finalPackage.flowMode === "default_1_n_1_1", "Final package must stay on the default 1+N+1+1 flow mode.");
   assert(finalPackage.analysisRecords.length === 2, "Final package must read persisted analysis records.");
   assert(finalPackage.missingAnalysisSubQuestionIds.length === 0, "Final package should have no missing analysis records in the smoke fixture.");
   assert(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount === 0, "Final package should report zero missing analysis rows in the smoke fixture.");

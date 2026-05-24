@@ -6,7 +6,7 @@ import { stableJsonHash } from "../../lib/storage/hash.js";
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
 import { businessDeckSecretaryPrompt, renderDeepResearchBusinessDeckPrompt } from "./deep-research-analysis.deck-prompt.js";
-import { parseDeepResearchBusinessDeckOutlineResponse } from "./deep-research-analysis.deck-parser.js";
+import { parseDeepResearchBusinessDeckOutlineResponseForFinalReport } from "./deep-research-analysis.deck-parser.js";
 import type { DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
 import type { DeepResearchFinalReport, DeepResearchResult } from "./deep-research-analysis.result.js";
 import {
@@ -86,14 +86,17 @@ export const runBusinessDeckPhase = async (
       `job:${context.jobId}:final-package`,
       `job:${context.jobId}:final-report`,
     ],
-    maxInputChars: 45_000,
+    maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
       send: "DECK_SEND",
       capture: "DECK_CAPTURE",
       parse: "DECK_PARSE",
       persist: "DECK_PERSIST",
     },
-    parse: (rawText) => parseDeepResearchBusinessDeckOutlineResponse(rawText),
+    parse: (rawText) => parseDeepResearchBusinessDeckOutlineResponseForFinalReport({
+      rawText,
+      finalReport,
+    }),
     successRecordCount: () => 1,
     persist: ({ parsed }) => {
       const outlineExport = writeDeckOutlineArtifact({ context, outline: parsed });

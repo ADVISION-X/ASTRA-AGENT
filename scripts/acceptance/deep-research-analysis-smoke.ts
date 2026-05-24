@@ -135,7 +135,7 @@ const FIXTURE_RESPONSES = [
   }),
   JSON.stringify({
     deckTitle: "Robotics Warehouse Entry Decision Deck",
-    deckSubtitle: "Default 1+N+1 decision presentation",
+    deckSubtitle: "Default 1+N+1+1 decision presentation",
     audience: "executive",
     sourceDecisionPackageId: "fixture-decision-package",
     sourceFinalReportId: "fixture-final-report",

@@ -33,7 +33,7 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
           id: "Q1",
           title: "Raw capture boundary",
           questionText: "Does capture succeed when the provider returns malformed JSON for one independent analysis?",
-          whyItMatters: "This proves transport and business parsing stay separated under the default 1+N+1 flow.",
+          whyItMatters: "This proves transport and business parsing stay separated under the default 1+N+1+1 flow.",
           decisionWeight: "high",
           analysisFocus: "Check whether raw output is captured before the parser rejects malformed JSON.",
           requiredEvidence: ["runtime logs", "persisted interaction"],
@@ -100,7 +100,7 @@ export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promi
   const result = await runDeepResearchAnalysis(
     {
       userQuestion: "Can raw capture be separated from independent analysis parsing?",
-      analysisGoal: "Verify malformed provider JSON reaches the Deep Research parser under the default 1+N+1 flow.",
+      analysisGoal: "Verify malformed provider JSON reaches the Deep Research parser under the default 1+N+1+1 flow.",
       language: "en",
       maxSubQuestions: 2,
       outputFormat: "markdown",

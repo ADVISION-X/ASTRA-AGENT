@@ -105,6 +105,9 @@ type LegacyHashInput = {
   legacyMissingPositiveFalsificationSubQuestionIds: readonly string[];
 };
 
+const isDefaultFlowMode = (flowMode: ResearchJob["flowMode"]): boolean =>
+  flowMode === "default_1_n_1" || flowMode === "default_1_n_1_1";
+
 const buildPromptVersionMap = (interactions: readonly ResearchInteraction[]): Record<string, string> =>
   interactions.reduce<Record<string, string>>((accumulator, interaction) => {
     accumulator[interaction.promptId] = interaction.promptVersion;
@@ -222,7 +225,7 @@ const validateDeepResearchFinalPackageState = (
   if (state.subQuestions.length === 0) {
     throw new Error(`Deep research job ${jobId} has no persisted sub-question records.`);
   }
-  if (state.job.flowMode === "default_1_n_1" && state.analysisAnswers.length === 0) {
+  if (isDefaultFlowMode(state.job.flowMode) && state.analysisAnswers.length === 0) {
     throw new Error(`Deep research job ${jobId} is missing persisted independent analysis records.`);
   }
   if (
@@ -286,7 +289,7 @@ const buildDefaultFinalPackage = (
   state: DeepResearchFinalPackageState,
 ): DeepResearchDefaultFinalPackage => ({
   ...baseFinalPackage,
-  flowMode: "default_1_n_1",
+  flowMode: state.job.flowMode === "default_1_n_1_1" ? "default_1_n_1_1" : "default_1_n_1",
   recordHashes: buildRecordHashes({
     job: state.job,
     subQuestions: state.subQuestions,

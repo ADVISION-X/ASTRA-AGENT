@@ -86,7 +86,7 @@ const createCreateJobOperation = (
     parsedInput.language,
     parsedInput.maxSubQuestions,
     parsedInput.outputFormat,
-    "default_1_n_1",
+    "default_1_n_1_1",
     "queued",
     "INTAKE",
     null,

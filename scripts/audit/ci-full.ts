@@ -35,8 +35,11 @@ const ciCommands: readonly CommandSpec[] = [
   { name: "deep-research-decomposition-prompt", command: ["npm", "run", "acceptance:deep-research-decomposition-prompt"] },
   { name: "deep-research-analysis-smoke", command: ["npm", "run", "acceptance:deep-research-analysis-smoke"] },
   { name: "deep-research-business-deck", command: ["npm", "run", "acceptance:deep-research-business-deck"] },
+  { name: "deep-research-deck-secretary-boundary", command: ["npm", "run", "acceptance:deep-research-deck-secretary-boundary"] },
+  { name: "deep-research-deck-artifacts", command: ["npm", "run", "acceptance:deep-research-deck-artifacts"] },
   { name: "deep-research-report-export", command: ["npm", "run", "acceptance:deep-research-report-export"] },
   { name: "deep-research-report-reader-ui", command: ["npm", "run", "acceptance:deep-research-report-reader-ui"] },
+  { name: "deep-research-deck-ui", command: ["npm", "run", "acceptance:deep-research-deck-ui"] },
   { name: "deep-research-app-ui", command: ["npm", "run", "acceptance:deep-research-app-ui"] },
   { name: "amazon-invoice-upload-smoke", command: ["npm", "run", "acceptance:amazon-invoice-upload-smoke"] },
   { name: "facebook-product-video-mining", command: ["npm", "run", "acceptance:facebook-product-video-mining"] },
@@ -184,7 +187,7 @@ const main = async (): Promise<void> => {
   if (hasFailures) {
     throw new Error("ci:full failed");
   }
-  process.stdout.write("[CI-FULL] PASS — audit plan, typecheck, runtime log acceptance, Deep Research smoke, business deck acceptance, Deep Research report export acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
+  process.stdout.write("[CI-FULL] PASS — audit plan, typecheck, runtime log acceptance, Deep Research smoke, business deck flow/boundary/artifact/UI acceptance, Deep Research report export acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
 };
 
 const isEntrypoint = (): boolean => {

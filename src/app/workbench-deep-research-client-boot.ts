@@ -136,6 +136,33 @@ async function downloadDeepResearchExport(state: DeepResearchClientState, kind: 
   writeActivity(`deep research export ready: ${exported.fileName || kind}`, "ok");
 }
 
+async function openDeepResearchExport(state: DeepResearchClientState, kind: string): Promise<void> {
+  if (!state.selectedJobId) {
+    writeActivity("deep research job id is required", "warn");
+    return;
+  }
+  const exported = await readResearchJson<DeepResearchExportPayload>(`/api/deep-research-analysis/export?jobId=${encodeURIComponent(state.selectedJobId)}&kind=${encodeURIComponent(kind)}`);
+  const blob = exported.base64Content
+    ? new Blob([
+      Uint8Array.from(atob(exported.base64Content), (character) => character.charCodeAt(0)),
+    ], { type: exported.contentType || "application/octet-stream" })
+    : new Blob([
+      exported.textContent || JSON.stringify(exported.jsonContent, null, 2),
+    ], { type: exported.contentType || "application/octet-stream" });
+  const objectUrl = URL.createObjectURL(blob);
+  const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = exported.fileName || kind;
+    link.click();
+  }
+  setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+  }, 60_000);
+  writeActivity(`deep research export opened: ${exported.fileName || kind}`, "ok");
+}
+
 async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: string): Promise<void> {
   if (!jobId || !confirm("Delete this Deep Research report and its exported artifacts?")) {
     return;
@@ -157,6 +184,13 @@ async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: stri
 
 function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEvent): void {
   const target = event.target instanceof Element ? event.target : null;
+  const openExportButton = target?.closest("[data-deep-research-open-export]");
+  if (openExportButton) {
+    openDeepResearchExport(state, openExportButton.getAttribute("data-deep-research-open-export") || "").catch((error) => {
+      writeActivity(`deep research export open failed: ${error.message}`, "bad");
+    });
+    return;
+  }
   const deleteJob = target?.closest("[data-deep-research-delete-job]");
   if (deleteJob) {
     deleteDeepResearchJob(state, deleteJob.getAttribute("data-deep-research-delete-job") || "").catch((error) => {

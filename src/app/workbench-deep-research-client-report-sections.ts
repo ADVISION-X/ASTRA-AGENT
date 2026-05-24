@@ -1,6 +1,5 @@
 import type {
   DeepResearchClientState,
-  DeepResearchExportRecord,
   DeepResearchReport,
 } from "./workbench-deep-research-client-contracts.js";
 import { deepResearchClientSharedRuntime } from "./workbench-deep-research-client-shared.js";
@@ -9,13 +8,13 @@ declare const renderLedger: (payload: unknown) => void;
 
 const {
   escapeText,
-  exportActionLabel,
   formatDateTime,
   formatStatusLabel,
   renderAnswerCard,
   renderConfidenceBadge,
   renderEmptyReader,
   renderExpandableText,
+  exportActionLabel,
   renderExportButtons,
   renderInteractionDebug,
   renderJsonDetails,
@@ -32,7 +31,7 @@ function isLegacyFlow(report: DeepResearchReport): boolean {
 }
 
 function renderFlowLabel(report: DeepResearchReport): string {
-  return isLegacyFlow(report) ? "Legacy 1+N+N+1" : "Default 1+N+1";
+  return isLegacyFlow(report) ? "Legacy 1+N+N+1" : "Default 1+N+1+1";
 }
 
 function renderReportHeader(report: DeepResearchReport): void {
@@ -134,7 +133,7 @@ function renderStageOverview(report: DeepResearchReport): void {
     <div class="research-section-head">
       <div>
         <p class="research-kicker">Stage Overview</p>
-        <h2>${escapeText(isLegacyFlow(report) ? "Legacy 1+N+N+1 research flow" : "Default 1+N+1 research flow")}</h2>
+        <h2>${escapeText(isLegacyFlow(report) ? "Legacy 1+N+N+1 research flow" : "Default 1+N+1+1 research flow")}</h2>
       </div>
     </div>
     <div class="research-stage-grid">
@@ -278,17 +277,26 @@ function renderBusinessDeck(report: DeepResearchReport): void {
       <div class="research-section-head">
         <div>
           <p class="research-kicker">Business Deck</p>
-          <h2>Deck artifacts are not persisted yet</h2>
+          <h2>Deck not generated</h2>
         </div>
       </div>
       <p class="muted">The deck secretary runs after final adjudication and persists the outline before PPTX export.</p>`);
     return;
   }
-  const actionableExports = [report.businessDeck.pptxExport, report.businessDeck.outlineExport]
-    .filter((record): record is DeepResearchExportRecord => Boolean(record));
-  const actionButtons = actionableExports
-    .map((record) => `<button class="btn secondary" type="button" data-deep-research-export="${escapeText(record.exportKind)}">${escapeText(exportActionLabel(record.exportKind))}</button>`)
-    .join("");
+  const actionButtons = [
+    report.businessDeck.pptxExport
+      ? '<button class="btn secondary" type="button" data-deep-research-open-export="business-deck.pptx">Open PPT</button>'
+      : "",
+    report.businessDeck.pptxExport
+      ? '<button class="btn secondary" type="button" data-deep-research-export="business-deck.pptx">Download PPT</button>'
+      : "",
+    report.businessDeck.outlineExport
+      ? '<button class="btn secondary" type="button" data-deep-research-open-export="business-deck-outline.json">Open Deck Outline</button>'
+      : "",
+  ].filter(Boolean).join("");
+  const deckStatusMessage = report.businessDeck.pptxExport
+    ? ""
+    : '<p class="muted">Outline ready, PPTX generation failed</p>';
   setResearchHtml("[data-deep-research-business-deck]", `
     <div class="research-section-head">
       <div>
@@ -297,6 +305,7 @@ function renderBusinessDeck(report: DeepResearchReport): void {
       </div>
     </div>
     ${report.businessDeck.deckSubtitle ? `<p class="research-lead">${escapeText(report.businessDeck.deckSubtitle)}</p>` : ""}
+    ${deckStatusMessage}
     ${renderMetaRow([
       report.businessDeck.audience ? `audience ${report.businessDeck.audience}` : null,
       `${report.businessDeck.slideCount} slides`,
@@ -304,6 +313,7 @@ function renderBusinessDeck(report: DeepResearchReport): void {
     ])}
     <div class="research-delivery-strip">${actionButtons || '<span class="muted">No deck artifact buttons available yet.</span>'}</div>
     <div class="research-summary-grid">
+      ${renderListSection("Generated At", report.businessDeck.generatedAt ? [formatDateTime(report.businessDeck.generatedAt)] : [], { emptyText: "Not generated yet." })}
       ${renderListSection("Deck Warnings", report.businessDeck.warnings, { emptyText: "No deck warnings recorded." })}
       ${report.businessDeck.preservationSummary ? renderListSection("Preservation Summary", [
         `Ranked conclusions used: ${report.businessDeck.preservationSummary.usedRankedConclusionCount}`,

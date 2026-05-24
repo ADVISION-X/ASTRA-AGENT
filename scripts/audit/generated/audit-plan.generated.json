@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:44:10.052Z",
+  "generatedAt": "2026-05-24T03:35:34.131Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -183,15 +183,22 @@
         "GRASSEYE-DEEP-RESEARCH-013-V1",
         "GRASSEYE-DEEP-RESEARCH-014-V1",
         "GRASSEYE-DEEP-RESEARCH-015-V1",
-        "GRASSEYE-DEEP-RESEARCH-016-V1"
+        "GRASSEYE-DEEP-RESEARCH-016-V1",
+        "GRASSEYE-DEEP-RESEARCH-017-V1",
+        "GRASSEYE-DEEP-RESEARCH-021-V1",
+        "GRASSEYE-DEEP-RESEARCH-022-V1",
+        "GRASSEYE-DEEP-RESEARCH-023-V1",
+        "GRASSEYE-DEEP-RESEARCH-024-V1"
       ],
       "clauseIds": [
         "primary"
       ],
       "evidenceModes": [
         "acceptance+runtime-log+db+artifact",
+        "app-shell+acceptance+ast",
         "ast+schema",
         "db+artifact+hash",
+        "db+artifact+hash+acceptance",
         "db+artifact+hash+acceptance+ast",
         "db+schema",
         "dom+artifact+hash",
@@ -201,10 +208,13 @@
         "fs+ast",
         "fs+ast+db+acceptance",
         "fs+db+hash",
+        "law+ast+acceptance+runtime-log",
         "law+ast+schema+db+runtime-log",
         "law+schema+ast+db+artifact+acceptance",
         "parser+db+runtime-log",
-        "runtime-log+audit"
+        "prompt+ast+acceptance+db",
+        "runtime-log+audit",
+        "schema+parser+acceptance"
       ],
       "blueprintRefs": []
     },

@@ -35,11 +35,11 @@ export const DeepResearchBusinessDeckSlideSchema = z.object({
   slideType: DeepResearchBusinessDeckSlideTypeSchema,
   title: z.string().trim().min(1),
   headline: z.string().trim().min(1),
-  bullets: z.array(z.string().trim().min(1)).min(1),
+  bullets: z.array(z.string().trim().min(1)).min(1).max(6),
   visualSuggestion: z.string().trim().min(1),
   speakerNotes: z.string().trim().min(1),
-  evidenceRefs: z.array(z.string().trim().min(1)).default([]),
-  mustNotDrop: z.array(z.string().trim().min(1)).default([]),
+  evidenceRefs: z.array(z.string().trim().min(1)),
+  mustNotDrop: z.array(z.string().trim().min(1)).min(1),
 }).strict();
 
 export const DeepResearchBusinessDeckOutlineSchema = z.object({
@@ -59,7 +59,7 @@ export const DeepResearchBusinessDeckOutlineSchema = z.object({
     noNewFactsAdded: z.literal(true),
   }).strict(),
   slides: z.array(DeepResearchBusinessDeckSlideSchema).min(8).max(15),
-  deckWarnings: z.array(z.string().trim().min(1)).default([]),
+  deckWarnings: z.array(z.string().trim().min(1)),
   contentPreservationSummary: z.object({
     usedRankedConclusionCount: z.number().int().nonnegative(),
     usedReverseConditionCount: z.number().int().nonnegative(),
@@ -69,7 +69,7 @@ export const DeepResearchBusinessDeckOutlineSchema = z.object({
       itemType: DeepResearchBusinessDeckOmittedItemTypeSchema,
       item: z.string().trim().min(1),
       reason: z.string().trim().min(1),
-    }).strict()).default([]),
+    }).strict()),
   }).strict(),
 }).strict();
 

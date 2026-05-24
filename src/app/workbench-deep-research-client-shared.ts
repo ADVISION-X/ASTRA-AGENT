@@ -82,7 +82,7 @@ function exportActionLabel(kind: string): string {
     return "Download research bundle";
   }
   if (kind === "business-deck-outline.json") {
-    return "Open deck outline";
+    return "Open Deck Outline";
   }
   if (kind === "business-deck.pptx") {
     return "Download PPT";

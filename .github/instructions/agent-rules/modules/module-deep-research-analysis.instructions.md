@@ -36,7 +36,10 @@ Deep Research Analysis 是 GrassEye 的一个固定业务 Job Flow。
   -> 分析回答入库
   -> 最终裁决包构建
   -> 最终裁决报告
-  -> 最终报告入库与文件导出
+  -> 商业 PPT 文秘书理
+  -> Deck Outline 入库
+  -> PPTX 导出
+  -> 最终报告与 Deck 工件导出
 ```
 
 本 Job Flow 的核心价值不是 AI 自己“思考”，而是：
@@ -121,6 +124,10 @@ FINAL_ADJUDICATION_SEND
 FINAL_ADJUDICATION_CAPTURE
 FINAL_ADJUDICATION_PARSE
 FINAL_ADJUDICATION_PERSIST
+DECK_SEND
+DECK_CAPTURE
+DECK_PARSE
+DECK_PERSIST
 EXPORT_REPORT
 COMPLETE
 ```
@@ -183,10 +190,9 @@ AI 只能回答当前阶段的问题，不得决定下一阶段。
 
 ```txt
 decomposedSubQuestions
-positiveAnalysis
-falsificationAnalysis
-conflictPoints
+independentAnalysis
 finalReport
+businessDeckOutline
 confidence
 limitations
 reverseConditions
@@ -351,7 +357,7 @@ parseStatus
 AI decomposition owns analytical exhaustiveness.
 Code must not hard-code exhaustive analytical dimensions beyond output contract requirements.
 Each independent analysis must include counter-conditions, failure cases, uncertainty, evidence quality, and impact on final adjudication.
-New jobs must default to flowMode = default_1_n_1.
+New jobs must default to flowMode = default_1_n_1_1.
 ```
 
 #### 禁止
@@ -1055,7 +1061,7 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "db+artifact+hash+acceptance+ast",
-  "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted default 1+N+1 flow with prompt, raw response, parsed summary, and evidence traceability."
+  "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted default 1+N+1+1 flow with prompt, raw response, parsed summary, deck artifact state, and evidence traceability."
 }
 ```
 
@@ -1063,10 +1069,12 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
 
 - Deep Research 只允许一个人读报告：`final-report.md`。
 - `final-report.md` 对新 job 必须完整展示 decomposition、每个 sub-question 的 independent analysis、final adjudication、以及 evidence index。
+- `final-report.md` 对新 job 必须完整展示 decomposition、每个 sub-question 的 independent analysis、final adjudication、business deck artifact state、以及 evidence index。
 - 每个阶段必须展示 prompt、AI raw response、parsed summary、以及 promptHash / rawResponseHash / domRef 等证据字段。
 - 报告必须基于 persisted records 构建，而不是只使用运行时临时对象。
 - `ResearchInteraction` 必须持久化真正发送给 AI 的 rendered prompt text。
 - 缺失、失败、review_required 的阶段必须显式显示，不得静默省略。
+- 若存在 business deck outline 或 PPTX，则导出链必须暴露对应 export refs、hash 与 failureReason，不得把 deck 状态藏在私有文件里。
 - legacy job 可以保留 positive / falsification / conflict matrix 展示，但必须显式标记 legacy_1_n_n_1。
 
 #### 允许
@@ -1083,7 +1091,7 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-016-V1] Default 1+N+1 Adjudication Flow 主权
+### [GRASSEYE-DEEP-RESEARCH-016-V1] Default 1+N+1+1 Commercial Decision Flow 主权
 
 ```apex-law
 {
@@ -1093,16 +1101,21 @@ Deep Research Analysis 的价值不在于让 AI 一次回答得多漂亮。
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+schema+ast+db+artifact+acceptance",
-  "summary": "Deep Research default runtime flow must be 1+N+1 with one decomposition interaction, N independent sub-question analysis interactions, and one final adjudication interaction."
+  "summary": "Deep Research default runtime flow must be 1+N+1+1 with one decomposition interaction, N independent sub-question analysis interactions, one final adjudication interaction, and one business deck secretary interaction."
 }
 ```
 
 #### 法条
 
-Deep Research default runtime flow must be 1+N+1:
+Deep Research default runtime flow must be 1+N+1+1:
 one decomposition interaction,
 N independent sub-question analysis interactions,
-and one final adjudication interaction.
+one final adjudication interaction,
+and one business deck secretary interaction.
+
+Business deck secretary must run strictly after final adjudication and before export completion.
+The deck stage is an editor-only phase, not a second brain.
+The deck stage may only repackage the persisted decision package and final adjudication into presentation form.
 
 Default runtime must not mechanically execute positive+falsification for every sub-question.
 
@@ -1125,5 +1138,159 @@ identify conditional conclusions,
 reject weakened claims,
 and provide reverse conditions.
 
+Business deck secretary must preserve the adjudicated verdict,
+preserve confidence,
+preserve ranked conclusions,
+preserve reverse conditions,
+preserve evidence gaps and limitations,
+and emit explicit omission accounting.
+
 Falsification may be introduced later only as targeted challenge mode,
 not as the default flow.
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-017-V1] Business Deck Secretary 长包投喂主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-017-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+ast+acceptance+runtime-log",
+  "summary": "Deep Research Business Deck Secretary must receive the complete persisted decision package without a 45k GrassEye prompt-size ceiling."
+}
+```
+
+#### 法条
+
+Business Deck Secretary is a post-adjudication formatting stage.
+It must not change the final judgment, confidence, evidence gaps, reverse conditions, or limitations.
+
+The deck prompt must be allowed to carry the full persisted final package, final report, and structured evidence references.
+GrassEye must not apply a `45_000` character ceiling to this stage.
+The stage must use the explicit no-GrassEye-text-ceiling sentinel `Number.MAX_SAFE_INTEGER` when calling the AI Input Gateway.
+
+AI Input Gateway may still enforce sensitive-data exclusion, file count and file byte limits, timeout, cooldown, tab ownership, provider proof, and raw output proof.
+It must not fail Business Deck Secretary solely because the text prompt exceeds `45_000` characters.
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-021-V1] Business Deck Secretary Boundary 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-021-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+ast+acceptance+db",
+  "summary": "The final +1 must be a business deck secretary that edits the persisted decision into presentation form without re-judging, deleting truth, or introducing new facts."
+}
+```
+
+#### 必须
+
+- Deck prompt 必须显式声明自己不是 researcher。
+- Deck prompt 必须显式声明不得改变 final judgment。
+- Deck prompt 必须显式声明不得新增事实。
+- Deck phase 输入只允许消费 persisted final package、persisted final report、evidence refs 与 language。
+- Deck interaction 必须落 `phase = deck` 的 promptHash、rawResponseHash、renderedPromptText 与 parsed/export 证据。
+
+#### 禁止
+
+- 在 deck phase 重新判断 should / should not。
+- 在 deck phase 新增 verdict、confidence、fact、workflow、nextAction、browserCommand。
+- 用 deck phase 覆盖或回写 final adjudication 内容。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-022-V1] Business Deck Outline Preservation 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-022-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+parser+acceptance",
+  "summary": "Business deck outline schema and parser must preserve the adjudicated truth, require explicit evidence refs, and fail when the secretary omits mandatory decision content."
+}
+```
+
+#### 必须
+
+- `verdictPreservationCheck` 的 truth flags 必须全部显式返回并为真。
+- 非 cover / appendix slide 必须显式给出 evidenceRefs。
+- decision slide 必须覆盖 directAnswer、oneSentenceDecision、finalVerdict 与 confidence。
+- ranking / risk / limitation / reference slides 必须分别覆盖 rankedConclusions、reverseConditions、evidenceGaps + limitations、references。
+- `deckWarnings` 与 `contentPreservationSummary.omittedItems` 必须显式返回，不得靠默认空值躲过审计。
+
+#### 禁止
+
+- secretary 通过 omittedItems 声称省略 ranked conclusion、reverse condition、evidence gap、limitation 或 reference。
+- 用 schema 默认值掩盖缺失的 deckWarnings、omittedItems、evidenceRefs。
+- 让 parser 接受新增 verdict、削弱 confidence、删除关键限制项的 outline。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-023-V1] Business Deck Artifact Export 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-023-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "db+artifact+hash+acceptance",
+  "summary": "When a business deck outline exists, export must persist business-deck-outline.json and business-deck.pptx with recorded hashes, evidence-index traceability, and explicit partial-failure handling."
+}
+```
+
+#### 必须
+
+- 已持久化的 `business-deck-outline.json` 必须进入 export list。
+- 生成成功的 `business-deck.pptx` 必须记录 filePath、fileHash、payloadHash。
+- evidence index 必须包含 deck interaction 与其 prompt/raw hash。
+- 若 outline 已存在但 PPTX 生成失败，job 必须显式进入 `deck_export_partial` 或等价 failure state，并保留 outline。
+
+#### 禁止
+
+- 无 outline 直接伪造 PPTX export 记录。
+- PPTX 失败后静默吞掉 deck failure。
+- 只生成文件但不保存 export record/hash。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-024-V1] Business Deck Delivery Surface 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-024-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "app-shell+acceptance+ast",
+  "summary": "Workbench must expose Business Deck as a delivery section after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts."
+}
+```
+
+#### 必须
+
+- Decision Card 必须继续位于 Business Deck 之前。
+- 无 deck 时 UI 必须明确显示 `Deck not generated`。
+- 有 outline 但 PPTX 失败时 UI 必须明确显示 `Outline ready, PPTX generation failed`。
+- 有 artifact 时 UI 必须提供 Open PPT、Download PPT、Open Deck Outline。
+- UI 必须显示 Deck Warnings 与 Generated At。
+
+#### 禁止
+
+- Business Deck 抢到最终结论卡之前。
+- 只在 raw JSON 里暴露 deck 信息。
+- 静默隐藏 outline-only failure 或 deck warnings。

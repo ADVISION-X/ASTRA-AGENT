@@ -214,7 +214,7 @@ capabilityDomain: ai-input-gateway
 enforcementMode: auto
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: AI feed input must be a governed prompt package with explicit refs, size limits, and no sensitive browser data.
+summary: AI feed input must be a governed prompt package with explicit refs, governed size policy, and no sensitive browser data.
 
 ### 主题
 
@@ -222,7 +222,7 @@ summary: AI feed input must be a governed prompt package with explicit refs, siz
 
 ### 法条
 
-Every AI feed input must be a governed prompt package with explicit contract identity, approved refs, size limits, and sensitive-data exclusion.
+Every AI feed input must be a governed prompt package with explicit contract identity, approved refs, governed size policy, and sensitive-data exclusion.
 
 Required direction:
 - Input must include `promptPackageId`.
@@ -232,6 +232,7 @@ Required direction:
 - Input must include `providerKind`.
 - Input must include `timeoutMs`.
 - Input must include `maxInputChars`, `maxFileCount`, and `maxFileBytes`.
+- `maxInputChars` may be a finite guard or the explicit no-GrassEye-text-ceiling sentinel `Number.MAX_SAFE_INTEGER` for law-approved long-form Web Chat prompts.
 - Input proof must include `inputHash`.
 
 Forbidden:
@@ -240,7 +241,7 @@ Forbidden:
 - feeding unapproved local files;
 - uploading arbitrary directory contents to Web Chat;
 - writing unfiltered user-private fields into prompts;
-- treating unbounded prompt text as a governed package.
+- treating implicit, unmarked, or unowned unbounded prompt text as a governed package.
 
 ## Law GRASSEYE-AI-FEED-007-V1
 

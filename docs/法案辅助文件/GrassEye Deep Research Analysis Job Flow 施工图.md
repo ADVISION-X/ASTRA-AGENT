@@ -30,7 +30,9 @@ Deep Research Analysis
   -> 构建 Final Adjudication Package
   -> 发送最终裁决请求
   -> DOM 读取最终裁决报告
-  -> 入库并导出文件
+  -> Business Deck Secretary 整理商业 PPT
+  -> 入库 deck outline
+  -> 导出 final-report 与 PPTX 工件
 ```
 
 一句话：
@@ -74,6 +76,11 @@ src/plugins/deep-research-analysis/
   deep-research-analysis.schema.ts
   deep-research-analysis.result.ts
   deep-research-analysis.prompts.ts
+  deep-research-analysis.deck-prompt.ts
+  deep-research-analysis.deck-schema.ts
+  deep-research-analysis.deck-parser.ts
+  deep-research-analysis.deck-stage.ts
+  deep-research-analysis.deck-pptx.ts
   deep-research-analysis.prompt-contracts.ts
   deep-research-analysis.records.ts
   deep-research-analysis.parser.ts
@@ -85,6 +92,10 @@ src/plugins/deep-research-analysis/
 
 scripts/acceptance/
   deep-research-analysis-smoke.ts
+  deep-research-business-deck.acceptance.ts
+  deep-research-deck-secretary-boundary.acceptance.ts
+  deep-research-deck-artifacts.acceptance.ts
+  deep-research-deck-ui.acceptance.ts
 
 scripts/audit/domains/deep-research-analysis/
   manifest.json
@@ -117,11 +128,12 @@ runDeepResearchAnalysis(input)
   -> captureFinalAdjudicationResponse()
   -> parseFinalAdjudicationResponse()
   -> persistFinalAdjudication()
-  -> exportResearchBundle()
+  -> runBusinessDeckPhase()
+  -> exportResearchArtifacts()
   -> return result
 ```
 
-## 默认 1+N+1 深度研究流程
+## 默认 1+N+1+1 商业 PPT 决策报告流程
 
 默认 runtime flow 必须是：
 
@@ -129,6 +141,7 @@ runDeepResearchAnalysis(input)
 Decomposition
 -> Independent Analysis for each sub-question
 -> Final Adjudication
+-> Business Deck Secretary
 ```
 
 执行要求：
@@ -141,11 +154,12 @@ Decomposition
 6. 系统构建 Final Adjudication Package。
 7. Final Adjudication Prompt 必须裁决原问题。
 8. 系统保存 final adjudication。
-9. final-report.md 展示原始问题、decomposition、N 个 independent analyses、final adjudication、evidence/debug。
+9. Business Deck Secretary 只基于 persisted decision package 与 final adjudication 生成 outline。
+10. 导出链写入 final-report.md、business-deck-outline.json、business-deck.pptx 与 evidence/debug。
 
 默认流程不再机械执行 positive/falsification pair。
 
-除明确标记为 legacy_1_n_n_1 的章节外，本文所有默认实现描述都应按 1+N+1 执行。
+除明确标记为 legacy_1_n_n_1 的章节外，本文所有默认实现描述都应按 1+N+1+1 执行。
 
 ### 3.2 每个阶段的共同动作
 
@@ -176,6 +190,11 @@ Deep Research 调用 AI gateway 时必须使用 raw-only capture，`expectedOutp
 `promptContractId` 只能作为合同标识和审计记录保留，不得作为 gateway 阻断解析条件。  
 只要 provider 返回了 raw response，CAPTURE 阶段必须完成；JSON 语法错误、字段缺失、schema 不合格必须进入对应 PARSE 阶段处理。
 
+Business Deck Secretary 是最终裁决后的格式化阶段，它需要完整读取 persisted final package、final report 和 structured evidence references。
+该阶段不得使用 `45_000` 字符上限；调用 AI Input Gateway 时必须使用 `Number.MAX_SAFE_INTEGER` 作为 no-GrassEye-text-ceiling sentinel。
+GPT Web Chat 自身可把长输入处理成文件，GrassEye 不在此阶段额外截断、压缩或拒绝文本 prompt。
+敏感信息排除、文件数量/大小、timeout、cooldown、tab ownership、provider proof 和 raw output proof 仍由 AI Input Gateway 负责。
+
 ### 3.3 Workbench 展示契约
 
 Workbench 展示只消费 Deep Research public facade 返回的 persisted snapshot / timeline / export artifact，不读取插件私有文件，不重新解析 raw AI response。
@@ -187,6 +206,7 @@ job
 overview.currentPhase
 overview.interactionCount
 overview.subQuestionCount
+overview.analysisCount
 overview.positiveCount
 overview.falsificationCount
 overview.exportCount
@@ -196,6 +216,7 @@ answers[]
 conflictMatrix[]
 finalReport
 exports[]
+businessDeck
 ```
 
 完成态首屏必须把以下内容置于 raw JSON 之前：
@@ -206,7 +227,8 @@ confidence
 evidence gaps
 reverse conditions
 limitations
-subQuestion / positive / falsification / export counts
+subQuestion / analysis / export counts
+business deck artifact state
 export refs and hashes
 timeline evidence hashes
 ```
@@ -253,6 +275,7 @@ Confidence
 Core Reasons
 Strongest Opposing Arguments
 Reverse Conditions
+Business Deck Delivery
 ```
 
 ### 3.5 文字密集报告阅读质量
@@ -286,14 +309,17 @@ Prompt / Raw Response 默认展开刷屏
 ```txt
 Original Question
 -> Decomposition
--> Q1 Positive / Falsification
--> Q2 Positive / Falsification
+-> Q1 Independent Analysis
+-> Q2 Independent Analysis
 -> ...
--> Final Synthesis
+-> Final Adjudication
+-> Business Deck
 -> Evidence / Debug
 ```
 
-每个 subQuestion 必须展示 Positive / Falsification 成对回答，不得把正反答案拆到不同大区。
+每个 subQuestion 必须展示独立分析回答；legacy_1_n_n_1 才允许额外展示 Positive / Falsification。
+
+Decision Card 必须继续在 Business Deck 之前，Business Deck 只能作为交付工件区追加，不能抢主结论位。
 
 Debug / Evidence 默认折叠。raw JSON、hash、provider proof、export path 只能作为调试元数据存在，不能抢占主阅读区。
 
@@ -310,6 +336,8 @@ Selected report reader
 ---
 
 ## 4. 阶段设计
+
+说明：本章后续凡明确标注 legacy_1_n_n_1 的 positive / falsification / conflict matrix 内容，都只是历史兼容参考，不得覆盖当前 active default 1+N+1+1 实现。
 
 ### 4.1 INTAKE
 
@@ -386,7 +414,7 @@ subQuestions over maxSubQuestions -> review_required
 
 ---
 
-### 4.3 POSITIVE ANALYSIS
+### 4.3 INDEPENDENT ANALYSIS
 
 每个子问题单独发送。
 
@@ -395,7 +423,7 @@ subQuestions over maxSubQuestions -> review_required
 ```txt
 用户原始问题
 + 当前子问题
-+ 正向分析提示词
++ 独立分析提示词
 + 输出 JSON/Markdown 合同
 ```
 
@@ -417,13 +445,15 @@ AI 必须输出：
 入库：
 
 ```txt
-ResearchInteraction phase=positive
-ResearchAnswer type=positive
+ResearchInteraction phase=analysis
+ResearchAnswer type=analysis
 ```
 
 ---
 
-### 4.4 FALSIFICATION
+### 4.4 LEGACY TARGETED CHALLENGE / FALSIFICATION
+
+仅用于 `legacy_1_n_n_1` 或未来明确命名的 targeted challenge flow，不属于默认 1+N+1+1。
 
 每个正向回答单独发送。
 
@@ -558,6 +588,8 @@ limitations
 ```txt
 final-report.md
 research-bundle.json
+business-deck-outline.json
+business-deck.pptx
 evidence-index.json
 ```
 
@@ -583,6 +615,8 @@ Max SubQuestions:
 
 ## Final Adjudication
 
+## Business Deck Artifact State
+
 ## Stage Overview
 
 ## Stage 1: Decomposition
@@ -594,6 +628,8 @@ Max SubQuestions:
 ### Independent Analysis
 
 ## Final Adjudication Prompt / Raw Response
+
+## Business Deck Prompt / Raw Response / Export State
 
 ## Evidence Index
 ```
@@ -642,14 +678,15 @@ Max SubQuestions:
 ## 唯一人读全流程报告
 
 1. `final-report.md` 是唯一的人读报告。
-2. 新 job 的默认报告必须展示完整 `1 + N + 1` 全流程，而不是只放最终摘要。
+2. 新 job 的默认报告必须展示完整 `1 + N + 1 + 1` 全流程，而不是只放最终摘要。
 3. 报告必须按阶段组织，不能把 prompt、raw response、parsed summary 和 evidence 平铺成一坨。
 4. 每个阶段必须包含：Prompt、AI Raw Response、Parsed Summary、Evidence。
 5. 每个 sub-question 必须展示独立分析，不再默认展示 Positive / Falsification 成对区块。
 6. Final Adjudication 也必须展示 prompt 和 raw response。
-7. Evidence Index 必须放在报告末尾，供人快速追溯 interaction / hash / domRef。
+7. Business Deck 若已生成，报告与交付面必须展示 outline / PPTX refs、hash、warnings 与 failure state。
+8. Evidence Index 必须放在报告末尾，供人快速追溯 interaction / hash / domRef。
 8. legacy_1_n_n_1 job 可以保留 Positive / Falsification / Conflict Matrix 展示，但必须显式标记 legacy。
-9. `research-bundle.json` 和 `evidence-index.json` 是机器证据，不是第二份人读报告。
+9. `research-bundle.json`、`business-deck-outline.json`、`business-deck.pptx` 和 `evidence-index.json` 是交付/机器证据，不是第二份人读报告。
 
 ---
 

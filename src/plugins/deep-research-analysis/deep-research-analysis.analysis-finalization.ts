@@ -315,7 +315,7 @@ export const runFinalReportPhase = async (
       finalPackage,
     }),
     inputRefs: [`job:${context.jobId}:final-package`],
-    maxInputChars: 45_000,
+    maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
       send: "FINAL_ADJUDICATION_SEND",
       capture: "FINAL_ADJUDICATION_CAPTURE",

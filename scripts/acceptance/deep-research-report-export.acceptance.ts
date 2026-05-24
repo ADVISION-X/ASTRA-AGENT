@@ -376,14 +376,14 @@ async function main(): Promise<void> {
       finalReport,
     });
 
-    assert(finalPackage.flowMode === "default_1_n_1", "Report-export fixture must target the default flow mode.");
+    assert(finalPackage.flowMode === "default_1_n_1_1", "Report-export fixture must target the default 1+N+1+1 flow mode.");
     assert(finalPackage.analysisRecords.length === 3, "Report-export fixture must persist three analysis records.");
 
     const decisionPackage = JSON.parse(readFileSync(artifacts.decisionPackage.filePath, "utf8")) as {
       flowMode: string;
       analysisAnswers: unknown[];
     };
-    assert(decisionPackage.flowMode === "default_1_n_1", "Decision package must expose the default flow mode.");
+    assert(decisionPackage.flowMode === "default_1_n_1_1", "Decision package must expose the default 1+N+1+1 flow mode.");
     assert(decisionPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
     assert(artifacts.businessDeckOutline === null, "Report-export fixture should not synthesize deck exports without a persisted deck outline.");
     assert(artifacts.businessDeckPptx === null, "Report-export fixture should not synthesize a PPTX without a persisted deck outline.");

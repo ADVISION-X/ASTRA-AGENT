@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:44:10.052Z",
+  "generatedAt": "2026-05-24T03:35:34.131Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1046,7 +1046,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "db+artifact+hash+acceptance+ast",
-      "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted default 1+N+1 flow with prompt, raw response, parsed summary, and evidence traceability.",
+      "summary": "Deep Research must export exactly one human-readable report, final-report.md, and that report must expose the complete persisted default 1+N+1+1 flow with prompt, raw response, parsed summary, deck artifact state, and evidence traceability.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 14
     },
@@ -1057,9 +1057,64 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+schema+ast+db+artifact+acceptance",
-      "summary": "Deep Research default runtime flow must be 1+N+1 with one decomposition interaction, N independent sub-question analysis interactions, and one final adjudication interaction.",
+      "summary": "Deep Research default runtime flow must be 1+N+1+1 with one decomposition interaction, N independent sub-question analysis interactions, one final adjudication interaction, and one business deck secretary interaction.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 15
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-017-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+ast+acceptance+runtime-log",
+      "summary": "Deep Research Business Deck Secretary must receive the complete persisted decision package without a 45k GrassEye prompt-size ceiling.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 16
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-021-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt+ast+acceptance+db",
+      "summary": "The final +1 must be a business deck secretary that edits the persisted decision into presentation form without re-judging, deleting truth, or introducing new facts.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 17
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-022-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+parser+acceptance",
+      "summary": "Business deck outline schema and parser must preserve the adjudicated truth, require explicit evidence refs, and fail when the secretary omits mandatory decision content.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 18
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-023-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "db+artifact+hash+acceptance",
+      "summary": "When a business deck outline exists, export must persist business-deck-outline.json and business-deck.pptx with recorded hashes, evidence-index traceability, and explicit partial-failure handling.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 19
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-024-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "app-shell+acceptance+ast",
+      "summary": "Workbench must expose Business Deck as a delivery section after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 20
     },
     {
       "lawId": "APEX-DOM-001-V1",

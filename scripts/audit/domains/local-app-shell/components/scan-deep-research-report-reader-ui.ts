@@ -172,6 +172,7 @@ const inspectDeliveryMarkers = (findings: InspectorFinding[], lawId: string): vo
   for (const marker of [
     "data-deep-research-reader-shell",
     "data-deep-research-final-card",
+    "data-deep-research-business-deck",
     "data-deep-research-stage-overview",
     "data-deep-research-decomposition",
     "data-deep-research-subquestions",
@@ -191,12 +192,22 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
     "refreshHistory",
     "loadSelectedReport",
     "renderSelectedReport",
+    "Default 1+N+1+1",
     "Independent Analysis",
     "Final Adjudication",
+    "Business Deck",
+    "Open PPT",
+    "Download PPT",
+    "Open Deck Outline",
+    "Deck not generated",
+    "Outline ready, PPTX generation failed",
+    "Generated At",
+    "Deck Warnings",
     "Evidence / Debug",
     "Show Full Prompt",
     "Show Full AI Response",
     "Show Parsed Result",
+    "data-deep-research-open-export",
   ]) {
     requireTextInAnyFile(findings, lawId, clientRuntimePaths, marker);
   }
@@ -225,6 +236,20 @@ const inspectDebugBoundaries = (findings: InspectorFinding[], lawId: string): vo
       lawId,
       filePath: reportViewPath,
       message: "Debug metadata must not be hard-coded into the default report view skeleton.",
+    });
+  }
+};
+
+const inspectBusinessDeckDeliveryOrder = (findings: InspectorFinding[], lawId: string): void => {
+  const reportViewText = readRepoFile(reportViewPath);
+  const finalCardIndex = reportViewText.indexOf("data-deep-research-final-card");
+  const businessDeckIndex = reportViewText.indexOf("data-deep-research-business-deck");
+  if (!(finalCardIndex >= 0 && businessDeckIndex > finalCardIndex)) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/deep-research-business-deck-order",
+      lawId,
+      filePath: reportViewPath,
+      message: "Business Deck section must stay after the Decision Card in the report view.",
     });
   }
 };
@@ -284,6 +309,7 @@ export const inspectDeepResearchReportReaderUi = (input: {
   inspectDeliveryMarkers(input.findings, input.deliveryLawId);
   inspectClientMarkers(input.findings, input.deliveryLawId);
   inspectDebugBoundaries(input.findings, input.deliveryLawId);
+  inspectBusinessDeckDeliveryOrder(input.findings, input.deliveryLawId);
   inspectLayoutQualityBoundaries(input.findings, input.deliveryLawId);
   clientRuntimePaths.forEach((repoPath) => {
     const clientSource = getSourceFile(input.context, repoPath);

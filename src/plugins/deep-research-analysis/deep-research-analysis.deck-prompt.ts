@@ -16,6 +16,9 @@ const FORBIDDEN_CONTROL_FIELDS = [
   "filePath",
 ] as const;
 
+export const DEEP_RESEARCH_BUSINESS_DECK_OUTPUT_CONTRACT_ID =
+  "deep-research.business-deck-outline.json.v1.0" as const;
+
 const buildOutputContract = (input: {
   contractId: string;
   requiredFields: string[];
@@ -30,9 +33,6 @@ const buildPromptDocument = (sections: readonly (string | null | undefined)[]): 
   sections
     .filter((section): section is string => typeof section === "string" && section.trim().length > 0)
     .join("\n\n");
-
-const buildContractSection = (contract: DeepResearchPromptOutputContract): string =>
-  JSON.stringify(contract, null, 2);
 
 export const businessDeckSecretaryPrompt: DeepResearchPrompt = {
   promptId: "deep-research.business-deck-secretary",
@@ -88,7 +88,7 @@ export const businessDeckSecretaryPrompt: DeepResearchPrompt = {
     "Do not output markdown.",
     "Do not include contractId.",
     "Do not include format.",
-    "Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, or any next-step control field.",
+    "Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, or nextAction.",
     "",
     "The deck must be suitable for business decision presentation.",
     "",
@@ -163,7 +163,7 @@ export const businessDeckSecretaryPrompt: DeepResearchPrompt = {
     "}",
   ].join("\n"),
   expectedOutputContract: buildOutputContract({
-    contractId: "deep-research.business-deck-outline.json.v1.0",
+    contractId: DEEP_RESEARCH_BUSINESS_DECK_OUTPUT_CONTRACT_ID,
     requiredFields: [
       "deckTitle",
       "audience",
@@ -186,5 +186,5 @@ export const renderDeepResearchBusinessDeckPrompt = (input: {
     `Final adjudication JSON:\n${JSON.stringify(input.finalReport, null, 2)}`,
     `Structured evidence references:\n${JSON.stringify(input.evidenceReferences, null, 2)}`,
     `Response language:\n${input.language}`,
-    `Expected output contract:\n${buildContractSection(businessDeckSecretaryPrompt.expectedOutputContract)}`,
+    "Return the JSON object now.",
   ]);

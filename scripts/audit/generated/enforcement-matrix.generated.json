@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:44:10.052Z",
+  "generatedAt": "2026-05-24T03:35:34.131Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -109,7 +109,12 @@
         "GRASSEYE-DEEP-RESEARCH-013-V1",
         "GRASSEYE-DEEP-RESEARCH-014-V1",
         "GRASSEYE-DEEP-RESEARCH-015-V1",
-        "GRASSEYE-DEEP-RESEARCH-016-V1"
+        "GRASSEYE-DEEP-RESEARCH-016-V1",
+        "GRASSEYE-DEEP-RESEARCH-017-V1",
+        "GRASSEYE-DEEP-RESEARCH-021-V1",
+        "GRASSEYE-DEEP-RESEARCH-022-V1",
+        "GRASSEYE-DEEP-RESEARCH-023-V1",
+        "GRASSEYE-DEEP-RESEARCH-024-V1"
       ]
     },
     {

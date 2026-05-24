@@ -1,188 +1,129 @@
-import { existsSync, mkdtempSync, statSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import assert from "node:assert/strict";
+
+import { Node, Project, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import {
+  DEEP_RESEARCH_BUSINESS_DECK_OUTPUT_CONTRACT_ID,
   businessDeckSecretaryPrompt,
 } from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.js";
 import {
-  parseDeepResearchBusinessDeckOutlineResponse,
-} from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.js";
-import {
-  generateDeepResearchBusinessDeckPptx,
-} from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.js";
+  DeepResearchBusinessDeckOutlineSchema,
+} from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.js";
 
-const assert = (condition: unknown, message: string): void => {
-  if (!condition) {
-    throw new Error(message);
-  }
+const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+
+const source = (filePath: string): SourceFile => {
+  const file = project.getSourceFile(filePath);
+  assert(file, `${filePath} must be available to ts-morph.`);
+  return file;
 };
 
-const VERDICT_PRESERVATION_CHECK = {
-  directAnswerPreserved: true,
-  finalVerdictPreserved: true,
-  confidencePreserved: true,
-  rankedConclusionsPreserved: true,
-  reverseConditionsPreserved: true,
-  evidenceGapsPreserved: true,
-  limitationsPreserved: true,
-  noNewFactsAdded: true,
+const getArrowInitializer = (sourceFile: SourceFile, variableName: string) => {
+  const declaration = sourceFile.getVariableDeclaration(variableName);
+  const initializer = declaration?.getInitializer();
+  return initializer && Node.isArrowFunction(initializer) ? initializer : null;
 };
 
-const OUTLINE_SLIDES = [
-  {
-    slideNumber: 1,
-    slideType: "cover",
-    title: "Cover",
-    headline: "Deck acceptance fixture",
-    bullets: ["Deck owner coverage starts here."],
-    visualSuggestion: "Simple cover band.",
-    speakerNotes: "Open with scope.",
-    evidenceRefs: ["ref-1"],
-    mustNotDrop: ["acceptance scope"],
-  },
-  {
-    slideNumber: 2,
-    slideType: "decision",
-    title: "Decision",
-    headline: "Preserve the already-adjudicated answer.",
-    bullets: ["Do not re-judge.", "Do not add facts."],
-    visualSuggestion: "Decision card.",
-    speakerNotes: "State the non-rejudgment rule.",
-    evidenceRefs: ["ref-1"],
-    mustNotDrop: ["direct answer"],
-  },
-  {
-    slideNumber: 3,
-    slideType: "ranking",
-    title: "Ranked Conclusions",
-    headline: "Ranked conclusions remain intact.",
-    bullets: ["Keep ranking visible."],
-    visualSuggestion: "Ranked list.",
-    speakerNotes: "Preserve ranked content.",
-    evidenceRefs: ["ref-2"],
-    mustNotDrop: ["ranked conclusions"],
-  },
-  {
-    slideNumber: 4,
-    slideType: "logic_map",
-    title: "Logic Map",
-    headline: "Explain why the decision wins.",
-    bullets: ["Map reasons to verdict."],
-    visualSuggestion: "Logic chain.",
-    speakerNotes: "Show causal structure.",
-    evidenceRefs: ["ref-3"],
-    mustNotDrop: ["decisive reasons"],
-  },
-  {
-    slideNumber: 5,
-    slideType: "risk",
-    title: "Risk",
-    headline: "Reverse conditions stay visible.",
-    bullets: ["If conditions reverse, the thesis weakens."],
-    visualSuggestion: "Risk panel.",
-    speakerNotes: "Keep risk language intact.",
-    evidenceRefs: ["ref-4"],
-    mustNotDrop: ["reverse conditions"],
-  },
-  {
-    slideNumber: 6,
-    slideType: "limitation",
-    title: "Limitations",
-    headline: "Evidence gaps and limitations remain explicit.",
-    bullets: ["Do not hide uncertainty."],
-    visualSuggestion: "Gap callout.",
-    speakerNotes: "State the limitations clearly.",
-    evidenceRefs: ["ref-5"],
-    mustNotDrop: ["limitations"],
-  },
-  {
-    slideNumber: 7,
-    slideType: "signal",
-    title: "Signals",
-    headline: "Follow-up signals turn the verdict into monitoring.",
-    bullets: ["Track the next observable signals."],
-    visualSuggestion: "Signal tracker.",
-    speakerNotes: "Explain monitoring intent.",
-    evidenceRefs: ["ref-6"],
-    mustNotDrop: ["follow-up signals"],
-  },
-  {
-    slideNumber: 8,
-    slideType: "reference",
-    title: "References",
-    headline: "Every slide traces back to evidence refs.",
-    bullets: ["ref-1", "ref-2", "ref-3"],
-    visualSuggestion: "Reference appendix.",
-    speakerNotes: "Close with evidence traceability.",
-    evidenceRefs: ["ref-1", "ref-2", "ref-3"],
-    mustNotDrop: ["references"],
-  },
-] as const;
-
-const CONTENT_PRESERVATION_SUMMARY = {
-  usedRankedConclusionCount: 1,
-  usedReverseConditionCount: 1,
-  usedEvidenceGapCount: 1,
-  usedReferenceCount: 3,
-  omittedItems: [],
+const getObjectLiteralArgument = (sourceFile: SourceFile, callName: string): ObjectLiteralExpression => {
+  const callExpression = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => call.getExpression().getText() === callName);
+  assert(callExpression, `${callName} must be called in ${sourceFile.getBaseName()}.`);
+  const firstArgument = callExpression.getArguments()[0];
+  assert(firstArgument && Node.isObjectLiteralExpression(firstArgument), `${callName} must receive an object literal.`);
+  return firstArgument;
 };
 
-const buildOutlineFixture = () => ({
-  deckTitle: "Deep Research Business Deck Acceptance",
-  deckSubtitle: "Prompt, parser, and PPTX owner coverage",
-  audience: "internal",
-  sourceDecisionPackageId: "acceptance-decision-package",
-  sourceFinalReportId: "acceptance-final-report",
-  verdictPreservationCheck: VERDICT_PRESERVATION_CHECK,
-  slides: OUTLINE_SLIDES,
-  deckWarnings: [],
-  contentPreservationSummary: CONTENT_PRESERVATION_SUMMARY,
-});
+const readPropertyNames = (objectLiteral: ObjectLiteralExpression): string[] =>
+  objectLiteral.getProperties().flatMap((property) =>
+    Node.isPropertyAssignment(property)
+      || Node.isShorthandPropertyAssignment(property)
+      ? [property.getName()]
+      : []);
 
-const verifyDeckPromptContract = (): void => {
-  assert(
-    businessDeckSecretaryPrompt.promptId === "deep-research.business-deck-secretary",
-    "Business deck prompt must expose the dedicated promptId.",
-  );
-  assert(
-    businessDeckSecretaryPrompt.phase === "deck",
-    "Business deck prompt must stay on the deck interaction phase.",
-  );
-  assert(
-    businessDeckSecretaryPrompt.expectedOutputContract.requiredFields.includes("slides"),
-    "Business deck prompt contract must require slides.",
-  );
-  assert(
-    businessDeckSecretaryPrompt.expectedOutputContract.forbiddenFields.includes("workflow"),
-    "Business deck prompt contract must forbid workflow-style control fields.",
-  );
-};
+const analysisRunnerFile = source("src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts");
+const deckStageFile = source("src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts");
+const recordContractsFile = source("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts");
+const recordsFile = source("src/plugins/deep-research-analysis/deep-research-analysis.records.ts");
+const schemaFile = source("src/plugins/deep-research-analysis/deep-research-analysis.schema.ts");
+const finalPackageFile = source("src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts");
 
-const parseDeckFixture = () => {
-  const parsed = parseDeepResearchBusinessDeckOutlineResponse(JSON.stringify(buildOutlineFixture()));
-  assert(parsed.parseStatus === "parsed", `Deck parser must accept the lawful outline fixture, received ${parsed.parseStatus}.`);
-  if (parsed.parseStatus !== "parsed") {
-    throw new Error("Deck parser did not return a parsed outline.");
-  }
-  assert(parsed.parsed.slides.length === 8, "Deck parser must preserve the full slide list.");
-  return parsed.parsed;
-};
+assert(
+  businessDeckSecretaryPrompt.promptId === "deep-research.business-deck-secretary",
+  "Business deck prompt must expose the secretary promptId.",
+);
+assert(
+  businessDeckSecretaryPrompt.promptVersion === "v1.0.0",
+  "Business deck prompt must stay on v1.0.0.",
+);
+assert(
+  businessDeckSecretaryPrompt.expectedOutputContract.contractId === DEEP_RESEARCH_BUSINESS_DECK_OUTPUT_CONTRACT_ID,
+  "Business deck prompt must expose the required output contract id.",
+);
+assert(
+  typeof DeepResearchBusinessDeckOutlineSchema.safeParse === "function",
+  "Business deck outline schema must exist.",
+);
 
-const verifyGeneratedDeck = async (outputDir: string): Promise<void> => {
-  const pptxPath = await generateDeepResearchBusinessDeckPptx({
-    outputDir,
-    outline: parseDeckFixture(),
-  });
-  assert(existsSync(pptxPath), "Deck PPTX generator must write a PPTX file.");
-  assert(statSync(pptxPath).size > 0, "Generated deck PPTX must not be empty.");
-};
+assert(
+  recordContractsFile.getFullText().includes("default_1_n_1_1"),
+  "Record contracts must expose default_1_n_1_1 as the default commercial flow mode.",
+);
+assert(
+  recordsFile.getFullText().includes('"default_1_n_1_1"'),
+  "Record store must create new jobs on default_1_n_1_1.",
+);
+assert(
+  finalPackageFile.getFullText().includes('z.literal("default_1_n_1_1")'),
+  "Final package surface must preserve default_1_n_1_1.",
+);
 
-const main = async (): Promise<void> => {
-  verifyDeckPromptContract();
-  const outputDir = mkdtempSync(path.join(tmpdir(), "grasseye-deck-acceptance-"));
-  await verifyGeneratedDeck(outputDir);
-};
+const schemaText = schemaFile.getFullText();
+for (const stage of ["DECK_SEND", "DECK_CAPTURE", "DECK_PARSE", "DECK_PERSIST"] as const) {
+  assert(schemaText.includes(stage), `Deep Research phase schema must include ${stage}.`);
+}
+assert(schemaText.includes('"deck"'), "Deep Research interaction phases must include deck.");
 
-await main();
+const runAnalysisPhases = getArrowInitializer(analysisRunnerFile, "runAnalysisPhases");
+assert(runAnalysisPhases, "runAnalysisPhases must exist.");
+const runnerText = runAnalysisPhases.getText();
+const finalReportIndex = runnerText.indexOf("runFinalReportPhase");
+const businessDeckIndex = runnerText.indexOf("runBusinessDeckPhase");
+const completeIndex = runnerText.indexOf("completeSuccessfulRun");
+assert(finalReportIndex >= 0, "runAnalysisPhases must call runFinalReportPhase.");
+assert(businessDeckIndex > finalReportIndex, "Business deck stage must run after final adjudication.");
+assert(completeIndex > businessDeckIndex, "Export completion must run after the business deck stage.");
+
+const renderPromptArgument = getObjectLiteralArgument(deckStageFile, "renderDeepResearchBusinessDeckPrompt");
+const renderPromptFields = readPropertyNames(renderPromptArgument).sort();
+assert.deepEqual(
+  renderPromptFields,
+  ["evidenceReferences", "finalPackage", "finalReport", "language"],
+  "Deck prompt render input must be limited to decision package, final adjudication, evidence refs, and language.",
+);
+
+const runPromptExchangeArgument = getObjectLiteralArgument(deckStageFile, "runPromptExchange");
+const inputRefsProperty = runPromptExchangeArgument.getProperty("inputRefs");
+assert(inputRefsProperty, "Deck stage must declare inputRefs.");
+const inputRefsText = inputRefsProperty.getText();
+assert(inputRefsText.includes("final-package"), "Deck stage must cite final-package as an input ref.");
+assert(inputRefsText.includes("final-report"), "Deck stage must cite final-report as an input ref.");
+assert(!inputRefsText.includes("timeline"), "Deck stage must not depend on timeline input refs.");
+assert(!inputRefsText.includes("interaction"), "Deck stage must not depend on unrelated raw interaction refs.");
+const maxInputCharsProperty = runPromptExchangeArgument.getProperty("maxInputChars");
+assert(maxInputCharsProperty, "Deck stage must declare a maxInputChars policy.");
+const maxInputCharsText = maxInputCharsProperty.getText();
+assert(
+  maxInputCharsText.includes("Number.MAX_SAFE_INTEGER"),
+  "Deck stage must use the no-GrassEye-text-ceiling sentinel.",
+);
+assert(
+  !maxInputCharsText.includes("45_000"),
+  "Deck stage must not restore the old 45k text ceiling.",
+);
+
+assert(
+  deckStageFile.getFullText().includes("parseDeepResearchBusinessDeckOutlineResponseForFinalReport"),
+  "Deck stage must use the source-aware business deck parser.",
+);
+
 process.stdout.write("[ACCEPTANCE][deep-research-business-deck] PASS\n");

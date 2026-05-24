@@ -111,12 +111,17 @@ assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysis
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisTimeline");
 assertText("src/lib/local-runtime/workbench-handle.ts", "deleteDeepResearchAnalysisJob");
 assertText("src/lib/local-runtime/workbench.ts", "deepResearchAnalysisPublicFacade");
-assertTextInAnyFile(clientRuntimePaths, "Default 1+N+1");
 assertTextInAnyFile(clientRuntimePaths, "Final Adjudication");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");
 assertTextInAnyFile(clientRuntimePaths, "Business Deck");
+assertTextInAnyFile(clientRuntimePaths, "Default 1+N+1+1");
+assertTextInAnyFile(clientRuntimePaths, "Open PPT");
+assertTextInAnyFile(clientRuntimePaths, "Download PPT");
+assertTextInAnyFile(clientRuntimePaths, "Open Deck Outline");
+assertTextInAnyFile(clientRuntimePaths, "Deck not generated");
+assertTextInAnyFile(clientRuntimePaths, "Outline ready, PPTX generation failed");
 assertTextInAnyFile(clientRuntimePaths, "refreshHistory");
 assertTextInAnyFile(clientRuntimePaths, "loadSelectedReport");
 assertTextInAnyFile(clientRuntimePaths, "data-deep-research-delete-job");

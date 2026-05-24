@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:44:25.224Z",
+  "generatedAt": "2026-05-24T03:35:49.964Z",
   "status": "PASS",
   "inspectorFileCount": 14,
   "generatedPlanEntryCount": 14,
@@ -56,6 +56,8 @@
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/code-purity/manifest.json",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-governance.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",

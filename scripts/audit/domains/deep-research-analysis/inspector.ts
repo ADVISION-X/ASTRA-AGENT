@@ -12,6 +12,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectConfidenceContract } from "./components/scan-confidence-contract.js";
+import { inspectBusinessDeckGovernance } from "./components/scan-business-deck-governance.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
 import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
 import { inspectGatewayRawCaptureBoundary } from "./components/scan-gateway-raw-capture-boundary.js";
@@ -294,13 +295,24 @@ type DeepResearchAuditFiles = {
   promptFile: SourceFile | undefined;
   parserFile: SourceFile | undefined;
   flowFile: SourceFile | undefined;
+  analysisRunnerFile: SourceFile | undefined;
   queryFile: SourceFile | undefined;
   contractFile: SourceFile | undefined;
   regressionFile: SourceFile | undefined;
   promptsFile: SourceFile | undefined;
   qualityFile: SourceFile | undefined;
+  schemaFile: SourceFile | undefined;
+  recordsFile: SourceFile | undefined;
+  deckPromptFile: SourceFile | undefined;
+  deckSchemaFile: SourceFile | undefined;
+  deckParserFile: SourceFile | undefined;
+  deckStageFile: SourceFile | undefined;
+  exportFile: SourceFile | undefined;
   decompositionAcceptanceFile: SourceFile | undefined;
   smokeFile: SourceFile | undefined;
+  businessDeckAcceptanceFile: SourceFile | undefined;
+  deckSecretaryBoundaryAcceptanceFile: SourceFile | undefined;
+  deckArtifactsAcceptanceFile: SourceFile | undefined;
   ciFullFile: SourceFile | undefined;
 };
 
@@ -315,6 +327,7 @@ type DeepResearchStaticRulesInput = {
   smokeLawId: string;
   reportLawId: string;
   readerLawId: string;
+  deckTextCeilingLawId: string;
 };
 
 const inspectCoreStaticRules = (input: DeepResearchStaticRulesInput): void => {
@@ -389,6 +402,7 @@ const inspectDeliveryRules = (input: DeepResearchStaticRulesInput): void => {
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.reportLawId,
+    deckTextCeilingLawId: input.deckTextCeilingLawId,
   });
   inspectReportReaderViewModel({
     queriesFile: input.files.queryFile,
@@ -403,6 +417,12 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
   inspectCoreStaticRules(input);
   inspectCaptureAndSmokeRules(input);
   inspectDeliveryRules(input);
+  inspectBusinessDeckGovernance({
+    context: input.context,
+    files: input.files,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+  });
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
@@ -411,6 +431,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const smokeLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-013-V1");
   const reportLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-015-V1");
   const readerLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-014-V1");
+  const deckTextCeilingLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-017-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
   const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
@@ -421,13 +442,24 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     promptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
     parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts"),
     flowFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts"),
+    analysisRunnerFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts"),
     queryFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts"),
     contractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts"),
     regressionFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"),
     promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
     qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),
+    schemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts"),
+    recordsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.records.ts"),
+    deckPromptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts"),
+    deckSchemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts"),
+    deckParserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts"),
+    deckStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts"),
+    exportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.export.ts"),
     decompositionAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts"),
     smokeFile: getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts"),
+    businessDeckAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-business-deck.acceptance.ts"),
+    deckSecretaryBoundaryAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-deck-secretary-boundary.acceptance.ts"),
+    deckArtifactsAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-deck-artifacts.acceptance.ts"),
     ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
   };
   Object.values(files).forEach((sourceFile) => {
@@ -436,7 +468,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     }
   });
   const astCoverageCount = files.flowFile?.getDescendantsOfKind(SyntaxKind.CallExpression).length ?? 0;
-
   inspectDeepResearchStaticRules({
     context,
     sourceFiles,
@@ -448,6 +479,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     smokeLawId,
     reportLawId,
     readerLawId,
+    deckTextCeilingLawId,
   });
   if (astCoverageCount === 0) {
     findings.push(createFinding({

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-24T02:44:22.485Z",
+  "generatedAt": "2026-05-24T03:35:47.142Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
@@ -17,6 +17,9 @@
     "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
     "scripts/acceptance/deep-research-business-deck.acceptance.ts",
+    "scripts/acceptance/deep-research-deck-artifacts.acceptance.ts",
+    "scripts/acceptance/deep-research-deck-secretary-boundary.acceptance.ts",
+    "scripts/acceptance/deep-research-deck-ui.acceptance.ts",
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "scripts/acceptance/deep-research-report-export.acceptance.ts",
     "scripts/acceptance/deep-research-report-reader-ui.acceptance.ts",
@@ -91,6 +94,8 @@
     "scripts/audit/domains/code-purity/components/zombie-symbol-usage.ts",
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-governance.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
@@ -544,6 +549,24 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-deck-artifacts.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-deck-artifacts",
+      "scriptName": "acceptance:deep-research-deck-artifacts"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-deck-secretary-boundary.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-deck-secretary-boundary",
+      "scriptName": "acceptance:deep-research-deck-secretary-boundary"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-deck-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-deck-ui",
+      "scriptName": "acceptance:deep-research-deck-ui"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-decomposition-prompt",
       "scriptName": "acceptance:deep-research-decomposition-prompt"
@@ -759,9 +782,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1252,
+  "liveExportCount": 1257,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 466,
+  "reachableFileCount": 471,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -769,9 +792,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1252,
+    "liveExportCount": 1257,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 466,
+    "reachableFileCount": 471,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }
