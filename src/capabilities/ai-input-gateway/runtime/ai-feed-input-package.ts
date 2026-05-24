@@ -10,15 +10,6 @@ export type UploadableAiFeedInputRef = {
   summary: string;
 };
 
-const SENSITIVE_INPUT_PATTERNS = [
-  /\bcookie\b/iu,
-  /\bsessionStorage\b/u,
-  /\blocalStorage\b/u,
-  /\bpassword\b/iu,
-  /\btoken\b/iu,
-  /\bsecret\b/iu,
-] as const;
-
 export type AiFeedInputPackage = {
   inputHash: string;
   inputRefIds: string[];
@@ -32,10 +23,6 @@ const hashValue = (value: string): string =>
 const assertPromptSafe = (input: AiFeedInput): void => {
   if (input.textPrompt.length > input.maxInputChars) {
     throw new Error(`AI feed prompt exceeds maxInputChars=${input.maxInputChars}.`);
-  }
-  const forbiddenPattern = SENSITIVE_INPUT_PATTERNS.find((pattern) => pattern.test(input.textPrompt));
-  if (forbiddenPattern) {
-    throw new Error(`AI feed prompt contains forbidden sensitive token pattern: ${forbiddenPattern.source}.`);
   }
 };
 

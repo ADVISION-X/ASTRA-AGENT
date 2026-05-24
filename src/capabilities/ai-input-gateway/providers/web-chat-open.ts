@@ -29,12 +29,18 @@ target.click();
 return {status: "success", message: "clicked ChatGPT new chat", pageUrl: location.href};
 `;
 
-const isDeepResearchGptRequest = (input: {
+export const isDeepResearchGptRequest = (input: {
   providerUrl: string;
   request: AiFeedInput;
 }): boolean =>
   new URL(input.providerUrl).host === "chatgpt.com"
   && input.request.promptContractId.includes("deep-research.");
+
+const resolveProviderReusePolicy = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): "reuse-exact-url" | "open-new-tab" =>
+  isDeepResearchGptRequest(input) ? "open-new-tab" : "reuse-exact-url";
 
 const waitForProviderComposer = async (
   browser: BrowserController,
@@ -147,11 +153,13 @@ const openOrReuseProviderWorkspace = async (input: {
   workspaceId: string | null;
   savedUrl: string | null;
   focusedExisting: boolean;
+  reusePolicy: "reuse-exact-url" | "open-new-tab";
 }): Promise<{ ok: boolean; message: string }> => input.focusedExisting
   ? { ok: true, message: "focused existing provider workspace tab" }
   : input.browser.open({
     url: input.savedUrl ?? input.providerUrl,
     title: `${input.runtimeName}${input.workspaceId ? `:${input.workspaceId}` : ""}`,
+    reusePolicy: input.reusePolicy,
   });
 
 const assertProviderPageOpened = (opened: { ok: boolean; message: string }): void => {
@@ -168,6 +176,10 @@ export const openProviderPage = async (input: {
   request: AiFeedInput;
 }): Promise<void> => {
   const { workspaceId, savedUrl } = resolveWorkspaceState(input);
+  const reusePolicy = resolveProviderReusePolicy({
+    providerUrl: input.providerUrl,
+    request: input.request,
+  });
   const focusedExisting = await focusExistingProviderWorkspace({
     providerUrl: input.providerUrl,
     context: input.context,
@@ -181,6 +193,7 @@ export const openProviderPage = async (input: {
     workspaceId,
     savedUrl,
     focusedExisting,
+    reusePolicy,
   });
   assertProviderPageOpened(opened);
   await waitForProviderComposer(input.browser, input.context.abortSignal);

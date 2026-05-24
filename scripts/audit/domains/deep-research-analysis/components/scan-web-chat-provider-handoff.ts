@@ -6,6 +6,7 @@ import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const webChatProviderHandoffFiles = [
+  "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
@@ -37,11 +38,24 @@ const countIdentifierCalls = (sourceFile: SourceFile, symbolName: string): numbe
     })
     .length;
 
+const countPropertyAccessCalls = (sourceFile: SourceFile, propertyName: string): number =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === propertyName;
+    })
+    .length;
+
 const hasLiteralText = (sourceFile: SourceFile, expected: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
     .some((literal) => literal.getLiteralValue() === expected)
   || sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
-    .some((literal) => literal.getLiteralText().includes(expected));
+    .some((literal) => literal.getLiteralText().includes(expected))
+  || sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression)
+    .some((literal) => [
+      literal.getHead().getLiteralText(),
+      ...literal.getTemplateSpans().map((span) => span.getLiteral().getLiteralText()),
+    ].some((text) => text.includes(expected)));
 
 const hasNumericToken = (sourceFile: SourceFile, expected: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)
@@ -67,6 +81,7 @@ const functionHasEarlyResponseNullReturn = (sourceFile: SourceFile, functionName
 };
 
 type WebChatHandoffFiles = {
+  aiFeedInputPackageFile: SourceFile | undefined;
   openFile: SourceFile | undefined;
   sharedFile: SourceFile | undefined;
   supportFile: SourceFile | undefined;
@@ -75,6 +90,7 @@ type WebChatHandoffFiles = {
 };
 
 const loadWebChatHandoffFiles = (context: InspectorContext): WebChatHandoffFiles => ({
+  aiFeedInputPackageFile: getSourceFile(context, "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts"),
   openFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"),
   sharedFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
   supportFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts"),
@@ -123,6 +139,69 @@ const inspectProviderPageAssertion = (input: {
       message: "Web chat transport must not restore the source APP tab before a provider response exists.",
     }));
   }
+
+  if (
+    countPropertyAccessCalls(input.files.sharedFile, "closeActiveTab") < 1
+    || !hasLiteralText(input.files.sharedFile, "provider tab close")
+    || !hasLiteralText(input.files.sharedFile, "provider tab close failed after web chat feed")
+  ) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/web-chat-close-answer-tab",
+      lawId: input.lawId,
+      filePath: getRepoSourcePath(input.files.sharedFile),
+      message: "Deep Research GPT web-chat feeds must close the provider answer tab after raw output proof and surface review_required when that close fails.",
+      evidence: JSON.stringify({
+        closeActiveTabCalls: countPropertyAccessCalls(input.files.sharedFile, "closeActiveTab"),
+        hasClosePhase: hasLiteralText(input.files.sharedFile, "provider tab close"),
+        hasCloseFailureText: hasLiteralText(input.files.sharedFile, "provider tab close failed after web chat feed"),
+      }),
+    }));
+  }
+};
+
+const inspectPromptTextGovernance = (input: {
+  aiFeedInputPackageFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  const sourceFile = input.aiFeedInputPackageFile;
+  if (!sourceFile) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/ai-feed-input-governance-file",
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
+      message: "Deep Research handoff audit must inspect AI feed input governance at the owner file.",
+    }));
+    return;
+  }
+
+  const forbiddenPatternDeclaration = sourceFile.getVariableDeclaration("SENSITIVE_INPUT_PATTERNS");
+  const assertPromptSafe = sourceFile.getVariableDeclaration("assertPromptSafe")?.getInitializer();
+  const forbiddenPromptUsages = Node.isArrowFunction(assertPromptSafe) && Node.isBlock(assertPromptSafe.getBody())
+    ? assertPromptSafe.getBody()
+      .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .filter((access) => access.getText() === "input.textPrompt")
+      .filter((access) => {
+        const parent = access.getParent();
+        return !(Node.isPropertyAccessExpression(parent) && parent.getExpression() === access && parent.getName() === "length");
+      })
+      .map((access) => access.getParent()?.getText() ?? access.getText())
+    : [];
+
+  if (!forbiddenPatternDeclaration && forbiddenPromptUsages.length === 0) {
+    return;
+  }
+
+  input.findings.push(createFinding({
+    checkId: "deep-research/ai-feed-no-lexical-prompt-filter",
+    lawId: input.lawId,
+    filePath: getRepoSourcePath(sourceFile),
+    message: "AI feed prompt governance must not reject lawful Deep Research prompt text through lexical token/cookie/secret pattern filters; only explicit size and approved input refs may gate textPrompt.",
+    evidence: JSON.stringify({
+      hasSensitivePatternDeclaration: Boolean(forbiddenPatternDeclaration),
+      forbiddenPromptUsages,
+    }),
+  }));
 };
 
 const inspectNewChatIsolation = (input: {
@@ -135,12 +214,13 @@ const inspectNewChatIsolation = (input: {
     && countIdentifierCalls(openFile, "startFreshChatGptConversation") === 1
     && openFile.getVariableDeclaration("isDeepResearchGptRequest")
     && hasLiteralText(openFile, "新聊天")
+    && hasLiteralText(openFile, "open-new-tab")
     && hasLiteralText(openFile, "deep-research.")) return;
   input.findings.push(createFinding({
     checkId: "deep-research/web-chat-new-chat-isolation",
     lawId: input.lawId,
     filePath: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-    message: "Deep Research GPT web-chat feeds must click ChatGPT new chat before each prompt so provider context is isolated.",
+    message: "Deep Research GPT web-chat feeds must open a fresh provider tab and click ChatGPT new chat before each prompt so provider context is isolated.",
   }));
 };
 
@@ -187,6 +267,11 @@ export const inspectWebChatProviderHandoff = (input: {
 }): void => {
   const files = loadWebChatHandoffFiles(input.context);
   trackWebChatHandoffFiles(input.inspectedFiles, files);
+  inspectPromptTextGovernance({
+    aiFeedInputPackageFile: files.aiFeedInputPackageFile,
+    findings: input.findings,
+    lawId: input.lawId,
+  });
   inspectProviderPageAssertion({ files, findings: input.findings, lawId: input.lawId });
   inspectNewChatIsolation({ openFile: files.openFile, findings: input.findings, lawId: input.lawId });
   inspectSubmitDiscipline({ submitFile: files.submitFile, findings: input.findings, lawId: input.lawId });

@@ -6,7 +6,7 @@ import type {
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
-import { openProviderPage } from "./web-chat-open.js";
+import { isDeepResearchGptRequest, openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import {
@@ -21,6 +21,11 @@ import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
 const STABLE_ROUNDS_REQUIRED = 2;
+
+const shouldCloseProviderTabAfterResponse = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): boolean => isDeepResearchGptRequest(input);
 
 const submitWebChatPrompt = async (input: {
   browser: BrowserController;
@@ -155,11 +160,28 @@ const executeWebChatConversation = async (input: {
 const restoreAfterWebChatFeed = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  providerUrl: string;
+  request: AiFeedInput;
   sourcePageUrlBeforeFeed: string | null;
   response: AiProviderRawResponse | null;
 }): Promise<void> => {
   if (!input.response) {
     return;
+  }
+  if (shouldCloseProviderTabAfterResponse({ providerUrl: input.providerUrl, request: input.request })) {
+    await assertActiveProviderPage({
+      browser: input.browser,
+      providerUrl: input.providerUrl,
+      phase: "provider tab close",
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+    const closeResult = await input.browser.closeActiveTab({
+      reason: "Deep Research provider answer captured",
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+    if (!closeResult.ok) {
+      throw new Error(`review_required: provider tab close failed after web chat feed: ${closeResult.message}`);
+    }
   }
   const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
   input.response.restoredSourcePage = restoredSourcePage;
@@ -212,6 +234,13 @@ export const runWebChatAdapter = async (input: {
     });
     return response;
   } finally {
-    await restoreAfterWebChatFeed({ browser, context: input.context, sourcePageUrlBeforeFeed, response });
+    await restoreAfterWebChatFeed({
+      browser,
+      context: input.context,
+      providerUrl: input.providerUrl,
+      request: input.request,
+      sourcePageUrlBeforeFeed,
+      response,
+    });
   }
 };

@@ -1,4 +1,4 @@
-generatedAt: "2026-05-24T13:35:42.342Z"
+generatedAt: "2026-05-24T14:53:36.799Z"
 rows:
   - capabilityDomain: "architecture-boundary"
     manifestPath: "scripts/audit/domains/architecture-boundary/manifest.json"

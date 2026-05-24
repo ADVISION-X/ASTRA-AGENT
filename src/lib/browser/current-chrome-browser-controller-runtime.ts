@@ -171,7 +171,7 @@ const openCurrentChrome = async (
   state: RuntimeState,
   input: OpenInput,
 ): Promise<BrowserActionResult> => {
-  await runAppleScript(buildOpenUrlScript(input.url));
+  await runAppleScript(buildOpenUrlScript(input.url, input.reusePolicy ?? "reuse-exact-url"));
   await refreshSnapshot(state);
   return createCurrentChromeBrowserActionResult({
     message: `opened ${input.url} in current Chrome session`,

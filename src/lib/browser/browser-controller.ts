@@ -57,6 +57,7 @@ type BrowserClickButton = "left" | "right" | "middle";
 type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
 type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
 type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+type BrowserOpenReusePolicy = "reuse-exact-url" | "open-new-tab";
 
 type BrowserFileInputRef = {
   selector: string;
@@ -67,7 +68,7 @@ interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
   getGeometrySnapshot(): Promise<BrowserGeometrySnapshot>;
-  open(input: { url: string; title: string }): Promise<BrowserActionResult>;
+  open(input: { url: string; title: string; reusePolicy?: BrowserOpenReusePolicy }): Promise<BrowserActionResult>;
   scroll(input: {
     targetLabel: string;
     deltaX: number;
@@ -112,4 +113,4 @@ interface BrowserController {
   close(): Promise<BrowserActionResult>;
 }
 
-export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController };
+export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserOpenReusePolicy, BrowserController };

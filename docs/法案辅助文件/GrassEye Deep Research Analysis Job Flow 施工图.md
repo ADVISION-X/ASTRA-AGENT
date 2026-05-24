@@ -193,7 +193,8 @@ Deep Research 调用 AI gateway 时必须使用 raw-only capture，`expectedOutp
 Business Deck Secretary 是最终裁决后的格式化阶段，它需要完整读取 persisted final package、final report 和 structured evidence references。
 该阶段不得使用 `45_000` 字符上限；调用 AI Input Gateway 时必须使用 `Number.MAX_SAFE_INTEGER` 作为 no-GrassEye-text-ceiling sentinel。
 GPT Web Chat 自身可把长输入处理成文件，GrassEye 不在此阶段额外截断、压缩或拒绝文本 prompt。
-敏感信息排除、文件数量/大小、timeout、cooldown、tab ownership、provider proof 和 raw output proof 仍由 AI Input Gateway 负责。
+真实敏感材料排除、文件数量/大小、timeout、cooldown、tab ownership、provider proof 和 raw output proof 仍由 AI Input Gateway 负责；这里的“敏感材料”指真实 cookie、access token、password、session、browser storage 内容或未过滤私密字段，不是普通研究文本里出现这些词就一刀切失败。
+Deep Research 使用 GPT Web Chat 时，每次回答落完 raw proof 后必须关闭当前 provider 标签页；下一题必须重新打开 fresh provider tab，再点击“新聊天”。
 
 ## 最后 +1：AI 生成商业 PPT，系统只做交付搬运工
 

@@ -9,6 +9,8 @@ type ChromeWindowState = {
   currentTitle: string;
 };
 
+type ChromeOpenReusePolicy = "reuse-exact-url" | "open-new-tab";
+
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
 const runSpawn = async (command: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> => new Promise((resolve, reject) => {
@@ -40,8 +42,25 @@ const runAppleScript = async (script: string, options?: { signal?: AbortSignal }
 
 const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
 
-const buildOpenUrlScript = (url: string): string => {
+const buildOpenUrlScript = (
+  url: string,
+  reusePolicy: ChromeOpenReusePolicy = "reuse-exact-url",
+): string => {
   const escapedUrl = escapeAppleScriptString(url);
+  const reuseExistingTabScript = reusePolicy === "reuse-exact-url"
+  ? `
+  repeat with w in windows
+    set tIndex to 1
+    repeat with t in tabs of w
+      if URL of t is "${escapedUrl}" then
+        set active tab index of w to tIndex
+        set index of w to 1
+        return "focused_existing_tab"
+      end if
+      set tIndex to tIndex + 1
+    end repeat
+  end repeat`
+  : "";
   return `
 tell application "Google Chrome" to activate
 tell application "Google Chrome"
@@ -50,17 +69,7 @@ tell application "Google Chrome"
         set URL of active tab of front window to "${escapedUrl}"
         return "opened_new_window"
     end if
-    repeat with w in windows
-        set tIndex to 1
-        repeat with t in tabs of w
-            if URL of t is "${escapedUrl}" then
-                set active tab index of w to tIndex
-                set index of w to 1
-                return "focused_existing_tab"
-            end if
-            set tIndex to tIndex + 1
-        end repeat
-    end repeat
+  ${reuseExistingTabScript}
     tell front window
         make new tab with properties {URL:"${escapedUrl}"}
         set active tab index to (count of tabs)
@@ -102,4 +111,4 @@ end tell
 };
 
 export { runSpawn, runAppleScript, runJxa, buildOpenUrlScript, readFrontChromeWindowState };
-export type { ChromeWindowState };
+export type { ChromeWindowState, ChromeOpenReusePolicy };

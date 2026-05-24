@@ -40,6 +40,41 @@ ${script}
 })()
 `;
 
+type CloseActiveTabSnapshot = {
+  activeUrl: string | null;
+  frontTabCount: number;
+  windowCount: number;
+};
+
+const readCloseActiveTabSnapshot = async (
+  abortSignal?: AbortSignal,
+): Promise<CloseActiveTabSnapshot> => {
+  const output = await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "Google Chrome"
+  set windowCount to count of windows
+  if windowCount = 0 then return "0" & linefeed & "0" & linefeed
+  set frontTabCount to count of tabs of front window
+  set activeUrl to URL of active tab of front window
+  return (windowCount as string) & linefeed & (frontTabCount as string) & linefeed & activeUrl
+end tell
+`, abortSignal ? { signal: abortSignal } : undefined);
+  const [windowCountText = "0", frontTabCountText = "0", activeUrl = ""] = output.split(/\r?\n/);
+  return {
+    activeUrl: activeUrl.trim() || null,
+    frontTabCount: Number(frontTabCountText),
+    windowCount: Number(windowCountText),
+  };
+};
+
+const didCloseActiveTab = (
+  before: CloseActiveTabSnapshot,
+  after: CloseActiveTabSnapshot,
+): boolean => after.windowCount === 0
+  || before.windowCount > after.windowCount
+  || before.frontTabCount > after.frontTabCount
+  || before.activeUrl !== after.activeUrl;
+
 
 export const textInputCurrentChrome = async (
   state: RuntimeState,
@@ -145,17 +180,35 @@ export const closeCurrentChromeActiveTab = async (
   input: { reason: string; abortSignal?: AbortSignal },
   refreshSnapshot: RefreshSnapshot,
 ): Promise<BrowserActionResult> => {
+  const before = await readCloseActiveTabSnapshot(input.abortSignal);
+  if (before.windowCount === 0 || before.frontTabCount === 0) {
+    return createCurrentChromeBrowserActionResult({
+      ok: false,
+      message: `no active Chrome tab available to close after ${input.reason}`,
+    });
+  }
+  await activateChrome(input.abortSignal);
   await runAppleScript(`
 tell application "Google Chrome" to activate
-tell application "Google Chrome"
-  if (count of windows) = 0 then return "no_window"
-  close active tab of front window
-  return "closed_active_tab"
+tell application "System Events"
+  keystroke "w" using command down
 end tell
 `, input.abortSignal ? { signal: input.abortSignal } : undefined);
+  await runAppleScript("delay 0.2", input.abortSignal ? { signal: input.abortSignal } : undefined);
+  const after = await readCloseActiveTabSnapshot(input.abortSignal).catch(() => ({
+    activeUrl: null,
+    frontTabCount: 0,
+    windowCount: 0,
+  }));
   await refreshSnapshot(state).catch(() => undefined);
+  if (!didCloseActiveTab(before, after)) {
+    return createCurrentChromeBrowserActionResult({
+      ok: false,
+      message: `Command+W did not change Chrome tab state after ${input.reason}`,
+    });
+  }
   return createCurrentChromeBrowserActionResult({
-    message: `closed active Chrome tab after ${input.reason}`,
+    message: `closed active Chrome tab with Command+W after ${input.reason}`,
   });
 };
 
