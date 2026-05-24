@@ -19,10 +19,10 @@ import {
   buildPromptPackage,
 } from "./deep-research-analysis.flow-shared.js";
 import { buildRenderedDeepResearchPromptHash } from "./deep-research-analysis.prompts.js";
+import { capturePromptOutput } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
+import { persistPromptOutput } from "./deep-research-analysis.prompt-exchange-persist-stage.js";
 import {
-  capturePromptOutput,
   parsePromptOutput,
-  persistPromptOutput,
 } from "./deep-research-analysis.prompt-exchange-stages.js";
 import type { CaptureSuccess } from "./deep-research-analysis.prompt-exchange-stage-support.js";
 
@@ -52,6 +52,7 @@ type PromptExchangeInput<TParsed> = {
     persist: DeepResearchPhase;
   };
   subQuestionId?: string;
+  timeoutMs?: number;
   maxInputChars?: number;
   parse: (rawText: string) => DeepResearchParserResult<TParsed>;
   successRecordCount: (parsed: TParsed) => number;
@@ -182,6 +183,7 @@ const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => 
       promptHash,
       providerKind: input.providerKind,
       inputRefs: input.inputRefs,
+      ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
       ...(input.maxInputChars ? { maxInputChars: input.maxInputChars } : {}),
     }),
     preview: buildPromptPreview(input.prompt, input.subQuestionId),

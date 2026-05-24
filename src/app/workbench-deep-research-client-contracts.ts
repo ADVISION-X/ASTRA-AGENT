@@ -140,6 +140,14 @@ export type DeepResearchExportRecord = {
   fileSizeBytes: number | null;
 };
 
+export type DeepResearchPrimaryBusinessReport = {
+  generatedAt: string | null;
+  status: string;
+  generatedBy: string;
+  htmlExport: DeepResearchExportRecord | null;
+  sourceKind: string | null;
+};
+
 export type DeepResearchBusinessDeck = {
   generatedAt: string | null;
   status: string;
@@ -198,6 +206,7 @@ export type DeepResearchReport = {
     interaction: DeepResearchInteraction | null;
     parsedFinalReport: unknown | null;
   };
+  primaryBusinessReport: DeepResearchPrimaryBusinessReport | null;
   businessDeck: DeepResearchBusinessDeck | null;
   evidence: DeepResearchEvidence[];
   exports: DeepResearchExportRecord[];

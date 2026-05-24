@@ -287,6 +287,49 @@ export const buildReportSubQuestionState = (snapshot: DeepResearchTimelineSnapsh
   };
 };
 
+const readExportPayload = (record: ResearchExport | null): Record<string, unknown> | null => {
+  if (!record) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(record.payloadJson) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const selectBusinessHtmlExport = (
+  exports: DeepResearchTimelineSnapshot["exports"],
+): ResearchExport | null =>
+  exports.find((entry) => entry.exportKind === "business-report.html") ?? null;
+
+export const buildPrimaryBusinessReportView = (input: {
+  job: DeepResearchTimelineSnapshot["job"];
+  exports: DeepResearchTimelineSnapshot["exports"];
+  exportViews: ReturnType<typeof buildReportExportViews>;
+}) => {
+  const htmlExport = selectBusinessHtmlExport(input.exports);
+  const htmlExportView = input.exportViews.find((entry) => entry.exportKind === "business-report.html") ?? null;
+  const payload = readExportPayload(htmlExport);
+  const sourceKind = payload?.sourceKind === "html_artifact" || payload?.sourceKind === "raw_html_text"
+    ? payload.sourceKind
+    : null;
+  return {
+    generatedAt: htmlExportView?.createdAt ?? null,
+    status: htmlExportView
+      ? "generated"
+      : input.job.status === "failed" || input.job.status === "review_required"
+        ? "failed"
+        : "missing",
+    generatedBy: "AI HTML Report Publisher" as const,
+    htmlExport: htmlExportView,
+    sourceKind,
+  };
+};
+
 const selectBusinessDeckPptxExport = (
   exports: DeepResearchTimelineSnapshot["exports"],
 ): ResearchExport | null =>

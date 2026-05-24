@@ -1,6 +1,7 @@
 import { DeepResearchBusinessDeckOutlineSchema, type DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
 import {
   buildFailure,
+  isDeepResearchParserSuccess,
   parseJsonObject,
   type DeepResearchParserResult,
 } from "./deep-research-analysis.parser-support.js";
@@ -189,7 +190,7 @@ export const parseDeepResearchBusinessDeckOutlineResponse = (
   rawText: string,
 ): DeepResearchParserResult<DeepResearchBusinessDeckOutline> => {
   const parsedJson = parseJsonObject(rawText);
-  if (parsedJson.parseStatus !== "parsed") return parsedJson;
+  if (!isDeepResearchParserSuccess(parsedJson)) return parsedJson;
   const parsed = DeepResearchBusinessDeckOutlineSchema.safeParse(parsedJson.parsed);
   if (!parsed.success) {
     return buildFailure(
@@ -220,7 +221,7 @@ export const parseDeepResearchBusinessDeckOutlineResponseForFinalReport = (input
   finalReport: DeepResearchFinalReport;
 }): DeepResearchParserResult<DeepResearchBusinessDeckOutline> => {
   const parsed = parseDeepResearchBusinessDeckOutlineResponse(input.rawText);
-  if (parsed.parseStatus !== "parsed") return parsed;
+  if (!isDeepResearchParserSuccess(parsed)) return parsed;
   const validationFailure = validateDeepResearchBusinessDeckOutlineAgainstFinalReport({
     outline: parsed.parsed,
     finalReport: input.finalReport,

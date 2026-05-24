@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-24T14:53:53.657Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-24T15:47:52.890Z",
+  "status": "FAIL",
   "inspectorFileCount": 14,
   "generatedPlanEntryCount": 14,
   "inspectedFiles": [
@@ -60,6 +60,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-governance.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-ppt-prompt-boundary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
@@ -72,6 +73,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
+    "scripts/audit/domains/deep-research-analysis/inspector-capture-and-smoke.ts",
     "scripts/audit/domains/deep-research-analysis/inspector-constants.ts",
     "scripts/audit/domains/deep-research-analysis/inspector-file-map.ts",
     "scripts/audit/domains/deep-research-analysis/inspector-smoke.ts",
@@ -155,5 +157,22 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts uses source-text judgment deckStageText.includes(\"maxInputChars: Number.MAX_SAFE_INTEGER\") on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts uses source-text judgment helperFile.getFullText().includes(\"report.evidenceGaps.some\") on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts"
+    }
+  ]
 }

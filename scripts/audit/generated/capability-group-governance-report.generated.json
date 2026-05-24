@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T14:53:38.380Z",
+  "generatedAt": "2026-05-24T15:47:39.354Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -171,6 +171,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-governance.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-deck-no-text-ceiling.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-ppt-prompt-boundary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
@@ -183,6 +184,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
+    "scripts/audit/domains/deep-research-analysis/inspector-capture-and-smoke.ts",
     "scripts/audit/domains/deep-research-analysis/inspector-constants.ts",
     "scripts/audit/domains/deep-research-analysis/inspector-file-map.ts",
     "scripts/audit/domains/deep-research-analysis/inspector-smoke.ts",
@@ -489,6 +491,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-download.ts",
@@ -496,6 +499,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-telemetry.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",

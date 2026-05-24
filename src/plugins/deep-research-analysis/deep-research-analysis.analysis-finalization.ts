@@ -208,6 +208,7 @@ const buildMergedRecordHashes = (input: {
   ...input.context.recordHashes,
   exportFinalReportHash: input.exportArtifacts.finalReportMarkdown.fileHash,
   exportDecisionPackageHash: input.exportArtifacts.decisionPackage.fileHash,
+  exportBusinessHtmlReportHash: input.exportArtifacts.businessHtmlReport.fileHash,
   exportEvidenceIndexHash: input.exportArtifacts.evidenceIndex.fileHash,
   ...(input.exportArtifacts.businessDeckOutline
     ? { exportBusinessDeckOutlineHash: input.exportArtifacts.businessDeckOutline.fileHash }
@@ -315,6 +316,7 @@ export const runFinalReportPhase = async (
       finalPackage,
     }),
     inputRefs: [`job:${context.jobId}:final-package`],
+    timeoutMs: 1_200_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
       send: "FINAL_ADJUDICATION_SEND",
@@ -360,25 +362,6 @@ export const completeSuccessfulRun = async (
     exportArtifacts,
     finalReportRecord,
   });
-  if (exportArtifacts.status === "deck_export_partial") {
-    context.store.updateJobState({
-      jobId: context.jobId,
-      status: "deck_export_partial",
-      phase: "COMPLETE",
-      failureReason: null,
-      reviewReason: exportArtifacts.failureReason,
-    });
-    return {
-      jobId: context.jobId,
-      status: "review_required",
-      jobStatus: "deck_export_partial",
-      phase: "COMPLETE",
-      report: finalReport,
-      recordHashes: mergedRecordHashes,
-      failureReason: null,
-      reviewReason: exportArtifacts.failureReason,
-    };
-  }
   return markJobCompleted({
     context,
     finalReport,

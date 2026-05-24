@@ -11,22 +11,17 @@ import {
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { buildDeepResearchAuditFiles, type DeepResearchAuditFiles } from "./inspector-file-map.js";
+import { inspectCaptureAndSmokeRules } from "./inspector-capture-and-smoke.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
-import { inspectConfidenceContract } from "./components/scan-confidence-contract.js";
 import { inspectBusinessDeckGovernance } from "./components/scan-business-deck-governance.js";
 import { inspectAiPptArtifactFlow } from "./components/scan-ai-ppt-artifact-flow.js";
 import { inspectBusinessPptPromptBoundary } from "./components/scan-business-ppt-prompt-boundary.js";
-import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
 import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
-import { inspectGatewayRawCaptureBoundary } from "./components/scan-gateway-raw-capture-boundary.js";
 import { inspectLocalPptFallbackDemotion } from "./components/scan-local-ppt-fallback-demotion.js";
 import { inspectNoDeckOutlinePrimary } from "./components/scan-no-deck-outline-primary.js";
 import { inspectPptArtifactDownload } from "./components/scan-ppt-artifact-download.js";
 import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
 import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
-import { inspectSubQuestionFaultIsolation } from "./components/scan-sub-question-fault-isolation.js";
-import { inspectSubQuestionPersistenceIdentity } from "./components/scan-sub-question-persistence-identity.js";
-import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
 
 const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyName: string): string | null => {
   const property = objectLiteral.getProperty(propertyName);
@@ -316,55 +311,6 @@ const inspectCoreStaticRules = (input: DeepResearchStaticRulesInput): void => {
   inspectParserHonesty(input.files.parserFile, input.findings, input.lawId);
   inspectAntiEvasion(input.sourceFiles, input.findings, input.lawId);
   inspectRegressionFixtures(input.files.regressionFile, input.findings, input.lawId);
-};
-
-const inspectCaptureAndSmokeRules = (input: DeepResearchStaticRulesInput): void => {
-  inspectWebChatProviderHandoff({
-    context: input.context,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.captureLawId,
-  });
-  inspectSubQuestionPersistenceIdentity({
-    context: input.context,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.captureLawId,
-  });
-  inspectGatewayRawCaptureBoundary({
-    context: input.context,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.captureLawId,
-  });
-  inspectSubQuestionFaultIsolation({
-    context: input.context,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.lawId,
-  });
-  inspectConfidenceContract({
-    promptsFile: input.files.promptsFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.lawId,
-  });
-  inspectDecompositionPromptV2({
-    promptFile: input.files.promptFile,
-    promptsFile: input.files.promptsFile,
-    acceptanceFile: input.files.decompositionAcceptanceFile,
-    qualityFile: input.files.qualityFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.lawId,
-  });
-  inspectSmokeAcceptance({
-    smokeFile: input.files.smokeFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.smokeLawId,
-  });
 };
 
 const inspectDeliveryRules = (input: DeepResearchStaticRulesInput): void => {

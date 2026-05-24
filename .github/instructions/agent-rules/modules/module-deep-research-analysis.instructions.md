@@ -36,9 +36,9 @@ Deep Research Analysis 是 GrassEye 的一个固定业务 Job Flow。
   -> 分析回答入库
   -> 最终裁决包构建
   -> 最终裁决报告
-  -> Business PPT Secretary 生成 AI PPTX 工件
-  -> PPTX 下载、hash、export record 入库
-  -> 最终报告与 Deck 工件导出
+  -> Business HTML Report Publisher 生成商业 HTML 决策报告
+  -> business-report.html 保存、hash、export record 入库
+  -> 最终报告与 HTML 主工件导出
 ```
 
 本 Job Flow 的核心价值不是 AI 自己“思考”，而是：
@@ -123,10 +123,10 @@ FINAL_ADJUDICATION_SEND
 FINAL_ADJUDICATION_CAPTURE
 FINAL_ADJUDICATION_PARSE
 FINAL_ADJUDICATION_PERSIST
-DECK_SEND
-DECK_CAPTURE
-DECK_PARSE
-DECK_PERSIST
+HTML_REPORT_SEND
+HTML_REPORT_CAPTURE
+HTML_REPORT_DETECT
+HTML_REPORT_PERSIST
 EXPORT_REPORT
 COMPLETE
 ```
@@ -1223,18 +1223,16 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 
 #### 必须
 
-- `verdictPreservationCheck` 的 truth flags 必须全部显式返回并为真。
-- 非 cover / appendix slide 必须显式给出 evidenceRefs。
-- decision slide 必须覆盖 directAnswer、oneSentenceDecision、finalVerdict 与 confidence。
-- ranking / risk / limitation / reference slides 必须分别覆盖 rankedConclusions、reverseConditions、evidenceGaps + limitations、references。
-- `deckWarnings` 与 `contentPreservationSummary.omittedItems` 必须显式返回，不得靠默认空值躲过审计。
+- 若存在 optional presentation deck outline，必须明确标注为 derived artifact，不得冒充主报告。
+- derived outline 若存在，必须保留与 final adjudication 的内容保真边界，不得新增事实、来源或更改 verdict/confidence。
+- derived outline 若存在 evidenceRefs、warnings、omittedItems，必须显式保留，不得靠默认空值躲过审计。
 
 #### 禁止
 
-- secretary 通过 omittedItems 声称省略 ranked conclusion、reverse condition、evidence gap、limitation 或 reference。
+- derived outline 通过 omittedItems 省略 ranked conclusion、reverse condition、evidence gap、limitation 或 reference 后仍冒充主报告。
 - 用 schema 默认值掩盖缺失的 deckWarnings、omittedItems、evidenceRefs。
 - 让 parser 接受新增 verdict、削弱 confidence、删除关键限制项的 outline。
-- 本法条仅约束 local fallback outline 路径；不得阻断 AI-generated PPT artifact 主流程。
+- 让 optional outline 路径阻断 `business-report.html` 主交付完成。
 
 ---
 
@@ -1248,23 +1246,23 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "db+artifact+hash+acceptance",
-  "summary": "When a business deck outline exists, export must persist business-deck-outline.json and business-deck.pptx with recorded hashes, evidence-index traceability, and explicit partial-failure handling."
+  "summary": "When an optional business deck outline or PPTX exists, export must persist it with hashes and evidence-index traceability, but it must not block the primary business-report.html completion."
 }
 ```
 
 #### 必须
 
-- 已持久化的 `business-deck-outline.json` 必须进入 export list。
-- 生成成功的 `business-deck.pptx` 必须记录 filePath、fileHash、payloadHash。
-- evidence index 必须包含 deck interaction 与其 prompt/raw hash。
-- 若 outline 已存在但 PPTX 生成失败，job 必须显式进入 `deck_export_partial` 或等价 failure state，并保留 outline。
+- 已持久化的 `business-deck-outline.json` 或 `business-deck.pptx` 若存在，必须进入 export list。
+- optional PPTX 若存在，必须记录 filePath、fileHash、payloadHash。
+- evidence index 若存在 optional deck 交互，必须包含其 prompt/raw hash。
+- optional PPTX 失败不得覆盖或回退 `business-report.html` 主报告完成态。
 
 #### 禁止
 
 - 无 outline 直接伪造 PPTX export 记录。
-- PPTX 失败后静默吞掉 deck failure。
+- PPTX 失败后静默吞掉 optional deck failure。
 - 只生成文件但不保存 export record/hash。
-- 本法条仅约束 local fallback artifact；AI-generated PPT artifact 主流程不得要求 outline 存在。
+- 因 optional deck 缺失或失败阻断 `business-report.html` 主流程。
 
 ---
 
@@ -1278,96 +1276,96 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "app-shell+acceptance+ast",
-  "summary": "Workbench must expose Business Deck as a delivery section after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts."
+  "summary": "Workbench must expose the Primary Business Report and the Optional Presentation Deck after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts."
 }
 ```
 
 #### 必须
 
-- Decision Card 必须继续位于 Business Deck 之前。
-- 无 deck 时 UI 必须明确显示 `Deck not generated`。
-- 有 outline 但 PPTX 失败时 UI 必须明确显示 `Outline ready, PPTX generation failed`。
-- 有 artifact 时 UI 必须提供 Open PPT、Download PPT、Open Deck Outline。
-- UI 必须显示 Deck Warnings 与 Generated At。
+- Decision Card 必须继续位于 Primary Business Report 与 Optional Presentation Deck 之前。
+- HTML 主报告成功时 UI 必须提供 Open HTML Report、Download HTML Report。
+- HTML 主报告缺失时 UI 必须明确显示 `HTML report not generated`。
+- Optional deck 若有 artifact，UI 必须提供 Open PPT、Download PPT、Open Deck Outline。
+- Optional deck UI 必须明确标注为 `Optional Presentation Deck`，不得冒充主报告。
 
 #### 禁止
 
-- Business Deck 抢到最终结论卡之前。
-- 只在 raw JSON 里暴露 deck 信息。
-- 静默隐藏 outline-only failure 或 deck warnings。
+- Primary Business Report 或 Optional Presentation Deck 抢到最终结论卡之前。
+- 只在 raw JSON 里暴露主报告或 optional deck 信息。
+- 静默隐藏 HTML missing/failure 或 optional deck warnings。
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-025-V1] AI-generated Business PPT Artifact 主权
+### [GRASSEYE-DEEP-RESEARCH-029-V1] AI-generated Business HTML Report 主权
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-DEEP-RESEARCH-025-V1",
+  "lawId": "GRASSEYE-DEEP-RESEARCH-029-V1",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+ast+artifact+acceptance",
-  "summary": "The final business deck stage must use advanced AI to generate the primary downloadable PowerPoint artifact; local template PPT generation is not the primary business deck path."
+  "summary": "The final business report stage must use advanced AI to generate the final business HTML decision report, and business-report.html is the primary presentation artifact."
 }
 ```
 
 #### 必须
 
-- 默认 deck mode 必须是 `ai_pptx_artifact`。
-- 最后 `+1` 的主产物必须是 AI web session 生成并下载的 `.pptx` 文件。
-- 主成功 exportKind 必须是 `business-deck.ai-pptx`。
-- Business PPT prompt 必须要求 AI 生成 downloadable PowerPoint file。
+- 最后 `+1` 的主产物必须是 advanced AI 直接生成的商业 HTML 决策报告。
+- 主成功 exportKind 必须是 `business-report.html`。
+- 主成功文件名必须是 `business-report.html`。
+- PPTX 若存在，只能作为 optional derived presentation artifact。
 
 #### 禁止
 
-- 默认主流程继续要求 GPT 返回 JSON deck outline。
-- 默认主流程把本地 template PPT 生成当作 Business PPT 成功。
-- 用 `business-deck-outline.json` 作为主成功前置条件。
+- 默认主流程继续锁定 PPT 作为最终主报告。
+- 默认主流程要求 GPT 返回 JSON deck outline 作为主成功前置条件。
+- 用 local template PPT 或 optional PPTX 顶替 `business-report.html` 主报告。
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-026-V1] Delivery-only Runtime 主权
+### [GRASSEYE-DEEP-RESEARCH-030-V1] HTML Delivery-only Runtime 主权
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-DEEP-RESEARCH-026-V1",
+  "lawId": "GRASSEYE-DEEP-RESEARCH-030-V1",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "artifact+db+hash+runtime-log+acceptance",
-  "summary": "The final PPT runtime is delivery-only: send complete decision materials, wait for AI completion, detect/download/persist PPTX, and expose it without slide-level semantic re-judgment."
+  "summary": "The final HTML runtime is delivery-only: send complete decision materials, wait for AI completion, detect HTML artifact or raw HTML text, persist business-report.html, and expose it without brittle semantic re-judgment."
 }
 ```
 
 #### 必须
 
-- Runtime 只负责发送完整决策材料、等待 AI 完成、检测 `.pptx` artifact、下载、校验扩展名/大小、计算 hash、保存 export record、供 UI 展示。
-- 下载成功必须记录 filePath、fileHash、fileSizeBytes、downloadedAt、status = `deck_pptx_ai_generated`。
-- 无文件必须记录 `deck_pptx_artifact_missing`。
-- 下载失败必须记录 `deck_pptx_download_failed`。
-- 非 PPTX 或空文件必须记录 `deck_pptx_invalid_file`。
+- Runtime 只负责发送完整决策材料、等待 AI 完成、检测 `.html` artifact 或 raw HTML document、保存 `business-report.html`、计算 hash、保存 export record、供 UI 展示。
+- 成功必须记录 filePath、fileHash、fileSizeBytes、generatedAt、status = `business_html_report_generated`。
+- 无 HTML artifact/text 必须记录 `business_html_artifact_missing`。
+- 保存失败必须记录 `business_html_persist_failed`。
+- 非 HTML 或空 HTML 必须记录 `business_html_invalid_file`。
 
 #### 禁止
 
-- 对 AI PPT 主流程做 slide-level semantic validation。
-- 因 `business_deck_limitations_not_preserved` 或类似内容保留 validator 阻断 AI PPT artifact 成功。
-- GPT 已生成 PPTX 但系统不下载或不保存 hash。
+- 对 HTML 主流程做 section-level semantic validation。
+- 因 limitation/reference/conclusion 没被死代码逐字识别而阻断 HTML 成功。
+- GPT 已生成 HTML artifact 或 raw HTML 但系统不保存 hash/export record。
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-027-V1] Prompt-governed PPT Content Boundary 主权
+### [GRASSEYE-DEEP-RESEARCH-031-V1] Prompt-governed HTML Content Boundary 主权
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-DEEP-RESEARCH-027-V1",
+  "lawId": "GRASSEYE-DEEP-RESEARCH-031-V1",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+acceptance+ast",
-  "summary": "PPT content preservation must be governed by prompt instructions to the AI, not brittle slide-content validators."
+  "summary": "HTML report content preservation must be governed by prompt instructions to the AI, not brittle section-level validators."
 }
 ```
 
@@ -1381,39 +1379,41 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 - You are not allowed to add new sources.
 - You are not allowed to remove or distort the original content.
 - Do not remove risks, limitations, evidence gaps, reverse conditions, rejected claims, or references.
-- Create a downloadable PowerPoint file (.pptx).
+- Create a complete self-contained HTML report file.
+- Use inline CSS.
+- Do not include scripts or external resources.
 - Do not output only JSON, markdown, or outline.
 
 #### 禁止
 
-- 依赖死代码逐页裁判 PPT 内容完整性作为主流程完成条件。
+- 依赖死代码逐段裁判 HTML 内容完整性作为主流程完成条件。
 - Prompt 弱化最终裁决、置信度、风险、限制、证据缺口、反转条件或 references。
 
 ---
 
-### [GRASSEYE-DEEP-RESEARCH-028-V1] Local PPT Generator Fallback 降级主权
+### [GRASSEYE-DEEP-RESEARCH-032-V1] PPT as Optional Derived Artifact 降级主权
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-DEEP-RESEARCH-028-V1",
+  "lawId": "GRASSEYE-DEEP-RESEARCH-032-V1",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "db+artifact+ui+acceptance+ast",
-  "summary": "Local template PPT generation may exist only as fallback and must be explicitly demoted from AI-generated business PPT success."
+  "summary": "PPTX may exist only as an optional derived presentation artifact and must never fail the primary Deep Research HTML report when business-report.html exists."
 }
 ```
 
 #### 必须
 
-- Local fallback 只能在 AI PPT artifact missing/download failed 且配置允许时运行。
-- fallback status 必须记录 `deck_local_fallback_used`。
-- fallback exportKind 必须是 `business-deck.local-pptx`。
-- UI 必须明确显示 `Local fallback PPT generated`。
+- PPTX 若存在，UI 必须标注为 `Optional Presentation Deck`。
+- `business-report.html` 成功时，PPTX 缺失不得让主流程失败。
+- PPTX 若存在，可保留 `business-deck.ai-pptx`、`business-deck.local-pptx` 或 `business-deck.pptx` 作为 optional exportKind。
+- Optional deck failure 必须保持为 optional delivery state，不得覆盖主 HTML 成功。
 
 #### 禁止
 
-- local fallback 显示为 AI-generated PPT。
-- local fallback 使用 `business-deck.ai-pptx`。
-- local fallback 掩盖 AI PPT missing/download failed。
+- 把 PPTX 显示为 Primary Business Report。
+- HTML 成功但因 PPTX 缺失或失败而把 job 标为主流程失败。
+- 用 PPTX 缺失要求重跑 final adjudication 或 HTML report 阶段。

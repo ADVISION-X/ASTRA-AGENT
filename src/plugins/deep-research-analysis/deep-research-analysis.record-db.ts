@@ -124,6 +124,7 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     file_path TEXT NOT NULL,
     file_hash TEXT NOT NULL,
     payload_hash TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_research_sub_questions_job ON research_sub_questions(job_id, ordinal)`,
@@ -327,6 +328,17 @@ const migrateResearchAnswersParsedPayload = (db: Database.Database): void => {
   ).run();
 };
 
+const migrateResearchExportsPayloadJson = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_exports", "payload_json")) {
+    db.exec("ALTER TABLE research_exports ADD COLUMN payload_json TEXT NOT NULL DEFAULT '{}' ");
+  }
+  db.prepare(
+    `UPDATE research_exports
+     SET payload_json = '{}'
+     WHERE payload_json IS NULL OR trim(payload_json) = ''`,
+  ).run();
+};
+
 export const resolveDeepResearchDbPath = (dataDir: string): string =>
   path.join(dataDir, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH);
 
@@ -344,6 +356,7 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
   migrateResearchJobsFlowMode(db);
   migrateResearchSubQuestionStructuredFields(db);
   migrateResearchAnswersParsedPayload(db);
+  migrateResearchExportsPayloadJson(db);
   for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {
     db.exec(statement);
   }

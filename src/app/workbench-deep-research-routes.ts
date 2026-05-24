@@ -23,6 +23,7 @@ const DEEP_RESEARCH_EXPORT_KINDS = [
   "final-report.md",
   "research-bundle.json",
   "decision-package.json",
+  "business-report.html",
   "business-deck-outline.json",
   "business-deck.pptx",
   "business-deck.ai-pptx",

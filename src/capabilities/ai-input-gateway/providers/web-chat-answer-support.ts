@@ -11,6 +11,7 @@ type StableAnswerState = {
   lastAssistantCount: number;
   stableRounds: number;
   seenGenerating: boolean;
+  lastActivityAt: number;
 };
 
 const extractAnswer = (
@@ -59,7 +60,31 @@ export const createStableAnswerState = (): StableAnswerState => ({
   lastAssistantCount: 0,
   stableRounds: 0,
   seenGenerating: false,
+  lastActivityAt: Date.now(),
 });
+
+const hasEvaluationActivity = (input: {
+  evaluation: WebChatEvaluation;
+  state: StableAnswerState;
+}): boolean => {
+  const answerText = input.evaluation.answerText?.trim() ?? "";
+  const assistantCount = input.evaluation.assistantCount ?? input.state.lastAssistantCount;
+  return input.evaluation.generating === true
+    || (answerText.length > 0 && answerText !== input.state.lastText)
+    || assistantCount > input.state.lastAssistantCount;
+};
+
+export const noteStableAnswerActivity = (input: {
+  evaluation: WebChatEvaluation;
+  state: StableAnswerState;
+  now: number;
+}): boolean => {
+  if (!hasEvaluationActivity({ evaluation: input.evaluation, state: input.state })) {
+    return false;
+  }
+  input.state.lastActivityAt = input.now;
+  return true;
+};
 
 export const readAnswerEvaluation = async (input: {
   browser: BrowserController;

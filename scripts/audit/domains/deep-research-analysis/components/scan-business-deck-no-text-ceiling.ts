@@ -36,8 +36,11 @@ export const inspectBusinessDeckNoTextCeiling = (input: {
   }
   const runPromptExchangeArgument = getObjectLiteralArgument(input.deckStageFile, "runPromptExchange");
   const maxInputCharsProperty = runPromptExchangeArgument?.getProperty("maxInputChars");
-  const maxInputCharsText = maxInputCharsProperty?.getText() ?? "";
-  if (!maxInputCharsText.includes("Number.MAX_SAFE_INTEGER") || maxInputCharsText.includes("45_000")) {
+  const hasNoTextCeiling = Node.isPropertyAssignment(maxInputCharsProperty)
+    && maxInputCharsProperty.getInitializer()?.getText() === "Number.MAX_SAFE_INTEGER";
+  const hasLegacyTextCeiling = input.deckStageFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)
+    .some((literal) => literal.getText() === "45_000");
+  if (!hasNoTextCeiling || hasLegacyTextCeiling) {
     input.findings.push(createFinding({
       checkId: "deep-research/business-deck-no-text-ceiling",
       lawId: input.lawId,

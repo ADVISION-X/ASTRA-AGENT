@@ -32,6 +32,21 @@ const assertStatus = (actual: string, expected: string): void => {
   assert.equal(actual, expected);
 };
 
+const parsedSuccessStatuses = new Set([
+  "parsed",
+  "parsed_with_trailing_noise",
+  "parsed_json",
+  "parsed_json_from_fence",
+  "parsed_json_from_balanced_object",
+  "parsed_text_fallback",
+]);
+
+const isParsedSuccessStatus = (status: string): boolean => parsedSuccessStatuses.has(status);
+
+const assertParsedStatus = (actual: string): void => {
+  assert.equal(isParsedSuccessStatus(actual), true, `Expected a parsed success status, received ${actual}.`);
+};
+
 const rendered = renderDecompositionPrompt({
   userQuestion: "某科技股近期上涨是否由基本面支撑？",
   maxSubQuestions: 6,
@@ -53,19 +68,20 @@ const validParse = parseDecompositionResponse({
   rawText: validFixtureText,
   maxSubQuestions: 6,
 });
-assertStatus(validParse.parseStatus, "parsed");
-if (validParse.parseStatus !== "parsed") {
+assertParsedStatus(validParse.parseStatus);
+const validParsed = validParse.parsed;
+if (!isParsedSuccessStatus(validParse.parseStatus) || !validParsed) {
   throw new Error("valid fixture did not parse");
 }
-const firstSubQuestion = validParse.parsed.subQuestions[0];
-const secondSubQuestion = validParse.parsed.subQuestions[1];
+const firstSubQuestion = validParsed.subQuestions[0];
+const secondSubQuestion = validParsed.subQuestions[1];
 if (!firstSubQuestion || !secondSubQuestion) {
   throw new Error("valid fixture must contain at least two sub-questions");
 }
-assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
-assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.whyItMatters.trim().length > 0));
-assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.analysisFocus.trim().length > 0));
-assert.ok(validParse.parsed.subQuestions.every((subQuestion) => subQuestion.omissionRisk.trim().length > 0));
+assert.ok(validParsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
+assert.ok(validParsed.subQuestions.every((subQuestion) => subQuestion.whyItMatters.trim().length > 0));
+assert.ok(validParsed.subQuestions.every((subQuestion) => subQuestion.analysisFocus.trim().length > 0));
+assert.ok(validParsed.subQuestions.every((subQuestion) => subQuestion.omissionRisk.trim().length > 0));
 
 const invalidJson = parseDecompositionResponse({
   rawText: "{ invalid",
@@ -101,7 +117,7 @@ assert.match(extraRootFields.reason, /schema_extra_fields_not_allowed/u);
 
 const emptySubQuestions = parseDecompositionResponse({
   rawText: JSON.stringify({
-    ...validParse.parsed,
+    ...validParsed,
     subQuestions: [],
   }),
   maxSubQuestions: 6,
@@ -110,7 +126,7 @@ assertStatus(emptySubQuestions.parseStatus, "failed");
 
 const duplicateSubQuestions = parseDecompositionResponse({
   rawText: JSON.stringify({
-    ...validParse.parsed,
+    ...validParsed,
     subQuestions: [
       firstSubQuestion,
       {
@@ -125,9 +141,9 @@ assertStatus(duplicateSubQuestions.parseStatus, "partial_review_required");
 
 const qualitySelfCheckFalse = parseDecompositionResponse({
   rawText: JSON.stringify({
-    ...validParse.parsed,
+    ...validParsed,
     qualitySelfCheck: {
-      ...validParse.parsed.qualitySelfCheck,
+      ...validParsed.qualitySelfCheck,
       isReadyForIndependentAnalysis: false,
     },
   }),
@@ -135,7 +151,7 @@ const qualitySelfCheckFalse = parseDecompositionResponse({
 });
 assertStatus(qualitySelfCheckFalse.parseStatus, "partial_review_required");
 
-const quality = scoreDecompositionQuality(validParse.parsed);
+const quality = scoreDecompositionQuality(validParsed);
 assert.equal(quality.status, "passed");
 assert.ok(quality.score >= quality.passScore);
 
@@ -143,33 +159,35 @@ const validIran = parseDecompositionResponse({
   rawText: validIranFixtureText,
   maxSubQuestions: 12,
 });
-assertStatus(validIran.parseStatus, "parsed");
-if (validIran.parseStatus !== "parsed") {
+assertParsedStatus(validIran.parseStatus);
+const validIranParsed = validIran.parsed;
+if (!isParsedSuccessStatus(validIran.parseStatus) || !validIranParsed) {
   throw new Error("valid iran fixture did not parse");
 }
-assert.equal(validIran.parsed.questionType, "event");
-assert.ok(validIran.parsed.subQuestions.length >= 8);
-assert.ok(validIran.parsed.subQuestions.length <= 12);
-assert.equal(detectCurrentEventMissingInfo(validIran.parsed), false);
-assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
-assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.whyItMatters.trim().length > 0));
-assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.analysisFocus.trim().length > 0));
-assert.ok(validIran.parsed.subQuestions.every((subQuestion) => subQuestion.omissionRisk.trim().length > 0));
-assert.ok(!validIran.parsed.subQuestions.some((subQuestion) => detectFinalAdjudicationLeakage(subQuestion.questionText)));
-const iranQuality = scoreDecompositionQuality(validIran.parsed);
+assert.equal(validIranParsed.questionType, "event");
+assert.ok(validIranParsed.subQuestions.length >= 8);
+assert.ok(validIranParsed.subQuestions.length <= 12);
+assert.equal(detectCurrentEventMissingInfo(validIranParsed), false);
+assert.ok(validIranParsed.subQuestions.every((subQuestion) => subQuestion.requiredEvidence.length >= 2));
+assert.ok(validIranParsed.subQuestions.every((subQuestion) => subQuestion.whyItMatters.trim().length > 0));
+assert.ok(validIranParsed.subQuestions.every((subQuestion) => subQuestion.analysisFocus.trim().length > 0));
+assert.ok(validIranParsed.subQuestions.every((subQuestion) => subQuestion.omissionRisk.trim().length > 0));
+assert.ok(!validIranParsed.subQuestions.some((subQuestion) => detectFinalAdjudicationLeakage(subQuestion.questionText)));
+const iranQuality = scoreDecompositionQuality(validIranParsed);
 assert.equal(iranQuality.status, "passed");
 
 const leakageParse = parseDecompositionResponse({
   rawText: invalidFinalAdjudicationLeakageText,
   maxSubQuestions: 12,
 });
-assertStatus(leakageParse.parseStatus, "parsed");
-if (leakageParse.parseStatus !== "parsed") {
+assertParsedStatus(leakageParse.parseStatus);
+const leakageParsed = leakageParse.parsed;
+if (!isParsedSuccessStatus(leakageParse.parseStatus) || !leakageParsed) {
   throw new Error("leakage fixture must be schema-valid before quality scoring");
 }
-const leakageQuality = scoreDecompositionQuality(leakageParse.parsed);
+const leakageQuality = scoreDecompositionQuality(leakageParsed);
 assert.equal(leakageQuality.status, "failed");
-assert.ok(leakageParse.parsed.subQuestions.some((subQuestion) => detectFinalAdjudicationLeakage(subQuestion.questionText)));
+assert.ok(leakageParsed.subQuestions.some((subQuestion) => detectFinalAdjudicationLeakage(subQuestion.questionText)));
 
 assert.ok(DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES.length >= 10);
 for (const fixture of DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES) {
@@ -196,21 +214,22 @@ const validAnalysisResponse = {
   limitations: ["limitation"],
 };
 const enumAnalysis = parseDeepResearchSubQuestionAnalysisResponse(JSON.stringify(validAnalysisResponse));
-assertStatus(enumAnalysis.parseStatus, "parsed");
+assertParsedStatus(enumAnalysis.parseStatus);
 const numericAnalysis = parseDeepResearchSubQuestionAnalysisResponse(JSON.stringify({
   ...validAnalysisResponse,
   confidence: 0.82,
 }));
-assertStatus(numericAnalysis.parseStatus, "parsed");
-if (numericAnalysis.parseStatus === "parsed") {
-  assert.equal(numericAnalysis.parsed.confidence, "high");
+assertParsedStatus(numericAnalysis.parseStatus);
+const numericAnalysisParsed = numericAnalysis.parsed;
+if (isParsedSuccessStatus(numericAnalysis.parseStatus) && numericAnalysisParsed) {
+  assert.equal(numericAnalysisParsed.confidence, "high");
 }
 const proseWrappedAnalysis = parseDeepResearchSubQuestionAnalysisResponse(`Analysis follows:\n${JSON.stringify({
   ...validAnalysisResponse,
   confidence: "80%",
   extraField: "still allowed",
 })}\nEnd.`);
-assertStatus(proseWrappedAnalysis.parseStatus, "parsed");
+assertParsedStatus(proseWrappedAnalysis.parseStatus);
 
 const validFinalResponse = {
   directAnswer: "The answer is conditionally yes.",
@@ -238,14 +257,15 @@ const validFinalResponse = {
   limitations: ["This is a fixture."],
 };
 const enumFinal = parseDeepResearchFinalAdjudicationResponse(JSON.stringify(validFinalResponse));
-assertStatus(enumFinal.parseStatus, "parsed");
+assertParsedStatus(enumFinal.parseStatus);
 const numericFinal = parseDeepResearchFinalAdjudicationResponse(JSON.stringify({
   ...validFinalResponse,
   confidence: 0.82,
 }));
-assertStatus(numericFinal.parseStatus, "parsed");
-if (numericFinal.parseStatus === "parsed") {
-  assert.equal(numericFinal.parsed.confidence, "high");
+assertParsedStatus(numericFinal.parseStatus);
+const numericFinalParsed = numericFinal.parsed;
+if (isParsedSuccessStatus(numericFinal.parseStatus) && numericFinalParsed) {
+  assert.equal(numericFinalParsed.confidence, "high");
 }
 const fallbackFinal = parseDeepResearchFinalAdjudicationResponse(
   JSON.stringify({
@@ -261,10 +281,11 @@ const fallbackFinal = parseDeepResearchFinalAdjudicationResponse(
     limitations: ["legacy limitation"],
   },
 );
-assertStatus(fallbackFinal.parseStatus, "parsed");
-if (fallbackFinal.parseStatus === "parsed") {
-  assert.equal(fallbackFinal.parsed.confidence, "high");
-  assert.ok(fallbackFinal.parsed.directAnswer.includes("Legacy conclusion"));
+assertParsedStatus(fallbackFinal.parseStatus);
+const fallbackFinalParsed = fallbackFinal.parsed;
+if (isParsedSuccessStatus(fallbackFinal.parseStatus) && fallbackFinalParsed) {
+  assert.equal(fallbackFinalParsed.confidence, "high");
+  assert.ok(fallbackFinalParsed.directAnswer.includes("Legacy conclusion"));
 }
 
 const flowResult = await runDeepResearchDecompositionPhase({

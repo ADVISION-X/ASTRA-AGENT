@@ -54,7 +54,8 @@ assert.match(webChatSource, /STABLE_ROUNDS_REQUIRED\s*=\s*2/u);
 assert.match(webChatEvaluationSource, /data-message-author-role='assistant'/u);
 assert.match(webChatEvaluationSource, /\[class\*='model-response'\]/u);
 assert.match(webChatEvaluationSource, /aria-busy="true"/u);
-assert.doesNotMatch(webChatEvaluationSource, /main article|data-testid\*='conversation'|role='presentation'|thinking|reasoning|回答中|生成中|思考中/u);
+assert.match(webChatEvaluationSource, /main article|data-testid\*='conversation'|role='presentation'/u);
+assert.match(webChatEvaluationSource, /thinking|reasoning|回答中|生成中|思考中/u);
 assert.doesNotMatch(uploadSource, /chooseFileInNativeDialog/u);
 assert.doesNotMatch(judgeSource, /providers\/gpt-web-chat|providers\/gemini-web-chat/u);
 

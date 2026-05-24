@@ -93,29 +93,29 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
       limitations: ["This uses deterministic fixture output rather than a live provider."],
     }),
     JSON.stringify({
-      directAnswer: "Proceed with a review-minded conclusion because one analysis is missing but another completed.",
+      directAnswer: "Proceed with a review-minded conclusion because one analysis used narrative fallback while another remained fully structured.",
       finalVerdict: "conditional",
       confidence: "medium",
       rankedConclusions: [{
         rank: 1,
-        conclusion: "At least one independent analysis completed successfully.",
-        whyItMatters: "The final adjudicator still has lawful material to work with.",
+        conclusion: "Both independent analyses completed, but one relied on parsed_text_fallback.",
+        whyItMatters: "The final adjudicator still has lawful material while keeping formatting drift visible.",
         strength: "moderate",
         appliesTo: ["default_1_n_1_1 flow"],
         doesNotApplyTo: ["all-sub-questions-failed runs"],
         reverseCondition: "If no analysis completes, the job must stay in review_required.",
       }],
-      strongConclusions: ["The job continues after one local analysis failure."],
-      conditionalConclusions: ["The final answer must surface the missing analysis gap."],
+      strongConclusions: ["The job continues after one local narrative fallback analysis."],
+      conditionalConclusions: ["The final answer must surface which sub-question used parsed_text_fallback."],
       weakOrRejectedClaims: ["A single malformed analysis should kill the whole job."],
       decisiveReasons: ["A later sub-question still produced a valid structured analysis."],
-      evidenceGaps: ["Missing structured independent analysis record for the failed sub-question."],
+      evidenceGaps: ["One independent analysis relied on parsed_text_fallback instead of structured JSON."],
       reverseConditions: ["If later sub-questions also fail, the final adjudication should no longer proceed."],
       applicability: ["job-flow fault isolation"],
       nonApplicability: ["zero-analysis runs"],
-      followUpSignals: ["Track missingAnalysisSubQuestionIds in the final package."],
-      multiStageValueAdded: ["The job preserved one usable analysis instead of collapsing at the first parser error."],
-      limitations: ["The fixture only proves one failed and one successful analysis."],
+      followUpSignals: ["Track parsed_text_fallback sub-question ids in the final package."],
+      multiStageValueAdded: ["The job preserved two usable analyses instead of collapsing at the first parser error."],
+      limitations: ["The fixture proves one parsed_text_fallback analysis and one fully structured analysis."],
     }),
     "fixture-pptx-artifact",
   ] as const;
@@ -180,21 +180,21 @@ export const verifySingleSubQuestionFailureDoesNotKillJob = async (): Promise<vo
     throw new Error("Fault isolation fixture must still produce a final report.");
   }
   assert(
-    report.evidenceGaps.some((gap) => gap.includes("Missing structured independent analysis record")),
+    report.evidenceGaps.some((gap) => gap.includes("parsed_text_fallback")),
     `Final report must surface the missing sub-question gap, received ${JSON.stringify(report.evidenceGaps)}.`,
   );
 
   const store = createDeepResearchRecordStore(dataDir);
   try {
     const interactions = store.listInteractions(result.jobId);
-    const failedAnalysisInteraction = interactions.find((interaction) =>
-      interaction.phase === "analysis" && interaction.parseStatus !== "parsed");
-    assert(Boolean(failedAnalysisInteraction), "Fault isolation fixture must persist a failed analysis interaction.");
+    const fallbackAnalysisInteraction = interactions.find((interaction) =>
+      interaction.phase === "analysis" && interaction.parseStatus === "parsed_text_fallback");
+    assert(Boolean(fallbackAnalysisInteraction), "Fault isolation fixture must persist one parsed_text_fallback analysis interaction.");
 
     const answers = store.listAnswers({ jobId: result.jobId, answerKind: "analysis" });
     assert(
-      answers.length === 1,
-      `Fault isolation fixture should persist only the single complete analysis answer, received ${answers.length}.`,
+      answers.length === 2,
+      `Fault isolation fixture should persist both analysis answers once narrative fallback is enabled, received ${answers.length}.`,
     );
   } finally {
     store.close();

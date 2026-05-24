@@ -129,7 +129,11 @@ const runAnalysisPhase = async (
       persist: "ANALYSIS_PERSIST",
     },
     subQuestionId: subQuestion.id,
-    parse: parseDeepResearchSubQuestionAnalysisResponse,
+    timeoutMs: 600_000,
+    parse: (rawText) => parseDeepResearchSubQuestionAnalysisResponse({
+      rawText,
+      subQuestionId: subQuestion.id,
+    }),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) =>
       persistAnalysisAnswer({

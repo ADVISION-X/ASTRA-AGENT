@@ -4,8 +4,22 @@ import { z } from "zod";
 
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 
+type DeepResearchParserFailureStatus =
+  | "partial_review_required"
+  | "failed"
+  | "failed_empty"
+  | "failed_unusable";
+
+type DeepResearchParserSuccessStatus =
+  | "parsed"
+  | "parsed_with_trailing_noise"
+  | "parsed_json"
+  | "parsed_json_from_fence"
+  | "parsed_json_from_balanced_object"
+  | "parsed_text_fallback";
+
 type DeepResearchParserFailure = {
-  parseStatus: "partial_review_required" | "failed";
+  parseStatus: DeepResearchParserFailureStatus;
   parsed: null;
   normalizedText: string;
   rawResponseHash: string;
@@ -13,7 +27,7 @@ type DeepResearchParserFailure = {
 };
 
 type DeepResearchParserSuccess<T> = {
-  parseStatus: "parsed";
+  parseStatus: DeepResearchParserSuccessStatus;
   parsed: T;
   normalizedText: string;
   rawResponseHash: string;
@@ -39,11 +53,42 @@ export type FinalReportNormalizationFallback = {
 const buildTextHash = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
+const successfulParseStatuses = new Set<DeepResearchParserSuccessStatus>([
+  "parsed",
+  "parsed_with_trailing_noise",
+  "parsed_json",
+  "parsed_json_from_fence",
+  "parsed_json_from_balanced_object",
+  "parsed_text_fallback",
+]);
+
+export const isDeepResearchSuccessfulParseStatus = (
+  parseStatus: DeepResearchParserResult<unknown>["parseStatus"],
+): parseStatus is DeepResearchParserSuccessStatus =>
+  successfulParseStatuses.has(parseStatus as DeepResearchParserSuccessStatus);
+
+export const isDeepResearchParserSuccess = <T>(
+  result: DeepResearchParserResult<T>,
+): result is DeepResearchParserSuccess<T> =>
+  result.parsed !== null && isDeepResearchSuccessfulParseStatus(result.parseStatus);
+
+export const buildParsedResult = <T>(input: {
+  parsed: T;
+  normalizedText: string;
+  rawResponseHash: string;
+  parseStatus?: DeepResearchParserSuccessStatus;
+}): DeepResearchParserSuccess<T> => ({
+  parseStatus: input.parseStatus ?? "parsed",
+  parsed: input.parsed,
+  normalizedText: input.normalizedText,
+  rawResponseHash: input.rawResponseHash,
+});
+
 export const buildFailure = (
   normalizedText: string,
   rawResponseHash: string,
   reason: string,
-  parseStatus: DeepResearchParserFailure["parseStatus"] = "failed",
+  parseStatus: DeepResearchParserFailure["parseStatus"] = "failed_unusable",
 ): DeepResearchParserFailure => ({
   parseStatus,
   parsed: null,
@@ -272,42 +317,84 @@ export const buildDefaultLimitations = (): string[] => [
   "Model did not provide explicit limitations.",
 ];
 
-const extractCandidateJson = (rawText: string): string => {
+const extractCandidateJson = (rawText: string): {
+  candidateJson: string;
+  parseStatus: DeepResearchParserSuccessStatus;
+} => {
   const trimmed = normalizeRawText(rawText);
   if (trimmed.startsWith("```")) {
     const withoutFenceStart = trimmed.replace(/^```(?:json)?\s*/u, "");
-    return withoutFenceStart.replace(/\s*```$/u, "").trim();
+    return {
+      candidateJson: withoutFenceStart.replace(/\s*```$/u, "").trim(),
+      parseStatus: "parsed_json_from_fence",
+    };
   }
   const firstBrace = trimmed.indexOf("{");
   const lastBrace = trimmed.lastIndexOf("}");
   if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1).trim();
+    return {
+      candidateJson: trimmed.slice(firstBrace, lastBrace + 1).trim(),
+      parseStatus: firstBrace === 0 && lastBrace === trimmed.length - 1
+        ? "parsed_json"
+        : "parsed_json_from_balanced_object",
+    };
   }
-  return trimmed;
+  return {
+    candidateJson: trimmed,
+    parseStatus: "parsed_json",
+  };
 };
 
 export const parseJsonObject = (rawText: string): DeepResearchParserResult<unknown> => {
   const normalizedText = normalizeRawText(rawText);
   const rawResponseHash = buildTextHash(normalizedText);
   if (!normalizedText) {
-    return buildFailure(normalizedText, rawResponseHash, "empty_ai_response");
+    return buildFailure(normalizedText, rawResponseHash, "empty_ai_response", "failed_empty");
   }
   const candidateJson = extractCandidateJson(normalizedText);
   try {
-    const parsed = JSON.parse(candidateJson) as unknown;
+    const parsed = JSON.parse(candidateJson.candidateJson) as unknown;
     if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
-      return buildFailure(normalizedText, rawResponseHash, "ai_response_must_be_json_object");
+      return buildFailure(normalizedText, rawResponseHash, "ai_response_must_be_json_object", "failed_unusable");
     }
-    return {
-      parseStatus: "parsed",
+    return buildParsedResult({
       parsed,
       normalizedText,
       rawResponseHash,
-    };
+      parseStatus: candidateJson.parseStatus,
+    });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "invalid_json";
-    return buildFailure(normalizedText, rawResponseHash, `json_parse_failed:${reason}`);
+    return buildFailure(normalizedText, rawResponseHash, `json_parse_failed:${reason}`, "failed_unusable");
   }
+};
+
+export const buildTextFallbackResult = <TSchema extends z.ZodTypeAny>(input: {
+  rawText: string;
+  schema: TSchema;
+  value: unknown;
+  failureReason: string;
+}): DeepResearchParserResult<z.output<TSchema>> => {
+  const normalizedText = normalizeRawText(input.rawText);
+  const rawResponseHash = buildTextHash(normalizedText);
+  if (!normalizedText) {
+    return buildFailure(normalizedText, rawResponseHash, "empty_ai_response", "failed_empty");
+  }
+  const parsed = input.schema.safeParse(input.value);
+  if (!parsed.success) {
+    return buildFailure(
+      normalizedText,
+      rawResponseHash,
+      `${input.failureReason}:${parsed.error.issues.map((issue) => issue.message).join("; ")}`,
+      "failed_unusable",
+    );
+  }
+  return buildParsedResult({
+    parsed: parsed.data,
+    normalizedText,
+    rawResponseHash,
+    parseStatus: "parsed_text_fallback",
+  });
 };
 
 export const refineSchemaResult = <TSchema extends z.ZodTypeAny>(input: {
@@ -316,7 +403,7 @@ export const refineSchemaResult = <TSchema extends z.ZodTypeAny>(input: {
   missingRequiredReason: string;
   partialReviewOnCustomIssue?: boolean;
 }): DeepResearchParserResult<z.output<TSchema>> => {
-  if (input.parsedJson.parseStatus !== "parsed") {
+  if (!isDeepResearchParserSuccess(input.parsedJson)) {
     return input.parsedJson;
   }
   const parsed = input.schema.safeParse(input.parsedJson.parsed);
@@ -329,12 +416,12 @@ export const refineSchemaResult = <TSchema extends z.ZodTypeAny>(input: {
       hasCustomIssue && input.partialReviewOnCustomIssue ? "partial_review_required" : "failed",
     );
   }
-  return {
-    parseStatus: "parsed",
+  return buildParsedResult({
+    parseStatus: input.parsedJson.parseStatus,
     parsed: parsed.data,
     normalizedText: input.parsedJson.normalizedText,
     rawResponseHash: input.parsedJson.rawResponseHash,
-  };
+  });
 };
 
 type NormalizerResult =
@@ -348,7 +435,7 @@ export const normalizeWithSchema = <TSchema extends z.ZodTypeAny>(input: {
   missingRequiredReason: string;
   partialReviewOnCustomIssue?: boolean;
 }): DeepResearchParserResult<z.output<TSchema>> => {
-  if (input.parsedJson.parseStatus !== "parsed") {
+  if (!isDeepResearchParserSuccess(input.parsedJson)) {
     return input.parsedJson;
   }
   if (!isRecord(input.parsedJson.parsed)) {
@@ -367,12 +454,12 @@ export const normalizeWithSchema = <TSchema extends z.ZodTypeAny>(input: {
     );
   }
   return refineSchemaResult({
-    parsedJson: {
-      parseStatus: "parsed",
+    parsedJson: buildParsedResult({
+      parseStatus: input.parsedJson.parseStatus,
       parsed: normalized.value,
       normalizedText: input.parsedJson.normalizedText,
       rawResponseHash: input.parsedJson.rawResponseHash,
-    },
+    }),
     schema: input.schema,
     missingRequiredReason: input.missingRequiredReason,
     ...(input.partialReviewOnCustomIssue !== undefined

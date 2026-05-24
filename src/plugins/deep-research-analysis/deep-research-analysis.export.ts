@@ -1,12 +1,8 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { stableJsonHash } from "../../lib/storage/hash.js";
-import { type DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
-import {
-  generateDeepResearchBusinessDeckPptx,
-} from "./deep-research-analysis.deck-pptx.js";
 import { buildDeepResearchFullFlowReportMarkdown } from "./deep-research-analysis.export-markdown.js";
 import type {
   DeepResearchFinalReport,
@@ -35,12 +31,13 @@ type DeepResearchEvidenceIndexEntry = {
 type DeepResearchExportArtifacts = {
   finalReportMarkdown: ResearchExport;
   decisionPackage: ResearchExport;
+  businessHtmlReport: ResearchExport;
   businessDeckOutline: ResearchExport | null;
   businessDeckPptx: ResearchExport | null;
   evidenceIndex: ResearchExport;
   exportDir: string;
-  status: "completed" | "deck_export_partial";
-  failureReason: string | null;
+  status: "completed";
+  failureReason: null;
 };
 
 type DeepResearchPersistedExportState = {
@@ -63,6 +60,7 @@ const buildEvidenceIndexEntries = (input: {
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
   finalReportRecord: ResearchFinalReportRecord | null;
+  businessHtmlExport: ResearchExport | null;
   deckOutlineExport: ResearchExport | null;
 }): DeepResearchEvidenceIndexEntry[] => {
   const entries: DeepResearchEvidenceIndexEntry[] = [];
@@ -96,6 +94,10 @@ const buildEvidenceIndexEntries = (input: {
       && input.finalReportRecord.interactionId === interaction.id
     ) {
       entries.push({ ...base, parsedRecordId: input.finalReportRecord.id });
+      return;
+    }
+    if (interaction.phase === "html_report" && input.businessHtmlExport) {
+      entries.push({ ...base, parsedRecordId: input.businessHtmlExport.id });
       return;
     }
     if (
@@ -165,36 +167,14 @@ const buildDecisionPackage = (input: {
   recordHashes: input.finalPackage.recordHashes,
 });
 
-const buildBinaryHash = (value: Uint8Array): string =>
-  "sha256:" + createHash("sha256").update(value).digest("hex");
-
-const loadPersistedDeckOutline = (input: {
-  persisted: DeepResearchPersistedExportState;
-}): {
-  exportRecord: ResearchExport;
-  outline: DeepResearchBusinessDeckOutline;
-} | null => {
-  const outlineExport = input.persisted.exports.find((record) => record.exportKind === "business-deck-outline.json");
-  if (!outlineExport) {
-    return null;
-  }
-  const outline = JSON.parse(readFileSync(outlineExport.filePath, "utf8")) as DeepResearchBusinessDeckOutline;
-  return {
-    exportRecord: outlineExport,
-    outline,
-  };
-};
-
 type DeepResearchPreparedExportArtifacts = {
   persisted: DeepResearchPersistedExportState;
   finalReportMarkdownText: string;
   finalReportArtifact: { filePath: string; fileHash: string };
   decisionPackage: ReturnType<typeof buildDecisionPackage>;
   decisionPackageArtifact: { filePath: string; fileHash: string };
-  persistedDeckOutline: {
-    exportRecord: ResearchExport;
-    outline: DeepResearchBusinessDeckOutline;
-  } | null;
+  businessHtmlExport: ResearchExport | null;
+  deckOutlineExport: ResearchExport | null;
   evidenceIndex: DeepResearchEvidenceIndexEntry[];
   evidenceIndexArtifact: { filePath: string; fileHash: string };
 };
@@ -213,13 +193,15 @@ const prepareExportArtifacts = (input: {
     finalReport: persistedFinalReport,
   });
   const decisionPackageArtifact = writeJsonArtifact(path.join(input.exportDir, "decision-package.json"), decisionPackage);
-  const persistedDeckOutline = loadPersistedDeckOutline({ persisted: input.persisted });
+  const businessHtmlExport = input.persisted.exports.find((record) => record.exportKind === "business-report.html") ?? null;
+  const deckOutlineExport = input.persisted.exports.find((record) => record.exportKind === "business-deck-outline.json") ?? null;
   const evidenceIndex = buildEvidenceIndexEntries({
     interactions: input.persisted.interactions,
     subQuestions: input.persisted.subQuestions,
     answers: input.persisted.answers,
     finalReportRecord: input.persisted.finalReportRecord,
-    deckOutlineExport: persistedDeckOutline?.exportRecord ?? null,
+    businessHtmlExport,
+    deckOutlineExport,
   });
   const evidenceIndexArtifact = writeJsonArtifact(path.join(input.exportDir, "evidence-index.json"), evidenceIndex);
   return {
@@ -228,73 +210,28 @@ const prepareExportArtifacts = (input: {
     finalReportArtifact,
     decisionPackage,
     decisionPackageArtifact,
-    persistedDeckOutline,
+    businessHtmlExport,
+    deckOutlineExport,
     evidenceIndex,
     evidenceIndexArtifact,
   };
 };
 
-const persistBusinessDeckPptx = async (input: {
-  exportDir: string;
-  jobId: string;
-  store: DeepResearchRecordStore;
-  existingExports: readonly ResearchExport[];
-  persistedDeckOutline: {
-    exportRecord: ResearchExport;
-    outline: DeepResearchBusinessDeckOutline;
-  } | null;
-}): Promise<Pick<DeepResearchExportArtifacts, "businessDeckPptx" | "status" | "failureReason">> => {
-  const aiPptxExport = input.existingExports.find((record) => record.exportKind === "business-deck.ai-pptx");
-  if (aiPptxExport) {
-    return {
-      businessDeckPptx: aiPptxExport,
-      status: "completed",
-      failureReason: null,
-    };
-  }
-  if (!input.persistedDeckOutline) {
-    return {
-      businessDeckPptx: null,
-      status: "completed",
-      failureReason: null,
-    };
-  }
-  try {
-    const pptxFilePath = await generateDeepResearchBusinessDeckPptx({
-      outputDir: input.exportDir,
-      outline: input.persistedDeckOutline.outline,
-    });
-    const pptxBuffer = readFileSync(pptxFilePath);
-    return {
-      businessDeckPptx: input.store.saveExport({
-        jobId: input.jobId,
-        exportKind: "business-deck.local-pptx",
-        filePath: pptxFilePath,
-        fileHash: buildBinaryHash(pptxBuffer),
-        payload: {
-          slideCount: input.persistedDeckOutline.outline.slides.length,
-          outlineExportId: input.persistedDeckOutline.exportRecord.id,
-          warnings: input.persistedDeckOutline.outline.deckWarnings,
-          status: "deck_local_fallback_used",
-        },
-      }),
-      status: "deck_export_partial",
-      failureReason: null,
-    };
-  } catch (error) {
-    return {
-      businessDeckPptx: null,
-      status: "deck_export_partial",
-      failureReason: error instanceof Error ? error.message : "pptx_generation_failed",
-    };
-  }
-};
+const selectOptionalPresentationDeck = (
+  existingExports: readonly ResearchExport[],
+): ResearchExport | null =>
+  existingExports.find((record) => record.exportKind === "business-deck.ai-pptx")
+  ?? existingExports.find((record) => record.exportKind === "business-deck.local-pptx")
+  ?? existingExports.find((record) => record.exportKind === "business-deck.pptx")
+  ?? null;
 
 const savePreparedExportRecords = (input: {
   jobId: string;
   store: DeepResearchRecordStore;
   prepared: DeepResearchPreparedExportArtifacts;
-}): Pick<DeepResearchExportArtifacts, "finalReportMarkdown" | "decisionPackage" | "businessDeckOutline" | "evidenceIndex"> => ({
+}): Pick<DeepResearchExportArtifacts, "finalReportMarkdown" | "decisionPackage" | "businessDeckOutline" | "evidenceIndex"> & {
+  businessHtmlReport: ResearchExport | null;
+} => ({
   finalReportMarkdown: input.store.saveExport({
     jobId: input.jobId,
     exportKind: "final-report.md",
@@ -312,7 +249,8 @@ const savePreparedExportRecords = (input: {
     fileHash: input.prepared.decisionPackageArtifact.fileHash,
     payload: input.prepared.decisionPackage,
   }),
-  businessDeckOutline: input.prepared.persistedDeckOutline?.exportRecord ?? null,
+  businessHtmlReport: input.prepared.businessHtmlExport,
+  businessDeckOutline: input.prepared.deckOutlineExport,
   evidenceIndex: input.store.saveExport({
     jobId: input.jobId,
     exportKind: "evidence-index.json",
@@ -345,24 +283,22 @@ export const exportDeepResearchArtifacts = async (input: {
     exportDir,
     finalReportMarkdownText,
   });
-  const deckExport = await persistBusinessDeckPptx({
-    exportDir,
-    jobId: input.jobId,
-    store: input.store,
-    existingExports: persisted.exports,
-    persistedDeckOutline: prepared.persistedDeckOutline,
-  });
   const savedArtifacts = savePreparedExportRecords({
     jobId: input.jobId,
     store: input.store,
     prepared,
   });
+  if (!savedArtifacts.businessHtmlReport) {
+    throw new Error("Primary business HTML report export is missing.");
+  }
+  const businessHtmlReport = savedArtifacts.businessHtmlReport;
 
   return {
     ...savedArtifacts,
-    businessDeckPptx: deckExport.businessDeckPptx,
+    businessHtmlReport,
+    businessDeckPptx: selectOptionalPresentationDeck(persisted.exports),
     exportDir,
-    status: deckExport.status,
-    failureReason: deckExport.failureReason,
+    status: "completed",
+    failureReason: null,
   };
 };

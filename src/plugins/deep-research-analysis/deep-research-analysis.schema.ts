@@ -36,6 +36,10 @@ export const DeepResearchPhaseSchema = z.enum([
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
   "FINAL_ADJUDICATION_PERSIST",
+  "HTML_REPORT_SEND",
+  "HTML_REPORT_CAPTURE",
+  "HTML_REPORT_DETECT",
+  "HTML_REPORT_PERSIST",
   "DECK_PPT_SEND",
   "DECK_PPT_CAPTURE",
   "DECK_PPT_ARTIFACT_DETECT",
@@ -60,6 +64,7 @@ export const DeepResearchInteractionPhaseSchema = z.enum([
   "positive",
   "falsification",
   "final_adjudication",
+  "html_report",
   "deck",
   "final_synthesis",
 ]);
@@ -67,8 +72,14 @@ export const DeepResearchInteractionPhaseSchema = z.enum([
 export const DeepResearchParseStatusSchema = z.enum([
   "parsed",
   "parsed_with_trailing_noise",
+  "parsed_json",
+  "parsed_json_from_fence",
+  "parsed_json_from_balanced_object",
+  "parsed_text_fallback",
   "partial_review_required",
   "failed",
+  "failed_empty",
+  "failed_unusable",
 ]);
 
 export const DeepResearchSubQuestionSchema = z.object({

@@ -80,6 +80,9 @@ function formatStatusLabel(value: string | null | undefined): string {
 }
 
 function exportActionLabel(kind: string): string {
+  if (kind === "business-report.html") {
+    return "Open HTML Report";
+  }
   if (kind === "final-report.md") {
     return "Open final report";
   }

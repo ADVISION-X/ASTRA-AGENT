@@ -1,4 +1,5 @@
 import {
+  isDeepResearchParserSuccess,
   parseDeepResearchFalsificationResponse,
   parseDeepResearchPositiveResponse,
   parseDeepResearchSubQuestionAnalysisResponse,
@@ -27,8 +28,11 @@ const reparseAnalysisInteraction = (
   if (!interaction) {
     return null;
   }
-  const parsed = parseDeepResearchSubQuestionAnalysisResponse(interaction.rawResponseText);
-  return parsed.parseStatus === "parsed" ? parsed.parsed : null;
+  const parsed = parseDeepResearchSubQuestionAnalysisResponse({
+    rawText: interaction.rawResponseText,
+    ...(interaction.subQuestionId ? { subQuestionId: interaction.subQuestionId } : {}),
+  });
+  return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
 };
 
 const reparsePositiveInteraction = (
@@ -38,7 +42,7 @@ const reparsePositiveInteraction = (
     return null;
   }
   const parsed = parseDeepResearchPositiveResponse(interaction.rawResponseText);
-  return parsed.parseStatus === "parsed" ? parsed.parsed : null;
+  return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
 };
 
 const reparseFalsificationInteraction = (
@@ -48,7 +52,7 @@ const reparseFalsificationInteraction = (
     return null;
   }
   const parsed = parseDeepResearchFalsificationResponse(interaction.rawResponseText);
-  return parsed.parseStatus === "parsed" ? parsed.parsed : null;
+  return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
 };
 
 const buildStageStatus = (input: {
@@ -64,6 +68,11 @@ const buildStageStatus = (input: {
   }
   if (!input.answer) {
     const stageStatus = input.interaction.parseStatus === "parsed"
+      || input.interaction.parseStatus === "parsed_with_trailing_noise"
+      || input.interaction.parseStatus === "parsed_json"
+      || input.interaction.parseStatus === "parsed_json_from_fence"
+      || input.interaction.parseStatus === "parsed_json_from_balanced_object"
+      || input.interaction.parseStatus === "parsed_text_fallback"
       ? "missing"
       : input.interaction.parseStatus;
     return [

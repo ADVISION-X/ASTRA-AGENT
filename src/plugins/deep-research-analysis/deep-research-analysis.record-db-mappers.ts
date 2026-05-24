@@ -235,6 +235,7 @@ export const mapExportRow = (row: {
   file_path: string;
   file_hash: string;
   payload_hash: string;
+  payload_json: string;
   created_at: string;
 }): ResearchExport =>
   ResearchExportSchema.parse({
@@ -244,5 +245,6 @@ export const mapExportRow = (row: {
     filePath: row.file_path,
     fileHash: row.file_hash,
     payloadHash: row.payload_hash,
+    payloadJson: row.payload_json,
     createdAt: row.created_at,
   });

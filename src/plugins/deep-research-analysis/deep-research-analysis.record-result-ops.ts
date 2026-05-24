@@ -126,10 +126,11 @@ export const saveExport = (
   const id = createId("deep_research_export");
   const createdAt = getCurrentTimestamp();
   const payloadHash = stableJsonHash(input.payload);
+  const payloadJson = JSON.stringify(input.payload);
   db.prepare(
     `INSERT INTO research_exports (
-      id, job_id, export_kind, file_path, file_hash, payload_hash, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      id, job_id, export_kind, file_path, file_hash, payload_hash, payload_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.jobId,
@@ -137,6 +138,7 @@ export const saveExport = (
     input.filePath,
     input.fileHash,
     payloadHash,
+    payloadJson,
     createdAt,
   );
   return ResearchExportSchema.parse({
@@ -146,6 +148,7 @@ export const saveExport = (
     filePath: input.filePath,
     fileHash: input.fileHash,
     payloadHash,
+    payloadJson,
     createdAt,
   });
 };

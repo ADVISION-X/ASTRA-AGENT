@@ -90,6 +90,9 @@ const resolveStageStatus = (
 };
 
 const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string => {
+  if (exportKind === "business-report.html") {
+    return "Primary business HTML report";
+  }
   if (exportKind === "final-report.md") {
     return "Final report";
   }
@@ -120,6 +123,7 @@ export const buildStageViews = (input: {
   subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
   finalInteraction: DeepResearchTimelineEntry | null;
   finalReport: DeepResearchFinalReport | null;
+  exports: readonly ResearchExport[];
 }): DeepResearchStageView[] => {
   const stages: DeepResearchStageView[] = [
     {
@@ -168,14 +172,12 @@ export const buildStageViews = (input: {
     status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.job.status),
   });
   if (input.job.flowMode === "default_1_n_1" || input.job.flowMode === "default_1_n_1_1") {
+    const hasBusinessHtmlReport = input.exports.some((entry) => entry.exportKind === "business-report.html");
     stages.push({
-      id: "stage-business-deck",
-      label: "Business Deck",
-      anchorId: "business-deck",
-      status: resolveStageStatus(
-        input.job.status === "completed" || input.job.status === "deck_export_partial",
-        input.job.status,
-      ),
+      id: "stage-business-html-report",
+      label: "Business HTML Report",
+      anchorId: "business-report",
+      status: resolveStageStatus(hasBusinessHtmlReport, input.job.status),
     });
   }
   return stages;
@@ -220,6 +222,9 @@ const buildInteractionHeadline = (input: {
   }
   if (input.interaction.phase === "final_adjudication") {
     return "Final Adjudication";
+  }
+  if (input.interaction.phase === "html_report") {
+    return "Business HTML Report Publisher";
   }
   if (input.interaction.phase === "deck") {
     return "Business Deck Secretary";

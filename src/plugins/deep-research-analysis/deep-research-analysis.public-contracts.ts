@@ -148,6 +148,14 @@ export type DeepResearchExportView = {
   fileSizeBytes: number | null;
 };
 
+export type DeepResearchPrimaryBusinessReportView = {
+  generatedAt: string | null;
+  status: "generated" | "missing" | "failed";
+  generatedBy: "AI HTML Report Publisher";
+  htmlExport: DeepResearchExportView | null;
+  sourceKind: "html_artifact" | "raw_html_text" | null;
+};
+
 export type DeepResearchBusinessDeckView = {
   generatedAt: string | null;
   status: "ai_generated" | "local_fallback" | "outline_only";
@@ -231,6 +239,7 @@ export type DeepResearchReportViewModel = {
     interaction: DeepResearchReportInteractionView | null;
     parsedFinalReport: DeepResearchFinalReport | null;
   };
+  primaryBusinessReport: DeepResearchPrimaryBusinessReportView | null;
   businessDeck: DeepResearchBusinessDeckView | null;
   evidence: DeepResearchEvidenceView[];
   exports: DeepResearchExportView[];

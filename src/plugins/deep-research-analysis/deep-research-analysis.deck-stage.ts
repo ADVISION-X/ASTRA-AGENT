@@ -33,6 +33,55 @@ type DeckSuccess = {
   pptxArtifact: DeepResearchBusinessPptArtifactRecord;
 };
 
+const buildBusinessDeckPromptText = (input: {
+  context: AnalysisExecutionContext;
+  finalPackage: DeepResearchFinalPackage;
+  finalReport: DeepResearchFinalReport;
+}): string => renderDeepResearchBusinessPptArtifactPrompt({
+  finalPackage: input.finalPackage,
+  finalReport: input.finalReport,
+  evidenceReferences: buildEvidenceReferences({
+    finalPackage: input.finalPackage,
+    finalReport: input.finalReport,
+  }),
+  language: input.context.input.language,
+});
+
+const persistBusinessDeckArtifact = (input: {
+  context: AnalysisExecutionContext;
+  interaction: { rawResponseText: string };
+  parsed: DeepResearchBusinessPptArtifactRecord;
+}) => {
+  const deckExport = input.context.store.saveExport({
+    jobId: input.context.jobId,
+    exportKind: input.parsed.exportKind,
+    filePath: input.parsed.filePath,
+    fileHash: input.parsed.fileHash,
+    payload: {
+      jobId: input.context.jobId,
+      phaseId: "DECK_PPT_PERSIST",
+      promptId: businessPptArtifactSecretaryPrompt.promptId,
+      promptVersion: businessPptArtifactSecretaryPrompt.promptVersion,
+      rawAssistantText: input.interaction.rawResponseText,
+      artifactName: input.parsed.artifactName,
+      artifactMimeType: input.parsed.artifactMimeType,
+      filePath: input.parsed.filePath,
+      fileHash: input.parsed.fileHash,
+      fileSizeBytes: input.parsed.fileSizeBytes,
+      downloadedAt: input.parsed.downloadedAt,
+      exportKind: input.parsed.exportKind,
+      status: input.parsed.status,
+    },
+  });
+  input.context.recordHashes.deckAiPptxHash = input.parsed.fileHash;
+  input.context.recordHashes.deckAiPptxExportHash = deckExport.fileHash;
+  return {
+    recordType: "business-deck.ai-pptx",
+    recordId: deckExport.id,
+    count: 1,
+  };
+};
+
 export const runBusinessDeckPhase = async (
   context: AnalysisExecutionContext,
   finalPackage: DeepResearchFinalPackage,
@@ -50,16 +99,16 @@ export const runBusinessDeckPhase = async (
     providerKind: context.providerKind,
     prompt: businessPptArtifactSecretaryPrompt,
     promptKey: "business-ppt-artifact",
-    renderedPromptText: renderDeepResearchBusinessPptArtifactPrompt({
+    renderedPromptText: buildBusinessDeckPromptText({
+      context,
       finalPackage,
       finalReport,
-      evidenceReferences: buildEvidenceReferences({ finalPackage, finalReport }),
-      language: context.input.language,
     }),
     inputRefs: [
       `job:${context.jobId}:final-package`,
       `job:${context.jobId}:final-report`,
     ],
+    timeoutMs: 1_800_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
       send: "DECK_PPT_SEND",
@@ -69,36 +118,11 @@ export const runBusinessDeckPhase = async (
     },
     parse: (rawText) => parseAndDownloadBusinessPptArtifact({ rawText, outputPath }),
     successRecordCount: () => 1,
-    persist: ({ interaction, parsed }) => {
-      const deckExport = context.store.saveExport({
-        jobId: context.jobId,
-        exportKind: parsed.exportKind,
-        filePath: parsed.filePath,
-        fileHash: parsed.fileHash,
-        payload: {
-          jobId: context.jobId,
-          phaseId: "DECK_PPT_PERSIST",
-          promptId: businessPptArtifactSecretaryPrompt.promptId,
-          promptVersion: businessPptArtifactSecretaryPrompt.promptVersion,
-          rawAssistantText: interaction.rawResponseText,
-          artifactName: parsed.artifactName,
-          artifactMimeType: parsed.artifactMimeType,
-          filePath: parsed.filePath,
-          fileHash: parsed.fileHash,
-          fileSizeBytes: parsed.fileSizeBytes,
-          downloadedAt: parsed.downloadedAt,
-          exportKind: parsed.exportKind,
-          status: parsed.status,
-        },
-      });
-      context.recordHashes.deckAiPptxHash = parsed.fileHash;
-      context.recordHashes.deckAiPptxExportHash = deckExport.fileHash;
-      return {
-        recordType: "business-deck.ai-pptx",
-        recordId: deckExport.id,
-        count: 1,
-      };
-    },
+    persist: ({ interaction, parsed }) => persistBusinessDeckArtifact({
+      context,
+      interaction,
+      parsed,
+    }),
   });
   if (result.status !== "parsed") {
     return finishPromptFailure(context, result);

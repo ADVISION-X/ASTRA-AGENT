@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-24T14:53:52.925Z",
-  "status": "PASS",
-  "scannedFiles": 296,
+  "generatedAt": "2026-05-24T15:47:52.171Z",
+  "status": "FAIL",
+  "scannedFiles": 298,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -224,6 +224,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-download.ts",
@@ -231,6 +232,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-telemetry.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
@@ -312,24 +314,24 @@
   "failureWithoutClassCount": 0,
   "stageStartCount": 18,
   "stageTerminalCount": 37,
-  "stagePairViolationCount": 0,
+  "stagePairViolationCount": 24,
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 0,
-    "fatalFindings": 0,
-    "scannedFiles": 296,
+    "totalFindings": 24,
+    "fatalFindings": 24,
+    "scannedFiles": 298,
     "emitCallCount": 12,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
-    "stageCoveragePercent": 100
+    "stageCoveragePercent": 0
   },
   "phases": [
     {
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 291,
+      "scannedFiles": 293,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -338,13 +340,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 241
+      "scannedFiles": 243
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 238,
+      "scannedFiles": 240,
       "metrics": {
         "emitCallCount": 2
       }
@@ -353,15 +355,15 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 238
+      "scannedFiles": 240
     },
     {
       "name": "stage-pair-coverage",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 242,
+      "status": "FAIL",
+      "findingCount": 24,
+      "scannedFiles": 244,
       "metrics": {
-        "stageCoveragePercent": 100
+        "stageCoveragePercent": 0
       }
     },
     {
@@ -374,7 +376,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 242,
+      "scannedFiles": 244,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -422,5 +424,222 @@
       "scannedFiles": 2
     }
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 110,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 114,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 118,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 122,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 126,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 130,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 134,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 138,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 234,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 238,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 242,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 246,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 250,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 254,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 258,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 262,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 326,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 330,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 334,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 338,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 342,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 346,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 350,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    },
+    {
+      "checkId": "runtime-log-spine/stage-start-terminal-pair",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
+      "line": 354,
+      "severity": "fatal",
+      "message": "stage has no proven started/terminal pair",
+      "hint": "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path."
+    }
+  ]
 }

@@ -1,189 +1,191 @@
 {
-  "generatedAt": "2026-05-24T14:54:17.925Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-24T15:45:44.720Z",
+  "status": "FAIL",
   "steps": [
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 15,
-      "endedAt": "2026-05-24T14:53:36.802Z",
+      "durationMs": 19,
+      "endedAt": "2026-05-24T15:45:07.277Z",
       "name": "build-audit-artifacts",
-      "startedAt": "2026-05-24T14:53:36.787Z",
+      "startedAt": "2026-05-24T15:45:07.258Z",
       "status": "PASS"
     },
     {
       "command": "internal:runGeneratedPlan()",
-      "durationMs": 16859,
-      "endedAt": "2026-05-24T14:53:53.661Z",
+      "durationMs": 15185,
+      "endedAt": "2026-05-24T15:45:22.462Z",
       "name": "run-generated-plan",
-      "startedAt": "2026-05-24T14:53:36.802Z",
-      "status": "PASS"
+      "startedAt": "2026-05-24T15:45:07.277Z",
+      "status": "FAIL",
+      "error": "One or more audit domains reported findings."
     },
     {
       "command": "npm run typecheck",
-      "durationMs": 2661,
-      "endedAt": "2026-05-24T14:53:56.322Z",
+      "durationMs": 2448,
+      "endedAt": "2026-05-24T15:45:24.910Z",
       "name": "typecheck",
-      "startedAt": "2026-05-24T14:53:53.661Z",
+      "startedAt": "2026-05-24T15:45:22.462Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:code-purity-zombie-deep",
-      "durationMs": 4621,
-      "endedAt": "2026-05-24T14:54:00.943Z",
+      "durationMs": 4159,
+      "endedAt": "2026-05-24T15:45:29.069Z",
       "name": "code-purity-zombie-deep",
-      "startedAt": "2026-05-24T14:53:56.322Z",
+      "startedAt": "2026-05-24T15:45:24.910Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:audit-truth-coverage",
-      "durationMs": 789,
-      "endedAt": "2026-05-24T14:54:01.732Z",
+      "durationMs": 740,
+      "endedAt": "2026-05-24T15:45:29.809Z",
       "name": "audit-truth-coverage",
-      "startedAt": "2026-05-24T14:54:00.943Z",
+      "startedAt": "2026-05-24T15:45:29.069Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:ci-summary-truth",
-      "durationMs": 498,
-      "endedAt": "2026-05-24T14:54:02.230Z",
+      "durationMs": 466,
+      "endedAt": "2026-05-24T15:45:30.275Z",
       "name": "ci-summary-truth",
-      "startedAt": "2026-05-24T14:54:01.732Z",
+      "startedAt": "2026-05-24T15:45:29.809Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:runtime-truth-completed-evidence",
-      "durationMs": 502,
-      "endedAt": "2026-05-24T14:54:02.732Z",
+      "durationMs": 458,
+      "endedAt": "2026-05-24T15:45:30.733Z",
       "name": "runtime-truth-completed-evidence",
-      "startedAt": "2026-05-24T14:54:02.230Z",
+      "startedAt": "2026-05-24T15:45:30.275Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:runtime-log-spine",
-      "durationMs": 4023,
-      "endedAt": "2026-05-24T14:54:06.755Z",
+      "durationMs": 3804,
+      "endedAt": "2026-05-24T15:45:34.537Z",
       "name": "runtime-log-spine",
-      "startedAt": "2026-05-24T14:54:02.732Z",
+      "startedAt": "2026-05-24T15:45:30.733Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-decomposition-prompt",
-      "durationMs": 351,
-      "endedAt": "2026-05-24T14:54:07.106Z",
+      "durationMs": 330,
+      "endedAt": "2026-05-24T15:45:34.867Z",
       "name": "deep-research-decomposition-prompt",
-      "startedAt": "2026-05-24T14:54:06.755Z",
+      "startedAt": "2026-05-24T15:45:34.537Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-analysis-smoke",
-      "durationMs": 369,
-      "endedAt": "2026-05-24T14:54:07.475Z",
+      "durationMs": 350,
+      "endedAt": "2026-05-24T15:45:35.217Z",
       "name": "deep-research-analysis-smoke",
-      "startedAt": "2026-05-24T14:54:07.106Z",
+      "startedAt": "2026-05-24T15:45:34.867Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-business-deck",
-      "durationMs": 1235,
-      "endedAt": "2026-05-24T14:54:08.710Z",
+      "durationMs": 1087,
+      "endedAt": "2026-05-24T15:45:36.304Z",
       "name": "deep-research-business-deck",
-      "startedAt": "2026-05-24T14:54:07.475Z",
-      "status": "PASS"
+      "startedAt": "2026-05-24T15:45:35.217Z",
+      "status": "FAIL",
+      "error": "deep-research-business-deck failed with exit code 1"
     },
     {
       "command": "npm run acceptance:deep-research-deck-secretary-boundary",
-      "durationMs": 231,
-      "endedAt": "2026-05-24T14:54:08.941Z",
+      "durationMs": 207,
+      "endedAt": "2026-05-24T15:45:36.511Z",
       "name": "deep-research-deck-secretary-boundary",
-      "startedAt": "2026-05-24T14:54:08.710Z",
+      "startedAt": "2026-05-24T15:45:36.304Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-deck-artifacts",
-      "durationMs": 389,
-      "endedAt": "2026-05-24T14:54:09.330Z",
+      "durationMs": 342,
+      "endedAt": "2026-05-24T15:45:36.853Z",
       "name": "deep-research-deck-artifacts",
-      "startedAt": "2026-05-24T14:54:08.941Z",
+      "startedAt": "2026-05-24T15:45:36.511Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-ai-ppt-artifact",
-      "durationMs": 226,
-      "endedAt": "2026-05-24T14:54:09.556Z",
+      "durationMs": 211,
+      "endedAt": "2026-05-24T15:45:37.064Z",
       "name": "deep-research-ai-ppt-artifact",
-      "startedAt": "2026-05-24T14:54:09.330Z",
+      "startedAt": "2026-05-24T15:45:36.853Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-ai-ppt-prompt-boundary",
-      "durationMs": 223,
-      "endedAt": "2026-05-24T14:54:09.779Z",
+      "durationMs": 209,
+      "endedAt": "2026-05-24T15:45:37.273Z",
       "name": "deep-research-ai-ppt-prompt-boundary",
-      "startedAt": "2026-05-24T14:54:09.556Z",
+      "startedAt": "2026-05-24T15:45:37.064Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-ai-ppt-download",
-      "durationMs": 249,
-      "endedAt": "2026-05-24T14:54:10.028Z",
+      "durationMs": 212,
+      "endedAt": "2026-05-24T15:45:37.485Z",
       "name": "deep-research-ai-ppt-download",
-      "startedAt": "2026-05-24T14:54:09.779Z",
+      "startedAt": "2026-05-24T15:45:37.273Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-local-ppt-fallback",
-      "durationMs": 232,
-      "endedAt": "2026-05-24T14:54:10.260Z",
+      "durationMs": 209,
+      "endedAt": "2026-05-24T15:45:37.694Z",
       "name": "deep-research-local-ppt-fallback",
-      "startedAt": "2026-05-24T14:54:10.028Z",
+      "startedAt": "2026-05-24T15:45:37.485Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-report-export",
-      "durationMs": 345,
-      "endedAt": "2026-05-24T14:54:10.605Z",
+      "durationMs": 304,
+      "endedAt": "2026-05-24T15:45:37.998Z",
       "name": "deep-research-report-export",
-      "startedAt": "2026-05-24T14:54:10.260Z",
+      "startedAt": "2026-05-24T15:45:37.694Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-report-reader-ui",
-      "durationMs": 1177,
-      "endedAt": "2026-05-24T14:54:11.782Z",
+      "durationMs": 1086,
+      "endedAt": "2026-05-24T15:45:39.084Z",
       "name": "deep-research-report-reader-ui",
-      "startedAt": "2026-05-24T14:54:10.605Z",
+      "startedAt": "2026-05-24T15:45:37.998Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-deck-ui",
-      "durationMs": 226,
-      "endedAt": "2026-05-24T14:54:12.008Z",
+      "durationMs": 206,
+      "endedAt": "2026-05-24T15:45:39.290Z",
       "name": "deep-research-deck-ui",
-      "startedAt": "2026-05-24T14:54:11.782Z",
+      "startedAt": "2026-05-24T15:45:39.084Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-app-ui",
-      "durationMs": 1151,
-      "endedAt": "2026-05-24T14:54:13.159Z",
+      "durationMs": 1083,
+      "endedAt": "2026-05-24T15:45:40.373Z",
       "name": "deep-research-app-ui",
-      "startedAt": "2026-05-24T14:54:12.008Z",
+      "startedAt": "2026-05-24T15:45:39.290Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-invoice-upload-smoke",
-      "durationMs": 1521,
-      "endedAt": "2026-05-24T14:54:14.680Z",
+      "durationMs": 1426,
+      "endedAt": "2026-05-24T15:45:41.799Z",
       "name": "amazon-invoice-upload-smoke",
-      "startedAt": "2026-05-24T14:54:13.159Z",
+      "startedAt": "2026-05-24T15:45:40.373Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:facebook-product-video-mining",
-      "durationMs": 3244,
-      "endedAt": "2026-05-24T14:54:17.924Z",
+      "durationMs": 2921,
+      "endedAt": "2026-05-24T15:45:44.720Z",
       "name": "facebook-product-video-mining",
-      "startedAt": "2026-05-24T14:54:14.680Z",
+      "startedAt": "2026-05-24T15:45:41.799Z",
       "status": "PASS"
     }
   ],
@@ -212,15 +214,15 @@
     {
       "capabilityDomain": "runtime-log-spine",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 24,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json"
     },
     {
       "capabilityDomain": "deep-research-analysis",
       "executionGroup": "domain",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/deep-research-analysis-report.generated.json"
     },
     {
@@ -275,8 +277,8 @@
     {
       "capabilityDomain": "audit-truth",
       "executionGroup": "meta",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/audit-truth-report.generated.json"
     },
     {

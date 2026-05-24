@@ -5,6 +5,7 @@ import {
   advanceStableAnswer,
   buildTimedOutAnswerEvaluation,
   createStableAnswerState,
+  noteStableAnswerActivity,
   readAnswerEvaluation,
   shouldContinueWaiting,
 } from "./web-chat-answer-support.js";
@@ -20,11 +21,17 @@ type WaitForStableAnswerInput = {
 };
 
 export const waitForStableAnswer = async (input: WaitForStableAnswerInput): Promise<WebChatEvaluation> => {
-  const deadline = Date.now() + input.timeoutMs;
+  const startedAt = Date.now();
+  let idleDeadline = startedAt + input.timeoutMs;
+  const hardDeadline = startedAt + Math.max(input.timeoutMs * 2, input.timeoutMs + 60_000);
   let state = createStableAnswerState();
-  while (Date.now() < deadline) {
+  while (Date.now() < idleDeadline && Date.now() < hardDeadline) {
     const evaluation = await readAnswerEvaluation(input);
     if (!evaluation) continue;
+    const now = Date.now();
+    if (noteStableAnswerActivity({ evaluation, state, now })) {
+      idleDeadline = now + input.timeoutMs;
+    }
     if (evaluation.status === "review_required" || evaluation.status === "failed") return evaluation;
     if (
       await shouldContinueWaiting({

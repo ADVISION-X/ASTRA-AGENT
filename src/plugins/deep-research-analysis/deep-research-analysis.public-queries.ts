@@ -26,6 +26,7 @@ import {
   buildStageViews,
 } from "./deep-research-analysis.public-report-support.js";
 import {
+  buildPrimaryBusinessReportView,
   buildBusinessDeckView,
   buildJobSnapshotForId as buildJobSnapshotForIdSupport,
   buildReportSubQuestionState,
@@ -38,7 +39,7 @@ export type DeepResearchExportArtifactPayload = {
   kind: ResearchExportKind;
   fileName: string;
   filePath: string;
-  contentType: "text/markdown" | "application/json" | "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  contentType: "text/markdown" | "text/html" | "application/json" | "application/vnd.openxmlformats-officedocument.presentationml.presentation";
   fileHash: string;
   payloadHash: string;
   textContent?: string;
@@ -184,6 +185,7 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       subQuestionReports,
       finalInteraction,
       finalReport: snapshot.finalReport,
+      exports: snapshot.exports,
     }),
     decomposition: {
       interaction: decompositionInteraction,
@@ -194,6 +196,11 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       interaction: finalInteraction,
       parsedFinalReport: snapshot.finalReport,
     },
+    primaryBusinessReport: buildPrimaryBusinessReportView({
+      job: snapshot.job,
+      exports: snapshot.exports,
+      exportViews,
+    }),
     businessDeck: buildBusinessDeckView({ exports: snapshot.exports, exportViews }),
     evidence: buildEvidenceViews({ timeline: snapshot.timeline, subQuestionById }),
     exports: exportViews,
@@ -270,6 +277,18 @@ export const getDeepResearchExportArtifact = (input: {
         fileName,
         filePath: exported.filePath,
         contentType: "text/markdown",
+        fileHash: exported.fileHash,
+        payloadHash: exported.payloadHash,
+        textContent: readFileSync(exported.filePath, "utf8"),
+      };
+    }
+    if (input.kind === "business-report.html") {
+      return {
+        jobId: input.jobId,
+        kind: input.kind,
+        fileName,
+        filePath: exported.filePath,
+        contentType: "text/html",
         fileHash: exported.fileHash,
         payloadHash: exported.payloadHash,
         textContent: readFileSync(exported.filePath, "utf8"),

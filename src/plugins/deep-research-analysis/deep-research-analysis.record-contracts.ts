@@ -27,6 +27,7 @@ const ResearchExportKindSchema = z.enum([
   "final-report.md",
   "research-bundle.json",
   "decision-package.json",
+  "business-report.html",
   "business-deck-outline.json",
   "business-deck.pptx",
   "business-deck.ai-pptx",
@@ -126,6 +127,7 @@ export const ResearchExportSchema = z.object({
   filePath: z.string().trim().min(1),
   fileHash: z.string().trim().min(1),
   payloadHash: z.string().trim().min(1),
+  payloadJson: z.string().trim().min(1),
   createdAt: z.string().datetime(),
 }).strict();
 

@@ -26,7 +26,7 @@ import {
   buildFinalPackageStage,
   runFinalReportPhase,
 } from "./deep-research-analysis.analysis-finalization.js";
-import { runBusinessDeckPhase } from "./deep-research-analysis.deck-stage.js";
+import { runBusinessHtmlReportPhase } from "./deep-research-analysis.html-report-stage.js";
 import {
   runDecompositionPhase,
   runSubQuestionPhases,
@@ -80,13 +80,13 @@ const runAnalysisPhases = async (
   if (!finalReport.ok) {
     return finalReport.result;
   }
-  const businessDeck = await runBusinessDeckPhase(
+  const businessHtmlReport = await runBusinessHtmlReportPhase(
     executionContext,
     finalPackageStage.finalPackage,
     finalReport.finalReport,
   );
-  if (!businessDeck.ok) {
-    return businessDeck.result;
+  if (!businessHtmlReport.ok) {
+    return businessHtmlReport.result;
   }
   return await completeSuccessfulRun(
     executionContext,

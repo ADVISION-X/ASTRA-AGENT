@@ -13,7 +13,8 @@ export const renderDeepResearchReportView = (): string => `
       <section class="research-section" id="decomposition" data-deep-research-decomposition></section>
       <section class="research-section" data-deep-research-subquestions></section>
       <section class="research-section" id="final-adjudication" data-deep-research-final-adjudication></section>
-      <section class="research-section" id="business-deck" data-deep-research-business-deck></section>
+      <section class="research-section" id="business-report" data-deep-research-primary-business-report></section>
+      <section class="research-section" id="presentation-deck" data-deep-research-business-deck></section>
       <section class="research-section" id="evidence" data-deep-research-evidence></section>
     </article>
   </main>

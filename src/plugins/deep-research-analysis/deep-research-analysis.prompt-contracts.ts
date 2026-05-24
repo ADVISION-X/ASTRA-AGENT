@@ -15,6 +15,7 @@ const DeepResearchPromptIdSchema = z.enum([
   "deep-research.positive-analysis",
   "deep-research.falsification",
   "deep-research.final-adjudication",
+  "deep-research.business-html-report-publisher",
   "deep-research.business-deck-secretary",
   "deep-research.business-ppt-artifact-secretary",
   "deep-research.final-synthesis",
@@ -26,7 +27,7 @@ const DeepResearchPromptVersionSchema = z
 
 const DeepResearchPromptOutputContractSchema = z.object({
   contractId: z.string().trim().min(1),
-  format: z.enum(["json_object", "pptx_artifact"]),
+  format: z.enum(["json_object", "pptx_artifact", "html_artifact"]),
   requiredFields: z.array(z.string().trim().min(1)).min(1),
   forbiddenFields: z.array(z.string().trim().min(1)).min(1),
 }).strict();

@@ -155,6 +155,7 @@ export const buildPromptPackage = (input: {
   promptHash: string;
   providerKind: ProviderKind;
   inputRefs: string[];
+  timeoutMs?: number;
   maxInputChars?: number;
 }): DeepResearchGatewayPromptPackage => ({
   jobId: input.jobId,
@@ -164,7 +165,7 @@ export const buildPromptPackage = (input: {
   promptHash: input.promptHash,
   inputRefs: input.inputRefs,
   providerKind: input.providerKind,
-  timeoutMs: 180_000,
+  timeoutMs: input.timeoutMs ?? 180_000,
   maxInputChars: input.maxInputChars ?? 30_000,
   maxFileCount: 0,
   maxFileBytes: 1,

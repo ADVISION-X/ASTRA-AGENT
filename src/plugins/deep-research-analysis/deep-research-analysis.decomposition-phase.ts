@@ -61,7 +61,7 @@ const buildDecompositionPromptPackage = (input: {
   promptHash: input.promptHash,
   inputRefs: [`job:${input.jobId}:userQuestion`],
   providerKind: input.providerKind,
-  timeoutMs: 120_000,
+  timeoutMs: 300_000,
   maxInputChars: 24_000,
   maxFileCount: 0,
   maxFileBytes: 1,

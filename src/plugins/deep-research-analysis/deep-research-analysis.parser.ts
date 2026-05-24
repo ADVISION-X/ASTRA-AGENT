@@ -1,11 +1,18 @@
 import { z } from "zod";
 
+import {
+  buildAnalysisCandidate,
+  buildFalsificationCandidate,
+  buildPositiveCandidate,
+} from "./deep-research-analysis.parser-candidates.js";
 import { parseDecompositionResponse } from "./deep-research-analysis.decomposition-parser.js";
 import type { DeepResearchDecompositionResponse } from "./deep-research-analysis.decomposition-schema.js";
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 import {
+  buildTextFallbackResult,
   buildDefaultLimitations,
   buildSentenceFallback,
+  isDeepResearchParserSuccess,
   normalizeConfidenceValue,
   normalizeConflictMatrixRows,
   normalizeWithSchema,
@@ -72,30 +79,11 @@ export type DeepResearchFalsificationAnswer = z.infer<typeof DeepResearchFalsifi
 export type {
   DeepResearchParserResult,
 } from "./deep-research-analysis.parser-support.js";
+export {
+  isDeepResearchParserSuccess,
+} from "./deep-research-analysis.parser-support.js";
 
 type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
-
-const normalizeEvidenceQuality = (value: unknown): z.infer<typeof DeepResearchEvidenceQualitySchema> => {
-  if (value === "strong" || value === "moderate" || value === "weak" || value === "mixed" || value === "unknown") {
-    return value;
-  }
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized.includes("strong") || /强/u.test(value)) {
-      return "strong";
-    }
-    if (normalized.includes("moderate") || normalized.includes("medium") || /中/u.test(value)) {
-      return "moderate";
-    }
-    if (normalized.includes("weak") || /弱/u.test(value)) {
-      return "weak";
-    }
-    if (normalized.includes("mixed") || /混合/u.test(value)) {
-      return "mixed";
-    }
-  }
-  return "unknown";
-};
 
 const normalizeRankedConclusions = (value: unknown): DeepResearchFinalReport["rankedConclusions"] => {
   if (!Array.isArray(value)) {
@@ -131,152 +119,6 @@ const normalizeRankedConclusions = (value: unknown): DeepResearchFinalReport["ra
       reverseCondition: takeFirstString(record, ["reverseCondition", "reverseConditions"]) ?? "",
     }];
   });
-};
-
-const buildPositiveCandidate = (candidate: Record<string, unknown>) => {
-  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
-  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
-  const confidence = normalizeConfidenceValue(
-    candidate.confidence
-    ?? candidate.confidenceScore
-    ?? candidate.confidenceLevel,
-  );
-  if (!subQuestionId) {
-    return { ok: false as const, reason: "missing_sub_question_id" };
-  }
-  if (!answer) {
-    return { ok: false as const, reason: "missing_answer" };
-  }
-  if (!confidence) {
-    return { ok: false as const, reason: "invalid_confidence" };
-  }
-  const answerFallback = buildSentenceFallback(answer);
-  const keyClaims = takeFirstStringArray(candidate, ["keyClaims", "claims", "keyPoints"]);
-  const supportingReasons = takeFirstStringArray(candidate, ["supportingReasons", "reasons", "support"]);
-  return {
-    ok: true as const,
-    value: {
-      subQuestionId,
-      answer,
-      keyClaims: keyClaims.length > 0 ? keyClaims : answerFallback,
-      supportingReasons: supportingReasons.length > 0 ? supportingReasons : answerFallback,
-      assumptions: takeFirstStringArray(candidate, ["assumptions", "assumptionList"]),
-      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
-      confidence,
-      limitations: takeFallbackArray(
-        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-        buildDefaultLimitations(),
-      ),
-    },
-  };
-};
-
-const buildAnalysisCandidate = (candidate: Record<string, unknown>) => {
-  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
-  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
-  const coreFinding = takeFirstString(candidate, ["coreFinding", "finding", "localFinding"]);
-  const impactOnFinalAdjudication = takeFirstString(candidate, [
-    "impactOnFinalAdjudication",
-    "impact",
-    "adjudicationImpact",
-  ]);
-  const confidence = normalizeConfidenceValue(
-    candidate.confidence
-    ?? candidate.confidenceScore
-    ?? candidate.confidenceLevel,
-  );
-  if (!subQuestionId) {
-    return { ok: false as const, reason: "missing_sub_question_id" };
-  }
-  if (!answer) {
-    return { ok: false as const, reason: "missing_answer" };
-  }
-  if (!coreFinding) {
-    return { ok: false as const, reason: "missing_core_finding" };
-  }
-  if (!impactOnFinalAdjudication) {
-    return { ok: false as const, reason: "missing_impact_on_final_adjudication" };
-  }
-  if (!confidence) {
-    return { ok: false as const, reason: "invalid_confidence" };
-  }
-  const answerFallback = buildSentenceFallback(answer);
-  return {
-    ok: true as const,
-    value: {
-      subQuestionId,
-      answer,
-      coreFinding,
-      keyClaims: takeFallbackArray(
-        takeFirstStringArray(candidate, ["keyClaims", "claims", "keyPoints"]),
-        answerFallback,
-      ),
-      supportingReasons: takeFallbackArray(
-        takeFirstStringArray(candidate, ["supportingReasons", "reasons", "support"]),
-        answerFallback,
-      ),
-      counterConditions: takeFirstStringArray(candidate, ["counterConditions", "counterArguments", "counterpoints"]),
-      failureCases: takeFirstStringArray(candidate, ["failureCases", "failureModes"]),
-      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
-      evidenceQuality: normalizeEvidenceQuality(candidate.evidenceQuality),
-      assumptions: takeFirstStringArray(candidate, ["assumptions", "assumptionList"]),
-      uncertainties: takeFirstStringArray(candidate, ["uncertainties", "uncertainty", "unknowns"]),
-      impactOnFinalAdjudication,
-      confidence,
-      limitations: takeFallbackArray(
-        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-        buildDefaultLimitations(),
-      ),
-    },
-  };
-};
-
-const buildFalsificationCandidate = (candidate: Record<string, unknown>) => {
-  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
-  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
-  const confidence = normalizeConfidenceValue(
-    candidate.confidence
-    ?? candidate.confidenceScore
-    ?? candidate.confidenceLevel,
-  );
-  if (!subQuestionId) {
-    return { ok: false as const, reason: "missing_sub_question_id" };
-  }
-  if (!answer) {
-    return { ok: false as const, reason: "missing_answer" };
-  }
-  if (!confidence) {
-    return { ok: false as const, reason: "invalid_confidence" };
-  }
-  const answerFallback = buildSentenceFallback(answer);
-  const strongestOpposingArguments = takeFirstStringArray(candidate, [
-    "strongestOpposingArguments",
-    "opposingArguments",
-    "counterArguments",
-    "keyArguments",
-  ]);
-  const contradictionPoints = takeFirstStringArray(candidate, [
-    "contradictionPoints",
-    "contradictions",
-    "counterPoints",
-  ]);
-  return {
-    ok: true as const,
-    value: {
-      subQuestionId,
-      answer,
-      strongestOpposingArguments:
-        strongestOpposingArguments.length > 0 ? strongestOpposingArguments : answerFallback,
-      contradictionPoints:
-        contradictionPoints.length > 0 ? contradictionPoints : answerFallback,
-      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
-      confidence,
-      limitations: takeFallbackArray(
-        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-        buildDefaultLimitations(),
-      ),
-    },
-  };
 };
 
 const buildFinalReportCandidate = (
@@ -408,6 +250,77 @@ const buildLegacyFinalReportCandidate = (
     },
   };
 };
+
+const buildNarrativeLead = (rawText: string): string =>
+  buildSentenceFallback(rawText)[0]
+  ?? rawText.replace(/\s+/gu, " ").trim().slice(0, 240)
+  ?? "Model returned a narrative answer without a structured summary.";
+
+const buildSubQuestionAnalysisTextFallbackValue = (input: {
+  rawText: string;
+  subQuestionId?: string;
+}): DeepResearchSubQuestionAnalysisAnswer => {
+  const normalized = input.rawText.replace(/\s+/gu, " ").trim();
+  const supportingSentences = buildSentenceFallback(normalized);
+  const coreFinding = buildNarrativeLead(normalized);
+  return {
+    subQuestionId: input.subQuestionId ?? "unknown-sub-question",
+    answer: normalized,
+    coreFinding,
+    keyClaims: supportingSentences,
+    supportingReasons: supportingSentences,
+    counterConditions: [],
+    failureCases: [],
+    evidenceMentions: [],
+    evidenceQuality: "unknown",
+    assumptions: [],
+    uncertainties: [],
+    impactOnFinalAdjudication: coreFinding,
+    confidence: "medium",
+    limitations: ["Model returned narrative analysis instead of the requested JSON contract."],
+  };
+};
+
+const buildFinalAdjudicationTextFallbackValue = (input: {
+  rawText: string;
+  fallback: FinalReportNormalizationFallback;
+}): DeepResearchFinalReport => {
+  const normalized = input.rawText.replace(/\s+/gu, " ").trim();
+  const lead = buildNarrativeLead(normalized);
+  const decisiveReasons = buildSentenceFallback(normalized);
+  return {
+    directAnswer: lead,
+    finalVerdict: lead.slice(0, 160),
+    oneSentenceDecision: lead,
+    confidence: "medium",
+    rankedConclusions: [],
+    strongConclusions: decisiveReasons,
+    conditionalConclusions: [],
+    weakOrRejectedClaims: [...(input.fallback.strongestOpposingArguments ?? [])],
+    decisiveReasons,
+    evidenceGaps: input.fallback.evidenceGaps?.length
+      ? [...input.fallback.evidenceGaps]
+      : ["Model returned narrative final adjudication without structured evidence gaps."],
+    reverseConditions: input.fallback.reverseConditions?.length
+      ? [...input.fallback.reverseConditions]
+      : ["Model did not provide explicit reverse conditions."],
+    applicability: [],
+    nonApplicability: [],
+    followUpSignals: input.fallback.followUpSignals?.length
+      ? [...input.fallback.followUpSignals]
+      : ["Review the raw narrative final adjudication for additional nuance."],
+    multiStageValueAdded: [],
+    limitations: input.fallback.limitations?.length
+      ? [...input.fallback.limitations]
+      : ["Model returned narrative final adjudication instead of the requested JSON contract."],
+    references: [],
+    executiveConclusion: lead,
+    positiveReasons: decisiveReasons,
+    strongestOpposingArguments: [...(input.fallback.strongestOpposingArguments ?? [])],
+    conflictMatrix: [...(input.fallback.conflictMatrix ?? [])],
+  };
+};
+
 export const parseDeepResearchDecompositionResponse = (input: {
   rawText: string;
   maxSubQuestions: number;
@@ -425,14 +338,31 @@ export const parseDeepResearchPositiveResponse = (
   });
 
 export const parseDeepResearchSubQuestionAnalysisResponse = (
-  rawText: string,
-): DeepResearchParserResult<DeepResearchSubQuestionAnalysisAnswer> =>
-  normalizeWithSchema({
+  input: string | {
+    rawText: string;
+    subQuestionId?: string;
+  },
+): DeepResearchParserResult<DeepResearchSubQuestionAnalysisAnswer> => {
+  const rawText = typeof input === "string" ? input : input.rawText;
+  const normalized = normalizeWithSchema({
     parsedJson: parseJsonObject(rawText),
     schema: DeepResearchSubQuestionAnalysisAnswerSchema,
     normalize: buildAnalysisCandidate,
     missingRequiredReason: "invalid_sub_question_analysis_contract",
   });
+  if (isDeepResearchParserSuccess(normalized) || !normalized.normalizedText) {
+    return normalized;
+  }
+  return buildTextFallbackResult({
+    rawText,
+    schema: DeepResearchSubQuestionAnalysisAnswerSchema,
+    value: buildSubQuestionAnalysisTextFallbackValue({
+      rawText,
+      ...(typeof input === "string" ? {} : { subQuestionId: input.subQuestionId }),
+    }),
+    failureReason: "invalid_sub_question_analysis_text_fallback",
+  });
+};
 
 export const parseDeepResearchFalsificationResponse = (
   rawText: string,
@@ -447,10 +377,20 @@ export const parseDeepResearchFalsificationResponse = (
 export const parseDeepResearchFinalAdjudicationResponse = (
   rawText: string,
   fallback: FinalReportNormalizationFallback = {},
-): DeepResearchParserResult<DeepResearchFinalReport> =>
-  normalizeWithSchema({
+): DeepResearchParserResult<DeepResearchFinalReport> => {
+  const normalized = normalizeWithSchema({
     parsedJson: parseJsonObject(rawText),
     schema: DeepResearchFinalReportSchema,
     normalize: (candidate) => buildFinalReportCandidate(candidate, fallback),
     missingRequiredReason: "invalid_final_adjudication_contract",
   });
+  if (isDeepResearchParserSuccess(normalized) || !normalized.normalizedText) {
+    return normalized;
+  }
+  return buildTextFallbackResult({
+    rawText,
+    schema: DeepResearchFinalReportSchema,
+    value: buildFinalAdjudicationTextFallbackValue({ rawText, fallback }),
+    failureReason: "invalid_final_adjudication_text_fallback",
+  });
+};

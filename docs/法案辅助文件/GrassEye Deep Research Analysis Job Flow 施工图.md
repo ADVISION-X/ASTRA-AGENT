@@ -30,9 +30,9 @@ Deep Research Analysis
   -> 构建 Final Adjudication Package
   -> 发送最终裁决请求
   -> DOM 读取最终裁决报告
-  -> Business PPT Secretary 直接生成可下载 PPTX
-  -> 系统下载、hash、入库 export record
-  -> 导出 final-report 与 AI PPTX 工件
+  -> Business HTML Report Publisher 直接生成商业 HTML 决策报告
+  -> 系统保存 business-report.html、hash、export record
+  -> 导出 final-report 与 business-report.html 主工件
 ```
 
 一句话：
@@ -76,11 +76,10 @@ src/plugins/deep-research-analysis/
   deep-research-analysis.schema.ts
   deep-research-analysis.result.ts
   deep-research-analysis.prompts.ts
-  deep-research-analysis.deck-prompt.ts
-  deep-research-analysis.deck-schema.ts
-  deep-research-analysis.deck-parser.ts
-  deep-research-analysis.deck-stage.ts
-  deep-research-analysis.deck-pptx.ts
+  deep-research-analysis.html-report-prompt.ts
+  deep-research-analysis.html-report-stage.ts
+  deep-research-analysis.html-report-export.ts
+  deep-research-analysis.html-report-records.ts
   deep-research-analysis.prompt-contracts.ts
   deep-research-analysis.records.ts
   deep-research-analysis.parser.ts
@@ -185,74 +184,123 @@ PARSE = 原始回复是否能通过 Deep Research 业务 parser
 PERSIST = parser 成功后的业务记录是否入库
 ```
 
+PARSE 状态梯度必须至少覆盖：
+
+```txt
+parsed_json
+parsed_json_from_fence
+parsed_json_from_balanced_object
+parsed_text_fallback
+failed_empty
+failed_unusable
+```
+
+解析规则：
+
+1. 先尝试直接 JSON。
+2. 再尝试 markdown / code fence 中的 JSON。
+3. 再尝试全文里的第一个 balanced JSON object。
+4. 如果仍然不是 JSON，但 raw response 非空，而且属于 sub-question analysis / final adjudication 这类可落文本结论阶段，则必须进入 `parsed_text_fallback`，把 narrative answer 归一化后入库。
+5. 只有真的空回复才允许 `failed_empty`；非空但无法形成可用记录的内容只能进入 `failed_unusable` 或 `review_required`，不得把“有内容”伪装成“没回复”。
+
+等待规则：
+
+```txt
+timeout 是无活动保险丝，不是 AI 是否完成的技术判断。
+```
+
+Web Chat 等待时，以下任一信号出现都必须继续等待并续延 idle timeout：
+
+1. assistant reply count 增加。
+2. answerText 变化。
+3. provider 仍在 generating / processing。
+4. 页面上已经存在可见 assistant reply，但主 extractor 还未稳定。
+
+默认阶段预算：
+
+```txt
+decomposition: 5 min
+sub-question-analysis: 10 min
+final-adjudication: 20 min
+business-html-report: 30 min
+```
+
+只要人眼可见 assistant 回复，CAPTURE 就必须尽最大努力拿到：
+
+```txt
+主 extractor 失败
+  -> visible assistant text fallback
+  -> raw response proof 继续落地
+  -> 交给 PARSE 再决定是否 JSON / text fallback / review_required
+```
+
 AI gateway 是运输层，只负责发送、等待、读取 raw response、落 rawOutputRef、生成 rawResponseHash。  
 Deep Research 调用 AI gateway 时必须使用 raw-only capture，`expectedOutputSchemaRef` 必须为 `null`。  
 `promptContractId` 只能作为合同标识和审计记录保留，不得作为 gateway 阻断解析条件。  
 只要 provider 返回了 raw response，CAPTURE 阶段必须完成；JSON 语法错误、字段缺失、schema 不合格必须进入对应 PARSE 阶段处理。
 
-Business Deck Secretary 是最终裁决后的格式化阶段，它需要完整读取 persisted final package、final report 和 structured evidence references。
+Business HTML Report Publisher 是最终裁决后的格式化阶段，它需要完整读取 persisted final package、final report 和 structured evidence references。
 该阶段不得使用 `45_000` 字符上限；调用 AI Input Gateway 时必须使用 `Number.MAX_SAFE_INTEGER` 作为 no-GrassEye-text-ceiling sentinel。
 GPT Web Chat 自身可把长输入处理成文件，GrassEye 不在此阶段额外截断、压缩或拒绝文本 prompt。
 真实敏感材料排除、文件数量/大小、timeout、cooldown、tab ownership、provider proof 和 raw output proof 仍由 AI Input Gateway 负责；这里的“敏感材料”指真实 cookie、access token、password、session、browser storage 内容或未过滤私密字段，不是普通研究文本里出现这些词就一刀切失败。
 Deep Research 使用 GPT Web Chat 时，每次回答落完 raw proof 后必须关闭当前 provider 标签页；下一题必须重新打开 fresh provider tab，再点击“新聊天”。
 
-## 最后 +1：AI 生成商业 PPT，系统只做交付搬运工
+## 最后 +1：AI 生成商业 HTML 决策报告，系统只做交付搬运工
 
-默认 Business Deck 主流程改为 AI PPT artifact generation：
+默认最终交付主流程改为 AI Business HTML Report generation：
 
 ```txt
 Final Adjudication completed
--> Build PPT prompt package
+-> Build HTML report prompt package
 -> Send to GPT Web
--> GPT generates downloadable .pptx
--> Detect PPTX artifact
--> Download PPTX
--> Persist business-deck.ai-pptx export
--> UI shows Open PPT / Download PPT
+-> GPT generates business HTML report
+-> Detect HTML artifact or HTML document text
+-> Persist business-report.html
+-> Save filePath / fileHash / export record
+-> UI shows Open HTML / Download HTML
+-> Optional: derive PPT/PDF later
 ```
 
 最后一个 `+1` 的身份是：
 
 ```txt
-Business PPT Secretary
+Business HTML Report Publisher
 ```
 
-它不是研究员，不是裁判，不是二次分析器，不是本地模板大纲生成器。Prompt 负责约束 AI 不重新研究、不改变最终判断、不新增事实、不遗漏风险/限制/证据缺口/反转条件/被拒绝观点/references；AI 负责直接生成专业商业 PPTX；系统只负责交付层检测、下载、保存、hash、export record 和 UI 展示。
+它不是研究员，不是裁判，不是二次分析器，不是本地模板大纲生成器。Prompt 负责约束 AI 不重新研究、不改变最终判断、不新增事实、不遗漏风险/限制/证据缺口/反转条件/被拒绝观点/references；AI 负责直接生成专业商业 HTML 报告；系统只负责交付层检测、保存、hash、export record 和 UI 展示。
 
-明确废除默认主流程：
+明确降级旧主流程：
 
 ```txt
-GPT JSON outline -> local hard-coded PPT template
+AI PPT artifact
+local PPT generator
+business deck outline JSON
 ```
 
-该旧路径只能作为 fallback：
+都不再是主交付路径。PPT 只能作为 optional derived artifact：
 
 ```txt
-AI PPT artifact missing or download failed
--> optional local fallback
--> status = deck_local_fallback_used
--> exportKind = business-deck.local-pptx
+HTML success
+-> optional PPT/PDF derivation when configured
 ```
 
 主成功条件：
 
 ```txt
-status = deck_pptx_ai_generated
-exportKind = business-deck.ai-pptx
+status = business_html_report_generated
+exportKind = business-report.html
 filePath exists
-file extension = .pptx
+file extension = .html
 fileSizeBytes > 0
 fileHash persisted
 ```
 
-不得把以下状态当作 AI PPT completed：
+不得把以下状态当作 HTML completed：
 
 ```txt
-deck_local_fallback_used
-deck_export_partial
-deck_pptx_artifact_missing
-deck_pptx_download_failed
-deck_pptx_invalid_file
+business_html_artifact_missing
+business_html_invalid_file
+business_html_persist_failed
 ```
 
 ### 3.3 Workbench 展示契约
@@ -276,6 +324,7 @@ answers[]
 conflictMatrix[]
 finalReport
 exports[]
+primaryBusinessReport
 businessDeck
 ```
 

@@ -17,9 +17,14 @@ import type {
   StageTraceContext,
 } from "./deep-research-analysis.flow-shared.js";
 
-export type SuccessfulParserResult<TParsed> = Extract<
+export type SuccessfulParserResult<TParsed> = Exclude<
   DeepResearchParserResult<TParsed>,
-  { parseStatus: "parsed" }
+  { parsed: null }
+>;
+
+type FailedParserResult<TParsed> = Extract<
+  DeepResearchParserResult<TParsed>,
+  { parsed: null }
 >;
 
 type PromptPreview = {
@@ -173,7 +178,7 @@ export const createFailedInteractionRecord = <TParsed>(input: {
   subQuestionId?: string;
   domRef: string;
   gatewayResult: DeepResearchGatewayResult;
-  parsed: Exclude<DeepResearchParserResult<TParsed>, { parseStatus: "parsed" }>;
+  parsed: FailedParserResult<TParsed>;
 }): ResearchInteraction =>
   input.store.createInteraction({
     jobId: input.jobId,

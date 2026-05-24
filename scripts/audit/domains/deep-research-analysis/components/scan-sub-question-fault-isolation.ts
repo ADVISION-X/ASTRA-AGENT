@@ -159,8 +159,10 @@ const inspectSmokeHelper = (input: InspectInput, smokeFile: SourceFile | undefin
     )
     : false;
   const helperHasEvidenceGapAssertion = helperFile
-    ? helperFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .some((literal) => literal.getLiteralValue().includes("Missing structured independent analysis record"))
+    ? helperFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some((call) => call.getExpression().getText() === "report.evidenceGaps.some")
+      && helperFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
+        .some((literal) => literal.getLiteralValue().includes("parsed_text_fallback"))
     : false;
   const smokeWiresHelper = smokeFile
     ? smokeImportsHelper(smokeFile) && smokeCallsHelper(smokeFile)
