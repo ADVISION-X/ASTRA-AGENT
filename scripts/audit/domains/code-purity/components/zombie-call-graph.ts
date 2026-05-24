@@ -120,8 +120,36 @@ export const buildZombieCallGraph = (input: {
   declarations: readonly ZombieTopLevelDeclaration[];
   reachableFiles: ReadonlySet<string>;
 }): ZombieCallGraph => {
+  const declarationsByFile = buildDeclarationsByFile(input.declarations);
+
+  const referencedDeclarationIdsByDeclaration = new Map<string, Set<string>>();
+  const inboundDeclarationIdsByDeclaration = new Map<string, Set<string>>();
+  const rootDeclarationIdsFromTopLevelExecution = new Set<string>();
+  const resolutionFailures: ZombieDeclarationResolutionFailure[] = [];
+
+  collectDeclarationReferenceEdges({
+    declarations: input.declarations,
+    declarationsByFile,
+    reachableFiles: input.reachableFiles,
+    referencedDeclarationIdsByDeclaration,
+    inboundDeclarationIdsByDeclaration,
+    rootDeclarationIdsFromTopLevelExecution,
+    resolutionFailures,
+  });
+
+  return {
+    inboundDeclarationIdsByDeclaration,
+    referencedDeclarationIdsByDeclaration,
+    rootDeclarationIdsFromTopLevelExecution,
+    resolutionFailures,
+  };
+};
+
+const buildDeclarationsByFile = (
+  declarations: readonly ZombieTopLevelDeclaration[],
+): Map<string, ZombieTopLevelDeclaration[]> => {
   const declarationsByFile = new Map<string, ZombieTopLevelDeclaration[]>();
-  for (const declaration of input.declarations) {
+  for (const declaration of declarations) {
     const fileDeclarations = declarationsByFile.get(declaration.governedFile.repoPath);
     if (fileDeclarations) {
       fileDeclarations.push(declaration);
@@ -129,12 +157,18 @@ export const buildZombieCallGraph = (input: {
     }
     declarationsByFile.set(declaration.governedFile.repoPath, [declaration]);
   }
+  return declarationsByFile;
+};
 
-  const referencedDeclarationIdsByDeclaration = new Map<string, Set<string>>();
-  const inboundDeclarationIdsByDeclaration = new Map<string, Set<string>>();
-  const rootDeclarationIdsFromTopLevelExecution = new Set<string>();
-  const resolutionFailures: ZombieDeclarationResolutionFailure[] = [];
-
+const collectDeclarationReferenceEdges = (input: {
+  declarations: readonly ZombieTopLevelDeclaration[];
+  declarationsByFile: ReadonlyMap<string, readonly ZombieTopLevelDeclaration[]>;
+  reachableFiles: ReadonlySet<string>;
+  referencedDeclarationIdsByDeclaration: Map<string, Set<string>>;
+  inboundDeclarationIdsByDeclaration: Map<string, Set<string>>;
+  rootDeclarationIdsFromTopLevelExecution: Set<string>;
+  resolutionFailures: ZombieDeclarationResolutionFailure[];
+}): void => {
   for (const declaration of input.declarations) {
     if (!declaration.nameNode) {
       continue;
@@ -152,36 +186,29 @@ export const buildZombieCallGraph = (input: {
           continue;
         }
         const containingDeclaration = findContainingDeclaration(
-          declarationsByFile.get(referenceFilePath) ?? [],
+          input.declarationsByFile.get(referenceFilePath) ?? [],
           referenceNode,
           declaration.id,
         );
         if (containingDeclaration) {
-          addEdge(referencedDeclarationIdsByDeclaration, containingDeclaration.id, declaration.id);
-          addInbound(inboundDeclarationIdsByDeclaration, declaration.id, containingDeclaration.id);
+          addEdge(input.referencedDeclarationIdsByDeclaration, containingDeclaration.id, declaration.id);
+          addInbound(input.inboundDeclarationIdsByDeclaration, declaration.id, containingDeclaration.id);
           if (isTopLevelVariableInitializerReference(referenceNode, containingDeclaration)) {
-            rootDeclarationIdsFromTopLevelExecution.add(declaration.id);
+            input.rootDeclarationIdsFromTopLevelExecution.add(declaration.id);
           }
           continue;
         }
         const topLevelStatement = getTopLevelStatement(referenceNode);
         if (topLevelStatement && isRuntimeTopLevelStatement(topLevelStatement)) {
-          rootDeclarationIdsFromTopLevelExecution.add(declaration.id);
+          input.rootDeclarationIdsFromTopLevelExecution.add(declaration.id);
         }
       }
     } catch (error) {
-      resolutionFailures.push({
+      input.resolutionFailures.push({
         declarationId: declaration.id,
         error: error instanceof Error ? error.message : String(error),
         symbolName: declaration.name,
       });
     }
   }
-
-  return {
-    inboundDeclarationIdsByDeclaration,
-    referencedDeclarationIdsByDeclaration,
-    rootDeclarationIdsFromTopLevelExecution,
-    resolutionFailures,
-  };
 };

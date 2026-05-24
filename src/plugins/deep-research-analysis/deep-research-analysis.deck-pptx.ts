@@ -1,38 +1,55 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
+import PptxGenJS from "pptxgenjs";
+
 import type { DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
 
-const PPTX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-
-type PptxSlideLike = {
-  background: { color: string };
-  addText: (text: unknown, options: Record<string, unknown>) => void;
+type BusinessDeckSlide = DeepResearchBusinessDeckOutline["slides"][number];
+type BusinessDeckSlideView = {
   addNotes?: (notes: string) => void;
+  addText: (...args: Parameters<BusinessDeckDocument["addText"]>) => void;
+  background: { color: string };
 };
-
-type PptxDocumentLike = {
-  layout: string;
+type BusinessDeckDocument = {
+  addSlide: () => {
+    addNotes?: (notes: string) => void;
+    addText: (...args: unknown[]) => void;
+    background: { color: string };
+  };
+  addText: (...args: unknown[]) => void;
   author: string;
   company: string;
+  lang: string;
+  layout: string;
   subject: string;
   title: string;
-  lang: string;
-  addSlide: () => PptxSlideLike;
-  writeFile: (input: { fileName: string }) => Promise<void>;
+  writeFile: (input: { fileName: string }) => Promise<string>;
+};
+type BusinessDeckDocumentFactory = new () => BusinessDeckDocument;
+
+const assertBusinessDeckDocumentFactory = (value: unknown): BusinessDeckDocumentFactory => {
+  if (typeof value !== "function") {
+    const moduleDefault = typeof value === "object" && value !== null && "default" in value
+      ? (value as { default?: unknown }).default
+      : undefined;
+    if (typeof moduleDefault === "function") {
+      return moduleDefault as BusinessDeckDocumentFactory;
+    }
+    throw new Error("pptxgenjs export is not constructable in this runtime.");
+  }
+  return value as BusinessDeckDocumentFactory;
 };
 
-type BusinessDeckSlide = DeepResearchBusinessDeckOutline["slides"][number];
+const BusinessDeckDocumentFactory = assertBusinessDeckDocumentFactory(PptxGenJS);
 
 const clampBullets = (bullets: readonly string[]): string[] => bullets.slice(0, 6);
 
 const buildEvidenceFooter = (slide: BusinessDeckSlide): string =>
   slide.evidenceRefs.length > 0 ? `Evidence refs: ${slide.evidenceRefs.join(" | ")}` : "No explicit evidence refs.";
 
-const createBusinessDeckPptx = async (outline: DeepResearchBusinessDeckOutline): Promise<PptxDocumentLike> => {
-  const pptxModule = await import("pptxgenjs");
-  const PptxConstructor = pptxModule.default as unknown as new () => PptxDocumentLike;
-  const pptx = new PptxConstructor();
+const createBusinessDeckPptx = (outline: DeepResearchBusinessDeckOutline): BusinessDeckDocument => {
+  const pptx = new BusinessDeckDocumentFactory();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "GrassEye";
   pptx.company = "GrassEye";
@@ -48,7 +65,7 @@ const buildBulletRuns = (slide: BusinessDeckSlide) =>
     options: { bullet: { indent: 16 } },
   }));
 
-const addSlideHeader = (slide: PptxSlideLike, slideOutline: BusinessDeckSlide): void => {
+const addSlideHeader = (slide: BusinessDeckSlideView, slideOutline: BusinessDeckSlide): void => {
   slide.background = { color: "F7F4ED" };
   slide.addText(slideOutline.title, {
     x: 0.5,
@@ -72,7 +89,7 @@ const addSlideHeader = (slide: PptxSlideLike, slideOutline: BusinessDeckSlide): 
   });
 };
 
-const addSlideBody = (slide: PptxSlideLike, slideOutline: BusinessDeckSlide): void => {
+const addSlideBody = (slide: BusinessDeckSlideView, slideOutline: BusinessDeckSlide): void => {
   slide.addText(buildBulletRuns(slideOutline), {
     x: 0.8,
     y: 1.7,
@@ -99,7 +116,7 @@ const addSlideBody = (slide: PptxSlideLike, slideOutline: BusinessDeckSlide): vo
   });
 };
 
-const addSlideFooter = (slide: PptxSlideLike, slideOutline: BusinessDeckSlide): void => {
+const addSlideFooter = (slide: BusinessDeckSlideView, slideOutline: BusinessDeckSlide): void => {
   slide.addText(buildEvidenceFooter(slideOutline), {
     x: 0.5,
     y: 6.55,
@@ -126,21 +143,19 @@ const addSlideFooter = (slide: PptxSlideLike, slideOutline: BusinessDeckSlide): 
   }
 };
 
-const addBusinessDeckSlide = (pptx: PptxDocumentLike, slideOutline: BusinessDeckSlide): void => {
+const addBusinessDeckSlide = (pptx: BusinessDeckDocument, slideOutline: BusinessDeckSlide): void => {
   const slide = pptx.addSlide();
   addSlideHeader(slide, slideOutline);
   addSlideBody(slide, slideOutline);
   addSlideFooter(slide, slideOutline);
 };
 
-export const getBusinessDeckPptxMimeType = (): string => PPTX_MIME_TYPE;
-
 export const generateDeepResearchBusinessDeckPptx = async (input: {
   outputDir: string;
   outline: DeepResearchBusinessDeckOutline;
 }): Promise<string> => {
   mkdirSync(input.outputDir, { recursive: true });
-  const pptx = await createBusinessDeckPptx(input.outline);
+  const pptx = createBusinessDeckPptx(input.outline);
   for (const slideOutline of input.outline.slides) {
     addBusinessDeckSlide(pptx, slideOutline);
   }

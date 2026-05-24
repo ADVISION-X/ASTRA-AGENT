@@ -105,7 +105,7 @@ const buildFacebookCoverageReport = (
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const sectionRuns = collectSectionRuns(context);
+  const sectionRuns = collectSectionRuns({ ...context, project: context.project });
   const sections = toSectionList(sectionRuns);
   const findings = sections.flatMap((section) => section.findings);
   const inspectedFiles = [...new Set(sections.flatMap((section) => section.inspectedFiles))].sort();

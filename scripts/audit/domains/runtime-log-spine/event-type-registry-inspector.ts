@@ -12,10 +12,21 @@ const isExcluded = (repoPath: string): boolean => repoPath === "src/lib/runtime-
 
 const isInspectableRepoPath = (repoPath: string): boolean => isRuntimeLogLawSourcePath(repoPath) && !isExcluded(repoPath);
 
+const typeNodeHasRuntimeLogEventType = (node: import("ts-morph").Node | null | undefined): boolean => {
+  if (!node) {
+    return false;
+  }
+  if (Node.isTypeReference(node) && node.getTypeName().getText() === "RuntimeLogEventType") {
+    return true;
+  }
+  return node.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => identifier.getText() === "RuntimeLogEventType");
+};
+
 const hasRuntimeLogEventTypeDeclaration = (node: import("ts-morph").Node): boolean =>
   (node.getSymbol()?.getDeclarations() ?? []).some((declaration) => {
     const typeNode = ("getTypeNode" in declaration && typeof declaration.getTypeNode === "function") ? declaration.getTypeNode() : null;
-    return typeNode?.getText().includes("RuntimeLogEventType") ?? false;
+    return typeNodeHasRuntimeLogEventType(typeNode);
   });
 
 const isProvenRegistryEventType = (objectLiteral: import("ts-morph").ObjectLiteralExpression): boolean => {

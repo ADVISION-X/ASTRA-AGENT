@@ -250,6 +250,7 @@ const inspectLayoutQualityBoundaries = (findings: InspectorFinding[], lawId: str
     "repeat(auto-fit, minmax(320px, 1fr))",
     "line-height: 1.65",
     "research-debug-root",
+    "border-left: 3px solid rgba(22, 116, 95, 0.28)",
     "research-delivery-strip",
   ]) {
     requireText(findings, lawId, stylesPath, marker);

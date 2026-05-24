@@ -119,6 +119,8 @@ export const scoreDecompositionQuality = (input: DeepResearchDecompositionRespon
   const passScore = 16;
   let score = 0;
   let hasHardFailure = false;
+  const hasLeakageQuestion = input.subQuestions.some((subQuestion) =>
+    detectFinalAdjudicationLeakage(subQuestion.questionText));
   for (const subQuestion of input.subQuestions) {
     const subQuestionQuality = scoreSubQuestionQuality(subQuestion);
     score += subQuestionQuality.score;
@@ -128,6 +130,7 @@ export const scoreDecompositionQuality = (input: DeepResearchDecompositionRespon
   const selfCheckQuality = scoreQualitySelfCheck(input);
   score += selfCheckQuality.score;
   hasHardFailure = hasHardFailure
+    || hasLeakageQuestion
     || selfCheckQuality.hasHardFailure
     || detectCurrentEventMissingInfo(input);
   return {

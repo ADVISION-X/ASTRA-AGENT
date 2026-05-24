@@ -201,6 +201,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 1. active law 没进入 generated registry / matrix / plan，不算执法成立。
 2. owner inspector 不进入 runner、不写 report、不进 ci-full summary，都不算执行闭环。
 3. 旧 summary、旧 report、旧 generated artifact 不能作为当前 run 的通过证据。
+4. `scripts/audit/domains/**` 与 `scripts/audit/shared/**` 中的结构判断，不得靠 regex 或 `getText/getFullText + includes/match/search/test` 充当主裁。
 
 ## Runtime Evidence Truth
 

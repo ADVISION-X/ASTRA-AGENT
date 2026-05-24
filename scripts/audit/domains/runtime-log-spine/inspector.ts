@@ -64,7 +64,7 @@ const buildInspectorCounts = (
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const collected = collectRuntimeLogPhaseRuns(context);
+  const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
   const report = buildInspectorReportJson(collected);
 
   writeRuntimeLogSpineReport(report);

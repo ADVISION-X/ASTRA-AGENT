@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:01:27.010Z",
+  "generatedAt": "2026-05-24T02:44:10.052Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -391,6 +391,7 @@
       "forbidden": [
         "Owner inspector skipping context.project.",
         "getText/getFullText string search used as structural verdict.",
+        "Regex-based structural judgment in audit owner or shared audit code.",
         "Text-search anti-evasion pretending to be AST-first enforcement."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",

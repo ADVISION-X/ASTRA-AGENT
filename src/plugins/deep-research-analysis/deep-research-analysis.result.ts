@@ -5,12 +5,6 @@ import {
   DeepResearchPhaseSchema,
 } from "./deep-research-analysis.schema.js";
 
-const DeepResearchResultStatusSchema = z.enum([
-  "success",
-  "failed",
-  "review_required",
-]);
-
 const DeepResearchReportConfidenceSchema = z.enum([
   "low",
   "medium",
@@ -157,15 +151,26 @@ export const DeepResearchFinalReportSchema = z.union([
 
 const DeepResearchResultSchema = z.object({
   jobId: z.string().trim().min(1),
-  status: DeepResearchResultStatusSchema,
-  jobStatus: DeepResearchJobStatusSchema,
+  status: z.literal("success"),
+  jobStatus: z.enum(["completed", "deck_export_partial"]),
   phase: DeepResearchPhaseSchema,
-  report: DeepResearchFinalReportSchema.nullable().default(null),
-  recordHashes: z.record(z.string(), z.string()).default({}),
+  report: DeepResearchFinalReportSchema,
+  recordHashes: z.record(z.string(), z.string()),
+  failureReason: z.string().trim().min(1).nullable().default(null),
+  reviewReason: z.string().trim().min(1).nullable().default(null),
+}).strict();
+
+const DeepResearchTerminalResultSchema = z.object({
+  jobId: z.string().trim().min(1),
+  status: z.enum(["failed", "review_required"]),
+  jobStatus: z.enum(["failed", "review_required", "deck_export_partial"]),
+  phase: DeepResearchPhaseSchema,
+  report: DeepResearchFinalReportSchema.nullable(),
+  recordHashes: z.record(z.string(), z.string()),
   failureReason: z.string().trim().min(1).nullable().default(null),
   reviewReason: z.string().trim().min(1).nullable().default(null),
 }).strict();
 
 export type DeepResearchConflictMatrixRow = z.infer<typeof DeepResearchConflictMatrixRowSchema>;
 export type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
-export type DeepResearchResult = z.infer<typeof DeepResearchResultSchema>;
+export type DeepResearchResult = z.infer<typeof DeepResearchResultSchema> | z.infer<typeof DeepResearchTerminalResultSchema>;

@@ -19,22 +19,23 @@ const buildReportJson = (
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+  const project = context.project;
   const inspectedFiles = new Set<string>();
   const astTruthLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-TRUTH-001-V1");
   const coverageLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-TRUTH-002-V1");
 
   const sourceTextScan = scanAuditNoSourceTextSearch({
-    context,
+    context: { ...context, project },
     inspectedFiles,
     lawId: astTruthLawId,
   });
   const coverageScan = scanGeneratedPlanCoverage({
-    context,
+    context: { ...context, project },
     inspectedFiles,
     lawId: coverageLawId,
   });
   const regexScan = scanAuditNoRegex({
-    context,
+    context: { ...context, project },
     inspectedFiles,
     lawId: astTruthLawId,
   });

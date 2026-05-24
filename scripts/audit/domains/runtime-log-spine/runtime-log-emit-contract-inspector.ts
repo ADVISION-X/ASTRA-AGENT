@@ -1,4 +1,4 @@
-import { Node } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -126,7 +126,10 @@ const appendRuntimeEmitFindingsForCall = (input: {
 
 const appendAuthorizedHelperPresentFindings = (context: InspectorContext, findings: RuntimeLogSpineFinding[]): void => {
   for (const helperName of authorizedHelperNames) {
-    if (context.project.getSourceFiles().some((sourceFile) => sourceFile.getText().includes(helperName))) continue;
+    if (context.project.getSourceFiles().some((sourceFile) =>
+      sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === helperName))) {
+      continue;
+    }
     findings.push({
       checkId: "runtime-log-spine/authorized-helper-present",
       lawId: RuntimeLogSpineLaw.TRACE_CONTRACT,

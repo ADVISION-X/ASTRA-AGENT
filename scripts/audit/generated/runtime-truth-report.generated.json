@@ -1,26 +1,9 @@
 {
-  "generatedAt": "2026-05-24T02:01:41.071Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-24T02:44:25.227Z",
+  "status": "PASS",
   "inspectedFiles": [
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts"
   ],
-  "findings": [
-    {
-      "checkId": "runtime-truth/deep-research-completed-contract",
-      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.result.ts allows completed Deep Research results to omit final report or record-hash evidence by default.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.result.ts"
-    },
-    {
-      "checkId": "runtime-truth/facebook-completed-contract",
-      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts allows completed Facebook run status without any video evidence-bearing field.",
-      "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts"
-    }
-  ]
+  "findings": []
 }

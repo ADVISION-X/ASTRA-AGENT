@@ -102,6 +102,12 @@ export const inspectDomain = async (context: { project: { getSourceFiles(): Arra
   };
 };
 `,
+  "scripts/audit/shared/text-helper.ts": `
+export const hasAlphaText = (sourceFile: { getFullText(): string }) => {
+  const fullText = sourceFile.getFullText();
+  return fullText.includes("alpha");
+};
+`,
 });
 
 const projectUsageOutput = await inspectDomain(
@@ -142,6 +148,14 @@ assert.equal(
   }),
   true,
   "audit-truth should fail regex-based structural judgment in owner inspectors.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/source-text-judgment",
+    fileIncludes: "/scripts/audit/shared/text-helper.ts",
+  }),
+  true,
+  "audit-truth should fail tracked source-text judgment in shared audit helpers.",
 );
 assert.equal(
   hasFinding(projectUsageOutput.findings, {

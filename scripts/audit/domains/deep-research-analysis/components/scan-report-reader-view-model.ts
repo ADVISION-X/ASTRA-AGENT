@@ -14,6 +14,11 @@ const getArrowInitializer = (sourceFile: SourceFile, variableName: string) => {
   return initializer && Node.isArrowFunction(initializer) ? initializer : null;
 };
 
+const hasLiteralContaining = (node: Node, fragment: string): boolean =>
+  node.getDescendants().some((descendant) =>
+    (Node.isStringLiteral(descendant) || Node.isNoSubstitutionTemplateLiteral(descendant))
+      && descendant.getLiteralValue().includes(fragment));
+
 const inspectContracts = (input: {
   contractFile: SourceFile | undefined;
   findings: InspectorFinding[];
@@ -53,7 +58,6 @@ const inspectHistoryQuery = (input: {
   lawId: string;
 }): void => {
   const repoPath = getRepoSourcePath(input.queriesFile);
-  const fileText = input.queriesFile.getFullText();
   const historyQuery = getArrowInitializer(input.queriesFile, "listDeepResearchAnalysisHistory");
   if (!historyQuery || !["withStore", "listJobs", "buildHistoryJobView"].every((identifier) => hasIdentifier(historyQuery, identifier))) {
     input.findings.push(createFinding({
@@ -63,7 +67,7 @@ const inspectHistoryQuery = (input: {
       message: "History list must be built from persisted jobs through withStore + listJobs + buildHistoryJobView.",
     }));
   }
-  if (!/SELECT \* FROM research_jobs/u.test(fileText)) {
+  if (!hasLiteralContaining(input.queriesFile, "SELECT * FROM research_jobs")) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-reader-history-db",
       lawId: input.lawId,
@@ -79,7 +83,6 @@ const inspectReportBuilder = (input: {
   lawId: string;
 }): void => {
   const repoPath = getRepoSourcePath(input.queriesFile);
-  const fileText = input.queriesFile.getFullText();
   const reportBuilder = getArrowInitializer(input.queriesFile, "buildReportViewModel");
   if (!reportBuilder || ![
     "buildTimelineSnapshot",
@@ -104,7 +107,7 @@ const inspectReportBuilder = (input: {
       message: "getDeepResearchAnalysisReport must delegate to buildReportViewModel.",
     }));
   }
-  if (/localStorage|executions/u.test(fileText)) {
+  if (hasIdentifier(input.queriesFile, "localStorage") || hasLiteralContaining(input.queriesFile, "executions")) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-reader-transient-memory",
       lawId: input.lawId,

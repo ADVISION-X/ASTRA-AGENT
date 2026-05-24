@@ -344,8 +344,17 @@ const buildFullFlowReportSections = (input: {
   context: DeepResearchMarkdownContext;
   stageRows: ReturnType<typeof buildStageOverviewRows>;
   subQuestionSections: readonly string[];
-}): string[] => [
-  ...buildReportMetadataLines({
+}): string[] => {
+  const stageRows = input.stageRows.length > 0
+    ? input.stageRows
+    : buildStageOverviewRows({
+      job: input.persisted.job,
+      interactions: input.persisted.interactions,
+      subQuestions: input.persisted.subQuestions,
+      finalReportRecord: input.persisted.finalReportRecord,
+    });
+  return [
+    ...buildReportMetadataLines({
     finalPackage: input.finalPackage,
     persisted: input.persisted,
     finalReport: input.context.finalReport,
@@ -360,7 +369,7 @@ const buildFullFlowReportSections = (input: {
     : []),
   "## Stage Overview",
   "",
-  buildStageOverviewTable(input.stageRows),
+  buildStageOverviewTable(stageRows),
   "",
   buildDecompositionSection({
     interaction: input.context.decompositionInteraction,
@@ -388,7 +397,8 @@ const buildFullFlowReportSections = (input: {
     buildInteractionEvidence(input.persisted.interactions),
     input.context.subQuestionById,
   ),
-];
+  ];
+};
 
 export const buildDeepResearchFullFlowReportMarkdown = (input: {
   finalPackage: DeepResearchFinalPackage;

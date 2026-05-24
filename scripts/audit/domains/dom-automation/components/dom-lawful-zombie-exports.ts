@@ -2,7 +2,16 @@ import { domSurface, requiredChildFunctionExports } from "./dom-inspector-consta
 
 export const allowedMigrationFunctionExports = ["locateDomElementResultOnce"] as const;
 
-export const lawfulDomZombieExportsByFile: Readonly<Record<string, readonly string[]>> = {
-  [domSurface.publicFacade]: requiredChildFunctionExports,
-  "src/capabilities/dom-automation/runtime/dom-locator.ts": allowedMigrationFunctionExports,
-};
+const lawfulDomZombieExportEntries = [
+  {
+    filePath: domSurface.publicFacade,
+    exportNames: requiredChildFunctionExports,
+  },
+  {
+    filePath: "src/capabilities/dom-automation/runtime/dom-locator.ts",
+    exportNames: allowedMigrationFunctionExports,
+  },
+] as const;
+
+export const getLawfulDomZombieExports = (filePath: string): readonly string[] =>
+  lawfulDomZombieExportEntries.find((entry) => entry.filePath === filePath)?.exportNames ?? [];

@@ -444,6 +444,7 @@ lawId 级覆盖不能证明法条级覆盖。
   "forbidden": [
     "Owner inspector skipping context.project.",
     "getText/getFullText string search used as structural verdict.",
+    "Regex-based structural judgment in audit owner or shared audit code.",
     "Text-search anti-evasion pretending to be AST-first enforcement."
   ]
 }
@@ -459,12 +460,14 @@ Inspector 执法真值
 
 - 主裁必须来自 AST / symbol / project graph
 - `getText`、`getFullText`、`includes`、`match`、`test` 只能作为辅助线索，不能变成 verdict 真相
+- `scripts/audit/domains/**` 与 `scripts/audit/shared/**` 中的 regex literal、`RegExp`、regex-driven `match/search/test/exec/split` 不得冒充结构判断
 - inspector 若不接入 `context.project`，视为无法证明 AST-first enforcement
 
 ### 禁止
 
 - inspector 不使用 `context.project`
 - 把 source text 搜索包装成 anti-evasion 或 coverage 判断
+- 把 regex 判断包装成 coverage、owner、graph、entry、contract、summary 真相
 - 用 tracked text variable 做 `includes` / `match` / `test` 后宣称是结构判断
 
 ## [APEX-AUDIT-TRUTH-002-V1] Generated Plan Owner Coverage Truth

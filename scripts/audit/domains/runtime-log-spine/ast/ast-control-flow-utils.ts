@@ -2,8 +2,8 @@ import { Node, SyntaxKind, type Block, type Node as MorphNode, type ReturnStatem
 
 import { resolveCallsInSourceFile } from "./ast-call-resolver.js";
 
-const failureReturnPattern = /\b(?:ok\s*:\s*false|terminal\s*:\s*true|status\s*:\s*["'](?:failed|review_required|skipped)["'])/u;
-const failureCallPattern = /\b(?:buildFailure|stopFacebookMiningRound|reviewRequired|failed|terminal|skip)\b/u;
+const failureStatuses = new Set(["failed", "review_required", "skipped"]);
+const failureIdentifiers = new Set(["buildFailure", "stopFacebookMiningRound", "reviewRequired", "failed", "terminal", "skip"]);
 
 export const blockHasAuthorizedLogCall = (block: Block, filePath: string): boolean => {
   const blockStart = block.getStart();
@@ -20,8 +20,30 @@ export const blockHasAuthorizedLogCall = (block: Block, filePath: string): boole
 export const isFailureReturn = (statement: ReturnStatement): boolean => {
   const expression = statement.getExpression();
   if (!expression) return false;
-  const text = expression.getText();
-  return failureReturnPattern.test(text) || failureCallPattern.test(text);
+  const objectLiteral = expression.asKind(SyntaxKind.ObjectLiteralExpression);
+  if (objectLiteral) {
+    const hasFalseOk = objectLiteral.getProperties().some((property) =>
+      Node.isPropertyAssignment(property)
+      && property.getName() === "ok"
+      && property.getInitializer()?.getKind() === SyntaxKind.FalseKeyword);
+    const hasTerminalTrue = objectLiteral.getProperties().some((property) =>
+      Node.isPropertyAssignment(property)
+      && property.getName() === "terminal"
+      && property.getInitializer()?.getKind() === SyntaxKind.TrueKeyword);
+    const hasFailureStatus = objectLiteral.getProperties().some((property) => {
+      if (!Node.isPropertyAssignment(property) || property.getName() !== "status") {
+        return false;
+      }
+      const initializer = property.getInitializer();
+      return (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer))
+        && failureStatuses.has(initializer.getLiteralValue());
+    });
+    if (hasFalseOk || hasTerminalTrue || hasFailureStatus) {
+      return true;
+    }
+  }
+  return expression.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => failureIdentifiers.has(identifier.getText()));
 };
 
 export const isPotentialFailureThrow = (_statement: ThrowStatement): boolean => true;

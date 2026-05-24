@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T02:01:40.968Z",
+  "generatedAt": "2026-05-24T02:44:24.941Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -17,42 +17,15 @@
     "APEX-DOM-012-V1",
     "APEX-DOM-013-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts exposes object bag lawfulDomZombieExportsByFile to dynamic access lawfulDomZombieExportsByFile[governedFile.repoPath].",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
-      "evidence": "code-purity/object-bag-dynamic-usage"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts keeps unused object bag property [domSurface.publicFacade] in lawfulDomZombieExportsByFile.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
-      "evidence": "code-purity/object-bag-unused-property"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts keeps unused object bag property \"src/capabilities/dom-automation/runtime/dom-locator.ts\" in lawfulDomZombieExportsByFile.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
-      "evidence": "code-purity/object-bag-unused-property"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/deep-research-analysis-raw-capture-boundary.ts",
+    "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
@@ -153,6 +126,9 @@
     "scripts/audit/domains/architecture-boundary/inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/stale-code-purity-text-report.ts",
+    "scripts/audit/domains/audit-truth/components/scan-audit-no-regex.ts",
+    "scripts/audit/domains/audit-truth/components/scan-audit-no-source-text-search.ts",
+    "scripts/audit/domains/audit-truth/components/scan-generated-plan-coverage.ts",
     "scripts/audit/domains/audit-truth/inspector.ts",
     "scripts/audit/domains/capability-group-governance/inspector.ts",
     "scripts/audit/domains/code-purity/components/code-purity-finding-collector.ts",
@@ -167,7 +143,6 @@
     "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
     "scripts/audit/domains/code-purity/components/scan-structural-type-escapes.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-dead-branches.ts",
-    "scripts/audit/domains/code-purity/components/scan-zombie-declarations.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-internal-subgraphs.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-object-bags.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
@@ -493,6 +468,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-core.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
@@ -513,6 +490,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-queries-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",

@@ -30,6 +30,22 @@ const pushSemanticFinding = (
   });
 };
 
+const hasEmptyArrayProperty = (context: import("ts-morph").Node, propertyName: string): boolean =>
+  context.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
+    .some((property) => property.getName() === propertyName
+      && property.getInitializerIfKind(SyntaxKind.ArrayLiteralExpression)?.getElements().length === 0);
+
+const hasIdentifierNamed = (context: import("ts-morph").Node, identifierName: string): boolean =>
+  context.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => identifier.getText() === identifierName);
+
+const hasCallWithPrefix = (context: import("ts-morph").Node, prefixes: readonly string[]): boolean =>
+  context.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => {
+      const expressionText = call.getExpression().getText();
+      return prefixes.some((prefix) => expressionText.startsWith(prefix));
+    });
+
 const appendStageCountContradiction = (
   findings: RuntimeLogSpineFinding[],
   snapshot: AntiFakeSnapshot,
@@ -99,12 +115,22 @@ const collectAntiFakeInspectorFindings = (context: InspectorContext): {
     const repoPath = getRepoSourcePath(sourceFile);
     if (!governedInspectorPattern.test(repoPath)) continue;
     inspectedFiles.push(repoPath);
-    const text = sourceFile.getText();
-    const hasEmptyFindingsLiteral = /findings\s*:\s*\[\s*\]/u.test(text);
-    const hasEmptyInspectedFilesLiteral = /inspectedFiles\s*:\s*\[\s*\]/u.test(text);
-    const readsSourceFiles = /getSourceFiles|SourceFile|collect[A-Z]\w+/u.test(text);
-    const writesReport = /write[A-Z]\w*Report|reportJson|reportMarkdown/u.test(text);
-    const detectionFunctions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => /collect[A-Z]|write[A-Z]|render[A-Z]/u.test(call.getExpression().getText()));
+    const hasEmptyFindingsLiteral = hasEmptyArrayProperty(sourceFile, "findings");
+    const hasEmptyInspectedFilesLiteral = hasEmptyArrayProperty(sourceFile, "inspectedFiles");
+    const readsSourceFiles = sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .some((expression) => expression.getName() === "getSourceFiles")
+      || hasIdentifierNamed(sourceFile, "SourceFile")
+      || hasCallWithPrefix(sourceFile, ["collect"]);
+    const writesReport = hasCallWithPrefix(sourceFile, ["write", "render"])
+      || hasIdentifierNamed(sourceFile, "reportJson")
+      || hasIdentifierNamed(sourceFile, "reportMarkdown");
+    const detectionFunctions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .filter((call) => {
+        const expressionText = call.getExpression().getText();
+        return expressionText.startsWith("collect")
+          || expressionText.startsWith("write")
+          || expressionText.startsWith("render");
+      });
 
     if ((!readsSourceFiles && detectionFunctions.length === 0) || !writesReport || (hasEmptyFindingsLiteral && hasEmptyInspectedFilesLiteral)) {
       findings.push({

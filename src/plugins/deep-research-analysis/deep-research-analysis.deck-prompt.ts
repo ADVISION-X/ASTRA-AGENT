@@ -14,7 +14,6 @@ const FORBIDDEN_CONTROL_FIELDS = [
   "runNext",
   "databaseCommand",
   "filePath",
-  "nextAction",
 ] as const;
 
 const buildOutputContract = (input: {
@@ -89,7 +88,7 @@ export const businessDeckSecretaryPrompt: DeepResearchPrompt = {
     "Do not output markdown.",
     "Do not include contractId.",
     "Do not include format.",
-    "Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, or nextAction.",
+    "Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, or any next-step control field.",
     "",
     "The deck must be suitable for business decision presentation.",
     "",

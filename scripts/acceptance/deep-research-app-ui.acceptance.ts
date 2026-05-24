@@ -85,6 +85,9 @@ assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: 
 assertText("src/app/workbench-deep-research-styles.ts", "research-delivery-strip");
 assertText("src/app/workbench-deep-research-styles.ts", "repeat(auto-fit, minmax(320px, 1fr))");
 assertText("src/app/workbench-deep-research-styles.ts", "research-debug-root");
+assertText("src/app/workbench-deep-research-styles.ts", "border-left: 3px solid rgba(22, 116, 95, 0.28)");
+assertText("src/app/workbench-deep-research-styles.ts", ".research-empty-state.hidden");
+assertText("src/app/workbench-deep-research-report-view.ts", "Choose a report above");
 assertText("src/app/workbench-deep-research-report-view.ts", "research-reading-rhythm");
 assertImport(
   "src/app/create-workbench-server.ts",

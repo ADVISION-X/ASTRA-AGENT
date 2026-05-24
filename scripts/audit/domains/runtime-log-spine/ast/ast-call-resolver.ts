@@ -24,6 +24,11 @@ const createResolvedCall = (input: {
 
 const firstObjectArg = (call: CallExpression) => call.getArguments()[0]?.asKind(SyntaxKind.ObjectLiteralExpression);
 
+const includesAny = (text: string, fragments: readonly string[]): boolean =>
+  fragments.some((fragment) => text.includes(fragment));
+
+const browserActionNames = new Set(["open", "evaluateActiveTab", "textInput", "scroll", "click", "fill", "upload"]);
+
 const buildAliasIndex = (sourceFile: SourceFile): AliasIndex => {
   const index: AliasIndex = {
     consoleObjects: new Set(["console"]),
@@ -56,7 +61,7 @@ const resolveSemanticFallbackCall = (
   memberName: string | null,
   objectLiteralArg: ReturnType<typeof firstObjectArg>,
 ): ResolvedCall | null => {
-  if (/recoveryLogger|Recovery/u.test(calleeText)) {
+  if (includesAny(calleeText, ["recoveryLogger", "Recovery"])) {
     return createResolvedCall({
       filePath,
       line,
@@ -66,7 +71,7 @@ const resolveSemanticFallbackCall = (
       objectLiteralArg,
     });
   }
-  if (/AI_|ai|upload|parse/u.test(calleeText)) {
+  if (includesAny(calleeText, ["AI_", "ai", "upload", "parse"])) {
     return createResolvedCall({
       filePath,
       line,
@@ -76,7 +81,7 @@ const resolveSemanticFallbackCall = (
       objectLiteralArg,
     });
   }
-  if (/\b(?:open|evaluateActiveTab|textInput|scroll|click|fill|upload)\b/u.test(calleeText)) {
+  if ((memberName !== null && browserActionNames.has(memberName)) || browserActionNames.has(calleeText)) {
     return createResolvedCall({
       filePath,
       line,

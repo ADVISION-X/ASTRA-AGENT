@@ -231,7 +231,7 @@ export const scanZombieInspectorSelfProof = (input: {
   if (scripts["acceptance:code-purity-zombie-deep"] === undefined) {
     selfProofProblems.push("package.json is missing acceptance:code-purity-zombie-deep.");
   }
-  if (!ciFullSource?.getFullText().includes("acceptance:code-purity-zombie-deep")) {
+  if (!ciFullSource?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === "acceptance:code-purity-zombie-deep")) {
     selfProofProblems.push("ci-full.ts does not execute acceptance:code-purity-zombie-deep.");
   }
   if (!input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-017-V1") || !input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-018-V1")) {

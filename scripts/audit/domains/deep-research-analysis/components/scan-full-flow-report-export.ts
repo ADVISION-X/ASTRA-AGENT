@@ -110,14 +110,19 @@ const inspectRenderedPromptSchema = (input: {
       message: "ResearchExportKindSchema must expose exactly one human-readable report kind: final-report.md.",
     }));
   }
-  const hasJsonArtifacts = exportKinds.includes("research-bundle.json")
-    && exportKinds.includes("evidence-index.json");
-  if (!hasJsonArtifacts) {
+  const requiredMachineArtifacts = [
+    "decision-package.json",
+    "business-deck-outline.json",
+    "business-deck.pptx",
+    "evidence-index.json",
+  ] as const;
+  const missingMachineArtifact = requiredMachineArtifacts.find((artifact) => !exportKinds.includes(artifact));
+  if (missingMachineArtifact) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-export-machine-artifacts",
       lawId: input.lawId,
       filePath: recordContractsPath,
-      message: "ResearchExportKindSchema must retain research-bundle.json and evidence-index.json.",
+      message: `ResearchExportKindSchema must expose ${missingMachineArtifact}.`,
     }));
   }
 };
@@ -274,6 +279,8 @@ const inspectMarkdownBuilderCalls = (input: {
   lawId: string;
 }): void => {
   const renderer = getArrowInitializer(input.sourceFile, "buildDeepResearchFullFlowReportMarkdown");
+  const fullFlowSectionBuilder = getArrowInitializer(input.sourceFile, "buildFullFlowReportSections");
+  const subQuestionSectionBuilder = getArrowInitializer(input.sourceFile, "buildSubQuestionSections");
   const requiredBuilderCalls = [
     "buildStageOverviewRows",
     "buildDecompositionSection",
@@ -289,7 +296,21 @@ const inspectMarkdownBuilderCalls = (input: {
     renderer?.getDescendantsOfKind(SyntaxKind.Identifier)
       .some((node) => node.getText() === identifier),
   );
-  if (!hasCoreBuilderCalls || !hasSubQuestionBuilders) {
+  const hasComposedSectionBuilder = renderer?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => call.getExpression().getText() === "buildFullFlowReportSections") ?? false;
+  const helperCoversCoreBuilders = requiredBuilderCalls.every((callText) =>
+    fullFlowSectionBuilder?.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some((call) => call.getExpression().getText() === callText),
+  );
+  const helperCoversSubQuestionBuilders = ["buildDefaultSubQuestionSection", "buildLegacySubQuestionSection"].every((identifier) =>
+    subQuestionSectionBuilder?.getDescendantsOfKind(SyntaxKind.Identifier)
+      .some((node) => node.getText() === identifier),
+  );
+  const hasDirectFullFlowConstruction = hasCoreBuilderCalls && hasSubQuestionBuilders;
+  const hasHelperFullFlowConstruction = hasComposedSectionBuilder
+    && helperCoversCoreBuilders
+    && helperCoversSubQuestionBuilders;
+  if (!hasDirectFullFlowConstruction && !hasHelperFullFlowConstruction) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-export-no-summary-only-builder",
       lawId: input.lawId,

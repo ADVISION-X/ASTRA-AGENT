@@ -19,7 +19,7 @@ type InspectInput = {
 
 const recordOpsPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts";
 const recordContractsPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts";
-const recordDbPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts";
+const recordDbMapperPath = "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts";
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
@@ -81,8 +81,8 @@ const hasModelQuestionColumnMapping = (sourceFile: SourceFile): boolean => {
 export const inspectSubQuestionPersistenceIdentity = (input: InspectInput): void => {
   const recordOpsFile = getSourceFile(input.context, recordOpsPath);
   const recordContractsFile = getSourceFile(input.context, recordContractsPath);
-  const recordDbFile = getSourceFile(input.context, recordDbPath);
-  for (const sourceFile of [recordOpsFile, recordContractsFile, recordDbFile]) {
+  const recordDbMapperFile = getSourceFile(input.context, recordDbMapperPath);
+  for (const sourceFile of [recordOpsFile, recordContractsFile, recordDbMapperFile]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
 
@@ -125,11 +125,11 @@ export const inspectSubQuestionPersistenceIdentity = (input: InspectInput): void
     }));
   }
 
-  if (!recordDbFile || !hasModelQuestionColumnMapping(recordDbFile)) {
+  if (!recordDbMapperFile || !hasModelQuestionColumnMapping(recordDbMapperFile)) {
     input.findings.push(createFinding({
       checkId: "deep-research/sub-question-model-id-mapping",
       lawId: input.lawId,
-      filePath: recordDbPath,
+      filePath: recordDbMapperPath,
       message: "mapSubQuestionRow must map model_question_id to modelQuestionId and question.id.",
     }));
   }

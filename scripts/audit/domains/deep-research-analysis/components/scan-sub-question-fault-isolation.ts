@@ -66,6 +66,30 @@ const functionHasReturn = (
     .some(predicate);
 };
 
+const returnContainsCallIdentifier = (statement: ReturnStatement, identifierName: string): boolean =>
+  statement.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => {
+      const expression = call.getExpression();
+      return Node.isIdentifier(expression) && expression.getText() === identifierName;
+    });
+
+const returnContainsBooleanProperty = (
+  statement: ReturnStatement,
+  propertyName: string,
+  propertyValue: boolean,
+): boolean => statement
+  .getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)
+  .some((objectLiteral) => objectLiteral.getProperties().some((property) =>
+    Node.isPropertyAssignment(property)
+    && property.getName() === propertyName
+    && ((propertyValue && property.getInitializer()?.getKind() === SyntaxKind.TrueKeyword)
+      || (!propertyValue && property.getInitializer()?.getKind() === SyntaxKind.FalseKeyword)),
+  ));
+
+const returnContainsIdentifier = (statement: ReturnStatement, identifierName: string): boolean =>
+  statement.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => identifier.getText() === identifierName);
+
 const smokeImportsHelper = (sourceFile: SourceFile): boolean =>
   sourceFile.getImportDeclarations().some((declaration) =>
     declaration.getModuleSpecifierValue().endsWith("./deep-research-analysis-sub-question-fault-isolation.js")
@@ -85,21 +109,21 @@ const inspectAnalysisFile = (input: InspectInput, analysisFile: SourceFile | und
     ? functionHasReturn(
       analysisFile,
       "runSubQuestionPhase",
-      (statement) => statement.getText().includes("finishPromptFailure"),
+      (statement) => returnContainsCallIdentifier(statement, "finishPromptFailure"),
     )
     : false;
   const hasCompletedFalseReturn = analysisFile
     ? functionHasReturn(
       analysisFile,
       "runSubQuestionPhase",
-      (statement) => statement.getText().includes("completed: false"),
+      (statement) => returnContainsBooleanProperty(statement, "completed", false),
     )
     : false;
   const hasLoopEarlyReturn = analysisFile
     ? functionHasReturn(
       analysisFile,
       "runSubQuestionPhases",
-      (statement) => statement.getText().includes("outcome"),
+      (statement) => returnContainsIdentifier(statement, "outcome"),
     )
     : false;
   if (!analysisFile || hasForbiddenSubQuestionTerminal || !hasCompletedFalseReturn || hasLoopEarlyReturn) {

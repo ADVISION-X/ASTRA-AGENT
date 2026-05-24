@@ -3,7 +3,9 @@ const WORKBENCH_DEEP_RESEARCH_STYLES = `
   display: grid;
   gap: 14px;
 }
-.research-shell.hidden { display: none; }
+.research-shell.hidden,
+.research-empty-state.hidden,
+.research-report.hidden { display: none; }
 .research-header,
 .research-toolbar,
 .research-form-shell,
@@ -252,9 +254,11 @@ textarea {
   gap: 12px;
 }
 .research-empty-state {
-  padding: 24px;
-  min-height: 260px;
-  align-content: center;
+  padding: 14px 16px;
+  min-height: 0;
+  align-content: start;
+  border-style: dashed;
+  background: #fbfcf8;
 }
 .research-report-header h2,
 .research-card-head h2,
@@ -291,18 +295,23 @@ textarea {
   color: var(--accent-strong);
   text-decoration: none;
   font-weight: 600;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  padding: 6px 10px;
+  border: 0;
+  border-left: 3px solid rgba(22, 116, 95, 0.28);
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 8px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 .research-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px 10px;
 }
 .research-nav a:hover {
-  border-color: var(--accent-strong);
+  border-left-color: var(--accent-strong);
   text-decoration: none;
 }
 .research-side-meta-grid {
@@ -487,5 +496,4 @@ textarea {
   }
 }
 `;
-
 export const renderWorkbenchDeepResearchStyles = (): string => WORKBENCH_DEEP_RESEARCH_STYLES;

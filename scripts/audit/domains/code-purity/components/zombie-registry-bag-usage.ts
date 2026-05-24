@@ -50,6 +50,59 @@ const isDynamicBagUsage = (referenceNode: Parameters<typeof classifyZombieRefere
   return !Node.isPropertyAccessExpression(parent);
 };
 
+const markStaticPropertyUsage = (
+  referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
+  usedPropertyNames: Set<string>,
+): boolean => {
+  const parent = referenceNode.getParent();
+  if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === referenceNode) {
+    usedPropertyNames.add(parent.getName());
+    return true;
+  }
+  if (parent && Node.isElementAccessExpression(parent) && parent.getExpression() === referenceNode) {
+    const argument = parent.getArgumentExpression();
+    if (argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))) {
+      usedPropertyNames.add(argument.getLiteralValue());
+      return true;
+    }
+  }
+  return false;
+};
+
+const markLawfulRegistryUsage = (input: {
+  bag: ZombieObjectBag;
+  manifest: ZombieExemptionManifest;
+  consumerFilePath: string;
+  usedPropertyNames: Set<string>;
+}): boolean => {
+  if (!isLawfulDynamicRegistryConsumer(
+    input.manifest,
+    input.consumerFilePath,
+    input.bag.governedFile.repoPath,
+    input.bag.exportName,
+  )) {
+    return false;
+  }
+  for (const entry of input.bag.entries) {
+    input.usedPropertyNames.add(entry.propertyName);
+  }
+  return true;
+};
+
+const buildDynamicUsage = (
+  referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
+  consumerFilePath: string,
+): ZombieObjectBagDynamicUsage | null => {
+  if (!isDynamicBagUsage(referenceNode)) {
+    return null;
+  }
+  return {
+    consumerFilePath,
+    line: referenceNode.getStartLineNumber(),
+    sourceText: referenceNode.getParent()?.getText() ?? referenceNode.getText(),
+  };
+};
+
 export const collectZombieObjectBagUsage = (input: {
   bag: ZombieObjectBag;
   manifest: ZombieExemptionManifest;
@@ -65,38 +118,22 @@ export const collectZombieObjectBagUsage = (input: {
     if (usageKind === "import-binding" || usageKind === "re-export") {
       continue;
     }
-    const parent = referenceNode.getParent();
-    if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === referenceNode) {
-      usedPropertyNames.add(parent.getName());
+    if (markStaticPropertyUsage(referenceNode, usedPropertyNames)) {
       continue;
-    }
-    if (parent && Node.isElementAccessExpression(parent) && parent.getExpression() === referenceNode) {
-      const argument = parent.getArgumentExpression();
-      if (argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))) {
-        usedPropertyNames.add(argument.getLiteralValue());
-        continue;
-      }
     }
     const consumerFilePath = toRepoPath(referenceNode.getSourceFile().getFilePath());
-    if (isLawfulDynamicRegistryConsumer(
-      input.manifest,
+    if (markLawfulRegistryUsage({
+      bag: input.bag,
+      manifest: input.manifest,
       consumerFilePath,
-      input.bag.governedFile.repoPath,
-      input.bag.exportName,
-    )) {
-      for (const entry of input.bag.entries) {
-        usedPropertyNames.add(entry.propertyName);
-      }
+      usedPropertyNames,
+    })) {
       continue;
     }
-    if (!isDynamicBagUsage(referenceNode)) {
-      continue;
+    const dynamicUsage = buildDynamicUsage(referenceNode, consumerFilePath);
+    if (dynamicUsage) {
+      dynamicUsages.push(dynamicUsage);
     }
-    dynamicUsages.push({
-      consumerFilePath,
-      line: referenceNode.getStartLineNumber(),
-      sourceText: referenceNode.getParent()?.getText() ?? referenceNode.getText(),
-    });
   }
 
   return {

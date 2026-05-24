@@ -11,7 +11,7 @@ import { scanZombieReferenceSurfaces } from "./scan-zombie-reference-surfaces.js
 import { scanZombieAntiEvasion, scanZombieInspectorSelfProof } from "./zombie-anti-evasion.js";
 import { collectZombieCommentedCodeHits } from "./zombie-commented-code.js";
 import { buildZombieDeclarationLiveGraph } from "./zombie-declaration-live-graph.js";
-import { zombieExemptionManifest, type ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
+import { createZombieExemptionManifest, type ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
 import { collectZombieLiveEntrypoints, type ZombieLiveEntryPoint } from "./zombie-live-entrypoints.js";
 import { buildZombieModuleGraph, collectZombieReachableFiles } from "./zombie-module-graph.js";
 import { scanZombieNamespaceUsage } from "./zombie-namespace-usage.js";
@@ -61,7 +61,7 @@ const buildZombieGraphState = (
   overrides: ZombieScanOverrides,
   lawIds: readonly string[],
 ): ZombieGraphState => {
-  const manifest = overrides.manifest ?? zombieExemptionManifest;
+  const manifest = overrides.manifest ?? createZombieExemptionManifest();
   const liveEntryState = collectZombieLiveEntrypoints({
     generatedPlan: context.generatedPlan,
     governedFiles,

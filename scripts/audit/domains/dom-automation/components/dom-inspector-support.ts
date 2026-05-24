@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { Node, type Expression, type Project, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type Expression, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -87,4 +87,8 @@ export const hasIdentifier = (sourceFile: SourceFile, name: string): boolean =>
   sourceFile.getDescendants().some((node) => Node.isIdentifier(node) && node.getText() === name);
 
 export const hasSourceToken = (sourceFile: SourceFile, value: string): boolean =>
-  sourceFile.getFullText().includes(value);
+  sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === value)
+  || sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).some((literal) => literal.getLiteralValue() === value)
+  || sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead).some((literal) => literal.getLiteralText().includes(value))
+  || sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle).some((literal) => literal.getLiteralText().includes(value))
+  || sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).some((literal) => literal.getLiteralText().includes(value));

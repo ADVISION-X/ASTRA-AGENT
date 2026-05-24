@@ -11,8 +11,12 @@ const isNoRegexScopePath = (repoPath: string): boolean =>
   || repoPath === "scripts/audit/shared/source-module-targets.ts";
 
 const looksLikeRegExpType = (node: MorphNode): boolean => {
-  const typeText = node.getType().getText();
-  return typeText.includes("RegExp");
+  const nodeType = node.getType();
+  const candidateTypes = nodeType.isUnion() ? nodeType.getUnionTypes() : [nodeType];
+  return candidateTypes.some((candidateType) => {
+    const symbolName = candidateType.getSymbol()?.getName() ?? candidateType.getAliasSymbol()?.getName();
+    return symbolName === "RegExp";
+  });
 };
 
 const buildNoRegexFinding = (input: {

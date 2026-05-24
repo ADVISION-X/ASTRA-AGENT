@@ -240,6 +240,7 @@ const FacebookProductVideoMiningRunStatusSchema = z.object({
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime().nullable().default(null),
   failureReason: z.string().nullable().default(null),
+  videoArtifactRef: z.string().nullable().default(null),
   savedProductCount: z.number().int().nonnegative(),
   scannedCount: z.number().int().nonnegative(),
   currentRoundId: z.string().nullable().default(null),

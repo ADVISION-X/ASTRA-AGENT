@@ -4,23 +4,12 @@ import path from "node:path";
 import Database from "better-sqlite3";
 
 import {
-  buildDeepResearchFinalPackage,
-  type DeepResearchFinalPackage,
-} from "./deep-research-analysis.final-package.js";
-import type { DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
-import {
   createDeepResearchRecordStore,
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
-  type ResearchAnswer,
-  type ResearchConflictMatrix,
   type ResearchExport,
   type ResearchExportKind,
-  type ResearchInteraction,
   type ResearchJob,
-  type ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
-import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 import {
   type DeepResearchHistorySnapshot,
   type DeepResearchJobSnapshot,
@@ -29,22 +18,19 @@ import {
   type DeepResearchTimelineSnapshot,
 } from "./deep-research-analysis.public-contracts.js";
 import {
-  buildParsedEntry,
-  buildPromptText,
-} from "./deep-research-analysis.public-prompt-support.js";
-import {
-  buildAnswerByKindAndSubQuestionId,
   buildConclusionView,
-  buildConflictBySubQuestionId,
   buildEvidenceViews,
   buildHistoryJobView,
   buildReportExportViews,
   buildReportJobView,
-  buildReportSubQuestionViews,
   buildStageViews,
-  buildSubQuestionReports,
-  buildTimelineByPhaseAndSubQuestionId,
 } from "./deep-research-analysis.public-report-support.js";
+import {
+  buildBusinessDeckView,
+  buildJobSnapshotForId as buildJobSnapshotForIdSupport,
+  buildReportSubQuestionState,
+  buildTimelineSnapshot as buildTimelineSnapshotSupport,
+} from "./deep-research-analysis.public-queries-support.js";
 import { mapJobRow } from "./deep-research-analysis.record-db.js";
 
 export type DeepResearchExportArtifactPayload = {
@@ -132,248 +118,63 @@ const listJobs = (input: {
   }
 };
 
-const inferCurrentPhase = (input: {
-  job: ResearchJob;
-  subQuestions: readonly ResearchSubQuestion[];
-  analysisAnswers: readonly ResearchAnswer[];
-  positiveAnswers: readonly ResearchAnswer[];
-  falsificationAnswers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
-  exports: readonly ResearchExport[];
-}): DeepResearchPhase => {
-  if (input.job.status !== "queued") {
-    return input.job.phase;
-  }
-  if (input.exports.length > 0) {
-    return "EXPORT_REPORT";
-  }
-  if (input.subQuestions.length === 0) {
-    return "DECOMPOSE_PARSE";
-  }
-  return input.job.flowMode === "default_1_n_1" || input.job.flowMode === "default_1_n_1_1"
-    ? inferDefaultFlowPhase({
-      subQuestions: input.subQuestions,
-      analysisAnswers: input.analysisAnswers,
-      finalReport: input.finalReport,
-    })
-    : inferLegacyFlowPhase({
-      subQuestions: input.subQuestions,
-      positiveAnswers: input.positiveAnswers,
-      falsificationAnswers: input.falsificationAnswers,
-      finalReport: input.finalReport,
-    });
-};
-
-const inferDefaultFlowPhase = (input: {
-  subQuestions: readonly ResearchSubQuestion[];
-  analysisAnswers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
-}): DeepResearchPhase => {
-  if (input.analysisAnswers.length < input.subQuestions.length) {
-    return "ANALYSIS_PERSIST";
-  }
-  return input.finalReport ? "FINAL_ADJUDICATION_PERSIST" : "FINAL_PACKAGE_BUILD";
-};
-
-const inferLegacyFlowPhase = (input: {
-  subQuestions: readonly ResearchSubQuestion[];
-  positiveAnswers: readonly ResearchAnswer[];
-  falsificationAnswers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
-}): DeepResearchPhase => {
-  if (input.finalReport) {
-    return "FINAL_PERSIST";
-  }
-  if (input.positiveAnswers.length < input.subQuestions.length) {
-    return "POSITIVE_PERSIST";
-  }
-  return input.falsificationAnswers.length < input.subQuestions.length
-    ? "FALSIFY_PERSIST"
-    : "FINAL_PACKAGE_BUILD";
-};
-
 const buildJobSnapshot = (input: {
-  job: ResearchJob;
-  interactions: readonly ResearchInteraction[];
-  subQuestions: readonly ResearchSubQuestion[];
-  answers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
+  overview: DeepResearchTimelineSnapshot["overview"];
+  timeline: readonly DeepResearchTimelineEntry[];
+  subQuestions: DeepResearchTimelineSnapshot["subQuestions"];
+  answers: DeepResearchTimelineSnapshot["answers"];
   exports: readonly ResearchExport[];
-}): DeepResearchJobSnapshot => {
-  const analysisAnswers = input.answers.filter((record) => record.answerKind === "analysis");
-  const positiveAnswers = input.answers.filter((record) => record.answerKind === "positive");
-  const falsificationAnswers = input.answers.filter((record) => record.answerKind === "falsification");
+}): DeepResearchTimelineSnapshot["overview"] => ({
+  currentPhase: input.overview.currentPhase,
+  interactionCount: input.timeline.length,
+  subQuestionCount: input.subQuestions.length,
+  analysisCount: input.answers.filter((record) => record.answerKind === "analysis").length,
+  positiveCount: input.answers.filter((record) => record.answerKind === "positive").length,
+  falsificationCount: input.answers.filter((record) => record.answerKind === "falsification").length,
+  exportCount: input.exports.length,
+});
+
+const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null => {
+  const snapshot = buildTimelineSnapshotSupport(dataDir, jobId);
+  if (!snapshot) {
+    return null;
+  }
+  const timeline = snapshot.timeline;
+  const subQuestions = snapshot.subQuestions;
+  const answers = snapshot.answers;
+  const exports = snapshot.exports;
   return {
-    job: input.job,
-    overview: {
-      currentPhase: inferCurrentPhase({
-        job: input.job,
-        subQuestions: input.subQuestions,
-        analysisAnswers,
-        positiveAnswers,
-        falsificationAnswers,
-        finalReport: input.finalReport,
-        exports: input.exports,
-      }),
-      interactionCount: input.interactions.length,
-      subQuestionCount: input.subQuestions.length,
-      analysisCount: analysisAnswers.length,
-      positiveCount: positiveAnswers.length,
-      falsificationCount: falsificationAnswers.length,
-      exportCount: input.exports.length,
-    },
-    finalReport: input.finalReport,
-    exports: [...input.exports],
-  };
-};
-
-const buildTimelineEntries = (input: {
-  interactions: readonly ResearchInteraction[];
-  job: ResearchJob;
-  subQuestions: readonly ResearchSubQuestion[];
-  answers: readonly ResearchAnswer[];
-  positiveAnswerBySubQuestionId: Map<string, ResearchAnswer>;
-  finalPackage: DeepResearchFinalPackage | null;
-  finalReportRecord: { id: string; report: DeepResearchFinalReport } | null;
-}): DeepResearchTimelineEntry[] => {
-  const subQuestionById = new Map(input.subQuestions.map((record) => [record.id, record]));
-  const answersByInteractionId = new Map(
-    input.answers.map((record) => [record.interactionId, record]),
-  );
-  return input.interactions.map((interaction): DeepResearchTimelineEntry => {
-    const prompt = buildPromptText({
-      job: input.job,
-      interaction,
-      subQuestionById,
-      positiveAnswerBySubQuestionId: input.positiveAnswerBySubQuestionId,
-      finalPackage: input.finalPackage,
-    });
-    const parsed = buildParsedEntry({
-      interaction,
-      subQuestions: input.subQuestions,
-      answersByInteractionId,
-      finalReportRecord: input.finalReportRecord,
-    });
-    return {
-      interactionId: interaction.id,
-      phase: interaction.phase,
-      subQuestionId: interaction.subQuestionId,
-      promptId: interaction.promptId,
-      promptVersion: interaction.promptVersion,
-      promptHash: interaction.promptHash,
-      rawResponseHash: interaction.rawResponseHash,
-      promptText: prompt.promptText,
-      rawResponseText: interaction.rawResponseText,
-      parsedSummary: parsed.parsedSummary,
-      parsedJson: parsed.parsedJson,
-      parsedRecordIds: parsed.parsedRecordIds,
-      createdAt: interaction.createdAt,
-      domRef: interaction.domRef,
-      providerKind: interaction.providerKind,
-      providerProofJson: interaction.providerProofJson,
-      promptReconstructionStatus: prompt.promptReconstructionStatus,
-    };
-  });
-};
-
-const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null =>
-  withStore(dataDir, (store) => {
-    const job = store.getJob(jobId);
-    if (!job) {
-      return null;
-    }
-    const interactions = store.listInteractions(jobId);
-    const subQuestions = store.listSubQuestions(jobId);
-    const answers = store.listAnswers({ jobId });
-    const conflictMatrix = store.listConflictMatrix(jobId);
-    const finalReportRecord = store.getLatestFinalReport(jobId);
-    const exports = store.listExports(jobId);
-    const positiveAnswerBySubQuestionId = new Map(
-      answers
-        .filter((record) => record.answerKind === "positive")
-        .map((record) => [record.subQuestionId, record]),
-    );
-    const finalPackage = interactions.some((record) =>
-      record.phase === "final_synthesis" || record.phase === "final_adjudication")
-      ? buildDeepResearchFinalPackage({ store, jobId })
-      : null;
-    const timeline = buildTimelineEntries({
-      interactions,
-      job,
-      subQuestions,
-      answers,
-      positiveAnswerBySubQuestionId,
-      finalPackage,
-      finalReportRecord: finalReportRecord
-        ? { id: finalReportRecord.id, report: finalReportRecord.report }
-        : null,
-    });
-    return {
-      job,
-      overview: buildJobSnapshot({
-        job,
-        interactions,
-        subQuestions,
-        answers,
-        finalReport: finalReportRecord?.report ?? null,
-        exports,
-      }).overview,
+    ...snapshot,
+    overview: buildJobSnapshot({
+      overview: snapshot.overview,
       timeline,
       subQuestions,
       answers,
-      conflictMatrix,
-      finalReport: finalReportRecord?.report ?? null,
       exports,
-    };
-  });
-
-const buildJobSnapshotForId = (dataDir: string, jobId: string): DeepResearchJobSnapshot | null =>
-  withStore(dataDir, (store) => {
-    const job = store.getJob(jobId);
-    if (!job) {
-      return null;
-    }
-    const interactions = store.listInteractions(jobId);
-    const subQuestions = store.listSubQuestions(jobId);
-    const answers = store.listAnswers({ jobId });
-    const finalReport = store.getLatestFinalReport(jobId)?.report ?? null;
-    const exports = store.listExports(jobId);
-    return buildJobSnapshot({
-      job,
-      interactions,
-      subQuestions,
-      answers,
-      finalReport,
-      exports,
-    });
-  });
+    }),
+  };
+};
 
 const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchReportViewModel | null => {
   const snapshot = buildTimelineSnapshot(dataDir, jobId);
   if (!snapshot) {
     return null;
   }
-  const subQuestions = buildReportSubQuestionViews(snapshot.subQuestions);
-  const subQuestionById = new Map(subQuestions.map((record) => [record.id, record]));
-  const timelineByPhaseAndSubQuestionId = buildTimelineByPhaseAndSubQuestionId(snapshot.timeline);
-  const answerByKindAndSubQuestionId = buildAnswerByKindAndSubQuestionId(snapshot.answers);
-  const conflictBySubQuestionId = buildConflictBySubQuestionId(snapshot.conflictMatrix);
-  const subQuestionReports = buildSubQuestionReports({
+  const {
     subQuestions,
-    timelineByPhaseAndSubQuestionId,
+    subQuestionById,
     answerByKindAndSubQuestionId,
     conflictBySubQuestionId,
-  });
+    subQuestionReports,
+  } = buildReportSubQuestionState(snapshot);
   const decompositionInteraction = snapshot.timeline.find((entry) => entry.phase === "decomposition") ?? null;
+  const hasPairedEvidence = subQuestions.some((subQuestion) =>
+    answerByKindAndSubQuestionId.has(subQuestion.id) || conflictBySubQuestionId.has(subQuestion.id));
   const finalInteraction = [...snapshot.timeline]
     .reverse()
+    .filter((entry) => hasPairedEvidence || snapshot.finalReport !== null)
     .find((entry) => entry.phase === "final_adjudication" || entry.phase === "final_synthesis") ?? null;
   const exportViews = buildReportExportViews(snapshot.exports);
-  const outlineExport = snapshot.exports.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null;
-  const pptxExport = snapshot.exports.find((entry) => entry.exportKind === "business-deck.pptx") ?? null;
-  const deckOutline = outlineExport
-    ? JSON.parse(readFileSync(outlineExport.filePath, "utf8")) as DeepResearchBusinessDeckOutline
-    : null;
   return {
     job: buildReportJobView(snapshot),
     conclusion: buildConclusionView(snapshot.finalReport),
@@ -393,33 +194,7 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       interaction: finalInteraction,
       parsedFinalReport: snapshot.finalReport,
     },
-    businessDeck: outlineExport
-      ? {
-        generatedAt: pptxExport?.createdAt ?? outlineExport.createdAt,
-        outlineExport: exportViews.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null,
-        pptxExport: exportViews.find((entry) => entry.exportKind === "business-deck.pptx") ?? null,
-        deckTitle: deckOutline?.deckTitle ?? null,
-        deckSubtitle: deckOutline?.deckSubtitle ?? null,
-        audience: deckOutline?.audience ?? null,
-        slideCount: deckOutline?.slides.length ?? 0,
-        warnings: deckOutline?.deckWarnings ?? [],
-        preservationSummary: deckOutline
-          ? {
-            usedRankedConclusionCount: deckOutline.contentPreservationSummary.usedRankedConclusionCount,
-            usedReverseConditionCount: deckOutline.contentPreservationSummary.usedReverseConditionCount,
-            usedEvidenceGapCount: deckOutline.contentPreservationSummary.usedEvidenceGapCount,
-            usedReferenceCount: deckOutline.contentPreservationSummary.usedReferenceCount,
-            omittedItemCount: deckOutline.contentPreservationSummary.omittedItems.length,
-          }
-          : null,
-        slideSummaries: deckOutline?.slides.map((slide) => ({
-          slideNumber: slide.slideNumber,
-          slideType: slide.slideType,
-          title: slide.title,
-          headline: slide.headline,
-        })) ?? [],
-      }
-      : null,
+    businessDeck: buildBusinessDeckView({ exports: snapshot.exports, exportViews }),
     evidence: buildEvidenceViews({ timeline: snapshot.timeline, subQuestionById }),
     exports: exportViews,
   };
@@ -428,13 +203,13 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
 export const getDeepResearchAnalysisJob = (input: {
   dataDir: string;
   jobId: string;
-}): DeepResearchJobSnapshot | null => buildJobSnapshotForId(input.dataDir, input.jobId);
+}): DeepResearchJobSnapshot | null => buildJobSnapshotForIdSupport(input.dataDir, input.jobId);
 
 export const getLatestDeepResearchAnalysisJob = (input: {
   dataDir: string;
 }): DeepResearchJobSnapshot | null => {
   const latestJobId = readLatestJobId(input.dataDir);
-  return latestJobId ? buildJobSnapshotForId(input.dataDir, latestJobId) : null;
+  return latestJobId ? buildJobSnapshotForIdSupport(input.dataDir, latestJobId) : null;
 };
 
 export const getDeepResearchAnalysisTimeline = (input: {
