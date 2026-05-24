@@ -137,10 +137,13 @@ export type DeepResearchExportRecord = {
   fileHash: string;
   payloadHash: string;
   createdAt: string;
+  fileSizeBytes: number | null;
 };
 
 export type DeepResearchBusinessDeck = {
   generatedAt: string | null;
+  status: string;
+  generatedBy: string;
   outlineExport: DeepResearchExportRecord | null;
   pptxExport: DeepResearchExportRecord | null;
   deckTitle: string | null;

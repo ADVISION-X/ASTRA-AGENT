@@ -1,22 +1,17 @@
-import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
-import path from "node:path";
-
-import { stableJsonHash } from "../../lib/storage/hash.js";
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
-import { businessDeckSecretaryPrompt, renderDeepResearchBusinessDeckPrompt } from "./deep-research-analysis.deck-prompt.js";
-import { parseDeepResearchBusinessDeckOutlineResponseForFinalReport } from "./deep-research-analysis.deck-parser.js";
-import type { DeepResearchBusinessDeckOutline } from "./deep-research-analysis.deck-schema.js";
-import type { DeepResearchFinalReport, DeepResearchResult } from "./deep-research-analysis.result.js";
+import { renderDeepResearchBusinessPptArtifactPrompt, businessPptArtifactSecretaryPrompt } from "./deep-research-analysis.ppt-artifact-prompt.js";
+import {
+  buildBusinessPptArtifactOutputPath,
+  parseAndDownloadBusinessPptArtifact,
+  type DeepResearchBusinessPptArtifactRecord,
+} from "./deep-research-analysis.ppt-artifact-download.js";
+import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import {
   type AnalysisExecutionContext,
   type AnalysisFailure,
   finishPromptFailure,
 } from "./deep-research-analysis.analysis-support.js";
-
-const buildExportDir = (dataDir: string, jobId: string): string =>
-  path.join(dataDir, "deep-research-analysis", "exports", jobId);
 
 const buildEvidenceReferences = (input: {
   finalPackage: DeepResearchFinalPackage;
@@ -33,31 +28,9 @@ const buildEvidenceReferences = (input: {
   });
 };
 
-const buildTextHash = (value: string): string =>
-  "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
-
-const writeDeckOutlineArtifact = (input: {
-  context: AnalysisExecutionContext;
-  outline: DeepResearchBusinessDeckOutline;
-}) => {
-  const exportDir = buildExportDir(input.context.dataDir, input.context.jobId);
-  mkdirSync(exportDir, { recursive: true });
-  const filePath = path.join(exportDir, "business-deck-outline.json");
-  const fileText = `${JSON.stringify(input.outline, null, 2)}\n`;
-  writeFileSync(filePath, fileText, "utf8");
-  const fileHash = buildTextHash(fileText);
-  return input.context.store.saveExport({
-    jobId: input.context.jobId,
-    exportKind: "business-deck-outline.json",
-    filePath,
-    fileHash,
-    payload: input.outline,
-  });
-};
-
 type DeckSuccess = {
   ok: true;
-  outline: DeepResearchBusinessDeckOutline;
+  pptxArtifact: DeepResearchBusinessPptArtifactRecord;
 };
 
 export const runBusinessDeckPhase = async (
@@ -65,7 +38,8 @@ export const runBusinessDeckPhase = async (
   finalPackage: DeepResearchFinalPackage,
   finalReport: DeepResearchFinalReport,
 ): Promise<DeckSuccess | AnalysisFailure> => {
-  const result = await runPromptExchange<DeepResearchBusinessDeckOutline>({
+  const outputPath = buildBusinessPptArtifactOutputPath(context.dataDir, context.jobId);
+  const result = await runPromptExchange<DeepResearchBusinessPptArtifactRecord>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
@@ -74,9 +48,9 @@ export const runBusinessDeckPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: businessDeckSecretaryPrompt,
-    promptKey: "business-deck",
-    renderedPromptText: renderDeepResearchBusinessDeckPrompt({
+    prompt: businessPptArtifactSecretaryPrompt,
+    promptKey: "business-ppt-artifact",
+    renderedPromptText: renderDeepResearchBusinessPptArtifactPrompt({
       finalPackage,
       finalReport,
       evidenceReferences: buildEvidenceReferences({ finalPackage, finalReport }),
@@ -88,23 +62,40 @@ export const runBusinessDeckPhase = async (
     ],
     maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
-      send: "DECK_SEND",
-      capture: "DECK_CAPTURE",
-      parse: "DECK_PARSE",
-      persist: "DECK_PERSIST",
+      send: "DECK_PPT_SEND",
+      capture: "DECK_PPT_CAPTURE",
+      parse: "DECK_PPT_ARTIFACT_DETECT",
+      persist: "DECK_PPT_PERSIST",
     },
-    parse: (rawText) => parseDeepResearchBusinessDeckOutlineResponseForFinalReport({
-      rawText,
-      finalReport,
-    }),
+    parse: (rawText) => parseAndDownloadBusinessPptArtifact({ rawText, outputPath }),
     successRecordCount: () => 1,
-    persist: ({ parsed }) => {
-      const outlineExport = writeDeckOutlineArtifact({ context, outline: parsed });
-      context.recordHashes.deckOutlineHash = stableJsonHash(parsed);
-      context.recordHashes.deckOutlineExportHash = outlineExport.fileHash;
+    persist: ({ interaction, parsed }) => {
+      const deckExport = context.store.saveExport({
+        jobId: context.jobId,
+        exportKind: parsed.exportKind,
+        filePath: parsed.filePath,
+        fileHash: parsed.fileHash,
+        payload: {
+          jobId: context.jobId,
+          phaseId: "DECK_PPT_PERSIST",
+          promptId: businessPptArtifactSecretaryPrompt.promptId,
+          promptVersion: businessPptArtifactSecretaryPrompt.promptVersion,
+          rawAssistantText: interaction.rawResponseText,
+          artifactName: parsed.artifactName,
+          artifactMimeType: parsed.artifactMimeType,
+          filePath: parsed.filePath,
+          fileHash: parsed.fileHash,
+          fileSizeBytes: parsed.fileSizeBytes,
+          downloadedAt: parsed.downloadedAt,
+          exportKind: parsed.exportKind,
+          status: parsed.status,
+        },
+      });
+      context.recordHashes.deckAiPptxHash = parsed.fileHash;
+      context.recordHashes.deckAiPptxExportHash = deckExport.fileHash;
       return {
-        recordType: "business-deck-outline",
-        recordId: outlineExport.id,
+        recordType: "business-deck.ai-pptx",
+        recordId: deckExport.id,
         count: 1,
       };
     },
@@ -114,6 +105,6 @@ export const runBusinessDeckPhase = async (
   }
   return {
     ok: true,
-    outline: result.parsed,
+    pptxArtifact: result.parsed,
   };
 };

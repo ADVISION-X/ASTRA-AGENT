@@ -10,6 +10,8 @@ import type {
 declare const qs: (selector: string) => Element | null;
 declare const readJson: (url: string, options?: RequestInit) => Promise<unknown>;
 
+type JsonRecord = Record<string, unknown>;
+
 function readResearchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return readJson(url, options) as Promise<T>;
 }
@@ -26,6 +28,12 @@ function asArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
     : [];
+}
+
+function asRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as JsonRecord
+    : null;
 }
 
 function escapeText(value: unknown): string {
@@ -84,7 +92,11 @@ function exportActionLabel(kind: string): string {
   if (kind === "business-deck-outline.json") {
     return "Open Deck Outline";
   }
-  if (kind === "business-deck.pptx") {
+  if (
+    kind === "business-deck.pptx"
+    || kind === "business-deck.ai-pptx"
+    || kind === "business-deck.local-pptx"
+  ) {
     return "Download PPT";
   }
   return "Download evidence index";
@@ -119,6 +131,54 @@ function renderListSection(title: string, values: unknown, options: DeepResearch
     </section>`;
 }
 
+function readPayloadString(payload: JsonRecord, key: string): string {
+  const value = payload[key];
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+}
+
+function renderStructuredField(title: string, value: unknown, options: DeepResearchTextOptions = {}): string {
+  if (Array.isArray(value)) {
+    return renderListSection(title, value, {
+      emptyText: options.emptyText || "None recorded.",
+      previewCount: 5,
+    });
+  }
+  if (value && typeof value === "object") {
+    return renderJsonDetails(title, value, options.summaryLabel || "Show Structured JSON");
+  }
+  const textOptions: DeepResearchTextOptions = {
+    summaryLabel: options.summaryLabel || "More",
+    className: options.className || "response-pre",
+    previewLimit: options.previewLimit || 420,
+  };
+  if (options.emptyText) {
+    textOptions.emptyText = options.emptyText;
+  }
+  return renderExpandableText(title, value, {
+    ...textOptions,
+  });
+}
+
+function renderStructuredFields(payload: JsonRecord, fields: readonly {
+  key: string;
+  title: string;
+  emptyText?: string;
+}[]): string {
+  return fields
+    .filter((field) => {
+      const value = payload[field.key];
+      return Array.isArray(value)
+        ? value.length > 0
+        : value !== undefined && value !== null && String(value).trim().length > 0;
+    })
+    .map((field) => renderStructuredField(
+      field.title,
+      payload[field.key],
+      field.emptyText ? { emptyText: field.emptyText } : {},
+    ))
+    .join("");
+}
+
 function renderExpandableText(title: string, value: unknown, options: DeepResearchTextOptions = {}): string {
   const text = String(value ?? "").trim();
   if (!text) {
@@ -149,6 +209,116 @@ function renderJsonDetails(title: string, value: unknown, summaryLabel?: string)
     </section>`;
 }
 
+function renderDecompositionParsedResult(payload: JsonRecord): string {
+  const subQuestions = Array.isArray(payload.subQuestions)
+    ? payload.subQuestions.map((item) => asRecord(item)).filter((item): item is JsonRecord => Boolean(item))
+    : [];
+  return `
+    <section class="research-parsed-panel">
+      <div class="research-parsed-head">
+        <h3>Parsed Decomposition</h3>
+        ${renderMetaRow([
+          readPayloadString(payload, "questionType"),
+          subQuestions.length ? `${subQuestions.length} subquestions` : null,
+        ])}
+      </div>
+      ${renderStructuredField("Main Question", payload.mainQuestion)}
+      ${renderStructuredField("Decomposition Strategy", payload.decompositionStrategy)}
+      ${renderListSection("Missing Info", payload.missingInfo, { emptyText: "No missing information recorded.", previewCount: 5 })}
+      ${subQuestions.length ? `
+        <div class="research-parsed-list">
+          ${subQuestions.map((question, index) => `
+            <article class="research-parsed-item">
+              <div class="research-parsed-item-head">
+                <b>Q${escapeText(index + 1)} ${escapeText(readPayloadString(question, "title") || readPayloadString(question, "id"))}</b>
+                ${renderMetaRow([
+                  readPayloadString(question, "decisionWeight"),
+                  readPayloadString(question, "priority"),
+                ])}
+              </div>
+              ${renderStructuredField("Question", readPayloadString(question, "questionText"))}
+              ${renderStructuredField("Why It Matters", readPayloadString(question, "whyItMatters"))}
+              ${renderStructuredField("Analysis Focus", readPayloadString(question, "analysisFocus"))}
+              ${renderListSection("Required Evidence", question.requiredEvidence, { emptyText: "No required evidence recorded.", previewCount: 4 })}
+            </article>`).join("")}
+        </div>` : ""}
+    </section>`;
+}
+
+function renderAnalysisParsedResult(payload: JsonRecord, title: string): string {
+  return `
+    <section class="research-parsed-panel">
+      <div class="research-parsed-head">
+        <h3>${escapeText(title)}</h3>
+        ${renderMetaRow([
+          readPayloadString(payload, "subQuestionId"),
+          readPayloadString(payload, "confidence"),
+        ])}
+      </div>
+      ${renderStructuredFields(payload, [
+        { key: "answer", title: "Answer" },
+        { key: "coreFinding", title: "Core Finding" },
+        { key: "impactOnFinalAdjudication", title: "Impact On Final Adjudication" },
+        { key: "falsificationSummary", title: "Falsification Summary" },
+      ])}
+      <div class="research-summary-grid">
+        ${renderListSection("Key Claims", payload.keyClaims ?? payload.claims ?? payload.keyPoints, { emptyText: "No key claims recorded.", previewCount: 5 })}
+        ${renderListSection("Supporting Reasons", payload.supportingReasons ?? payload.reasons, { emptyText: "No supporting reasons recorded.", previewCount: 5 })}
+        ${renderListSection("Evidence Mentions", payload.evidenceMentions, { emptyText: "No evidence mentions recorded.", previewCount: 5 })}
+        ${renderListSection("Failure Cases", payload.failureCases ?? payload.failureModes, { emptyText: "No failure cases recorded.", previewCount: 5 })}
+        ${renderListSection("Assumptions", payload.assumptions, { emptyText: "No assumptions recorded.", previewCount: 5 })}
+        ${renderListSection("Limitations", payload.limitations, { emptyText: "No limitations recorded.", previewCount: 5 })}
+        ${renderListSection("Uncertainties", payload.uncertainties, { emptyText: "No uncertainties recorded.", previewCount: 5 })}
+      </div>
+    </section>`;
+}
+
+function renderFinalParsedResult(payload: JsonRecord): string {
+  const rankedConclusions = Array.isArray(payload.rankedConclusions)
+    ? payload.rankedConclusions.map((item) => {
+      const record = asRecord(item);
+      return record ? `${record.rank ? `#${String(record.rank)} ` : ""}${String(record.conclusion ?? "")}`.trim() : "";
+    }).filter(Boolean)
+    : [];
+  return `
+    <section class="research-parsed-panel">
+      <div class="research-parsed-head">
+        <h3>Parsed Final Adjudication</h3>
+        ${renderMetaRow([
+          readPayloadString(payload, "confidence"),
+          readPayloadString(payload, "finalVerdict"),
+        ])}
+      </div>
+      ${renderStructuredField("Direct Answer", payload.directAnswer ?? payload.executiveConclusion)}
+      ${renderStructuredField("One Sentence Decision", payload.oneSentenceDecision)}
+      <div class="research-summary-grid">
+        ${renderListSection("Ranked Conclusions", rankedConclusions, { emptyText: "No ranked conclusions recorded.", previewCount: 5 })}
+        ${renderListSection("Decisive Reasons", payload.decisiveReasons ?? payload.positiveReasons, { emptyText: "No decisive reasons recorded.", previewCount: 5 })}
+        ${renderListSection("Weak Or Rejected Claims", payload.weakOrRejectedClaims ?? payload.strongestOpposingArguments, { emptyText: "No rejected claims recorded.", previewCount: 5 })}
+        ${renderListSection("Reverse Conditions", payload.reverseConditions, { emptyText: "No reverse conditions recorded.", previewCount: 5 })}
+        ${renderListSection("Evidence Gaps", payload.evidenceGaps, { emptyText: "No evidence gaps recorded.", previewCount: 5 })}
+        ${renderListSection("Limitations", payload.limitations, { emptyText: "No limitations recorded.", previewCount: 5 })}
+      </div>
+    </section>`;
+}
+
+function renderStructuredParsedResult(title: string, value: unknown): string {
+  const payload = asRecord(value);
+  if (!payload) {
+    return renderJsonDetails(title, value, "Show Parsed Result");
+  }
+  if (Array.isArray(payload.subQuestions)) {
+    return renderDecompositionParsedResult(payload);
+  }
+  if (payload.directAnswer || payload.executiveConclusion || payload.finalVerdict) {
+    return renderFinalParsedResult(payload);
+  }
+  if (payload.answer || payload.coreFinding || payload.falsificationSummary) {
+    return renderAnalysisParsedResult(payload, title);
+  }
+  return renderJsonDetails(title, value, "Show Parsed Result");
+}
+
 function renderExportButtons(exports: readonly DeepResearchExportRecord[]): string {
   if (!exports.length) {
     return "";
@@ -171,14 +341,10 @@ function renderInteractionDebug(interaction: DeepResearchEvidence | DeepResearch
       className: "response-pre",
       forceDetails: true,
     }),
-    renderJsonDetails("Parsed Result", interaction.parsedJson, "Show Parsed Result"),
+    renderStructuredParsedResult("Parsed Result", interaction.parsedJson),
+    renderJsonDetails("Parsed Result JSON", interaction.parsedJson, "Show Parsed Result"),
   ].join("");
   return `<details class="research-debug-root"><summary>Interaction Evidence</summary>${body}</details>`;
-}
-
-function readPayloadString(payload: Record<string, unknown>, key: string): string {
-  const value = payload[key];
-  return typeof value === "string" ? value.trim() : "";
 }
 
 function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, emptyText: string): string {
@@ -231,6 +397,7 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
       ${renderListSection("Assumptions", block.assumptions, { emptyText: "No assumptions recorded." })}
       ${uncertainties.length ? renderListSection("Uncertainties", uncertainties, { emptyText: "No uncertainties recorded." }) : ""}
       ${renderListSection("Limitations", block.limitations, { emptyText: "No limitations recorded." })}
+      ${renderStructuredParsedResult("Parsed Answer Structure", block.parsedPayload)}
       ${renderInteractionDebug(block.interaction)}
     </article>`;
 }
@@ -294,55 +461,18 @@ function syncFormVisibility(state: DeepResearchClientState, hasSelectedReport: b
 }
 
 export const deepResearchClientSharedRuntime = {
-  readResearchJson,
-  researchQuery,
-  researchJson,
-  asArray,
-  escapeText,
-  setResearchHtml,
-  toggleResearchHidden,
-  normalizeText,
-  formatDateTime,
-  formatStatusLabel,
-  exportActionLabel,
-  renderStatusBadge,
-  renderConfidenceBadge,
-  renderMetaRow,
-  renderListSection,
-  renderExpandableText,
-  renderJsonDetails,
-  renderExportButtons,
-  renderInteractionDebug,
-  readPayloadString,
-  renderAnswerCard,
-  renderHistory,
-  renderEmptyReader,
-  syncFormVisibility,
+  readResearchJson, researchQuery, researchJson, asArray, escapeText, setResearchHtml, toggleResearchHidden,
+  normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge, renderConfidenceBadge,
+  renderMetaRow, renderListSection, renderExpandableText, renderJsonDetails, renderExportButtons,
+  renderInteractionDebug, readPayloadString, renderStructuredParsedResult, renderAnswerCard, renderHistory,
+  renderEmptyReader, syncFormVisibility,
 } as const;
 
 export const deepResearchClientSharedFunctions = [
-  readResearchJson,
-  researchQuery,
-  researchJson,
-  asArray,
-  escapeText,
-  setResearchHtml,
-  toggleResearchHidden,
-  normalizeText,
-  formatDateTime,
-  formatStatusLabel,
-  exportActionLabel,
-  renderStatusBadge,
-  renderConfidenceBadge,
-  renderMetaRow,
-  renderListSection,
-  renderExpandableText,
-  renderJsonDetails,
-  renderExportButtons,
-  renderInteractionDebug,
-  readPayloadString,
-  renderAnswerCard,
-  renderHistory,
-  renderEmptyReader,
-  syncFormVisibility,
+  readResearchJson, researchQuery, researchJson, asArray, asRecord, escapeText, setResearchHtml,
+  toggleResearchHidden, normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge,
+  renderConfidenceBadge, renderMetaRow, renderListSection, readPayloadString, renderStructuredField,
+  renderStructuredFields, renderExpandableText, renderJsonDetails, renderDecompositionParsedResult,
+  renderAnalysisParsedResult, renderFinalParsedResult, renderStructuredParsedResult, renderExportButtons,
+  renderInteractionDebug, renderAnswerCard, renderHistory, renderEmptyReader, syncFormVisibility,
 ] as const;

@@ -36,9 +36,8 @@ Deep Research Analysis 是 GrassEye 的一个固定业务 Job Flow。
   -> 分析回答入库
   -> 最终裁决包构建
   -> 最终裁决报告
-  -> 商业 PPT 文秘书理
-  -> Deck Outline 入库
-  -> PPTX 导出
+  -> Business PPT Secretary 生成 AI PPTX 工件
+  -> PPTX 下载、hash、export record 入库
   -> 最终报告与 Deck 工件导出
 ```
 
@@ -1235,6 +1234,7 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 - secretary 通过 omittedItems 声称省略 ranked conclusion、reverse condition、evidence gap、limitation 或 reference。
 - 用 schema 默认值掩盖缺失的 deckWarnings、omittedItems、evidenceRefs。
 - 让 parser 接受新增 verdict、削弱 confidence、删除关键限制项的 outline。
+- 本法条仅约束 local fallback outline 路径；不得阻断 AI-generated PPT artifact 主流程。
 
 ---
 
@@ -1264,6 +1264,7 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 - 无 outline 直接伪造 PPTX export 记录。
 - PPTX 失败后静默吞掉 deck failure。
 - 只生成文件但不保存 export record/hash。
+- 本法条仅约束 local fallback artifact；AI-generated PPT artifact 主流程不得要求 outline 存在。
 
 ---
 
@@ -1294,3 +1295,125 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 - Business Deck 抢到最终结论卡之前。
 - 只在 raw JSON 里暴露 deck 信息。
 - 静默隐藏 outline-only failure 或 deck warnings。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-025-V1] AI-generated Business PPT Artifact 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-025-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+ast+artifact+acceptance",
+  "summary": "The final business deck stage must use advanced AI to generate the primary downloadable PowerPoint artifact; local template PPT generation is not the primary business deck path."
+}
+```
+
+#### 必须
+
+- 默认 deck mode 必须是 `ai_pptx_artifact`。
+- 最后 `+1` 的主产物必须是 AI web session 生成并下载的 `.pptx` 文件。
+- 主成功 exportKind 必须是 `business-deck.ai-pptx`。
+- Business PPT prompt 必须要求 AI 生成 downloadable PowerPoint file。
+
+#### 禁止
+
+- 默认主流程继续要求 GPT 返回 JSON deck outline。
+- 默认主流程把本地 template PPT 生成当作 Business PPT 成功。
+- 用 `business-deck-outline.json` 作为主成功前置条件。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-026-V1] Delivery-only Runtime 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-026-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "artifact+db+hash+runtime-log+acceptance",
+  "summary": "The final PPT runtime is delivery-only: send complete decision materials, wait for AI completion, detect/download/persist PPTX, and expose it without slide-level semantic re-judgment."
+}
+```
+
+#### 必须
+
+- Runtime 只负责发送完整决策材料、等待 AI 完成、检测 `.pptx` artifact、下载、校验扩展名/大小、计算 hash、保存 export record、供 UI 展示。
+- 下载成功必须记录 filePath、fileHash、fileSizeBytes、downloadedAt、status = `deck_pptx_ai_generated`。
+- 无文件必须记录 `deck_pptx_artifact_missing`。
+- 下载失败必须记录 `deck_pptx_download_failed`。
+- 非 PPTX 或空文件必须记录 `deck_pptx_invalid_file`。
+
+#### 禁止
+
+- 对 AI PPT 主流程做 slide-level semantic validation。
+- 因 `business_deck_limitations_not_preserved` 或类似内容保留 validator 阻断 AI PPT artifact 成功。
+- GPT 已生成 PPTX 但系统不下载或不保存 hash。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-027-V1] Prompt-governed PPT Content Boundary 主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-027-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+acceptance+ast",
+  "summary": "PPT content preservation must be governed by prompt instructions to the AI, not brittle slide-content validators."
+}
+```
+
+#### Prompt 必须声明
+
+- You are not a researcher.
+- You are not a final adjudicator.
+- You are not allowed to conduct deeper research.
+- You are not allowed to change the final judgment.
+- You are not allowed to add new facts.
+- You are not allowed to add new sources.
+- You are not allowed to remove or distort the original content.
+- Do not remove risks, limitations, evidence gaps, reverse conditions, rejected claims, or references.
+- Create a downloadable PowerPoint file (.pptx).
+- Do not output only JSON, markdown, or outline.
+
+#### 禁止
+
+- 依赖死代码逐页裁判 PPT 内容完整性作为主流程完成条件。
+- Prompt 弱化最终裁决、置信度、风险、限制、证据缺口、反转条件或 references。
+
+---
+
+### [GRASSEYE-DEEP-RESEARCH-028-V1] Local PPT Generator Fallback 降级主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-028-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "db+artifact+ui+acceptance+ast",
+  "summary": "Local template PPT generation may exist only as fallback and must be explicitly demoted from AI-generated business PPT success."
+}
+```
+
+#### 必须
+
+- Local fallback 只能在 AI PPT artifact missing/download failed 且配置允许时运行。
+- fallback status 必须记录 `deck_local_fallback_used`。
+- fallback exportKind 必须是 `business-deck.local-pptx`。
+- UI 必须明确显示 `Local fallback PPT generated`。
+
+#### 禁止
+
+- local fallback 显示为 AI-generated PPT。
+- local fallback 使用 `business-deck.ai-pptx`。
+- local fallback 掩盖 AI PPT missing/download failed。

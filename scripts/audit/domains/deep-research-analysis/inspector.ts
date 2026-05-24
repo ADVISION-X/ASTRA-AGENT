@@ -10,20 +10,23 @@ import {
 } from "./inspector-constants.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { buildDeepResearchAuditFiles, type DeepResearchAuditFiles } from "./inspector-file-map.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectConfidenceContract } from "./components/scan-confidence-contract.js";
 import { inspectBusinessDeckGovernance } from "./components/scan-business-deck-governance.js";
+import { inspectAiPptArtifactFlow } from "./components/scan-ai-ppt-artifact-flow.js";
+import { inspectBusinessPptPromptBoundary } from "./components/scan-business-ppt-prompt-boundary.js";
 import { inspectDecompositionPromptV2 } from "./components/scan-decomposition-prompt-v2.js";
 import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
 import { inspectGatewayRawCaptureBoundary } from "./components/scan-gateway-raw-capture-boundary.js";
+import { inspectLocalPptFallbackDemotion } from "./components/scan-local-ppt-fallback-demotion.js";
+import { inspectNoDeckOutlinePrimary } from "./components/scan-no-deck-outline-primary.js";
+import { inspectPptArtifactDownload } from "./components/scan-ppt-artifact-download.js";
 import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
 import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
 import { inspectSubQuestionFaultIsolation } from "./components/scan-sub-question-fault-isolation.js";
 import { inspectSubQuestionPersistenceIdentity } from "./components/scan-sub-question-persistence-identity.js";
 import { inspectWebChatProviderHandoff } from "./components/scan-web-chat-provider-handoff.js";
-
-const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
-  context.project.getSourceFile(resolveFromRepo(repoPath));
 
 const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyName: string): string | null => {
   const property = objectLiteral.getProperty(propertyName);
@@ -291,31 +294,6 @@ const inspectRegressionFixtures = (
   }
 };
 
-type DeepResearchAuditFiles = {
-  promptFile: SourceFile | undefined;
-  parserFile: SourceFile | undefined;
-  flowFile: SourceFile | undefined;
-  analysisRunnerFile: SourceFile | undefined;
-  queryFile: SourceFile | undefined;
-  contractFile: SourceFile | undefined;
-  regressionFile: SourceFile | undefined;
-  promptsFile: SourceFile | undefined;
-  qualityFile: SourceFile | undefined;
-  schemaFile: SourceFile | undefined;
-  recordsFile: SourceFile | undefined;
-  deckPromptFile: SourceFile | undefined;
-  deckSchemaFile: SourceFile | undefined;
-  deckParserFile: SourceFile | undefined;
-  deckStageFile: SourceFile | undefined;
-  exportFile: SourceFile | undefined;
-  decompositionAcceptanceFile: SourceFile | undefined;
-  smokeFile: SourceFile | undefined;
-  businessDeckAcceptanceFile: SourceFile | undefined;
-  deckSecretaryBoundaryAcceptanceFile: SourceFile | undefined;
-  deckArtifactsAcceptanceFile: SourceFile | undefined;
-  ciFullFile: SourceFile | undefined;
-};
-
 type DeepResearchStaticRulesInput = {
   context: InspectorContext;
   sourceFiles: readonly SourceFile[];
@@ -423,6 +401,41 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });
+  inspectAiPptArtifactFlow({
+    context: input.context,
+    deckStageFile: input.files.deckStageFile,
+    schemaFile: input.files.schemaFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+  });
+  inspectBusinessPptPromptBoundary({
+    context: input.context,
+    promptFile: input.files.pptArtifactPromptFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+  });
+  inspectPptArtifactDownload({
+    context: input.context,
+    detectorFile: input.files.aiPptDetectorFile,
+    downloadFile: input.files.aiPptDownloadFile,
+    exportFile: input.files.exportFile,
+    recordContractsFile: input.files.recordContractsFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+  });
+  inspectLocalPptFallbackDemotion({
+    context: input.context,
+    exportFile: input.files.exportFile,
+    uiFile: input.files.clientReportSectionsFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+  });
+  inspectNoDeckOutlinePrimary({
+    context: input.context,
+    deckStageFile: input.files.deckStageFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+  });
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
@@ -438,30 +451,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   sourceFiles.forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
 
   inspectRequiredFiles(findings, inspectedFiles, lawId);
-  const files: DeepResearchAuditFiles = {
-    promptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
-    parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts"),
-    flowFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts"),
-    analysisRunnerFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts"),
-    queryFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts"),
-    contractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts"),
-    regressionFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"),
-    promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
-    qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),
-    schemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts"),
-    recordsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.records.ts"),
-    deckPromptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts"),
-    deckSchemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts"),
-    deckParserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts"),
-    deckStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts"),
-    exportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.export.ts"),
-    decompositionAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts"),
-    smokeFile: getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts"),
-    businessDeckAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-business-deck.acceptance.ts"),
-    deckSecretaryBoundaryAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-deck-secretary-boundary.acceptance.ts"),
-    deckArtifactsAcceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-deck-artifacts.acceptance.ts"),
-    ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
-  };
+  const files = buildDeepResearchAuditFiles(context);
   Object.values(files).forEach((sourceFile) => {
     if (sourceFile) {
       inspectedFiles.add(getRepoSourcePath(sourceFile));

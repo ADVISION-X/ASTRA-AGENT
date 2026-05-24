@@ -238,11 +238,20 @@ const persistBusinessDeckPptx = async (input: {
   exportDir: string;
   jobId: string;
   store: DeepResearchRecordStore;
+  existingExports: readonly ResearchExport[];
   persistedDeckOutline: {
     exportRecord: ResearchExport;
     outline: DeepResearchBusinessDeckOutline;
   } | null;
 }): Promise<Pick<DeepResearchExportArtifacts, "businessDeckPptx" | "status" | "failureReason">> => {
+  const aiPptxExport = input.existingExports.find((record) => record.exportKind === "business-deck.ai-pptx");
+  if (aiPptxExport) {
+    return {
+      businessDeckPptx: aiPptxExport,
+      status: "completed",
+      failureReason: null,
+    };
+  }
   if (!input.persistedDeckOutline) {
     return {
       businessDeckPptx: null,
@@ -259,16 +268,17 @@ const persistBusinessDeckPptx = async (input: {
     return {
       businessDeckPptx: input.store.saveExport({
         jobId: input.jobId,
-        exportKind: "business-deck.pptx",
+        exportKind: "business-deck.local-pptx",
         filePath: pptxFilePath,
         fileHash: buildBinaryHash(pptxBuffer),
         payload: {
           slideCount: input.persistedDeckOutline.outline.slides.length,
           outlineExportId: input.persistedDeckOutline.exportRecord.id,
           warnings: input.persistedDeckOutline.outline.deckWarnings,
+          status: "deck_local_fallback_used",
         },
       }),
-      status: "completed",
+      status: "deck_export_partial",
       failureReason: null,
     };
   } catch (error) {
@@ -339,6 +349,7 @@ export const exportDeepResearchArtifacts = async (input: {
     exportDir,
     jobId: input.jobId,
     store: input.store,
+    existingExports: persisted.exports,
     persistedDeckOutline: prepared.persistedDeckOutline,
   });
   const savedArtifacts = savePreparedExportRecords({

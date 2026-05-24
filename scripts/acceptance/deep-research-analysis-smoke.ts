@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -16,6 +16,7 @@ import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/dee
 import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 import type {
   AiProviderAdapter,
+  AiProviderAdapterContext,
   AiProviderRawResponse,
 } from "../../src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.js";
 import type {
@@ -133,128 +134,13 @@ const FIXTURE_RESPONSES = [
     multiStageValueAdded: ["Independent analysis separated local findings before the final adjudication."],
     limitations: ["This smoke uses deterministic fixture responses rather than a live provider."],
   }),
-  JSON.stringify({
-    deckTitle: "Robotics Warehouse Entry Decision Deck",
-    deckSubtitle: "Default 1+N+1+1 decision presentation",
-    audience: "executive",
-    sourceDecisionPackageId: "fixture-decision-package",
-    sourceFinalReportId: "fixture-final-report",
-    verdictPreservationCheck: {
-      directAnswerPreserved: true,
-      finalVerdictPreserved: true,
-      confidencePreserved: true,
-      rankedConclusionsPreserved: true,
-      reverseConditionsPreserved: true,
-      evidenceGapsPreserved: true,
-      limitationsPreserved: true,
-      noNewFactsAdded: true,
-    },
-    slides: [
-      {
-        slideNumber: 1,
-        slideType: "cover",
-        title: "Warehouse Entry Decision",
-        headline: "Staged partner-led beachhead is the only supported entry path.",
-        bullets: ["Use the final adjudication unchanged.", "Do not broaden scope before validation."],
-        visualSuggestion: "Title slide with decision banner.",
-        speakerNotes: "Open with the decision and remind the room this deck preserves the adjudicated answer.",
-        evidenceRefs: ["automation capex plans"],
-        mustNotDrop: ["conditional verdict"],
-      },
-      {
-        slideNumber: 2,
-        slideType: "decision",
-        title: "One-Sentence Decision",
-        headline: "Enter only through a staged partner-led beachhead.",
-        bullets: ["Demand is durable enough for evaluation.", "Execution only works with a narrow launch."],
-        visualSuggestion: "Decision card with confidence badge.",
-        speakerNotes: "State the direct answer exactly once and anchor confidence as medium.",
-        evidenceRefs: ["automation capex plans", "integration benchmarks"],
-        mustNotDrop: ["directAnswer", "confidence"],
-      },
-      {
-        slideNumber: 3,
-        slideType: "ranking",
-        title: "Ranked Conclusions",
-        headline: "Demand survives scrutiny, but execution narrows the launch shape.",
-        bullets: ["Demand remains durable enough to support entry evaluation.", "A broad immediate rollout remains rejected."],
-        visualSuggestion: "Ranked bar list.",
-        speakerNotes: "Tie the ranked conclusion directly to the final verdict.",
-        evidenceRefs: ["automation capex plans"],
-        mustNotDrop: ["ranked conclusions", "weak or rejected claims"],
-      },
-      {
-        slideNumber: 4,
-        slideType: "logic_map",
-        title: "Why This Judgment Wins",
-        headline: "Demand support and constrained execution together define the winning path.",
-        bullets: ["Demand support is real in labor-constrained warehouses.", "Partner-led delivery reduces execution load."],
-        visualSuggestion: "Logic map from demand to staged launch.",
-        speakerNotes: "Explain how the sub-question answers converge on the conditional verdict.",
-        evidenceRefs: ["automation capex plans", "partner rollout model"],
-        mustNotDrop: ["decisive reasons"],
-      },
-      {
-        slideNumber: 5,
-        slideType: "risk",
-        title: "Risks And Reverse Conditions",
-        headline: "Weak partner execution or broad scope would reverse the thesis.",
-        bullets: ["If partner execution quality is weak, reverse the thesis.", "A broad immediate rollout is not justified."],
-        visualSuggestion: "Risk matrix.",
-        speakerNotes: "Keep reverse conditions explicit; do not soften them.",
-        evidenceRefs: ["partner rollout model"],
-        mustNotDrop: ["reverse conditions"],
-      },
-      {
-        slideNumber: 6,
-        slideType: "limitation",
-        title: "Evidence Gaps And Limitations",
-        headline: "The deck must preserve remaining evidence gaps and fixture limitations.",
-        bullets: ["Partner deployment quality still needs live validation.", "This smoke uses deterministic fixture responses rather than a live provider."],
-        visualSuggestion: "Gap list.",
-        speakerNotes: "Say clearly what still needs validation.",
-        evidenceRefs: ["partner rollout model"],
-        mustNotDrop: ["evidence gaps", "limitations"],
-      },
-      {
-        slideNumber: 7,
-        slideType: "signal",
-        title: "Follow-Up Signals",
-        headline: "Track proof of execution quality in the first deployments.",
-        bullets: ["Track partner deployment time-to-value in the first customer accounts."],
-        visualSuggestion: "Signal tracker.",
-        speakerNotes: "Follow-up signals convert the thesis into a monitoring plan.",
-        evidenceRefs: ["partner rollout model"],
-        mustNotDrop: ["follow-up signals"],
-      },
-      {
-        slideNumber: 8,
-        slideType: "reference",
-        title: "References",
-        headline: "Every decision slide traces back to the persisted research record.",
-        bullets: ["automation capex plans", "integration benchmarks", "partner rollout model"],
-        visualSuggestion: "Reference appendix.",
-        speakerNotes: "Close with the supporting reference set.",
-        evidenceRefs: ["automation capex plans", "integration benchmarks", "partner rollout model"],
-        mustNotDrop: ["references"],
-      },
-    ],
-    deckWarnings: [],
-    contentPreservationSummary: {
-      usedRankedConclusionCount: 1,
-      usedReverseConditionCount: 1,
-      usedEvidenceGapCount: 1,
-      usedReferenceCount: 3,
-      omittedItems: [],
-    },
-  }),
+  "fixture-pptx-artifact",
 ] as const;
 
 const REQUIRED_SMOKE_EXPORTS = [
   "final-report.md",
   "decision-package.json",
-  "business-deck-outline.json",
-  "business-deck.pptx",
+  "business-deck.ai-pptx",
   "evidence-index.json",
 ] as const;
 
@@ -269,10 +155,15 @@ class SequentialFixtureAdapter implements AiProviderAdapter {
 
   private cursor = 0;
 
-  async feed(input: AiFeedInput): Promise<AiProviderRawResponse> {
-    const rawText = FIXTURE_RESPONSES[this.cursor];
+  async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+    let rawText = FIXTURE_RESPONSES[this.cursor];
     if (!rawText) {
       throw new Error(`No fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
+    }
+    if (rawText === "fixture-pptx-artifact") {
+      const artifactPath = path.join(context.dataDir, "fixture-business-deck.pptx");
+      writeFileSync(artifactPath, Buffer.from("fixture pptx bytes"));
+      rawText = `PPTX_ARTIFACT_PATH=${artifactPath}`;
     }
     this.cursor += 1;
     return {
@@ -304,7 +195,7 @@ const verifySmokeUsesRealSurfaces = (): void => {
 };
 
 const verifySmokeCoverageDelegation = (): void => {
-  assert(REQUIRED_SMOKE_EXPORTS.length === 5, "Smoke must keep explicit export artifact verification coverage.");
+  assert(REQUIRED_SMOKE_EXPORTS.length === 4, "Smoke must keep explicit export artifact verification coverage.");
   assert(REQUIRED_SMOKE_RUNTIME_SIGNALS.length === 3, "Smoke must keep explicit runtime signal verification coverage.");
   assert(typeof verifyPersistedResearchState === "function", "Smoke must delegate persisted-state assertions to the support verifier.");
 };

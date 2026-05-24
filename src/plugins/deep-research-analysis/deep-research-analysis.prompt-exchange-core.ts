@@ -158,6 +158,10 @@ const startPromptSend = (input: {
       const sendStage = input.stageLogger.start({ ...startFields, stageName: "DECK_SEND" });
       return finishStartedPromptSend(sendStage, input);
     }
+    case "DECK_PPT_SEND": {
+      const sendStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PPT_SEND" });
+      return finishStartedPromptSend(sendStage, input);
+    }
     default:
       throw new Error(`Unsupported Deep Research send stage ${input.stage}.`);
   }

@@ -275,7 +275,11 @@ export const getDeepResearchExportArtifact = (input: {
         textContent: readFileSync(exported.filePath, "utf8"),
       };
     }
-    if (input.kind === "business-deck.pptx") {
+    if (
+      input.kind === "business-deck.pptx"
+      || input.kind === "business-deck.ai-pptx"
+      || input.kind === "business-deck.local-pptx"
+    ) {
       return {
         jobId: input.jobId,
         kind: input.kind,

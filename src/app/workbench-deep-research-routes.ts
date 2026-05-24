@@ -25,6 +25,8 @@ const DEEP_RESEARCH_EXPORT_KINDS = [
   "decision-package.json",
   "business-deck-outline.json",
   "business-deck.pptx",
+  "business-deck.ai-pptx",
+  "business-deck.local-pptx",
   "evidence-index.json",
 ] as const;
 

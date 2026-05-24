@@ -453,7 +453,7 @@ async function main(): Promise<void> {
     });
 
     assert.equal(finalPackage.flowMode, "default_1_n_1_1", "Deck artifact fixture must stay on default_1_n_1_1.");
-    assert.equal(artifacts.status, "completed", "Deck artifacts export must complete without partial deck failure.");
+    assert.equal(artifacts.status, "deck_export_partial", "Local deck generator must be demoted to fallback status.");
     assert(artifacts.businessDeckOutline, "Deck export must return the persisted outline record.");
     assert(artifacts.businessDeckPptx, "Deck export must return a PPTX export record.");
     assert.equal(artifacts.businessDeckOutline?.filePath, outlinePath, "Deck outline path must stay stable.");
@@ -463,9 +463,9 @@ async function main(): Promise<void> {
 
     const persistedExports = store.listExports(job.id);
     const outlineExport = persistedExports.find((record) => record.exportKind === "business-deck-outline.json");
-    const pptxExport = persistedExports.find((record) => record.exportKind === "business-deck.pptx");
+    const pptxExport = persistedExports.find((record) => record.exportKind === "business-deck.local-pptx");
     assert(outlineExport, "Record store must contain the business deck outline export.");
-    assert(pptxExport, "Record store must contain the business deck PPTX export.");
+    assert(pptxExport, "Record store must contain the local fallback business deck PPTX export.");
     assert(outlineExport?.fileHash.startsWith("sha256:"), "Stored deck outline export must persist a file hash.");
     assert(pptxExport?.fileHash.startsWith("sha256:"), "Stored deck PPTX export must persist a file hash.");
     assert(outlineExport?.payloadHash.startsWith("sha256:"), "Stored deck outline export must persist a payload hash.");

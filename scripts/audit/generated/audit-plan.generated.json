@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T03:35:34.131Z",
+  "generatedAt": "2026-05-24T13:35:42.342Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -188,7 +188,11 @@
         "GRASSEYE-DEEP-RESEARCH-021-V1",
         "GRASSEYE-DEEP-RESEARCH-022-V1",
         "GRASSEYE-DEEP-RESEARCH-023-V1",
-        "GRASSEYE-DEEP-RESEARCH-024-V1"
+        "GRASSEYE-DEEP-RESEARCH-024-V1",
+        "GRASSEYE-DEEP-RESEARCH-025-V1",
+        "GRASSEYE-DEEP-RESEARCH-026-V1",
+        "GRASSEYE-DEEP-RESEARCH-027-V1",
+        "GRASSEYE-DEEP-RESEARCH-028-V1"
       ],
       "clauseIds": [
         "primary"
@@ -196,10 +200,12 @@
       "evidenceModes": [
         "acceptance+runtime-log+db+artifact",
         "app-shell+acceptance+ast",
+        "artifact+db+hash+runtime-log+acceptance",
         "ast+schema",
         "db+artifact+hash",
         "db+artifact+hash+acceptance",
         "db+artifact+hash+acceptance+ast",
+        "db+artifact+ui+acceptance+ast",
         "db+schema",
         "dom+artifact+hash",
         "dom+parser+db",
@@ -212,7 +218,9 @@
         "law+ast+schema+db+runtime-log",
         "law+schema+ast+db+artifact+acceptance",
         "parser+db+runtime-log",
+        "prompt+acceptance+ast",
         "prompt+ast+acceptance+db",
+        "prompt+ast+artifact+acceptance",
         "runtime-log+audit",
         "schema+parser+acceptance"
       ],

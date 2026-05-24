@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T03:35:49.641Z",
+  "generatedAt": "2026-05-24T13:35:55.850Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,7 +23,11 @@
     "GRASSEYE-DEEP-RESEARCH-021-V1",
     "GRASSEYE-DEEP-RESEARCH-022-V1",
     "GRASSEYE-DEEP-RESEARCH-023-V1",
-    "GRASSEYE-DEEP-RESEARCH-024-V1"
+    "GRASSEYE-DEEP-RESEARCH-024-V1",
+    "GRASSEYE-DEEP-RESEARCH-025-V1",
+    "GRASSEYE-DEEP-RESEARCH-026-V1",
+    "GRASSEYE-DEEP-RESEARCH-027-V1",
+    "GRASSEYE-DEEP-RESEARCH-028-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -38,6 +42,9 @@
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "scripts/acceptance/deep-research-report-export.acceptance.ts",
     "scripts/audit/ci-full.ts",
+    "src/app/workbench-deep-research-client-report-sections.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-artifact-detector.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-artifact-download.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
@@ -51,7 +58,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
@@ -69,6 +75,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-download.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { statSync } from "node:fs";
 
 import { createDeepResearchRecordStore } from "./deep-research-analysis.records.js";
 import type {
@@ -103,6 +104,12 @@ const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string => 
   }
   if (exportKind === "business-deck.pptx") {
     return "Business deck PPTX";
+  }
+  if (exportKind === "business-deck.ai-pptx") {
+    return "AI-generated business PPT";
+  }
+  if (exportKind === "business-deck.local-pptx") {
+    return "Local fallback business PPT";
   }
   return "Evidence index";
 };
@@ -334,6 +341,13 @@ export const buildReportExportViews = (
   fileHash: record.fileHash,
   payloadHash: record.payloadHash,
   createdAt: record.createdAt,
+  fileSizeBytes: (() => {
+    try {
+      return statSync(record.filePath).size;
+    } catch {
+      return null;
+    }
+  })(),
 }));
 
 export const buildEvidenceViews = (input: {

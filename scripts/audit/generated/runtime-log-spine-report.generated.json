@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-24T03:35:49.270Z",
+  "generatedAt": "2026-05-24T13:35:55.513Z",
   "status": "PASS",
-  "scannedFiles": 292,
+  "scannedFiles": 296,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -37,8 +37,11 @@
     "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-artifact-detector.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-artifact-download.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-download-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
@@ -206,7 +209,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-pptx.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
@@ -224,6 +226,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-download.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",
@@ -314,7 +318,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 292,
+    "scannedFiles": 296,
     "emitCallCount": 12,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -325,7 +329,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 287,
+      "scannedFiles": 291,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -334,13 +338,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 237
+      "scannedFiles": 241
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 234,
+      "scannedFiles": 238,
       "metrics": {
         "emitCallCount": 2
       }
@@ -349,13 +353,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 234
+      "scannedFiles": 238
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 238,
+      "scannedFiles": 242,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -370,7 +374,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 238,
+      "scannedFiles": 242,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -391,7 +395,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 37
+      "scannedFiles": 40
     },
     {
       "name": "browser-action-log-contract",

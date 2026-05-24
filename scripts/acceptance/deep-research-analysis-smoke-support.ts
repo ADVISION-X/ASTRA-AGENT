@@ -23,10 +23,10 @@ const REQUIRED_STAGE_NAMES = [
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
   "FINAL_ADJUDICATION_PERSIST",
-  "DECK_SEND",
-  "DECK_CAPTURE",
-  "DECK_PARSE",
-  "DECK_PERSIST",
+  "DECK_PPT_SEND",
+  "DECK_PPT_CAPTURE",
+  "DECK_PPT_ARTIFACT_DETECT",
+  "DECK_PPT_PERSIST",
   "EXPORT_REPORT",
 ] as const;
 
@@ -123,28 +123,21 @@ const verifyPersistedExports = (
   jobId: string,
 ): void => {
   const exports = store.listExports(jobId);
-  assert(exports.length === 5, `Expected 5 export records, received ${exports.length}.`);
+  assert(exports.length === 4, `Expected 4 export records, received ${exports.length}.`);
 
   const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
   const decisionPackageExport = exports.find((record) => record.exportKind === "decision-package.json");
-  const deckOutlineExport = exports.find((record) => record.exportKind === "business-deck-outline.json");
-  const deckPptxExport = exports.find((record) => record.exportKind === "business-deck.pptx");
+  const deckPptxExport = exports.find((record) => record.exportKind === "business-deck.ai-pptx");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
   if (!finalReportExport) throw new Error("Missing final-report.md export record.");
   if (!decisionPackageExport) throw new Error("Missing decision-package.json export record.");
-  if (!deckOutlineExport) throw new Error("Missing business-deck-outline.json export record.");
-  if (!deckPptxExport) throw new Error("Missing business-deck.pptx export record.");
+  if (!deckPptxExport) throw new Error("Missing business-deck.ai-pptx export record.");
   if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
   assert(existsSync(finalReportExport.filePath), "final-report.md file was not written.");
   assert(existsSync(decisionPackageExport.filePath), "decision-package.json file was not written.");
-  assert(existsSync(deckOutlineExport.filePath), "business-deck-outline.json file was not written.");
-  assert(existsSync(deckPptxExport.filePath), "business-deck.pptx file was not written.");
+  assert(existsSync(deckPptxExport.filePath), "business-deck.ai-pptx file was not written.");
   assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
-
-  const deckOutline = parseJsonFile<{ slides: unknown[]; audience: string }>(deckOutlineExport.filePath);
-  assert(deckOutline.audience === "executive", "Deck outline must preserve the audience field.");
-  assert(deckOutline.slides.length === 8, "Deck outline must persist all required slide categories.");
 
   const evidenceIndex = parseJsonFile<Array<{ interactionId: string; parsedRecordId?: string }>>(evidenceExport.filePath);
   assert(evidenceIndex.length >= 5, `Expected at least 5 evidence index rows, received ${evidenceIndex.length}.`);

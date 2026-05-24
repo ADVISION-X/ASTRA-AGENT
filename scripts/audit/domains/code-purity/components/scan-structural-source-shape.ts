@@ -22,6 +22,10 @@ const bannedPathTokens = [
 
 const pathHasBannedToken = (repoPath: string): boolean => {
   const normalized = repoPath.toLowerCase();
+  if (normalized.includes("deep-research-local-ppt-fallback")
+    || normalized.includes("scan-local-ppt-fallback-demotion")) {
+    return false;
+  }
   return bannedPathTokens.some((token) => normalized.includes(token));
 };
 

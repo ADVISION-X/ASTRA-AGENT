@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import { Node, Project, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import {
-  DEEP_RESEARCH_BUSINESS_DECK_OUTPUT_CONTRACT_ID,
-  businessDeckSecretaryPrompt,
-} from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.js";
+  DEEP_RESEARCH_BUSINESS_PPT_ARTIFACT_CONTRACT_ID,
+  businessPptArtifactSecretaryPrompt,
+} from "../../src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.js";
+import {
+  parseDeepResearchBusinessDeckOutlineResponseForFinalReport,
+} from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-parser.js";
 import {
   DeepResearchBusinessDeckOutlineSchema,
 } from "../../src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.js";
@@ -48,20 +51,28 @@ const schemaFile = source("src/plugins/deep-research-analysis/deep-research-anal
 const finalPackageFile = source("src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts");
 
 assert(
-  businessDeckSecretaryPrompt.promptId === "deep-research.business-deck-secretary",
-  "Business deck prompt must expose the secretary promptId.",
+  businessPptArtifactSecretaryPrompt.promptId === "deep-research.business-ppt-artifact-secretary",
+  "Business PPT prompt must expose the artifact secretary promptId.",
 );
 assert(
-  businessDeckSecretaryPrompt.promptVersion === "v1.0.0",
-  "Business deck prompt must stay on v1.0.0.",
+  businessPptArtifactSecretaryPrompt.promptVersion === "v1.0.0",
+  "Business PPT prompt must stay on v1.0.0.",
 );
 assert(
-  businessDeckSecretaryPrompt.expectedOutputContract.contractId === DEEP_RESEARCH_BUSINESS_DECK_OUTPUT_CONTRACT_ID,
-  "Business deck prompt must expose the required output contract id.",
+  businessPptArtifactSecretaryPrompt.expectedOutputContract.contractId === DEEP_RESEARCH_BUSINESS_PPT_ARTIFACT_CONTRACT_ID,
+  "Business PPT prompt must expose the required output contract id.",
+);
+assert(
+  businessPptArtifactSecretaryPrompt.expectedOutputContract.format === "pptx_artifact",
+  "Business PPT prompt must require a pptx artifact output.",
+);
+assert(
+  typeof parseDeepResearchBusinessDeckOutlineResponseForFinalReport === "function",
+  "Old deck outline parser must remain reachable only for local fallback support.",
 );
 assert(
   typeof DeepResearchBusinessDeckOutlineSchema.safeParse === "function",
-  "Business deck outline schema must exist.",
+  "Old deck outline schema must remain reachable only for local fallback support.",
 );
 
 assert(
@@ -78,7 +89,7 @@ assert(
 );
 
 const schemaText = schemaFile.getFullText();
-for (const stage of ["DECK_SEND", "DECK_CAPTURE", "DECK_PARSE", "DECK_PERSIST"] as const) {
+for (const stage of ["DECK_PPT_SEND", "DECK_PPT_CAPTURE", "DECK_PPT_ARTIFACT_DETECT", "DECK_PPT_DOWNLOAD", "DECK_PPT_PERSIST"] as const) {
   assert(schemaText.includes(stage), `Deep Research phase schema must include ${stage}.`);
 }
 assert(schemaText.includes('"deck"'), "Deep Research interaction phases must include deck.");
@@ -93,12 +104,12 @@ assert(finalReportIndex >= 0, "runAnalysisPhases must call runFinalReportPhase."
 assert(businessDeckIndex > finalReportIndex, "Business deck stage must run after final adjudication.");
 assert(completeIndex > businessDeckIndex, "Export completion must run after the business deck stage.");
 
-const renderPromptArgument = getObjectLiteralArgument(deckStageFile, "renderDeepResearchBusinessDeckPrompt");
+const renderPromptArgument = getObjectLiteralArgument(deckStageFile, "renderDeepResearchBusinessPptArtifactPrompt");
 const renderPromptFields = readPropertyNames(renderPromptArgument).sort();
 assert.deepEqual(
   renderPromptFields,
   ["evidenceReferences", "finalPackage", "finalReport", "language"],
-  "Deck prompt render input must be limited to decision package, final adjudication, evidence refs, and language.",
+  "PPT artifact prompt render input must be limited to decision package, final adjudication, evidence refs, and language.",
 );
 
 const runPromptExchangeArgument = getObjectLiteralArgument(deckStageFile, "runPromptExchange");
@@ -122,8 +133,12 @@ assert(
 );
 
 assert(
-  deckStageFile.getFullText().includes("parseDeepResearchBusinessDeckOutlineResponseForFinalReport"),
-  "Deck stage must use the source-aware business deck parser.",
+  deckStageFile.getFullText().includes("parseAndDownloadBusinessPptArtifact"),
+  "Deck stage must detect and download the AI-generated PPTX artifact.",
+);
+assert(
+  !deckStageFile.getFullText().includes("parseDeepResearchBusinessDeckOutlineResponseForFinalReport"),
+  "Primary deck stage must not require the old deck outline parser.",
 );
 
 process.stdout.write("[ACCEPTANCE][deep-research-business-deck] PASS\n");

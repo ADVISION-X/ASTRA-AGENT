@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T03:35:34.131Z",
+  "generatedAt": "2026-05-24T13:35:42.342Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1115,6 +1115,50 @@
       "summary": "Workbench must expose Business Deck as a delivery section after the Decision Card, with honest missing/failure states and explicit open/download actions for persisted artifacts.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 20
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-025-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt+ast+artifact+acceptance",
+      "summary": "The final business deck stage must use advanced AI to generate the primary downloadable PowerPoint artifact; local template PPT generation is not the primary business deck path.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 21
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-026-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "artifact+db+hash+runtime-log+acceptance",
+      "summary": "The final PPT runtime is delivery-only: send complete decision materials, wait for AI completion, detect/download/persist PPTX, and expose it without slide-level semantic re-judgment.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 22
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-027-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt+acceptance+ast",
+      "summary": "PPT content preservation must be governed by prompt instructions to the AI, not brittle slide-content validators.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 23
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-028-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "db+artifact+ui+acceptance+ast",
+      "summary": "Local template PPT generation may exist only as fallback and must be explicitly demoted from AI-generated business PPT success.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 24
     },
     {
       "lawId": "APEX-DOM-001-V1",

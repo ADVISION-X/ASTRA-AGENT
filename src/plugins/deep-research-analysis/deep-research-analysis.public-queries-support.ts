@@ -287,37 +287,69 @@ export const buildReportSubQuestionState = (snapshot: DeepResearchTimelineSnapsh
   };
 };
 
+const selectBusinessDeckPptxExport = (
+  exports: DeepResearchTimelineSnapshot["exports"],
+): ResearchExport | null =>
+  exports.find((entry) => entry.exportKind === "business-deck.ai-pptx")
+  ?? exports.find((entry) => entry.exportKind === "business-deck.local-pptx")
+  ?? exports.find((entry) => entry.exportKind === "business-deck.pptx")
+  ?? null;
+
+const resolveBusinessDeckStatus = (
+  exportKind: ResearchExport["exportKind"] | null,
+): Pick<NonNullable<DeepResearchReportViewModel["businessDeck"]>, "status" | "generatedBy"> => {
+  if (exportKind === "business-deck.ai-pptx") {
+    return { status: "ai_generated", generatedBy: "AI PPT Artifact" };
+  }
+  if (exportKind) {
+    return { status: "local_fallback", generatedBy: "Local fallback" };
+  }
+  return { status: "outline_only", generatedBy: "Deck outline only" };
+};
+
+const buildBusinessDeckOutlineView = (deckOutline: DeepResearchBusinessDeckOutline | null) => ({
+  deckTitle: deckOutline?.deckTitle ?? "Business PPT",
+  deckSubtitle: deckOutline?.deckSubtitle ?? null,
+  audience: deckOutline?.audience ?? null,
+  slideCount: deckOutline?.slides.length ?? 0,
+  warnings: deckOutline?.deckWarnings ?? [],
+  preservationSummary: deckOutline ? {
+    usedRankedConclusionCount: deckOutline.contentPreservationSummary.usedRankedConclusionCount,
+    usedReverseConditionCount: deckOutline.contentPreservationSummary.usedReverseConditionCount,
+    usedEvidenceGapCount: deckOutline.contentPreservationSummary.usedEvidenceGapCount,
+    usedReferenceCount: deckOutline.contentPreservationSummary.usedReferenceCount,
+    omittedItemCount: deckOutline.contentPreservationSummary.omittedItems.length,
+  } : null,
+  slideSummaries: (deckOutline?.slides ?? []).map((slide) => ({
+    slideNumber: slide.slideNumber,
+    slideType: slide.slideType,
+    title: slide.title,
+    headline: slide.headline,
+  })),
+});
+
 export const buildBusinessDeckView = (input: {
   exports: DeepResearchTimelineSnapshot["exports"];
   exportViews: ReturnType<typeof buildReportExportViews>;
 }) => {
   const outlineExport = input.exports.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null;
-  const pptxExport = input.exports.find((entry) => entry.exportKind === "business-deck.pptx") ?? null;
-  if (!outlineExport) {
+  const pptxExport = selectBusinessDeckPptxExport(input.exports);
+  const pptxView = pptxExport
+    ? input.exportViews.find((entry) => entry.exportKind === pptxExport.exportKind) ?? null
+    : null;
+  const outlineView = input.exportViews.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null;
+  if (!outlineExport && !pptxExport) {
     return null;
   }
-  const deckOutline = JSON.parse(readFileSync(outlineExport.filePath, "utf8")) as DeepResearchBusinessDeckOutline;
+  const deckStatus = resolveBusinessDeckStatus(pptxExport?.exportKind ?? null);
+  const deckOutline = outlineExport
+    ? JSON.parse(readFileSync(outlineExport.filePath, "utf8")) as DeepResearchBusinessDeckOutline
+    : null;
   return {
-    generatedAt: pptxExport?.createdAt ?? outlineExport.createdAt,
-    outlineExport: input.exportViews.find((entry) => entry.exportKind === "business-deck-outline.json") ?? null,
-    pptxExport: input.exportViews.find((entry) => entry.exportKind === "business-deck.pptx") ?? null,
-    deckTitle: deckOutline.deckTitle,
-    deckSubtitle: deckOutline.deckSubtitle ?? null,
-    audience: deckOutline.audience,
-    slideCount: deckOutline.slides.length,
-    warnings: deckOutline.deckWarnings,
-    preservationSummary: {
-      usedRankedConclusionCount: deckOutline.contentPreservationSummary.usedRankedConclusionCount,
-      usedReverseConditionCount: deckOutline.contentPreservationSummary.usedReverseConditionCount,
-      usedEvidenceGapCount: deckOutline.contentPreservationSummary.usedEvidenceGapCount,
-      usedReferenceCount: deckOutline.contentPreservationSummary.usedReferenceCount,
-      omittedItemCount: deckOutline.contentPreservationSummary.omittedItems.length,
-    },
-    slideSummaries: deckOutline.slides.map((slide) => ({
-      slideNumber: slide.slideNumber,
-      slideType: slide.slideType,
-      title: slide.title,
-      headline: slide.headline,
-    })),
+    generatedAt: pptxExport?.createdAt ?? outlineExport?.createdAt ?? null,
+    ...deckStatus,
+    outlineExport: outlineView,
+    pptxExport: pptxView,
+    ...buildBusinessDeckOutlineView(deckOutline),
   };
 };

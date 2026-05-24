@@ -29,6 +29,8 @@ const ResearchExportKindSchema = z.enum([
   "decision-package.json",
   "business-deck-outline.json",
   "business-deck.pptx",
+  "business-deck.ai-pptx",
+  "business-deck.local-pptx",
   "evidence-index.json",
 ]);
 

@@ -145,10 +145,13 @@ export type DeepResearchExportView = {
   fileHash: string;
   payloadHash: string;
   createdAt: string;
+  fileSizeBytes: number | null;
 };
 
 export type DeepResearchBusinessDeckView = {
   generatedAt: string | null;
+  status: "ai_generated" | "local_fallback" | "outline_only";
+  generatedBy: "AI PPT Artifact" | "Local fallback" | "Deck outline only";
   outlineExport: DeepResearchExportView | null;
   pptxExport: DeepResearchExportView | null;
   deckTitle: string | null;

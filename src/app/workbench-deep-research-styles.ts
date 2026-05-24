@@ -1,8 +1,5 @@
 const WORKBENCH_DEEP_RESEARCH_STYLES = `
-.research-shell {
-  display: grid;
-  gap: 14px;
-}
+.research-shell { display: grid; gap: 14px; }
 .research-shell.hidden,
 .research-empty-state.hidden,
 .research-report.hidden { display: none; }
@@ -403,12 +400,15 @@ textarea {
   border-top: 3px solid rgba(22, 116, 95, 0.38);
   background: linear-gradient(180deg, #ffffff, #fbfcf8);
 }
-.research-copy-block,
-.research-analysis-card,
-.research-conflict-card {
-  display: grid;
-  gap: 10px;
+.research-copy-block, .research-analysis-card, .research-conflict-card, .research-parsed-panel, .research-parsed-list, .research-parsed-item {
+  display: grid; gap: 10px;
 }
+.research-parsed-panel { border: 1px solid rgba(22, 116, 95, 0.18); border-radius: 8px; background: #f7fbf9; padding: 12px; }
+.research-parsed-head, .research-parsed-item-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+.research-parsed-head h3, .research-parsed-item h4 { margin: 0; }
+.research-parsed-item { border: 1px solid var(--line); border-left: 3px solid rgba(22, 116, 95, 0.28); border-radius: 8px; background: #fff; padding: 12px; }
 .research-list {
   margin: 0;
   padding-left: 18px;
@@ -494,6 +494,5 @@ textarea {
   .research-side {
     grid-template-columns: 1fr;
   }
-}
-`;
+}`;
 export const renderWorkbenchDeepResearchStyles = (): string => WORKBENCH_DEEP_RESEARCH_STYLES;

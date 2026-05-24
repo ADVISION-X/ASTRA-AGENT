@@ -30,9 +30,9 @@ Deep Research Analysis
   -> 构建 Final Adjudication Package
   -> 发送最终裁决请求
   -> DOM 读取最终裁决报告
-  -> Business Deck Secretary 整理商业 PPT
-  -> 入库 deck outline
-  -> 导出 final-report 与 PPTX 工件
+  -> Business PPT Secretary 直接生成可下载 PPTX
+  -> 系统下载、hash、入库 export record
+  -> 导出 final-report 与 AI PPTX 工件
 ```
 
 一句话：
@@ -154,8 +154,8 @@ Decomposition
 6. 系统构建 Final Adjudication Package。
 7. Final Adjudication Prompt 必须裁决原问题。
 8. 系统保存 final adjudication。
-9. Business Deck Secretary 只基于 persisted decision package 与 final adjudication 生成 outline。
-10. 导出链写入 final-report.md、business-deck-outline.json、business-deck.pptx 与 evidence/debug。
+9. Business PPT Secretary 只基于 persisted decision package 与 final adjudication 生成 downloadable PPTX artifact。
+10. 系统只下载并保存 AI 生成的 PPTX，写入 final-report.md、business-deck.ai-pptx 与 evidence/debug。
 
 默认流程不再机械执行 positive/falsification pair。
 
@@ -194,6 +194,65 @@ Business Deck Secretary 是最终裁决后的格式化阶段，它需要完整�
 该阶段不得使用 `45_000` 字符上限；调用 AI Input Gateway 时必须使用 `Number.MAX_SAFE_INTEGER` 作为 no-GrassEye-text-ceiling sentinel。
 GPT Web Chat 自身可把长输入处理成文件，GrassEye 不在此阶段额外截断、压缩或拒绝文本 prompt。
 敏感信息排除、文件数量/大小、timeout、cooldown、tab ownership、provider proof 和 raw output proof 仍由 AI Input Gateway 负责。
+
+## 最后 +1：AI 生成商业 PPT，系统只做交付搬运工
+
+默认 Business Deck 主流程改为 AI PPT artifact generation：
+
+```txt
+Final Adjudication completed
+-> Build PPT prompt package
+-> Send to GPT Web
+-> GPT generates downloadable .pptx
+-> Detect PPTX artifact
+-> Download PPTX
+-> Persist business-deck.ai-pptx export
+-> UI shows Open PPT / Download PPT
+```
+
+最后一个 `+1` 的身份是：
+
+```txt
+Business PPT Secretary
+```
+
+它不是研究员，不是裁判，不是二次分析器，不是本地模板大纲生成器。Prompt 负责约束 AI 不重新研究、不改变最终判断、不新增事实、不遗漏风险/限制/证据缺口/反转条件/被拒绝观点/references；AI 负责直接生成专业商业 PPTX；系统只负责交付层检测、下载、保存、hash、export record 和 UI 展示。
+
+明确废除默认主流程：
+
+```txt
+GPT JSON outline -> local hard-coded PPT template
+```
+
+该旧路径只能作为 fallback：
+
+```txt
+AI PPT artifact missing or download failed
+-> optional local fallback
+-> status = deck_local_fallback_used
+-> exportKind = business-deck.local-pptx
+```
+
+主成功条件：
+
+```txt
+status = deck_pptx_ai_generated
+exportKind = business-deck.ai-pptx
+filePath exists
+file extension = .pptx
+fileSizeBytes > 0
+fileHash persisted
+```
+
+不得把以下状态当作 AI PPT completed：
+
+```txt
+deck_local_fallback_used
+deck_export_partial
+deck_pptx_artifact_missing
+deck_pptx_download_failed
+deck_pptx_invalid_file
+```
 
 ### 3.3 Workbench 展示契约
 

@@ -12,14 +12,15 @@ const clientSections = read(clientReportSectionsPath);
 const clientBoot = read(clientBootPath);
 
 assert(reportView.includes("data-deep-research-business-deck"), "Report view must contain the Business Deck section.");
-assert(clientSections.includes("Business Deck"), "Client sections must render the Business Deck heading.");
+assert(clientSections.includes("Business PPT"), "Client sections must render the Business PPT heading.");
 assert(clientSections.includes("Open PPT"), "Client sections must expose Open PPT.");
 assert(clientSections.includes("Download PPT"), "Client sections must expose Download PPT.");
 assert(clientSections.includes("Open Deck Outline"), "Client sections must expose Open Deck Outline.");
 assert(clientSections.includes("Deck Warnings"), "Client sections must expose Deck Warnings.");
 assert(clientSections.includes("Generated At"), "Client sections must expose Generated At.");
 assert(clientSections.includes("Deck not generated"), "Client sections must expose the missing-deck state.");
-assert(clientSections.includes("Outline ready, PPTX generation failed"), "Client sections must expose the outline-only failure state.");
+assert(clientSections.includes("Local fallback PPT generated"), "Client sections must expose the local fallback state.");
+assert(clientSections.includes("AI-generated PPT"), "Client sections must expose the AI-generated state.");
 assert(clientBoot.includes("data-deep-research-open-export"), "Client boot must handle open-export deck actions.");
 assert(clientBoot.includes("openDeepResearchExport"), "Client boot must expose openDeepResearchExport.");
 

@@ -175,8 +175,7 @@ const inspectSmokeExportAssertions = (input: {
   for (const exportFile of [
     "final-report.md",
     "decision-package.json",
-    "business-deck-outline.json",
-    "business-deck.pptx",
+    "business-deck.ai-pptx",
     "evidence-index.json",
   ]) {
     if (hasStringLiteral(input.smokeFile, exportFile)) {

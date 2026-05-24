@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -8,6 +8,7 @@ import {
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import type {
   AiProviderAdapter,
+  AiProviderAdapterContext,
   AiProviderRawResponse,
 } from "../../src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
@@ -116,127 +117,18 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
       multiStageValueAdded: ["The job preserved one usable analysis instead of collapsing at the first parser error."],
       limitations: ["The fixture only proves one failed and one successful analysis."],
     }),
-    JSON.stringify({
-      deckTitle: "Fault Isolation Decision Deck",
-      deckSubtitle: "One failed analysis did not kill the run",
-      audience: "internal",
-      sourceDecisionPackageId: "fault-isolation-package",
-      sourceFinalReportId: "fault-isolation-report",
-      verdictPreservationCheck: {
-        directAnswerPreserved: true,
-        finalVerdictPreserved: true,
-        confidencePreserved: true,
-        rankedConclusionsPreserved: true,
-        reverseConditionsPreserved: true,
-        evidenceGapsPreserved: true,
-        limitationsPreserved: true,
-        noNewFactsAdded: true,
-      },
-      slides: [
-        {
-          slideNumber: 1,
-          slideType: "cover",
-          title: "Fault Isolation",
-          headline: "The run continues after one malformed analysis response.",
-          bullets: ["One analysis failed locally.", "A later analysis still persisted."],
-          visualSuggestion: "Cover banner.",
-          speakerNotes: "State the continuity proof.",
-          evidenceRefs: ["failed interaction"],
-          mustNotDrop: ["local analysis failure"],
-        },
-        {
-          slideNumber: 2,
-          slideType: "decision",
-          title: "Decision",
-          headline: "Proceed with a review-minded conclusion because one analysis is missing but another completed.",
-          bullets: ["Final verdict: conditional.", "Confidence: medium.", "Keep the missing-analysis gap explicit.", "Do not pretend the run was perfect."],
-          visualSuggestion: "Decision card.",
-          speakerNotes: "Preserve the conditional verdict.",
-          evidenceRefs: ["persisted answer row"],
-          mustNotDrop: ["conditional verdict"],
-        },
-        {
-          slideNumber: 3,
-          slideType: "ranking",
-          title: "Ranked Conclusions",
-          headline: "At least one independent analysis completed successfully.",
-          bullets: ["The final adjudicator still had lawful material to work with."],
-          visualSuggestion: "Ranked list.",
-          speakerNotes: "Explain why completion remained lawful.",
-          evidenceRefs: ["persisted answer row"],
-          mustNotDrop: ["ranked conclusions"],
-        },
-        {
-          slideNumber: 4,
-          slideType: "logic_map",
-          title: "Why The Run Survived",
-          headline: "Later valid analysis preserved the job-flow chain.",
-          bullets: ["The second analysis still executes.", "The runtime continues after the first malformed response."],
-          visualSuggestion: "Simple logic path.",
-          speakerNotes: "Tie parser isolation to job continuity.",
-          evidenceRefs: ["runtime stage logs"],
-          mustNotDrop: ["continued execution"],
-        },
-        {
-          slideNumber: 5,
-          slideType: "risk",
-          title: "Risks And Reverse Conditions",
-          headline: "If later sub-questions also fail, final adjudication should no longer proceed.",
-          bullets: ["If later sub-questions also fail, the final adjudication should no longer proceed.", "A full provider outage would still stop all questions."],
-          visualSuggestion: "Risk strip.",
-          speakerNotes: "Make the reverse condition explicit.",
-          evidenceRefs: ["runtime stage logs"],
-          mustNotDrop: ["reverse conditions"],
-        },
-        {
-          slideNumber: 6,
-          slideType: "limitation",
-          title: "Evidence Gaps And Limitations",
-          headline: "The failed sub-question remains an explicit gap.",
-          bullets: ["Missing structured independent analysis record for the failed sub-question.", "The fixture only proves one failed and one successful analysis."],
-          visualSuggestion: "Gap list.",
-          speakerNotes: "Do not hide the missing analysis gap.",
-          evidenceRefs: ["failed interaction"],
-          mustNotDrop: ["evidence gaps", "limitations"],
-        },
-        {
-          slideNumber: 7,
-          slideType: "signal",
-          title: "Follow-Up Signals",
-          headline: "Track missingAnalysisSubQuestionIds in the final package.",
-          bullets: ["Monitor whether later sub-questions still persist after one parse failure."],
-          visualSuggestion: "Signal tracker.",
-          speakerNotes: "Turn the continuity proof into an observable runtime signal.",
-          evidenceRefs: ["runtime stage logs"],
-          mustNotDrop: ["follow-up signals"],
-        },
-        {
-          slideNumber: 8,
-          slideType: "reference",
-          title: "References",
-          headline: "All slides trace back to persisted runtime evidence.",
-          bullets: ["failed interaction", "runtime stage logs", "persisted answer row"],
-          visualSuggestion: "Reference appendix.",
-          speakerNotes: "Close with the persisted evidence trail.",
-          evidenceRefs: ["failed interaction", "runtime stage logs", "persisted answer row"],
-          mustNotDrop: ["references"],
-        },
-      ],
-      deckWarnings: [],
-      contentPreservationSummary: {
-        usedRankedConclusionCount: 1,
-        usedReverseConditionCount: 1,
-        usedEvidenceGapCount: 1,
-        usedReferenceCount: 3,
-        omittedItems: [],
-      },
-    }),
+    "fixture-pptx-artifact",
   ] as const;
 
-  async feed(input: AiFeedInput): Promise<AiProviderRawResponse> {
-    const rawText = this.responses[this.cursor];
+  async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+    let rawText = this.responses[this.cursor];
     if (!rawText) {
       throw new Error(`No fault-isolation fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
+    }
+    if (rawText === "fixture-pptx-artifact") {
+      const artifactPath = path.join(context.dataDir, "fault-isolation-business-deck.pptx");
+      writeFileSync(artifactPath, Buffer.from("fault isolation pptx bytes"));
+      rawText = `PPTX_ARTIFACT_PATH=${artifactPath}`;
     }
     this.cursor += 1;
     return {

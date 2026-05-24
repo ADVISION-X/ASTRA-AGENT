@@ -9,6 +9,7 @@ type BusinessDeckFiles = {
   schemaFile: SourceFile | undefined;
   recordsFile: SourceFile | undefined;
   deckPromptFile: SourceFile | undefined;
+  pptArtifactPromptFile: SourceFile | undefined;
   deckSchemaFile: SourceFile | undefined;
   deckParserFile: SourceFile | undefined;
   deckStageFile: SourceFile | undefined;
@@ -59,7 +60,7 @@ const inspectBusinessDeckFlow = (input: BusinessDeckGovernanceInput): void => {
     addFinding(input, lawId, "deep-research/deck-default-flow-mode", "src/plugins/deep-research-analysis/deep-research-analysis.records.ts", "New Deep Research jobs must default to flowMode = default_1_n_1_1.");
   }
   const schemaText = input.files.schemaFile?.getFullText() ?? "";
-  for (const stage of ["DECK_SEND", "DECK_CAPTURE", "DECK_PARSE", "DECK_PERSIST"] as const) {
+  for (const stage of ["DECK_PPT_SEND", "DECK_PPT_CAPTURE", "DECK_PPT_ARTIFACT_DETECT", "DECK_PPT_PERSIST"] as const) {
     if (!schemaText.includes(stage)) {
       addFinding(input, lawId, "deep-research/deck-phase-stage", "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts", `Deep Research schema must expose ${stage} for the business deck phase.`);
     }
@@ -81,19 +82,19 @@ const inspectBusinessDeckFlow = (input: BusinessDeckGovernanceInput): void => {
 
 const inspectBusinessDeckSecretaryBoundary = (input: BusinessDeckGovernanceInput): void => {
   const lawId = selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-021-V1");
-  markInspected(input, [input.files.deckPromptFile, input.files.deckStageFile, input.files.deckSecretaryBoundaryAcceptanceFile]);
-  const promptText = input.files.deckPromptFile?.getFullText() ?? "";
-  for (const marker of ["You are not a researcher.", "You are not allowed to change the final judgment.", "You are not allowed to introduce new facts.", "Return the JSON object now."]) {
+  markInspected(input, [input.files.pptArtifactPromptFile, input.files.deckStageFile, input.files.deckSecretaryBoundaryAcceptanceFile]);
+  const promptText = input.files.pptArtifactPromptFile?.getFullText() ?? "";
+  for (const marker of ["You are not a researcher.", "You are not allowed to change the final judgment.", "You are not allowed to add new facts.", "Create a downloadable PowerPoint file (.pptx)."]) {
     if (!promptText.includes(marker)) {
-      addFinding(input, lawId, "deep-research/deck-secretary-prompt", "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts", `Business deck prompt must include secretary boundary marker: ${marker}.`);
+      addFinding(input, lawId, "deep-research/deck-secretary-prompt", "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts", `Business PPT prompt must include secretary boundary marker: ${marker}.`);
     }
   }
   if (promptText.includes("Expected output contract JSON")) {
-    addFinding(input, lawId, "deep-research/deck-secretary-contract-leak", "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts", "Business deck prompt render must not append the output contract JSON into the live model prompt.");
+    addFinding(input, lawId, "deep-research/deck-secretary-contract-leak", "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts", "Business PPT prompt render must not append the output contract JSON into the live model prompt.");
   }
   const deckStageText = input.files.deckStageFile?.getFullText() ?? "";
-  if (!deckStageText.includes("parseDeepResearchBusinessDeckOutlineResponseForFinalReport")) {
-    addFinding(input, lawId, "deep-research/deck-source-aware-parse", "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts", "Business deck stage must use the source-aware final-report parser.");
+  if (!deckStageText.includes("parseAndDownloadBusinessPptArtifact")) {
+    addFinding(input, lawId, "deep-research/deck-source-aware-parse", "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts", "Business deck stage must detect and download the AI PPTX artifact.");
   }
   if (!(input.files.ciFullFile?.getFullText() ?? "").includes("acceptance:deep-research-deck-secretary-boundary")) {
     addFinding(input, lawId, "deep-research/deck-secretary-ci", "scripts/audit/ci-full.ts", "ci:full must execute acceptance:deep-research-deck-secretary-boundary.");
@@ -121,7 +122,7 @@ const inspectBusinessDeckArtifactExport = (input: BusinessDeckGovernanceInput): 
   const lawId = selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-023-V1");
   markInspected(input, [input.files.exportFile, input.files.deckArtifactsAcceptanceFile]);
   const exportText = input.files.exportFile?.getFullText() ?? "";
-  for (const marker of ['"business-deck-outline.json"', '"business-deck.pptx"', "generateDeepResearchBusinessDeckPptx", 'status: "deck_export_partial"', 'exportKind: "business-deck.pptx"']) {
+  for (const marker of ['"business-deck.ai-pptx"', '"business-deck.local-pptx"', "generateDeepResearchBusinessDeckPptx", 'status: "deck_export_partial"', 'exportKind: "business-deck.local-pptx"']) {
     if (!exportText.includes(marker)) {
       addFinding(input, lawId, "deep-research/deck-artifact-export", "src/plugins/deep-research-analysis/deep-research-analysis.export.ts", `Business deck export pipeline must preserve marker: ${marker}.`);
     }
@@ -137,13 +138,13 @@ const inspectBusinessDeckArtifactExport = (input: BusinessDeckGovernanceInput): 
 const inspectBusinessDeckNoRejudgment = (input: BusinessDeckGovernanceInput): void => {
   const lawId = selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-024-V1");
   const deckStageText = input.files.deckStageFile?.getFullText() ?? "";
-  const promptText = input.files.deckPromptFile?.getFullText() ?? "";
-  if (!deckStageText.includes("renderDeepResearchBusinessDeckPrompt({")) {
+  const promptText = input.files.pptArtifactPromptFile?.getFullText() ?? "";
+  if (!deckStageText.includes("renderDeepResearchBusinessPptArtifactPrompt({")) {
     addFinding(input, lawId, "deep-research/deck-render-call", "src/plugins/deep-research-analysis/deep-research-analysis.deck-stage.ts", "Business deck stage must render the secretary prompt from persisted decision inputs.");
   }
-  for (const forbiddenMarker of ["workflow", "nextAction", "browserCommand"]) {
+  for (const forbiddenMarker of ["unsupportedResearchExpansion", "contentRejudgment", "slideSemanticValidation"]) {
     if (!promptText.includes(forbiddenMarker)) {
-      addFinding(input, lawId, "deep-research/deck-forbidden-control-field", "src/plugins/deep-research-analysis/deep-research-analysis.deck-prompt.ts", `Business deck prompt contract must forbid ${forbiddenMarker}.`);
+      addFinding(input, lawId, "deep-research/deck-forbidden-control-field", "src/plugins/deep-research-analysis/deep-research-analysis.ppt-artifact-prompt.ts", `Business deck prompt contract must forbid ${forbiddenMarker}.`);
     }
   }
   const parserText = input.files.deckParserFile?.getFullText() ?? "";
