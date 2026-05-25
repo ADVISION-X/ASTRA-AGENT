@@ -309,6 +309,14 @@ fileSizeBytes > 0
 fileHash persisted
 ```
 
+实测下载规则（2026-05-25）：
+
+- ChatGPT 生成的可下载 HTML artifact 在聊天正文中可见为 `business-report.html` 文件卡片；DOM/raw capture 不会提供可直接 `copyFileSync` 的绝对路径。
+- 用户点击或浏览器接收 provider artifact 后，真实文件落点是当前 macOS 用户的 `~/Downloads/business-report.html`。
+- GrassEye 的 delivery-only 代码必须把 provider 可见 artifact 名解析到 `~/Downloads/business-report.html`，复制到受治理 export path，再做 HTML 内容校验、sha256、export record 入库。
+- 禁止把裸 `business-report.html` 当成当前工作目录相对路径复制；这会制造 `business_html_persist_failed`，即使 provider 已经成功生成 HTML 文件。
+- owner inspector 必须 AST 固化 `resolveDownloadedHtmlArtifactPath`、`homedir()`、`Downloads` 路径拼接和 `existsSync/readdirSync/statSync` 文件探针；删除这些生产链路时 `ci:full` 必须失败。
+
 不得把以下状态当作 HTML completed：
 
 ```txt

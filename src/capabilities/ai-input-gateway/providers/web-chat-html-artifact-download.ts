@@ -1,4 +1,5 @@
-import { copyFileSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 
 import type { WebChatArtifactCandidate } from "./web-chat-artifact-types.js";
@@ -45,6 +46,23 @@ const isHtmlDocumentText = (value: string): boolean => {
   return /<body\b/iu.test(trimmed);
 };
 
+const resolveDownloadedHtmlArtifactPath = (candidate: WebChatArtifactCandidate): string | null => {
+  if (path.isAbsolute(candidate.sourcePath) && existsSync(candidate.sourcePath)) {
+    return candidate.sourcePath;
+  }
+  const downloadsPath = path.join(homedir(), "Downloads");
+  const artifactName = path.basename(candidate.artifactName || candidate.sourcePath);
+  const exactDownloadsPath = path.join(downloadsPath, artifactName);
+  if (existsSync(exactDownloadsPath)) {
+    return exactDownloadsPath;
+  }
+  const matchingDownloadsPath = readdirSync(downloadsPath)
+    .filter((fileName) => fileName === artifactName && isHtmlFileName(fileName))
+    .map((fileName) => path.join(downloadsPath, fileName))
+    .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)[0];
+  return matchingDownloadsPath ?? null;
+};
+
 export const downloadWebChatHtmlArtifact = (input: {
   candidate: WebChatArtifactCandidate | null;
   outputPath: string;
@@ -64,8 +82,16 @@ export const downloadWebChatHtmlArtifact = (input: {
     };
   }
   try {
+    const sourcePath = resolveDownloadedHtmlArtifactPath(input.candidate);
+    if (!sourcePath) {
+      return {
+        ok: false,
+        status: "business_html_persist_failed",
+        failureReason: `HTML artifact file was not found in provider path or Downloads: ${input.candidate.sourcePath}`,
+      };
+    }
     mkdirSync(path.dirname(input.outputPath), { recursive: true });
-    copyFileSync(input.candidate.sourcePath, input.outputPath);
+    copyFileSync(sourcePath, input.outputPath);
     const bytes = readFileSync(input.outputPath);
     const htmlText = readFileSync(input.outputPath, "utf8");
     const stat = statSync(input.outputPath);

@@ -1,4 +1,4 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -120,6 +120,55 @@ const inspectDownloadAst = (input: {
   }));
 };
 
+const hasNamedImport = (sourceFile: SourceFile, moduleSpecifier: string, symbolName: string): boolean =>
+  sourceFile.getImportDeclarations().some((declaration) =>
+    declaration.getModuleSpecifierValue() === moduleSpecifier
+    && declaration.getNamedImports().some((namedImport) => namedImport.getName() === symbolName),
+  );
+
+const hasCallExpression = (sourceFile: SourceFile, symbolName: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === symbolName;
+  });
+
+const hasDownloadsPathJoin = (sourceFile: SourceFile): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+    call.getExpression().getText() === "path.join"
+    && call.getArguments().some((argument) => Node.isStringLiteral(argument) && argument.getLiteralValue() === "Downloads"),
+  );
+
+const inspectDownloadsArtifactResolution = (input: {
+  downloadFile: SourceFile | undefined;
+  findings: InspectorFinding[];
+  lawId: string;
+}): void => {
+  if (!input.downloadFile) {
+    return;
+  }
+  const hasResolver = Boolean(
+    input.downloadFile.getFunction("resolveDownloadedHtmlArtifactPath")
+    ?? input.downloadFile.getVariableDeclaration("resolveDownloadedHtmlArtifactPath"),
+  );
+  const hasDownloadsOwner = hasNamedImport(input.downloadFile, "node:os", "homedir");
+  const hasFileProbe = ["existsSync", "readdirSync", "statSync"].every((symbolName) =>
+    hasNamedImport(input.downloadFile as SourceFile, "node:fs", symbolName)
+    && hasCallExpression(input.downloadFile as SourceFile, symbolName),
+  );
+  if (hasResolver && hasDownloadsOwner && hasFileProbe && hasDownloadsPathJoin(input.downloadFile)) {
+    if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
+      process.stdout.write("[DEEP-RESEARCH-AUDIT][HTML_ARTIFACT_DOWNLOADS_RESOLUTION] PASS\n");
+    }
+    return;
+  }
+  input.findings.push(createFinding({
+    checkId: "deep-research/html-report-downloads-resolution",
+    lawId: input.lawId,
+    filePath: "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-download.ts",
+    message: "HTML artifact delivery must resolve provider-downloaded business-report.html from ~/Downloads using AST-visible fs probes.",
+  }));
+};
+
 const inspectCiBinding = (input: {
   ciFullFile: SourceFile | undefined;
   findings: InspectorFinding[];
@@ -162,6 +211,11 @@ export const inspectHtmlReportArtifactPersist = (input: {
     lawId,
   });
   inspectDownloadAst({
+    downloadFile: input.downloadFile,
+    findings: input.findings,
+    lawId,
+  });
+  inspectDownloadsArtifactResolution({
     downloadFile: input.downloadFile,
     findings: input.findings,
     lawId,
