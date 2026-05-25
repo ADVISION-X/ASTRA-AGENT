@@ -7,7 +7,7 @@ export type AmazonPdfResult =
   | { ok: true; pdfReportPath: string }
   | { ok: false; reason: string; manualRequired: true };
 
-export const buildAmazonProductMiningReport = (input: {
+type AmazonPdfBuildInput = {
   taskId: string;
   dataDir: string;
   packageJsonPath: string;
@@ -17,11 +17,36 @@ export const buildAmazonProductMiningReport = (input: {
   productDirection: string;
   amazonMarketplace: string;
   targetMarket: string;
-}): AmazonPdfResult => {
+};
+
+const createReportArtifactsDir = (input: AmazonPdfBuildInput): string => {
   const artifactsDir = resolve(input.dataDir, AMAZON_PRODUCT_MINING_ARTIFACTS_DIR, input.taskId);
   mkdirSync(artifactsDir, { recursive: true });
+  return artifactsDir;
+};
 
-  const htmlContent = `<!DOCTYPE html>
+const renderMissionParameterRows = (input: AmazonPdfBuildInput): string => `
+<tr><td>Task ID</td><td>${escapeHtml(input.taskId)}</td></tr>
+<tr><td>Amazon Marketplace</td><td>${escapeHtml(input.amazonMarketplace)}</td></tr>
+<tr><td>Target Market</td><td>${escapeHtml(input.targetMarket)}</td></tr>
+<tr><td>Product Direction</td><td>${escapeHtml(input.productDirection)}</td></tr>
+<tr><td>Generated At</td><td>${new Date().toISOString()}</td></tr>`;
+
+const renderStatsCards = (input: AmazonPdfBuildInput): string => `
+  <div class="stat-card">
+    <div class="stat-value">${input.keywordCount}</div>
+    <div class="stat-label">Keywords Mined</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">${input.productCount}</div>
+    <div class="stat-label">Products Detailed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">${input.reviewCount}</div>
+    <div class="stat-label">Reviews Collected</div>
+  </div>`;
+
+const renderAmazonProductMiningReportHtml = (input: AmazonPdfBuildInput): string => `<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
@@ -49,27 +74,10 @@ h2 { color: #232f3e; }
 </div>
 <h2>Mission Parameters</h2>
 <table class="meta-table">
-<tr><th>Field</th><th>Value</th></tr>
-<tr><td>Task ID</td><td>${escapeHtml(input.taskId)}</td></tr>
-<tr><td>Amazon Marketplace</td><td>${escapeHtml(input.amazonMarketplace)}</td></tr>
-<tr><td>Target Market</td><td>${escapeHtml(input.targetMarket)}</td></tr>
-<tr><td>Product Direction</td><td>${escapeHtml(input.productDirection)}</td></tr>
-<tr><td>Generated At</td><td>${new Date().toISOString()}</td></tr>
+<tr><th>Field</th><th>Value</th></tr>${renderMissionParameterRows(input)}
 </table>
 <h2>Collection Statistics</h2>
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-value">${input.keywordCount}</div>
-    <div class="stat-label">Keywords Mined</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value">${input.productCount}</div>
-    <div class="stat-label">Products Detailed</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value">${input.reviewCount}</div>
-    <div class="stat-label">Reviews Collected</div>
-  </div>
+<div class="stats-grid">${renderStatsCards(input)}
 </div>
 <h2>Data Package Reference</h2>
 <p>Complete structured data is stored at:</p>
@@ -77,6 +85,10 @@ h2 { color: #232f3e; }
 <p>Load this JSON file for full keyword→product→review traceability.</p>
 </body>
 </html>`;
+
+export const buildAmazonProductMiningReport = (input: AmazonPdfBuildInput): AmazonPdfResult => {
+  const artifactsDir = createReportArtifactsDir(input);
+  const htmlContent = renderAmazonProductMiningReportHtml(input);
 
   const reportPath = join(artifactsDir, "report.html");
   try {

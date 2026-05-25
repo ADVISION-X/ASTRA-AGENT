@@ -31,6 +31,16 @@ const requiredFiles = [
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(resolveFromRepo(repoPath)));
 
+type DeepResearchInspectionState = {
+  context: InspectorContext;
+  findings: InspectorFinding[];
+  inspectedFiles: Set<string>;
+  sourceFiles: SourceFile[];
+  surfaceFiles: SourceFile[];
+  acceptanceFiles: SourceFile[];
+  auditComponentFiles: SourceFile[];
+};
+
 const inspectRequiredFiles = (
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
@@ -48,17 +58,22 @@ const inspectRequiredFiles = (
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const findings: InspectorFinding[] = [];
-  const inspectedFiles = new Set<string>();
-  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
-  const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
-  const surfaceFiles = [
+const createInspectionState = (context: InspectorContext): DeepResearchInspectionState => ({
+  context,
+  findings: [],
+  inspectedFiles: new Set<string>(),
+  sourceFiles: context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts"),
+  surfaceFiles: [
     ...context.project.getSourceFiles("src/app/workbench-deep-research*.ts"),
     ...context.project.getSourceFiles("src/lib/local-runtime/workbench*.ts"),
-  ];
-  const acceptanceFiles = context.project.getSourceFiles("scripts/acceptance/deep-research-*.ts");
-  const auditComponentFiles = context.project.getSourceFiles("scripts/audit/domains/deep-research-analysis/components/*.ts");
+  ],
+  acceptanceFiles: context.project.getSourceFiles("scripts/acceptance/deep-research-*.ts"),
+  auditComponentFiles: context.project.getSourceFiles("scripts/audit/domains/deep-research-analysis/components/*.ts"),
+});
+
+const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
+  const { context, findings, inspectedFiles, sourceFiles, surfaceFiles, acceptanceFiles, auditComponentFiles } = state;
+  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
   [...sourceFiles, ...surfaceFiles].forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
   inspectRequiredFiles(findings, inspectedFiles, lawId);
   inspectSingleChainSovereignty({
@@ -101,6 +116,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-046-V1"),
   });
+};
+
+const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): void => {
+  const { context, findings, inspectedFiles, sourceFiles, surfaceFiles, acceptanceFiles, auditComponentFiles } = state;
   inspectFinalAdjudicationPromptBundleInput({
     finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
     finalAdjudicationPromptFile: getSourceFile(context, requiredFiles[5]),
@@ -150,10 +169,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-044-V1"),
   });
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+  const state = createInspectionState(context);
+  inspectFlowStructure(state);
+  inspectPromptAndInputBoundaries(state);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    findings,
-    inspectedFiles: [...inspectedFiles].sort(),
+    findings: state.findings,
+    inspectedFiles: [...state.inspectedFiles].sort(),
   };
 };

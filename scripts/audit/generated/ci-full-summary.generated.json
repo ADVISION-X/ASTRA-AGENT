@@ -1,200 +1,201 @@
 {
-  "generatedAt": "2026-05-25T18:45:41.441Z",
+  "generatedAt": "2026-05-25T18:58:27.561Z",
   "status": "FAIL",
   "steps": [
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 16,
-      "endedAt": "2026-05-25T18:45:03.284Z",
+      "durationMs": 22,
+      "endedAt": "2026-05-25T18:57:48.466Z",
       "name": "build-audit-artifacts",
-      "startedAt": "2026-05-25T18:45:03.268Z",
+      "startedAt": "2026-05-25T18:57:48.444Z",
       "status": "PASS"
     },
     {
       "command": "internal:runGeneratedPlan()",
-      "durationMs": 16246,
-      "endedAt": "2026-05-25T18:45:19.530Z",
+      "durationMs": 17025,
+      "endedAt": "2026-05-25T18:58:05.491Z",
       "name": "run-generated-plan",
-      "startedAt": "2026-05-25T18:45:03.284Z",
+      "startedAt": "2026-05-25T18:57:48.466Z",
       "status": "FAIL",
       "error": "One or more audit domains reported findings."
     },
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 288,
-      "endedAt": "2026-05-25T18:45:19.818Z",
+      "durationMs": 303,
+      "endedAt": "2026-05-25T18:58:05.794Z",
       "name": "codex-entry-gate",
-      "startedAt": "2026-05-25T18:45:19.530Z",
+      "startedAt": "2026-05-25T18:58:05.491Z",
       "status": "PASS"
     },
     {
       "command": "npm run typecheck",
-      "durationMs": 2487,
-      "endedAt": "2026-05-25T18:45:22.305Z",
+      "durationMs": 2722,
+      "endedAt": "2026-05-25T18:58:08.516Z",
       "name": "typecheck",
-      "startedAt": "2026-05-25T18:45:19.818Z",
+      "startedAt": "2026-05-25T18:58:05.794Z",
       "status": "FAIL",
       "error": "typecheck failed with exit code 2"
     },
     {
       "command": "npm run acceptance:code-purity-zombie-deep",
-      "durationMs": 4345,
-      "endedAt": "2026-05-25T18:45:26.650Z",
+      "durationMs": 4489,
+      "endedAt": "2026-05-25T18:58:13.005Z",
       "name": "code-purity-zombie-deep",
-      "startedAt": "2026-05-25T18:45:22.305Z",
+      "startedAt": "2026-05-25T18:58:08.516Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:audit-truth-coverage",
-      "durationMs": 778,
-      "endedAt": "2026-05-25T18:45:27.428Z",
+      "durationMs": 786,
+      "endedAt": "2026-05-25T18:58:13.791Z",
       "name": "audit-truth-coverage",
-      "startedAt": "2026-05-25T18:45:26.650Z",
+      "startedAt": "2026-05-25T18:58:13.005Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:ci-summary-truth",
-      "durationMs": 533,
-      "endedAt": "2026-05-25T18:45:27.961Z",
+      "durationMs": 494,
+      "endedAt": "2026-05-25T18:58:14.285Z",
       "name": "ci-summary-truth",
-      "startedAt": "2026-05-25T18:45:27.428Z",
+      "startedAt": "2026-05-25T18:58:13.791Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:runtime-truth-completed-evidence",
-      "durationMs": 489,
-      "endedAt": "2026-05-25T18:45:28.450Z",
+      "durationMs": 482,
+      "endedAt": "2026-05-25T18:58:14.767Z",
       "name": "runtime-truth-completed-evidence",
-      "startedAt": "2026-05-25T18:45:27.961Z",
+      "startedAt": "2026-05-25T18:58:14.285Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:runtime-log-spine",
-      "durationMs": 4300,
-      "endedAt": "2026-05-25T18:45:32.750Z",
+      "durationMs": 4123,
+      "endedAt": "2026-05-25T18:58:18.890Z",
       "name": "runtime-log-spine",
-      "startedAt": "2026-05-25T18:45:28.450Z",
+      "startedAt": "2026-05-25T18:58:14.767Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-analysis-smoke",
-      "durationMs": 355,
-      "endedAt": "2026-05-25T18:45:33.105Z",
+      "durationMs": 358,
+      "endedAt": "2026-05-25T18:58:19.248Z",
       "name": "deep-research-analysis-smoke",
-      "startedAt": "2026-05-25T18:45:32.750Z",
+      "startedAt": "2026-05-25T18:58:18.890Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-promptbundle-sovereignty",
-      "durationMs": 219,
-      "endedAt": "2026-05-25T18:45:33.324Z",
+      "durationMs": 225,
+      "endedAt": "2026-05-25T18:58:19.473Z",
       "name": "deep-research-promptbundle-sovereignty",
-      "startedAt": "2026-05-25T18:45:33.105Z",
+      "startedAt": "2026-05-25T18:58:19.248Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-per-subquestion-promptbundle",
-      "durationMs": 290,
-      "endedAt": "2026-05-25T18:45:33.614Z",
+      "durationMs": 282,
+      "endedAt": "2026-05-25T18:58:19.755Z",
       "name": "deep-research-per-subquestion-promptbundle",
-      "startedAt": "2026-05-25T18:45:33.324Z",
+      "startedAt": "2026-05-25T18:58:19.473Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-single-chain",
-      "durationMs": 222,
-      "endedAt": "2026-05-25T18:45:33.836Z",
+      "durationMs": 219,
+      "endedAt": "2026-05-25T18:58:19.974Z",
       "name": "deep-research-single-chain",
-      "startedAt": "2026-05-25T18:45:33.614Z",
+      "startedAt": "2026-05-25T18:58:19.755Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-full-case-file",
-      "durationMs": 288,
-      "endedAt": "2026-05-25T18:45:34.124Z",
+      "durationMs": 287,
+      "endedAt": "2026-05-25T18:58:20.261Z",
       "name": "deep-research-full-case-file",
-      "startedAt": "2026-05-25T18:45:33.836Z",
+      "startedAt": "2026-05-25T18:58:19.974Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-runtime-shell-only",
-      "durationMs": 219,
-      "endedAt": "2026-05-25T18:45:34.343Z",
+      "durationMs": 225,
+      "endedAt": "2026-05-25T18:58:20.486Z",
       "name": "deep-research-runtime-shell-only",
-      "startedAt": "2026-05-25T18:45:34.124Z",
+      "startedAt": "2026-05-25T18:58:20.261Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-raw-response-sovereignty",
       "durationMs": 286,
-      "endedAt": "2026-05-25T18:45:34.629Z",
+      "endedAt": "2026-05-25T18:58:20.772Z",
       "name": "deep-research-raw-response-sovereignty",
-      "startedAt": "2026-05-25T18:45:34.343Z",
+      "startedAt": "2026-05-25T18:58:20.486Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-final-adjudication-promptbundle-input",
-      "durationMs": 278,
-      "endedAt": "2026-05-25T18:45:34.907Z",
+      "durationMs": 309,
+      "endedAt": "2026-05-25T18:58:21.081Z",
       "name": "deep-research-final-adjudication-promptbundle-input",
-      "startedAt": "2026-05-25T18:45:34.629Z",
+      "startedAt": "2026-05-25T18:58:20.772Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-promptbundle-input",
-      "durationMs": 220,
-      "endedAt": "2026-05-25T18:45:35.127Z",
+      "durationMs": 225,
+      "endedAt": "2026-05-25T18:58:21.306Z",
       "name": "deep-research-html-promptbundle-input",
-      "startedAt": "2026-05-25T18:45:34.907Z",
+      "startedAt": "2026-05-25T18:58:21.081Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-report-only",
-      "durationMs": 218,
-      "endedAt": "2026-05-25T18:45:35.345Z",
+      "durationMs": 221,
+      "endedAt": "2026-05-25T18:58:21.527Z",
       "name": "deep-research-html-report-only",
-      "startedAt": "2026-05-25T18:45:35.127Z",
+      "startedAt": "2026-05-25T18:58:21.306Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-report-export",
-      "durationMs": 219,
-      "endedAt": "2026-05-25T18:45:35.564Z",
+      "durationMs": 223,
+      "endedAt": "2026-05-25T18:58:21.750Z",
       "name": "deep-research-report-export",
-      "startedAt": "2026-05-25T18:45:35.345Z",
+      "startedAt": "2026-05-25T18:58:21.527Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-app-ui",
       "durationMs": 222,
-      "endedAt": "2026-05-25T18:45:35.786Z",
+      "endedAt": "2026-05-25T18:58:21.972Z",
       "name": "deep-research-app-ui",
-      "startedAt": "2026-05-25T18:45:35.564Z",
+      "startedAt": "2026-05-25T18:58:21.750Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-invoice-upload-smoke",
-      "durationMs": 1402,
-      "endedAt": "2026-05-25T18:45:37.188Z",
+      "durationMs": 1427,
+      "endedAt": "2026-05-25T18:58:23.399Z",
       "name": "amazon-invoice-upload-smoke",
-      "startedAt": "2026-05-25T18:45:35.786Z",
+      "startedAt": "2026-05-25T18:58:21.972Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:facebook-product-video-mining",
-      "durationMs": 3253,
-      "endedAt": "2026-05-25T18:45:40.441Z",
+      "durationMs": 3140,
+      "endedAt": "2026-05-25T18:58:26.539Z",
       "name": "facebook-product-video-mining",
-      "startedAt": "2026-05-25T18:45:37.188Z",
+      "startedAt": "2026-05-25T18:58:23.399Z",
       "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-product-mining",
-      "durationMs": 1000,
-      "endedAt": "2026-05-25T18:45:41.441Z",
+      "durationMs": 1022,
+      "endedAt": "2026-05-25T18:58:27.561Z",
       "name": "amazon-product-mining",
-      "startedAt": "2026-05-25T18:45:40.441Z",
-      "status": "PASS"
+      "startedAt": "2026-05-25T18:58:26.539Z",
+      "status": "FAIL",
+      "error": "amazon-product-mining failed with exit code 1"
     }
   ],
   "domains": [
@@ -216,7 +217,7 @@
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
       "status": "FAIL",
-      "findingCount": 39,
+      "findingCount": 34,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
@@ -229,8 +230,8 @@
     {
       "capabilityDomain": "amazon-product-mining",
       "executionGroup": "domain",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/amazon-product-mining-report.generated.json"
     },
     {

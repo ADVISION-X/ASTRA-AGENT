@@ -1,67 +1,7 @@
 {
-  "generatedAt": "2026-05-25T18:46:55.002Z",
-  "itemCount": 39,
+  "generatedAt": "2026-05-25T18:59:54.451Z",
+  "itemCount": 33,
   "items": [
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 40 breaks function budget: physical line count 81 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 40 breaks function budget: physical line count 96 exceeds red line 75; cyclomatic complexity 17 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 51 breaks function budget: physical line count 109 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Function near line 43 breaks function budget: physical line count 276 exceeds red line 75; cyclomatic complexity 28 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-flow",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Function near line 16 breaks function budget: physical line count 124 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Function near line 10 breaks function budget: physical line count 83 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
     {
       "checkId": "code-purity/object-budget",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",

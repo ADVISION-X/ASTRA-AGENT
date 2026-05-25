@@ -26,19 +26,29 @@ type RuntimeShellOnlyInput = {
   lawId: string;
 };
 
-const recordRuntimeShellInspectedFiles = (input: RuntimeShellOnlyInput): void => {
-  for (const sourceFile of [
-    input.promptBundleShellFile,
-    input.analysisSubQuestionsFile,
-    input.finalAdjudicationPromptFile,
-    input.htmlReportPromptFile,
-  ]) {
-    if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
-  }
+type RuntimeShellMarkerCheck = {
+  sourceFile: SourceFile | undefined;
+  filePath: string;
+  marker: string;
+  message: string;
 };
 
-const inspectRuntimeShellMarkers = (input: RuntimeShellOnlyInput): void => {
-  const shellChecks = [
+const pushMissingRuntimeShellMarkerFinding = (
+  input: RuntimeShellOnlyInput,
+  check: RuntimeShellMarkerCheck,
+): void => {
+  const text = check.sourceFile?.getFullText() ?? "";
+  if (text.includes(check.marker)) return;
+  input.findings.push(createFinding({
+    checkId: "deep-research/runtime-shell-boundary",
+    lawId: input.lawId,
+    filePath: check.filePath,
+    message: check.message,
+  }));
+};
+
+const inspectPromptBundleShellMarkers = (input: RuntimeShellOnlyInput): void => {
+  const checks: readonly RuntimeShellMarkerCheck[] = [
     {
       sourceFile: input.promptBundleShellFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
@@ -87,6 +97,14 @@ const inspectRuntimeShellMarkers = (input: RuntimeShellOnlyInput): void => {
       marker: "Do not depend on external CSS, fonts, images, or network resources.",
       message: "HTML runtime shell must forbid external resources.",
     },
+  ];
+  for (const check of checks) {
+    pushMissingRuntimeShellMarkerFinding(input, check);
+  }
+};
+
+const inspectRuntimePromptShellMarkers = (input: RuntimeShellOnlyInput): void => {
+  const checks: readonly RuntimeShellMarkerCheck[] = [
     {
       sourceFile: input.analysisSubQuestionsFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
@@ -105,18 +123,26 @@ const inspectRuntimeShellMarkers = (input: RuntimeShellOnlyInput): void => {
       marker: 'promptText: "Runtime shell for AI-generated htmlReportPromptBundle."',
       message: "HTML report prompt must stay a shell around the AI-generated promptBundle.",
     },
-  ] as const;
-
-  for (const check of shellChecks) {
-    const text = check.sourceFile?.getFullText() ?? "";
-    if (text.includes(check.marker)) continue;
-    input.findings.push(createFinding({
-      checkId: "deep-research/runtime-shell-boundary",
-      lawId: input.lawId,
-      filePath: check.filePath,
-      message: check.message,
-    }));
+  ];
+  for (const check of checks) {
+    pushMissingRuntimeShellMarkerFinding(input, check);
   }
+};
+
+const recordRuntimeShellInspectedFiles = (input: RuntimeShellOnlyInput): void => {
+  for (const sourceFile of [
+    input.promptBundleShellFile,
+    input.analysisSubQuestionsFile,
+    input.finalAdjudicationPromptFile,
+    input.htmlReportPromptFile,
+  ]) {
+    if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
+  }
+};
+
+const inspectRuntimeShellMarkers = (input: RuntimeShellOnlyInput): void => {
+  inspectPromptBundleShellMarkers(input);
+  inspectRuntimePromptShellMarkers(input);
 };
 
 const inspectRuntimeShellContracts = (input: RuntimeShellOnlyInput): void => {

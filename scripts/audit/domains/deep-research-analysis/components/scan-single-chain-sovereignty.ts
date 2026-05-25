@@ -37,7 +37,7 @@ const requiredRunnerIdentifiers = [
   "completeSuccessfulRun",
 ] as const;
 
-export const inspectSingleChainSovereignty = (input: {
+type SingleChainSovereigntyInput = {
   analysisRunnerFile: SourceFile | undefined;
   sourceFiles: readonly SourceFile[];
   routesFile: SourceFile | undefined;
@@ -46,15 +46,27 @@ export const inspectSingleChainSovereignty = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-}): void => {
-  const runnerRepoPath = input.analysisRunnerFile
+};
+
+const getRunnerRepoPath = (input: SingleChainSovereigntyInput): string =>
+  input.analysisRunnerFile
     ? getRepoSourcePath(input.analysisRunnerFile)
     : "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts";
 
-  for (const sourceFile of [input.analysisRunnerFile, input.routesFile, input.workbenchHandleFile, input.publicFacadeFile, ...input.sourceFiles]) {
+const recordSingleChainInspectedFiles = (input: SingleChainSovereigntyInput): void => {
+  for (const sourceFile of [
+    input.analysisRunnerFile,
+    input.routesFile,
+    input.workbenchHandleFile,
+    input.publicFacadeFile,
+    ...input.sourceFiles,
+  ]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
+};
 
+const inspectRequiredSingleChainIdentifiers = (input: SingleChainSovereigntyInput): void => {
+  const runnerRepoPath = getRunnerRepoPath(input);
   for (const identifier of requiredRunnerIdentifiers) {
     const hasIdentifier = Boolean(input.analysisRunnerFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((node) => node.getText() === identifier));
     if (hasIdentifier) continue;
@@ -65,7 +77,9 @@ export const inspectSingleChainSovereignty = (input: {
       message: `Deep Research runner is missing required single-chain identifier: ${identifier}.`,
     }));
   }
+};
 
+const inspectForbiddenSingleChainSourceTerms = (input: SingleChainSovereigntyInput): void => {
   for (const sourceFile of input.sourceFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
     sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).forEach((identifier) => {
@@ -92,7 +106,9 @@ export const inspectSingleChainSovereignty = (input: {
       message: "Forbidden Deep Research historical path markers remain in active runtime source.",
     }));
   }
+};
 
+const inspectHtmlReentrySurfaces = (input: SingleChainSovereigntyInput): void => {
   if (existsSync(resolveFromRepo("src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts"))) {
     input.findings.push(createFinding({
       checkId: "deep-research/single-chain-sovereignty-html-reentry",
@@ -132,4 +148,11 @@ export const inspectSingleChainSovereignty = (input: {
       message: check.message,
     }));
   }
+};
+
+export const inspectSingleChainSovereignty = (input: SingleChainSovereigntyInput): void => {
+  recordSingleChainInspectedFiles(input);
+  inspectRequiredSingleChainIdentifiers(input);
+  inspectForbiddenSingleChainSourceTerms(input);
+  inspectHtmlReentrySurfaces(input);
 };
