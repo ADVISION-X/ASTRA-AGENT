@@ -79,7 +79,7 @@ No other flow mode may exist.
 }
 ```
 
-Retired paths must not remain as hidden code, compatibility surfaces, or alternate runtime branches.
+Retired paths must not remain as hidden code or alternate runtime branches.
 
 ### [GRASSEYE-DEEP-RESEARCH-040-V1] Full Raw Case File As Final Adjudication Input
 

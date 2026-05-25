@@ -96,7 +96,7 @@ const businessHtmlReportPublisherPromptValue: DeepResearchPrompt = {
     "",
     "Content boundary:",
     "- Preserve the final decision package faithfully.",
-    "- You may reorganize and shorten wording for presentation clarity.",
+    "- You may reorganize and shorten wording for report clarity.",
     "- You may improve layout and section flow.",
     "- You may choose professional section titles.",
     "- You must not change the meaning.",

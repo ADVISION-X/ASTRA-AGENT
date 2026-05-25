@@ -43,7 +43,7 @@ for (const marker of [
 }
 assert(
   !analysisRunnerText.includes(decode("cnVuQnVzaW5lc3NEZWNrUGhhc2U=")),
-  "Primary Deep Research completion must not route through retired presentation stages.",
+  "Primary Deep Research completion must not route through removed report stages.",
 );
 
 for (const marker of [
@@ -63,8 +63,8 @@ for (const marker of [
 }
 
 assert(
-  !htmlStageText.includes("parsed_text_fallback"),
-  "Business HTML report stage must not accept raw HTML text fallback as completion.",
+  !htmlStageText.includes("parsed_text_raw_index"),
+  "Business HTML report stage must not accept raw HTML text raw index as completion.",
 );
 
 for (const stage of [

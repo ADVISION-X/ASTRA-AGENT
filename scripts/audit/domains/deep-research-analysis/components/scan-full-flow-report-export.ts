@@ -126,7 +126,7 @@ const inspectRenderedPromptSchema = (input: {
       message: "ResearchExportKindSchema must expose exactly three human-readable report kinds: final-report.md, full-case-file.md, and business-report.html.",
     }));
   }
-  const requiredMachineArtifacts = ["structured-final-package.json", "evidence-index.json"] as const;
+  const requiredMachineArtifacts = ["decision-package.json", "evidence-index.json"] as const;
   const missingMachineArtifact = requiredMachineArtifacts.find((artifact) => !exportKinds.includes(artifact));
   if (missingMachineArtifact) {
     input.findings.push(createFinding({

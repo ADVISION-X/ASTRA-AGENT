@@ -68,7 +68,7 @@ medium,
 low.
 
 Sub-question rules:
-- Each sub-question must be neutral, not framed as a pure positive or pure falsification question.
+- Each sub-question must be neutral and framed for independent analysis.
 - Do not create a sub-question whose only purpose is to "falsify" another sub-question.
 - Do not create double-negative questions such as "what refutes the refutation".
 - Each sub-question must help the final adjudicator answer the user's original question.

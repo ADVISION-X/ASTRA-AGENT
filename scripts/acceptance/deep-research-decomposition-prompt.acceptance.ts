@@ -38,7 +38,7 @@ const parsedSuccessStatuses = new Set([
   "parsed_json",
   "parsed_json_from_fence",
   "parsed_json_from_balanced_object",
-  "parsed_text_fallback",
+  "parsed_text_raw_index",
 ]);
 
 const isParsedSuccessStatus = (status: string): boolean => parsedSuccessStatuses.has(status);

@@ -139,7 +139,6 @@ const buildDecisionPackage = (input: {
   jobId: input.finalPackage.jobId,
   userQuestion: input.finalPackage.userQuestion,
   analysisGoal: input.finalPackage.analysisGoal,
-  flowMode: input.finalPackage.flowMode,
   promptVersions: input.finalPackage.promptVersions,
   subQuestions: input.finalPackage.decompositionRecords,
   analysisAnswers: input.finalPackage.analysisRecords,
@@ -173,7 +172,7 @@ const prepareExportArtifacts = (input: {
     finalPackage: input.finalPackage,
     finalReport: persistedFinalReport,
   });
-  const decisionPackageArtifact = writeJsonArtifact(path.join(input.exportDir, "structured-final-package.json"), decisionPackage);
+  const decisionPackageArtifact = writeJsonArtifact(path.join(input.exportDir, "decision-package.json"), decisionPackage);
   const businessHtmlExport = input.persisted.exports.find((record) => record.exportKind === "business-report.html") ?? null;
   const evidenceIndex = buildEvidenceIndexEntries({
     interactions: input.persisted.interactions,
@@ -214,7 +213,7 @@ const savePreparedExportRecords = (input: {
   }),
   decisionPackage: input.store.saveExport({
     jobId: input.jobId,
-    exportKind: "structured-final-package.json",
+    exportKind: "decision-package.json",
     filePath: input.prepared.decisionPackageArtifact.filePath,
     fileHash: input.prepared.decisionPackageArtifact.fileHash,
     payload: input.prepared.decisionPackage,

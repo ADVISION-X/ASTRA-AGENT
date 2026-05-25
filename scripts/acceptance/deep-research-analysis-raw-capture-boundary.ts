@@ -61,7 +61,7 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
       }
     }),
     '{"subQuestionId":"Q1","answer":"The provider replied with useful text but malformed JSON."',
-    "Raw capture remained separate from business parsing. The malformed independent analysis reply was preserved as raw output, normalized as a narrative fallback answer, and it still supports the final adjudication.",
+    "Raw capture remained separate from business parsing. The malformed independent analysis reply was preserved as raw output, normalized as a narrative raw index answer, and it still supports the final adjudication.",
   ] as const;
 
   async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
@@ -74,7 +74,7 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
         "<!DOCTYPE html>",
         "<html>",
         "<head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head>",
-        "<body><main><h1>Boundary Proof</h1><p>Malformed analysis JSON still normalized through text fallback and preserved the successful Deep Research flow.</p></main></body>",
+        "<body><main><h1>Boundary Proof</h1><p>Malformed analysis JSON still normalized through text raw index and preserved the successful Deep Research flow.</p></main></body>",
         "</html>",
       ].join(""), "utf8");
       rawText = `HTML_ARTIFACT_PATH=${sourceHtmlPath}`;
@@ -118,7 +118,7 @@ const createMalformedAnalysisFixtureRuntime = (input: {
   return { runtimeLogger, aiInputGateway };
 };
 
-const assertPersistedNarrativeFallbackState = (input: {
+const assertPersistedNarrativeRawIndexState = (input: {
   store: ReturnType<typeof createDeepResearchRecordStore>;
   jobId: string;
 }): void => {
@@ -129,8 +129,8 @@ const assertPersistedNarrativeFallbackState = (input: {
     jobId: input.jobId,
     answerKind: "analysis",
   });
-  assert(analysisInteraction?.parseStatus === "parsed_text_fallback", `Malformed independent analysis should persist parseStatus=parsed_text_fallback, received ${analysisInteraction?.parseStatus}.`);
-  assert(finalInteraction?.parseStatus === "parsed_text_fallback", `Narrative final adjudication should persist parseStatus=parsed_text_fallback, received ${finalInteraction?.parseStatus}.`);
+  assert(analysisInteraction?.parseStatus === "parsed_text_raw_index", `Malformed independent analysis should persist parseStatus=parsed_text_raw_index, received ${analysisInteraction?.parseStatus}.`);
+  assert(finalInteraction?.parseStatus === "parsed_text_raw_index", `Narrative final adjudication should persist parseStatus=parsed_text_raw_index, received ${finalInteraction?.parseStatus}.`);
   assert(analysisAnswers.length === 1, `Malformed independent analysis should still persist one completed analysis answer, received ${analysisAnswers.length}.`);
 };
 
@@ -158,8 +158,8 @@ const assertRuntimeCaptureBoundary = (runtimeLogBundlePath: string): void => {
     && event.payload?.stageName === "ANALYSIS_PARSE",
   );
   assert(captureCompleted, "Raw provider output must complete ANALYSIS_CAPTURE before parser failure.");
-  assert(parseCompleted, "Malformed provider JSON with useful content must complete ANALYSIS_PARSE through text fallback normalization.");
-  assert(!parseFailed, "Malformed provider JSON with useful content must not hard-fail at ANALYSIS_PARSE once text fallback is active.");
+  assert(parseCompleted, "Malformed provider JSON with useful content must complete ANALYSIS_PARSE through text raw index normalization.");
+  assert(!parseFailed, "Malformed provider JSON with useful content must not hard-fail at ANALYSIS_PARSE once text raw index is active.");
 };
 
 export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promise<void> => {
@@ -188,12 +188,12 @@ export const verifyMalformedProviderJsonFailsAtParseNotCapture = async (): Promi
     },
   );
 
-  assert(result.status === "success", `Malformed narrative analysis should normalize through text fallback and keep the Deep Research flow successful, received ${JSON.stringify(result)}.`);
+  assert(result.status === "success", `Malformed narrative analysis should normalize through text raw index and keep the Deep Research flow successful, received ${JSON.stringify(result)}.`);
   assert(result.phase === "COMPLETE", `Malformed narrative analysis should still allow the job to complete, received ${result.phase}.`);
 
   const store = createDeepResearchRecordStore(dataDir);
   try {
-    assertPersistedNarrativeFallbackState({
+    assertPersistedNarrativeRawIndexState({
       store,
       jobId: result.jobId,
     });

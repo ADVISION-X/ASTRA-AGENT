@@ -130,19 +130,19 @@ const hasParserFailureGuard = (sourceFile: SourceFile | undefined): boolean => {
   });
 };
 
-const inspectWebChatVisibleFallback = (input: InspectInput, webChatEvaluationFile: SourceFile | undefined): void => {
+const inspectWebChatVisibleRawIndex = (input: InspectInput, webChatEvaluationFile: SourceFile | undefined): void => {
   if (hasAllSourceText(webChatEvaluationFile, [
-    "isVisibleAssistantFallbackNode",
+    "isVisibleAssistantRawIndexNode",
     "dedupeCandidates",
-    "answer extracted from visible assistant fallback",
+    "answer extracted from visible assistant raw capture",
   ])) {
     return;
   }
   input.findings.push(createFinding({
-    checkId: "deep-research/web-chat-visible-answer-fallback",
+    checkId: "deep-research/web-chat-visible-answer-rawIndex",
     lawId: input.lawId,
     filePath: captureAndParseFiles.webChatEvaluation,
-    message: "Web chat DOM capture must keep a visible assistant text fallback so human-visible replies are not lost when the structured extractor misses them.",
+    message: "Web chat DOM capture must keep a visible assistant text raw index so human-visible replies are not lost when the structured extractor misses them.",
   }));
 };
 
@@ -186,9 +186,9 @@ const inspectWebChatActivityState = (
 
 const inspectParserStatusResilience = (input: InspectInput, parserSupportFile: SourceFile | undefined): void => {
   if (
-    hasVariableOrFunction(parserSupportFile, "buildTextFallbackResult")
+    hasVariableOrFunction(parserSupportFile, "buildTextRawIndexResult")
     && hasVariableOrFunction(parserSupportFile, "isDeepResearchParserSuccess")
-    && hasStringLiteral(parserSupportFile, "parsed_text_fallback")
+    && hasStringLiteral(parserSupportFile, "parsed_text_raw_index")
     && hasStringLiteral(parserSupportFile, "parsed_json_from_fence")
     && hasStringLiteral(parserSupportFile, "parsed_json_from_balanced_object")
     && hasStringLiteral(parserSupportFile, "failed_empty")
@@ -200,23 +200,23 @@ const inspectParserStatusResilience = (input: InspectInput, parserSupportFile: S
     checkId: "deep-research/parser-status-resilience",
     lawId: input.lawId,
     filePath: captureAndParseFiles.parserSupport,
-    message: "Deep Research parser support must preserve JSON source provenance, distinguish empty versus unusable failures, and expose parsed_text_fallback as a lawful success state.",
+    message: "Deep Research parser support must preserve JSON source provenance, distinguish empty versus unusable failures, and expose parsed_text_raw_index as a lawful success state.",
   }));
 };
 
-const inspectParserTextFallbackUse = (input: InspectInput, parserFile: SourceFile | undefined): void => {
+const inspectParserTextRawIndexUse = (input: InspectInput, parserFile: SourceFile | undefined): void => {
   if (
-    hasVariableOrFunction(parserFile, "buildSubQuestionAnalysisTextFallbackValue")
-    && hasVariableOrFunction(parserFile, "buildFinalAdjudicationTextFallbackValue")
-    && hasIdentifierCall(parserFile, "buildTextFallbackResult")
+    hasVariableOrFunction(parserFile, "buildSubQuestionAnalysisTextRawIndexValue")
+    && hasVariableOrFunction(parserFile, "buildFinalAdjudicationTextRawIndexValue")
+    && hasIdentifierCall(parserFile, "buildTextRawIndexResult")
   ) {
     return;
   }
   input.findings.push(createFinding({
-    checkId: "deep-research/parser-text-fallback-use",
+    checkId: "deep-research/parser-text-rawIndex-use",
     lawId: input.lawId,
     filePath: captureAndParseFiles.parser,
-    message: "Deep Research parser must convert non-empty narrative analysis and final adjudication replies into lawful text fallback records instead of hard-failing on json_parse_failed.",
+    message: "Deep Research parser must convert non-empty narrative analysis and final adjudication replies into lawful text raw index records instead of hard-failing on json_parse_failed.",
   }));
 };
 
@@ -238,7 +238,7 @@ const inspectPromptExchangeSuccessGuard = (
   }));
 };
 
-const inspectAnalysisTimeoutAndFallbackContext = (
+const inspectAnalysisTimeoutAndRawIndexContext = (
   input: InspectInput,
   analysisSubQuestionsFile: SourceFile | undefined,
 ): void => {
@@ -249,10 +249,10 @@ const inspectAnalysisTimeoutAndFallbackContext = (
     return;
   }
   input.findings.push(createFinding({
-    checkId: "deep-research/analysis-timeout-and-fallback-context",
+    checkId: "deep-research/analysis-timeout-and-rawIndex-context",
     lawId: input.lawId,
     filePath: captureAndParseFiles.analysisSubQuestions,
-    message: "Sub-question analysis must run with a deep-timeout budget and must pass subQuestionId into parser fallback normalization.",
+    message: "Sub-question analysis must run with a deep-timeout budget and must pass subQuestionId into parser raw index normalization.",
   }));
 };
 
@@ -291,13 +291,13 @@ export const inspectCaptureAndParseResilience = (input: InspectInput): void => {
   for (const repoPath of Object.values(captureAndParseFiles)) {
     track(input.inspectedFiles, getSourceFile(input.context, repoPath), repoPath);
   }
-  inspectWebChatVisibleFallback(input, webChatEvaluationFile);
+  inspectWebChatVisibleRawIndex(input, webChatEvaluationFile);
   inspectWebChatActivityTimeout(input, webChatAnswerFile);
   inspectWebChatActivityState(input, webChatAnswerSupportFile);
   inspectParserStatusResilience(input, parserSupportFile);
-  inspectParserTextFallbackUse(input, parserFile);
+  inspectParserTextRawIndexUse(input, parserFile);
   inspectPromptExchangeSuccessGuard(input, promptExchangeStagesFile);
-  inspectAnalysisTimeoutAndFallbackContext(input, analysisSubQuestionsFile);
+  inspectAnalysisTimeoutAndRawIndexContext(input, analysisSubQuestionsFile);
   inspectTimeoutBudget({
     findings: input.findings,
     lawId: input.lawId,

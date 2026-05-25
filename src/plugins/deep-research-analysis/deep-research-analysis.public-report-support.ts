@@ -94,14 +94,13 @@ const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
   "final-report.md": "Final report",
   "full-case-file.md": "Full case file (Markdown)",
   "full-case-file.json": "Full case file (JSON)",
-  "structured-final-package.json": "Structured final package",
+  "decision-package.json": "Decision package",
 };
 
 const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string =>
   exportLabels[exportKind] ?? "Evidence index";
 
 const buildSubQuestionStageViews = (input: {
-  flowMode: ResearchJob["flowMode"];
   jobStatus: ResearchJob["status"];
   subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
 }): DeepResearchStageView[] =>
@@ -116,7 +115,6 @@ const buildSubQuestionStageViews = (input: {
   });
 
 const buildFinalStageView = (input: {
-  flowMode: ResearchJob["flowMode"];
   jobStatus: ResearchJob["status"];
   finalInteraction: DeepResearchTimelineEntry | null;
   finalReport: DeepResearchFinalReport | null;
@@ -128,7 +126,6 @@ const buildFinalStageView = (input: {
 });
 
 const buildBusinessHtmlStageView = (input: {
-  flowMode: ResearchJob["flowMode"];
   jobStatus: ResearchJob["status"];
   exports: readonly ResearchExport[];
 }): DeepResearchStageView | null => {
@@ -157,19 +154,16 @@ export const buildStageViews = (input: {
       status: resolveStageStatus(Boolean(input.decompositionInteraction), input.job.status),
     },
     ...buildSubQuestionStageViews({
-      flowMode: input.job.flowMode,
       jobStatus: input.job.status,
       subQuestionReports: input.subQuestionReports,
     }),
     buildFinalStageView({
-      flowMode: input.job.flowMode,
       jobStatus: input.job.status,
       finalInteraction: input.finalInteraction,
       finalReport: input.finalReport,
     }),
   ];
   const businessHtmlStage = buildBusinessHtmlStageView({
-    flowMode: input.job.flowMode,
     jobStatus: input.job.status,
     exports: input.exports,
   });
@@ -341,7 +335,6 @@ export const buildReportJobView = (
   title: truncateText(snapshot.job.userQuestion, 84),
   userQuestion: snapshot.job.userQuestion,
   analysisGoal: snapshot.job.analysisGoal,
-  flowMode: snapshot.job.flowMode,
   status: snapshot.job.status,
   phase: snapshot.job.phase,
   failureReason: snapshot.job.failureReason,

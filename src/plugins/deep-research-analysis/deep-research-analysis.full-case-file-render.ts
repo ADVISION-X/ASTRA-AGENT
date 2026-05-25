@@ -16,7 +16,6 @@ const buildMetadataLines = (input: DeepResearchFullCaseFile): string[] => [
   `- User Question: ${input.job.userQuestion}`,
   `- Analysis Goal: ${input.job.analysisGoal ?? "UNAVAILABLE"}`,
   `- Language: ${input.job.language}`,
-  `- Flow Mode: ${input.job.flowMode}`,
   `- Created At: ${input.job.createdAt}`,
   `- Total Sub-questions: ${input.coverage.totalSubQuestionCount}`,
   `- Structured Analysis Count: ${input.coverage.structuredAnalysisCount}`,
@@ -110,7 +109,7 @@ export const renderDeepResearchFullCaseFileMarkdown = (
   input: DeepResearchFullCaseFile,
 ): string => [
   "# Deep Research Full Case File",
-  "Structured final package is not the complete case file.",
+  "Decision package is not the complete case file.",
   "The raw interactions below remain the sovereign record for final adjudication and HTML publishing.",
   buildMetadataLines(input).join("\n"),
   buildDecompositionSection(input),

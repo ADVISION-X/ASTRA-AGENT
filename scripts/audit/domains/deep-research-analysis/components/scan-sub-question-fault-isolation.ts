@@ -162,7 +162,7 @@ const inspectSmokeHelper = (input: InspectInput, smokeFile: SourceFile | undefin
     ? helperFile.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().getText() === "report.evidenceGaps.some")
       && helperFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
-        .some((literal) => literal.getLiteralValue().includes("parsed_text_fallback"))
+        .some((literal) => literal.getLiteralValue().includes("parsed_text_raw_index"))
     : false;
   const smokeWiresHelper = smokeFile
     ? smokeImportsHelper(smokeFile) && smokeCallsHelper(smokeFile)

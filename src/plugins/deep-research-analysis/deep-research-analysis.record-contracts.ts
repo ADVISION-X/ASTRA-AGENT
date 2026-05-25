@@ -18,13 +18,11 @@ export const DeepResearchProviderKindSchema = z.enum([
 
 const ResearchAnswerKindSchema = z.enum(["analysis"]);
 
-const ResearchFlowModeSchema = z.literal("default_1_n_1_1");
-
 const ResearchExportKindSchema = z.enum([
   "final-report.md",
   "full-case-file.md",
   "full-case-file.json",
-  "structured-final-package.json",
+  "decision-package.json",
   "business-report.html",
   "evidence-index.json",
 ]);
@@ -41,7 +39,6 @@ export const ResearchJobSchema = z.object({
   language: DeepResearchInputSchema.shape.language,
   maxSubQuestions: DeepResearchInputSchema.shape.maxSubQuestions,
   outputFormat: DeepResearchInputSchema.shape.outputFormat,
-  flowMode: ResearchFlowModeSchema.default("default_1_n_1_1"),
   status: DeepResearchJobStatusSchema,
   phase: DeepResearchPhaseSchema,
   failureReason: z.string().trim().min(1).nullable().default(null),

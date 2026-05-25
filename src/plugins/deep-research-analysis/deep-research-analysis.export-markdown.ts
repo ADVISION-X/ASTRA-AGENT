@@ -116,7 +116,6 @@ const buildReportMetadataLines = (input: {
   `Job ID: ${input.persisted.job.id}`,
   `User Question: ${input.persisted.job.userQuestion}`,
   `Analysis Goal: ${toDisplayValue(input.persisted.job.analysisGoal)}`,
-  `Flow Mode: ${input.finalPackage.flowMode}`,
   `Job Status: ${input.persisted.job.status}`,
   `Updated At: ${input.persisted.job.updatedAt}`,
   `Final Report Available: ${input.finalReport ? "yes" : "no"}`,
@@ -143,7 +142,6 @@ const buildDecisionSummarySection = (input: {
   return [
     "## Final Summary",
     "",
-    `Flow Mode: ${input.finalPackage.flowMode}`,
     `Direct Answer: ${input.finalReport.directAnswer}`,
     `Final Verdict: ${input.finalReport.finalVerdict}`,
     `Confidence: ${input.finalReport.confidence}`,
@@ -186,7 +184,6 @@ const buildCoverageSection = (finalPackage: DeepResearchFinalPackage): string =>
 const buildFinalStageSection = (input: {
   interaction: ResearchInteraction | null;
   finalReport: DeepResearchFinalReport | null;
-  flowMode: DeepResearchFinalPackage["flowMode"];
 }): string => {
   const sectionLabel = "Final Adjudication";
   const parsedSection = !input.finalReport
@@ -311,7 +308,6 @@ const buildFullFlowReportSections = (input: {
   buildFinalStageSection({
     interaction: input.context.finalInteraction,
     finalReport: input.context.finalReport,
-    flowMode: input.finalPackage.flowMode,
   }),
   "",
   "## Evidence Index",

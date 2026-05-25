@@ -1,8 +1,8 @@
 import {
   buildDefaultLimitations,
-  buildSentenceFallback,
+  buildSentenceRawIndex,
   normalizeConfidenceValue,
-  takeFallbackArray,
+  takeRawIndexArray,
   takeFirstString,
   takeFirstStringArray,
 } from "./deep-research-analysis.parser-support.js";
@@ -27,44 +27,6 @@ const normalizeEvidenceQuality = (value: unknown) => {
     }
   }
   return "unknown";
-};
-
-export const buildPositiveCandidate = (candidate: Record<string, unknown>) => {
-  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
-  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
-  const confidence = normalizeConfidenceValue(
-    candidate.confidence
-    ?? candidate.confidenceScore
-    ?? candidate.confidenceLevel,
-  );
-  if (!subQuestionId) {
-    return { ok: false as const, reason: "missing_sub_question_id" };
-  }
-  if (!answer) {
-    return { ok: false as const, reason: "missing_answer" };
-  }
-  if (!confidence) {
-    return { ok: false as const, reason: "invalid_confidence" };
-  }
-  const answerFallback = buildSentenceFallback(answer);
-  const keyClaims = takeFirstStringArray(candidate, ["keyClaims", "claims", "keyPoints"]);
-  const supportingReasons = takeFirstStringArray(candidate, ["supportingReasons", "reasons", "support"]);
-  return {
-    ok: true as const,
-    value: {
-      subQuestionId,
-      answer,
-      keyClaims: keyClaims.length > 0 ? keyClaims : answerFallback,
-      supportingReasons: supportingReasons.length > 0 ? supportingReasons : answerFallback,
-      assumptions: takeFirstStringArray(candidate, ["assumptions", "assumptionList"]),
-      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
-      confidence,
-      limitations: takeFallbackArray(
-        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-        buildDefaultLimitations(),
-      ),
-    },
-  };
 };
 
 export const buildAnalysisCandidate = (candidate: Record<string, unknown>) => {
@@ -96,20 +58,20 @@ export const buildAnalysisCandidate = (candidate: Record<string, unknown>) => {
   if (!confidence) {
     return { ok: false as const, reason: "invalid_confidence" };
   }
-  const answerFallback = buildSentenceFallback(answer);
+  const answerRawIndex = buildSentenceRawIndex(answer);
   return {
     ok: true as const,
     value: {
       subQuestionId,
       answer,
       coreFinding,
-      keyClaims: takeFallbackArray(
+      keyClaims: takeRawIndexArray(
         takeFirstStringArray(candidate, ["keyClaims", "claims", "keyPoints"]),
-        answerFallback,
+        answerRawIndex,
       ),
-      supportingReasons: takeFallbackArray(
+      supportingReasons: takeRawIndexArray(
         takeFirstStringArray(candidate, ["supportingReasons", "reasons", "support"]),
-        answerFallback,
+        answerRawIndex,
       ),
       counterConditions: takeFirstStringArray(candidate, ["counterConditions", "counterArguments", "counterpoints"]),
       failureCases: takeFirstStringArray(candidate, ["failureCases", "failureModes"]),
@@ -119,55 +81,7 @@ export const buildAnalysisCandidate = (candidate: Record<string, unknown>) => {
       uncertainties: takeFirstStringArray(candidate, ["uncertainties", "uncertainty", "unknowns"]),
       impactOnFinalAdjudication,
       confidence,
-      limitations: takeFallbackArray(
-        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-        buildDefaultLimitations(),
-      ),
-    },
-  };
-};
-
-export const buildFalsificationCandidate = (candidate: Record<string, unknown>) => {
-  const subQuestionId = takeFirstString(candidate, ["subQuestionId", "questionId", "id"]);
-  const answer = takeFirstString(candidate, ["answer", "analysis", "response", "summary"]);
-  const confidence = normalizeConfidenceValue(
-    candidate.confidence
-    ?? candidate.confidenceScore
-    ?? candidate.confidenceLevel,
-  );
-  if (!subQuestionId) {
-    return { ok: false as const, reason: "missing_sub_question_id" };
-  }
-  if (!answer) {
-    return { ok: false as const, reason: "missing_answer" };
-  }
-  if (!confidence) {
-    return { ok: false as const, reason: "invalid_confidence" };
-  }
-  const answerFallback = buildSentenceFallback(answer);
-  const strongestOpposingArguments = takeFirstStringArray(candidate, [
-    "strongestOpposingArguments",
-    "opposingArguments",
-    "counterArguments",
-    "keyArguments",
-  ]);
-  const contradictionPoints = takeFirstStringArray(candidate, [
-    "contradictionPoints",
-    "contradictions",
-    "counterPoints",
-  ]);
-  return {
-    ok: true as const,
-    value: {
-      subQuestionId,
-      answer,
-      strongestOpposingArguments:
-        strongestOpposingArguments.length > 0 ? strongestOpposingArguments : answerFallback,
-      contradictionPoints:
-        contradictionPoints.length > 0 ? contradictionPoints : answerFallback,
-      evidenceMentions: takeFirstStringArray(candidate, ["evidenceMentions", "evidence", "sources"]),
-      confidence,
-      limitations: takeFallbackArray(
+      limitations: takeRawIndexArray(
         takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
         buildDefaultLimitations(),
       ),

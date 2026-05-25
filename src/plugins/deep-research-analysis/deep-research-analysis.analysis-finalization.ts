@@ -65,10 +65,10 @@ const readPayloadStringArray = (
 const uniqueStrings = (values: readonly string[]): string[] =>
   [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 
-const buildFinalAdjudicationFallback = (
+const buildFinalAdjudicationRawIndex = (
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
 ) => {
-  const fallback = {
+  const rawIndex = {
     decisiveReasons: uniqueStrings(
       finalPackage.analysisRecords.map((record) =>
         readPayloadString(record.parsedPayload, "coreFinding")
@@ -97,10 +97,10 @@ const buildFinalAdjudicationFallback = (
     sourceNotes: finalPackage.sourceNotes,
   };
   if (finalPackage.missingAnalysisSubQuestionIds.length === 0) {
-    return fallback;
+    return rawIndex;
   }
   return {
-    ...fallback,
+    ...rawIndex,
     limitations: [`Structured independent analysis is incomplete for: ${finalPackage.missingAnalysisSubQuestionIds.join(", ")}.`],
   };
 };
@@ -353,7 +353,7 @@ export const runFinalReportPhase = async (
     parse: (rawText) =>
       parseDeepResearchFinalAdjudicationResponse(
         rawText,
-        buildFinalAdjudicationFallback(finalPackage),
+        buildFinalAdjudicationRawIndex(finalPackage),
       ),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) => {

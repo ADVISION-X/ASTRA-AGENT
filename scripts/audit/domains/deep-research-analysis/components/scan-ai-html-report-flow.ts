@@ -39,7 +39,7 @@ const inspectRunnerOrder = (input: {
       checkId: "deep-research/ai-html-report-no-retired-primary-path",
       lawId: input.lawId,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-      message: "Primary Deep Research completion must not keep retired presentation phases in the active main path.",
+      message: "Primary Deep Research completion must not keep removed report phases in the active main path.",
     }));
   }
 };

@@ -93,29 +93,29 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
       limitations: ["This uses deterministic fixture output rather than a live provider."],
     }),
     JSON.stringify({
-      directAnswer: "Proceed with a review-minded conclusion because one analysis used narrative fallback while another remained fully structured.",
+      directAnswer: "Proceed with a review-minded conclusion because one analysis used narrative raw index while another remained fully structured.",
       finalVerdict: "conditional",
       confidence: "medium",
       rankedConclusions: [{
         rank: 1,
-        conclusion: "Both independent analyses completed, but one relied on parsed_text_fallback.",
+        conclusion: "Both independent analyses completed, but one relied on parsed_text_raw_index.",
         whyItMatters: "The final adjudicator still has lawful material while keeping formatting drift visible.",
         strength: "moderate",
         appliesTo: ["default_1_n_1_1 flow"],
         doesNotApplyTo: ["all-sub-questions-failed runs"],
         reverseCondition: "If no analysis completes, the job must stay in review_required.",
       }],
-      strongConclusions: ["The job continues after one local narrative fallback analysis."],
-      conditionalConclusions: ["The final answer must surface which sub-question used parsed_text_fallback."],
+      strongConclusions: ["The job continues after one local narrative raw index analysis."],
+      conditionalConclusions: ["The final answer must surface which sub-question used parsed_text_raw_index."],
       weakOrRejectedClaims: ["A single malformed analysis should kill the whole job."],
       decisiveReasons: ["A later sub-question still produced a valid structured analysis."],
-      evidenceGaps: ["One independent analysis relied on parsed_text_fallback instead of structured JSON."],
+      evidenceGaps: ["One independent analysis relied on parsed_text_raw_index instead of structured JSON."],
       reverseConditions: ["If later sub-questions also fail, the final adjudication should no longer proceed."],
       applicability: ["job-flow fault isolation"],
       nonApplicability: ["zero-analysis runs"],
-      followUpSignals: ["Track parsed_text_fallback sub-question ids in the final package."],
+      followUpSignals: ["Track parsed_text_raw_index sub-question ids in the final package."],
       multiStageValueAdded: ["The job preserved two usable analyses instead of collapsing at the first parser error."],
-      limitations: ["The fixture proves one parsed_text_fallback analysis and one fully structured analysis."],
+      limitations: ["The fixture proves one parsed_text_raw_index analysis and one fully structured analysis."],
     }),
   ] as const;
 
@@ -129,7 +129,7 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
         "<!DOCTYPE html>",
         "<html>",
         "<head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head>",
-        "<body><main><h1>Fault Isolation</h1><p>The job completed with one parsed_text_fallback analysis and one structured analysis.</p></main></body>",
+        "<body><main><h1>Fault Isolation</h1><p>The job completed with one parsed_text_raw_index analysis and one structured analysis.</p></main></body>",
         "</html>",
       ].join(""), "utf8");
       rawText = `HTML_ARTIFACT_PATH=${sourceHtmlPath}`;
@@ -187,21 +187,21 @@ export const verifySingleSubQuestionFailureDoesNotKillJob = async (): Promise<vo
     throw new Error("Fault isolation fixture must still produce a final report.");
   }
   assert(
-    report.evidenceGaps.some((gap) => gap.includes("parsed_text_fallback")),
+    report.evidenceGaps.some((gap) => gap.includes("parsed_text_raw_index")),
     `Final report must surface the missing sub-question gap, received ${JSON.stringify(report.evidenceGaps)}.`,
   );
 
   const store = createDeepResearchRecordStore(dataDir);
   try {
     const interactions = store.listInteractions(result.jobId);
-    const fallbackAnalysisInteraction = interactions.find((interaction) =>
-      interaction.phase === "analysis" && interaction.parseStatus === "parsed_text_fallback");
-    assert(Boolean(fallbackAnalysisInteraction), "Fault isolation fixture must persist one parsed_text_fallback analysis interaction.");
+    const rawIndexAnalysisInteraction = interactions.find((interaction) =>
+      interaction.phase === "analysis" && interaction.parseStatus === "parsed_text_raw_index");
+    assert(Boolean(rawIndexAnalysisInteraction), "Fault isolation fixture must persist one parsed_text_raw_index analysis interaction.");
 
     const answers = store.listAnswers({ jobId: result.jobId, answerKind: "analysis" });
     assert(
       answers.length === 2,
-      `Fault isolation fixture should persist both analysis answers once narrative fallback is enabled, received ${answers.length}.`,
+      `Fault isolation fixture should persist both analysis answers once narrative raw index is enabled, received ${answers.length}.`,
     );
   } finally {
     store.close();

@@ -193,7 +193,7 @@ export const renderDeepResearchFinalAdjudicationPrompt = (input: {
   `User question:\n${input.userQuestion}`,
   buildUnavailableAnalysisGoalSection(input.analysisGoal),
   `Response language:\n${input.language}`,
-  `Structured final package JSON:\n${JSON.stringify(input.finalPackage, null, 2)}`,
+  `Decision package JSON:\n${JSON.stringify(input.finalPackage, null, 2)}`,
   input.fullCaseFile
     ? `Full case file metadata JSON:\n${JSON.stringify({
       caseFileVersion: input.fullCaseFile.caseFileVersion,

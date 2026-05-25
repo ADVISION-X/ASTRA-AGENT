@@ -71,7 +71,6 @@ const verifyPersistedJobCore = (
 } => {
   const job = store.getJob(result.jobId);
   assert(job?.status === "completed", "Persisted research job should be completed.");
-  assert(job?.flowMode === "default_1_n_1_1", "Smoke fixture must persist the default 1+N+1+1 flow mode.");
 
   const subQuestions = store.listSubQuestions(result.jobId);
   assert(subQuestions.length === 2, `Expected 2 sub-questions, received ${subQuestions.length}.`);
@@ -104,16 +103,11 @@ const verifyPersistedFinalPackage = (input: {
     jobId: input.jobId,
     structuredFinalPackage: finalPackage,
   });
-  assert(finalPackage.flowMode === "default_1_n_1_1", "Final package must stay on the default 1+N+1+1 flow mode.");
   assert(finalPackage.analysisRecords.length === 2, "Final package must read persisted analysis records.");
   assert(finalPackage.missingAnalysisSubQuestionIds.length === 0, "Final package should have no missing analysis records in the smoke fixture.");
   assert(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount === 0, "Final package should report zero missing analysis rows in the smoke fixture.");
   assert(fullCaseFile.caseFileVersion === "v1", "Full case file must be built for the smoke fixture.");
   assert(fullCaseFile.coverage.rawAnalysisInteractionCount === 2, "Full case file must preserve raw coverage for each sub-question.");
-  assert(!("positiveAnswerRecords" in finalPackage), "Default final package must not expose legacy positiveAnswerRecords.");
-  assert(!("falsificationAnswerRecords" in finalPackage), "Default final package must not expose legacy falsificationAnswerRecords.");
-  assert(!("conflictMatrix" in finalPackage), "Default final package must not expose legacy conflictMatrix.");
-  assert(!("legacyMissingPositiveFalsificationSubQuestionIds" in finalPackage), "Default final package must not expose legacy missing sub-question IDs.");
   assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.json.v1.1", "Smoke fixture must target the current final adjudication contract.");
   const finalPromptText = renderDeepResearchFinalAdjudicationPrompt({
     userQuestion: input.job?.userQuestion ?? "",
@@ -123,10 +117,6 @@ const verifyPersistedFinalPackage = (input: {
     fullCaseFile,
     fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
   });
-  assert(!finalPromptText.includes("positiveAnswerRecords"), "Final adjudication prompt must not receive legacy positiveAnswerRecords for default flow.");
-  assert(!finalPromptText.includes("falsificationAnswerRecords"), "Final adjudication prompt must not receive legacy falsificationAnswerRecords for default flow.");
-  assert(!finalPromptText.includes("conflictMatrix"), "Final adjudication prompt must not receive legacy conflictMatrix for default flow.");
-  assert(!finalPromptText.includes("legacyMissingPositiveFalsificationSubQuestionIds"), "Final adjudication prompt must not receive legacy missing sub-question IDs for default flow.");
 };
 
 const verifyPersistedExports = (
@@ -139,20 +129,20 @@ const verifyPersistedExports = (
   const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
   const fullCaseMarkdownExport = exports.find((record) => record.exportKind === "full-case-file.md");
   const fullCaseJsonExport = exports.find((record) => record.exportKind === "full-case-file.json");
-  const structuredFinalPackageExport = exports.find((record) => record.exportKind === "structured-final-package.json");
+  const decisionPackageExport = exports.find((record) => record.exportKind === "decision-package.json");
   const businessHtmlExport = exports.find((record) => record.exportKind === "business-report.html");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
   if (!finalReportExport) throw new Error("Missing final-report.md export record.");
   if (!fullCaseMarkdownExport) throw new Error("Missing full-case-file.md export record.");
   if (!fullCaseJsonExport) throw new Error("Missing full-case-file.json export record.");
-  if (!structuredFinalPackageExport) throw new Error("Missing structured-final-package.json export record.");
+  if (!decisionPackageExport) throw new Error("Missing decision-package.json export record.");
   if (!businessHtmlExport) throw new Error("Missing business-report.html export record.");
   if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
   assert(existsSync(finalReportExport.filePath), "final-report.md file was not written.");
   assert(existsSync(fullCaseMarkdownExport.filePath), "full-case-file.md file was not written.");
   assert(existsSync(fullCaseJsonExport.filePath), "full-case-file.json file was not written.");
-  assert(existsSync(structuredFinalPackageExport.filePath), "structured-final-package.json file was not written.");
+  assert(existsSync(decisionPackageExport.filePath), "decision-package.json file was not written.");
   assert(existsSync(businessHtmlExport.filePath), "business-report.html file was not written.");
   assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
 

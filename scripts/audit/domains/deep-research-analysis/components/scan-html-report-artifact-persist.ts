@@ -78,8 +78,8 @@ const buildArtifactPersistChecks = (input: {
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
     },
     {
-      ok: !(input.exportFile?.getFullText() ?? "").includes("parsed_text_fallback"),
-      marker: "absence of parsed_text_fallback HTML completion",
+      ok: !(input.exportFile?.getFullText() ?? "").includes("parsed_text_raw_index"),
+      marker: "absence of parsed_text_raw_index HTML completion",
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
     },
   ] as const;

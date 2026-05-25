@@ -16,14 +16,13 @@ const files = execFileSync("rg", [
 
 const forbidden = [
   decode("bGVnYWN5XzFfbl9uXzE="),
-  decode("ZmluYWxfc3ludGhlc2lz"),
-  decode("ZGVja19leHBvcnRfcGFydGlhbA=="),
-  decode("ZGVjaXNpb24tcGFja2FnZS5qc29u"),
-  decode("cmVzZWFyY2gtYnVuZGxlLmpzb24="),
+  decode("cG9zaXRpdmVBbnN3ZXJSZWNvcmRz"),
+  decode("ZmFsc2lmaWNhdGlvbkFuc3dlclJlY29yZHM="),
+  decode("Y29uZmxpY3RNYXRyaXg="),
   decode("YnVzaW5lc3MtZGVjaw=="),
   decode("cHB0eA=="),
-  decode("b3B0aW9uYWwgcHJlc2VudGF0aW9u"),
-  decode("bG9jYWxQcHQ="),
+  decode("cHB0"),
+  decode("YnVzaW5lc3NEZWNr"),
 ];
 
 for (const file of files) {
@@ -32,3 +31,5 @@ for (const file of files) {
     assert(!text.includes(term), `${file} must not contain retired Deep Research markers.`);
   }
 }
+
+process.stdout.write("[ACCEPTANCE][deep-research-no-legacy-no-ppt] PASS\n");

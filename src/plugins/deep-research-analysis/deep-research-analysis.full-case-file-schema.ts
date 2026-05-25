@@ -10,7 +10,6 @@ const DeepResearchFullCaseFileJobSchema = z.object({
   userQuestion: z.string().trim().min(1),
   analysisGoal: z.string().trim().min(1).nullable(),
   language: z.string().trim().min(1),
-  flowMode: z.string().trim().min(1),
   createdAt: z.string().datetime(),
 }).strict();
 

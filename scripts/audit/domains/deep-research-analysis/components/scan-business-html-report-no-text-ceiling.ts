@@ -38,9 +38,9 @@ export const inspectBusinessHtmlReportNoTextCeiling = (input: {
   const maxInputCharsProperty = runPromptExchangeArgument?.getProperty("maxInputChars");
   const hasNoTextCeiling = Node.isPropertyAssignment(maxInputCharsProperty)
     && maxInputCharsProperty.getInitializer()?.getText() === "Number.MAX_SAFE_INTEGER";
-  const hasLegacyTextCeiling = input.htmlReportStageFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)
+  const hasPreviousSchemaTextCeiling = input.htmlReportStageFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)
     .some((literal) => literal.getText() === "45_000");
-  if (!hasNoTextCeiling || hasLegacyTextCeiling) {
+  if (!hasNoTextCeiling || hasPreviousSchemaTextCeiling) {
     input.findings.push(createFinding({
       checkId: "deep-research/business-html-report-no-text-ceiling",
       lawId: input.lawId,

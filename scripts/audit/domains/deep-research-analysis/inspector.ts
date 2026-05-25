@@ -1,54 +1,30 @@
 import { existsSync } from "node:fs";
-import { Node, SyntaxKind, type CallExpression, type Identifier, type ImportDeclaration, type ObjectLiteralExpression, type SourceFile, type StringLiteral } from "ts-morph";
+import { resolve } from "node:path";
+import type { SourceFile } from "ts-morph";
+
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
-import {
-  decompositionAuditFiles,
-  forbiddenRuntimeFields,
-  promptTextAllowedFiles,
-  requiredFiles,
-} from "./inspector-constants.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
-import { buildDeepResearchAuditFiles, type DeepResearchAuditFiles } from "./inspector-file-map.js";
-import { inspectCaptureAndSmokeRules } from "./inspector-capture-and-smoke.js";
-import { inspectSmokeAcceptance } from "./inspector-smoke.js";
-import { inspectAiHtmlReportFlow } from "./components/scan-ai-html-report-flow.js";
-import { inspectBusinessHtmlPromptBoundary } from "./components/scan-business-html-prompt-boundary.js";
 import { inspectDeleteRetiredDeepResearchPaths } from "./components/scan-delete-retired-deep-research-paths.js";
-import { inspectFinalAdjudicationFullInput } from "./components/scan-final-adjudication-full-input.js";
-import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
 import { inspectFullCaseFileRequired } from "./components/scan-full-case-file-required.js";
-import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
-import { inspectHtmlReportArtifactPersist } from "./components/scan-html-report-artifact-persist.js";
 import { inspectHtmlOnlyFinalArtifact } from "./components/scan-html-only-final-artifact.js";
-import { inspectHtmlReportFullInput } from "./components/scan-html-report-full-input.js";
-import { inspectNoLegacyFlowSymbols } from "./components/scan-no-legacy-flow-symbols.js";
-import { inspectNoDeadCodeAdjudication } from "./components/scan-no-dead-code-adjudication.js";
-import { inspectNoHtmlContentRejudgment } from "./components/scan-no-html-content-rejudgment.js";
-import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
-import { inspectRawInteractionPersistence } from "./components/scan-raw-interaction-persistence.js";
-import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
+import { inspectRetiredFlowSymbols } from "./components/scan-retired-flow-symbols.js";
 import { inspectSingleFlowSovereignty } from "./components/scan-single-flow-sovereignty.js";
-import { inspectSourceNotesFlow } from "./components/scan-source-notes-flow.js";
 
-const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyName: string): string | null => {
-  const property = objectLiteral.getProperty(propertyName);
-  if (!property || !Node.isPropertyAssignment(property)) return null;
-  const initializer = property.getInitializer();
-  if (initializer && Node.isStringLiteral(initializer)) return initializer.getLiteralValue();
-  return initializer?.getText() ?? null;
-};
+const requiredFiles = [
+  "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-export.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
+] as const;
 
-const unwrapObjectLiteral = (initializer: Node | undefined): ObjectLiteralExpression | null => {
-  if (!initializer) return null;
-  if (Node.isObjectLiteralExpression(initializer)) return initializer;
-  if (Node.isAsExpression(initializer)) {
-    const expression = initializer.getExpression();
-    return Node.isObjectLiteralExpression(expression) ? expression : null;
-  }
-  return null;
-};
+const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
+  context.project.getSourceFile(resolve(resolveFromRepo(repoPath)));
 
 const inspectRequiredFiles = (
   findings: InspectorFinding[],
@@ -62,471 +38,53 @@ const inspectRequiredFiles = (
       checkId: "deep-research/required-file",
       lawId,
       filePath: repoPath,
-      message: `${repoPath} is required by the decomposition prompt asset contract.`,
+      message: `${repoPath} is required for the single Deep Research main flow.`,
     }));
   }
-};
-
-const inspectPromptAsset = (
-  sourceFile: SourceFile | undefined,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  if (!sourceFile) {
-    findings.push(createFinding({
-      checkId: "deep-research/prompt-asset",
-      lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-      message: "DEEP_RESEARCH_DECOMPOSITION_PROMPT must be an object literal prompt asset.",
-    }));
-    return;
-  }
-  const declaration = sourceFile.getVariableDeclaration("DEEP_RESEARCH_DECOMPOSITION_PROMPT");
-  const initializer = unwrapObjectLiteral(declaration?.getInitializer());
-  if (!initializer) {
-    findings.push(createFinding({
-      checkId: "deep-research/prompt-asset",
-      lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-      message: "DEEP_RESEARCH_DECOMPOSITION_PROMPT must be an object literal prompt asset.",
-    }));
-    return;
-  }
-  const repoPath = getRepoSourcePath(sourceFile);
-  const requiredProperties = ["promptId", "promptVersion", "phase", "outputContractId", "text"];
-  for (const propertyName of requiredProperties) {
-    if (initializer.getProperty(propertyName)) continue;
-    findings.push(createFinding({
-      checkId: "deep-research/prompt-asset-property",
-      lawId,
-      filePath: repoPath,
-      message: `Prompt asset is missing ${propertyName}.`,
-    }));
-  }
-  if (getObjectPropertyText(initializer, "phase") !== "decompose") {
-    findings.push(createFinding({
-      checkId: "deep-research/prompt-asset-phase",
-      lawId,
-      filePath: repoPath,
-      message: "DEEP_RESEARCH_DECOMPOSITION_PROMPT.phase must equal decompose.",
-    }));
-  }
-  if (!sourceFile.getFunction("renderDecompositionPrompt") && !sourceFile.getVariableDeclaration("renderDecompositionPrompt")) {
-    findings.push(createFinding({
-      checkId: "deep-research/render-function",
-      lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-      message: "renderDecompositionPrompt must be exported from the lawful prompt file.",
-    }));
-  }
-};
-
-const inspectPromptScatter = (
-  sourceFiles: readonly SourceFile[],
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  for (const sourceFile of sourceFiles) {
-    const repoPath = getRepoSourcePath(sourceFile);
-    if (promptTextAllowedFiles.has(repoPath)) continue;
-    const longString = sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .find((literal: StringLiteral) =>
-        literal.getLiteralValue().length > 300
-        && /you are|return one json|expected output contract/iu.test(literal.getLiteralValue()),
-      );
-    const longTemplate = sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
-      .find((literal) =>
-        literal.getLiteralText().length > 300
-        && /you are|return one json|expected output contract/iu.test(literal.getLiteralText()),
-      );
-    if (!longString && !longTemplate) continue;
-    findings.push(createFinding({
-      checkId: "deep-research/prompt-scatter",
-      lawId,
-      filePath: repoPath,
-      message: "Long prompt-like strings must stay in prompt asset files.",
-    }));
-  }
-};
-
-const inspectForbiddenRuntimeFields = (
-  sourceFiles: readonly SourceFile[],
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  for (const sourceFile of sourceFiles) {
-    const repoPath = getRepoSourcePath(sourceFile);
-    if (promptTextAllowedFiles.has(repoPath) || repoPath.includes("acceptance")) continue;
-    const forbidden = new Set<string>();
-    sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).forEach((identifier) => {
-      if (forbiddenRuntimeFields.some((field) => field === identifier.getText())) {
-        forbidden.add(identifier.getText());
-      }
-    });
-    sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).forEach((literal) => {
-      if (forbiddenRuntimeFields.some((field) => field === literal.getLiteralValue())) {
-        forbidden.add(literal.getLiteralValue());
-      }
-    });
-    if (forbidden.size === 0) continue;
-    findings.push(createFinding({
-      checkId: "deep-research/forbidden-runtime-field",
-      lawId,
-      filePath: repoPath,
-      message: `Forbidden AI control field appears in active runtime surface: ${[...forbidden].join(", ")}.`,
-    }));
-  }
-};
-
-const hasImportedSymbol = (sourceFile: SourceFile, symbolName: string, moduleSuffix: string): boolean =>
-  sourceFile.getImportDeclarations().some((declaration: ImportDeclaration) =>
-    declaration.getModuleSpecifierValue().endsWith(moduleSuffix)
-    && declaration.getNamedImports().some((namedImport) => namedImport.getName() === symbolName),
-  );
-
-const hasCallExpression = (sourceFile: SourceFile, symbolName: string): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call: CallExpression) => {
-    const expression = call.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === symbolName;
-  });
-
-const inspectFlowIntegration = (
-  flowFile: SourceFile | undefined,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  if (!flowFile) return;
-  const requirements = [
-    {
-      symbolName: "renderDecompositionPrompt",
-      moduleSuffix: "deep-research-analysis.decomposition-prompt.js",
-      checkId: "deep-research/flow-render-symbol",
-    },
-    {
-      symbolName: "parseDecompositionResponse",
-      moduleSuffix: "deep-research-analysis.decomposition-parser.js",
-      checkId: "deep-research/flow-parser-symbol",
-    },
-    {
-      symbolName: "scoreDecompositionQuality",
-      moduleSuffix: "deep-research-analysis.prompt-quality.js",
-      checkId: "deep-research/flow-quality-symbol",
-    },
-    {
-      symbolName: "buildDeepResearchPromptHash",
-      moduleSuffix: "deep-research-analysis.prompt-hash.js",
-      checkId: "deep-research/flow-hash-symbol",
-    },
-  ];
-  for (const requirement of requirements) {
-    if (hasImportedSymbol(flowFile, requirement.symbolName, requirement.moduleSuffix)
-      && hasCallExpression(flowFile, requirement.symbolName)) continue;
-    findings.push(createFinding({
-      checkId: requirement.checkId,
-      lawId,
-      filePath: getRepoSourcePath(flowFile),
-      message: `Flow must import and call lawful symbol ${requirement.symbolName}.`,
-    }));
-  }
-  for (const requiredIdentifier of ["promptHash", "rawResponseHash"]) {
-    if (flowFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === requiredIdentifier)) continue;
-    findings.push(createFinding({
-      checkId: "deep-research/flow-hash-persist",
-      lawId,
-      filePath: getRepoSourcePath(flowFile),
-      message: `Flow must preserve ${requiredIdentifier}.`,
-    }));
-  }
-};
-
-const inspectParserHonesty = (
-  parserFile: SourceFile | undefined,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  if (!parserFile) return;
-  const dishonestCatch = parserFile.getDescendantsOfKind(SyntaxKind.CatchClause).some((clause) =>
-    clause.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === "parsed"),
-  );
-  if (dishonestCatch) {
-    findings.push(createFinding({
-      checkId: "deep-research/parser-catch-success",
-      lawId,
-      filePath: getRepoSourcePath(parserFile),
-      message: "Parser must not label catch-path parse results as parsed.",
-    }));
-  }
-};
-
-const inspectAntiEvasion = (
-  sourceFiles: readonly SourceFile[],
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  for (const sourceFile of sourceFiles) {
-    const repoPath = getRepoSourcePath(sourceFile);
-    if (!decompositionAuditFiles.has(repoPath)) continue;
-    const hasAny = sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword).length > 0;
-    const hasDynamicImport = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
-      .some((call) => call.getExpression().getKind() === SyntaxKind.ImportKeyword);
-    const hasBracketAccess = sourceFile.getDescendantsOfKind(SyntaxKind.ElementAccessExpression).length > 0;
-    if (!hasAny && !hasDynamicImport && !hasBracketAccess) continue;
-    findings.push(createFinding({
-      checkId: "deep-research/anti-evasion",
-      lawId,
-      filePath: repoPath,
-      message: "Deep research decomposition files must not use any, dynamic import, or bracket property access.",
-    }));
-  }
-};
-
-const inspectRegressionFixtures = (
-  regressionFile: SourceFile | undefined,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  if (!regressionFile) return;
-  const fixtureVariable = regressionFile.getVariableDeclaration("DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES");
-  const initializer = fixtureVariable?.getInitializer();
-  if (!initializer || !Node.isArrayLiteralExpression(initializer) || initializer.getElements().length < 10) {
-    findings.push(createFinding({
-      checkId: "deep-research/regression-fixtures",
-      lawId,
-      filePath: getRepoSourcePath(regressionFile),
-      message: "Regression fixture set must contain at least 10 fixtures.",
-    }));
-  }
-};
-
-type DeepResearchStaticRulesInput = {
-  context: InspectorContext;
-  sourceFiles: readonly SourceFile[];
-  files: DeepResearchAuditFiles;
-  findings: InspectorFinding[];
-  inspectedFiles: Set<string>;
-  lawId: string;
-  captureLawId: string;
-  smokeLawId: string;
-  reportLawId: string;
-  readerLawId: string;
-  htmlReportTextCeilingLawId: string;
-};
-
-const inspectCoreStaticRules = (input: DeepResearchStaticRulesInput): void => {
-  inspectPromptAsset(input.files.promptFile, input.findings, input.lawId);
-  inspectPromptScatter(input.sourceFiles, input.findings, input.lawId);
-  inspectForbiddenRuntimeFields(input.sourceFiles, input.findings, input.lawId);
-  inspectFlowIntegration(input.files.flowFile, input.findings, input.lawId);
-  inspectParserHonesty(input.files.parserFile, input.findings, input.lawId);
-  inspectAntiEvasion(input.sourceFiles, input.findings, input.lawId);
-  inspectRegressionFixtures(input.files.regressionFile, input.findings, input.lawId);
-};
-
-const inspectDeliveryRules = (input: DeepResearchStaticRulesInput): void => {
-  inspectPublicTimelineDelivery({
-    queryFile: input.files.queryFile,
-    contractFile: input.files.contractFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.lawId,
-  });
-  inspectFullFlowReportExport({
-    context: input.context,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.reportLawId,
-    htmlReportTextCeilingLawId: input.htmlReportTextCeilingLawId,
-  });
-  inspectReportReaderViewModel({
-    queriesFile: input.files.queryFile,
-    contractFile: input.files.contractFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.readerLawId,
-  });
-};
-
-const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): void => {
-  inspectCoreStaticRules(input);
-  inspectCaptureAndSmokeRules(input);
-  inspectDeliveryRules(input);
-  inspectAiHtmlReportFlow({
-    context: input.context,
-    analysisRunnerFile: input.files.analysisRunnerFile,
-    htmlReportStageFile: input.files.htmlReportStageFile,
-    schemaFile: input.files.schemaFile,
-    acceptanceFile: input.files.htmlReportAcceptanceFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-  });
-  inspectRawInteractionPersistence({
-    promptExchangeStageSupportFile: input.files.promptExchangeStageSupportFile,
-    recordContractsFile: input.files.recordContractsFile,
-    recordInteractionOpsFile: input.files.recordInteractionOpsFile,
-    acceptanceFile: input.files.rawResponseSovereigntyAcceptanceFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-033-V1"),
-  });
-  inspectFullCaseFileSovereignty({
-    analysisFinalizationFile: input.files.analysisFinalizationFile,
-    fullCaseFileFile: input.files.fullCaseFileFile,
-    fullCaseFileRenderFile: input.files.fullCaseFileRenderFile,
-    fullCaseFileExportFile: input.files.fullCaseFileExportFile,
-    exportFile: input.files.exportFile,
-    recordContractsFile: input.files.recordContractsFile,
-    acceptanceFile: input.files.fullCaseFileAcceptanceFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-035-V1"),
-  });
-  inspectFinalAdjudicationFullInput({
-    analysisRunnerFile: input.files.analysisRunnerFile,
-    analysisFinalizationFile: input.files.analysisFinalizationFile,
-    finalAdjudicationPromptFile: input.files.finalAdjudicationPromptFile,
-    acceptanceFile: input.files.finalAdjudicationFullInputAcceptanceFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-035-V1"),
-  });
-  inspectNoDeadCodeAdjudication({
-    sourceFiles: input.sourceFiles,
-    finalPackageFile: input.files.finalPackageFile,
-    acceptanceFile: input.files.finalAdjudicationFullInputAcceptanceFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-036-V1"),
-  });
-  inspectBusinessHtmlPromptBoundary({
-    context: input.context,
-    promptFile: input.files.htmlReportPromptFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-  });
-  inspectHtmlReportFullInput({
-    htmlReportPromptFile: input.files.htmlReportPromptFile,
-    htmlReportStageFile: input.files.htmlReportStageFile,
-    clientDeliverySectionsFile: input.files.clientDeliverySectionsFile,
-    workbenchRoutesFile: input.files.workbenchRoutesFile,
-    reportViewFile: input.files.reportViewFile,
-    acceptanceFile: input.files.htmlFullInputAcceptanceFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-037-V1"),
-  });
-  inspectHtmlReportArtifactPersist({
-    context: input.context,
-    detectorFile: input.files.aiHtmlDetectorFile,
-    downloadFile: input.files.aiHtmlDownloadFile,
-    exportFile: input.files.exportFile,
-    recordsFile: input.files.htmlReportRecordsFile,
-    recordContractsFile: input.files.recordContractsFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-  });
-  inspectNoHtmlContentRejudgment({
-    context: input.context,
-    promptFile: input.files.htmlReportPromptFile,
-    htmlReportStageFile: input.files.htmlReportStageFile,
-    htmlReportExportFile: input.files.exportFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-  });
-  inspectSourceNotesFlow({
-    finalPackageFile: input.files.finalPackageFile,
-    finalizationFile: input.files.analysisFinalizationFile,
-    htmlReportStageFile: input.files.htmlReportStageFile,
-    htmlReportPromptFile: input.files.htmlReportPromptFile,
-    resultFile: input.files.resultFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: input.reportLawId,
-  });
-  inspectSingleFlowSovereignty({
-    analysisRunnerFile: input.files.analysisRunnerFile,
-    finalPackageFile: input.files.finalPackageFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-038-V1"),
-  });
-  inspectDeleteRetiredDeepResearchPaths({
-    sourceFiles: input.sourceFiles,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-039-V1"),
-  });
-  inspectFullCaseFileRequired({
-    finalAdjudicationPromptFile: input.files.finalAdjudicationPromptFile,
-    htmlReportPromptFile: input.files.htmlReportPromptFile,
-    fullCaseFileFile: input.files.fullCaseFileFile,
-    exportFile: input.files.exportFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
-  });
-  inspectHtmlOnlyFinalArtifact({
-    sourceFiles: input.sourceFiles,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
-  });
-  inspectNoLegacyFlowSymbols({
-    sourceFiles: input.sourceFiles,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
-  });
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
-  const captureLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-003-V1");
-  const smokeLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-013-V1");
-  const reportLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-015-V1");
-  const readerLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-014-V1");
-  const htmlReportTextCeilingLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-017-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
+  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
   const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
   sourceFiles.forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
 
   inspectRequiredFiles(findings, inspectedFiles, lawId);
-  const files = buildDeepResearchAuditFiles(context);
-  Object.values(files).forEach((sourceFile) => {
-    if (sourceFile) {
-      inspectedFiles.add(getRepoSourcePath(sourceFile));
-    }
-  });
-  const astCoverageCount = files.flowFile?.getDescendantsOfKind(SyntaxKind.CallExpression).length ?? 0;
-  inspectDeepResearchStaticRules({
-    context,
-    sourceFiles,
-    files,
+  inspectSingleFlowSovereignty({
+    analysisRunnerFile: getSourceFile(context, requiredFiles[0]),
+    finalPackageFile: getSourceFile(context, requiredFiles[1]),
     findings,
     inspectedFiles,
-    lawId,
-    captureLawId,
-    smokeLawId,
-    reportLawId,
-    readerLawId,
-    htmlReportTextCeilingLawId,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-038-V1"),
   });
-  if (astCoverageCount === 0) {
-    findings.push(createFinding({
-      checkId: "deep-research/ast-coverage",
-      lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
-      message: "Inspector must exercise ts-morph AST and symbol surfaces for the flow file.",
-    }));
-  }
+  inspectDeleteRetiredDeepResearchPaths({
+    sourceFiles,
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-039-V1"),
+  });
+  inspectFullCaseFileRequired({
+    finalAdjudicationPromptFile: getSourceFile(context, requiredFiles[5]),
+    htmlReportPromptFile: getSourceFile(context, requiredFiles[6]),
+    fullCaseFileFile: getSourceFile(context, requiredFiles[2]),
+    exportFile: getSourceFile(context, requiredFiles[7]),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
+  });
+  inspectHtmlOnlyFinalArtifact({
+    sourceFiles,
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
+  });
+    inspectRetiredFlowSymbols({
+    sourceFiles,
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
+  });
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

@@ -19,7 +19,7 @@ type DeepResearchParserSuccessStatus =
   | "parsed_json"
   | "parsed_json_from_fence"
   | "parsed_json_from_balanced_object"
-  | "parsed_text_fallback";
+  | "parsed_text_raw_index";
 
 type DeepResearchParserFailure = {
   parseStatus: DeepResearchParserFailureStatus;
@@ -42,7 +42,7 @@ export type DeepResearchParserResult<T> =
 
 type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
 
-export type FinalReportNormalizationFallback = {
+export type FinalReportNormalizationRawIndex = {
   decisiveReasons?: readonly string[];
   strongestOpposingArguments?: readonly string[];
   evidenceGaps?: readonly string[];
@@ -61,7 +61,7 @@ const successfulParseStatuses = new Set<DeepResearchParserSuccessStatus>([
   "parsed_json",
   "parsed_json_from_fence",
   "parsed_json_from_balanced_object",
-  "parsed_text_fallback",
+  "parsed_text_raw_index",
 ]);
 
 export const isDeepResearchSuccessfulParseStatus = (
@@ -153,7 +153,7 @@ export const takeFirstStringArray = (
   return [];
 };
 
-export const buildSentenceFallback = (value: string): string[] => {
+export const buildSentenceRawIndex = (value: string): string[] => {
   const normalized = value.replace(/\s+/gu, " ").trim();
   if (!normalized) {
     return [];
@@ -234,10 +234,10 @@ export const normalizeConfidenceValue = (
   return null;
 };
 
-export const takeFallbackArray = (
+export const takeRawIndexArray = (
   values: readonly string[],
-  fallback: readonly string[] | undefined,
-): string[] => values.length > 0 ? [...values] : [...(fallback ?? [])];
+  rawIndex: readonly string[] | undefined,
+): string[] => values.length > 0 ? [...values] : [...(rawIndex ?? [])];
 
 export const buildDefaultLimitations = (): string[] => [
   "Model did not provide explicit limitations.",
@@ -295,7 +295,7 @@ export const parseJsonObject = (rawText: string): DeepResearchParserResult<unkno
   }
 };
 
-export const buildTextFallbackResult = <TSchema extends z.ZodTypeAny>(input: {
+export const buildTextRawIndexResult = <TSchema extends z.ZodTypeAny>(input: {
   rawText: string;
   schema: TSchema;
   value: unknown;
@@ -319,7 +319,7 @@ export const buildTextFallbackResult = <TSchema extends z.ZodTypeAny>(input: {
     parsed: parsed.data,
     normalizedText,
     rawResponseHash,
-    parseStatus: "parsed_text_fallback",
+    parseStatus: "parsed_text_raw_index",
   });
 };
 

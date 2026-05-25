@@ -7,8 +7,6 @@ import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const fileExists = (repoPath: string): boolean => existsSync(resolveFromRepo(repoPath));
 const hasRepoText = (repoPath: string, value: string): boolean => readFileSync(resolveFromRepo(repoPath), "utf8").includes(value);
-const hasText = (sourceFile: SourceFile | undefined, value: string): boolean =>
-  Boolean(sourceFile?.getFullText().includes(value));
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value));
 
@@ -37,8 +35,8 @@ export const inspectFullCaseFileRequired = (input: {
   const checks = [
     { ok: hasIdentifier(input.finalAdjudicationPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts", message: "Final adjudication prompt must include fullCaseFile." },
     { ok: hasIdentifier(input.htmlReportPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts", message: "HTML report prompt must include fullCaseFile." },
-    { ok: hasText(input.fullCaseFileFile, "rawResponseText") && hasText(input.fullCaseFileFile, "renderedPromptText"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts", message: "Full case file must include rawResponseText and renderedPromptText." },
-    { ok: hasText(input.exportFile, "saveFullCaseFileExports") && hasText(input.exportFile, "fullCaseFileExports"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.export.ts", message: "Exports must include both full case file artifacts." },
+    { ok: hasIdentifier(input.fullCaseFileFile, "rawResponseText") && hasIdentifier(input.fullCaseFileFile, "renderedPromptText"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts", message: "Full case file must include rawResponseText and renderedPromptText." },
+    { ok: hasIdentifier(input.exportFile, "saveFullCaseFileExports") && hasIdentifier(input.exportFile, "fullCaseFileExports"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.export.ts", message: "Exports must include both full case file artifacts." },
   ];
   for (const check of checks) {
     if (check.ok) continue;

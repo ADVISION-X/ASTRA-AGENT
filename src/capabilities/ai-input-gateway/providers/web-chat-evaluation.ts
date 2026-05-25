@@ -82,7 +82,7 @@ const isUserNode = (node) => {
   const testId = String(node.getAttribute("data-testid") || "").toLowerCase();
   return /\\buser\\b|prompt|composer/.test(className + " " + testId);
 };
-const isVisibleAssistantFallbackNode = (node) => {
+const isVisibleAssistantRawIndexNode = (node) => {
   if (!(node instanceof Element)) return false;
   if (!isVisible(node)) return false;
   if (isUserNode(node)) return false;
@@ -115,18 +115,18 @@ const structuredCandidates = responseNodes
   .filter((candidate) => candidate.text.length >= 5)
   .sort((a, b) => a.top - b.top)
   .map((candidate) => ({ ...candidate, source: "structured" }));
-const fallbackCandidates = dedupeCandidates(
+const rawIndexCandidates = dedupeCandidates(
   Array.from(document.querySelectorAll("main article, main [role='listitem'], main [data-testid*='conversation'], main [class*='message'], main [class*='response'], main [class*='markdown'], article, [role='listitem']"))
-    .filter(isVisibleAssistantFallbackNode)
+    .filter(isVisibleAssistantRawIndexNode)
     .map((node) => ({
       text: extractNodeText(node),
       top: node instanceof Element ? node.getBoundingClientRect().top : 0,
-      source: "visible_fallback",
+      source: "visible_raw_capture",
     }))
     .filter((candidate) => candidate.text.length >= 20)
     .sort((a, b) => a.top - b.top),
 );
-const candidates = structuredCandidates.length > 0 ? structuredCandidates : fallbackCandidates;
+const candidates = structuredCandidates.length > 0 ? structuredCandidates : rawIndexCandidates;
 const lastCandidate = candidates[candidates.length - 1] || null;
 const answerText = lastCandidate?.text || "";
 const assistantCount = structuredCandidates.length > 0
@@ -143,8 +143,8 @@ if (!answerText) {
 }
 return {
   status: "success",
-  message: lastCandidate?.source === "visible_fallback"
-    ? "answer extracted from visible assistant fallback"
+  message: lastCandidate?.source === "visible_raw_capture"
+    ? "answer extracted from visible assistant raw capture"
     : "answer extracted",
   answerText,
   pageUrl: location.href,

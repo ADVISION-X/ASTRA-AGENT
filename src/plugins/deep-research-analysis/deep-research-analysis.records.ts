@@ -70,8 +70,8 @@ const createCreateJobOperation = (
   db.prepare(
     `INSERT INTO research_jobs (
       id, user_question, analysis_goal, language, max_sub_questions, output_format,
-      flow_mode, status, phase, failure_reason, review_reason, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      status, phase, failure_reason, review_reason, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     parsedInput.userQuestion,
@@ -79,7 +79,6 @@ const createCreateJobOperation = (
     parsedInput.language,
     parsedInput.maxSubQuestions,
     parsedInput.outputFormat,
-    "default_1_n_1_1",
     "queued",
     "INTAKE",
     null,

@@ -157,7 +157,6 @@ export type DeepResearchReport = {
     title: string;
     userQuestion: string;
     analysisGoal: string | null;
-    flowMode: string;
     status: string;
     phase: string;
     failureReason: string | null;

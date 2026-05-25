@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -300,39 +300,6 @@ export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture
     fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
     finalReport,
   };
-};
-
-export const persistBusinessHtmlExport = (fixture: DeepResearchFullCaseFixture): void => {
-  const filePath = path.join(
-    fixture.dataDir,
-    "deep-research-analysis",
-    "exports",
-    fixture.job.id,
-    "business-report.html",
-  );
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  writeFileSync(filePath, [
-    "<!DOCTYPE html>",
-    "<html>",
-    "<head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head>",
-    "<body><main><h1>Business Report</h1><p>Proceed only through a staged partner-led beachhead.</p></main></body>",
-    "</html>",
-  ].join(""), "utf8");
-  fixture.store.saveExport({
-    jobId: fixture.job.id,
-    exportKind: "business-report.html",
-    filePath,
-    fileHash: "sha256:fixture-business-report-html",
-    payload: {
-      exportKind: "business-report.html",
-      filePath,
-      fileHash: "sha256:fixture-business-report-html",
-      sourceKind: "html_artifact",
-      status: "business_html_report_generated",
-      generatedAt: fixture.job.createdAt,
-      fileSizeBytes: readFileSync(filePath, "utf8").length,
-    },
-  });
 };
 
 export const disposeDeepResearchFullCaseFixture = (fixture: DeepResearchFullCaseFixture): void => {

@@ -45,7 +45,6 @@ export const mapJobRow = (row: {
   language: DeepResearchInput["language"];
   max_sub_questions: number;
   output_format: DeepResearchInput["outputFormat"];
-  flow_mode: ResearchJob["flowMode"] | null;
   status: DeepResearchJobStatus;
   phase: DeepResearchPhase;
   failure_reason: string | null;
@@ -60,7 +59,6 @@ export const mapJobRow = (row: {
     language: row.language,
     maxSubQuestions: row.max_sub_questions,
     outputFormat: row.output_format,
-    flowMode: row.flow_mode ?? "default_1_n_1_1",
     status: row.status,
     phase: row.phase,
     failureReason: row.failure_reason,

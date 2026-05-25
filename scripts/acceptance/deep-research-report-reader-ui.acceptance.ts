@@ -91,7 +91,7 @@ assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-meta");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-reader-primary");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-primary-business-report");
-assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-side-compact");
+assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-side-panel");
 assertText("src/app/workbench-deep-research-styles.ts", "max-height: min(320px, 34vh)");
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr)");
 assertText("src/app/workbench-deep-research-styles.ts", "grid-template-columns: minmax(0, 1fr);");
@@ -116,7 +116,7 @@ assertTextInAnyFile(clientRuntimePaths, "Primary Business Report");
 assertTextInAnyFile(clientRuntimePaths, "Open Full Case File");
 assertTextInAnyFile(clientRuntimePaths, "Download full-case-file.md");
 assertTextInAnyFile(clientRuntimePaths, "Download full-case-file.json");
-assertTextInAnyFile(clientRuntimePaths, "Open structured final package");
+assertTextInAnyFile(clientRuntimePaths, "Open decision package");
 assertTextInAnyFile(clientRuntimePaths, "Open HTML Report");
 assertTextInAnyFile(clientRuntimePaths, "Download HTML Report");
 assertTextInAnyFile(clientRuntimePaths, "Evidence / Debug");

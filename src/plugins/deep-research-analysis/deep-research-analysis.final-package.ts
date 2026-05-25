@@ -42,7 +42,6 @@ const DeepResearchFinalPackageBaseSchema = z.object({
     requiredFields: z.array(z.string().trim().min(1)).min(1),
     forbiddenFields: z.array(z.string().trim().min(1)).min(1),
   }).strict(),
-  flowMode: z.literal("default_1_n_1_1"),
 }).strict();
 
 const DeepResearchFinalPackageSchema = DeepResearchFinalPackageBaseSchema;
@@ -64,7 +63,6 @@ type DeepResearchFinalPackageBase = {
   recordHashes: Record<string, string>;
   promptVersions: Record<string, string>;
   outputContract: DeepResearchPromptOutputContract;
-  flowMode: "default_1_n_1_1";
 };
 
 export type DeepResearchFinalPackage = DeepResearchFinalPackageBase;
@@ -183,7 +181,6 @@ const buildDeepResearchFinalPackageBase = (
   recordHashes: {},
   promptVersions: buildPromptVersionMap(state.interactions),
   outputContract: finalAdjudicationPrompt.expectedOutputContract,
-  flowMode: "default_1_n_1_1",
 });
 
 const buildSingleFlowFinalPackage = (
@@ -191,7 +188,6 @@ const buildSingleFlowFinalPackage = (
   state: DeepResearchFinalPackageState,
 ): DeepResearchFinalPackage => ({
   ...baseFinalPackage,
-  flowMode: "default_1_n_1_1",
   recordHashes: buildRecordHashes({
     job: state.job,
     subQuestions: state.subQuestions,

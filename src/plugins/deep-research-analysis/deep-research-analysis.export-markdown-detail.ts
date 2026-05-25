@@ -16,27 +16,6 @@ import {
   type InteractionEvidence,
 } from "./deep-research-analysis.export-markdown-core.js";
 
-type RemovedAnswer = {
-  answer: string;
-  confidence: string;
-  keyClaims?: string[];
-  supportingReasons?: string[];
-  evidenceMentions?: string[];
-  assumptions?: string[];
-  limitations?: string[];
-  strongestOpposingArguments?: string[];
-  contradictionPoints?: string[];
-};
-
-type DeepResearchConflictMatrixRow = {
-  subQuestionId: string;
-  positiveClaimSummary: string;
-  falsificationSummary: string;
-  conflictLevel: string;
-  evidenceGap: string;
-  needsHumanReview: boolean;
-};
-
 const reparseAnalysisInteraction = (
   interaction: ResearchInteraction | null,
 ): DeepResearchSubQuestionAnalysisAnswer | null => {
@@ -49,10 +28,6 @@ const reparseAnalysisInteraction = (
   });
   return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
 };
-
-const reparsePositiveInteraction = (_interaction: ResearchInteraction | null): RemovedAnswer | null => null;
-
-const reparseFalsificationInteraction = (_interaction: ResearchInteraction | null): RemovedAnswer | null => null;
 
 const buildStageStatus = (input: {
   interaction: ResearchInteraction | null;
@@ -71,7 +46,7 @@ const buildStageStatus = (input: {
       || input.interaction.parseStatus === "parsed_json"
       || input.interaction.parseStatus === "parsed_json_from_fence"
       || input.interaction.parseStatus === "parsed_json_from_balanced_object"
-      || input.interaction.parseStatus === "parsed_text_fallback"
+      || input.interaction.parseStatus === "parsed_text_raw_index"
       ? "missing"
       : input.interaction.parseStatus;
     return [

@@ -159,7 +159,7 @@ const REQUIRED_SMOKE_EXPORTS = [
   "final-report.md",
   "full-case-file.md",
   "full-case-file.json",
-  "structured-final-package.json",
+  "decision-package.json",
   "business-report.html",
   "evidence-index.json",
 ] as const;

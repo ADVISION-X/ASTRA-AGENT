@@ -27,17 +27,17 @@ const NO_ITEMS_TEXT = "- none";
 export const escapeTableCell = (value: string): string =>
   value.replace(/\|/gu, "\\|").replace(/\r?\n/gu, "<br>");
 
-export const toDisplayValue = (value: string | null | undefined, fallback = "unavailable"): string => {
+export const toDisplayValue = (value: string | null | undefined, rawIndex = "unavailable"): string => {
   const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : fallback;
+  return trimmed && trimmed.length > 0 ? trimmed : rawIndex;
 };
 
 export const buildMarkdownList = (
   items: readonly string[],
-  fallback = NO_ITEMS_TEXT,
+  rawIndex = NO_ITEMS_TEXT,
 ): string => {
   if (items.length === 0) {
-    return fallback;
+    return rawIndex;
   }
   return items.map((item) => `- ${item}`).join("\n");
 };

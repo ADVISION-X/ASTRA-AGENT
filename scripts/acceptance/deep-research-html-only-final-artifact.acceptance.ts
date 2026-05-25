@@ -11,8 +11,8 @@ const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
 
 assert(exportFile.includes("business-report.html"), "business-report.html export is required.");
 assert(contracts.includes("business-report.html"), "business-report.html must be an export kind.");
-assert(!contracts.includes(decode("LnBwdA==")), "Legacy presentation export kinds must not exist.");
-assert(!delivery.includes(decode("T3BlbiBQUFQ=")), "UI must not expose legacy presentation open action.");
-assert(!delivery.includes(decode("RG93bmxvYWQgUFBU")), "UI must not expose legacy presentation download action.");
+assert(!contracts.includes(decode("LnBwdA==")), "PreviousSchema presentation export kinds must not exist.");
+assert(!delivery.includes(decode("T3BlbiBQUFQ=")), "UI must not expose previous schema presentation open action.");
+assert(!delivery.includes(decode("RG93bmxvYWQgUFBU")), "UI must not expose previous schema presentation download action.");
 assert(packageJson.includes("acceptance:deep-research-html-only-final-artifact"), "package.json must wire the HTML-only final artifact acceptance.");
 assert(ciFull.includes("acceptance:deep-research-html-only-final-artifact"), "ci:full must execute the HTML-only final artifact acceptance.");

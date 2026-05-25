@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T13:59:03.508Z",
+  "generatedAt": "2026-05-25T14:13:13.350Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,8 +9,25 @@
     "APEX-LOCAL-APP-SHELL-004-V1",
     "APEX-LOCAL-APP-SHELL-005-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "local-app-shell/deep-research-reader-marker",
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-deep-research-client.ts, src/app/workbench-deep-research-client-report-sections.ts, src/app/workbench-deep-research-client-delivery-sections.ts, src/app/workbench-deep-research-client-shared.ts, src/app/workbench-deep-research-client-boot.ts must contain Open structured final package.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-deep-research-client.ts"
+    },
+    {
+      "checkId": "local-app-shell/deep-research-reader-marker",
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-deep-research-report-view.ts must contain data-deep-research-side-compact.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-deep-research-report-view.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "src/app/create-workbench-server.ts",

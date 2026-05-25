@@ -86,16 +86,17 @@ const inspectReportBuilder = (input: {
   const reportBuilder = getArrowInitializer(input.queriesFile, "buildReportViewModel");
   if (!reportBuilder || ![
     "buildTimelineSnapshot",
-    "subQuestionReports",
+    "buildReportSubQuestionState",
     "answerByKindAndSubQuestionId",
-    "conflictBySubQuestionId",
+    "subQuestionReports",
+    "buildPrimaryBusinessReportView",
     "snapshot",
   ].every((identifier) => hasIdentifier(reportBuilder, identifier))) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-reader-pair-builder",
       lawId: input.lawId,
       filePath: repoPath,
-      message: "Report view model must pair sub-questions with independent analysis records while still preserving legacy positive, falsification, and conflict support.",
+      message: "Report view model must pair sub-questions with independent analysis records and the primary business report in the single-flow runtime.",
     }));
   }
   const reportQuery = getArrowInitializer(input.queriesFile, "getDeepResearchAnalysisReport");

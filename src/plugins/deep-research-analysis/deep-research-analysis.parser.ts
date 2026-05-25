@@ -8,18 +8,18 @@ import { parseDecompositionResponse } from "./deep-research-analysis.decompositi
 import type { DeepResearchDecompositionResponse } from "./deep-research-analysis.decomposition-schema.js";
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 import {
-  buildTextFallbackResult,
+  buildTextRawIndexResult,
   buildDefaultLimitations,
-  buildSentenceFallback,
+  buildSentenceRawIndex,
   isDeepResearchParserSuccess,
   normalizeConfidenceValue,
   normalizeWithSchema,
   parseJsonObject,
-  takeFallbackArray,
+  takeRawIndexArray,
   takeFirstString,
   takeFirstStringArray,
   type DeepResearchParserResult,
-  type FinalReportNormalizationFallback,
+  type FinalReportNormalizationRawIndex,
 } from "./deep-research-analysis.parser-support.js";
 
 const DeepResearchConfidenceSchema = z.enum(["low", "medium", "high"]);
@@ -98,9 +98,9 @@ const normalizeRankedConclusions = (value: unknown): DeepResearchFinalReport["ra
 
 const buildFinalReportCandidate = (
   candidate: Record<string, unknown>,
-  fallback: FinalReportNormalizationFallback,
+  rawIndex: FinalReportNormalizationRawIndex,
 ) => {
-  const directAnswerReport = buildDirectAnswerFinalReport(candidate, fallback);
+  const directAnswerReport = buildDirectAnswerFinalReport(candidate, rawIndex);
   if (directAnswerReport) {
     return {
       ok: true as const,
@@ -112,7 +112,7 @@ const buildFinalReportCandidate = (
 
 const buildDirectAnswerFinalReport = (
   candidate: Record<string, unknown>,
-  fallback: FinalReportNormalizationFallback,
+  rawIndex: FinalReportNormalizationRawIndex,
 ): DeepResearchFinalReport | null => {
   const directAnswer = takeFirstString(candidate, ["directAnswer", "answer"]);
   const finalVerdict = takeFirstString(candidate, ["finalVerdict", "verdict"]);
@@ -124,13 +124,13 @@ const buildDirectAnswerFinalReport = (
   if (!directAnswer || !finalVerdict || !confidence) {
     return null;
   }
-  const decisiveReasons = takeFallbackArray(
+  const decisiveReasons = takeRawIndexArray(
     takeFirstStringArray(candidate, ["decisiveReasons", "reasons"]),
-    fallback.decisiveReasons,
+    rawIndex.decisiveReasons,
   );
-  const opposingArguments = takeFallbackArray(
+  const opposingArguments = takeRawIndexArray(
     takeFirstStringArray(candidate, ["weakOrRejectedClaims", "rejectedClaims", "strongestOpposingArguments"]),
-    fallback.strongestOpposingArguments,
+    rawIndex.strongestOpposingArguments,
   );
   return {
     directAnswer,
@@ -142,28 +142,28 @@ const buildDirectAnswerFinalReport = (
     conditionalConclusions: takeFirstStringArray(candidate, ["conditionalConclusions"]),
     weakOrRejectedClaims: opposingArguments,
     decisiveReasons,
-    evidenceGaps: takeFallbackArray(
+    evidenceGaps: takeRawIndexArray(
       takeFirstStringArray(candidate, ["evidenceGaps", "gaps"]),
-      fallback.evidenceGaps,
+      rawIndex.evidenceGaps,
     ),
-    reverseConditions: takeFallbackArray(
+    reverseConditions: takeRawIndexArray(
       takeFirstStringArray(candidate, ["reverseConditions", "reversalConditions"]),
-      fallback.reverseConditions,
+      rawIndex.reverseConditions,
     ),
     applicability: takeFirstStringArray(candidate, ["applicability", "appliesTo"]),
     nonApplicability: takeFirstStringArray(candidate, ["nonApplicability", "doesNotApplyTo"]),
-    followUpSignals: takeFallbackArray(
+    followUpSignals: takeRawIndexArray(
       takeFirstStringArray(candidate, ["followUpSignals", "followUps", "watchSignals"]),
-      fallback.followUpSignals,
+      rawIndex.followUpSignals,
     ),
     multiStageValueAdded: takeFirstStringArray(candidate, ["multiStageValueAdded"]),
-    limitations: takeFallbackArray(
+    limitations: takeRawIndexArray(
       takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-      fallback.limitations ?? buildDefaultLimitations(),
+      rawIndex.limitations ?? buildDefaultLimitations(),
     ),
     references: takeFirstStringArray(candidate, ["references", "sourceNotes"]),
-    sourceNotes: fallback.sourceNotes?.length
-      ? [...fallback.sourceNotes]
+    sourceNotes: rawIndex.sourceNotes?.length
+      ? [...rawIndex.sourceNotes]
       : buildDeepResearchSourceNotesFromReferences(
         takeFirstStringArray(candidate, ["sourceNotes", "references"]),
       ),
@@ -173,16 +173,16 @@ const buildDirectAnswerFinalReport = (
 };
 
 const buildNarrativeLead = (rawText: string): string =>
-  buildSentenceFallback(rawText)[0]
+  buildSentenceRawIndex(rawText)[0]
   ?? rawText.replace(/\s+/gu, " ").trim().slice(0, 240)
   ?? "Model returned a narrative answer without a structured summary.";
 
-const buildSubQuestionAnalysisTextFallbackValue = (input: {
+const buildSubQuestionAnalysisTextRawIndexValue = (input: {
   rawText: string;
   subQuestionId?: string;
 }): DeepResearchSubQuestionAnalysisAnswer => {
   const normalized = input.rawText.replace(/\s+/gu, " ").trim();
-  const supportingSentences = buildSentenceFallback(normalized);
+  const supportingSentences = buildSentenceRawIndex(normalized);
   const coreFinding = buildNarrativeLead(normalized);
   return {
     subQuestionId: input.subQuestionId ?? "unknown-sub-question",
@@ -202,13 +202,13 @@ const buildSubQuestionAnalysisTextFallbackValue = (input: {
   };
 };
 
-const buildFinalAdjudicationTextFallbackValue = (input: {
+const buildFinalAdjudicationTextRawIndexValue = (input: {
   rawText: string;
-  fallback: FinalReportNormalizationFallback;
+  rawIndex: FinalReportNormalizationRawIndex;
 }): DeepResearchFinalReport => {
   const normalized = input.rawText.replace(/\s+/gu, " ").trim();
   const lead = buildNarrativeLead(normalized);
-  const decisiveReasons = buildSentenceFallback(normalized);
+  const decisiveReasons = buildSentenceRawIndex(normalized);
   return {
     directAnswer: lead,
     finalVerdict: lead.slice(0, 160),
@@ -217,27 +217,27 @@ const buildFinalAdjudicationTextFallbackValue = (input: {
     rankedConclusions: [],
     strongConclusions: decisiveReasons,
     conditionalConclusions: [],
-    weakOrRejectedClaims: [...(input.fallback.strongestOpposingArguments ?? [])],
+    weakOrRejectedClaims: [...(input.rawIndex.strongestOpposingArguments ?? [])],
     decisiveReasons,
-    evidenceGaps: input.fallback.evidenceGaps?.length
-      ? [...input.fallback.evidenceGaps]
+    evidenceGaps: input.rawIndex.evidenceGaps?.length
+      ? [...input.rawIndex.evidenceGaps]
       : ["Model returned narrative final adjudication without structured evidence gaps."],
-    reverseConditions: input.fallback.reverseConditions?.length
-      ? [...input.fallback.reverseConditions]
+    reverseConditions: input.rawIndex.reverseConditions?.length
+      ? [...input.rawIndex.reverseConditions]
       : ["Model did not provide explicit reverse conditions."],
     applicability: [],
     nonApplicability: [],
-    followUpSignals: input.fallback.followUpSignals?.length
-      ? [...input.fallback.followUpSignals]
+    followUpSignals: input.rawIndex.followUpSignals?.length
+      ? [...input.rawIndex.followUpSignals]
       : ["Review the raw narrative final adjudication for additional nuance."],
     multiStageValueAdded: [],
-    limitations: input.fallback.limitations?.length
-      ? [...input.fallback.limitations]
+    limitations: input.rawIndex.limitations?.length
+      ? [...input.rawIndex.limitations]
       : ["Model returned narrative final adjudication instead of the requested JSON contract."],
     references: [],
-    sourceNotes: input.fallback.sourceNotes ? [...input.fallback.sourceNotes] : [],
+    sourceNotes: input.rawIndex.sourceNotes ? [...input.rawIndex.sourceNotes] : [],
     executiveConclusion: lead,
-    strongestOpposingArguments: [...(input.fallback.strongestOpposingArguments ?? [])],
+    strongestOpposingArguments: [...(input.rawIndex.strongestOpposingArguments ?? [])],
   };
 };
 
@@ -263,34 +263,34 @@ export const parseDeepResearchSubQuestionAnalysisResponse = (
   if (isDeepResearchParserSuccess(normalized) || !normalized.normalizedText) {
     return normalized;
   }
-  return buildTextFallbackResult({
+  return buildTextRawIndexResult({
     rawText,
     schema: DeepResearchSubQuestionAnalysisAnswerSchema,
-    value: buildSubQuestionAnalysisTextFallbackValue({
+    value: buildSubQuestionAnalysisTextRawIndexValue({
       rawText,
       ...(typeof input === "string" ? {} : { subQuestionId: input.subQuestionId }),
     }),
-    failureReason: "invalid_sub_question_analysis_text_fallback",
+    failureReason: "invalid_sub_question_analysis_text_raw_index",
   });
 };
 
 export const parseDeepResearchFinalAdjudicationResponse = (
   rawText: string,
-  fallback: FinalReportNormalizationFallback = {},
+  rawIndex: FinalReportNormalizationRawIndex = {},
 ): DeepResearchParserResult<DeepResearchFinalReport> => {
   const normalized = normalizeWithSchema({
     parsedJson: parseJsonObject(rawText),
     schema: DeepResearchFinalReportSchema,
-    normalize: (candidate) => buildFinalReportCandidate(candidate, fallback),
+    normalize: (candidate) => buildFinalReportCandidate(candidate, rawIndex),
     missingRequiredReason: "invalid_final_adjudication_contract",
   });
   if (isDeepResearchParserSuccess(normalized) || !normalized.normalizedText) {
     return normalized;
   }
-  return buildTextFallbackResult({
+  return buildTextRawIndexResult({
     rawText,
     schema: DeepResearchFinalReportSchema,
-    value: buildFinalAdjudicationTextFallbackValue({ rawText, fallback }),
-    failureReason: "invalid_final_adjudication_text_fallback",
+    value: buildFinalAdjudicationTextRawIndexValue({ rawText, rawIndex }),
+    failureReason: "invalid_final_adjudication_text_raw_index",
   });
 };

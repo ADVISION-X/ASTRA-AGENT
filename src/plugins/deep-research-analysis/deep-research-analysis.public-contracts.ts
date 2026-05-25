@@ -176,7 +176,6 @@ export type DeepResearchReportViewModel = {
     title: string;
     userQuestion: string;
     analysisGoal: string | null;
-    flowMode: ResearchJob["flowMode"];
     status: ResearchJob["status"];
     phase: ResearchJob["phase"];
     failureReason: string | null;

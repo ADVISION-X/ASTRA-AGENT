@@ -209,7 +209,6 @@ export const buildDeepResearchFullCaseFile = (input: {
       userQuestion: state.job.userQuestion,
       analysisGoal: state.job.analysisGoal,
       language: state.job.language,
-      flowMode: state.job.flowMode,
       createdAt: state.job.createdAt,
     },
     decomposition: buildDecompositionCase({

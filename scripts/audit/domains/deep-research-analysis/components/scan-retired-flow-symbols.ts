@@ -21,7 +21,7 @@ const forbiddenSymbols = new Set([
   decode("c2VsZWN0T3B0aW9uYWxQcmVzZW50YXRpb25EZWNr"),
 ]);
 
-export const inspectNoLegacyFlowSymbols = (input: {
+export const inspectRetiredFlowSymbols = (input: {
   sourceFiles: readonly SourceFile[];
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
@@ -36,7 +36,7 @@ export const inspectNoLegacyFlowSymbols = (input: {
     ].filter((value) => forbiddenSymbols.has(value));
     if (found.length === 0) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/no-legacy-flow-symbols",
+      checkId: "deep-research/no-retired-flow-symbols",
       lawId: input.lawId,
       filePath: repoPath,
       message: `Forbidden flow symbol remains: ${[...new Set(found)].join(", ")}.`,

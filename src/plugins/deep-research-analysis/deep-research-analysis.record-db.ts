@@ -33,7 +33,6 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     language TEXT NOT NULL,
     max_sub_questions INTEGER NOT NULL,
     output_format TEXT NOT NULL,
-    flow_mode TEXT NOT NULL DEFAULT 'default_1_n_1_1',
     status TEXT NOT NULL,
     phase TEXT NOT NULL,
     failure_reason TEXT,
@@ -126,7 +125,7 @@ type SqliteColumnInfo = {
   name: string;
 };
 
-type LegacySubQuestionRow = {
+type PreviousSchemaSubQuestionRow = {
   id: string;
   job_id: string;
   interaction_id: string;
@@ -147,13 +146,13 @@ const hasColumn = (
   (db.prepare(`PRAGMA table_info(${tableName})`).all() as SqliteColumnInfo[])
     .some((column) => column.name === columnName);
 
-const listLegacySubQuestionRows = (db: Database.Database): LegacySubQuestionRow[] =>
+const listPreviousSchemaSubQuestionRows = (db: Database.Database): PreviousSchemaSubQuestionRow[] =>
   db.prepare(
     `SELECT id, job_id, interaction_id, ordinal, title, question_text, purpose, scope,
       expected_answer_shape, created_at
     FROM research_sub_questions
     ORDER BY job_id ASC, ordinal ASC`,
-  ).all() as LegacySubQuestionRow[];
+  ).all() as PreviousSchemaSubQuestionRow[];
 
 const createSubQuestionsV2Table = (db: Database.Database): void => {
   db.exec(`
@@ -181,9 +180,9 @@ const createSubQuestionsV2Table = (db: Database.Database): void => {
   `);
 };
 
-const copyLegacySubQuestionRows = (
+const copyPreviousSchemaSubQuestionRows = (
   db: Database.Database,
-  legacyRows: readonly LegacySubQuestionRow[],
+  previousSchemaRows: readonly PreviousSchemaSubQuestionRow[],
 ): Map<string, string> => {
   const insert = db.prepare(
     `INSERT INTO research_sub_questions_v2 (
@@ -193,7 +192,7 @@ const copyLegacySubQuestionRows = (
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const idRemap = new Map<string, string>();
-  for (const row of legacyRows) {
+  for (const row of previousSchemaRows) {
     const systemId = createId("deep_research_sub_question");
     idRemap.set(`${row.job_id}\u0000${row.id}`, systemId);
     insert.run(
@@ -221,7 +220,7 @@ const copyLegacySubQuestionRows = (
 
 const remapSubQuestionReferences = (
   db: Database.Database,
-  legacyRows: readonly LegacySubQuestionRow[],
+  previousSchemaRows: readonly PreviousSchemaSubQuestionRow[],
   idRemap: ReadonlyMap<string, string>,
 ): void => {
   const updateInteractions = db.prepare(
@@ -230,7 +229,7 @@ const remapSubQuestionReferences = (
   const updateAnswers = db.prepare(
     `UPDATE research_answers SET sub_question_id = ? WHERE job_id = ? AND sub_question_id = ?`,
   );
-  for (const row of legacyRows) {
+  for (const row of previousSchemaRows) {
     const systemId = idRemap.get(`${row.job_id}\u0000${row.id}`);
     if (!systemId) continue;
     updateInteractions.run(systemId, row.job_id, row.id);
@@ -240,11 +239,11 @@ const remapSubQuestionReferences = (
 
 const migrateResearchSubQuestionsSchema = (db: Database.Database): void => {
   if (hasColumn(db, "research_sub_questions", "model_question_id")) return;
-  const legacyRows = listLegacySubQuestionRows(db);
+  const previousSchemaRows = listPreviousSchemaSubQuestionRows(db);
   const migrate = db.transaction(() => {
     createSubQuestionsV2Table(db);
-    const idRemap = copyLegacySubQuestionRows(db, legacyRows);
-    remapSubQuestionReferences(db, legacyRows, idRemap);
+    const idRemap = copyPreviousSchemaSubQuestionRows(db, previousSchemaRows);
+    remapSubQuestionReferences(db, previousSchemaRows, idRemap);
     db.exec("DROP TABLE research_sub_questions");
     db.exec("ALTER TABLE research_sub_questions_v2 RENAME TO research_sub_questions");
   });
@@ -260,17 +259,6 @@ const migrateResearchInteractionsRenderedPromptText = (db: Database.Database): v
      SET rendered_prompt_text = ?
      WHERE rendered_prompt_text IS NULL OR trim(rendered_prompt_text) = ''`,
   ).run(MISSING_RENDERED_PROMPT_TEXT);
-};
-
-const migrateResearchJobsFlowMode = (db: Database.Database): void => {
-  if (!hasColumn(db, "research_jobs", "flow_mode")) {
-    db.exec("ALTER TABLE research_jobs ADD COLUMN flow_mode TEXT");
-  }
-  db.prepare(
-    `UPDATE research_jobs
-     SET flow_mode = ?
-     WHERE flow_mode IS NULL OR trim(flow_mode) = ''`,
-  ).run("default_1_n_1_1");
 };
 
 const migrateResearchSubQuestionStructuredFields = (db: Database.Database): void => {
@@ -335,7 +323,6 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
   }
   migrateResearchSubQuestionsSchema(db);
   migrateResearchInteractionsRenderedPromptText(db);
-  migrateResearchJobsFlowMode(db);
   migrateResearchSubQuestionStructuredFields(db);
   migrateResearchAnswersParsedPayload(db);
   migrateResearchExportsPayloadJson(db);
