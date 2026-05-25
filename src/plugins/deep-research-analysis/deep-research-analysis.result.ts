@@ -2,6 +2,15 @@ import { z } from "zod";
 
 import { DeepResearchPhaseSchema } from "./deep-research-analysis.schema.js";
 
+export const DeepResearchSourceNoteSchema = z.object({
+  sourceNoteId: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  note: z.string().trim().min(1),
+  sourceType: z.enum(["analysis_evidence_mention", "final_reference"]),
+  subQuestionIds: z.array(z.string().trim().min(1)).default([]),
+  url: z.string().trim().min(1).nullable().default(null),
+}).strict();
+
 export const DeepResearchFinalAdjudicationRecordSchema = z.object({
   jobId: z.string().trim().min(1),
   interactionId: z.string().trim().min(1),
@@ -50,6 +59,7 @@ const DeepResearchTerminalResultSchema = z.object({
 
 export type DeepResearchFinalAdjudicationParse = z.infer<typeof DeepResearchFinalAdjudicationParseSchema>;
 export type DeepResearchFinalAdjudicationRecord = z.infer<typeof DeepResearchFinalAdjudicationRecordSchema>;
+export type DeepResearchSourceNote = z.infer<typeof DeepResearchSourceNoteSchema>;
 export type DeepResearchResult =
   | z.infer<typeof DeepResearchResultSchema>
   | z.infer<typeof DeepResearchTerminalResultSchema>;

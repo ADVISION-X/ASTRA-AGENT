@@ -16,12 +16,12 @@ const failingDeepResearch = project.createSourceFile(
   `
 import { z } from "zod";
 
-const DeepResearchFinalReportSchema = z.object({ ok: z.boolean() }).strict();
+const DeepResearchFinalAdjudicationSchema = z.object({ ok: z.boolean() }).strict();
 const DeepResearchResultSchema = z.object({
   jobId: z.string(),
   status: z.enum(["success", "review_required", "failed"]),
   jobStatus: z.enum(["completed", "review_required", "failed"]),
-  report: DeepResearchFinalReportSchema.nullable().default(null),
+  finalAdjudication: DeepResearchFinalAdjudicationSchema.nullable().default(null),
   recordHashes: z.record(z.string(), z.string()).default({}),
 }).strict();
 `,
@@ -33,12 +33,12 @@ const lawfulDeepResearch = project.createSourceFile(
   `
 import { z } from "zod";
 
-const DeepResearchFinalReportSchema = z.object({ ok: z.boolean() }).strict();
+const DeepResearchFinalAdjudicationSchema = z.object({ ok: z.boolean() }).strict();
 const DeepResearchResultSchema = z.object({
   jobId: z.string(),
   status: z.enum(["success", "review_required", "failed"]),
   jobStatus: z.enum(["completed", "review_required", "failed"]),
-  report: DeepResearchFinalReportSchema,
+  finalAdjudication: DeepResearchFinalAdjudicationSchema,
   recordHashes: z.record(z.string(), z.string()),
 }).strict();
 `,

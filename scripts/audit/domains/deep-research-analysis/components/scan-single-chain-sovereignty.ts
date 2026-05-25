@@ -32,7 +32,7 @@ const requiredRunnerIdentifiers = [
   "runDecompositionPhase",
   "runSubQuestionPhases",
   "buildFullCaseFileStage",
-  "runFinalReportPhase",
+  "runFinalAdjudicationPhase",
   "runBusinessHtmlReportPhase",
   "completeSuccessfulRun",
 ] as const;

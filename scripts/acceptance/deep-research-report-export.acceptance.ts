@@ -9,7 +9,7 @@ const routes = readFileSync("src/app/workbench-deep-research-routes.ts", "utf8")
 const smoke = readFileSync("scripts/acceptance/deep-research-analysis-smoke.ts", "utf8");
 
 for (const required of [
-  "final-report.md",
+  "final-adjudication-raw.md",
   "full-case-file.md",
   "full-case-file.json",
   "structured-index.json",

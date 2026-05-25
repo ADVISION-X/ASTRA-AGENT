@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -110,9 +110,9 @@ const FIXTURE_RESPONSES = [
       promptRole: "html_report_publisher",
       taskInstruction: "Publish a browser-readable HTML business report for the robotics market-entry adjudication.",
       questionSpecificFocus: ["executive readability", "entry conditions", "risk boundaries"],
-      mustUseInputs: ["finalReport", "fullCaseFile"],
+      mustUseInputs: ["rawFinalAnswerText", "fullCaseFile"],
       mustNotDo: ["Do not change the final meaning."],
-      evidenceOrReasoningNeeds: ["preserve final report and supporting case-file context"],
+      evidenceOrReasoningNeeds: ["preserve raw final adjudication and supporting case-file context"],
       outputGuidance: {
         preferredFormat: "html_document",
         requiredContent: ["final recommendation", "reasons", "conditions", "limitations"],
@@ -144,7 +144,6 @@ const FIXTURE_RESPONSES = [
       failureCases: ["A severe recession could materially delay automation budgets."],
       impactOnFinalDecision: "Supports a measured market-entry recommendation if execution remains manageable.",
     },
-    confidence: "high",
     limitations: ["Public buyer pipeline evidence is incomplete."],
   }),
   JSON.stringify({
@@ -160,12 +159,10 @@ const FIXTURE_RESPONSES = [
       failureCases: ["A broad first release without delivery partners would likely fail."],
       impactOnFinalDecision: "Supports entry only as a staged, partner-assisted launch.",
     },
-    confidence: "medium",
     limitations: ["Partner quality still needs live validation."],
   }),
   JSON.stringify({
     summary: "The company should consider entering, but only through a staged partner-led beachhead.",
-    confidence: "medium",
     structuredPayload: {
       recommendation: "Enter only through a staged partner-led beachhead.",
       rationale: ["Demand support is real in labor-constrained warehouses."],
@@ -186,27 +183,21 @@ const FIXTURE_RESPONSES = [
   }),
 ] as const;
 
-const writeHtmlArtifactFixture = (input: {
-  dataDir: string;
-  fileStem: string;
+const buildInlineHtmlFixture = (input: {
   title: string;
   body: string;
 }): string => {
-  const artifactDir = path.join(input.dataDir, "acceptance-html-artifacts");
-  mkdirSync(artifactDir, { recursive: true });
-  const sourceHtmlPath = path.join(artifactDir, `${input.fileStem}.html`);
-  writeFileSync(sourceHtmlPath, [
+  return [
     "<!DOCTYPE html>",
     "<html>",
     `<head><meta charset="utf-8"><title>${input.title}</title><style>body{font-family:sans-serif;}</style></head>`,
     `<body><main><h1>${input.title}</h1><p>${input.body}</p></main></body>`,
     "</html>",
-  ].join(""), "utf8");
-  return `HTML_ARTIFACT_PATH=${sourceHtmlPath}`;
+  ].join("");
 };
 
 const REQUIRED_SMOKE_EXPORT_KINDS = [
-  "final-report.md",
+  "final-adjudication-raw.md",
   "full-case-file.md",
   "full-case-file.json",
   "structured-index.json",
@@ -225,12 +216,10 @@ class SequentialFixtureAdapter implements AiProviderAdapter {
 
   private cursor = 0;
 
-  async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+  async feed(input: AiFeedInput, _context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
     let rawText = FIXTURE_RESPONSES[this.cursor];
     if (!rawText && input.promptPackageId.includes("business-html-report")) {
-      rawText = writeHtmlArtifactFixture({
-        dataDir: context.dataDir,
-        fileStem: "business-report",
+      rawText = buildInlineHtmlFixture({
         title: "Business Report",
         body: "The company should consider entering, but only through a staged partner-led beachhead.",
       });
@@ -313,12 +302,12 @@ async function main(): Promise<void> {
   assert(result.status === "success", `Expected smoke success, received ${JSON.stringify(result)}.`);
   assert(result.phase === "COMPLETE", `Expected COMPLETE phase, received ${result.phase}.`);
   assert(
-    result.report?.summary.includes("staged partner-led beachhead"),
-    "Smoke report must persist the final adjudication summary.",
+    result.finalAdjudication?.rawFinalAnswerText.includes("staged partner-led beachhead"),
+    "Smoke result must persist the raw final adjudication text.",
   );
   assert(
-    (result.report?.sourceNotes ?? []).length >= 4,
-    "Final adjudication must merge analysis evidenceMentions into structured sourceNotes.",
+    result.finalAdjudication?.parseStatus === "parsed_json_index",
+    "Smoke result must preserve the parsed JSON index as a secondary record when JSON is returned.",
   );
   verifyRuntimeLogCoverage(runtimeLogBundlePath);
   verifyPersistedResearchState(dataDir, result);

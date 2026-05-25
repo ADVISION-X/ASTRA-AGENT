@@ -3,7 +3,7 @@ import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-b
 import { renderHtmlReportFromPromptBundle } from "./deep-research-analysis.prompt-bundle-render.js";
 import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-contracts.js";
 import { buildPromptOutputShellContract } from "./deep-research-analysis.prompts.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import type { DeepResearchInput } from "./deep-research-analysis.schema.js";
 
 export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_ID =
@@ -14,7 +14,7 @@ export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_CONTRACT_ID =
 
 export const buildBusinessHtmlReportOutputContract = () => buildPromptOutputShellContract({
   contractId: DEEP_RESEARCH_BUSINESS_HTML_REPORT_CONTRACT_ID,
-  format: "html_artifact",
+  format: "html_document",
   requiredFields: ["complete self-contained HTML document"],
 });
 
@@ -27,13 +27,13 @@ export const buildBusinessHtmlReportShellPrompt = (): DeepResearchPrompt => ({
 });
 
 export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
   htmlReportPromptBundle: DeepResearchPromptBundle;
   language: DeepResearchInput["language"];
 }): string => renderHtmlReportFromPromptBundle({
-  finalReport: input.finalReport,
+  rawFinalAnswerText: input.finalAdjudication.rawFinalAnswerText,
   fullCaseFile: input.fullCaseFile,
   fullCaseFileMarkdown: input.fullCaseFileMarkdown,
   htmlReportPromptBundle: input.htmlReportPromptBundle,

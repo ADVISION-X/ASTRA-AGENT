@@ -8,9 +8,15 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
 import { inspectFinalAdjudicationPromptBundleInput } from "./components/scan-final-adjudication-promptbundle-input.js";
+import { inspectFinalAdjudicationRawSovereignty } from "./components/scan-final-adjudication-raw-sovereignty.js";
+import { inspectFormatShellBoundary } from "./components/scan-format-shell-boundary.js";
 import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
+import { inspectHtmlUsesRawFinalAnswer } from "./components/scan-html-uses-raw-final-answer.js";
 import { inspectHtmlReportPromptBundleInput } from "./components/scan-html-report-promptbundle-input.js";
+import { inspectNoSystemGeneratedConfidence } from "./components/scan-no-system-generated-confidence.js";
 import { inspectPerSubQuestionPromptBundleUniqueness } from "./components/scan-per-subquestion-promptbundle-uniqueness.js";
+import { inspectPromptBundleBusinessSovereignty } from "./components/scan-promptbundle-business-sovereignty.js";
+import { inspectPromptBundleFieldConsistency } from "./components/scan-promptbundle-field-consistency.js";
 import { inspectPromptBundleSovereignty } from "./components/scan-prompt-bundle-sovereignty.js";
 import { inspectRawInteractionPersistence } from "./components/scan-raw-interaction-persistence.js";
 import { inspectRuntimeShellOnly } from "./components/scan-runtime-shell-only.js";
@@ -126,6 +132,21 @@ const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-047-V1"),
   });
+  inspectFinalAdjudicationRawSovereignty({
+    resultFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.result.ts"),
+    parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"),
+    finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
+    recordContractsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
+  });
+  inspectNoSystemGeneratedConfidence({
+    sourceFiles,
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
+  });
   inspectFullCaseFileSovereignty({
     finalAdjudicationPromptFile: getSourceFile(context, requiredFiles[5]),
     htmlReportPromptFile: getSourceFile(context, requiredFiles[6]),
@@ -150,7 +171,7 @@ const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
   });
 };
 
-const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): void => {
+const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
   const { context, findings, inspectedFiles, sourceFiles, surfaceFiles, acceptanceFiles, auditComponentFiles } = state;
   inspectFinalAdjudicationPromptBundleInput({
     finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
@@ -166,12 +187,30 @@ const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): vo
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-046-V1"),
   });
+  inspectFormatShellBoundary({
+    promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-049-V1"),
+  });
+  inspectHtmlUsesRawFinalAnswer({
+    htmlReportPromptFile: getSourceFile(context, requiredFiles[6]),
+    htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    promptBundleRenderFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
+  });
   inspectSinglePathVocabulary({
     sourceFiles: [...sourceFiles, ...surfaceFiles, ...acceptanceFiles, ...auditComponentFiles],
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
   });
+};
+
+const inspectPromptBundlePolicies = (state: DeepResearchInspectionState): void => {
+  const { context, findings, inspectedFiles } = state;
   inspectPromptBundleSovereignty({
     researchPlanSchemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts"),
     decompositionPromptFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
@@ -182,6 +221,30 @@ const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): vo
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-045-V1"),
   });
+  inspectPromptBundleFieldConsistency({
+    sourceFiles: [
+      getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-schema.ts"),
+      getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts"),
+      getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"),
+      getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts"),
+    ].filter((sourceFile): sourceFile is SourceFile => !!sourceFile),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-051-V1"),
+  });
+  inspectPromptBundleBusinessSovereignty({
+    promptBundleRenderFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts"),
+    analysisSubQuestionsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts"),
+    finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
+    htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-048-V1"),
+  });
+};
+
+const inspectRuntimeShellPolicies = (state: DeepResearchInspectionState): void => {
+  const { context, findings, inspectedFiles } = state;
   inspectPerSubQuestionPromptBundleUniqueness({
     analysisSubQuestionsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts"),
     promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
@@ -201,6 +264,12 @@ const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): vo
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-044-V1"),
   });
+};
+
+const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): void => {
+  inspectBoundaryInputs(state);
+  inspectPromptBundlePolicies(state);
+  inspectRuntimeShellPolicies(state);
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {

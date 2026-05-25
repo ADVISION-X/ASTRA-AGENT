@@ -3,7 +3,7 @@ export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND =
 
 export const DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE = "text/html" as const;
 
-export type DeepResearchBusinessHtmlSourceKind = "html_artifact";
+export type DeepResearchBusinessHtmlSourceKind = "html_artifact" | "inline_html_document";
 
 export type DeepResearchBusinessHtmlReportRecord = {
   artifactName: string;

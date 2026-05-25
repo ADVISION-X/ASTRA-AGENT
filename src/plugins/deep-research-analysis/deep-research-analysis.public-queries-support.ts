@@ -8,7 +8,7 @@ import {
   type ResearchJob,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 import {
   type DeepResearchJobSnapshot,
@@ -48,19 +48,19 @@ const withStore = <T>(
 const inferDefaultFlowPhase = (input: {
   subQuestions: readonly ResearchSubQuestion[];
   analysisAnswers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
 }): DeepResearchPhase => {
   if (input.analysisAnswers.length < input.subQuestions.length) {
     return "ANALYSIS_PERSIST";
   }
-  return input.finalReport ? "FINAL_ADJUDICATION_PERSIST" : "FULL_CASE_FILE_BUILD";
+  return input.finalAdjudication ? "FINAL_ADJUDICATION_PERSIST" : "FULL_CASE_FILE_BUILD";
 };
 
 const inferCurrentPhase = (input: {
   job: ResearchJob;
   subQuestions: readonly ResearchSubQuestion[];
   analysisAnswers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
   exports: readonly ResearchExport[];
 }): DeepResearchPhase => {
   if (input.job.status !== "queued") {
@@ -75,7 +75,7 @@ const inferCurrentPhase = (input: {
   return inferDefaultFlowPhase({
     subQuestions: input.subQuestions,
     analysisAnswers: input.analysisAnswers,
-    finalReport: input.finalReport,
+    finalAdjudication: input.finalAdjudication,
   });
 };
 
@@ -84,7 +84,7 @@ const buildJobSnapshot = (input: {
   interactions: readonly ResearchInteraction[];
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
   exports: readonly ResearchExport[];
 }): DeepResearchJobSnapshot => {
   const analysisAnswers = input.answers.filter((record) => record.answerKind === "analysis");
@@ -95,7 +95,7 @@ const buildJobSnapshot = (input: {
         job: input.job,
         subQuestions: input.subQuestions,
         analysisAnswers,
-        finalReport: input.finalReport,
+        finalAdjudication: input.finalAdjudication,
         exports: input.exports,
       }),
       interactionCount: input.interactions.length,
@@ -103,7 +103,7 @@ const buildJobSnapshot = (input: {
       analysisCount: analysisAnswers.length,
       exportCount: input.exports.length,
     },
-    finalReport: input.finalReport,
+    finalAdjudication: input.finalAdjudication,
     exports: [...input.exports],
   };
 };
@@ -112,7 +112,7 @@ const buildTimelineEntries = (input: {
   interactions: readonly ResearchInteraction[];
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalReportRecord: { id: string; report: DeepResearchFinalReport } | null;
+  finalAdjudicationRecord: { id: string; finalAdjudication: DeepResearchFinalAdjudicationRecord } | null;
 }): DeepResearchTimelineEntry[] => {
   const answersByInteractionId = new Map(
     input.answers.map((record) => [record.interactionId, record]),
@@ -125,7 +125,7 @@ const buildTimelineEntries = (input: {
       interaction,
       subQuestions: input.subQuestions,
       answersByInteractionId,
-      finalReportRecord: input.finalReportRecord,
+      finalAdjudicationRecord: input.finalAdjudicationRecord,
     });
     return {
       interactionId: interaction.id,
@@ -158,14 +158,14 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
     const interactions = store.listInteractions(jobId);
     const subQuestions = store.listSubQuestions(jobId);
     const answers = store.listAnswers({ jobId });
-    const finalReportRecord = store.getLatestFinalReport(jobId);
+    const finalAdjudicationRecord = store.getLatestFinalAdjudication(jobId);
     const exports = store.listExports(jobId);
     const timeline = buildTimelineEntries({
       interactions,
       subQuestions,
       answers,
-      finalReportRecord: finalReportRecord
-        ? { id: finalReportRecord.id, report: finalReportRecord.report }
+      finalAdjudicationRecord: finalAdjudicationRecord
+        ? { id: finalAdjudicationRecord.id, finalAdjudication: finalAdjudicationRecord }
         : null,
     });
     return {
@@ -175,13 +175,13 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
         interactions,
         subQuestions,
         answers,
-        finalReport: finalReportRecord?.report ?? null,
+        finalAdjudication: finalAdjudicationRecord,
         exports,
       }).overview,
       timeline,
       subQuestions,
       answers,
-      finalReport: finalReportRecord?.report ?? null,
+      finalAdjudication: finalAdjudicationRecord,
       exports,
     };
   });
@@ -195,14 +195,14 @@ export const buildJobSnapshotForId = (dataDir: string, jobId: string): DeepResea
     const interactions = store.listInteractions(jobId);
     const subQuestions = store.listSubQuestions(jobId);
     const answers = store.listAnswers({ jobId });
-    const finalReport = store.getLatestFinalReport(jobId)?.report ?? null;
+    const finalAdjudication = store.getLatestFinalAdjudication(jobId);
     const exports = store.listExports(jobId);
     return buildJobSnapshot({
       job,
       interactions,
       subQuestions,
       answers,
-      finalReport,
+      finalAdjudication,
       exports,
     });
   });
@@ -253,6 +253,7 @@ export const buildPrimaryBusinessReportView = (input: {
   const htmlExportView = input.exportViews.find((entry) => entry.exportKind === "business-report.html") ?? null;
   const payload = readExportPayload(htmlExport);
   const sourceKind = payload?.sourceKind === "html_artifact"
+    || payload?.sourceKind === "inline_html_document"
     ? payload.sourceKind
     : null;
   return {

@@ -17,11 +17,13 @@ AI Input Gateway owns external AI transport only: provider delivery, response re
 
 It is not a replacement for `src/capabilities/ai`. The AI capability group owns cognitive tasks, prompt contracts, task output schemas, and task-level validation. AI Input Gateway owns how a governed prompt package is delivered to an external AI provider and how the raw provider result is returned with proof.
 
+An active P0 job-flow law may explicitly let that job flow own a flow-scoped AI stage locally when no shared AI capability group exists for that law-governed stage. Even under that exception, the job flow may call only the AI Input Gateway public contract; it may not call provider SDKs, provider web chat DOM, or provider adapters directly.
+
 Required call direction:
 
 ```txt
 business plugin
-  -> AI capability group
+  -> AI capability group or law-owned flow AI stage
       -> AI Input Gateway
           -> provider adapter
 ```
@@ -88,10 +90,10 @@ AI 判断层与 AI 投喂层分权
 AI task capabilities own what the model is asked to judge and how task-specific output is validated. AI Input Gateway owns only the provider transport, raw response retrieval, transport proof, parse status, and provider adapter boundary.
 
 Required direction:
-- Business plugins call AI task capabilities, not provider adapters.
-- AI task capabilities build task prompts and expected output schema refs.
-- AI task capabilities call AI Input Gateway through its public contract.
-- AI task capabilities validate task-specific outputs after AI Input Gateway returns raw or parsed output.
+- Business plugins call AI task capabilities, or an active P0 job-flow law-owned AI stage, not provider adapters.
+- AI task capabilities or law-owned flow AI stages build task prompts and expected output schema refs.
+- AI task capabilities or law-owned flow AI stages call AI Input Gateway through its public contract.
+- AI task capabilities or law-owned flow AI stages validate task-specific outputs after AI Input Gateway returns raw or parsed output.
 - Product Video Judge must be an AI task capability before reaching a provider adapter.
 
 Forbidden:

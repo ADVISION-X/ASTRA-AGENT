@@ -3,7 +3,7 @@ import type {
   ResearchInteraction,
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import type {
   DeepResearchTimelineEntry,
   PromptReconstructionStatus,
@@ -40,7 +40,7 @@ export const buildParsedEntry = (input: {
   interaction: ResearchInteraction;
   subQuestions: readonly ResearchSubQuestion[];
   answersByInteractionId: Map<string, ResearchAnswer>;
-  finalReportRecord: { id: string; report: DeepResearchFinalReport } | null;
+  finalAdjudicationRecord: { id: string; finalAdjudication: DeepResearchFinalAdjudicationRecord } | null;
 }): Pick<DeepResearchTimelineEntry, "parsedSummary" | "parsedJson" | "parsedRecordIds"> => {
   if (input.interaction.phase === "decomposition") {
     const records = input.subQuestions.filter((record) => record.interactionId === input.interaction.id);
@@ -74,16 +74,16 @@ export const buildParsedEntry = (input: {
       parsedRecordIds: [answer.id],
     };
   }
-  if (!input.finalReportRecord) {
+  if (!input.finalAdjudicationRecord) {
     return {
-      parsedSummary: "Final report unavailable.",
+      parsedSummary: "Final adjudication unavailable.",
       parsedJson: null,
       parsedRecordIds: [],
     };
   }
   return {
-    parsedSummary: truncateText(input.finalReportRecord.report.summary),
-    parsedJson: input.finalReportRecord.report,
-    parsedRecordIds: [input.finalReportRecord.id],
+    parsedSummary: truncateText(input.finalAdjudicationRecord.finalAdjudication.rawFinalAnswerText),
+    parsedJson: input.finalAdjudicationRecord.finalAdjudication.parsedJsonIndex,
+    parsedRecordIds: [input.finalAdjudicationRecord.id],
   };
 };

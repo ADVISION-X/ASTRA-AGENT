@@ -5,7 +5,7 @@ import type {
   ResearchJob,
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 
 export type PromptReconstructionStatus = "verified" | "hash_mismatch" | "unavailable";
@@ -39,7 +39,7 @@ export type DeepResearchJobSnapshot = {
     analysisCount: number;
     exportCount: number;
   };
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
   exports: ResearchExport[];
 };
 
@@ -49,7 +49,7 @@ export type DeepResearchTimelineSnapshot = {
   timeline: DeepResearchTimelineEntry[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
   exports: ResearchExport[];
 };
 
@@ -68,8 +68,7 @@ export type DeepResearchHistoryJobView = {
   subQuestionCount: number;
   interactionCount: number;
   exportCount: number;
-  finalConfidence: DeepResearchFinalReport["confidence"] | null;
-  finalConclusionPreview: string | null;
+  finalAdjudicationPreview: string | null;
 };
 
 export type DeepResearchHistorySnapshot = {
@@ -100,7 +99,6 @@ export type DeepResearchAnswerBlockView = {
   answerKind: ResearchAnswer["answerKind"];
   answerText: string;
   preview: string;
-  confidence: ResearchAnswer["confidence"];
   keyPoints: string[];
   evidenceMentions: string[];
   assumptions: string[];
@@ -144,15 +142,14 @@ export type DeepResearchPrimaryBusinessReportView = {
   status: "generated" | "missing" | "failed";
   generatedBy: "AI HTML Report Publisher";
   htmlExport: DeepResearchExportView | null;
-  sourceKind: "html_artifact" | null;
+  sourceKind: "html_artifact" | "inline_html_document" | null;
 };
 
 export type DeepResearchConclusionView = {
-  summary: string;
-  confidence: DeepResearchFinalReport["confidence"];
-  structuredPayload: DeepResearchFinalReport["structuredPayload"];
-  references: string[];
-  sourceNotes: DeepResearchFinalReport["sourceNotes"];
+  rawFinalAnswerText: string;
+  preferredFormat: DeepResearchFinalAdjudicationRecord["preferredFormat"];
+  parseStatus: DeepResearchFinalAdjudicationRecord["parseStatus"];
+  parsedJsonIndex: DeepResearchFinalAdjudicationRecord["parsedJsonIndex"];
 };
 
 export type DeepResearchReportViewModel = {
@@ -183,7 +180,7 @@ export type DeepResearchReportViewModel = {
   }>;
   finalAdjudication: {
     interaction: DeepResearchReportInteractionView | null;
-    parsedFinalReport: DeepResearchFinalReport | null;
+    record: DeepResearchFinalAdjudicationRecord | null;
   };
   primaryBusinessReport: DeepResearchPrimaryBusinessReportView | null;
   evidence: DeepResearchEvidenceView[];

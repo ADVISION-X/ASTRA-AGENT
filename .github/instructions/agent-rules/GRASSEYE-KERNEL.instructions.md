@@ -7,7 +7,7 @@ applyTo: ".github/instructions/agent-rules/**"
 # GrassEye Kernel
 
 status: active
-version: 2026-05-21
+version: 2026-05-26
 
 ## System Identity
 
@@ -33,7 +33,7 @@ One workflow = flow-owned step order.
 One user request = one mediator route to a known flow.
 One action type = one ability group.
 One ability group = same-kind child abilities.
-AI = bounded choice judge only.
+AI = bounded choice judge by default; a P0 job-flow law may authorize audited flow-scoped business content.
 Evidence proves every step.
 Audit is strict temple law, not a soft smoke gate.
 ```
@@ -60,20 +60,22 @@ Any active code, law, script, or UI surface that cannot serve a lawful job flow,
 - Job Mediator owns request routing, schema validation, and flow selection only; it never owns process order or browser actions.
 - DOM Automation owns DOM snapshot, semantic location, fill, click, upload, wait, and verify primitives.
 - Browser owns local session open, wait, screenshot evidence, and file-input foundation.
-- AI Choice Judge may answer only bounded A/B/C/D questions.
+- AI Choice Judge owns bounded A/B/C/D questions by default; a P0 job-flow law may own a separate flow-scoped AI content stage only when the law defines prompt ownership, raw persistence, output contract, and audit coverage.
 - Evidence Store owns step traces, DOM snapshot references, screenshot references, result records, and failure reasons.
 - Runtime Logs own structured FLOW / DEBUG / TRACE logs with redaction.
 - Audit System owns strict law parsing, owner inspectors, generated enforcement artifacts, runner gates, and CI-FULL binary PASS/FAIL.
 
 ## AI Boundary
 
-AI may only return:
+By default AI may only return:
 
 ```txt
 selectedOptionId + confidence + reason
 ```
 
-AI must not return a workflow, browser command, selector, coordinate, file path, arbitrary business data, action plan, or next action.
+An active P0 job-flow law may authorize a different AI output contract inside that one flow only when the law explicitly defines the flow-owned prompt bundle, raw AI persistence, downstream validation, and audit coverage.
+
+AI must never return a workflow, browser command, selector, coordinate, file path, action plan, or next action. AI must never control payment, refund, delete, submission, or other sensitive final actions.
 
 ## Hard Bans
 

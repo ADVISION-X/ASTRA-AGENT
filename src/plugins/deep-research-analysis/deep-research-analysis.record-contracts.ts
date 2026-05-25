@@ -9,7 +9,7 @@ import {
   DeepResearchSubQuestionSchema,
 } from "./deep-research-analysis.schema.js";
 import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
-import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
+import { DeepResearchFinalAdjudicationRecordSchema } from "./deep-research-analysis.result.js";
 
 export const DeepResearchProviderKindSchema = z.enum([
   "gemini-api",
@@ -20,7 +20,7 @@ export const DeepResearchProviderKindSchema = z.enum([
 const ResearchAnswerKindSchema = z.enum(["analysis"]);
 
 const ResearchExportKindSchema = z.enum([
-  "final-report.md",
+  "final-adjudication-raw.md",
   "full-case-file.md",
   "full-case-file.json",
   "structured-index.json",
@@ -99,17 +99,11 @@ export const ResearchAnswerSchema = z.object({
   limitations: z.array(z.string().trim().min(1)).default([]),
   contradictionPoints: z.array(z.string().trim().min(1)).default([]),
   parsedPayload: ResearchParsedPayloadSchema,
-  confidence: z.enum(["low", "medium", "high"]),
   createdAt: z.string().datetime(),
 }).strict();
 
-export const ResearchFinalReportRecordSchema = z.object({
+export const ResearchFinalAdjudicationRecordSchema = DeepResearchFinalAdjudicationRecordSchema.extend({
   id: z.string().trim().min(1),
-  jobId: z.string().trim().min(1),
-  interactionId: z.string().trim().min(1),
-  report: DeepResearchFinalReportSchema,
-  reportHash: z.string().trim().min(1),
-  createdAt: z.string().datetime(),
 }).strict();
 
 export const ResearchExportSchema = z.object({
@@ -129,7 +123,7 @@ export type ResearchPlanRecord = z.infer<typeof ResearchPlanRecordSchema>;
 export type ResearchInteraction = z.infer<typeof ResearchInteractionSchema>;
 export type ResearchAnswer = z.infer<typeof ResearchAnswerSchema>;
 export type ResearchAnswerKind = z.infer<typeof ResearchAnswerKindSchema>;
-export type ResearchFinalReportRecord = z.infer<typeof ResearchFinalReportRecordSchema>;
+export type ResearchFinalAdjudicationRecord = z.infer<typeof ResearchFinalAdjudicationRecordSchema>;
 export type ResearchExport = z.infer<typeof ResearchExportSchema>;
 export type ResearchExportKind = z.infer<typeof ResearchExportKindSchema>;
 

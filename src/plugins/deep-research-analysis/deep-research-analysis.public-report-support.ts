@@ -8,7 +8,7 @@ import type {
   ResearchJob,
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import type {
   DeepResearchAnswerBlockView,
   DeepResearchConclusionView,
@@ -60,7 +60,6 @@ const buildAnswerBlockView = (input: {
     answerKind: input.answer.answerKind,
     answerText: input.answer.answerText,
     preview: truncateText(input.answer.answerText, 360),
-    confidence: input.answer.confidence,
     keyPoints: [...input.answer.keyPoints],
     evidenceMentions: [...input.answer.evidenceMentions],
     assumptions: [...input.answer.assumptions],
@@ -91,7 +90,7 @@ const resolveStageStatus = (
 
 const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
   "business-report.html": "Primary business HTML report",
-  "final-report.md": "Final report",
+  "final-adjudication-raw.md": "Final adjudication raw",
   "full-case-file.md": "Full case file (Markdown)",
   "full-case-file.json": "Full case file (JSON)",
   "structured-index.json": "Structured index (JSON)",
@@ -117,12 +116,12 @@ const buildSubQuestionStageViews = (input: {
 const buildFinalStageView = (input: {
   jobStatus: ResearchJob["status"];
   finalInteraction: DeepResearchTimelineEntry | null;
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
 }): DeepResearchStageView => ({
   id: "stage-final-adjudication",
   label: "Final Adjudication",
   anchorId: "final-adjudication",
-  status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.jobStatus),
+  status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalAdjudication), input.jobStatus),
 });
 
 const buildBusinessHtmlStageView = (input: {
@@ -143,7 +142,7 @@ export const buildStageViews = (input: {
   decompositionInteraction: DeepResearchTimelineEntry | null;
   subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
   finalInteraction: DeepResearchTimelineEntry | null;
-  finalReport: DeepResearchFinalReport | null;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
   exports: readonly ResearchExport[];
 }): DeepResearchStageView[] => {
   const stages: DeepResearchStageView[] = [
@@ -160,7 +159,7 @@ export const buildStageViews = (input: {
     buildFinalStageView({
       jobStatus: input.job.status,
       finalInteraction: input.finalInteraction,
-      finalReport: input.finalReport,
+      finalAdjudication: input.finalAdjudication,
     }),
   ];
   const businessHtmlStage = buildBusinessHtmlStageView({
@@ -174,17 +173,16 @@ export const buildStageViews = (input: {
 };
 
 export const buildConclusionView = (
-  report: DeepResearchFinalReport | null,
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null,
 ): DeepResearchConclusionView | null => {
-  if (!report) {
+  if (!finalAdjudication) {
     return null;
   }
   return {
-    summary: report.summary,
-    confidence: report.confidence,
-    structuredPayload: { ...report.structuredPayload },
-    references: [...report.references],
-    sourceNotes: [...report.sourceNotes],
+    rawFinalAnswerText: finalAdjudication.rawFinalAnswerText,
+    preferredFormat: finalAdjudication.preferredFormat,
+    parseStatus: finalAdjudication.parseStatus,
+    parsedJsonIndex: finalAdjudication.parsedJsonIndex,
   };
 };
 
@@ -220,13 +218,13 @@ export const buildHistoryJobView = (input: {
   const interactions = input.store.listInteractions(input.job.id);
   const subQuestions = input.store.listSubQuestions(input.job.id);
   const exports = input.store.listExports(input.job.id);
-  const finalReport = input.store.getLatestFinalReport(input.job.id)?.report ?? null;
+  const finalAdjudication = input.store.getLatestFinalAdjudication(input.job.id);
   return {
     id: input.job.id,
     title: truncateText(input.job.userQuestion, 84),
     userQuestion: input.job.userQuestion,
     questionSummary: truncateText(
-      finalReport?.summary ?? input.job.analysisGoal ?? input.job.userQuestion,
+      finalAdjudication?.rawFinalAnswerText ?? input.job.analysisGoal ?? input.job.userQuestion,
       180,
     ),
     analysisGoal: input.job.analysisGoal,
@@ -239,8 +237,9 @@ export const buildHistoryJobView = (input: {
     subQuestionCount: subQuestions.length,
     interactionCount: interactions.length,
     exportCount: exports.length,
-    finalConfidence: finalReport?.confidence ?? null,
-    finalConclusionPreview: finalReport ? truncateText(finalReport.summary, 220) : null,
+    finalAdjudicationPreview: finalAdjudication
+      ? truncateText(finalAdjudication.rawFinalAnswerText, 220)
+      : null,
   };
 };
 

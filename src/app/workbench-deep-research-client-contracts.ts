@@ -17,7 +17,7 @@ type DeepResearchHistoryJob = {
   userQuestion: string;
   questionSummary: string;
   status: string;
-  finalConfidence: string | null;
+  finalAdjudicationPreview: string | null;
   updatedAt: string;
   subQuestionCount: number;
   interactionCount: number;
@@ -64,7 +64,6 @@ export type DeepResearchAnswerBlock = {
   interaction: DeepResearchInteraction | null;
   answerKind: string;
   answerText: string;
-  confidence: string;
   keyPoints: string[];
   evidenceMentions: string[];
   assumptions: string[];
@@ -78,21 +77,11 @@ type DeepResearchSubQuestionReport = {
   analysis: DeepResearchAnswerBlock | null;
 };
 
-type DeepResearchSourceNote = {
-  sourceNoteId: string;
-  label: string;
-  note: string;
-  sourceType: string;
-  subQuestionIds: string[];
-  url: string | null;
-};
-
 type DeepResearchConclusion = {
-  summary: string;
-  confidence: string;
-  structuredPayload: Record<string, unknown>;
-  references: string[];
-  sourceNotes: DeepResearchSourceNote[];
+  rawFinalAnswerText: string;
+  preferredFormat: string;
+  parseStatus: string;
+  parsedJsonIndex: unknown | null;
 };
 
 type DeepResearchStage = {
@@ -150,7 +139,7 @@ export type DeepResearchReport = {
   subQuestionReports: DeepResearchSubQuestionReport[];
   finalAdjudication: {
     interaction: DeepResearchInteraction | null;
-    parsedFinalReport: unknown | null;
+    record: unknown | null;
   };
   primaryBusinessReport: DeepResearchPrimaryBusinessReport | null;
   evidence: DeepResearchEvidence[];

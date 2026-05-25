@@ -12,7 +12,7 @@ import {
   parseAndPersistBusinessHtmlReport,
 } from "./deep-research-analysis.html-report-export.js";
 import type { DeepResearchBusinessHtmlReportRecord } from "./deep-research-analysis.html-report-records.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import {
   type AnalysisExecutionContext,
   type AnalysisFailure,
@@ -26,11 +26,11 @@ type HtmlReportSuccess = {
 
 const buildBusinessHtmlPromptText = (input: {
   context: AnalysisExecutionContext;
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
 }): string => renderDeepResearchBusinessHtmlReportPrompt({
-  finalReport: input.finalReport,
+  finalAdjudication: input.finalAdjudication,
   fullCaseFile: input.fullCaseFile,
   fullCaseFileMarkdown: input.fullCaseFileMarkdown,
   htmlReportPromptBundle: input.fullCaseFile.researchPlan.htmlReportPromptBundle,
@@ -76,7 +76,7 @@ const persistBusinessHtmlReport = (input: {
 export const runBusinessHtmlReportPhase = async (
   context: AnalysisExecutionContext,
   finalPackage: DeepResearchStructuredIndex,
-  finalReport: DeepResearchFinalReport,
+  finalAdjudication: DeepResearchFinalAdjudicationRecord,
   fullCaseFile: DeepResearchFullCaseFile,
   fullCaseFileMarkdown: string,
 ): Promise<HtmlReportSuccess | AnalysisFailure> => {
@@ -94,13 +94,13 @@ export const runBusinessHtmlReportPhase = async (
     promptKey: "business-html-report",
     renderedPromptText: buildBusinessHtmlPromptText({
       context,
-      finalReport,
+      finalAdjudication,
       fullCaseFile,
       fullCaseFileMarkdown,
     }),
     inputRefs: [
       `job:${context.jobId}:structured-index`,
-      `job:${context.jobId}:final-report`,
+      `job:${context.jobId}:final-adjudication-raw`,
       `job:${context.jobId}:full-case-file`,
     ],
     timeoutMs: 1_800_000,

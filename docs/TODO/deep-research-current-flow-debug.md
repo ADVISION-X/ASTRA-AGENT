@@ -61,15 +61,19 @@ The real execution order is:
 
 1. `runDecompositionPhase(...)`
 2. `runSubQuestionPhases(...)`
-3. `buildFinalPackageStage(...)`
-4. `runFinalReportPhase(...)`
-5. `completeSuccessfulRun(...)`
+3. `buildFullCaseFileStage(...)`
+4. `runFinalAdjudicationPhase(...)`
+5. `runBusinessHtmlReportPhase(...)`
+6. `completeSuccessfulRun(...)`
 
 These steps are driven by:
 
 - [src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts](src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts)
 - [src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts](src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts)
 - [src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts](src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts)
+- [src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts](src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts)
+
+If any decomposition, sub-question, final adjudication, or HTML report stage returns a terminal failure, the job stops immediately with `failed` or `review_required`. Later sub-questions, final adjudication, HTML generation, and export must not continue.
 
 ## Common Prompt Exchange Skeleton
 
@@ -210,70 +214,75 @@ Detailed steps:
 5. Save all sub-questions to the local database.
 6. If any part fails, stop the full research job immediately with `failed` or `review_required`.
 
-## Positive Analysis Phase In Detail
+## N-Stage Analysis In Detail
 
 For each sub-question:
 
-1. Render a positive-analysis prompt containing:
+1. Read the exact `subQuestion.promptBundle` that was persisted from the first AI Research Plan.
+2. Render the analysis prompt by combining:
    - original user question
    - optional analysis goal
-   - current sub-question
+   - current sub-question JSON
+   - the sub-question's own `promptBundle`
    - language
-2. Build prompt key `positive:<subQuestionId>`.
-3. Run prompt exchange with:
-   - `POSITIVE_SEND`
-   - `POSITIVE_CAPTURE`
-   - `POSITIVE_PARSE`
-   - `POSITIVE_PERSIST`
-4. Parse the answer.
-5. Save one positive answer record linked to the interaction and sub-question.
+3. Build prompt key `analysis:<subQuestionId>`.
+4. Run prompt exchange with:
+   - `ANALYSIS_SEND`
+   - `ANALYSIS_CAPTURE`
+   - `ANALYSIS_PARSE`
+   - `ANALYSIS_PERSIST`
+5. Persist the raw interaction first.
+6. If the response can be indexed as JSON, persist `parsedJsonIndex` as a secondary index.
+7. If the response is non-empty but has no JSON envelope, persist the raw response as `answerText` and mark it as `parsed_text_raw_index`.
+8. If the response is empty or the gateway returns a terminal failure, stop the full job immediately. No further sub-question, final adjudication, HTML report, or export stage may continue.
 
-## Falsification Phase In Detail
+This loop repeats for every saved sub-question until one fails or all complete.
 
-For the same sub-question, after the positive answer succeeds:
-
-1. Render a falsification prompt containing:
-   - original user question
-   - optional analysis goal
-   - the sub-question
-   - the saved positive answer
-2. Build prompt key `falsification:<subQuestionId>`.
-3. Run prompt exchange with:
-   - `FALSIFY_SEND`
-   - `FALSIFY_CAPTURE`
-   - `FALSIFY_PARSE`
-   - `FALSIFY_PERSIST`
-4. Parse the answer.
-5. Save one falsification answer record.
-
-This loop repeats for every saved sub-question.
-
-## Final Package And Final Report
+## Full Case File And Final Adjudication
 
 After all sub-questions complete:
 
-1. `buildFinalPackageStage(...)` moves the job to `FINAL_PACKAGE_BUILD`.
-2. It builds the conflict matrix from saved positive and falsification records.
-3. It builds the final package from all stored records.
-4. It emits `DEEP_RESEARCH_FINAL_PACKAGE_BUILT`.
-5. Then `runFinalReportPhase(...)` renders the final synthesis prompt.
+1. `buildFullCaseFileStage(...)` moves the job to `FULL_CASE_FILE_BUILD`.
+2. It builds `structuredIndex` from all persisted interactions, sub-questions, answers, and prompt versions.
+3. It builds the `fullCaseFile` from all raw prompts, all raw responses, parse states, provider proof, and the structured index.
+4. It renders `fullCaseFileMarkdown` for downstream AI consumption and export.
+5. `runFinalAdjudicationPhase(...)` renders the final prompt from:
+   - `structuredIndex`
+   - `fullCaseFile`
+   - `fullCaseFileMarkdown`
+   - `finalAdjudicationPromptBundle`
 6. It runs another full prompt exchange using:
-   - `FINAL_SEND`
-   - `FINAL_CAPTURE`
-   - `FINAL_PARSE`
-   - `FINAL_PERSIST`
-7. It saves the final report to the database.
+   - `FINAL_ADJUDICATION_SEND`
+   - `FINAL_ADJUDICATION_CAPTURE`
+   - `FINAL_ADJUDICATION_PARSE`
+   - `FINAL_ADJUDICATION_PERSIST`
+7. It saves `rawFinalAnswerText` as the primary final adjudication artifact.
+8. If the final answer is JSON-shaped, it may also save `parsedJsonIndex` as a secondary navigation index.
 
-## Export Phase And Completion
+## HTML Report, Export, And Completion
 
-1. The job moves to `EXPORT_REPORT`.
-2. `exportDeepResearchArtifacts(...)` writes:
-   - `final-report.md`
-   - `structured-final-package.json`
+1. `runBusinessHtmlReportPhase(...)` renders the HTML prompt from:
+   - `rawFinalAnswerText`
+   - `fullCaseFile`
+   - `fullCaseFileMarkdown`
+   - `htmlReportPromptBundle`
+2. It runs prompt exchange using:
+   - `HTML_REPORT_SEND`
+   - `HTML_REPORT_CAPTURE`
+   - `HTML_REPORT_DETECT`
+   - `HTML_REPORT_PERSIST`
+3. The HTML stage succeeds only when AI directly returns one complete self-contained HTML document that can be persisted as `business-report.html`.
+4. The job moves to `EXPORT_REPORT`.
+5. `exportDeepResearchArtifacts(...)` writes:
+   - `full-case-file.json`
+   - `full-case-file.md`
+   - `final-adjudication-raw.md`
+   - `business-report.html`
    - `evidence-index.json`
-3. The job emits `DEEP_RESEARCH_EXPORT_COMPLETED`.
-4. The job moves to `COMPLETE`.
-5. The runner emits `DEEP_RESEARCH_JOB_COMPLETED`.
+   - `structured-index.json`
+6. The job emits `DEEP_RESEARCH_EXPORT_COMPLETED`.
+7. The job moves to `COMPLETE`.
+8. The runner emits `DEEP_RESEARCH_JOB_COMPLETED`.
 
 ## How The Timeline UI Is Built
 
@@ -285,9 +294,8 @@ For a given `jobId`, it reads:
 2. all interactions
 3. all sub-questions
 4. all answers
-5. conflict matrix rows
-6. the latest final report
-7. export records
+5. the latest final adjudication raw record
+6. all export records
 
 Then it reconstructs per-interaction timeline entries containing:
 
@@ -300,8 +308,8 @@ Then it reconstructs per-interaction timeline entries containing:
 7. `rawResponseHash`
 8. reconstructed `promptText`
 9. raw response text
-10. parsed summary
-11. parsed JSON payload
+10. parsed answer text or final raw text index
+11. parsed JSON payload when available as a secondary index
 12. parsed record ids
 13. `domRef`
 14. `createdAt`

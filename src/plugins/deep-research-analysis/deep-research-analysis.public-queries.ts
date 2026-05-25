@@ -168,18 +168,18 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
     answerByKindAndSubQuestionId.has(`analysis:${subQuestion.id}`));
   const finalInteraction = [...snapshot.timeline]
     .reverse()
-    .filter((entry) => hasPairedEvidence || snapshot.finalReport !== null)
+    .filter((entry) => hasPairedEvidence || snapshot.finalAdjudication !== null)
     .find((entry) => entry.phase === "final_adjudication") ?? null;
   const exportViews = buildReportExportViews(snapshot.exports);
   return {
     job: buildReportJobView(snapshot),
-    conclusion: buildConclusionView(snapshot.finalReport),
+    conclusion: buildConclusionView(snapshot.finalAdjudication),
     stages: buildStageViews({
       job: snapshot.job,
       decompositionInteraction,
       subQuestionReports,
       finalInteraction,
-      finalReport: snapshot.finalReport,
+      finalAdjudication: snapshot.finalAdjudication,
       exports: snapshot.exports,
     }),
     decomposition: {
@@ -189,7 +189,7 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
     subQuestionReports,
     finalAdjudication: {
       interaction: finalInteraction,
-      parsedFinalReport: snapshot.finalReport,
+      record: snapshot.finalAdjudication,
     },
     primaryBusinessReport: buildPrimaryBusinessReportView({
       job: snapshot.job,
@@ -264,7 +264,7 @@ export const getDeepResearchExportArtifact = (input: {
       return null;
     }
     const fileName = path.basename(exported.filePath);
-    if (input.kind === "final-report.md" || input.kind === "full-case-file.md") {
+    if (input.kind === "final-adjudication-raw.md" || input.kind === "full-case-file.md") {
       return {
         jobId: input.jobId,
         kind: input.kind,

@@ -35,7 +35,7 @@ assert(finalPromptText.includes("Runtime shell for AI-generated finalAdjudicatio
 assert(finalPromptText.includes("finalAdjudicationPromptBundle: DeepResearchPromptBundle"), "Final adjudication renderer must require an AI-generated promptBundle.");
 assert(!finalPromptText.includes("buildDefaultFinalAdjudicationPromptBundle"), "Final adjudication runtime must not introduce a replacement prompt builder.");
 assert(finalizationText.includes("finalAdjudicationPromptBundle: fullCaseFile.researchPlan.finalAdjudicationPromptBundle"), "Final adjudication phase must consume the AI-generated finalAdjudicationPromptBundle.");
-assert(finalizationText.includes("structuredIndex: finalPackage"), "Final adjudication phase must pass the structured index into the prompt renderer.");
+assert(finalizationText.includes("structuredIndex,"), "Final adjudication phase must pass the structured index into the prompt renderer.");
 assert(finalizationText.includes("fullCaseFileMarkdown"), "Final adjudication phase must pass fullCaseFileMarkdown into the prompt renderer.");
 assert(finalizationText.includes("parseDeepResearchFinalAdjudicationResponse(rawText)"), "Final adjudication parsing must consume the raw AI output directly.");
 

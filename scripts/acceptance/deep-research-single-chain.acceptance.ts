@@ -8,7 +8,7 @@ const runner = readFileSync("src/plugins/deep-research-analysis/deep-research-an
   "runDecompositionPhase",
   "runSubQuestionPhases",
   "buildFullCaseFileStage",
-  "runFinalReportPhase",
+  "runFinalAdjudicationPhase",
   "runBusinessHtmlReportPhase",
   "completeSuccessfulRun",
 ].forEach((symbol) => assert(runner.includes(symbol), `runner must include ${symbol}`));

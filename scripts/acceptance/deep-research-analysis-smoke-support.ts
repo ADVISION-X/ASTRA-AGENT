@@ -88,7 +88,7 @@ const verifyPersistedJobCore = (
 
   const analysisAnswers = store.listAnswers({ jobId: result.jobId, answerKind: "analysis" });
   assert(analysisAnswers.length === 2, `Expected 2 analysis answers, received ${analysisAnswers.length}.`);
-  assert(store.getLatestFinalReport(result.jobId) !== null, "Expected a persisted final report record.");
+  assert(store.getLatestFinalAdjudication(result.jobId) !== null, "Expected a persisted final adjudication raw record.");
   return { job };
 };
 
@@ -126,7 +126,7 @@ const verifyPersistedExports = (
   const exports = store.listExports(jobId);
   assert(exports.length === 6, `Expected 6 export records, received ${exports.length}.`);
 
-  const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
+  const finalAdjudicationExport = exports.find((record) => record.exportKind === "final-adjudication-raw.md");
   const fullCaseMarkdownExport = exports.find((record) => record.exportKind === "full-case-file.md");
   const fullCaseJsonExport = exports.find((record) => record.exportKind === "full-case-file.json");
   const structuredIndexExport = exports.find((record) =>
@@ -134,14 +134,14 @@ const verifyPersistedExports = (
   );
   const businessHtmlExport = exports.find((record) => record.exportKind === "business-report.html");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
-  if (!finalReportExport) throw new Error("Missing final-report.md export record.");
+  if (!finalAdjudicationExport) throw new Error("Missing final-adjudication-raw.md export record.");
   if (!fullCaseMarkdownExport) throw new Error("Missing full-case-file.md export record.");
   if (!fullCaseJsonExport) throw new Error("Missing full-case-file.json export record.");
   if (!structuredIndexExport) throw new Error("Missing structured-index.json export record.");
   if (!businessHtmlExport) throw new Error("Missing business-report.html export record.");
   if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
-  assert(existsSync(finalReportExport.filePath), "final-report.md file was not written.");
+  assert(existsSync(finalAdjudicationExport.filePath), "final-adjudication-raw.md file was not written.");
   assert(existsSync(fullCaseMarkdownExport.filePath), "full-case-file.md file was not written.");
   assert(existsSync(fullCaseJsonExport.filePath), "full-case-file.json file was not written.");
   assert(existsSync(structuredIndexExport.filePath), "structured-index.json file was not written.");

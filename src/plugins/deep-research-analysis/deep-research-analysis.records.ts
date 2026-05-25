@@ -8,7 +8,7 @@ import {
   type DeepResearchPhase,
   type DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationParse } from "./deep-research-analysis.result.js";
 import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
 import {
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
@@ -16,7 +16,7 @@ import {
   type ResearchAnswerKind,
   type ResearchExport,
   type ResearchExportKind,
-  type ResearchFinalReportRecord,
+  type ResearchFinalAdjudicationRecord,
   type ResearchInteraction,
   type ResearchJob,
   type ResearchPlanRecord,
@@ -39,10 +39,10 @@ import {
   saveSubQuestions,
 } from "./deep-research-analysis.record-interaction-ops.js";
 import {
-  getLatestFinalReport,
+  getLatestFinalAdjudication,
   listExports,
   saveExport,
-  saveFinalReport,
+  saveFinalAdjudication,
 } from "./deep-research-analysis.record-result-ops.js";
 
 export { DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH };
@@ -50,7 +50,7 @@ export type {
   ResearchAnswer,
   ResearchExport,
   ResearchExportKind,
-  ResearchFinalReportRecord,
+  ResearchFinalAdjudicationRecord,
   ResearchInteraction,
   ResearchJob,
   ResearchPlanRecord,
@@ -131,7 +131,7 @@ const createDeleteJobOperation = (db: DeepResearchDatabaseHandle) =>
   (jobId: string): boolean => {
     const deleted = db.transaction(() => {
       db.prepare(`DELETE FROM research_exports WHERE job_id = ?`).run(jobId);
-      db.prepare(`DELETE FROM research_final_reports WHERE job_id = ?`).run(jobId);
+      db.prepare(`DELETE FROM research_final_adjudications WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_answers WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_sub_questions WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_interactions WHERE job_id = ?`).run(jobId);
@@ -203,18 +203,20 @@ export type DeepResearchRecordStore = {
     limitations: readonly string[];
     contradictionPoints?: readonly string[];
     parsedPayload?: Record<string, unknown>;
-    confidence: ResearchAnswer["confidence"];
   }): ResearchAnswer;
   listAnswers(input: {
     jobId: string;
     answerKind?: ResearchAnswerKind;
   }): ResearchAnswer[];
-  saveFinalReport(input: {
+  saveFinalAdjudication(input: {
     jobId: string;
     interactionId: string;
-    report: DeepResearchFinalReport;
-  }): ResearchFinalReportRecord;
-  getLatestFinalReport(jobId: string): ResearchFinalReportRecord | null;
+    promptId: string;
+    promptVersion: string;
+    parsed: DeepResearchFinalAdjudicationParse;
+    promptBundleSnapshot: unknown;
+  }): ResearchFinalAdjudicationRecord;
+  getLatestFinalAdjudication(jobId: string): ResearchFinalAdjudicationRecord | null;
   saveExport(input: {
     jobId: string;
     exportKind: ResearchExportKind;
@@ -242,8 +244,8 @@ export const createDeepResearchRecordStore = (dataDir: string): DeepResearchReco
     getResearchPlan: (jobId) => getResearchPlan(db, jobId),
     saveAnswer: (input) => saveAnswer(db, input),
     listAnswers: (input) => listAnswers(db, input),
-    saveFinalReport: (input) => saveFinalReport(db, input),
-    getLatestFinalReport: (jobId) => getLatestFinalReport(db, jobId),
+    saveFinalAdjudication: (input) => saveFinalAdjudication(db, input),
+    getLatestFinalAdjudication: (jobId) => getLatestFinalAdjudication(db, jobId),
     saveExport: (input) => saveExport(db, input),
     listExports: (jobId) => listExports(db, jobId),
     close() {

@@ -1,5 +1,5 @@
 import type { ResearchAnswer } from "./deep-research-analysis.record-contracts.js";
-import type { DeepResearchFinalReport, DeepResearchSourceNote } from "./deep-research-analysis.result.js";
+import type { DeepResearchSourceNote } from "./deep-research-analysis.result.js";
 
 type SourceNoteInput = {
   note: string;
@@ -58,32 +58,3 @@ export const buildDeepResearchSourceNotesFromAnswers = (
         subQuestionId: answer.subQuestionId,
       }))),
   );
-
-export const buildDeepResearchSourceNotesFromReferences = (
-  references: readonly string[],
-): DeepResearchSourceNote[] =>
-  buildDeepResearchSourceNotes(
-    references.map((note) => ({
-      note,
-      sourceType: "final_reference",
-    })),
-  );
-
-export const mergeDeepResearchFinalReportSourceNotes = (input: {
-  finalReport: DeepResearchFinalReport;
-  packageSourceNotes: readonly DeepResearchSourceNote[];
-}): DeepResearchFinalReport => {
-  if (input.finalReport.sourceNotes.length > 0) {
-    return input.finalReport;
-  }
-  if (input.packageSourceNotes.length > 0) {
-    return {
-      ...input.finalReport,
-      sourceNotes: [...input.packageSourceNotes],
-    };
-  }
-  return {
-    ...input.finalReport,
-    sourceNotes: buildDeepResearchSourceNotesFromReferences(input.finalReport.references),
-  };
-};

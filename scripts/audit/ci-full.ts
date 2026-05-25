@@ -40,10 +40,18 @@ const ciCommands: readonly CommandSpec[] = [
   { name: "deep-research-full-case-file", command: ["npm", "run", "acceptance:deep-research-full-case-file"] },
   { name: "deep-research-runtime-shell-only", command: ["npm", "run", "acceptance:deep-research-runtime-shell-only"] },
   { name: "deep-research-raw-response-sovereignty", command: ["npm", "run", "acceptance:deep-research-raw-response-sovereignty"] },
+  { name: "deep-research-format-shell-boundary", command: ["npm", "run", "acceptance:deep-research-format-shell-boundary"] },
+  { name: "deep-research-final-adjudication-raw", command: ["npm", "run", "acceptance:deep-research-final-adjudication-raw"] },
+  { name: "deep-research-no-system-confidence", command: ["npm", "run", "acceptance:deep-research-no-system-confidence"] },
+  { name: "deep-research-promptbundle-field-consistency", command: ["npm", "run", "acceptance:deep-research-promptbundle-field-consistency"] },
+  { name: "deep-research-html-uses-raw-final-answer", command: ["npm", "run", "acceptance:deep-research-html-uses-raw-final-answer"] },
   { name: "deep-research-final-adjudication-promptbundle-input", command: ["npm", "run", "acceptance:deep-research-final-adjudication-promptbundle-input"] },
   { name: "deep-research-html-promptbundle-input", command: ["npm", "run", "acceptance:deep-research-html-promptbundle-input"] },
+  { name: "deep-research-inline-html-report", command: ["npm", "run", "acceptance:deep-research-inline-html-report"] },
   { name: "deep-research-html-report-only", command: ["npm", "run", "acceptance:deep-research-html-report-only"] },
+  { name: "deep-research-subquestion-failure-stop", command: ["npm", "run", "acceptance:deep-research-subquestion-failure-stop"] },
   { name: "deep-research-report-export", command: ["npm", "run", "acceptance:deep-research-report-export"] },
+  { name: "deep-research-no-compatibility-formats", command: ["npm", "run", "acceptance:deep-research-no-compatibility-formats"] },
   { name: "deep-research-app-ui", command: ["npm", "run", "acceptance:deep-research-app-ui"] },
   { name: "amazon-invoice-upload-smoke", command: ["npm", "run", "acceptance:amazon-invoice-upload-smoke"] },
   { name: "facebook-product-video-mining", command: ["npm", "run", "acceptance:facebook-product-video-mining"] },
@@ -192,7 +200,7 @@ const main = async (): Promise<void> => {
   if (hasFailures) {
     throw new Error("ci:full failed");
   }
-  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/final-input/HTML-report/export/UI acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
+  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/format-shell/no-confidence/promptbundle/raw-html/no-compatibility/export/UI acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
 };
 
 const isEntrypoint = (): boolean => {

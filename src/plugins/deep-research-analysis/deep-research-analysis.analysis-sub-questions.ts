@@ -195,13 +195,13 @@ const rememberFailedAnalysisHashes = (input: {
 };
 
 type SubQuestionPhaseOutcome = {
-  completed: boolean;
+  ok: true;
 };
 
 const runSubQuestionPhase = async (
   context: AnalysisExecutionContext,
   subQuestion: ResearchSubQuestion,
-) : Promise<SubQuestionPhaseOutcome> => {
+): Promise<SubQuestionPhaseOutcome | AnalysisFailure> => {
   const analysis = await runAnalysisPhase(context, subQuestion);
   if (analysis.status !== "parsed") {
     rememberFailedAnalysisHashes({
@@ -210,9 +210,9 @@ const runSubQuestionPhase = async (
       promptHash: analysis.promptHash,
       rawResponseHash: analysis.rawResponseHash,
     });
-    return { completed: false };
+    return finishPromptFailure(context, analysis);
   }
-  return { completed: true };
+  return { ok: true };
 };
 
 export const runSubQuestionPhases = async (
@@ -220,7 +220,10 @@ export const runSubQuestionPhases = async (
   subQuestions: readonly ResearchSubQuestion[],
 ): Promise<AnalysisOutcome> => {
   for (const subQuestion of subQuestions) {
-    await runSubQuestionPhase(context, subQuestion);
+    const outcome = await runSubQuestionPhase(context, subQuestion);
+    if (!outcome.ok) {
+      return outcome;
+    }
   }
   return { ok: true };
 };

@@ -19,7 +19,7 @@ const DEEP_RESEARCH_JOB_STATUSES = [
 ] as const;
 
 const DEEP_RESEARCH_EXPORT_KINDS = [
-  "final-report.md",
+  "final-adjudication-raw.md",
   "full-case-file.md",
   "full-case-file.json",
   "structured-index.json",
@@ -127,7 +127,7 @@ const buildStartResponse = async (
     phase: snapshot.job.phase,
     job: snapshot.job,
     overview: snapshot.overview,
-    finalReport: snapshot.finalReport,
+    finalAdjudication: snapshot.finalAdjudication,
     exports: snapshot.exports,
     timeline: timeline?.timeline ?? [],
   };

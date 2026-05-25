@@ -8,7 +8,7 @@ import {
   createDeepResearchRecordStore,
   renderDeepResearchFullCaseFileMarkdown,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
-import type { DeepResearchFinalReport } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationParse } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 
 type DeepResearchStore = ReturnType<typeof createDeepResearchRecordStore>;
 type DeepResearchJob = ReturnType<DeepResearchStore["createJob"]>;
@@ -226,7 +226,6 @@ const persistStructuredAnalysis = (input: {
     assumptions: ["Warehouse operators keep automation budgets active"],
     uncertainties: ["Macro demand can soften"],
     impactOnFinalAdjudication: "Supports conditional entry, not broad entry.",
-    confidence: "high",
     limitations: ["Evidence is strongest in labor-constrained operators"],
   });
   const interaction = createInteraction({
@@ -261,7 +260,6 @@ const persistStructuredAnalysis = (input: {
       uncertainties: ["Macro demand can soften"],
       impactOnFinalAdjudication: "Supports conditional entry, not broad entry.",
     },
-    confidence: "high",
   });
 };
 
@@ -292,25 +290,28 @@ const persistRawOnlyAnalysis = (input: {
   });
 };
 
-const buildFinalReportFixture = (): DeepResearchFinalReport => ({
-  summary: "Proceed only through a staged partner-led beachhead.",
-  confidence: "medium",
-  structuredPayload: {
+const buildFinalAdjudicationFixture = (): DeepResearchFinalAdjudicationParse => {
+  const parsedJsonIndex = {
     recommendation: "Proceed only through a staged partner-led beachhead.",
     gatingConstraint: "Demand exists, but raw execution risk prevents a broad launch.",
     rationale: ["Demand is durable enough for a narrow entry thesis."],
     constraints: ["Execution must stay staged because service capacity is constrained."],
     rejectedPaths: ["A broad immediate rollout is justified."],
     followUpSignals: ["Monitor implementation lead time and service hiring."],
-  },
-  references: [],
-  sourceNotes: [],
-});
+  };
+  return {
+    rawFinalAnswerText: buildJsonText(parsedJsonIndex),
+    rawResponseHash: "sha256:fixture-final-adjudication-raw",
+    preferredFormat: "json_object",
+    parsedJsonIndex,
+    parseStatus: "parsed_json_index",
+  };
+};
 
-const persistFinalReport = (input: {
+const persistFinalAdjudication = (input: {
   store: DeepResearchStore;
   jobId: string;
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationParse;
 }) => {
   const interaction = createInteraction({
     store: input.store,
@@ -320,16 +321,22 @@ const persistFinalReport = (input: {
     promptVersion: "v1.1.0",
     promptHash: "sha256:fixture-final-adjudication-prompt",
     renderedPromptText: buildPromptText("Final adjudication prompt with structured index and full case file."),
-    rawResponseText: buildJsonText(input.finalReport),
-    rawResponseHash: "sha256:fixture-final-adjudication-raw",
+    rawResponseText: input.finalAdjudication.rawFinalAnswerText,
+    rawResponseHash: input.finalAdjudication.rawResponseHash,
     parseStatus: "parsed",
     providerProofJson: buildJsonText({ provider: "fixture", phase: "final-adjudication" }),
     domRef: "artifact://fixture/final-adjudication",
   });
-  input.store.saveFinalReport({
+  input.store.saveFinalAdjudication({
     jobId: input.jobId,
     interactionId: interaction.id,
-    report: input.finalReport,
+    promptId: interaction.promptId,
+    promptVersion: interaction.promptVersion,
+    parsed: input.finalAdjudication,
+    promptBundleSnapshot: {
+      fixture: true,
+      promptRole: "final_adjudication",
+    },
   });
 };
 
@@ -341,7 +348,7 @@ export type DeepResearchFullCaseFixture = {
   finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
   fullCaseFileMarkdown: string;
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationParse;
 };
 
 export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture => {
@@ -362,8 +369,8 @@ export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture
   }
   persistStructuredAnalysis({ store, jobId: job.id, subQuestion: firstSubQuestion });
   persistRawOnlyAnalysis({ store, jobId: job.id, subQuestion: secondSubQuestion });
-  const finalReport = buildFinalReportFixture();
-  persistFinalReport({ store, jobId: job.id, finalReport });
+  const finalAdjudication = buildFinalAdjudicationFixture();
+  persistFinalAdjudication({ store, jobId: job.id, finalAdjudication });
   const finalPackage = buildDeepResearchStructuredIndex({ store, jobId: job.id });
   const fullCaseFile = buildDeepResearchFullCaseFile({
     store,
@@ -378,7 +385,7 @@ export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture
     finalPackage,
     fullCaseFile,
     fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
-    finalReport,
+    finalAdjudication,
   };
 };
 

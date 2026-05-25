@@ -4,7 +4,6 @@ import {
   buildHtmlReportFormatShell,
   buildSubQuestionAnalysisFormatShell,
 } from "./deep-research-analysis.prompt-bundle-shell.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import type { DeepResearchInput, DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
@@ -62,7 +61,7 @@ export const renderFinalAdjudicationFromPromptBundle = (input: {
 export const renderHtmlReportFromPromptBundle = (input: {
   language: DeepResearchInput["language"];
   htmlReportPromptBundle: DeepResearchPromptBundle;
-  finalReport: DeepResearchFinalReport;
+  rawFinalAnswerText: string;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
 }): string => [
@@ -71,7 +70,6 @@ export const renderHtmlReportFromPromptBundle = (input: {
   buildHtmlReportFormatShell(),
   buildSection("CONTEXT", {
     responseLanguage: input.language,
-    finalReport: input.finalReport,
     fullCaseFile: {
       caseFileVersion: input.fullCaseFile.caseFileVersion,
       job: input.fullCaseFile.job,
@@ -79,5 +77,6 @@ export const renderHtmlReportFromPromptBundle = (input: {
       failedButRawAvailableInteractionCount: input.fullCaseFile.failedButRawAvailableInteractions.length,
     },
   }),
+  buildSection("FINAL ADJUDICATION RAW", input.rawFinalAnswerText),
   buildSection("FULL CASE FILE MARKDOWN", input.fullCaseFileMarkdown),
 ].join("\n\n");

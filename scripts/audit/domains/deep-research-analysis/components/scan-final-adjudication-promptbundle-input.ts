@@ -29,7 +29,7 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
   }
 
   const finalizationText = input.finalizationFile?.getFullText() ?? "";
-  for (const marker of ["structuredIndex: finalPackage", "fullCaseFileMarkdown"]) {
+  for (const marker of ["structuredIndex,", "fullCaseFileMarkdown"]) {
     if (finalizationText.includes(marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-runtime",

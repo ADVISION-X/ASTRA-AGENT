@@ -102,9 +102,9 @@ export const inspectDeepResearchCompletedContract = (
       }),
     ];
   }
-  const reportProperty = findSchemaProperty(schemaObject, "report");
+  const finalAdjudicationProperty = findSchemaProperty(schemaObject, "finalAdjudication");
   const recordHashesProperty = findSchemaProperty(schemaObject, "recordHashes");
-  if (!propertyHasMethodCall(reportProperty, "nullable") && !propertyHasDefaultNull(reportProperty) && !propertyHasEmptyObjectDefault(recordHashesProperty)) {
+  if (!propertyHasMethodCall(finalAdjudicationProperty, "nullable") && !propertyHasDefaultNull(finalAdjudicationProperty) && !propertyHasEmptyObjectDefault(recordHashesProperty)) {
     return [];
   }
   return [
@@ -112,7 +112,7 @@ export const inspectDeepResearchCompletedContract = (
       checkId: deepResearchEvidenceCheckId,
       lawId,
       filePath: toRepoPath(sourceFile.getFilePath()),
-      message: `${toRepoPath(sourceFile.getFilePath())} allows completed Deep Research results to omit final report or record-hash evidence by default.`,
+      message: `${toRepoPath(sourceFile.getFilePath())} allows completed Deep Research results to omit final adjudication or record-hash evidence by default.`,
     }),
   ];
 };

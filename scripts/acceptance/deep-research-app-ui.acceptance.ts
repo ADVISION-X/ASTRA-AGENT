@@ -13,7 +13,7 @@ const deliverySections = readFileSync("src/app/workbench-deep-research-client-de
 assert(!routes.includes("/api/deep-research-analysis/regenerate-html-report"), "HTML regenerate route must be deleted.");
 assert(!handle.includes("rerunDeepResearchBusinessHtmlReport"), "Workbench handle must not expose HTML reentry.");
 assert(!publicFacade.includes("rerunDeepResearchBusinessHtmlReport"), "Public facade must not expose HTML reentry.");
-assert(reportView.includes("data-deep-research-final-card"), "Report view must expose the final report section.");
+assert(reportView.includes("data-deep-research-final-card"), "Report view must expose the final adjudication section.");
 assert(reportView.includes("data-deep-research-primary-business-report"), "Report view must expose the primary business HTML report section.");
 assert(reportView.includes("data-deep-research-full-case-file"), "Report view must expose the full case file section.");
 assert(reportView.includes("data-deep-research-process-trace"), "Report view must expose the process-trace section.");

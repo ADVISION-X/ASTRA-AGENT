@@ -14,6 +14,14 @@ const FORBIDDEN_CONTROL_FIELDS = [
 const renderForbiddenControlFieldNotice = (): string =>
   `Do not output browserCommand, selector, workflow, databaseCommand, nextAction, filePath, actionPlan, or these control fields: ${FORBIDDEN_CONTROL_FIELDS.join(", ")}.`;
 
+export const buildResearchPlanFormatShell = (): string => [
+  "RUNTIME RESEARCH PLAN FORMAT SHELL:",
+  "Return one valid JSON object.",
+  "The JSON must be directly parseable without markdown fences or commentary.",
+  "The runtime will persist the raw response as the source record and parse the JSON as the execution contract.",
+  renderForbiddenControlFieldNotice(),
+].join("\n");
+
 export const buildSubQuestionAnalysisFormatShell = (): string => [
   "RUNTIME FORMAT SHELL FOR DATABASE CAPTURE:",
   "Return the requested format when possible.",

@@ -331,7 +331,6 @@ textarea {
   overflow-wrap: anywhere;
 }
 .research-status-pill,
-.research-confidence-pill,
 .research-stage-chip {
   display: inline-flex;
   align-items: center;
@@ -343,8 +342,7 @@ textarea {
 }
 .research-status-pill { color: var(--muted); background: #fff; }
 .research-status-completed,
-.research-stage-completed,
-.research-confidence-pill { color: var(--accent-strong); border-color: rgba(22, 116, 95, 0.25); background: rgba(22, 116, 95, 0.08); }
+.research-stage-completed { color: var(--accent-strong); border-color: rgba(22, 116, 95, 0.25); background: rgba(22, 116, 95, 0.08); }
 .research-status-failed,
 .research-stage-failed { color: var(--bad); border-color: rgba(161, 58, 58, 0.25); background: rgba(161, 58, 58, 0.08); }
 .research-status-review_required,

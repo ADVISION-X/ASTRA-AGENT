@@ -6,18 +6,18 @@ import { stableJsonHash } from "../../lib/storage/hash.js";
 import { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 import { saveFullCaseFileExports } from "./deep-research-analysis.full-case-file-export.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import type {
   DeepResearchRecordStore,
   ResearchAnswer,
   ResearchExport,
-  ResearchFinalReportRecord,
+  ResearchFinalAdjudicationRecord,
   ResearchInteraction,
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
 
-export const FINAL_REPORT_EXPORT_KIND = "final-report.md" as const;
+export const FINAL_ADJUDICATION_RAW_EXPORT_KIND = "final-adjudication-raw.md" as const;
 export const STRUCTURED_INDEX_EXPORT_KIND = "structured-index.json" as const;
 export const EVIDENCE_INDEX_EXPORT_KIND = "evidence-index.json" as const;
 
@@ -31,7 +31,7 @@ type DeepResearchEvidenceIndexEntry = {
 };
 
 type DeepResearchExportArtifacts = {
-  finalReportMarkdown: ResearchExport;
+  finalAdjudicationRaw: ResearchExport;
   fullCaseFileJson: ResearchExport;
   fullCaseFileMarkdown: ResearchExport;
   structuredIndex: ResearchExport;
@@ -45,13 +45,13 @@ type DeepResearchExportArtifacts = {
 type DeepResearchExportState = {
   exportDir: string;
   fullCaseFile: DeepResearchFullCaseFile;
-  finalReportRecord: ResearchFinalReportRecord;
+  finalAdjudicationRecord: ResearchFinalAdjudicationRecord;
   businessHtmlExport: ResearchExport;
   evidenceIndex: DeepResearchEvidenceIndexEntry[];
 };
 
 type DeepResearchExportFiles = {
-  finalReportMarkdownArtifact: { filePath: string; fileHash: string };
+  finalAdjudicationRawArtifact: { filePath: string; fileHash: string };
   structuredIndexArtifact: { filePath: string; fileHash: string };
   evidenceIndexArtifact: { filePath: string; fileHash: string };
   fullCaseFileExports: ReturnType<typeof saveFullCaseFileExports>;
@@ -63,27 +63,9 @@ const buildTextHash = (value: string): string =>
 const buildExportDir = (dataDir: string, jobId: string): string =>
   path.join(dataDir, "deep-research-analysis", "exports", jobId);
 
-const renderFinalReportMarkdown = (finalReport: DeepResearchFinalReport): string => [
-  "# Final Report",
-  "",
-  `Confidence: ${finalReport.confidence}`,
-  "",
-  "## Summary",
-  finalReport.summary,
-  "",
-  "## References",
-  finalReport.references.length > 0 ? finalReport.references.map((item) => `- ${item}`).join("\n") : "- unavailable",
-  "",
-  "## Source Notes",
-  finalReport.sourceNotes.length > 0
-    ? finalReport.sourceNotes.map((note) => `- ${note.label}: ${note.note}`).join("\n")
-    : "- unavailable",
-  "",
-  "## Structured Payload",
-  "```json",
-  JSON.stringify(finalReport.structuredPayload, null, 2),
-  "```",
-].join("\n");
+const renderFinalAdjudicationMarkdown = (
+  finalAdjudication: DeepResearchFinalAdjudicationRecord,
+): string => `${finalAdjudication.rawFinalAnswerText.trimEnd()}\n`;
 
 const writeTextArtifact = (filePath: string, text: string): { filePath: string; fileHash: string } => {
   const fileHash = buildTextHash(text);
@@ -97,15 +79,15 @@ const writeJsonArtifact = <TPayload>(filePath: string, payload: TPayload): { fil
   return { filePath, fileHash };
 };
 
-const requireFinalReportRecord = (
+const requireFinalAdjudicationRecord = (
   store: DeepResearchRecordStore,
   jobId: string,
-): ResearchFinalReportRecord => {
-  const finalReportRecord = store.getLatestFinalReport(jobId);
-  if (!finalReportRecord) {
-    throw new Error("Deep Research final report record is missing.");
+): ResearchFinalAdjudicationRecord => {
+  const finalAdjudicationRecord = store.getLatestFinalAdjudication(jobId);
+  if (!finalAdjudicationRecord) {
+    throw new Error("Deep Research final adjudication record is missing.");
   }
-  return finalReportRecord;
+  return finalAdjudicationRecord;
 };
 
 const requireBusinessHtmlExport = (
@@ -124,7 +106,7 @@ const buildEvidenceIndexEntries = (input: {
   interactions: readonly ResearchInteraction[];
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalReportRecord: ResearchFinalReportRecord;
+  finalAdjudicationRecord: ResearchFinalAdjudicationRecord;
   businessHtmlExport: ResearchExport | null;
 }): DeepResearchEvidenceIndexEntry[] => {
   const entries: DeepResearchEvidenceIndexEntry[] = [];
@@ -150,9 +132,9 @@ const buildEvidenceIndexEntries = (input: {
     }
     if (
       interaction.phase === "final_adjudication"
-      && input.finalReportRecord.interactionId === interaction.id
+      && input.finalAdjudicationRecord.interactionId === interaction.id
     ) {
-      entries.push({ ...base, parsedRecordId: input.finalReportRecord.id });
+      entries.push({ ...base, parsedRecordId: input.finalAdjudicationRecord.id });
       return;
     }
     if (interaction.phase === "html_report" && input.businessHtmlExport) {
@@ -176,19 +158,19 @@ const resolveExportState = (input: {
     jobId: input.jobId,
     structuredIndex: input.structuredIndex,
   });
-  const finalReportRecord = requireFinalReportRecord(input.store, input.jobId);
+  const finalAdjudicationRecord = requireFinalAdjudicationRecord(input.store, input.jobId);
   const businessHtmlExport = requireBusinessHtmlExport(input.store, input.jobId);
   const evidenceIndex = buildEvidenceIndexEntries({
     interactions: input.store.listInteractions(input.jobId),
     subQuestions: input.store.listSubQuestions(input.jobId),
     answers: input.store.listAnswers({ jobId: input.jobId }),
-    finalReportRecord,
+    finalAdjudicationRecord,
     businessHtmlExport,
   });
   return {
     exportDir,
     fullCaseFile,
-    finalReportRecord,
+    finalAdjudicationRecord,
     businessHtmlExport,
     evidenceIndex,
   };
@@ -199,11 +181,11 @@ const writeExportFiles = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
   structuredIndex: DeepResearchStructuredIndex;
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord;
 }): DeepResearchExportFiles => ({
-  finalReportMarkdownArtifact: writeTextArtifact(
-    path.join(input.state.exportDir, FINAL_REPORT_EXPORT_KIND),
-    renderFinalReportMarkdown(input.finalReport),
+  finalAdjudicationRawArtifact: writeTextArtifact(
+    path.join(input.state.exportDir, FINAL_ADJUDICATION_RAW_EXPORT_KIND),
+    renderFinalAdjudicationMarkdown(input.finalAdjudication),
   ),
   structuredIndexArtifact: writeJsonArtifact(
     path.join(input.state.exportDir, STRUCTURED_INDEX_EXPORT_KIND),
@@ -225,16 +207,16 @@ const persistExportRecords = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
   structuredIndex: DeepResearchStructuredIndex;
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord;
   state: DeepResearchExportState;
   files: DeepResearchExportFiles;
 }): DeepResearchExportArtifacts => ({
-  finalReportMarkdown: input.store.saveExport({
+  finalAdjudicationRaw: input.store.saveExport({
     jobId: input.jobId,
-    exportKind: FINAL_REPORT_EXPORT_KIND,
-    filePath: input.files.finalReportMarkdownArtifact.filePath,
-    fileHash: input.files.finalReportMarkdownArtifact.fileHash,
-    payload: input.finalReport,
+    exportKind: FINAL_ADJUDICATION_RAW_EXPORT_KIND,
+    filePath: input.files.finalAdjudicationRawArtifact.filePath,
+    fileHash: input.files.finalAdjudicationRawArtifact.fileHash,
+    payload: input.finalAdjudication,
   }),
   fullCaseFileJson: input.files.fullCaseFileExports.fullCaseFileJson,
   fullCaseFileMarkdown: input.files.fullCaseFileExports.fullCaseFileMarkdown,
@@ -264,7 +246,7 @@ export const exportDeepResearchArtifacts = async (input: {
   jobId: string;
   structuredIndex: DeepResearchStructuredIndex;
   fullCaseFile?: DeepResearchFullCaseFile;
-  finalReport: DeepResearchFinalReport;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord;
 }): Promise<DeepResearchExportArtifacts> => {
   const state = resolveExportState(input);
   const files = writeExportFiles({
@@ -272,13 +254,13 @@ export const exportDeepResearchArtifacts = async (input: {
     store: input.store,
     jobId: input.jobId,
     structuredIndex: input.structuredIndex,
-    finalReport: input.finalReport,
+    finalAdjudication: input.finalAdjudication,
   });
   return persistExportRecords({
     store: input.store,
     jobId: input.jobId,
     structuredIndex: input.structuredIndex,
-    finalReport: input.finalReport,
+    finalAdjudication: input.finalAdjudication,
     state,
     files,
   });

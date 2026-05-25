@@ -209,7 +209,7 @@ const buildTerminalResult = (input: {
   status: input.status,
   jobStatus: input.status === "failed" ? "failed" : "review_required",
   phase: input.phase,
-  report: null,
+  finalAdjudication: null,
   recordHashes: input.recordHashes,
   failureReason: input.status === "failed" ? input.reason : null,
   reviewReason: input.status === "review_required" ? input.reason : null,

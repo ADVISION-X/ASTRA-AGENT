@@ -24,7 +24,7 @@ import { type AnalysisExecutionContext } from "./deep-research-analysis.analysis
 import {
   completeSuccessfulRun,
   buildFullCaseFileStage,
-  runFinalReportPhase,
+  runFinalAdjudicationPhase,
 } from "./deep-research-analysis.analysis-finalization.js";
 import { runBusinessHtmlReportPhase } from "./deep-research-analysis.html-report-stage.js";
 import {
@@ -73,19 +73,19 @@ const runAnalysisPhases = async (
   if (!finalPackageStage.ok) {
     return finalPackageStage.result;
   }
-  const finalReport = await runFinalReportPhase(
+  const finalAdjudication = await runFinalAdjudicationPhase(
     executionContext,
-    finalPackageStage.finalPackage,
+    finalPackageStage.structuredIndex,
     finalPackageStage.fullCaseFile,
     finalPackageStage.fullCaseFileMarkdown,
   );
-  if (!finalReport.ok) {
-    return finalReport.result;
+  if (!finalAdjudication.ok) {
+    return finalAdjudication.result;
   }
   const businessHtmlReport = await runBusinessHtmlReportPhase(
     executionContext,
-    finalPackageStage.finalPackage,
-    finalReport.finalReport,
+    finalPackageStage.structuredIndex,
+    finalAdjudication.finalAdjudication,
     finalPackageStage.fullCaseFile,
     finalPackageStage.fullCaseFileMarkdown,
   );
@@ -94,9 +94,9 @@ const runAnalysisPhases = async (
   }
   return await completeSuccessfulRun(
     executionContext,
-    finalPackageStage.finalPackage,
+    finalPackageStage.structuredIndex,
     finalPackageStage.fullCaseFile,
-    finalReport.finalReport,
+    finalAdjudication.finalAdjudication,
   );
 };
 

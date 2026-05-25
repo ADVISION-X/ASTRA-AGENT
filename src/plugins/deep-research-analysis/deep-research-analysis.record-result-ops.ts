@@ -1,67 +1,79 @@
 import { createId } from "../../lib/local-runtime/ids.js";
 import { stableJsonHash } from "../../lib/storage/hash.js";
-import {
-  DeepResearchFinalReportSchema,
-  type DeepResearchFinalReport,
-} from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalAdjudicationParse } from "./deep-research-analysis.result.js";
 import {
   ResearchExportSchema,
-  ResearchFinalReportRecordSchema,
+  ResearchFinalAdjudicationRecordSchema,
   type ResearchExport,
   type ResearchExportKind,
-  type ResearchFinalReportRecord,
+  type ResearchFinalAdjudicationRecord,
 } from "./deep-research-analysis.record-contracts.js";
 import {
   createDeepResearchDatabase,
   getCurrentTimestamp,
   mapExportRow,
-  mapFinalReportRow,
+  mapFinalAdjudicationRow,
 } from "./deep-research-analysis.record-db.js";
 
 type DeepResearchDatabaseHandle = ReturnType<typeof createDeepResearchDatabase>;
 
-export const saveFinalReport = (
+export const saveFinalAdjudication = (
   db: DeepResearchDatabaseHandle,
   input: {
     jobId: string;
     interactionId: string;
-    report: DeepResearchFinalReport;
+    promptId: string;
+    promptVersion: string;
+    parsed: DeepResearchFinalAdjudicationParse;
+    promptBundleSnapshot: unknown;
   },
-): ResearchFinalReportRecord => {
-  const id = createId("deep_research_final_report");
+): ResearchFinalAdjudicationRecord => {
+  const id = createId("deep_research_final_adjudication");
   const createdAt = getCurrentTimestamp();
-  const report = DeepResearchFinalReportSchema.parse(input.report);
-  const reportHash = stableJsonHash(report);
   db.prepare(
-    `INSERT INTO research_final_reports (
-      id, job_id, interaction_id, report_json, report_hash, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO research_final_adjudications (
+      id, job_id, interaction_id, prompt_id, prompt_version, raw_final_answer_text,
+      raw_response_hash, preferred_format, parsed_json_index_json, parse_status,
+      prompt_bundle_snapshot_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.jobId,
     input.interactionId,
-    JSON.stringify(report),
-    reportHash,
+    input.promptId,
+    input.promptVersion,
+    input.parsed.rawFinalAnswerText,
+    input.parsed.rawResponseHash,
+    input.parsed.preferredFormat,
+    input.parsed.parsedJsonIndex === null ? null : JSON.stringify(input.parsed.parsedJsonIndex),
+    input.parsed.parseStatus,
+    JSON.stringify(input.promptBundleSnapshot),
     createdAt,
   );
-  return ResearchFinalReportRecordSchema.parse({
+  return ResearchFinalAdjudicationRecordSchema.parse({
     id,
     jobId: input.jobId,
     interactionId: input.interactionId,
-    report,
-    reportHash,
+    promptId: input.promptId,
+    promptVersion: input.promptVersion,
+    rawFinalAnswerText: input.parsed.rawFinalAnswerText,
+    rawResponseHash: input.parsed.rawResponseHash,
+    preferredFormat: input.parsed.preferredFormat,
+    parsedJsonIndex: input.parsed.parsedJsonIndex,
+    parseStatus: input.parsed.parseStatus,
+    promptBundleSnapshot: input.promptBundleSnapshot,
     createdAt,
   });
 };
 
-export const getLatestFinalReport = (
+export const getLatestFinalAdjudication = (
   db: DeepResearchDatabaseHandle,
   jobId: string,
-): ResearchFinalReportRecord | null => {
+): ResearchFinalAdjudicationRecord | null => {
   const row = db.prepare(
-    `SELECT * FROM research_final_reports WHERE job_id = ? ORDER BY created_at DESC LIMIT 1`,
-  ).get(jobId) as Parameters<typeof mapFinalReportRow>[0] | undefined;
-  return row ? mapFinalReportRow(row) : null;
+    `SELECT * FROM research_final_adjudications WHERE job_id = ? ORDER BY created_at DESC LIMIT 1`,
+  ).get(jobId) as Parameters<typeof mapFinalAdjudicationRow>[0] | undefined;
+  return row ? mapFinalAdjudicationRow(row) : null;
 };
 
 export const saveExport = (

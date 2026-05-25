@@ -12,7 +12,6 @@ const {
   formatDateTime,
   formatStatusLabel,
   renderAnswerCard,
-  renderConfidenceBadge,
   renderEmptyReader,
   renderExpandableText,
   exportActionLabel,
@@ -41,7 +40,6 @@ function renderReportHeader(report: DeepResearchReport): void {
   setResearchHtml("[data-deep-research-report-header]", `
     <div class="research-report-kicker">
       ${renderStatusBadge(report.job.status)}
-      ${renderConfidenceBadge(report.conclusion?.confidence)}
     </div>
     <h2>${escapeText(report.job.title)}</h2>
     <p class="research-lead">${escapeText(report.job.userQuestion)}</p>
@@ -57,10 +55,10 @@ function renderReportHeader(report: DeepResearchReport): void {
 }
 
 function renderStructuredConclusionPayload(report: DeepResearchReport): string {
-  if (!report.conclusion) {
+  if (!report.conclusion?.parsedJsonIndex) {
     return "";
   }
-  return renderJsonDetails("Structured Payload", report.conclusion.structuredPayload, "Show Structured Payload");
+  return renderJsonDetails("Parsed JSON Index", report.conclusion.parsedJsonIndex, "Show Parsed JSON Index");
 }
 
 function renderConclusionCard(report: DeepResearchReport): void {
@@ -69,32 +67,29 @@ function renderConclusionCard(report: DeepResearchReport): void {
       <div class="research-card-head">
         <div>
           <p class="research-kicker">Final Adjudication</p>
-          <h2>Final report not persisted yet</h2>
+          <h2>Final adjudication not persisted yet</h2>
         </div>
       </div>
-      <p class="muted">This report is still building. The reader will prioritize the final conclusion card as soon as the final adjudication result is persisted.</p>`);
+      <p class="muted">This report is still building. The reader will prioritize the raw final adjudication card as soon as the final adjudication result is persisted.</p>`);
     return;
   }
   setResearchHtml("[data-deep-research-final-card]", `
     <div class="research-card-head">
       <div>
         <p class="research-kicker">Final Adjudication</p>
-        <h2>Decision-grade conclusion</h2>
+        <h2>Authoritative raw final adjudication</h2>
       </div>
-      ${renderConfidenceBadge(report.conclusion.confidence)}
     </div>
-    ${renderExpandableText("Summary", report.conclusion.summary, {
-      summaryLabel: "More",
+    ${renderExpandableText("Raw Final Adjudication", report.conclusion.rawFinalAnswerText, {
+      summaryLabel: "Show Full Final Adjudication",
       className: "response-pre",
       previewLimit: 800,
     })}
     ${renderMetaRow([
       renderFlowLabel(report),
+      report.conclusion.preferredFormat,
+      report.conclusion.parseStatus,
     ])}
-    <div class="research-summary-grid">
-      ${renderListSection("References", report.conclusion.references, { emptyText: "No references recorded." })}
-      ${renderListSection("Source Notes", report.conclusion.sourceNotes.map((note) => note.note), { emptyText: "No source notes recorded." })}
-    </div>
     ${renderStructuredConclusionPayload(report)}`);
 }
 
@@ -196,14 +191,14 @@ function renderFinalAdjudication(report: DeepResearchReport): void {
       </div>
     </div>
     <div class="research-article-card">
-      ${report.conclusion ? renderExpandableText("Parsed Final Report", report.conclusion.summary, {
-        summaryLabel: "More",
+      ${report.conclusion ? renderExpandableText("Raw Final Adjudication", report.conclusion.rawFinalAnswerText, {
+        summaryLabel: "Show Full Final Adjudication",
         className: "response-pre",
         previewLimit: 700,
       }) : `<p class="muted">${escapeText(sectionLabel)} has not been persisted yet.</p>`}
-      ${interaction ? renderStructuredParsedResult("Parsed Final Report", interaction.parsedJson) : ""}
+      ${interaction ? renderStructuredParsedResult("Parsed Final Adjudication", interaction.parsedJson) : ""}
       ${interaction ? renderInteractionDebug(interaction) : ""}
-      ${renderJsonDetails("Parsed Final Report JSON", report.finalAdjudication.parsedFinalReport, "Show Parsed Result")}
+      ${renderJsonDetails("Final Adjudication Record JSON", report.finalAdjudication.record, "Show Parsed Result")}
     </div>`);
 }
 
@@ -224,7 +219,10 @@ function renderProcessTrace(report: DeepResearchReport): void {
         `${report.job.subQuestionCount} persisted subquestions`,
         `${report.job.exportCount} export artifacts`,
       ], { emptyText: "No process-trace coverage recorded." })}
-      ${renderListSection("Source Notes", report.conclusion?.sourceNotes.map((note) => note.note) ?? [], { emptyText: "No source notes recorded." })}
+      ${report.conclusion ? renderListSection("Final Adjudication Metadata", [
+        `preferredFormat: ${report.conclusion.preferredFormat}`,
+        `parseStatus: ${report.conclusion.parseStatus}`,
+      ], { emptyText: "No final adjudication metadata recorded." }) : ""}
     </div>
     <details class="research-evidence-root" open>
       <summary>Interaction Evidence</summary>

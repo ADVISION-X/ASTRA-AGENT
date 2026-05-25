@@ -11,7 +11,7 @@ import {
   type ResearchAnswerKind,
   type ResearchExport,
   type ResearchExportKind,
-  type ResearchFinalReportRecord,
+  type ResearchFinalAdjudicationRecord,
   type ResearchInteraction,
   type ResearchJob,
   type ResearchSubQuestion,
@@ -19,7 +19,7 @@ import {
 export {
   mapAnswerRow,
   mapExportRow,
-  mapFinalReportRow,
+  mapFinalAdjudicationRow,
   mapInteractionRow,
   mapJobRow,
   mapResearchPlanRow,
@@ -102,15 +102,20 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     limitations_json TEXT NOT NULL,
     contradiction_points_json TEXT NOT NULL,
     parsed_payload_json TEXT NOT NULL DEFAULT '{}',
-    confidence TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
-  `CREATE TABLE IF NOT EXISTS research_final_reports (
+  `CREATE TABLE IF NOT EXISTS research_final_adjudications (
     id TEXT PRIMARY KEY,
     job_id TEXT NOT NULL,
     interaction_id TEXT NOT NULL,
-    report_json TEXT NOT NULL,
-    report_hash TEXT NOT NULL,
+    prompt_id TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    raw_final_answer_text TEXT NOT NULL,
+    raw_response_hash TEXT NOT NULL,
+    preferred_format TEXT NOT NULL,
+    parsed_json_index_json TEXT,
+    parse_status TEXT NOT NULL,
+    prompt_bundle_snapshot_json TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS research_exports (
@@ -318,6 +323,46 @@ const migrateResearchAnswersParsedPayload = (db: Database.Database): void => {
   ).run();
 };
 
+const migrateResearchAnswersRemoveConfidence = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_answers", "confidence")) {
+    return;
+  }
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE research_answers_v2 (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        interaction_id TEXT NOT NULL,
+        sub_question_id TEXT NOT NULL,
+        answer_kind TEXT NOT NULL,
+        answer_text TEXT NOT NULL,
+        key_points_json TEXT NOT NULL,
+        evidence_mentions_json TEXT NOT NULL,
+        assumptions_json TEXT NOT NULL,
+        limitations_json TEXT NOT NULL,
+        contradiction_points_json TEXT NOT NULL,
+        parsed_payload_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL
+      )
+    `);
+    db.exec(`
+      INSERT INTO research_answers_v2 (
+        id, job_id, interaction_id, sub_question_id, answer_kind, answer_text,
+        key_points_json, evidence_mentions_json, assumptions_json, limitations_json,
+        contradiction_points_json, parsed_payload_json, created_at
+      )
+      SELECT
+        id, job_id, interaction_id, sub_question_id, answer_kind, answer_text,
+        key_points_json, evidence_mentions_json, assumptions_json, limitations_json,
+        contradiction_points_json, parsed_payload_json, created_at
+      FROM research_answers
+    `);
+    db.exec("DROP TABLE research_answers");
+    db.exec("ALTER TABLE research_answers_v2 RENAME TO research_answers");
+  });
+  migrate();
+};
+
 const migrateResearchExportsPayloadJson = (db: Database.Database): void => {
   if (!hasColumn(db, "research_exports", "payload_json")) {
     db.exec("ALTER TABLE research_exports ADD COLUMN payload_json TEXT NOT NULL DEFAULT '{}' ");
@@ -333,7 +378,7 @@ const pruneResearchExportKindsSingleFlow = (db: Database.Database): void => {
   db.prepare(
     `DELETE FROM research_exports
      WHERE export_kind NOT IN (
-       'final-report.md',
+       'final-adjudication-raw.md',
        'full-case-file.md',
        'full-case-file.json',
        'structured-index.json',
@@ -359,6 +404,7 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
   migrateResearchInteractionsRenderedPromptText(db);
   migrateResearchSubQuestionStructuredFields(db);
   migrateResearchAnswersParsedPayload(db);
+  migrateResearchAnswersRemoveConfidence(db);
   migrateResearchExportsPayloadJson(db);
   pruneResearchExportKindsSingleFlow(db);
   for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {

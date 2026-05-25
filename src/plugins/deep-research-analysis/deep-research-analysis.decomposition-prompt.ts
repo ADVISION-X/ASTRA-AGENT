@@ -1,3 +1,5 @@
+import { buildResearchPlanFormatShell } from "./deep-research-analysis.prompt-bundle-shell.js";
+
 export const DEEP_RESEARCH_DECOMPOSITION_PROMPT = {
   promptId: "deep-research.decomposition",
   promptVersion: "v3.0.0",
@@ -145,7 +147,7 @@ Output JSON shape:
     "promptRole": "html_report_publisher",
     "taskInstruction": "question-specific HTML report publishing task",
     "questionSpecificFocus": ["specific report focus"],
-    "mustUseInputs": ["finalReport", "fullCaseFile"],
+    "mustUseInputs": ["rawFinalAnswerText", "fullCaseFile"],
     "mustNotDo": ["do not change the final meaning"],
     "evidenceOrReasoningNeeds": ["needed reporting support"],
     "outputGuidance": {
@@ -175,6 +177,7 @@ export const renderDecompositionPrompt = (input: {
   questionTypeHint?: string | null;
 }): string => [
   DEEP_RESEARCH_DECOMPOSITION_PROMPT.text,
+  buildResearchPlanFormatShell(),
   `User question:\n${input.userQuestion}`,
   `Maximum sub-questions:\n${input.maxSubQuestions}`,
   `Response language:\n${input.language}`,

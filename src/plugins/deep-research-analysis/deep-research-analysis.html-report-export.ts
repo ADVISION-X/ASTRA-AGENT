@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import {
-  detectHtmlArtifactInWebChatResponse,
-  downloadWebChatHtmlArtifact,
-  type WebChatHtmlDownloadSuccess,
+  extractInlineHtmlDocumentFromWebChatResponse,
 } from "../../capabilities/ai-input-gateway/index.js";
 import {
   buildFailure,
@@ -20,17 +19,25 @@ import {
 const buildTextHash = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
-const toGeneratedRecord = (input: WebChatHtmlDownloadSuccess): DeepResearchBusinessHtmlReportRecord => ({
-  artifactName: input.artifactName,
-  artifactMimeType: DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE,
-  filePath: input.filePath,
-  fileHash: input.fileHash,
-  fileSizeBytes: input.fileSizeBytes,
-  generatedAt: input.downloadedAt,
-  status: "business_html_report_generated",
-  exportKind: DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND,
-  sourceKind: "html_artifact",
-});
+const persistInlineHtmlDocument = (input: {
+  htmlDocument: string;
+  outputPath: string;
+}): DeepResearchBusinessHtmlReportRecord => {
+  mkdirSync(path.dirname(input.outputPath), { recursive: true });
+  writeFileSync(input.outputPath, input.htmlDocument, "utf8");
+  const bytes = Buffer.from(input.htmlDocument, "utf8");
+  return {
+    artifactName: path.basename(input.outputPath),
+    artifactMimeType: DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE,
+    filePath: input.outputPath,
+    fileHash: buildTextHash(input.htmlDocument),
+    fileSizeBytes: bytes.byteLength,
+    generatedAt: new Date().toISOString(),
+    status: "business_html_report_generated",
+    exportKind: DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND,
+    sourceKind: "inline_html_document",
+  };
+};
 
 export const buildBusinessHtmlReportOutputPath = (
   dataDir: string,
@@ -49,30 +56,30 @@ export const parseAndPersistBusinessHtmlReport = (input: {
 }): DeepResearchParserResult<DeepResearchBusinessHtmlReportRecord> => {
   const normalizedText = input.rawText.trim();
   const rawResponseHash = buildTextHash(normalizedText);
-  const htmlArtifact = detectHtmlArtifactInWebChatResponse(normalizedText);
-  if (htmlArtifact) {
-    const result = downloadWebChatHtmlArtifact({
-      candidate: htmlArtifact,
-      outputPath: input.outputPath,
-    });
-    if (!result.ok) {
-      return buildFailure(
-        normalizedText,
-        rawResponseHash,
-        result.status,
-        "partial_review_required",
-      );
-    }
+  const inlineHtmlDocument = extractInlineHtmlDocumentFromWebChatResponse(normalizedText);
+  if (!inlineHtmlDocument) {
+    return buildFailure(
+      normalizedText,
+      rawResponseHash,
+      "business_html_document_missing",
+      "partial_review_required",
+    );
+  }
+  try {
     return buildParsedResult({
-      parsed: toGeneratedRecord(result),
+      parsed: persistInlineHtmlDocument({
+        htmlDocument: inlineHtmlDocument,
+        outputPath: input.outputPath,
+      }),
       normalizedText,
       rawResponseHash,
     });
+  } catch (error) {
+    return buildFailure(
+      normalizedText,
+      rawResponseHash,
+      error instanceof Error ? error.message : "business_html_persist_failed",
+      "partial_review_required",
+    );
   }
-  return buildFailure(
-    normalizedText,
-    rawResponseHash,
-    "business_html_artifact_missing",
-    "partial_review_required",
-  );
 };

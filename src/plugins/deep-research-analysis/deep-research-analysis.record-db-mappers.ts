@@ -12,7 +12,7 @@ import {
   MISSING_RENDERED_PROMPT_TEXT,
   ResearchAnswerSchema,
   ResearchExportSchema,
-  ResearchFinalReportRecordSchema,
+  ResearchFinalAdjudicationRecordSchema,
   ResearchInteractionSchema,
   ResearchJobSchema,
   ResearchPlanRecordSchema,
@@ -21,7 +21,7 @@ import {
   type ResearchAnswerKind,
   type ResearchExport,
   type ResearchExportKind,
-  type ResearchFinalReportRecord,
+  type ResearchFinalAdjudicationRecord,
   type ResearchInteraction,
   type ResearchJob,
   type ResearchPlanRecord,
@@ -29,7 +29,6 @@ import {
 } from "./deep-research-analysis.record-contracts.js";
 import { DeepResearchPromptBundleSchema, type DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
 import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
-import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));
@@ -40,6 +39,9 @@ const parseUnknownRecord = (value: string): Record<string, unknown> => {
     ? parsed as Record<string, unknown>
     : {};
 };
+
+const parseUnknownJson = (value: string | null): unknown | null =>
+  value && value.trim().length > 0 ? JSON.parse(value) as unknown : null;
 
 const buildUnavailablePromptBundle = (row: {
   model_question_id: string;
@@ -217,7 +219,6 @@ export const mapAnswerRow = (row: {
   limitations_json: string;
   contradiction_points_json: string;
   parsed_payload_json: string;
-  confidence: ResearchAnswer["confidence"];
   created_at: string;
 }): ResearchAnswer =>
   ResearchAnswerSchema.parse({
@@ -233,24 +234,35 @@ export const mapAnswerRow = (row: {
     limitations: parseStringArray(row.limitations_json),
     contradictionPoints: parseStringArray(row.contradiction_points_json),
     parsedPayload: parseUnknownRecord(row.parsed_payload_json),
-    confidence: row.confidence,
     createdAt: row.created_at,
   });
 
-export const mapFinalReportRow = (row: {
+export const mapFinalAdjudicationRow = (row: {
   id: string;
   job_id: string;
   interaction_id: string;
-  report_json: string;
-  report_hash: string;
+  prompt_id: string;
+  prompt_version: string;
+  raw_final_answer_text: string;
+  raw_response_hash: string;
+  preferred_format: "structured_text" | "json_object" | "markdown";
+  parsed_json_index_json: string | null;
+  parse_status: "raw_structured_text" | "parsed_json_index";
+  prompt_bundle_snapshot_json: string;
   created_at: string;
-}): ResearchFinalReportRecord =>
-  ResearchFinalReportRecordSchema.parse({
+}): ResearchFinalAdjudicationRecord =>
+  ResearchFinalAdjudicationRecordSchema.parse({
     id: row.id,
     jobId: row.job_id,
     interactionId: row.interaction_id,
-    report: DeepResearchFinalReportSchema.parse(JSON.parse(row.report_json)),
-    reportHash: row.report_hash,
+    promptId: row.prompt_id,
+    promptVersion: row.prompt_version,
+    rawFinalAnswerText: row.raw_final_answer_text,
+    rawResponseHash: row.raw_response_hash,
+    preferredFormat: row.preferred_format,
+    parsedJsonIndex: parseUnknownJson(row.parsed_json_index_json),
+    parseStatus: row.parse_status,
+    promptBundleSnapshot: parseUnknownJson(row.prompt_bundle_snapshot_json),
     createdAt: row.created_at,
   });
 

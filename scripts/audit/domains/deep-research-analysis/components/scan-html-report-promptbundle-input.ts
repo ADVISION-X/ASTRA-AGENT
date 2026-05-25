@@ -29,7 +29,10 @@ export const inspectHtmlReportPromptBundleInput = (input: {
   }
 
   const htmlStageText = input.htmlReportStageFile?.getFullText() ?? "";
-  for (const marker of ["finalReport: input.finalReport", "fullCaseFileMarkdown: input.fullCaseFileMarkdown"]) {
+  for (const marker of [
+    "finalAdjudication: input.finalAdjudication",
+    "fullCaseFileMarkdown: input.fullCaseFileMarkdown",
+  ]) {
     if (htmlStageText.includes(marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/html-report-promptbundle-input-runtime",
@@ -43,6 +46,7 @@ export const inspectHtmlReportPromptBundleInput = (input: {
   for (const marker of [
     "Runtime shell for AI-generated htmlReportPromptBundle.",
     "htmlReportPromptBundle: DeepResearchPromptBundle",
+    "rawFinalAnswerText: input.finalAdjudication.rawFinalAnswerText",
     "fullCaseFileMarkdown",
     "renderHtmlReportFromPromptBundle",
   ]) {

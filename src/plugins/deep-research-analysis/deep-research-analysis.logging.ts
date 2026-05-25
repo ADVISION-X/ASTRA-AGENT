@@ -257,7 +257,7 @@ export const logDeepResearchExportCompleted = (input: {
   traceContext: RuntimeTraceContext;
   phase: DeepResearchPhase;
   exportDir: string;
-  finalReportHash: string;
+  finalAdjudicationHash: string;
   fullCaseFileJsonHash?: string;
   fullCaseFileMarkdownHash?: string;
   structuredIndexHash: string;
@@ -272,7 +272,7 @@ export const logDeepResearchExportCompleted = (input: {
     phase: input.phase,
     refs: { exportDir: input.exportDir },
     hashes: {
-      finalReportHash: input.finalReportHash,
+      finalAdjudicationHash: input.finalAdjudicationHash,
       ...(input.fullCaseFileJsonHash ? { fullCaseFileJsonHash: input.fullCaseFileJsonHash } : {}),
       ...(input.fullCaseFileMarkdownHash ? { fullCaseFileMarkdownHash: input.fullCaseFileMarkdownHash } : {}),
       structuredIndexHash: input.structuredIndexHash,

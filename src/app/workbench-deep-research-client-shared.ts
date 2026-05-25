@@ -83,8 +83,8 @@ function exportActionLabel(kind: string): string {
   if (kind === "business-report.html") {
     return "Open HTML Report";
   }
-  if (kind === "final-report.md") {
-    return "Open final report";
+  if (kind === "final-adjudication-raw.md") {
+    return "Open Final Adjudication Raw";
   }
   if (kind === "full-case-file.md") {
     return "Open Full Case File";
@@ -100,10 +100,6 @@ function exportActionLabel(kind: string): string {
 
 function renderStatusBadge(status: string | null | undefined): string {
   return `<span class="research-status-pill research-status-${escapeText(status || "queued")}">${escapeText(formatStatusLabel(status))}</span>`;
-}
-
-function renderConfidenceBadge(confidence: string | null | undefined): string {
-  return confidence ? `<span class="research-confidence-pill">Confidence ${escapeText(confidence)}</span>` : "";
 }
 
 function renderMetaRow(items: readonly (string | number | null | undefined)[]): string {
@@ -248,7 +244,6 @@ function renderAnalysisParsedResult(payload: JsonRecord, title: string): string 
         <h3>${escapeText(title)}</h3>
         ${renderMetaRow([
           readPayloadString(payload, "subQuestionId"),
-          readPayloadString(payload, "confidence"),
         ])}
       </div>
       ${renderStructuredFields(payload, [
@@ -265,26 +260,22 @@ function renderAnalysisParsedResult(payload: JsonRecord, title: string): string 
 }
 
 function renderFinalParsedResult(payload: JsonRecord): string {
-  const structuredPayload = asRecord(payload.structuredPayload);
+  const parsedJsonIndex = payload.parsedJsonIndex;
   return `
     <section class="research-parsed-panel">
       <div class="research-parsed-head">
-        <h3>Parsed Final Adjudication</h3>
+        <h3>Final Adjudication Record</h3>
         ${renderMetaRow([
-          readPayloadString(payload, "confidence"),
+          readPayloadString(payload, "preferredFormat"),
+          readPayloadString(payload, "parseStatus"),
         ])}
       </div>
-      ${renderStructuredField("Summary", payload.summary)}
-      <div class="research-summary-grid">
-        ${renderListSection("References", payload.references, { emptyText: "No references recorded.", previewCount: 5 })}
-        ${renderListSection("Source Notes", Array.isArray(payload.sourceNotes)
-          ? payload.sourceNotes.map((item) => {
-            const record = asRecord(item);
-            return record ? readPayloadString(record, "note") : "";
-          }).filter(Boolean)
-          : [], { emptyText: "No source notes recorded.", previewCount: 5 })}
-      </div>
-      ${structuredPayload ? renderJsonDetails("Structured Payload", structuredPayload, "Show Structured Payload") : ""}
+      ${renderExpandableText("Raw Final Adjudication", payload.rawFinalAnswerText, {
+        summaryLabel: "Show Full Final Adjudication",
+        className: "response-pre",
+        previewLimit: 700,
+      })}
+      ${parsedJsonIndex ? renderJsonDetails("Parsed JSON Index", parsedJsonIndex, "Show Parsed JSON Index") : ""}
     </section>`;
 }
 
@@ -296,7 +287,7 @@ function renderStructuredParsedResult(title: string, value: unknown): string {
   if (Array.isArray(payload.subQuestions)) {
     return renderDecompositionParsedResult(payload);
   }
-  if (payload.summary && payload.structuredPayload && !payload.subQuestionId) {
+  if (payload.rawFinalAnswerText && payload.preferredFormat) {
     return renderFinalParsedResult(payload);
   }
   if (payload.summary && payload.subQuestionId) {
@@ -341,7 +332,6 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
     <article class="research-analysis-card">
       <div class="research-analysis-head">
         <h3>${escapeText(title)}</h3>
-        ${renderConfidenceBadge(block.confidence)}
       </div>
       ${renderExpandableText("Summary", block.answerText, {
         summaryLabel: "More",
@@ -388,7 +378,7 @@ function renderHistory(state: DeepResearchClientState): void {
         </button>
         <div class="research-history-top">
           ${renderStatusBadge(job.status)}
-          ${renderConfidenceBadge(job.finalConfidence)}
+          ${job.finalAdjudicationPreview ? `<span class="muted">${escapeText(job.finalAdjudicationPreview)}</span>` : ""}
         </div>
         <button class="btn secondary research-history-delete" type="button" data-deep-research-delete-job="${escapeText(job.id)}" aria-label="Delete ${escapeText(job.title)}">Delete</button>
         ${renderMetaRow([
@@ -422,7 +412,7 @@ function syncFormVisibility(state: DeepResearchClientState, hasSelectedReport: b
 
 export const deepResearchClientSharedRuntime = {
   readResearchJson, researchQuery, researchJson, asArray, escapeText, setResearchHtml, toggleResearchHidden,
-  normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge, renderConfidenceBadge,
+  normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge,
   renderMetaRow, renderListSection, renderExpandableText, renderJsonDetails, renderExportButtons,
   renderInteractionDebug, readPayloadString, renderStructuredParsedResult, renderAnswerCard, renderHistory,
   renderEmptyReader, syncFormVisibility,
@@ -431,7 +421,7 @@ export const deepResearchClientSharedRuntime = {
 export const deepResearchClientSharedFunctions = [
   readResearchJson, researchQuery, researchJson, asArray, asRecord, escapeText, setResearchHtml,
   toggleResearchHidden, normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge,
-  renderConfidenceBadge, renderMetaRow, renderListSection, readPayloadString, renderStructuredField,
+  renderMetaRow, renderListSection, readPayloadString, renderStructuredField,
   renderStructuredFields, renderExpandableText, renderJsonDetails, renderDecompositionParsedResult,
   renderAnalysisParsedResult, renderFinalParsedResult, renderStructuredParsedResult, renderExportButtons,
   renderInteractionDebug, renderAnswerCard, renderHistory, renderEmptyReader, syncFormVisibility,
