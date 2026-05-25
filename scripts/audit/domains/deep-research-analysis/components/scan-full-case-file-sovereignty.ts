@@ -10,7 +10,7 @@ const hasRepoText = (repoPath: string, value: string): boolean => readFileSync(r
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value));
 
-export const inspectFullCaseFileRequired = (input: {
+export const inspectFullCaseFileSovereignty = (input: {
   finalAdjudicationPromptFile: SourceFile | undefined;
   htmlReportPromptFile: SourceFile | undefined;
   fullCaseFileFile: SourceFile | undefined;
@@ -47,8 +47,8 @@ export const inspectFullCaseFileRequired = (input: {
     { ok: hasRepoText("src/app/workbench-deep-research-routes.ts", "full-case-file.md") && hasRepoText("src/app/workbench-deep-research-routes.ts", "full-case-file.json"), filePath: "src/app/workbench-deep-research-routes.ts", message: "Workbench routes must allow both full case file artifacts." },
     { ok: hasRepoText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-full-case-file"), filePath: "src/app/workbench-deep-research-report-view.ts", message: "Report view must expose the Full Case File section." },
     { ok: hasRepoText("src/app/workbench-deep-research-client-delivery-sections.ts", "Open Full Case File") && hasRepoText("src/app/workbench-deep-research-client-delivery-sections.ts", "Download full-case-file.json"), filePath: "src/app/workbench-deep-research-client-delivery-sections.ts", message: "Client delivery sections must expose full case file actions." },
-    { ok: hasRepoText("scripts/acceptance/deep-research-full-case-file-required.acceptance.ts", "deep-research-full-case-file-required"), filePath: "scripts/acceptance/deep-research-full-case-file-required.acceptance.ts", message: "Full-case-file-required acceptance must exist." },
-    { ok: hasRepoText("scripts/audit/ci-full.ts", "acceptance:deep-research-full-case-file-required"), filePath: "scripts/audit/ci-full.ts", message: "ci:full must execute acceptance:deep-research-full-case-file-required." },
+    { ok: hasRepoText("scripts/acceptance/deep-research-full-case-file.acceptance.ts", "deep-research-full-case-file"), filePath: "scripts/acceptance/deep-research-full-case-file.acceptance.ts", message: "Full-case-file acceptance must exist." },
+    { ok: hasRepoText("scripts/audit/ci-full.ts", "acceptance:deep-research-full-case-file"), filePath: "scripts/audit/ci-full.ts", message: "ci:full must execute acceptance:deep-research-full-case-file." },
   ];
   for (const check of repoChecks) {
     input.inspectedFiles.add(check.filePath);

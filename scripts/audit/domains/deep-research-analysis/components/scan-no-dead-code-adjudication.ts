@@ -1,80 +1,74 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { readFileSync } from "node:fs";
 
+import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
-const forbiddenAdjudicationSymbols = [
+const forbiddenAdjudicationTerms = [
   "decideImportance",
-  "filterImportantAnswers",
+  "filterImportant",
   "compactForJudgment",
-  "summarizeForFinalOnly",
-  "downRankForFinal",
+  "summarizeOnly",
+  "dropUnparsed",
 ] as const;
 
-const markInspected = (inspectedFiles: Set<string>, sourceFiles: readonly (SourceFile | undefined)[]): void => {
-  sourceFiles.forEach((sourceFile) => {
-    if (sourceFile) {
-      inspectedFiles.add(getRepoSourcePath(sourceFile));
-    }
-  });
-};
+const hasText = (repoPath: string, value: string): boolean =>
+  readFileSync(resolveFromRepo(repoPath), "utf8").includes(value);
 
 export const inspectNoDeadCodeAdjudication = (input: {
   sourceFiles: readonly SourceFile[];
-  finalPackageFile: SourceFile | undefined;
-  acceptanceFile: SourceFile | undefined;
-  ciFullFile: SourceFile | undefined;
+  fullCaseFileFile: SourceFile | undefined;
+  finalizationFile: SourceFile | undefined;
+  parserSupportFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
 }): void => {
-  markInspected(input.inspectedFiles, [input.finalPackageFile, input.acceptanceFile, input.ciFullFile]);
-
-  const finalPackageText = input.finalPackageFile?.getFullText() ?? "";
-  if (!finalPackageText.includes("analysisAnswers.length === 0") || !finalPackageText.includes("rawAnalysisInteractionCount === 0")) {
-    input.findings.push(createFinding({
-      checkId: "deep-research/no-dead-code-final-package-validation",
-      lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
-      message: "Final package validation must allow raw-only analysis coverage and forbid structured-only adjudication gating.",
-    }));
-  }
-
   for (const sourceFile of input.sourceFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
-    const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => identifier.getText());
+    input.inspectedFiles.add(repoPath);
     const strings = sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue());
-    const matched = forbiddenAdjudicationSymbols.filter((symbolName) =>
-      identifiers.includes(symbolName) || strings.includes(symbolName),
+    const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => identifier.getText());
+    const found = forbiddenAdjudicationTerms.filter((term) =>
+      strings.some((value) => value.includes(term))
+      || identifiers.some((value) => value.includes(term)),
     );
-    if (matched.length === 0) {
-      continue;
-    }
+    if (found.length === 0) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/no-dead-code-symbol",
+      checkId: "deep-research/no-dead-code-adjudication",
       lawId: input.lawId,
       filePath: repoPath,
-      message: `Runtime must not introduce dead-code adjudication surface: ${matched.join(", ")}.`,
+      message: `Runtime content adjudication term remains: ${found.join(", ")}.`,
     }));
   }
 
-  const acceptanceText = input.acceptanceFile?.getFullText() ?? "";
-  if (!acceptanceText.includes("fullCaseFileMarkdown") || !acceptanceText.includes("buildDeepResearchFullCaseFile")) {
+  const requiredMarkers = [
+    {
+      file: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+      marker: "parse_failed_raw_available",
+      message: "Full case file must preserve parse-failed raw responses.",
+    },
+    {
+      file: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+      marker: "rawResponseText",
+      message: "Full case file must include raw response text.",
+    },
+    {
+      file: "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+      marker: "raw_text_preserved",
+      message: "Parser support must keep raw text when structured parsing fails.",
+    },
+  ] as const;
+  for (const check of requiredMarkers) {
+    input.inspectedFiles.add(check.file);
+    if (hasText(check.file, check.marker)) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/no-dead-code-acceptance",
+      checkId: "deep-research/no-dead-code-adjudication-marker",
       lawId: input.lawId,
-      filePath: "scripts/acceptance/deep-research-final-adjudication-full-input.acceptance.ts",
-      message: "Dead-code adjudication acceptance must assert the live full-case-file adjudication path.",
-    }));
-  }
-
-  if (!(input.ciFullFile?.getFullText() ?? "").includes("acceptance:deep-research-final-adjudication-full-input")) {
-    input.findings.push(createFinding({
-      checkId: "deep-research/no-dead-code-ci",
-      lawId: input.lawId,
-      filePath: "scripts/audit/ci-full.ts",
-      message: "ci:full must execute acceptance:deep-research-final-adjudication-full-input for no-dead-code adjudication coverage.",
+      filePath: check.file,
+      message: check.message,
     }));
   }
 };

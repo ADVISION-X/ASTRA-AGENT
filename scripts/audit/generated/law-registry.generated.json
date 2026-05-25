@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T14:14:14.525Z",
+  "generatedAt": "2026-05-25T14:22:27.051Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -903,7 +903,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast+fs+acceptance",
-      "summary": "Deep Research must have exactly one runtime flow: user question to AI decomposition, N sub-question AI answers with full raw persistence, full case file to final AI adjudication, then final report plus full case file to AI-generated business HTML report.",
+      "summary": "Deep Research must have exactly one active production flow: user question, AI decomposition into N sub-questions, N independent AI analyses with full raw persistence, full case file construction, final AI adjudication using the full case file, then AI-generated business HTML report using final adjudication and the full case file.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 1
     },
@@ -914,7 +914,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+ast",
-      "summary": "Any Deep Research iteration that introduces a replacement capability must physically delete the replaced path in the same iteration.",
+      "summary": "Any Deep Research code path related to legacy positive/falsification mode, PPT deck generation, local PPT generation, deck outline JSON, optional presentation deck, fallback generation, compact package, lite package, or compatibility mode must be physically deleted unless transformed into the single active HTML full-case-file flow.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 2
     },
@@ -924,8 +924,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "prompt+ast+export",
-      "summary": "Final adjudication must receive the full case file containing all prompts and all raw AI responses from decomposition and sub-question analysis.",
+      "evidenceMode": "ast+fs+acceptance",
+      "summary": "Every Deep Research module, function, export kind, status, UI section, inspector, acceptance, and prompt must be classified as either ACTIVE_SINGLE_FLOW or DELETE.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 3
     },
@@ -935,8 +935,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast+ui",
-      "summary": "The only final business report artifact for Deep Research is business-report.html.",
+      "evidenceMode": "prompt+ast+export",
+      "summary": "Final adjudication and business HTML report generation must receive the full case file; if the full case file is missing, the job must fail before final adjudication.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 4
     },
@@ -946,8 +946,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+case-file",
-      "summary": "The runtime must not judge, filter, rank, summarize, compact, or omit non-empty AI content for final adjudication.",
+      "evidenceMode": "fs+ast+ui",
+      "summary": "The only final presentation artifact of Deep Research is business-report.html; PPTX, deck outline JSON, local deck generation, AI PPT artifact, or optional presentation deck must not exist in the active production flow.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 5
     },

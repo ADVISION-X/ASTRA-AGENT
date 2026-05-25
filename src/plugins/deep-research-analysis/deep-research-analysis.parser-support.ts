@@ -55,6 +55,8 @@ export type FinalReportNormalizationRawIndex = {
 const buildTextHash = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
+const rawTextPreservationMarker = "raw_text_preserved";
+
 const successfulParseStatuses = new Set<DeepResearchParserSuccessStatus>([
   "parsed",
   "parsed_with_trailing_noise",

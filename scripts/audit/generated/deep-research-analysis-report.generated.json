@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T14:13:13.147Z",
+  "generatedAt": "2026-05-25T14:22:41.983Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,7 +16,7 @@
       "checkId": "runner/inspector-error",
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "clauseId": "primary",
-      "message": "ENOENT: no such file or directory, open '/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-single-flow.acceptance.ts'",
+      "message": "Cannot find module '/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.js' imported from /Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/inspector.ts",
       "severity": "fatal"
     }
   ],

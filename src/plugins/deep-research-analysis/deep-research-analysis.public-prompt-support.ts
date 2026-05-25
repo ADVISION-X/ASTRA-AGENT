@@ -4,12 +4,14 @@ import {
 import {
   buildRenderedDeepResearchPromptHash,
   decompositionPrompt,
-  finalAdjudicationPrompt,
   renderDeepResearchDecompositionPrompt,
-  renderDeepResearchFinalAdjudicationPrompt,
   renderDeepResearchSubQuestionAnalysisPrompt,
   subQuestionAnalysisPrompt,
 } from "./deep-research-analysis.prompts.js";
+import {
+  finalAdjudicationPrompt,
+  renderDeepResearchFinalAdjudicationPrompt,
+} from "./deep-research-analysis.final-adjudication-prompt.js";
 import type {
   ResearchAnswer,
   ResearchInteraction,

@@ -9,308 +9,48 @@
       "checkId": "code-purity/banned-active-path",
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts contains a banned bridge/legacy/planner path token.",
+      "message": "scripts/audit/domains/deep-research-analysis/components/scan-no-compatibility-vocabulary.ts contains a banned bridge/legacy/planner path token.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the bridge/legacy surface or rename it into the single live owner path.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-compatibility-vocabulary.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the bridge/legacy surface or rename it into the single live owner path.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-file",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
+      "message": "scripts/acceptance/deep-research-no-dead-code-adjudication.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts",
+      "filePath": "scripts/acceptance/deep-research-no-dead-code-adjudication.acceptance.ts",
       "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-file",
+      "checkId": "code-purity/zombie-top-level-declaration",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/deep-research-single-flow-only.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts keeps an orphan top-level variable named rawTextPreservationMarker.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/deep-research-single-flow-only.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-ai-html-report-flow.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-ai-html-report-flow.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-prompt-boundary.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-prompt-boundary.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-report-no-text-ceiling.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-report-no-text-ceiling.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-gateway-raw-capture-boundary.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-gateway-raw-capture-boundary.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-html-report-artifact-persist.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-html-report-artifact-persist.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-no-dead-code-adjudication.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-dead-code-adjudication.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-no-html-content-rejudgment.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-html-content-rejudgment.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-no-retired-flow-symbols.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-retired-flow-symbols.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts exposes object bag finalAdjudicationPrompt to dynamic access typeof finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts exposes object bag finalAdjudicationPrompt to dynamic access prompt: finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property promptId in finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptId\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property promptVersion in finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptVersion\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property phase in finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts exposes object bag finalAdjudicationPrompt to dynamic access typeof finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts exposes object bag finalAdjudicationPrompt to dynamic access prompt: finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property promptId in finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptId\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property promptVersion in finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptVersion\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property phase in finalAdjudicationPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"rawTextPreservationMarker\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-25T14:13:10.940Z",
+  "generatedAt": "2026-05-25T14:22:39.912Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
-    "scripts/acceptance/deep-research-ai-html-report.acceptance.ts",
-    "scripts/acceptance/deep-research-analysis-raw-capture-boundary.ts",
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
-    "scripts/acceptance/deep-research-analysis-sub-question-fault-isolation.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
     "scripts/acceptance/deep-research-final-adjudication-full-input.acceptance.ts",
-    "scripts/acceptance/deep-research-full-case-file-required.acceptance.ts",
     "scripts/acceptance/deep-research-full-case-file-support.ts",
     "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
-    "scripts/acceptance/deep-research-html-artifact-persist.acceptance.ts",
-    "scripts/acceptance/deep-research-html-full-input.acceptance.ts",
-    "scripts/acceptance/deep-research-html-only-final-artifact.acceptance.ts",
-    "scripts/acceptance/deep-research-html-prompt-boundary.acceptance.ts",
-    "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts",
+    "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
+    "scripts/acceptance/deep-research-no-dead-code-adjudication.acceptance.ts",
     "scripts/acceptance/deep-research-raw-response-sovereignty.acceptance.ts",
     "scripts/acceptance/deep-research-report-export.acceptance.ts",
-    "scripts/acceptance/deep-research-report-reader-ui.acceptance.ts",
-    "scripts/acceptance/deep-research-single-flow-only.acceptance.ts",
+    "scripts/acceptance/deep-research-single-chain.acceptance.ts",
     "scripts/acceptance/facebook-live-dom-probe.ts",
     "scripts/acceptance/facebook-product-video-mining-ai-upload.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
@@ -382,29 +122,12 @@
     "scripts/audit/domains/code-purity/components/zombie-symbol-usage.ts",
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-ai-html-report-flow.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-prompt-boundary.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-report-no-text-ceiling.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-delete-retired-deep-research-paths.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-required.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-gateway-raw-capture-boundary.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-html-only-final-artifact.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-html-report-artifact-persist.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-html-report-only-artifact.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-no-compatibility-vocabulary.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-no-dead-code-adjudication.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-no-html-content-rejudgment.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-no-retired-flow-symbols.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-retired-flow-symbols.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-single-flow-sovereignty.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/inspector.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
@@ -842,12 +565,6 @@
     },
     {
       "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-ai-html-report.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-ai-html-report",
-      "scriptName": "acceptance:deep-research-ai-html-report"
-    },
-    {
-      "entryKind": "package-script",
       "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
       "reason": "package.json script acceptance:deep-research-analysis-smoke",
       "scriptName": "acceptance:deep-research-analysis-smoke"
@@ -872,39 +589,15 @@
     },
     {
       "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-full-case-file-required.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-full-case-file-required",
-      "scriptName": "acceptance:deep-research-full-case-file-required"
-    },
-    {
-      "entryKind": "package-script",
       "filePath": "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-full-case-file",
       "scriptName": "acceptance:deep-research-full-case-file"
     },
     {
       "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-html-artifact-persist.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-html-artifact-persist",
-      "scriptName": "acceptance:deep-research-html-artifact-persist"
-    },
-    {
-      "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-html-full-input.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-html-full-input",
-      "scriptName": "acceptance:deep-research-html-full-input"
-    },
-    {
-      "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-html-only-final-artifact.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-html-only-final-artifact",
-      "scriptName": "acceptance:deep-research-html-only-final-artifact"
-    },
-    {
-      "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-html-prompt-boundary.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-html-prompt-boundary",
-      "scriptName": "acceptance:deep-research-html-prompt-boundary"
+      "filePath": "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-html-report-only",
+      "scriptName": "acceptance:deep-research-html-report-only"
     },
     {
       "entryKind": "package-script",
@@ -920,9 +613,9 @@
     },
     {
       "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-report-reader-ui.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-report-reader-ui",
-      "scriptName": "acceptance:deep-research-report-reader-ui"
+      "filePath": "scripts/acceptance/deep-research-single-chain.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-single-chain",
+      "scriptName": "acceptance:deep-research-single-chain"
     },
     {
       "entryKind": "package-script",
@@ -1123,20 +816,20 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1256,
-  "orphanDeclarationCount": 0,
-  "reachableFileCount": 482,
+  "liveExportCount": 1253,
+  "orphanDeclarationCount": 1,
+  "reachableFileCount": 476,
   "status": "FAIL",
-  "unreachableFileCount": 20,
+  "unreachableFileCount": 1,
   "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1256,
-    "orphanDeclarationCount": 0,
-    "reachableFileCount": 482,
-    "unreachableFileCount": 20,
+    "liveExportCount": 1253,
+    "orphanDeclarationCount": 1,
+    "reachableFileCount": 476,
+    "unreachableFileCount": 1,
     "zombieExportCount": 0
   }
 }

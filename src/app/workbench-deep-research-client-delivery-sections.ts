@@ -9,6 +9,8 @@ const {
   setResearchHtml,
 } = deepResearchClientSharedRuntime;
 
+const decisionPackageReaderLabel = "Open structured final package";
+
 const findExport = (report: DeepResearchReport, kind: string) =>
   report.exports.find((record) => record.exportKind === kind) ?? null;
 
@@ -42,6 +44,7 @@ const renderFullCaseFileDelivery = (report: DeepResearchReport): void => {
       ${fullCaseFileMarkdown ? '<button class="btn secondary" type="button" data-deep-research-open-export="full-case-file.md">Open Full Case File</button>' : ""}
       ${fullCaseFileMarkdown ? '<button class="btn secondary" type="button" data-deep-research-export="full-case-file.md">Download full-case-file.md</button>' : ""}
       ${fullCaseFileJson ? '<button class="btn secondary" type="button" data-deep-research-export="full-case-file.json">Download full-case-file.json</button>' : ""}
+      ${findExport(report, "decision-package.json") ? `<button class="btn secondary" type="button" data-deep-research-open-export="decision-package.json">${decisionPackageReaderLabel}</button>` : ""}
     </div>
     <div class="research-summary-grid">
       ${renderListSection("Case File Coverage", [

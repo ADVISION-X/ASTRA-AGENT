@@ -3,7 +3,7 @@ import { z } from "zod";
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import {
   finalAdjudicationPrompt,
-} from "./deep-research-analysis.prompts.js";
+} from "./deep-research-analysis.final-adjudication-prompt.js";
 import type { DeepResearchSourceNote } from "./deep-research-analysis.result.js";
 import { DeepResearchSourceNoteSchema } from "./deep-research-analysis.result.js";
 import type {

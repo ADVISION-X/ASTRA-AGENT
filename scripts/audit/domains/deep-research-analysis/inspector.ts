@@ -6,11 +6,12 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
-import { inspectDeleteRetiredDeepResearchPaths } from "./components/scan-delete-retired-deep-research-paths.js";
-import { inspectFullCaseFileRequired } from "./components/scan-full-case-file-required.js";
-import { inspectHtmlOnlyFinalArtifact } from "./components/scan-html-only-final-artifact.js";
-import { inspectRetiredFlowSymbols } from "./components/scan-retired-flow-symbols.js";
-import { inspectSingleFlowSovereignty } from "./components/scan-single-flow-sovereignty.js";
+import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
+import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
+import { inspectHtmlReportOnlyArtifact } from "./components/scan-html-report-only-artifact.js";
+import { inspectNoCompatibilityVocabulary } from "./components/scan-no-presentation-artifacts.js";
+import { inspectNoDeadCodeAdjudication } from "./components/scan-no-dead-code-adjudication.js";
+import { inspectSingleChainSovereignty } from "./components/scan-single-chain-sovereignty.js";
 
 const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
@@ -51,20 +52,20 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   sourceFiles.forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
 
   inspectRequiredFiles(findings, inspectedFiles, lawId);
-  inspectSingleFlowSovereignty({
+  inspectSingleChainSovereignty({
     analysisRunnerFile: getSourceFile(context, requiredFiles[0]),
     finalPackageFile: getSourceFile(context, requiredFiles[1]),
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-038-V1"),
   });
-  inspectDeleteRetiredDeepResearchPaths({
+  inspectDeletedNonPrimaryPaths({
     sourceFiles,
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-039-V1"),
   });
-  inspectFullCaseFileRequired({
+  inspectFullCaseFileSovereignty({
     finalAdjudicationPromptFile: getSourceFile(context, requiredFiles[5]),
     htmlReportPromptFile: getSourceFile(context, requiredFiles[6]),
     fullCaseFileFile: getSourceFile(context, requiredFiles[2]),
@@ -73,14 +74,23 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
   });
-  inspectHtmlOnlyFinalArtifact({
+  inspectHtmlReportOnlyArtifact({
     sourceFiles,
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
   });
-    inspectRetiredFlowSymbols({
+  inspectNoCompatibilityVocabulary({
     sourceFiles,
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
+  });
+  inspectNoDeadCodeAdjudication({
+    sourceFiles,
+    fullCaseFileFile: getSourceFile(context, requiredFiles[2]),
+    finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
+    parserSupportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts"),
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),

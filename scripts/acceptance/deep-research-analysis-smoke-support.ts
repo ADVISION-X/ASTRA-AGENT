@@ -8,7 +8,7 @@ import {
   createDeepResearchRecordStore,
   renderDeepResearchFullCaseFileMarkdown,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
-import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.prompts.js";
+import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.js";
 import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 
 const REQUIRED_STAGE_NAMES = [

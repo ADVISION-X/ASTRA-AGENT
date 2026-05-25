@@ -1,321 +1,37 @@
 {
-  "generatedAt": "2026-05-25T14:13:10.939Z",
-  "itemCount": 31,
+  "generatedAt": "2026-05-25T14:22:39.912Z",
+  "itemCount": 3,
   "items": [
     {
-      "checkId": "code-purity/banned-active-path",
-      "filePath": "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-010-V1",
+      "checkId": "code-purity/zombie-file",
+      "filePath": "scripts/acceptance/deep-research-no-dead-code-adjudication.acceptance.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "acceptance",
+      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      "role": "acceptance-smoke",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/banned-active-path",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-compatibility-vocabulary.ts",
+      "lawId": "APEX-CODE-PURITY-010-V1",
+      "owner": "audit:deep-research-analysis",
       "reason": "Path contains a banned bridge/legacy token.",
       "remediation": "Delete the bridge/legacy surface or rename it into the single live owner path.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/deep-research-no-legacy-no-ppt.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "acceptance",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/deep-research-single-flow-only.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "acceptance",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-ai-html-report-flow.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-prompt-boundary.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-report-no-text-ceiling.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-gateway-raw-capture-boundary.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-html-report-artifact-persist.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-dead-code-adjudication.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-html-content-rejudgment.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-retired-flow-symbols.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt uses dynamic access typeof finalAdjudicationPrompt and cannot prove property-level liveness.",
-      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt uses dynamic access prompt: finalAdjudicationPrompt and cannot prove property-level liveness.",
-      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt property promptId has no property-level live consumer proof.",
-      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "reason": "Top-level variable rawTextPreservationMarker has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
       "role": "job-step",
-      "symbolName": "promptId",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt property promptVersion has no property-level live consumer proof.",
-      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
-      "role": "job-step",
-      "symbolName": "promptVersion",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt property phase has no property-level live consumer proof.",
-      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
-      "role": "job-step",
-      "symbolName": "phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt uses dynamic access typeof finalAdjudicationPrompt and cannot prove property-level liveness.",
-      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt uses dynamic access prompt: finalAdjudicationPrompt and cannot prove property-level liveness.",
-      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt property promptId has no property-level live consumer proof.",
-      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
-      "role": "job-step",
-      "symbolName": "promptId",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt property promptVersion has no property-level live consumer proof.",
-      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
-      "role": "job-step",
-      "symbolName": "promptVersion",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag finalAdjudicationPrompt property phase has no property-level live consumer proof.",
-      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
-      "role": "job-step",
-      "symbolName": "phase",
+      "symbolName": "rawTextPreservationMarker",
       "verificationCommand": "npm run ci:full"
     }
   ]

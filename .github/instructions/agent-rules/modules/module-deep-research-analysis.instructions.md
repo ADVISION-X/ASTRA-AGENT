@@ -52,20 +52,24 @@ N 个问题 -> AI 逐个回答，全量保存
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs+acceptance",
-  "summary": "Deep Research must have exactly one runtime flow: user question to AI decomposition, N sub-question AI answers with full raw persistence, full case file to final AI adjudication, then final report plus full case file to AI-generated business HTML report."
+  "summary": "Deep Research must have exactly one active production flow: user question, AI decomposition into N sub-questions, N independent AI analyses with full raw persistence, full case file construction, final AI adjudication using the full case file, then AI-generated business HTML report using final adjudication and the full case file."
 }
 ```
 
-Deep Research must have exactly one runtime flow:
+Deep Research must have exactly one active production flow:
 
-1. user question to AI decomposition,
-2. N sub-question AI answers with full raw persistence,
-3. full case file to final AI adjudication,
-4. final report plus full case file to AI-generated business HTML report.
+```txt
+User question
+-> AI decomposition into N sub-questions
+-> N independent AI analyses with full raw persistence
+-> full case file construction
+-> final AI adjudication using the full case file
+-> AI-generated business HTML report using final adjudication and the full case file
+```
 
-No other flow mode may exist.
+No legacy, optional, fallback, compatibility, demotion, or alternative production flow may remain active.
 
-### [GRASSEYE-DEEP-RESEARCH-039-V1] Deletion First Governance
+### [GRASSEYE-DEEP-RESEARCH-039-V1] Delete Legacy and Optional Paths
 
 ```apex-law
 {
@@ -75,13 +79,13 @@ No other flow mode may exist.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "Any Deep Research iteration that introduces a replacement capability must physically delete the replaced path in the same iteration."
+  "summary": "Any Deep Research code path related to legacy positive/falsification mode, PPT deck generation, local PPT generation, deck outline JSON, optional presentation deck, fallback generation, compact package, lite package, or compatibility mode must be physically deleted unless transformed into the single active HTML full-case-file flow."
 }
 ```
 
-Retired paths must not remain as hidden code or alternate runtime branches.
+Deprecation is not enough. Disabling is not enough. Commenting out is not enough. Only physical deletion or full conversion into the single active flow is acceptable.
 
-### [GRASSEYE-DEEP-RESEARCH-040-V1] Full Raw Case File As Final Adjudication Input
+### [GRASSEYE-DEEP-RESEARCH-040-V1] Binary Existence Rule
 
 ```apex-law
 {
@@ -90,14 +94,14 @@ Retired paths must not remain as hidden code or alternate runtime branches.
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "prompt+ast+export",
-  "summary": "Final adjudication must receive the full case file containing all prompts and all raw AI responses from decomposition and sub-question analysis."
+  "evidenceMode": "ast+fs+acceptance",
+  "summary": "Every Deep Research module, function, export kind, status, UI section, inspector, acceptance, and prompt must be classified as either ACTIVE_SINGLE_FLOW or DELETE."
 }
 ```
 
-Final adjudication must receive `structuredFinalPackage` and `fullCaseFile`. The full case file is the complete source of truth; the structured package is only an index.
+Every Deep Research module, function, export kind, status, UI section, inspector, acceptance, and prompt must be classified as either `ACTIVE_SINGLE_FLOW` or `DELETE`. No `OPTIONAL`, `LEGACY`, `FALLBACK`, `COMPATIBILITY`, `SOFT_DEPRECATED`, or `DEMOTED` state is allowed.
 
-### [GRASSEYE-DEEP-RESEARCH-041-V1] HTML Only Final Artifact
+### [GRASSEYE-DEEP-RESEARCH-041-V1] Full Case File Is Mandatory
 
 ```apex-law
 {
@@ -106,14 +110,14 @@ Final adjudication must receive `structuredFinalPackage` and `fullCaseFile`. The
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "fs+ast+ui",
-  "summary": "The only final business report artifact for Deep Research is business-report.html."
+  "evidenceMode": "prompt+ast+export",
+  "summary": "Final adjudication and business HTML report generation must receive the full case file; if the full case file is missing, the job must fail before final adjudication."
 }
 ```
 
-The only final business report artifact for Deep Research is `business-report.html`.
+Final adjudication and business HTML report generation must receive the full case file. A structured final package alone is not sufficient. A decision package alone is not sufficient. A summary package alone is not sufficient. If the full case file is missing, the job must fail before final adjudication.
 
-### [GRASSEYE-DEEP-RESEARCH-042-V1] No Runtime Content Judgment
+### [GRASSEYE-DEEP-RESEARCH-042-V1] HTML Report Is the Only Final Artifact
 
 ```apex-law
 {
@@ -122,9 +126,9 @@ The only final business report artifact for Deep Research is `business-report.ht
   "tier": "P0",
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "ast+case-file",
-  "summary": "The runtime must not judge, filter, rank, summarize, compact, or omit non-empty AI content for final adjudication."
+  "evidenceMode": "fs+ast+ui",
+  "summary": "The only final presentation artifact of Deep Research is business-report.html; PPTX, deck outline JSON, local deck generation, AI PPT artifact, or optional presentation deck must not exist in the active production flow."
 }
 ```
 
-The runtime may record parse status and transport status only. All non-empty raw AI responses must be present in the full case file.
+The only final presentation artifact of Deep Research is `business-report.html`. PPTX, deck outline JSON, local deck generation, AI PPT artifact, or optional presentation deck must not exist in the active Deep Research production flow.

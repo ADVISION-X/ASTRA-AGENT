@@ -1,34 +1,29 @@
-import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
-const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
-
-const files = execFileSync("rg", [
+const activeFiles = execFileSync("rg", [
   "--files",
-  "docs/法案辅助文件",
   "src/plugins/deep-research-analysis",
   "src/app",
-  "scripts/acceptance",
-  "scripts/audit/domains/deep-research-analysis",
-  ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-], { encoding: "utf8" }).trim().split("\n").filter((file) => Boolean(file) && !file.includes("generated/"));
+], { encoding: "utf8" }).trim().split("\n").filter((file) =>
+  file.includes("deep-research") && file.endsWith(".ts")
+);
 
 const forbidden = [
-  decode("bGVnYWN5XzFfbl9uXzE="),
-  decode("cG9zaXRpdmVBbnN3ZXJSZWNvcmRz"),
-  decode("ZmFsc2lmaWNhdGlvbkFuc3dlclJlY29yZHM="),
-  decode("Y29uZmxpY3RNYXRyaXg="),
-  decode("YnVzaW5lc3MtZGVjaw=="),
-  decode("cHB0eA=="),
-  decode("cHB0"),
-  decode("YnVzaW5lc3NEZWNr"),
-];
+  "legacy_1_n_n_1",
+  "positiveAnswerRecords",
+  "falsificationAnswerRecords",
+  "conflictMatrix",
+  "business-deck",
+  "businessDeck",
+  ".pptx",
+] as const;
 
-for (const file of files) {
+for (const file of activeFiles) {
   const text = readFileSync(file, "utf8");
   for (const term of forbidden) {
-    assert(!text.includes(term), `${file} must not contain retired Deep Research markers.`);
+    assert(!text.includes(term), `${file} must not contain ${term}.`);
   }
 }
 

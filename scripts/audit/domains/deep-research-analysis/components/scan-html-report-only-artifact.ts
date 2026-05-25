@@ -9,7 +9,7 @@ import { getRepoSourcePath } from "../../../shared/source-files.js";
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 const hasRepoText = (repoPath: string, value: string): boolean => readFileSync(resolveFromRepo(repoPath), "utf8").includes(value);
 
-export const inspectHtmlOnlyFinalArtifact = (input: {
+export const inspectHtmlReportOnlyArtifact = (input: {
   sourceFiles: readonly SourceFile[];
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
@@ -36,8 +36,8 @@ export const inspectHtmlOnlyFinalArtifact = (input: {
     { ok: hasRepoText("src/app/workbench-deep-research-routes.ts", "business-report.html"), filePath: "src/app/workbench-deep-research-routes.ts", message: "Workbench routes must allow business-report.html." },
     { ok: hasRepoText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-primary-business-report"), filePath: "src/app/workbench-deep-research-report-view.ts", message: "Report view must expose the primary business report section." },
     { ok: hasRepoText("src/app/workbench-deep-research-client-delivery-sections.ts", "Open HTML Report") && hasRepoText("src/app/workbench-deep-research-client-delivery-sections.ts", "Download HTML Report"), filePath: "src/app/workbench-deep-research-client-delivery-sections.ts", message: "Client delivery sections must expose HTML report actions." },
-    { ok: hasRepoText("scripts/acceptance/deep-research-html-only-final-artifact.acceptance.ts", "deep-research-html-only-final-artifact"), filePath: "scripts/acceptance/deep-research-html-only-final-artifact.acceptance.ts", message: "HTML-only-final-artifact acceptance must exist." },
-    { ok: hasRepoText("scripts/audit/ci-full.ts", "acceptance:deep-research-html-only-final-artifact"), filePath: "scripts/audit/ci-full.ts", message: "ci:full must execute acceptance:deep-research-html-only-final-artifact." },
+    { ok: hasRepoText("scripts/acceptance/deep-research-html-report-only.acceptance.ts", "deep-research-html-report-only"), filePath: "scripts/acceptance/deep-research-html-report-only.acceptance.ts", message: "HTML-report-only acceptance must exist." },
+    { ok: hasRepoText("scripts/audit/ci-full.ts", "acceptance:deep-research-html-report-only"), filePath: "scripts/audit/ci-full.ts", message: "ci:full must execute acceptance:deep-research-html-report-only." },
   ];
   for (const check of repoChecks) {
     input.inspectedFiles.add(check.filePath);

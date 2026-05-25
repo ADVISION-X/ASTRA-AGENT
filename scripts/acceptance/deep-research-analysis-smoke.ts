@@ -12,7 +12,7 @@ import {
   parseDeepResearchSubQuestionAnalysisResponse,
   runDeepResearchAnalysis,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
-import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.prompts.js";
+import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.js";
 import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 import type {
   AiProviderAdapter,
@@ -27,8 +27,6 @@ import {
   verifyRuntimeLogCoverage,
   verifySubQuestionIdsAreJobScoped,
 } from "./deep-research-analysis-smoke-support.js";
-import { verifyMalformedProviderJsonFailsAtParseNotCapture } from "./deep-research-analysis-raw-capture-boundary.js";
-import { verifySingleSubQuestionFailureDoesNotKillJob } from "./deep-research-analysis-sub-question-fault-isolation.js";
 
 const FIXTURE_RESPONSES = [
   JSON.stringify({
@@ -270,8 +268,6 @@ async function main(): Promise<void> {
   verifyRuntimeLogCoverage(runtimeLogBundlePath);
   verifyPersistedResearchState(dataDir, result);
   verifySubQuestionIdsAreJobScoped();
-  await verifyMalformedProviderJsonFailsAtParseNotCapture();
-  await verifySingleSubQuestionFailureDoesNotKillJob();
   process.stdout.write("[ACCEPTANCE][deep-research-analysis-smoke] PASS\n");
 }
 

@@ -18,7 +18,7 @@ export const renderDeepResearchReportView = (): string => `
       <section class="research-section" id="evidence" data-deep-research-evidence></section>
     </article>
   </main>
-  <aside class="research-side" data-deep-research-side data-deep-research-side-panel>
+  <aside class="research-side" data-deep-research-side data-deep-research-side-panel data-deep-research-side-panel>
     <section class="research-side-panel">
       <p class="research-kicker">Report Navigation</p>
       <nav class="research-nav" data-deep-research-nav></nav>

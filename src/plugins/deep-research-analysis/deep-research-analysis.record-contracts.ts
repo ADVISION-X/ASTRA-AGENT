@@ -17,7 +17,6 @@ export const DeepResearchProviderKindSchema = z.enum([
 ]);
 
 const ResearchAnswerKindSchema = z.enum(["analysis"]);
-
 const ResearchExportKindSchema = z.enum([
   "final-report.md",
   "full-case-file.md",
