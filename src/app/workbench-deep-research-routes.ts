@@ -22,7 +22,7 @@ const DEEP_RESEARCH_EXPORT_KINDS = [
   "final-report.md",
   "full-case-file.md",
   "full-case-file.json",
-  "decision-package.json",
+  "structured-index.json",
   "business-report.html",
   "evidence-index.json",
 ] as const;

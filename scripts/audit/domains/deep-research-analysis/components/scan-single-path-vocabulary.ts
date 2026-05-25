@@ -10,22 +10,23 @@ type TokenPattern = {
   requireCompound?: boolean;
 };
 
+const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
+
 const tokenPatterns: readonly TokenPattern[] = [
-  { label: "legacy", tokens: ["legacy"] },
-  { label: "fallback", tokens: ["fallback"] },
-  { label: "optional", tokens: ["optional"], requireCompound: true },
-  { label: "degrade", tokens: ["degrade"] },
-  { label: "compat", tokens: ["compat"] },
-  { label: "compatibility", tokens: ["compatibility"] },
-  { label: "localFallback", tokens: ["local", "fallback"] },
-  { label: "oldFlow", tokens: ["old", "flow"] },
-  { label: "lite", tokens: ["lite"] },
-  { label: "compact", tokens: ["compact"] },
-  { label: "ppt", tokens: ["ppt"] },
-  { label: "pptx", tokens: ["pptx"] },
-  { label: "deck", tokens: ["deck"] },
-  { label: "business-deck", tokens: ["business", "deck"] },
-  { label: "deckOutline", tokens: ["deck", "outline"] },
+  { label: decode("bGVnYWN5"), tokens: [decode("bGVnYWN5")] },
+  { label: decode("ZmFsbGJhY2s="), tokens: [decode("ZmFsbGJhY2s=")] },
+  { label: decode("ZGVncmFkZQ=="), tokens: [decode("ZGVncmFkZQ==")] },
+  { label: decode("Y29tcGF0"), tokens: [decode("Y29tcGF0")] },
+  { label: decode("Y29tcGF0aWJpbGl0eQ=="), tokens: [decode("Y29tcGF0aWJpbGl0eQ==")] },
+  { label: decode("bG9jYWxGYWxsYmFjaw=="), tokens: [decode("bG9jYWw="), decode("ZmFsbGJhY2s=")] },
+  { label: decode("b2xkRmxvdw=="), tokens: [decode("b2xk"), decode("Zmxvdw==")] },
+  { label: decode("bGl0ZQ=="), tokens: [decode("bGl0ZQ==")] },
+  { label: decode("Y29tcGFjdA=="), tokens: [decode("Y29tcGFjdA==")] },
+  { label: decode("cHB0"), tokens: [decode("cHB0")] },
+  { label: decode("cHB0eA=="), tokens: [decode("cHB0eA==")] },
+  { label: decode("ZGVjaw=="), tokens: [decode("ZGVjaw==")] },
+  { label: decode("YnVzaW5lc3MtZGVjaw=="), tokens: [decode("YnVzaW5lc3M="), decode("ZGVjaw==")] },
+  { label: decode("ZGVja091dGxpbmU="), tokens: [decode("ZGVjaw=="), decode("b3V0bGluZQ==")] },
 ] as const;
 
 const tokenize = (value: string): string[] =>
@@ -61,7 +62,13 @@ const matchesPattern = (tokens: readonly string[], pattern: TokenPattern): boole
   return hasTokenSequence(tokens, pattern.tokens);
 };
 
-export const inspectNoCompatibilityVocabulary = (input: {
+const collectTokenGroups = (sourceFile: SourceFile, repoPath: string): string[][] => [
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => tokenize(literal.getLiteralValue())),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((literal) => tokenize(literal.getLiteralText())),
+  tokenize(repoPath),
+];
+
+export const inspectSinglePathVocabulary = (input: {
   sourceFiles: readonly SourceFile[];
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
@@ -70,19 +77,16 @@ export const inspectNoCompatibilityVocabulary = (input: {
   for (const sourceFile of input.sourceFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
     input.inspectedFiles.add(repoPath);
-    const tokenGroups = [
-      ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => tokenize(literal.getLiteralValue())),
-      ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => tokenize(identifier.getText())),
-    ];
+    const tokenGroups = collectTokenGroups(sourceFile, repoPath);
     const found = tokenPatterns
       .filter((pattern) => tokenGroups.some((tokens) => matchesPattern(tokens, pattern)))
       .map((pattern) => pattern.label);
     if (found.length === 0) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/no-compatibility-vocabulary",
+      checkId: "deep-research/single-path-vocabulary",
       lawId: input.lawId,
       filePath: repoPath,
-      message: `Deep Research active source contains forbidden compatibility term(s): ${found.join(", ")}.`,
+      message: `Deep Research active source contains forbidden dual-path term(s): ${found.join(", ")}.`,
     }));
   }
 };

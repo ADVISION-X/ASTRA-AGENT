@@ -124,33 +124,27 @@ const verifyPersistedExports = (
   jobId: string,
 ): void => {
   const exports = store.listExports(jobId);
-  assert(exports.length === 8, `Expected 8 export records, received ${exports.length}.`);
+  assert(exports.length === 6, `Expected 6 export records, received ${exports.length}.`);
 
   const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
   const fullCaseMarkdownExport = exports.find((record) => record.exportKind === "full-case-file.md");
   const fullCaseJsonExport = exports.find((record) => record.exportKind === "full-case-file.json");
-  const decisionPackageExport = exports.find((record) =>
-    record.exportKind === "decision-package.json"
+  const structuredIndexExport = exports.find((record) =>
+    record.exportKind === "structured-index.json"
   );
-  const researchPlanExport = exports.find((record) => record.exportKind === "research-plan.json");
-  const promptBundlesExport = exports.find((record) => record.exportKind === "prompt-bundles.json");
   const businessHtmlExport = exports.find((record) => record.exportKind === "business-report.html");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
   if (!finalReportExport) throw new Error("Missing final-report.md export record.");
   if (!fullCaseMarkdownExport) throw new Error("Missing full-case-file.md export record.");
   if (!fullCaseJsonExport) throw new Error("Missing full-case-file.json export record.");
-  if (!decisionPackageExport) throw new Error("Missing decision-package.json export record.");
-  if (!researchPlanExport) throw new Error("Missing research-plan.json export record.");
-  if (!promptBundlesExport) throw new Error("Missing prompt-bundles.json export record.");
+  if (!structuredIndexExport) throw new Error("Missing structured-index.json export record.");
   if (!businessHtmlExport) throw new Error("Missing business-report.html export record.");
   if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
   assert(existsSync(finalReportExport.filePath), "final-report.md file was not written.");
   assert(existsSync(fullCaseMarkdownExport.filePath), "full-case-file.md file was not written.");
   assert(existsSync(fullCaseJsonExport.filePath), "full-case-file.json file was not written.");
-  assert(existsSync(decisionPackageExport.filePath), "decision-package.json file was not written.");
-  assert(existsSync(researchPlanExport.filePath), "research-plan.json file was not written.");
-  assert(existsSync(promptBundlesExport.filePath), "prompt-bundles.json file was not written.");
+  assert(existsSync(structuredIndexExport.filePath), "structured-index.json file was not written.");
   assert(existsSync(businessHtmlExport.filePath), "business-report.html file was not written.");
   assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
 
@@ -216,7 +210,7 @@ const withIdentityPromptBundle = (subQuestion: ReturnType<typeof buildModelSubQu
     outputGuidance: {
       preferredFormat: "json_object" as const,
       requiredContent: ["identity finding"],
-      optionalContent: [],
+      supplementalContent: [],
       forbiddenContent: ["workflow commands"],
     },
     safetyBoundary: ["fixture only"],

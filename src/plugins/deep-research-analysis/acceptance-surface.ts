@@ -3,7 +3,7 @@ export {
 } from "./deep-research-analysis.flow.js";
 export {
   buildDeepResearchStructuredIndex,
-} from "./deep-research-analysis.final-package.js";
+} from "./deep-research-analysis.structured-index.js";
 export { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 export { renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file-render.js";
 export { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";

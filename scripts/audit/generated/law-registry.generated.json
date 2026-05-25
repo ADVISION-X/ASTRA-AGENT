@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T16:56:17.369Z",
+  "generatedAt": "2026-05-25T18:20:26.595Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -1207,8 +1207,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+prompt",
-      "summary": "Business prompt sovereignty belongs to the first decomposition AI. Runtime may define only transport, persistence, safety, and output-shell constraints.",
+      "evidenceMode": "schema+ast",
+      "summary": "The decomposition AI must generate one question-specific promptBundle for every sub-question, and N-stage runtime must use the promptBundle attached to that exact sub-question.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 6
     },
@@ -1218,8 +1218,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast",
-      "summary": "The decomposition AI must generate an independent promptBundle for every sub-question, and N-stage analysis must use that exact sub-question promptBundle.",
+      "evidenceMode": "ast+prompt",
+      "summary": "Runtime may add only transport, persistence, safety, and formatting shell constraints. Runtime must not hard-code domain-specific business analysis instructions, final adjudication logic, or HTML report content strategy.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 7
     },
@@ -1230,7 +1230,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "schema+ast",
-      "summary": "Final adjudication must use the decomposition AI generated finalAdjudicationPromptBundle plus the full case file.",
+      "summary": "N-stage analysis must render from subQuestion.promptBundle, final adjudication must render from finalAdjudicationPromptBundle, and HTML report generation must render from htmlReportPromptBundle. Any hard-coded prompt that replaces promptBundle business instructions is forbidden.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 8
     },
@@ -1240,8 +1240,8 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast",
-      "summary": "HTML report publishing must use the decomposition AI generated htmlReportPromptBundle plus finalReport and fullCaseFile.",
+      "evidenceMode": "ast+prompt+acceptance",
+      "summary": "Final adjudication must receive structuredIndex, fullCaseFile, fullCaseFileMarkdown, and finalAdjudicationPromptBundle. HTML report must receive finalReport, fullCaseFile, fullCaseFileMarkdown, and htmlReportPromptBundle. Runtime must not reduce inputs to structured summaries.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 9
     },
@@ -1251,10 +1251,21 @@
       "tier": "P0",
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs",
-      "summary": "If a required promptBundle is missing, invalid, or not question-specific, the job must fail instead of falling back to a default fixed business prompt.",
+      "evidenceMode": "fs+ast+acceptance",
+      "summary": "All previous Deep Research modes not matching the promptBundle-driven 1+N+1+1 chain must be physically deleted. No compatibility, fallback, optional, legacy, local fallback, compact, lite, or dual-path implementation may remain.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 10
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+prompt+ui",
+      "summary": "The runtime shell may define forbidden control fields, safety boundaries, raw preservation reminders, preferred format, and artifact delivery constraints, but it must not define domain-specific conclusion fields, question-specific report sections, final judgment criteria, or business analysis categories.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 11
     },
     {
       "lawId": "APEX-DOM-001-V1",

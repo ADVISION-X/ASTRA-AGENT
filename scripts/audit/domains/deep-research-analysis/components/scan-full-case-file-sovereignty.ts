@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
+
 import { SyntaxKind, type SourceFile } from "ts-morph";
+
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
@@ -15,6 +17,8 @@ export const inspectFullCaseFileSovereignty = (input: {
   htmlReportPromptFile: SourceFile | undefined;
   fullCaseFileFile: SourceFile | undefined;
   exportFile: SourceFile | undefined;
+  recordContractsFile: SourceFile | undefined;
+  recordInteractionOpsFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
@@ -27,20 +31,41 @@ export const inspectFullCaseFileSovereignty = (input: {
   for (const repoPath of required) {
     input.inspectedFiles.add(repoPath);
     if (fileExists(repoPath)) continue;
-    input.findings.push(createFinding({ checkId: "deep-research/full-case-file-file", lawId: input.lawId, filePath: repoPath, message: `${repoPath} is required.` }));
+    input.findings.push(createFinding({
+      checkId: "deep-research/full-case-file-required-file",
+      lawId: input.lawId,
+      filePath: repoPath,
+      message: `${repoPath} is required.`,
+    }));
   }
-  for (const sourceFile of [input.finalAdjudicationPromptFile, input.htmlReportPromptFile, input.fullCaseFileFile, input.exportFile]) {
+
+  for (const sourceFile of [
+    input.finalAdjudicationPromptFile,
+    input.htmlReportPromptFile,
+    input.fullCaseFileFile,
+    input.exportFile,
+    input.recordContractsFile,
+    input.recordInteractionOpsFile,
+  ]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
+
   const checks = [
     { ok: hasIdentifier(input.finalAdjudicationPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts", message: "Final adjudication prompt must include fullCaseFile." },
     { ok: hasIdentifier(input.htmlReportPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts", message: "HTML report prompt must include fullCaseFile." },
     { ok: hasIdentifier(input.fullCaseFileFile, "rawResponseText") && hasIdentifier(input.fullCaseFileFile, "renderedPromptText"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts", message: "Full case file must include rawResponseText and renderedPromptText." },
     { ok: hasIdentifier(input.exportFile, "saveFullCaseFileExports") && hasIdentifier(input.exportFile, "fullCaseFileExports"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.export.ts", message: "Exports must include both full case file artifacts." },
-  ];
+    { ok: hasIdentifier(input.recordContractsFile, "renderedPromptText") && hasIdentifier(input.recordContractsFile, "rawResponseText") && hasIdentifier(input.recordContractsFile, "rawResponseHash") && hasIdentifier(input.recordContractsFile, "parseStatus"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", message: "Interaction contracts must preserve raw prompt/response evidence." },
+    { ok: hasIdentifier(input.recordInteractionOpsFile, "createInteraction") && hasIdentifier(input.recordInteractionOpsFile, "rawResponseText") && hasIdentifier(input.recordInteractionOpsFile, "rawResponseHash") && hasIdentifier(input.recordInteractionOpsFile, "parseStatus"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts", message: "Interaction persistence must preserve raw prompt/response evidence." },
+  ] as const;
   for (const check of checks) {
     if (check.ok) continue;
-    input.findings.push(createFinding({ checkId: "deep-research/full-case-file-sovereignty", lawId: input.lawId, filePath: check.filePath, message: check.message }));
+    input.findings.push(createFinding({
+      checkId: "deep-research/full-case-file-sovereignty",
+      lawId: input.lawId,
+      filePath: check.filePath,
+      message: check.message,
+    }));
   }
 
   const repoChecks = [
@@ -49,7 +74,7 @@ export const inspectFullCaseFileSovereignty = (input: {
     { ok: hasRepoText("src/app/workbench-deep-research-client-delivery-sections.ts", "Open Full Case File") && hasRepoText("src/app/workbench-deep-research-client-delivery-sections.ts", "Download full-case-file.json"), filePath: "src/app/workbench-deep-research-client-delivery-sections.ts", message: "Client delivery sections must expose full case file actions." },
     { ok: hasRepoText("scripts/acceptance/deep-research-full-case-file.acceptance.ts", "deep-research-full-case-file"), filePath: "scripts/acceptance/deep-research-full-case-file.acceptance.ts", message: "Full-case-file acceptance must exist." },
     { ok: hasRepoText("scripts/audit/ci-full.ts", "acceptance:deep-research-full-case-file"), filePath: "scripts/audit/ci-full.ts", message: "ci:full must execute acceptance:deep-research-full-case-file." },
-  ];
+  ] as const;
   for (const check of repoChecks) {
     input.inspectedFiles.add(check.filePath);
     if (check.ok) continue;

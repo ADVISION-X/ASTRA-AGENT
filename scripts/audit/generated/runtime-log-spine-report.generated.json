@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-25T16:59:06.168Z",
-  "status": "FAIL",
-  "scannedFiles": 323,
+  "generatedAt": "2026-05-25T18:26:50.496Z",
+  "status": "PASS",
+  "scannedFiles": 321,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -233,7 +233,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-export.ts",
@@ -243,10 +242,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts",
@@ -278,6 +275,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.source-notes.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
     "src/plugins/deep-research-analysis/index.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
@@ -334,8 +332,8 @@
   "missingModeVisibilityCount": 0,
   "missingTraceContractCount": 0,
   "catchBranchCount": 1,
-  "catchBranchWithoutLogCount": 1,
-  "failureBranchCount": 27,
+  "catchBranchWithoutLogCount": 0,
+  "failureBranchCount": 26,
   "failureWithoutClassCount": 0,
   "stageStartCount": 18,
   "stageTerminalCount": 37,
@@ -343,9 +341,9 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 1,
-    "fatalFindings": 1,
-    "scannedFiles": 323,
+    "totalFindings": 0,
+    "fatalFindings": 0,
+    "scannedFiles": 321,
     "emitCallCount": 13,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -356,7 +354,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 318,
+      "scannedFiles": 316,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -365,13 +363,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 266
+      "scannedFiles": 264
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 262,
+      "scannedFiles": 260,
       "metrics": {
         "emitCallCount": 2
       }
@@ -380,28 +378,28 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 262
+      "scannedFiles": 260
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 267,
+      "scannedFiles": 265,
       "metrics": {
         "stageCoveragePercent": 100
       }
     },
     {
       "name": "catch-branch-log",
-      "status": "FAIL",
-      "findingCount": 1,
-      "scannedFiles": 22
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 21
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 267,
+      "scannedFiles": 265,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -434,12 +432,12 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 22,
+      "scannedFiles": 21,
       "metrics": {
         "emitCallCount": 13,
         "stageStartCount": 18,
         "stageTerminalCount": 37,
-        "failureBranchCount": 27
+        "failureBranchCount": 26
       }
     },
     {
@@ -449,15 +447,5 @@
       "scannedFiles": 2
     }
   ],
-  "findings": [
-    {
-      "checkId": "runtime-log-spine/throw-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts",
-      "line": 89,
-      "severity": "fatal",
-      "message": "control-flow failure branch has no proven structured log",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
-    }
-  ]
+  "findings": []
 }

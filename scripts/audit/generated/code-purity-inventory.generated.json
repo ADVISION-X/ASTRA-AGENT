@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T16:59:03.867Z",
-  "itemCount": 39,
+  "generatedAt": "2026-05-25T18:26:48.413Z",
+  "itemCount": 46,
   "items": [
     {
       "checkId": "code-purity/object-budget",
@@ -33,23 +33,63 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "scripts/acceptance/deep-research-report-export.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "acceptance",
-      "reason": "active executable source file has 599 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "acceptance-smoke",
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 15 breaks function budget: cyclomatic complexity 19 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/function-budget",
-      "filePath": "scripts/acceptance/deep-research-report-export.acceptance.ts",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Function near line 502 breaks function budget: physical line count 94 exceeds red line 75.",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 11 breaks function budget: physical line count 90 exceeds red line 75.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "acceptance-smoke",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-file",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 14 breaks function budget: physical line count 85 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 19 breaks function budget: physical line count 130 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 40 breaks function budget: physical line count 96 exceeds red line 75; cyclomatic complexity 17 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -57,19 +97,9 @@
       "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 50 breaks function budget: physical line count 81 exceeds red line 75.",
+      "reason": "Function near line 51 breaks function budget: physical line count 109 exceeds red line 75.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/app/workbench-deep-research-client-boot.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "app-shell",
-      "reason": "Function near line 197 breaks function budget: return branch count 9 exceeds red line 8.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "app-shell",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -281,6 +311,55 @@
       "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
       "role": "job-step",
       "symbolName": "buildHtmlSourceNotes",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level variable coerceStringArray is only reachable from a dead exported subgraph and has no live runtime root.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "coerceStringArray",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export takeFirstStringArray is imported but never used by a reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "symbolName": "takeFirstStringArray",
+      "usageKind": "import-binding",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "type-alias",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level type-alias DeepResearchFinalReport has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "DeepResearchFinalReport",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level variable isRecord has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "isRecord",
       "verificationCommand": "npm run ci:full"
     },
     {

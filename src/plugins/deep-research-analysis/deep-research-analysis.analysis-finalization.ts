@@ -3,7 +3,7 @@ import { stableJsonHash } from "../../lib/storage/hash.js";
 import { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
 import { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 import { renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file-render.js";
-import { buildDeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
+import { buildDeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import {
   logDeepResearchExportCompleted,
   logDeepResearchStructuredIndexBuilt,
@@ -118,7 +118,7 @@ const runExportStage = async (
     dataDir: context.dataDir,
     store: context.store,
     jobId: context.jobId,
-    finalPackage,
+    structuredIndex: finalPackage,
     fullCaseFile,
     finalReport,
   });
@@ -130,7 +130,7 @@ const runExportStage = async (
     finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
     fullCaseFileJsonHash: exportArtifacts.fullCaseFileJson.fileHash,
     fullCaseFileMarkdownHash: exportArtifacts.fullCaseFileMarkdown.fileHash,
-    decisionPackageHash: exportArtifacts.decisionPackage.fileHash,
+    structuredIndexHash: exportArtifacts.structuredIndex.fileHash,
     evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
   });
   exportStage.complete({
@@ -140,7 +140,7 @@ const runExportStage = async (
       finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
       fullCaseFileJsonHash: exportArtifacts.fullCaseFileJson.fileHash,
       fullCaseFileMarkdownHash: exportArtifacts.fullCaseFileMarkdown.fileHash,
-      decisionPackageHash: exportArtifacts.decisionPackage.fileHash,
+      structuredIndexHash: exportArtifacts.structuredIndex.fileHash,
       evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
     },
   });
@@ -158,7 +158,7 @@ const buildMergedRecordHashes = (input: {
   exportFinalReportHash: input.exportArtifacts.finalReportMarkdown.fileHash,
   exportFullCaseFileJsonHash: input.exportArtifacts.fullCaseFileJson.fileHash,
   exportFullCaseFileMarkdownHash: input.exportArtifacts.fullCaseFileMarkdown.fileHash,
-  exportDecisionPackageHash: input.exportArtifacts.decisionPackage.fileHash,
+  exportStructuredIndexHash: input.exportArtifacts.structuredIndex.fileHash,
   exportBusinessHtmlReportHash: input.exportArtifacts.businessHtmlReport.fileHash,
   exportEvidenceIndexHash: input.exportArtifacts.evidenceIndex.fileHash,
   ...(input.finalReportRecord

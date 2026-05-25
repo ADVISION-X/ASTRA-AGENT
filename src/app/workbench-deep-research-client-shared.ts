@@ -92,7 +92,7 @@ function exportActionLabel(kind: string): string {
   if (kind === "full-case-file.json") {
     return "Download full-case-file.json";
   }
-  if (kind === "decision-package.json") {
+  if (kind === "structured-index.json") {
     return "Open structured index";
   }
   return "Download evidence index";

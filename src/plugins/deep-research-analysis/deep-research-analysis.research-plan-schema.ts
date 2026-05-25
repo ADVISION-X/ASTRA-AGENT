@@ -59,7 +59,18 @@ export const DeepResearchPlanSchema = z.object({
   }),
   planIntegrityCheck: DeepResearchPlanIntegrityCheckSchema,
 }).strict().superRefine((plan, context) => {
+  const normalizedListKey = (values: readonly string[]): string =>
+    values.map((value) => value.trim()).join("\n");
   const taskInstructions = new Set<string>();
+  const questionSpecificFocusKeys = plan.subQuestions.map((subQuestion) =>
+    normalizedListKey(subQuestion.promptBundle.questionSpecificFocus)
+  );
+  const evidenceOrReasoningNeedKeys = plan.subQuestions.map((subQuestion) =>
+    normalizedListKey(subQuestion.promptBundle.evidenceOrReasoningNeeds)
+  );
+  const requiredContentKeys = plan.subQuestions.map((subQuestion) =>
+    normalizedListKey(subQuestion.promptBundle.outputGuidance.requiredContent)
+  );
   for (const [index, subQuestion] of plan.subQuestions.entries()) {
     const taskInstruction = subQuestion.promptBundle.taskInstruction.trim();
     if (taskInstructions.has(taskInstruction)) {
@@ -70,6 +81,27 @@ export const DeepResearchPlanSchema = z.object({
       });
     }
     taskInstructions.add(taskInstruction);
+  }
+  if (plan.subQuestions.length > 1 && new Set(questionSpecificFocusKeys).size === 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subQuestions"],
+      message: "questionSpecificFocus must not be identical across every sub-question promptBundle.",
+    });
+  }
+  if (plan.subQuestions.length > 1 && new Set(evidenceOrReasoningNeedKeys).size === 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subQuestions"],
+      message: "evidenceOrReasoningNeeds must not be identical across every sub-question promptBundle.",
+    });
+  }
+  if (plan.subQuestions.length > 1 && new Set(requiredContentKeys).size === 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subQuestions"],
+      message: "requiredContent must not be identical across every sub-question promptBundle.",
+    });
   }
 });
 

@@ -336,9 +336,7 @@ const pruneResearchExportKindsSingleFlow = (db: Database.Database): void => {
        'final-report.md',
        'full-case-file.md',
        'full-case-file.json',
-       'research-plan.json',
-       'prompt-bundles.json',
-       'decision-package.json',
+       'structured-index.json',
        'business-report.html',
        'evidence-index.json'
      )`,

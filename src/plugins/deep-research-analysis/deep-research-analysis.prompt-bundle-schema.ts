@@ -17,7 +17,7 @@ export const DeepResearchPromptBundleSchema = z.object({
   outputGuidance: z.object({
     preferredFormat: z.enum(["json_object", "structured_text", "html_document"]),
     requiredContent: z.array(z.string().trim().min(1)).default([]),
-    optionalContent: z.array(z.string().trim().min(1)).default([]),
+    supplementalContent: z.array(z.string().trim().min(1)).default([]),
     forbiddenContent: z.array(z.string().trim().min(1)).default([]),
   }).strict(),
   safetyBoundary: z.array(z.string().trim().min(1)).default([]),

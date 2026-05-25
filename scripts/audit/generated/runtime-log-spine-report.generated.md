@@ -1,12 +1,12 @@
 # Runtime Log Spine Quality Report
 
-Status: FAIL
+Status: PASS
 
 ## Summary
 
-- Total findings: 1
-- Fatal findings: 1
-- Scanned files: 323
+- Total findings: 0
+- Fatal findings: 0
+- Scanned files: 321
 - Emit calls: 13
 - Console violations: 0
 - Failure events without class: 0
@@ -21,7 +21,7 @@ Status: FAIL
 | runtime-log-emit-contract | PASS | 0 |
 | mode-visibility | PASS | 0 |
 | stage-pair-coverage | PASS | 0 |
-| catch-branch-log | FAIL | 1 |
+| catch-branch-log | PASS | 0 |
 | failure-class | PASS | 0 |
 | redaction | PASS | 0 |
 | debug-bundle | PASS | 0 |
@@ -32,9 +32,7 @@ Status: FAIL
 
 ## Fatal Findings
 
-| Law | File | Line | Message | Hint |
-|---|---|---:|---|---|
-| GRASSEYE-RUNTIME-LOG-SPINE-004-V1 | src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts | 89 | control-flow failure branch has no proven structured log | Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating. |
+No fatal findings.
 
 ## Coverage
 

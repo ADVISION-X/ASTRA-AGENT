@@ -28,104 +28,117 @@ FOR EACH SUBQUESTION
 BUILD FULL CASE FILE
    - all prompts
    - all raw responses
-   - structured indexes
+   - structured index
    - parse failures with raw
    ↓
 FINAL ADJUDICATION
    - runtime shell
    - AI-generated finalAdjudicationPromptBundle
+   - structuredIndex
+   - fullCaseFile
    - fullCaseFile markdown
-   - structured index only as navigation
    ↓
 HTML REPORT
    - runtime HTML shell
    - AI-generated htmlReportPromptBundle
    - finalReport
+   - fullCaseFile
    - fullCaseFile markdown
    ↓
 EXPORT
    - full-case-file.json
    - full-case-file.md
+   - structured-index.json
    - final-report.md
    - business-report.html
+   - evidence-index.json
 ```
 
-## 固定产物
+## PromptBundle 主权链路
 
 ```txt
-business-report.html
-full-case-file.json
-full-case-file.md
-research-plan.json
-prompt-bundles.json
-decision-package.json
-final-report.md
-evidence-index.json
+用户问题
+  -> AI 拆解 ResearchPlan
+  -> 为每个 subQuestion 生成独立 promptBundle
+  -> N 阶段仅使用对应 subQuestion.promptBundle
+  -> Final 阶段仅使用 finalAdjudicationPromptBundle
+  -> HTML 阶段仅使用 htmlReportPromptBundle
 ```
 
-## 硬边界
+系统不写业务提示词。
+
+系统只渲染 AI 生成的 promptBundle + runtime shell。
+
+## Runtime Shell Only 边界
 
 ```txt
-不存在 legacy。
-不存在 fallback。
-不存在 PPT。
-不存在 deck。
-不存在 local generator。
-不存在 AI PPT artifact。
-不存在 positive/falsification legacy path。
-不存在 optional/compact/lite package。
-不存在多模式或第二主链。
+允许：
+- raw response will be persisted
+- return requested format when possible
+- preserve analytical content even if formatting imperfect
+- do not output system operation instructions
+- forbidden control fields
+- do not invent unavailable evidence
+- html self-contained constraints
+
+禁止：
+- 固定业务 sub-question prompt
+- 固定业务 final adjudication prompt
+- 固定业务 HTML report prompt
+- 固定 business fields / ranked conclusions / final verdict schema
+- 领域模板、内容取舍标准、证据权重判断规则
 ```
 
 ## Full Case File
 
 `FULL_CASE_FILE` 是最终裁决案卷。所有 AI prompt、所有 AI raw response、parse status、结构化索引、record hashes、provider proof 都必须进入案卷。结构化解析只是索引，不得替代 raw response。
 
-最终裁决必须接收 `finalAdjudicationPromptBundle + fullCaseFileMarkdown + structuredIndex`。
-HTML report 必须接收 `htmlReportPromptBundle + finalReport + fullCaseFileMarkdown`。
+最终裁决必须接收 `structuredIndex + fullCaseFile + fullCaseFileMarkdown + finalAdjudicationPromptBundle`。
+HTML report 必须接收 `finalReport + fullCaseFile + fullCaseFileMarkdown + htmlReportPromptBundle`。
 
-## Prompt 主权
+`structured-index.json` 只是导航索引，不是 full case file，也不是最终裁决真相源。
 
-系统外壳不等于业务提示词。
-
-系统外壳只管：
+## Physical Delete Inventory
 
 ```txt
-安全边界
-格式边界
-发送
-捕获
-保存
-全量案卷
-导出
+已物理删除或禁止保留：
+- decision-package / final-package 旧语义
+- research-plan.json 导出
+- prompt-bundles.json 导出
+- PPT / deck / local generator / AI PPT artifact
+- positive/falsification old flow
+- compatibility / fallback / optional / compact / lite 双路径实现
 ```
 
-业务提示词只来自第一轮 AI 生成的 `promptBundle`。
-
-runtime shell 可以强制：
+## Export
 
 ```txt
-raw preservation
-preferred format
-forbidden control fields
-safety / no unsupported evidence
-HTML artifact technical constraints
+只允许导出：
+- full-case-file.json
+- full-case-file.md
+- structured-index.json
+- final-report.md
+- business-report.html
+- evidence-index.json
 ```
 
-禁止保留：
+## UI
 
 ```txt
-fixed sub-question business prompt
-fixed final adjudication business prompt
-fixed HTML business report structure
-default business prompt fallback
+只允许显示：
+- History
+- Final Decision / Final Report
+- Primary Business HTML Report
+- Full Case File
+- Process Trace / Evidence Index
+
+只允许动作：
+- Open HTML Report
+- Download HTML Report
+- Open Full Case File
+- Download full-case-file.md
+- Download full-case-file.json
 ```
-
-## HTML 商业报告
-
-HTML shell 只能要求完整自包含 HTML、inline CSS、no external JS、no external CSS、no external images、no markdown fence。
-
-系统只检查 HTML 非空、包含 html/body、文件保存成功、hash 保存成功。系统不得重裁决内容。
 
 ## 验收
 

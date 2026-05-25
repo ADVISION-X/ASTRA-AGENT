@@ -68,7 +68,7 @@ promptRole must be:
 outputGuidance must contain:
 preferredFormat,
 requiredContent,
-optionalContent,
+supplementalContent,
 forbiddenContent.
 
 preferredFormat must be one of:
@@ -115,7 +115,7 @@ Output JSON shape:
         "outputGuidance": {
           "preferredFormat": "json_object | structured_text",
           "requiredContent": ["content this specific answer should include"],
-          "optionalContent": [],
+          "supplementalContent": [],
           "forbiddenContent": ["system operation commands"]
         },
         "safetyBoundary": ["safety boundary"],
@@ -134,7 +134,7 @@ Output JSON shape:
     "outputGuidance": {
       "preferredFormat": "json_object | structured_text",
       "requiredContent": ["content the final answer should include for this question"],
-      "optionalContent": [],
+      "supplementalContent": [],
       "forbiddenContent": ["system operation commands"]
     },
     "safetyBoundary": ["safety boundary"],
@@ -151,7 +151,7 @@ Output JSON shape:
     "outputGuidance": {
       "preferredFormat": "html_document",
       "requiredContent": ["content the business report should include for this question"],
-      "optionalContent": [],
+      "supplementalContent": [],
       "forbiddenContent": ["scripts", "external resources"]
     },
     "safetyBoundary": ["safe report boundary"],

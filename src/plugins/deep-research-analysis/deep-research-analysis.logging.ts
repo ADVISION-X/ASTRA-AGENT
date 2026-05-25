@@ -260,7 +260,7 @@ export const logDeepResearchExportCompleted = (input: {
   finalReportHash: string;
   fullCaseFileJsonHash?: string;
   fullCaseFileMarkdownHash?: string;
-  decisionPackageHash: string;
+  structuredIndexHash: string;
   evidenceIndexHash: string;
 }): void => {
   emitDeepResearchEvent({
@@ -275,7 +275,7 @@ export const logDeepResearchExportCompleted = (input: {
       finalReportHash: input.finalReportHash,
       ...(input.fullCaseFileJsonHash ? { fullCaseFileJsonHash: input.fullCaseFileJsonHash } : {}),
       ...(input.fullCaseFileMarkdownHash ? { fullCaseFileMarkdownHash: input.fullCaseFileMarkdownHash } : {}),
-      decisionPackageHash: input.decisionPackageHash,
+      structuredIndexHash: input.structuredIndexHash,
       evidenceIndexHash: input.evidenceIndexHash,
     },
   });

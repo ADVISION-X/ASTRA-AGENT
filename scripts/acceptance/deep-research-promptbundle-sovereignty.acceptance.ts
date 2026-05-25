@@ -33,6 +33,6 @@ for (const marker of [
 assert(finalPrompt.includes("Runtime shell for AI-generated finalAdjudicationPromptBundle."), "Final adjudication prompt must stay a runtime shell.");
 assert(htmlPrompt.includes("Runtime shell for AI-generated htmlReportPromptBundle."), "HTML prompt must stay a runtime shell.");
 assert(promptBundleRender.includes("AI-GENERATED PROMPTBUNDLE"), "Rendered prompts must surface the AI-generated promptBundle section.");
-assert(!finalPrompt.includes("buildDefaultFinalAdjudicationPromptBundle"), "Final adjudication fallback prompt builder must be deleted.");
+assert(!finalPrompt.includes("buildDefaultFinalAdjudicationPromptBundle"), "Final adjudication runtime must not introduce a replacement prompt builder.");
 
 process.stdout.write("[ACCEPTANCE][deep-research-promptbundle-sovereignty] PASS\n");

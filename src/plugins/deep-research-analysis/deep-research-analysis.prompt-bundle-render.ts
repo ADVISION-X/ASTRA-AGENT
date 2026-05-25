@@ -5,7 +5,7 @@ import {
 } from "./deep-research-analysis.prompt-bundle-shell.js";
 import type { DeepResearchInput, DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
-import type { DeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 
 const buildSection = (title: string, value: unknown): string =>

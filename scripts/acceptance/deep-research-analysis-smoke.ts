@@ -54,7 +54,7 @@ const FIXTURE_RESPONSES = [
           outputGuidance: {
             preferredFormat: "json_object",
             requiredContent: ["local demand finding", "supporting reasons", "conditions that weaken the finding"],
-            optionalContent: [],
+            supplementalContent: [],
             forbiddenContent: ["system operation commands"]
           },
           safetyBoundary: ["No operational action instructions."],
@@ -80,7 +80,7 @@ const FIXTURE_RESPONSES = [
           outputGuidance: {
             preferredFormat: "json_object",
             requiredContent: ["local execution finding", "blocking constraints", "conditions that change feasibility"],
-            optionalContent: [],
+            supplementalContent: [],
             forbiddenContent: ["system operation commands"]
           },
           safetyBoundary: ["No operational action instructions."],
@@ -99,7 +99,7 @@ const FIXTURE_RESPONSES = [
       outputGuidance: {
         preferredFormat: "json_object",
         requiredContent: ["direct recommendation", "conditions", "reasoning", "risks"],
-        optionalContent: [],
+        supplementalContent: [],
         forbiddenContent: ["system operation commands"]
       },
       safetyBoundary: ["No investment, legal, or operational action instructions."],
@@ -116,7 +116,7 @@ const FIXTURE_RESPONSES = [
       outputGuidance: {
         preferredFormat: "html_document",
         requiredContent: ["final recommendation", "reasons", "conditions", "limitations"],
-        optionalContent: [],
+        supplementalContent: [],
         forbiddenContent: ["scripts", "external resources"]
       },
       safetyBoundary: ["Self-contained safe HTML only."],
@@ -209,7 +209,7 @@ const REQUIRED_SMOKE_EXPORT_KINDS = [
   "final-report.md",
   "full-case-file.md",
   "full-case-file.json",
-  "decision-package.json",
+  "structured-index.json",
   "business-report.html",
   "evidence-index.json",
 ] as const;

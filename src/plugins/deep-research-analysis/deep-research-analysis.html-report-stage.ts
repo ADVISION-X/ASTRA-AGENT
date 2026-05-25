@@ -1,5 +1,5 @@
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
-import type { DeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import {
   businessHtmlReportShellPrompt,

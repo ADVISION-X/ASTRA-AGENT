@@ -27,7 +27,7 @@ const DeepResearchAnalysisCoverageSchema = z.object({
   coverageRatio: z.number().min(0).max(1),
 }).strict();
 
-const DeepResearchFinalPackageBaseSchema = z.object({
+const DeepResearchStructuredIndexBaseSchema = z.object({
   jobId: z.string().trim().min(1),
   userQuestion: z.string().trim().min(1),
   analysisGoal: z.string().trim().min(1).nullable(),
@@ -48,9 +48,9 @@ const DeepResearchFinalPackageBaseSchema = z.object({
   }).strict(),
 }).strict();
 
-const DeepResearchFinalPackageSchema = DeepResearchFinalPackageBaseSchema;
+const DeepResearchStructuredIndexSchema = DeepResearchStructuredIndexBaseSchema;
 
-type DeepResearchFinalPackageBase = {
+type DeepResearchStructuredIndexBase = {
   jobId: string;
   userQuestion: string;
   analysisGoal: string | null;
@@ -71,7 +71,7 @@ type DeepResearchFinalPackageBase = {
   outputContract: DeepResearchPromptOutputContract;
 };
 
-export type DeepResearchStructuredIndex = DeepResearchFinalPackageBase;
+export type DeepResearchStructuredIndex = DeepResearchStructuredIndexBase;
 
 const buildPromptVersionMap = (interactions: readonly ResearchInteraction[]): Record<string, string> =>
   interactions.reduce<Record<string, string>>((accumulator, interaction) => {
@@ -124,7 +124,7 @@ const buildAnalysisCoverage = (
   };
 };
 
-type DeepResearchFinalPackageState = {
+type DeepResearchStructuredIndexState = {
   job: ResearchJob;
   researchPlan: DeepResearchPlan;
   subQuestions: ResearchSubQuestion[];
@@ -133,10 +133,10 @@ type DeepResearchFinalPackageState = {
   missingAnalysisSubQuestionIds: string[];
 };
 
-const loadDeepResearchFinalPackageState = (
+const loadDeepResearchStructuredIndexState = (
   store: DeepResearchRecordStore,
   jobId: string,
-): DeepResearchFinalPackageState => {
+): DeepResearchStructuredIndexState => {
   const job = store.getJob(jobId);
   if (!job) {
     throw new Error(`Deep research job ${jobId} was not found.`);
@@ -161,9 +161,9 @@ const loadDeepResearchFinalPackageState = (
   };
 };
 
-const validateDeepResearchFinalPackageState = (
+const validateDeepResearchStructuredIndexState = (
   jobId: string,
-  state: DeepResearchFinalPackageState,
+  state: DeepResearchStructuredIndexState,
 ): void => {
   if (state.subQuestions.length === 0) {
     throw new Error(`Deep research job ${jobId} has no persisted sub-question records.`);
@@ -179,9 +179,9 @@ const validateDeepResearchFinalPackageState = (
   }
 };
 
-const buildDeepResearchFinalPackageBase = (
-  state: DeepResearchFinalPackageState,
-): DeepResearchFinalPackageBase => ({
+const buildDeepResearchStructuredIndexBase = (
+  state: DeepResearchStructuredIndexState,
+): DeepResearchStructuredIndexBase => ({
   jobId: state.job.id,
   userQuestion: state.job.userQuestion,
   analysisGoal: state.job.analysisGoal,
@@ -200,11 +200,11 @@ const buildDeepResearchFinalPackageBase = (
   outputContract: finalAdjudicationShellPrompt.expectedOutputContract,
 });
 
-const buildSingleFlowFinalPackage = (
-  baseFinalPackage: DeepResearchFinalPackageBase,
-  state: DeepResearchFinalPackageState,
+const buildSingleFlowStructuredIndex = (
+  baseStructuredIndex: DeepResearchStructuredIndexBase,
+  state: DeepResearchStructuredIndexState,
 ): DeepResearchStructuredIndex => ({
-  ...baseFinalPackage,
+  ...baseStructuredIndex,
   recordHashes: buildRecordHashes({
     job: state.job,
     subQuestions: state.subQuestions,
@@ -218,9 +218,9 @@ export const buildDeepResearchStructuredIndex = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
 }): DeepResearchStructuredIndex => {
-  const state = loadDeepResearchFinalPackageState(input.store, input.jobId);
-  validateDeepResearchFinalPackageState(input.jobId, state);
-  const baseFinalPackage = buildDeepResearchFinalPackageBase(state);
-  const finalPackage = buildSingleFlowFinalPackage(baseFinalPackage, state);
-  return DeepResearchFinalPackageSchema.parse(finalPackage) as DeepResearchStructuredIndex;
+  const state = loadDeepResearchStructuredIndexState(input.store, input.jobId);
+  validateDeepResearchStructuredIndexState(input.jobId, state);
+  const baseStructuredIndex = buildDeepResearchStructuredIndexBase(state);
+  const structuredIndex = buildSingleFlowStructuredIndex(baseStructuredIndex, state);
+  return DeepResearchStructuredIndexSchema.parse(structuredIndex) as DeepResearchStructuredIndex;
 };

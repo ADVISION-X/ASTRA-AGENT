@@ -179,13 +179,9 @@ const inspectDeliveryMarkers = (findings: InspectorFinding[], lawId: string): vo
   for (const marker of [
     "data-deep-research-reader-shell",
     "data-deep-research-final-card",
-    "data-deep-research-full-case-file",
     "data-deep-research-primary-business-report",
-    "data-deep-research-stage-overview",
-    "data-deep-research-decomposition",
-    "data-deep-research-subquestions",
-    "data-deep-research-final-adjudication",
-    "data-deep-research-evidence",
+    "data-deep-research-full-case-file",
+    "data-deep-research-process-trace",
     "data-deep-research-nav",
     "data-deep-research-meta",
   ]) {
@@ -200,23 +196,19 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
     "refreshHistory",
     "loadSelectedReport",
     "renderSelectedReport",
-    "Default 1+N+1+1",
-    "Independent Analysis",
-    "Final Adjudication",
+    "Final Result",
+    "Process Trace",
     "Full Case File",
     "Primary Business Report",
     "Open Full Case File",
     "Download full-case-file.md",
     "Download full-case-file.json",
-    "Open structured index",
     "Open HTML Report",
     "Download HTML Report",
-    "Regenerate HTML Report",
-    "data-deep-research-regenerate-html",
     "HTML report not generated",
     "AI-generated HTML decision report",
     "Generated At",
-    "Evidence / Debug",
+    "Interaction Evidence",
     "Show Full Prompt",
     "Show Full AI Response",
     "Show Parsed Result",
@@ -227,7 +219,6 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
   for (const marker of [
     "/api/deep-research-analysis/history",
     "/api/deep-research-analysis/report",
-    "/api/deep-research-analysis/regenerate-html-report",
   ]) {
     requireText(findings, lawId, routesPath, marker);
   }
@@ -257,14 +248,15 @@ const inspectDebugBoundaries = (findings: InspectorFinding[], lawId: string): vo
 const inspectDeliveryOrder = (findings: InspectorFinding[], lawId: string): void => {
   const reportViewText = readRepoFile(reportViewPath);
   const finalCardIndex = reportViewText.indexOf("data-deep-research-final-card");
-  const fullCaseFileIndex = reportViewText.indexOf("data-deep-research-full-case-file");
   const primaryBusinessReportIndex = reportViewText.indexOf("data-deep-research-primary-business-report");
-  if (!(finalCardIndex >= 0 && fullCaseFileIndex > finalCardIndex && primaryBusinessReportIndex > fullCaseFileIndex)) {
+  const fullCaseFileIndex = reportViewText.indexOf("data-deep-research-full-case-file");
+  const processTraceIndex = reportViewText.indexOf("data-deep-research-process-trace");
+  if (!(finalCardIndex >= 0 && primaryBusinessReportIndex > finalCardIndex && fullCaseFileIndex > primaryBusinessReportIndex && processTraceIndex > fullCaseFileIndex)) {
     pushFinding(findings, {
       checkId: "local-app-shell/deep-research-delivery-order",
       lawId,
       filePath: reportViewPath,
-      message: "Full Case File must stay after the Decision Card, and Primary Business Report must stay after the Full Case File in the report view.",
+      message: "Report view order must stay Decision Card -> Primary Business Report -> Full Case File -> Process Trace.",
     });
   }
 };

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T16:59:07.048Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-25T18:26:51.286Z",
+  "status": "FAIL",
   "inspectorFileCount": 15,
   "generatedPlanEntryCount": 15,
   "inspectedFiles": [
@@ -59,14 +59,16 @@
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/code-purity/manifest.json",
     "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-full-input.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-forbidden-execution-vocabulary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-html-report-only-artifact.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-no-dead-code-adjudication.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
     "scripts/audit/domains/deep-research-analysis/inspector.ts",
     "scripts/audit/domains/deep-research-analysis/manifest.json",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
@@ -147,5 +149,14 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts uses source-text judgment candidate.getInitializer()?.getText().includes(\"DeepResearchPromptBundleSchema.extend({\") on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts"
+    }
+  ]
 }

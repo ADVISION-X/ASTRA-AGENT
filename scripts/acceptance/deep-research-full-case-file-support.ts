@@ -23,18 +23,23 @@ const buildPromptBundle = (input: {
   role: "sub_question_analysis" | "final_adjudication" | "html_report_publisher";
   instruction: string;
   format: "json_object" | "html_document";
+  questionSpecificFocus?: readonly string[];
+  evidenceOrReasoningNeeds?: readonly string[];
+  requiredContent?: readonly string[];
 }) => ({
   promptBundleId: `${input.id}-prompt-bundle`,
   promptRole: input.role,
   taskInstruction: input.instruction,
-  questionSpecificFocus: [input.instruction],
+  questionSpecificFocus: input.questionSpecificFocus ? [...input.questionSpecificFocus] : [input.instruction],
   mustUseInputs: ["persisted fixture inputs"],
   mustNotDo: ["Do not invent evidence."],
-  evidenceOrReasoningNeeds: ["Use fixture evidence and raw responses."],
+  evidenceOrReasoningNeeds: input.evidenceOrReasoningNeeds
+    ? [...input.evidenceOrReasoningNeeds]
+    : ["Use fixture evidence and raw responses."],
   outputGuidance: {
     preferredFormat: input.format,
-    requiredContent: ["fixture content"],
-    optionalContent: [],
+    requiredContent: input.requiredContent ? [...input.requiredContent] : ["fixture content"],
+    supplementalContent: [],
     forbiddenContent: ["workflow commands"],
   },
   safetyBoundary: ["Fixture only."],
@@ -61,6 +66,9 @@ const buildSubQuestionFixture = () => [
         role: "sub_question_analysis",
         instruction: "Analyze durable demand for the fixture.",
         format: "json_object",
+        questionSpecificFocus: ["demand durability", "buyer replacement urgency"],
+        evidenceOrReasoningNeeds: ["buyer ROI", "replacement demand"],
+        requiredContent: ["demand durability finding", "demand weakening conditions"],
       }),
       promptRole: "sub_question_analysis" as const,
     },
@@ -84,6 +92,9 @@ const buildSubQuestionFixture = () => [
         role: "sub_question_analysis",
         instruction: "Analyze execution bottlenecks for the fixture.",
         format: "json_object",
+        questionSpecificFocus: ["service bottleneck", "integration lead time"],
+        evidenceOrReasoningNeeds: ["service capacity", "integration lead time"],
+        requiredContent: ["dominant execution bottleneck", "conditions that reduce rollout risk"],
       }),
       promptRole: "sub_question_analysis" as const,
     },
