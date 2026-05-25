@@ -1306,15 +1306,16 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+ast+artifact+acceptance",
-  "summary": "The final business report stage must use advanced AI to generate the final business HTML decision report, and business-report.html is the primary presentation artifact."
+  "summary": "The final business report stage must use advanced AI to generate a downloadable business-report.html artifact, and business-report.html is the primary presentation artifact."
 }
 ```
 
 #### 必须
 
-- 最后 `+1` 的主产物必须是 advanced AI 直接生成的商业 HTML 决策报告。
+- 最后 `+1` 的主产物必须是 advanced AI 直接生成的 downloadable HTML file artifact。
 - 主成功 exportKind 必须是 `business-report.html`。
 - 主成功文件名必须是 `business-report.html`。
+- GrassEye 只允许下载/搬运 provider 侧 `.html` artifact；不得把 chat 中粘贴的 HTML 文本写成本地文件后冒充成功。
 - PPTX 若存在，只能作为 optional derived presentation artifact。
 
 #### 禁止
@@ -1322,6 +1323,7 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 - 默认主流程继续锁定 PPT 作为最终主报告。
 - 默认主流程要求 GPT 返回 JSON deck outline 作为主成功前置条件。
 - 用 local template PPT 或 optional PPTX 顶替 `business-report.html` 主报告。
+- 用 raw HTML chat text、markdown fence、DOM 文本抽取或本地 HTML 写入 fallback 顶替 GPT 生成的 HTML artifact。
 
 ---
 
@@ -1335,15 +1337,15 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "artifact+db+hash+runtime-log+acceptance",
-  "summary": "The final HTML runtime is delivery-only: send complete decision materials, wait for AI completion, detect HTML artifact or raw HTML text, persist business-report.html, and expose it without brittle semantic re-judgment."
+  "summary": "The final HTML runtime is delivery-only: send complete decision materials, wait for AI completion, detect a provider HTML artifact, download business-report.html, and expose it without brittle semantic re-judgment."
 }
 ```
 
 #### 必须
 
-- Runtime 只负责发送完整决策材料、等待 AI 完成、检测 `.html` artifact 或 raw HTML document、保存 `business-report.html`、计算 hash、保存 export record、供 UI 展示。
+- Runtime 只负责发送完整决策材料、等待 AI 完成、检测 provider `.html` artifact、下载/保存 `business-report.html`、计算 hash、保存 export record、供 UI 展示。
 - 成功必须记录 filePath、fileHash、fileSizeBytes、generatedAt、status = `business_html_report_generated`。
-- 无 HTML artifact/text 必须记录 `business_html_artifact_missing`。
+- 无 HTML artifact 必须记录 `business_html_artifact_missing`。
 - 保存失败必须记录 `business_html_persist_failed`。
 - 非 HTML 或空 HTML 必须记录 `business_html_invalid_file`。
 
@@ -1351,7 +1353,8 @@ It must not fail Business Deck Secretary solely because the text prompt exceeds 
 
 - 对 HTML 主流程做 section-level semantic validation。
 - 因 limitation/reference/conclusion 没被死代码逐字识别而阻断 HTML 成功。
-- GPT 已生成 HTML artifact 或 raw HTML 但系统不保存 hash/export record。
+- GPT 已生成 HTML artifact 但系统不下载、保存 hash/export record。
+- GPT 只在聊天回复中粘贴 HTML 源码时不得进入 completed，必须保留 raw evidence 并进入 review_required / failure path。
 
 ---
 

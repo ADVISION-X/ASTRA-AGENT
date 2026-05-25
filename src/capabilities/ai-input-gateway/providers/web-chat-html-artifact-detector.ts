@@ -54,35 +54,3 @@ export const detectHtmlArtifactInWebChatResponse = (
   const pathMatch = rawText.match(/(?:file:\/\/)?(?:[A-Za-z]:)?[^\s"'<>]+\.html?\b/iu);
   return pathMatch?.[0] ? buildHtmlArtifactCandidate(pathMatch[0]) : null;
 };
-
-const trimMarkdownFence = (rawText: string): string => {
-  const trimmed = rawText.trim();
-  const fenceMatch = trimmed.match(/^```(?:html)?\s*([\s\S]*?)\s*```$/iu);
-  return fenceMatch?.[1]?.trim() ?? trimmed;
-};
-
-const sliceHtmlDocument = (rawText: string): string | null => {
-  const doctypeIndex = rawText.search(/<!DOCTYPE html\b/iu);
-  if (doctypeIndex >= 0) {
-    return rawText.slice(doctypeIndex).trim();
-  }
-  const htmlIndex = rawText.search(/<html\b/iu);
-  return htmlIndex >= 0 ? rawText.slice(htmlIndex).trim() : null;
-};
-
-export const extractRawHtmlDocumentFromWebChatResponse = (
-  rawText: string,
-): string | null => {
-  const trimmed = trimMarkdownFence(rawText);
-  const htmlDocument = sliceHtmlDocument(trimmed);
-  if (!htmlDocument) {
-    return null;
-  }
-  if (!/(?:<!DOCTYPE html\b|<html\b)/iu.test(htmlDocument)) {
-    return null;
-  }
-  if (!/<body\b/iu.test(htmlDocument) || !/<\/html>\s*$/iu.test(htmlDocument)) {
-    return null;
-  }
-  return htmlDocument;
-};

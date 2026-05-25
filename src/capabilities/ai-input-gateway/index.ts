@@ -7,7 +7,6 @@ export type {
 } from "./providers/web-chat-html-artifact-download.js";
 export {
   detectHtmlArtifactInWebChatResponse,
-  extractRawHtmlDocumentFromWebChatResponse,
 } from "./providers/web-chat-html-artifact-detector.js";
 export {
   type AiFeedInput,

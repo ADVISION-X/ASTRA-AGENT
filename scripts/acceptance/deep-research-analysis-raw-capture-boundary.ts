@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -8,6 +8,7 @@ import {
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import type {
   AiProviderAdapter,
+  AiProviderAdapterContext,
   AiProviderRawResponse,
 } from "../../src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
@@ -61,11 +62,23 @@ class MalformedAnalysisFixtureAdapter implements AiProviderAdapter {
     }),
     '{"subQuestionId":"Q1","answer":"The provider replied with useful text but malformed JSON."',
     "Raw capture remained separate from business parsing. The malformed independent analysis reply was preserved as raw output, normalized as a narrative fallback answer, and it still supports the final adjudication.",
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head><body><main><h1>Boundary Proof</h1><p>Malformed analysis JSON still normalized through text fallback and preserved the successful Deep Research flow.</p></main></body></html>",
   ] as const;
 
-  async feed(input: AiFeedInput): Promise<AiProviderRawResponse> {
-    const rawText = this.responses()[this.cursor];
+  async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+    let rawText = this.responses()[this.cursor];
+    if (!rawText && input.promptPackageId.includes("business-html-report")) {
+      const artifactDir = path.join(context.dataDir, "acceptance-html-artifacts");
+      mkdirSync(artifactDir, { recursive: true });
+      const sourceHtmlPath = path.join(artifactDir, "boundary-proof.html");
+      writeFileSync(sourceHtmlPath, [
+        "<!DOCTYPE html>",
+        "<html>",
+        "<head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head>",
+        "<body><main><h1>Boundary Proof</h1><p>Malformed analysis JSON still normalized through text fallback and preserved the successful Deep Research flow.</p></main></body>",
+        "</html>",
+      ].join(""), "utf8");
+      rawText = `HTML_ARTIFACT_PATH=${sourceHtmlPath}`;
+    }
     if (!rawText) {
       throw new Error(`No malformed fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
     }

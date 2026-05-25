@@ -342,7 +342,7 @@ const persistBusinessHtmlReportFixture = (input: {
       exportKind: "business-report.html",
       filePath,
       fileHash: "sha256:business-html-report",
-      sourceKind: "raw_html_text",
+      sourceKind: "html_artifact",
       status: "business_html_report_generated",
       generatedAt: "2026-05-24T00:00:00.000Z",
       fileSizeBytes: readFileSync(filePath, "utf8").length,

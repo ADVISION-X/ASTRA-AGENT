@@ -61,6 +61,11 @@ for (const marker of [
   );
 }
 
+assert(
+  !htmlStageText.includes("parsed_text_fallback"),
+  "Business HTML report stage must not accept raw HTML text fallback as completion.",
+);
+
 for (const stage of [
   "HTML_REPORT_SEND",
   "HTML_REPORT_CAPTURE",

@@ -24,9 +24,7 @@ const renderPrimaryBusinessReport = (report: DeepResearchReport): void => {
   }
   const sourceLabel = primaryReport.sourceKind === "html_artifact"
     ? "HTML artifact"
-    : primaryReport.sourceKind === "raw_html_text"
-      ? "Raw HTML text"
-      : "Unknown source";
+    : "Unknown source";
   setResearchHtml("[data-deep-research-primary-business-report]", `
     <div class="research-section-head">
       <div>

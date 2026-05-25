@@ -3,9 +3,7 @@ export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND =
 
 export const DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE = "text/html" as const;
 
-export type DeepResearchBusinessHtmlSourceKind =
-  | "html_artifact"
-  | "raw_html_text";
+export type DeepResearchBusinessHtmlSourceKind = "html_artifact";
 
 export type DeepResearchBusinessHtmlReportRecord = {
   artifactName: string;
@@ -17,15 +15,4 @@ export type DeepResearchBusinessHtmlReportRecord = {
   status: "business_html_report_generated";
   exportKind: typeof DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND;
   sourceKind: DeepResearchBusinessHtmlSourceKind;
-};
-
-export const isBusinessHtmlDocument = (value: string): boolean => {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return false;
-  }
-  if (!/(?:<!DOCTYPE html\b|<html\b)/iu.test(trimmed)) {
-    return false;
-  }
-  return /<body\b/iu.test(trimmed);
 };

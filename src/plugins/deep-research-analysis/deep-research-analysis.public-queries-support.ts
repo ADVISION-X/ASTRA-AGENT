@@ -315,7 +315,7 @@ export const buildPrimaryBusinessReportView = (input: {
   const htmlExport = selectBusinessHtmlExport(input.exports);
   const htmlExportView = input.exportViews.find((entry) => entry.exportKind === "business-report.html") ?? null;
   const payload = readExportPayload(htmlExport);
-  const sourceKind = payload?.sourceKind === "html_artifact" || payload?.sourceKind === "raw_html_text"
+  const sourceKind = payload?.sourceKind === "html_artifact"
     ? payload.sourceKind
     : null;
   return {

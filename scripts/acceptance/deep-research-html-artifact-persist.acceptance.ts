@@ -6,7 +6,6 @@ import path from "node:path";
 import {
   detectHtmlArtifactInWebChatResponse,
   downloadWebChatHtmlArtifact,
-  extractRawHtmlDocumentFromWebChatResponse,
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import {
   buildBusinessHtmlReportOutputPath,
@@ -61,16 +60,16 @@ const rawHtmlParse = parseAndPersistBusinessHtmlReport({
   rawText: validHtmlDocument,
   outputPath: path.join(dataDir, "exports", "raw-business-report.html"),
 });
-assert.equal(rawHtmlParse.parseStatus, "parsed_text_fallback");
-if (rawHtmlParse.parseStatus === "parsed_text_fallback") {
-  assert.equal(rawHtmlParse.parsed.sourceKind, "raw_html_text");
-}
+assert.equal(rawHtmlParse.parseStatus, "partial_review_required");
+assert.equal(rawHtmlParse.reason, "business_html_artifact_missing");
 
 const fencedHtml = `\`\`\`html\n${validHtmlDocument}\n\`\`\``;
-assert(
-  extractRawHtmlDocumentFromWebChatResponse(fencedHtml)?.startsWith("<!DOCTYPE html>"),
-  "Raw HTML extractor must unwrap fenced HTML content.",
-);
+const fencedHtmlParse = parseAndPersistBusinessHtmlReport({
+  rawText: fencedHtml,
+  outputPath: path.join(dataDir, "exports", "fenced-business-report.html"),
+});
+assert.equal(fencedHtmlParse.parseStatus, "partial_review_required");
+assert.equal(fencedHtmlParse.reason, "business_html_artifact_missing");
 
 const missingParse = parseAndPersistBusinessHtmlReport({
   rawText: "No artifact here.",

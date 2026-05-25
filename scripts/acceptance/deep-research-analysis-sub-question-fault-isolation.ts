@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -117,11 +117,23 @@ class FaultIsolationFixtureAdapter implements AiProviderAdapter {
       multiStageValueAdded: ["The job preserved two usable analyses instead of collapsing at the first parser error."],
       limitations: ["The fixture proves one parsed_text_fallback analysis and one fully structured analysis."],
     }),
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head><body><main><h1>Fault Isolation</h1><p>The job completed with one parsed_text_fallback analysis and one structured analysis.</p></main></body></html>",
   ] as const;
 
   async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
     let rawText = this.responses[this.cursor];
+    if (!rawText && input.promptPackageId.includes("business-html-report")) {
+      const artifactDir = path.join(context.dataDir, "acceptance-html-artifacts");
+      mkdirSync(artifactDir, { recursive: true });
+      const sourceHtmlPath = path.join(artifactDir, "fault-isolation.html");
+      writeFileSync(sourceHtmlPath, [
+        "<!DOCTYPE html>",
+        "<html>",
+        "<head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head>",
+        "<body><main><h1>Fault Isolation</h1><p>The job completed with one parsed_text_fallback analysis and one structured analysis.</p></main></body>",
+        "</html>",
+      ].join(""), "utf8");
+      rawText = `HTML_ARTIFACT_PATH=${sourceHtmlPath}`;
+    }
     if (!rawText) {
       throw new Error(`No fault-isolation fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
     }

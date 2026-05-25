@@ -258,9 +258,9 @@ Owner 审计必须 AST 固化此 submit path：删除 pasted text card detector�
 Final Adjudication completed
 -> Build HTML report prompt package
 -> Send to GPT Web
--> GPT generates business HTML report
--> Detect HTML artifact or HTML document text
--> Persist business-report.html
+-> GPT generates downloadable business-report.html artifact
+-> Detect HTML artifact
+-> Download and persist business-report.html
 -> Save filePath / fileHash / export record
 -> UI shows Open HTML / Download HTML
 -> Optional: derive PPT/PDF later
@@ -272,7 +272,15 @@ Final Adjudication completed
 Business HTML Report Publisher
 ```
 
-它不是研究员，不是裁判，不是二次分析器，不是本地模板大纲生成器。Prompt 负责约束 AI 不重新研究、不改变最终判断、不新增事实、不遗漏风险/限制/证据缺口/反转条件/被拒绝观点/references；AI 负责直接生成专业商业 HTML 报告；系统只负责交付层检测、保存、hash、export record 和 UI 展示。
+它不是研究员，不是裁判，不是二次分析器，不是本地模板大纲生成器。Prompt 负责约束 AI 不重新研究、不改变最终判断、不新增事实、不遗漏风险/限制/证据缺口/反转条件/被拒绝观点/references，并明确要求 GPT 生成可下载的 `business-report.html` 文件 artifact；AI 负责直接生成专业商业 HTML 文件；系统只负责 artifact 检测、下载/保存、hash、export record 和 UI 展示。
+
+HTML 主交付只有一个成功来源：
+
+```txt
+sourceKind = html_artifact
+```
+
+禁止把 GPT 聊天回复中的 raw HTML 文本、markdown fence HTML、DOM 文本抽取、本地模板写入或本地 HTML fallback 当作主交付成功。若 GPT 没有生成可下载 `.html` artifact，即使回复正文包含完整 `<!DOCTYPE html>`，也必须保留 raw evidence 并进入 `business_html_artifact_missing` / `review_required`，不得完成。
 
 明确降级旧主流程：
 
@@ -294,6 +302,7 @@ HTML success
 ```txt
 status = business_html_report_generated
 exportKind = business-report.html
+sourceKind = html_artifact
 filePath exists
 file extension = .html
 fileSizeBytes > 0

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T19:10:58.217Z",
+  "generatedAt": "2026-05-25T10:14:41.721Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1123,7 +1123,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+ast+artifact+acceptance",
-      "summary": "The final business report stage must use advanced AI to generate the final business HTML decision report, and business-report.html is the primary presentation artifact.",
+      "summary": "The final business report stage must use advanced AI to generate a downloadable business-report.html artifact, and business-report.html is the primary presentation artifact.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 21
     },
@@ -1134,7 +1134,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "artifact+db+hash+runtime-log+acceptance",
-      "summary": "The final HTML runtime is delivery-only: send complete decision materials, wait for AI completion, detect HTML artifact or raw HTML text, persist business-report.html, and expose it without brittle semantic re-judgment.",
+      "summary": "The final HTML runtime is delivery-only: send complete decision materials, wait for AI completion, detect a provider HTML artifact, download business-report.html, and expose it without brittle semantic re-judgment.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 22
     },

@@ -12,14 +12,15 @@ for (const requiredText of [
   "not allowed to add new facts",
   "not allowed to add new sources",
   "not allowed to remove or distort the original content",
-  "Create a complete self-contained HTML report file.",
+  "Create a downloadable HTML file artifact named business-report.html.",
   "Use inline CSS inside a <style> tag.",
   "Do not depend on external JavaScript, external CSS, external fonts, or remote images.",
   "Do not include scripts.",
   "Do not use external network resources.",
-  "The document must start with <!DOCTYPE html>.",
+  "The file content must start with <!DOCTYPE html>.",
+  "Do not paste the HTML source into the chat response body.",
   "Do not wrap the HTML in markdown fences.",
-  "Do not output commentary before or after the HTML.",
+  "Do not output commentary before or after creating the file artifact.",
   "Do not output only JSON.",
   "Do not output only markdown.",
   "Do not output only an outline.",
@@ -33,6 +34,10 @@ for (const requiredText of [
 assert.equal(
   businessHtmlReportPublisherPrompt.expectedOutputContract.format,
   "html_artifact",
+);
+assert(
+  !promptText.includes("Return a complete HTML document."),
+  "HTML prompt must not ask GPT to paste a raw HTML document into chat.",
 );
 assert.deepEqual(
   businessHtmlReportPublisherPrompt.expectedOutputContract.forbiddenFields,

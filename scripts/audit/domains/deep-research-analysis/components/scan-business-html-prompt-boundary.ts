@@ -36,12 +36,13 @@ export const inspectBusinessHtmlPromptBoundary = (input: {
     "not allowed to change the final judgment",
     "not allowed to add new facts",
     "not allowed to add new sources",
-    "Create a complete self-contained HTML report file.",
+    "Create a downloadable HTML file artifact named business-report.html.",
     "Use inline CSS inside a <style> tag.",
     "Do not depend on external JavaScript, external CSS, external fonts, or remote images.",
     "Do not include scripts.",
     "Do not use external network resources.",
-    "The document must start with <!DOCTYPE html>.",
+    "The file content must start with <!DOCTYPE html>.",
+    "Do not paste the HTML source into the chat response body.",
   ] as const) {
     if (promptLiteralText.includes(marker)) {
       continue;
@@ -59,6 +60,14 @@ export const inspectBusinessHtmlPromptBoundary = (input: {
       lawId,
       filePath: "scripts/audit/ci-full.ts",
       message: "ci:full must execute acceptance:deep-research-html-prompt-boundary.",
+    }));
+  }
+  if (promptLiteralText.includes("Return a complete HTML document.")) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/business-html-prompt-raw-text",
+      lawId,
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+      message: "Business HTML prompt must require a downloadable artifact, not raw HTML pasted into chat.",
     }));
   }
 };

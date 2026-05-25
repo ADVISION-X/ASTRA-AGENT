@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -134,8 +134,26 @@ const FIXTURE_RESPONSES = [
     multiStageValueAdded: ["Independent analysis separated local findings before the final adjudication."],
     limitations: ["This smoke uses deterministic fixture responses rather than a live provider."],
   }),
-  "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Business Report</title><style>body{font-family:sans-serif;}</style></head><body><main><h1>Decision</h1><p>The company should consider entering, but only through a staged partner-led beachhead.</p></main></body></html>",
 ] as const;
+
+const writeHtmlArtifactFixture = (input: {
+  dataDir: string;
+  fileStem: string;
+  title: string;
+  body: string;
+}): string => {
+  const artifactDir = path.join(input.dataDir, "acceptance-html-artifacts");
+  mkdirSync(artifactDir, { recursive: true });
+  const sourceHtmlPath = path.join(artifactDir, `${input.fileStem}.html`);
+  writeFileSync(sourceHtmlPath, [
+    "<!DOCTYPE html>",
+    "<html>",
+    `<head><meta charset="utf-8"><title>${input.title}</title><style>body{font-family:sans-serif;}</style></head>`,
+    `<body><main><h1>${input.title}</h1><p>${input.body}</p></main></body>`,
+    "</html>",
+  ].join(""), "utf8");
+  return `HTML_ARTIFACT_PATH=${sourceHtmlPath}`;
+};
 
 const REQUIRED_SMOKE_EXPORTS = [
   "final-report.md",
@@ -157,6 +175,14 @@ class SequentialFixtureAdapter implements AiProviderAdapter {
 
   async feed(input: AiFeedInput, context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
     let rawText = FIXTURE_RESPONSES[this.cursor];
+    if (!rawText && input.promptPackageId.includes("business-html-report")) {
+      rawText = writeHtmlArtifactFixture({
+        dataDir: context.dataDir,
+        fileStem: "business-report",
+        title: "Business Report",
+        body: "The company should consider entering, but only through a staged partner-led beachhead.",
+      });
+    }
     if (!rawText) {
       throw new Error(`No fixture response available for prompt ${input.promptPackageId} at cursor ${this.cursor}.`);
     }

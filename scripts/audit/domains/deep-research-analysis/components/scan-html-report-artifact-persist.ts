@@ -38,11 +38,6 @@ const buildArtifactPersistChecks = (input: {
       filePath: "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-detector.ts",
     },
     {
-      ok: detectorSymbols.has("extractRawHtmlDocumentFromWebChatResponse"),
-      marker: "raw HTML extractor",
-      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-detector.ts",
-    },
-    {
       ok: downloadSymbols.has("downloadWebChatHtmlArtifact"),
       marker: "HTML artifact download function",
       filePath: "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-download.ts",
@@ -76,6 +71,16 @@ const buildArtifactPersistChecks = (input: {
       ok: joinedText.includes("sourceKind"),
       marker: "sourceKind persistence",
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
+    },
+    {
+      ok: !joinedText.includes("raw_html_text"),
+      marker: "absence of raw_html_text completion source",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
+    },
+    {
+      ok: !(input.exportFile?.getFullText() ?? "").includes("parsed_text_fallback"),
+      marker: "absence of parsed_text_fallback HTML completion",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
     },
   ] as const;
 };
