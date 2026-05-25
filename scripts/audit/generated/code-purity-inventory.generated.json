@@ -1,83 +1,13 @@
 {
-  "generatedAt": "2026-05-25T18:26:48.413Z",
-  "itemCount": 46,
+  "generatedAt": "2026-05-25T18:46:55.002Z",
+  "itemCount": 39,
   "items": [
-    {
-      "checkId": "code-purity/object-budget",
-      "filePath": "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Object literal near line 13 has member count 38 and exceeds red line 30.",
-      "remediation": "Split the object into smaller owner-local contract or configuration objects.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-budget",
-      "filePath": "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Object literal near line 71 has member count 38 and exceeds red line 30.",
-      "remediation": "Split the object into smaller owner-local contract or configuration objects.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-budget",
-      "filePath": "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Object literal near line 121 has member count 38 and exceeds red line 30.",
-      "remediation": "Split the object into smaller owner-local contract or configuration objects.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 15 breaks function budget: cyclomatic complexity 19 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 11 breaks function budget: physical line count 90 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 14 breaks function budget: physical line count 85 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
     {
       "checkId": "code-purity/function-budget",
       "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:deep-research-analysis",
-      "reason": "Function near line 19 breaks function budget: physical line count 130 exceeds red line 75.",
+      "reason": "Function near line 40 breaks function budget: physical line count 81 exceeds red line 75.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"

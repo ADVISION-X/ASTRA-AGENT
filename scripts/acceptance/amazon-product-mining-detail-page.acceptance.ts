@@ -10,7 +10,7 @@ const taskId = "test-task-detail";
 const asin = "B001TEST01";
 const productUrl = "https://www.amazon.com/dp/B001TEST01";
 
-const fixtureDetail = {
+const fixtureDetailIdentity = {
   detailId: randomUUID(),
   taskId,
   asin,
@@ -20,6 +20,9 @@ const fixtureDetail = {
   sellerOrStoreIfVisible: "TrailBlazer Store",
   currentPrice: "$89.99",
   originalPriceDiscountCouponIfVisible: "$10 coupon available",
+};
+
+const fixtureDetailMedia = {
   mainImage: "https://images.amazon.com/test-main.jpg",
   allVisibleImages: [
     "https://images.amazon.com/test-main.jpg",
@@ -32,6 +35,9 @@ const fixtureDetail = {
   aPlusContentIfVisible: null,
   variationOptions: null,
   colorSizeStyleOptions: null,
+};
+
+const fixtureDetailCatalog = {
   productInformation: null,
   technicalDetails: "Weight: 2.4 lbs, Size: 84x48x40 inches",
   additionalInformation: null,
@@ -47,11 +53,21 @@ const fixtureDetail = {
   deliveryInformation: "FREE delivery on orders over $25",
   returnInformation: null,
   allOtherVisibleProductParameters: null,
+};
+
+const fixtureDetailStatus = {
   rawVisibleTextSnapshot: "Ultra Light Tent 2P by TrailBlazer $89.99 4.5 stars...",
   status: "pending_detail" as const,
   failureReason: null,
   createdAt: new Date().toISOString(),
   updatedAt: null,
+};
+
+const fixtureDetail = {
+  ...fixtureDetailIdentity,
+  ...fixtureDetailMedia,
+  ...fixtureDetailCatalog,
+  ...fixtureDetailStatus,
 };
 
 // --- Test 1: Adapter returns full product detail ---

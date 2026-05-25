@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T18:26:37.238Z",
+  "generatedAt": "2026-05-25T18:45:04.877Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -178,7 +178,6 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",

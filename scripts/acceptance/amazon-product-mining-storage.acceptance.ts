@@ -118,7 +118,7 @@ try {
 
   // --- Storage: persist product detail ---
   const detailId = randomUUID();
-  storage.persistProductDetail({
+  const persistedDetailIdentity = {
     detailId,
     taskId,
     asin: "B001TEST01",
@@ -128,6 +128,9 @@ try {
     sellerOrStoreIfVisible: "TrailBlazer Store",
     currentPrice: "$89.99",
     originalPriceDiscountCouponIfVisible: null,
+  };
+
+  const persistedDetailContent = {
     mainImage: null,
     allVisibleImages: [],
     visibleVideoInfo: null,
@@ -137,6 +140,9 @@ try {
     aPlusContentIfVisible: null,
     variationOptions: null,
     colorSizeStyleOptions: null,
+  };
+
+  const persistedDetailStatus = {
     productInformation: null,
     technicalDetails: null,
     additionalInformation: null,
@@ -157,6 +163,12 @@ try {
     failureReason: null,
     createdAt: now,
     updatedAt: null,
+  };
+
+  storage.persistProductDetail({
+    ...persistedDetailIdentity,
+    ...persistedDetailContent,
+    ...persistedDetailStatus,
   }, [itemId1]);
   const products = storage.getProductDetailsForTask(taskId);
   assert.equal(products.length, 1);

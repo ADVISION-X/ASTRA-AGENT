@@ -159,6 +159,23 @@ const buildTimelineEntries = (input: {
   });
 };
 
+const buildReaderStructuredIndex = (input: {
+  store: ReturnType<typeof createDeepResearchRecordStore>;
+  jobId: string;
+  interactions: readonly ResearchInteraction[];
+}): DeepResearchStructuredIndex | null => {
+  if (!input.interactions.some((record) => record.phase === "final_adjudication")) {
+    return null;
+  }
+  if (!input.store.getResearchPlan(input.jobId)) {
+    return null;
+  }
+  return buildDeepResearchStructuredIndex({
+    store: input.store,
+    jobId: input.jobId,
+  });
+};
+
 export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null =>
   withStore(dataDir, (store) => {
     const job = store.getJob(jobId);
@@ -170,9 +187,7 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
     const answers = store.listAnswers({ jobId });
     const finalReportRecord = store.getLatestFinalReport(jobId);
     const exports = store.listExports(jobId);
-    const finalPackage = interactions.some((record) => record.phase === "final_adjudication")
-      ? buildDeepResearchStructuredIndex({ store, jobId })
-      : null;
+    const finalPackage = buildReaderStructuredIndex({ store, jobId, interactions });
     const timeline = buildTimelineEntries({
       interactions,
       job,

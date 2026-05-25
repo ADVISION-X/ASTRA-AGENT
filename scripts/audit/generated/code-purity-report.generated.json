@@ -6,60 +6,6 @@
   "executionGroup": "foundation",
   "findings": [
     {
-      "checkId": "code-purity/object-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts has an object literal that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/amazon-product-mining-package.acceptance.ts has an object literal that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/amazon-product-mining-storage.acceptance.ts has an object literal that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts has an over-line function near line 15.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts has an over-line function near line 11.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts has an over-line function near line 14.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
@@ -157,15 +103,6 @@
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-export",
@@ -420,7 +357,7 @@
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-25T18:26:48.415Z",
+  "generatedAt": "2026-05-25T18:45:16.471Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -524,7 +461,6 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
@@ -1304,7 +1240,7 @@
   "orphanDeclarationCount": 4,
   "reachableFileCount": 507,
   "status": "FAIL",
-  "unreachableFileCount": 1,
+  "unreachableFileCount": 0,
   "zombieExportCount": 5,
   "zombieSummary": {
     "antiEvasionFindingCount": 3,
@@ -1313,7 +1249,7 @@
     "liveExportCount": 1320,
     "orphanDeclarationCount": 4,
     "reachableFileCount": 507,
-    "unreachableFileCount": 1,
+    "unreachableFileCount": 0,
     "zombieExportCount": 5
   }
 }

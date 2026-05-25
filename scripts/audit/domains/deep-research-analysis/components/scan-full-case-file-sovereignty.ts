@@ -12,7 +12,7 @@ const hasRepoText = (repoPath: string, value: string): boolean => readFileSync(r
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value));
 
-export const inspectFullCaseFileSovereignty = (input: {
+type FullCaseFileInspectionInput = {
   finalAdjudicationPromptFile: SourceFile | undefined;
   htmlReportPromptFile: SourceFile | undefined;
   fullCaseFileFile: SourceFile | undefined;
@@ -22,7 +22,9 @@ export const inspectFullCaseFileSovereignty = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-}): void => {
+};
+
+const inspectRequiredFullCaseFiles = (input: FullCaseFileInspectionInput): void => {
   const required = [
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts",
@@ -38,7 +40,9 @@ export const inspectFullCaseFileSovereignty = (input: {
       message: `${repoPath} is required.`,
     }));
   }
+};
 
+const inspectFullCaseFileSourceChecks = (input: FullCaseFileInspectionInput): void => {
   for (const sourceFile of [
     input.finalAdjudicationPromptFile,
     input.htmlReportPromptFile,
@@ -67,7 +71,9 @@ export const inspectFullCaseFileSovereignty = (input: {
       message: check.message,
     }));
   }
+};
 
+const inspectFullCaseFileRepoSurfaces = (input: FullCaseFileInspectionInput): void => {
   const repoChecks = [
     { ok: hasRepoText("src/app/workbench-deep-research-routes.ts", "full-case-file.md") && hasRepoText("src/app/workbench-deep-research-routes.ts", "full-case-file.json"), filePath: "src/app/workbench-deep-research-routes.ts", message: "Workbench routes must allow both full case file artifacts." },
     { ok: hasRepoText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-full-case-file"), filePath: "src/app/workbench-deep-research-report-view.ts", message: "Report view must expose the Full Case File section." },
@@ -85,4 +91,10 @@ export const inspectFullCaseFileSovereignty = (input: {
       message: check.message,
     }));
   }
+};
+
+export const inspectFullCaseFileSovereignty = (input: FullCaseFileInspectionInput): void => {
+  inspectRequiredFullCaseFiles(input);
+  inspectFullCaseFileSourceChecks(input);
+  inspectFullCaseFileRepoSurfaces(input);
 };

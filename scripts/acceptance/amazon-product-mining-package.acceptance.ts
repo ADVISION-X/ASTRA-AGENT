@@ -68,25 +68,60 @@ try {
   // --- Seed product details ---
   const detailId1 = randomUUID();
   const detailId2 = randomUUID();
-  const buildDetail = (detailId: string, asin: string, title: string) => ({
-    detailId, taskId, asin,
-    productUrl: `https://www.amazon.com/dp/${asin}`,
-    title, brand: "TrailGear", sellerOrStoreIfVisible: "TrailGear Store",
-    currentPrice: "$89.99", originalPriceDiscountCouponIfVisible: null,
-    mainImage: null, allVisibleImages: [], visibleVideoInfo: null,
-    bulletPoints: ["Feature 1", "Feature 2"],
-    aboutThisItem: null, productDescription: "Good product.",
-    aPlusContentIfVisible: null, variationOptions: null, colorSizeStyleOptions: null,
-    productInformation: null, technicalDetails: null, additionalInformation: null,
-    bestSellersRankIfVisible: null, categoryPathIfVisible: null,
-    rating: "4.5 out of 5", reviewCount: "200 ratings",
-    starDistribution: null, qaContentIfVisible: null,
-    frequentlyBoughtTogetherIfVisible: null, customersAlsoBoughtIfVisible: null,
-    compareWithSimilarItemsIfVisible: null, deliveryInformation: null, returnInformation: null,
-    allOtherVisibleProductParameters: null,
-    rawVisibleTextSnapshot: `${title} snapshot`,
-    status: "completed" as const, failureReason: null, createdAt: now, updatedAt: null,
-  });
+  const buildDetail = (detailId: string, asin: string, title: string) => {
+    const identity = {
+      detailId,
+      taskId,
+      asin,
+      productUrl: `https://www.amazon.com/dp/${asin}`,
+      title,
+      brand: "TrailGear",
+      sellerOrStoreIfVisible: "TrailGear Store",
+      currentPrice: "$89.99",
+      originalPriceDiscountCouponIfVisible: null,
+    };
+
+    const mediaAndContent = {
+      mainImage: null,
+      allVisibleImages: [],
+      visibleVideoInfo: null,
+      bulletPoints: ["Feature 1", "Feature 2"],
+      aboutThisItem: null,
+      productDescription: "Good product.",
+      aPlusContentIfVisible: null,
+      variationOptions: null,
+      colorSizeStyleOptions: null,
+    };
+
+    const catalogAndStatus = {
+      productInformation: null,
+      technicalDetails: null,
+      additionalInformation: null,
+      bestSellersRankIfVisible: null,
+      categoryPathIfVisible: null,
+      rating: "4.5 out of 5",
+      reviewCount: "200 ratings",
+      starDistribution: null,
+      qaContentIfVisible: null,
+      frequentlyBoughtTogetherIfVisible: null,
+      customersAlsoBoughtIfVisible: null,
+      compareWithSimilarItemsIfVisible: null,
+      deliveryInformation: null,
+      returnInformation: null,
+      allOtherVisibleProductParameters: null,
+      rawVisibleTextSnapshot: `${title} snapshot`,
+      status: "completed" as const,
+      failureReason: null,
+      createdAt: now,
+      updatedAt: null,
+    };
+
+    return {
+      ...identity,
+      ...mediaAndContent,
+      ...catalogAndStatus,
+    };
+  };
   storage.persistProductDetail(buildDetail(detailId1, "B001TENT01", "Ultra Light Tent"), [itemId1]);
   storage.persistProductDetail(buildDetail(detailId2, "B002STOV01", "Camp Stove Pro"), [itemId2]);
 

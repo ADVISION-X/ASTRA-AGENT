@@ -11,7 +11,7 @@ const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string)
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .some((expression) => expression.getText() === path);
 
-export const inspectPromptBundleSovereignty = (input: {
+type PromptBundleSovereigntyInput = {
   researchPlanSchemaFile: SourceFile | undefined;
   decompositionPromptFile: SourceFile | undefined;
   analysisSubQuestionsFile: SourceFile | undefined;
@@ -20,17 +20,9 @@ export const inspectPromptBundleSovereignty = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-}): void => {
-  for (const sourceFile of [
-    input.researchPlanSchemaFile,
-    input.decompositionPromptFile,
-    input.analysisSubQuestionsFile,
-    input.finalizationFile,
-    input.htmlReportStageFile,
-  ]) {
-    if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
-  }
+};
 
+const inspectPromptBundleSchema = (input: PromptBundleSovereigntyInput): void => {
   const schemaChecks = [
     "promptBundle",
     "finalAdjudicationPromptBundle",
@@ -51,7 +43,9 @@ export const inspectPromptBundleSovereignty = (input: {
       message: `ResearchPlan schema is missing promptBundle sovereignty marker(s): ${missingSchemaIdentifiers.join(", ")}.`,
     }));
   }
+};
 
+const inspectPromptBundlePromptMarkers = (input: PromptBundleSovereigntyInput): void => {
   const promptText = input.decompositionPromptFile?.getFullText() ?? "";
   const requiredPromptMarkers = [
     "Each subQuestion.promptBundle is the only business analysis instruction for that sub-question.",
@@ -67,7 +61,9 @@ export const inspectPromptBundleSovereignty = (input: {
       message: `Decomposition prompt is missing promptBundle sovereignty marker(s): ${missingPromptMarkers.join(", ")}.`,
     }));
   }
+};
 
+const inspectPromptBundleRuntimeChecks = (input: PromptBundleSovereigntyInput): void => {
   const runtimeChecks = [
     {
       ok: hasPropertyAccessPath(input.analysisSubQuestionsFile, "subQuestion.question.promptBundle")
@@ -95,4 +91,19 @@ export const inspectPromptBundleSovereignty = (input: {
       message: check.message,
     }));
   }
+};
+
+export const inspectPromptBundleSovereignty = (input: PromptBundleSovereigntyInput): void => {
+  for (const sourceFile of [
+    input.researchPlanSchemaFile,
+    input.decompositionPromptFile,
+    input.analysisSubQuestionsFile,
+    input.finalizationFile,
+    input.htmlReportStageFile,
+  ]) {
+    if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
+  }
+  inspectPromptBundleSchema(input);
+  inspectPromptBundlePromptMarkers(input);
+  inspectPromptBundleRuntimeChecks(input);
 };

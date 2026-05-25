@@ -16,7 +16,7 @@ const forbiddenBusinessFragments = [
   "finalVerdict",
 ] as const;
 
-export const inspectRuntimeShellOnly = (input: {
+type RuntimeShellOnlyInput = {
   promptBundleShellFile: SourceFile | undefined;
   analysisSubQuestionsFile: SourceFile | undefined;
   finalAdjudicationPromptFile: SourceFile | undefined;
@@ -24,10 +24,20 @@ export const inspectRuntimeShellOnly = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-}): void => {
-  if (input.promptBundleShellFile) {
-    input.inspectedFiles.add(getRepoSourcePath(input.promptBundleShellFile));
+};
+
+const recordRuntimeShellInspectedFiles = (input: RuntimeShellOnlyInput): void => {
+  for (const sourceFile of [
+    input.promptBundleShellFile,
+    input.analysisSubQuestionsFile,
+    input.finalAdjudicationPromptFile,
+    input.htmlReportPromptFile,
+  ]) {
+    if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
+};
+
+const inspectRuntimeShellMarkers = (input: RuntimeShellOnlyInput): void => {
   const shellChecks = [
     {
       sourceFile: input.promptBundleShellFile,
@@ -80,25 +90,24 @@ export const inspectRuntimeShellOnly = (input: {
     {
       sourceFile: input.analysisSubQuestionsFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
-      marker: "promptText: \"Runtime shell for AI-generated promptBundle.\"",
+      marker: 'promptText: "Runtime shell for AI-generated promptBundle."',
       message: "Sub-question runtime prompt must stay a shell around the AI-generated promptBundle.",
     },
     {
       sourceFile: input.finalAdjudicationPromptFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      marker: "promptText: \"Runtime shell for AI-generated finalAdjudicationPromptBundle.\"",
+      marker: 'promptText: "Runtime shell for AI-generated finalAdjudicationPromptBundle."',
       message: "Final adjudication prompt must stay a shell around the AI-generated promptBundle.",
     },
     {
       sourceFile: input.htmlReportPromptFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      marker: "promptText: \"Runtime shell for AI-generated htmlReportPromptBundle.\"",
+      marker: 'promptText: "Runtime shell for AI-generated htmlReportPromptBundle."',
       message: "HTML report prompt must stay a shell around the AI-generated promptBundle.",
     },
   ] as const;
 
   for (const check of shellChecks) {
-    if (check.sourceFile) input.inspectedFiles.add(getRepoSourcePath(check.sourceFile));
     const text = check.sourceFile?.getFullText() ?? "";
     if (text.includes(check.marker)) continue;
     input.findings.push(createFinding({
@@ -108,7 +117,9 @@ export const inspectRuntimeShellOnly = (input: {
       message: check.message,
     }));
   }
+};
 
+const inspectRuntimeShellContracts = (input: RuntimeShellOnlyInput): void => {
   for (const check of [
     {
       sourceFile: input.finalAdjudicationPromptFile,
@@ -128,7 +139,9 @@ export const inspectRuntimeShellOnly = (input: {
       message: `${check.filePath} must declare an explicit prompt output shell contract.`,
     }));
   }
+};
 
+const inspectRuntimeShellBusinessFragments = (input: RuntimeShellOnlyInput): void => {
   for (const check of [
     input.promptBundleShellFile,
     input.finalAdjudicationPromptFile,
@@ -145,4 +158,11 @@ export const inspectRuntimeShellOnly = (input: {
       message: `Runtime shell contains forbidden business prompt fragment(s): ${found.join(", ")}.`,
     }));
   }
+};
+
+export const inspectRuntimeShellOnly = (input: RuntimeShellOnlyInput): void => {
+  recordRuntimeShellInspectedFiles(input);
+  inspectRuntimeShellMarkers(input);
+  inspectRuntimeShellContracts(input);
+  inspectRuntimeShellBusinessFragments(input);
 };

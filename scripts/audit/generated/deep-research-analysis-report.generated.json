@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T18:26:50.912Z",
+  "generatedAt": "2026-05-25T18:45:19.130Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,17 +16,8 @@
     "GRASSEYE-DEEP-RESEARCH-047-V1",
     "GRASSEYE-DEEP-RESEARCH-048-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "deep-research/deleted-non-primary-paths",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
-      "clauseId": "primary",
-      "message": "Deleted non-primary Deep Research marker(s) remain in active source: optional.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
@@ -48,7 +39,6 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
