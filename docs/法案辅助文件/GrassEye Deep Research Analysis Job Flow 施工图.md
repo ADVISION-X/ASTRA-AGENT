@@ -122,6 +122,21 @@ HTML report 必须接收 `finalReport + fullCaseFile + fullCaseFileMarkdown + ht
 - evidence-index.json
 ```
 
+## AST 解析护栏
+
+```txt
+Deep Research 活跃生产源码与本地 workbench surface 必须保持 TypeScript AST 可解析。
+
+owner inspector 必须扫描：
+- src/plugins/deep-research-analysis/**/*.ts
+- src/app/workbench-deep-research*.ts
+- src/lib/local-runtime/workbench*.ts
+
+发现 parse diagnostics 时必须直接 FAIL。
+执法输出允许一条精简调试日志：files=<count> diagnostics=<count>。
+禁止依赖运行时启动失败才暴露这类问题。
+```
+
 ## UI
 
 ```txt

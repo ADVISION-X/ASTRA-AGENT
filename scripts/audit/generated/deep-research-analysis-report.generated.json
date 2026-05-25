@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T20:26:30.535Z",
+  "generatedAt": "2026-05-25T21:28:23.878Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -44,6 +44,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-contracts.ts",
     "src/app/workbench-deep-research-client-delivery-sections.ts",

@@ -16,6 +16,7 @@ import { inspectRawInteractionPersistence } from "./components/scan-raw-interact
 import { inspectRuntimeShellOnly } from "./components/scan-runtime-shell-only.js";
 import { inspectSinglePathVocabulary } from "./components/scan-single-path-vocabulary.js";
 import { inspectSingleChainSovereignty } from "./components/scan-single-chain-sovereignty.js";
+import { inspectSourceParseDiagnostics } from "./components/scan-source-parse-diagnostics.js";
 
 const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
@@ -26,6 +27,10 @@ const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
+] as const;
+
+const requiredAuditComponentFiles = [
+  "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
 ] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -58,6 +63,23 @@ const inspectRequiredFiles = (
   }
 };
 
+const inspectRequiredAuditComponentFiles = (
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  for (const repoPath of requiredAuditComponentFiles) {
+    inspectedFiles.add(repoPath);
+    if (existsSync(resolveFromRepo(repoPath))) continue;
+    findings.push(createFinding({
+      checkId: "deep-research/required-audit-component",
+      lawId,
+      filePath: repoPath,
+      message: `${repoPath} is required to enforce Deep Research AST parse diagnostics.`,
+    }));
+  }
+};
+
 const createInspectionState = (context: InspectorContext): DeepResearchInspectionState => ({
   context,
   findings: [],
@@ -76,6 +98,16 @@ const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
   [...sourceFiles, ...surfaceFiles].forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
   inspectRequiredFiles(findings, inspectedFiles, lawId);
+  inspectRequiredAuditComponentFiles(findings, inspectedFiles, lawId);
+  const parseDiagnosticScan = inspectSourceParseDiagnostics({
+    sourceFiles: [...sourceFiles, ...surfaceFiles],
+    findings,
+    inspectedFiles,
+    lawId,
+  });
+  process.stdout.write(
+    `[AUDIT][deep-research-analysis][ast-parse] files=${parseDiagnosticScan.scannedFileCount} diagnostics=${parseDiagnosticScan.diagnosticCount}\n`,
+  );
   inspectSingleChainSovereignty({
     analysisRunnerFile: getSourceFile(context, requiredFiles[0]),
     sourceFiles,

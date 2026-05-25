@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T20:26:15.993Z",
+  "generatedAt": "2026-05-25T21:28:08.968Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -183,6 +183,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
     "scripts/audit/domains/deep-research-analysis/inspector.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
