@@ -81,6 +81,7 @@ export const buildWebChatRawResponse = (input: {
   sourcePageUrlBeforeFeed: string | null;
   extracted: WebChatEvaluation;
   answerText: string;
+  outputRefs?: string[];
 }): AiProviderRawResponse => ({
   rawText: input.answerText,
   modelName: input.request.modelName,
@@ -89,6 +90,7 @@ export const buildWebChatRawResponse = (input: {
   webChatUrl: input.extracted.pageUrl ?? input.providerUrl,
   sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
   restoredSourcePage: null,
+  outputRefs: input.outputRefs ?? [],
   estimatedInputTokens: null,
   estimatedOutputTokens: null,
   tokenEstimateUnavailableReason: "web chat token estimates are unavailable.",

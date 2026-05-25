@@ -24,9 +24,12 @@ PERSIST RAW DECOMPOSITION + RESEARCH PLAN
 FOR EACH SUBQUESTION
    - subQuestion.promptBundle
    - runtime N format shell
+   - AI answer body between ANSWER_TEXT_BEGIN / ANSWER_TEXT_END
+   - optional retrieval-only index JSON between INDEX_JSON_BEGIN / INDEX_JSON_END
    - send to AI
    - persist rawResponseText
-   - persist parsed answerText/indexNotes only when available
+   - persist parsed answerText from the delimited answer body
+   - persist parsedJsonIndex / indexNotes only when the retrieval block is valid
    ↓
 BUILD FULL CASE FILE
    - all prompts
@@ -68,7 +71,7 @@ EXPORT
 
 ```txt
 ResearchPlan JSON contract
-answerText/indexNotes envelope for N-stage indexing
+delimited N-stage answer body plus optional retrieval-only index JSON
 rawFinalAnswerText persistence notice
 complete self-contained HTML artifact constraints
 forbidden control commands
@@ -77,12 +80,33 @@ forbidden control commands
 禁止：
 
 ```txt
+system-owned JSON answer envelope that wraps the whole N-stage answer body
 system-owned business conclusions
 system-owned confidence
 system-owned verdict/ranking fields
 system-owned final summary
 system-owned report section logic
 ```
+
+## N-Stage Clean Body Capture
+
+N 阶段必须把长正文与索引分离。
+
+允许的最小结构：
+
+```txt
+ANSWER_TEXT_BEGIN
+完整正文。这里允许自然段、Markdown、小标题、列表、证据解释。
+ANSWER_TEXT_END
+
+INDEX_JSON_BEGIN
+{
+   "indexNotes": ["短索引，仅用于检索"]
+}
+INDEX_JSON_END
+```
+
+禁止把完整正文塞进 `answerText` JSON 字符串字段。`answerText` 是数据库中的解析结果，不是 runtime 壳要求 AI 返回的 JSON 包裹字段。
 
 ## Final Adjudication Raw Sovereignty
 

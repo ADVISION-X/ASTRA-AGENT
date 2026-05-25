@@ -11,6 +11,10 @@ import {
   requireSubQuestionPromptBundle,
   renderDeepResearchDecompositionPrompt,
 } from "./deep-research-analysis.prompts.js";
+import {
+  SUB_QUESTION_ANSWER_TEXT_BEGIN,
+  SUB_QUESTION_ANSWER_TEXT_END,
+} from "./deep-research-analysis.prompt-bundle-shell.js";
 import { renderSubQuestionAnalysisFromPromptBundle } from "./deep-research-analysis.prompt-bundle-render.js";
 import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-contracts.js";
 import type { DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
@@ -58,8 +62,8 @@ const buildPromptBundleShellPrompt = (input: {
   promptText: "Runtime shell for AI-generated promptBundle.",
   expectedOutputContract: {
     contractId: `deep-research.sub-question-analysis.shell.${input.promptVersion}`,
-    format: "json_object",
-    requiredFields: ["raw content preserved"],
+    format: "structured_text",
+    requiredFields: [SUB_QUESTION_ANSWER_TEXT_BEGIN, SUB_QUESTION_ANSWER_TEXT_END],
     forbiddenFields: [
       "browserCommand",
       "selector",

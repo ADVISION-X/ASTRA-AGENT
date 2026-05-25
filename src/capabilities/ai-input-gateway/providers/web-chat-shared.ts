@@ -6,6 +6,7 @@ import type {
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import { captureChatGptBusinessHtmlArtifact } from "./web-chat-html-artifact-capture.js";
 import { isDeepResearchGptRequest, openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
@@ -147,13 +148,20 @@ const executeWebChatConversation = async (input: {
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
+  const htmlArtifact = await captureChatGptBusinessHtmlArtifact({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    conversationUrl: conversation.extracted.pageUrl ?? null,
+  });
   return buildWebChatRawResponse({
     request: input.request,
     runtimeName: input.runtimeName,
     providerUrl: input.providerUrl,
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     extracted: conversation.extracted,
-    answerText: conversation.answerText,
+    answerText: htmlArtifact?.htmlDocument ?? conversation.answerText,
+    outputRefs: htmlArtifact ? [htmlArtifact.outputRef] : [],
   });
 };
 

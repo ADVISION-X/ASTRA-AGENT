@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T22:34:37.584Z",
+  "generatedAt": "2026-05-25T23:28:54.104Z",
   "status": "PASS",
   "inspectorFileCount": 15,
   "generatedPlanEntryCount": 15,
@@ -58,6 +58,7 @@
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/code-purity/manifest.json",
+    "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",

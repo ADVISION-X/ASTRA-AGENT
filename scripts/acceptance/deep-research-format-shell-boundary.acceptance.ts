@@ -8,12 +8,22 @@ for (const required of [
   "buildSubQuestionAnalysisFormatShell",
   "buildFinalAdjudicationFormatShell",
   "buildHtmlReportFormatShell",
-  "answerText",
+  "ANSWER_TEXT_BEGIN",
+  "ANSWER_TEXT_END",
+  "INDEX_JSON_BEGIN",
+  "INDEX_JSON_END",
   "indexNotes",
   "rawFinalAnswerText",
   "<!DOCTYPE html>",
 ]) {
   assert(shell.includes(required), `Format shell must include ${required}.`);
+}
+
+for (const forbidden of [
+  "Return the answer in the requested response envelope when possible.",
+  "Minimal response envelope:",
+]) {
+  assert(!shell.includes(forbidden), `Format shell must not include ${forbidden}.`);
 }
 
 for (const forbidden of ["finalVerdict", "rankedConclusions", "directAnswer", "investmentThesis", "trainingFramework"]) {

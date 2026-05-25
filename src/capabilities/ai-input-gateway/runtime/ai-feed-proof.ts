@@ -49,7 +49,10 @@ const buildProviderProof = (input: {
   inputHash: input.inputPackage.inputHash,
   outputHash: input.outputHash,
   inputRefs: input.inputPackage.inputRefIds,
-  outputRefs: input.rawOutputRef ? [input.rawOutputRef] : [],
+  outputRefs: [
+    ...(input.rawOutputRef ? [input.rawOutputRef] : []),
+    ...(input.response.outputRefs ?? []),
+  ],
   startedAt: input.startedAt,
   endedAt: input.endedAt,
   durationMs: input.durationMs,

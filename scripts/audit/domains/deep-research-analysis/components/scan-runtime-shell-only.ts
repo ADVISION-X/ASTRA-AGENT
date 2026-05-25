@@ -1,4 +1,4 @@
-import type { SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -33,12 +33,29 @@ type RuntimeShellMarkerCheck = {
   message: string;
 };
 
+const collectSourceTokens = (sourceFile: SourceFile | undefined): Set<string> => {
+  if (!sourceFile) {
+    return new Set<string>();
+  }
+  const tokens = new Set<string>();
+  for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)) {
+    tokens.add(literal.getLiteralText());
+  }
+  for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)) {
+    tokens.add(literal.getLiteralText());
+  }
+  for (const identifier of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
+    tokens.add(identifier.getText());
+  }
+  return tokens;
+};
+
 const pushMissingRuntimeShellMarkerFinding = (
   input: RuntimeShellOnlyInput,
   check: RuntimeShellMarkerCheck,
 ): void => {
-  const text = check.sourceFile?.getFullText() ?? "";
-  if (text.includes(check.marker)) return;
+  const tokens = collectSourceTokens(check.sourceFile);
+  if (tokens.has(check.marker)) return;
   input.findings.push(createFinding({
     checkId: "deep-research/runtime-shell-boundary",
     lawId: input.lawId,
@@ -52,26 +69,32 @@ const inspectPromptBundleShellMarkers = (input: RuntimeShellOnlyInput): void => 
     {
       sourceFile: input.promptBundleShellFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
-      marker: "Preserve analytical content even if formatting is imperfect.",
-      message: "Runtime shell must preserve analytical content even when formatting is imperfect.",
+      marker: "SUB_QUESTION_ANSWER_TEXT_BEGIN",
+      message: "N-stage runtime shell must require one delimited answer body.",
     },
     {
       sourceFile: input.promptBundleShellFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
-      marker: "The raw response will be persisted exactly as returned.",
-      message: "Runtime shell must state that raw responses are persisted as returned.",
+      marker: "SUB_QUESTION_ANSWER_TEXT_END",
+      message: "N-stage runtime shell must close the delimited answer body.",
     },
     {
       sourceFile: input.promptBundleShellFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
-      marker: "Do not output system operation instructions.",
-      message: "Runtime shell must forbid system operation instructions.",
+      marker: "Do not wrap the answer body in a JSON response envelope.",
+      message: "N-stage runtime shell must forbid JSON answer envelopes for the answer body.",
     },
     {
       sourceFile: input.promptBundleShellFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
-      marker: "Do not invent unavailable evidence.",
-      message: "Runtime shell must forbid invented evidence.",
+      marker: "SUB_QUESTION_INDEX_JSON_BEGIN",
+      message: "N-stage runtime shell must keep retrieval-only index JSON separate from the answer body.",
+    },
+    {
+      sourceFile: input.promptBundleShellFile,
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
+      marker: "SUB_QUESTION_INDEX_JSON_END",
+      message: "N-stage runtime shell must close the retrieval-only index JSON block.",
     },
     {
       sourceFile: input.promptBundleShellFile,
@@ -108,19 +131,19 @@ const inspectRuntimePromptShellMarkers = (input: RuntimeShellOnlyInput): void =>
     {
       sourceFile: input.analysisSubQuestionsFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
-      marker: 'promptText: "Runtime shell for AI-generated promptBundle."',
+      marker: "Runtime shell for AI-generated promptBundle.",
       message: "Sub-question runtime prompt must stay a shell around the AI-generated promptBundle.",
     },
     {
       sourceFile: input.finalAdjudicationPromptFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      marker: 'promptText: "Runtime shell for AI-generated finalAdjudicationPromptBundle."',
+      marker: "Runtime shell for AI-generated finalAdjudicationPromptBundle.",
       message: "Final adjudication prompt must stay a shell around the AI-generated promptBundle.",
     },
     {
       sourceFile: input.htmlReportPromptFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      marker: 'promptText: "Runtime shell for AI-generated htmlReportPromptBundle."',
+      marker: "Runtime shell for AI-generated htmlReportPromptBundle.",
       message: "HTML report prompt must stay a shell around the AI-generated promptBundle.",
     },
   ];
@@ -148,6 +171,10 @@ const inspectRuntimeShellMarkers = (input: RuntimeShellOnlyInput): void => {
 const inspectRuntimeShellContracts = (input: RuntimeShellOnlyInput): void => {
   for (const check of [
     {
+      sourceFile: input.analysisSubQuestionsFile,
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
+    },
+    {
       sourceFile: input.finalAdjudicationPromptFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
     },
@@ -156,8 +183,8 @@ const inspectRuntimeShellContracts = (input: RuntimeShellOnlyInput): void => {
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
     },
   ] as const) {
-    const text = check.sourceFile?.getFullText() ?? "";
-    if (text.includes("buildPromptOutputShellContract")) continue;
+    const tokens = collectSourceTokens(check.sourceFile);
+    if (tokens.has("buildPromptOutputShellContract") || tokens.has("expectedOutputContract")) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/runtime-shell-boundary",
       lawId: input.lawId,
@@ -174,8 +201,8 @@ const inspectRuntimeShellBusinessFragments = (input: RuntimeShellOnlyInput): voi
     input.htmlReportPromptFile,
   ]) {
     const repoPath = check ? getRepoSourcePath(check) : "src/plugins/deep-research-analysis";
-    const text = check?.getFullText() ?? "";
-    const found = forbiddenBusinessFragments.filter((fragment) => text.includes(fragment));
+    const tokens = collectSourceTokens(check);
+    const found = forbiddenBusinessFragments.filter((fragment) => tokens.has(fragment));
     if (found.length === 0) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/runtime-shell-only-business-fragment",

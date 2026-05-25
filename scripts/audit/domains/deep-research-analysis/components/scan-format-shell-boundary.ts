@@ -63,13 +63,35 @@ export const inspectFormatShellBoundary = (input: {
     }));
   }
 
-  for (const required of ["answerText", "indexNotes", "rawFinalAnswerText", "<!DOCTYPE html>"]) {
+  for (const required of [
+    "ANSWER_TEXT_BEGIN",
+    "ANSWER_TEXT_END",
+    "INDEX_JSON_BEGIN",
+    "INDEX_JSON_END",
+    "indexNotes",
+    "rawFinalAnswerText",
+    "<!DOCTYPE html>",
+  ]) {
     if (tokens.includes(required)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/format-shell-boundary/required-format-marker",
       lawId: input.lawId,
       filePath: getRepoSourcePath(sourceFile),
       message: `Runtime format shell is missing ${required}.`,
+    }));
+  }
+
+  for (const forbidden of [
+    "Return the answer in the requested response envelope when possible.",
+    "Minimal response envelope:",
+    "answerText is the complete answer; runtime must preserve raw response.",
+  ]) {
+    if (!tokens.includes(forbidden)) continue;
+    input.findings.push(createFinding({
+      checkId: "deep-research/format-shell-boundary/forbidden-json-envelope",
+      lawId: input.lawId,
+      filePath: getRepoSourcePath(sourceFile),
+      message: `Runtime format shell must not retain forbidden JSON envelope marker ${forbidden}.`,
     }));
   }
 };

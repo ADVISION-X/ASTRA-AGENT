@@ -7,6 +7,7 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
+import { inspectAnalysisOutputCleanliness } from "./components/scan-analysis-output-cleanliness.js";
 import { inspectFinalAdjudicationPromptBundleInput } from "./components/scan-final-adjudication-promptbundle-input.js";
 import { inspectFinalAdjudicationRawSovereignty } from "./components/scan-final-adjudication-raw-sovereignty.js";
 import { inspectFormatShellBoundary } from "./components/scan-format-shell-boundary.js";
@@ -37,6 +38,7 @@ const requiredFiles = [
 
 const requiredAuditComponentFiles = [
   "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
+  "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
 ] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -201,6 +203,17 @@ const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
   });
+  const cleanOutputScan = inspectAnalysisOutputCleanliness({
+    promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
+    analysisSubQuestionsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts"),
+    parserFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-044-V1"),
+  });
+  process.stdout.write(
+    `[AUDIT][deep-research-analysis][analysis-clean-output] format=${cleanOutputScan.analysisContractFormat ?? "missing"} findings=${cleanOutputScan.findingCount}\n`,
+  );
   inspectSinglePathVocabulary({
     sourceFiles: [...sourceFiles, ...surfaceFiles, ...acceptanceFiles, ...auditComponentFiles],
     findings,

@@ -15,7 +15,7 @@ const DeepResearchPromptVersionSchema = z
 
 const DeepResearchPromptOutputContractSchema = z.object({
   contractId: z.string().trim().min(1),
-  format: z.enum(["json_object", "html_artifact", "html_document"]),
+  format: z.enum(["json_object", "structured_text", "html_artifact", "html_document"]),
   requiredFields: z.array(z.string().trim().min(1)).min(1),
   forbiddenFields: z.array(z.string().trim().min(1)).min(1),
 }).strict();

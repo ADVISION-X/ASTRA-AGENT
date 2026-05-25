@@ -4,8 +4,18 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-05-25T22:34:34.279Z",
+  "findings": [
+    {
+      "checkId": "code-purity/import-source-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts imports 25 unique sources and exceeds the red line 24.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Split the file by runtime role and keep only the owner-local dependencies in each slice.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-05-25T23:28:50.509Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -112,6 +122,7 @@
     "scripts/audit/domains/code-purity/components/zombie-symbol-usage.ts",
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",
@@ -250,6 +261,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-detector.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
@@ -940,19 +952,19 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1291,
+  "liveExportCount": 1297,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 515,
-  "status": "PASS",
+  "reachableFileCount": 517,
+  "status": "FAIL",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1291,
+    "liveExportCount": 1297,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 515,
+    "reachableFileCount": 517,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

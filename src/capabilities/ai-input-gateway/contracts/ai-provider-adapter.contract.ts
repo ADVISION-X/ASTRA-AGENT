@@ -12,6 +12,7 @@ export type AiProviderRawResponse = {
   webChatUrl: string | null;
   sourcePageUrlBeforeFeed: string | null;
   restoredSourcePage: boolean | null;
+  outputRefs?: string[];
   estimatedInputTokens?: number | null;
   estimatedOutputTokens?: number | null;
   tokenEstimateUnavailableReason?: string | null;
