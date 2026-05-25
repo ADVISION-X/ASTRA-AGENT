@@ -59,6 +59,8 @@ Deep Research Analysis 是独立 job flow。页面只负责展示它的输入、
 - 隐藏 export artifact refs。
 - 页面重新实现 Deep Research prompt、parser、conflict matrix 或导出逻辑。
 
+当最终裁决和 full case file 已存在但 `business-report.html` 缺失时，页面可以展示“重新生成 HTML Report”动作。该动作只能调用本地 workbench API 进入 Deep Research public facade，由 Deep Research 主权代码重新执行同一条主链的 HTML report 段；页面不得自己生成、修补、保存或改写 HTML。
+
 Raw JSON 只能作为折叠审计视图存在，用于排障，不得替代最终报告、export refs 或 evidence refs。
 
 Deep Research 文字报告不得呈现为临时调试页。完成态阅读器必须具备：

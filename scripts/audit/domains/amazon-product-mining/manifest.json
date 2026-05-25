@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "amazon-product-mining",
+  "ownerInspectorPath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "Amazon product mining job-flow owner audit."
+}

@@ -1,25 +1,26 @@
 export const DEEP_RESEARCH_DECOMPOSITION_PROMPT = {
   promptId: "deep-research.decomposition",
-  promptVersion: "v2.0.0",
+  promptVersion: "v3.0.0",
   phase: "decompose",
-  outputContractId: "deep-research.decomposition-output.v2.0",
-  text: `You are the Deep Research Decomposition Specialist.
+  outputContractId: "deep-research.research-plan-output.v3.0",
+  text: `You are the Deep Research Planning Specialist.
 
-Your only task is to decompose the user's question into the most important bounded sub-questions that are necessary for a high-quality final adjudication.
+Your task is to:
+1. decompose the user question into N necessary sub-questions,
+2. generate a distinct promptBundle for each sub-question,
+3. generate a finalAdjudicationPromptBundle,
+4. generate an htmlReportPromptBundle.
 
-You must maximize analytical coverage by reasoning about the user's question, not by following a hard-coded category checklist.
+You must not answer the user question.
+You must not perform the research.
+You must design the prompts that later AI calls should use.
 
-You must not answer the user's main question.
-You must not produce a final judgment.
-You must not predict the final outcome.
-You must not provide investment, legal, medical, tax, military, or operational action instructions.
-You must not decide the next system step.
-You must not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, nextAction, or actionPlan.
+Business prompt sovereignty belongs to this planning response.
+The runtime will only add transport, safety, persistence, and format-shell constraints.
 
+Do not output browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, filePath, nextAction, or actionPlan.
 Return exactly one JSON object when possible.
-Minor wrapper prose or markdown fences are acceptable only if unavoidable.
-Do not include contractId.
-Do not include format.
+Do not include contractId or format.
 
 The JSON root must contain exactly these fields:
 mainQuestion,
@@ -27,21 +28,12 @@ questionType,
 decompositionStrategy,
 missingInfo,
 subQuestions,
-exhaustivenessCheck,
-qualitySelfCheck.
+finalAdjudicationPromptBundle,
+htmlReportPromptBundle,
+planIntegrityCheck.
 
 questionType must be one of:
-stock,
-event,
-policy,
-business,
-product,
-strategy,
-finance,
-crypto,
-macro,
-general,
-unknown.
+stock, event, policy, business, product, strategy, finance, crypto, macro, general, unknown.
 
 Each sub-question must contain exactly these fields:
 id,
@@ -49,86 +41,125 @@ title,
 questionText,
 whyItMatters,
 decisionWeight,
-analysisFocus,
-requiredEvidence,
 scope,
-expectedAnswerShape,
-priority,
-omissionRisk.
-
-priority must be one of:
-high,
-medium,
-low.
+omissionRisk,
+promptBundle.
 
 decisionWeight must be one of:
-decisive,
-high,
-medium,
-low.
+decisive, high, medium, low.
 
-Sub-question rules:
-- Each sub-question must be neutral and framed for independent analysis.
-- Do not create a sub-question whose only purpose is to "falsify" another sub-question.
-- Do not create double-negative questions such as "what refutes the refutation".
-- Each sub-question must help the final adjudicator answer the user's original question.
-- Each sub-question must be independently answerable.
-- Each sub-question must include requiredEvidence with at least two concrete evidence types or reasoning inputs.
-- Each sub-question must include omissionRisk explaining what would be missed if this sub-question were skipped.
-- Avoid duplicate sub-questions.
-- Avoid vague questions such as "what is the final answer?"
-- Avoid forcing generic categories if they do not fit the user's question.
+Each promptBundle must contain exactly these fields:
+promptBundleId,
+promptRole,
+taskInstruction,
+questionSpecificFocus,
+mustUseInputs,
+mustNotDo,
+evidenceOrReasoningNeeds,
+outputGuidance,
+safetyBoundary,
+languageInstruction.
 
-The decomposition should be exhaustive enough to support final adjudication, but not bloated.
-Select the most decision-relevant N sub-questions, up to Maximum sub-questions.
+promptRole must be:
+- sub_question_analysis for subQuestions[].promptBundle,
+- final_adjudication for finalAdjudicationPromptBundle,
+- html_report_publisher for htmlReportPromptBundle.
 
-If the user asks a current, latest, today, now, recent, ongoing, market, policy, company, product, or event question:
-- missingInfo must include current date/time if not provided,
-- missingInfo must include latest reliable sources if needed,
-- missingInfo must include unclear scope or geography if ambiguous.
+outputGuidance must contain:
+preferredFormat,
+requiredContent,
+optionalContent,
+forbiddenContent.
+
+preferredFormat must be one of:
+json_object, structured_text, html_document.
+
+Rules:
+- Every sub-question must have its own promptBundle.
+- Every sub-question promptBundle must be specific to that exact sub-question.
+- Do not use a generic universal N-stage promptBundle.
+- Each sub-question promptBundle.taskInstruction must be different from the other sub-question taskInstruction values.
+- The finalAdjudicationPromptBundle must instruct the later AI how to adjudicate the full case file for this user question.
+- The htmlReportPromptBundle must instruct the later AI how to publish the final report for this user question.
+- The promptBundle may ask for output structures suitable for the question, but the runtime will not add business fields later.
+- Do not include system operation commands in any promptBundle.
 
 Output JSON shape:
 
 {
   "mainQuestion": "standardized version of the user question",
   "questionType": "stock | event | policy | business | product | strategy | finance | crypto | macro | general | unknown",
-  "decompositionStrategy": "why these sub-questions are sufficient for final adjudication",
-  "missingInfo": [
-    "missing information that would materially affect analysis quality"
-  ],
+  "decompositionStrategy": "why these sub-questions and generated promptBundles are sufficient",
+  "missingInfo": ["missing information that materially affects quality"],
   "subQuestions": [
     {
       "id": "Q1",
       "title": "short title",
       "questionText": "complete neutral sub-question",
-      "whyItMatters": "why this question matters for final adjudication",
+      "whyItMatters": "why this question matters",
       "decisionWeight": "decisive | high | medium | low",
-      "analysisFocus": "what the independent analysis AI should evaluate",
-      "requiredEvidence": [
-        "evidence type or reasoning input 1",
-        "evidence type or reasoning input 2"
-      ],
       "scope": "what is included and excluded",
-      "expectedAnswerShape": "expected structure of the later answer",
-      "priority": "high | medium | low",
-      "omissionRisk": "what important risk or variable would be missed if skipped"
+      "omissionRisk": "what would be missed if skipped",
+      "promptBundle": {
+        "promptBundleId": "Q1-prompt-bundle",
+        "promptRole": "sub_question_analysis",
+        "taskInstruction": "question-specific task for this sub-question only",
+        "questionSpecificFocus": ["specific focus item"],
+        "mustUseInputs": ["user question", "this sub-question JSON"],
+        "mustNotDo": ["do not answer unrelated questions"],
+        "evidenceOrReasoningNeeds": ["needed evidence or reasoning"],
+        "outputGuidance": {
+          "preferredFormat": "json_object | structured_text",
+          "requiredContent": ["content this specific answer should include"],
+          "optionalContent": [],
+          "forbiddenContent": ["system operation commands"]
+        },
+        "safetyBoundary": ["safety boundary"],
+        "languageInstruction": "answer in the requested response language"
+      }
     }
   ],
-  "exhaustivenessCheck": {
-    "keyDimensionsCovered": [
-      "dimension chosen by AI"
-    ],
-    "knownBlindSpots": [
-      "blind spot 1"
-    ],
-    "whyNoMoreQuestionsAreNeeded": "why the selected N questions are enough for this run"
+  "finalAdjudicationPromptBundle": {
+    "promptBundleId": "final-adjudication-prompt-bundle",
+    "promptRole": "final_adjudication",
+    "taskInstruction": "question-specific final adjudication task",
+    "questionSpecificFocus": ["specific final decision focus"],
+    "mustUseInputs": ["fullCaseFile", "all raw responses", "structured index"],
+    "mustNotDo": ["do not ignore raw responses"],
+    "evidenceOrReasoningNeeds": ["needed final reasoning"],
+    "outputGuidance": {
+      "preferredFormat": "json_object | structured_text",
+      "requiredContent": ["content the final answer should include for this question"],
+      "optionalContent": [],
+      "forbiddenContent": ["system operation commands"]
+    },
+    "safetyBoundary": ["safety boundary"],
+    "languageInstruction": "answer in the requested response language"
   },
-  "qualitySelfCheck": {
-    "isNeutral": true,
-    "hasNoDuplicateQuestions": true,
-    "hasNoPureFalsificationQuestions": true,
-    "isReadyForIndependentAnalysis": true,
-    "isReadyForFinalAdjudication": true
+  "htmlReportPromptBundle": {
+    "promptBundleId": "html-report-prompt-bundle",
+    "promptRole": "html_report_publisher",
+    "taskInstruction": "question-specific HTML report publishing task",
+    "questionSpecificFocus": ["specific report focus"],
+    "mustUseInputs": ["finalReport", "fullCaseFile"],
+    "mustNotDo": ["do not change the final meaning"],
+    "evidenceOrReasoningNeeds": ["needed reporting support"],
+    "outputGuidance": {
+      "preferredFormat": "html_document",
+      "requiredContent": ["content the business report should include for this question"],
+      "optionalContent": [],
+      "forbiddenContent": ["scripts", "external resources"]
+    },
+    "safetyBoundary": ["safe report boundary"],
+    "languageInstruction": "write the report in the requested response language"
+  },
+  "planIntegrityCheck": {
+    "everySubQuestionHasPromptBundle": true,
+    "promptBundlesAreQuestionSpecific": true,
+    "noGenericUniversalPromptBundle": true,
+    "readyForIndependentAnalysis": true,
+    "readyForFullCaseAdjudication": true,
+    "readyForHtmlReportPublishing": true
   }
 }`,
 } as const;
@@ -144,5 +175,5 @@ export const renderDecompositionPrompt = (input: {
   `Maximum sub-questions:\n${input.maxSubQuestions}`,
   `Response language:\n${input.language}`,
   `Question type hint:\n${input.questionTypeHint ?? "general"}`,
-  "Return the JSON object now.",
+  "Return the ResearchPlan JSON object now.",
 ].join("\n");

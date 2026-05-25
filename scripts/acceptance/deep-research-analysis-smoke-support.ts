@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  buildDeepResearchFinalPackage,
+  buildDeepResearchStructuredIndex,
   buildDeepResearchFullCaseFile,
   createDeepResearchRecordStore,
   renderDeepResearchFullCaseFileMarkdown,
@@ -20,7 +20,7 @@ const REQUIRED_STAGE_NAMES = [
   "ANALYSIS_CAPTURE",
   "ANALYSIS_PARSE",
   "ANALYSIS_PERSIST",
-  "FINAL_PACKAGE_BUILD",
+  "FULL_CASE_FILE_BUILD",
   "FINAL_ADJUDICATION_SEND",
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
@@ -97,15 +97,15 @@ const verifyPersistedFinalPackage = (input: {
   jobId: string;
   job: ReturnType<ReturnType<typeof createDeepResearchRecordStore>["getJob"]>;
 }): void => {
-  const finalPackage = buildDeepResearchFinalPackage({ store: input.store, jobId: input.jobId });
+  const finalPackage = buildDeepResearchStructuredIndex({ store: input.store, jobId: input.jobId });
   const fullCaseFile = buildDeepResearchFullCaseFile({
     store: input.store,
     jobId: input.jobId,
-    structuredFinalPackage: finalPackage,
+    structuredIndex: finalPackage,
   });
-  assert(finalPackage.analysisRecords.length === 2, "Final package must read persisted analysis records.");
-  assert(finalPackage.missingAnalysisSubQuestionIds.length === 0, "Final package should have no missing analysis records in the smoke fixture.");
-  assert(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount === 0, "Final package should report zero missing analysis rows in the smoke fixture.");
+  assert(finalPackage.analysisRecords.length === 2, "Structured index must read persisted analysis records.");
+  assert(finalPackage.missingAnalysisSubQuestionIds.length === 0, "Structured index should have no missing analysis records in the smoke fixture.");
+  assert(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount === 0, "Structured index should report zero missing analysis rows in the smoke fixture.");
   assert(fullCaseFile.caseFileVersion === "v1", "Full case file must be built for the smoke fixture.");
   assert(fullCaseFile.coverage.rawAnalysisInteractionCount === 2, "Full case file must preserve raw coverage for each sub-question.");
   assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.json.v1.1", "Smoke fixture must target the current final adjudication contract.");

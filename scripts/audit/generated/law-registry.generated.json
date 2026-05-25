@@ -1,6 +1,256 @@
 {
-  "generatedAt": "2026-05-25T14:44:32.719Z",
+  "generatedAt": "2026-05-25T16:30:55.524Z",
   "laws": [
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast+persisted-record",
+      "summary": "Amazon Product Mining must live as one explicit business job flow under src/plugins/amazon-product-mining and must not become a universal product-discovery agent, ERP, planner, or marketplace crawler framework.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Amazon mining flow placed under src/capabilities, src/mediator, src/lib, or src/app.",
+        "Reusing facebook-product-video-mining as Amazon mining entrypoint.",
+        "Universal marketplace crawler abstraction owning Amazon mining state.",
+        "ERP, profit calculator, or purchase-decision modules introduced into the plugin owner.",
+        "Amazon-specific workflow placed inside any ability group."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs+acceptance",
+      "summary": "Amazon Product Mining must have exactly one active production flow: task intake, AI keyword generation with historical deduplication, keyword queue, Amazon first-page search extraction, product detail extraction, full accessible review extraction, persistence, package generation, PDF generation, and handoff to advanced AI.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Legacy or fallback flow alongside the production flow.",
+        "Lite / compact / optional package as an alternative final artifact.",
+        "Shadow product decision branch in the flow.",
+        "AI next-action planner driving the browser.",
+        "Multiple execution modes for the same mining demand."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt+ast+export",
+      "summary": "Amazon Product Mining Agent must not output final product selection, product investment decision, purchase decision, or profit conclusion; it only produces evidence packages for advanced AI decision.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Final product selection output produced by Agent code.",
+        "Purchase / sampling / listing / inventory / ad-budget recommendation produced by Agent code.",
+        "Profit margin conclusion produced by Agent code.",
+        "AI prompt asking the model to pick winning products inside this flow."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt+persisted-record",
+      "summary": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts"
+      ],
+      "forbidden": [
+        "AI keyword request without injecting historical mined keywords.",
+        "Executing AI natural-language output directly as mining queue.",
+        "Mining the same keyword again without an explicit duplicate marker.",
+        "Agent fabricating keywords to fill requested count."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+persisted-record+snapshot",
+      "summary": "For each keyword, the system must extract all visible products on the first Amazon search results page and preserve rank, sponsored status, URL, visible commercial fields, and raw page evidence.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.search.ts"
+      ],
+      "forbidden": [
+        "Extracting only a subset of visible first-page products.",
+        "Losing rankPosition or isSponsored on result items.",
+        "Dropping a product because ASIN is not visible while productUrl exists.",
+        "Opening product detail before search results are persisted.",
+        "Mining beyond the first search results page in this flow."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+snapshot+persisted-record",
+      "summary": "For each stored search result item, the system must open the product detail page and extract all currently visible and accessible product information before review extraction.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts"
+      ],
+      "forbidden": [
+        "Extracting only shallow fields like title/price/rating.",
+        "Throwing on missing optional fields; missing fields must be null or empty array.",
+        "Missing raw visible text snapshot for the detail page.",
+        "Deleting search-result evidence when detail extraction fails."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+pagination+persisted-record",
+      "summary": "For each product, the system must paginate and persist all currently accessible reviews under the current environment, account, region, language, and sorting condition; bypassing restrictions is forbidden.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts"
+      ],
+      "forbidden": [
+        "Skipping review pages (no jumping ahead).",
+        "Extracting only the first review page.",
+        "Persisting only AI summaries in place of raw reviews.",
+        "Bypassing captcha, login walls, region restrictions, or platform risk controls.",
+        "Deleting product-detail records when review extraction fails."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "snapshot+persisted-record+hash",
+      "summary": "Raw visible page text, extracted records, page URLs, timestamps, and evidence indexes are sovereign records; structured summaries and PDF sections must not replace raw evidence.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Structured summary replacing raw page text.",
+        "PDF section replacing structured data package.",
+        "AI summary replacing raw review records.",
+        "Discarding URLs / timestamps / failure reasons."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "runtime-log+failure-record",
+      "summary": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or manual_required records; bypassing restrictions is forbidden.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Bypassing captcha, login walls, 2FA, region restrictions, or platform risk controls.",
+        "Reading cookie / token / localStorage / sessionStorage.",
+        "Fabricating success when extraction is blocked.",
+        "Treating partial pass / warning as completed."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+export+hash",
+      "summary": "The final artifacts of Amazon Product Mining are a structured data package, a PDF report, an evidence index, and an exception summary; no alternative final artifact chain may replace them.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts"
+      ],
+      "forbidden": [
+        "PDF-only delivery without structured data package.",
+        "AI summary-only delivery without raw evidence.",
+        "Multiple conflicting versions of the data package.",
+        "Manually editing generated artifacts as source of truth."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "export+prompt+handoff-record",
+      "summary": "Advanced AI handoff must receive the PDF report, structured data package, raw evidence index, exception summary, and task scope; the handoff must disclose incomplete data and must not invent missing evidence.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+      ],
+      "forbidden": [
+        "Handoff missing PDF / package / evidence index / exception summary.",
+        "Handoff inventing evidence not present in the package.",
+        "Handoff carrying final product selection produced by Agent."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 10
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "acceptance+audit-plan+ci-full",
+      "summary": "Amazon Product Mining production readiness must be enforced by owner inspector, acceptance tests, generated audit plan, and npm run ci:full; warning-only or partial pass must not be called complete.",
+      "appliesTo": [
+        "scripts/audit/domains/amazon-product-mining/manifest.json",
+        "scripts/audit/domains/amazon-product-mining/inspector.ts",
+        "scripts/acceptance/amazon-product-mining-*.acceptance.ts",
+        "package.json",
+        "scripts/audit/ci-full.ts"
+      ],
+      "forbidden": [
+        "Warning-only enforcement for P0 clauses.",
+        "Hand-editing generated registry / matrix / plan as source of truth.",
+        "Bypassing codex-entry-gate.",
+        "Local-only acceptance that is not wired into ci:full.",
+        "Treating partial pass / soft pass as complete."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 11
+    },
     {
       "lawId": "APEX-ARCH-001-V1",
       "status": "active",
@@ -903,7 +1153,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast+fs+acceptance",
-      "summary": "Deep Research must have exactly one active production flow: user question, AI decomposition into N sub-questions, N independent AI analyses with full raw persistence, full case file construction, final AI adjudication using the full case file, then AI-generated business HTML report using final adjudication and the full case file.",
+      "summary": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 1
     },
@@ -914,7 +1164,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+ast",
-      "summary": "Any Deep Research code path related to legacy positive/falsification mode, PPT deck generation, local PPT generation, deck outline JSON, optional presentation deck, fallback generation, compact package, lite package, or compatibility mode must be physically deleted unless transformed into the single active HTML full-case-file flow.",
+      "summary": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 2
     },
@@ -925,7 +1175,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast+fs+acceptance",
-      "summary": "Every Deep Research module, function, export kind, status, UI section, inspector, acceptance, and prompt must be classified as either ACTIVE_SINGLE_FLOW or DELETE.",
+      "summary": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 3
     },
@@ -936,7 +1186,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+ast+export",
-      "summary": "Final adjudication and business HTML report generation must receive the full case file; if the full case file is missing, the job must fail before final adjudication.",
+      "summary": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 4
     },
@@ -947,7 +1197,7 @@
       "capabilityDomain": "deep-research-analysis",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+ast+ui",
-      "summary": "The only final presentation artifact of Deep Research is business-report.html; PPTX, deck outline JSON, local deck generation, AI PPT artifact, or optional presentation deck must not exist in the active production flow.",
+      "summary": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 5
     },

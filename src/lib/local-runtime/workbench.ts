@@ -37,6 +37,12 @@ import {
   startFacebookProductVideoMiningMission,
 } from "../../plugins/facebook-product-video-mining/index.js";
 import {
+  startAmazonProductMiningMission,
+  getAmazonProductMiningTaskStatus,
+  getLatestAmazonProductMiningTask,
+  exportAmazonProductMiningResult,
+} from "../../plugins/amazon-product-mining/index.js";
+import {
   deepResearchAnalysisPublicFacade,
   type DeepResearchAnalysisStartInput,
   type DeepResearchHistorySnapshot,
@@ -231,6 +237,30 @@ const buildFacebookMiningHandle = (
   },
 });
 
+const buildAmazonMiningHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  startAmazonProductMiningMission(rawInput: unknown) {
+    return startAmazonProductMiningMission({
+      rawInput,
+      dataDir,
+      browser: assembly.browserController,
+      aiInputGateway: assembly.aiInputGateway,
+      runtimeLogger: assembly.runtimeLogger,
+    });
+  },
+  getAmazonProductMiningTaskStatus(taskId: string) {
+    return getAmazonProductMiningTaskStatus({ dataDir, taskId });
+  },
+  getLatestAmazonProductMiningTask() {
+    return getLatestAmazonProductMiningTask({ dataDir });
+  },
+  exportAmazonProductMiningResult(taskId: string) {
+    return exportAmazonProductMiningResult({ dataDir, taskId });
+  },
+});
+
 const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
   async startDeepResearchAnalysis(input: DeepResearchAnalysisStartInput) {
     const previousLatest = context.loadLatestSnapshot();
@@ -259,6 +289,27 @@ const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
     }
     trackDeepResearchExecution({ executions: context.executions, snapshot, runPromise });
     return context.applyExecutionState(snapshot) ?? snapshot;
+  },
+  async rerunDeepResearchBusinessHtmlReport(input: { jobId: string }) {
+    await deepResearchAnalysisPublicFacade.rerunDeepResearchBusinessHtmlReport(
+      {
+        jobId: input.jobId,
+        context: {
+          aiInputGateway: context.assembly.aiInputGateway,
+          runtimeLogger: context.assembly.runtimeLogger,
+          dataDir: context.dataDir,
+          providerKind: "gemini-api",
+          modelName: "workbench-default",
+          timeoutMs: 180_000,
+        },
+      },
+    );
+    return context.applyExecutionState(
+      deepResearchAnalysisPublicFacade.getDeepResearchAnalysisJob({
+        dataDir: context.dataDir,
+        jobId: input.jobId,
+      }),
+    );
   },
 });
 
@@ -356,6 +407,7 @@ const buildWorkbenchHandle = (
     ...buildSettingsHandle(dataDir),
     ...buildAmazonInvoiceHandle(assembly, dataDir),
     ...buildFacebookMiningHandle(assembly, dataDir),
+    ...buildAmazonMiningHandle(assembly, dataDir),
     ...buildDeepResearchAnalysisHandle(assembly, dataDir),
   };
 };

@@ -4,6 +4,7 @@ import {
   DeepResearchInteractionPhaseSchema,
   DeepResearchParseStatusSchema,
 } from "./deep-research-analysis.schema.js";
+import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
 
 const DeepResearchFullCaseFileJobSchema = z.object({
   jobId: z.string().trim().min(1),
@@ -70,6 +71,7 @@ const DeepResearchFullCaseFileCoverageSchema = z.object({
 export const DeepResearchFullCaseFileSchema = z.object({
   caseFileVersion: z.literal("v1"),
   job: DeepResearchFullCaseFileJobSchema,
+  researchPlan: DeepResearchPlanSchema,
   decomposition: DeepResearchCaseDecompositionSchema.nullable(),
   subQuestionAnalyses: z.array(DeepResearchFullCaseFileSubQuestionAnalysisSchema),
   failedButRawAvailableInteractions: z.array(DeepResearchFailedRawInteractionSchema),

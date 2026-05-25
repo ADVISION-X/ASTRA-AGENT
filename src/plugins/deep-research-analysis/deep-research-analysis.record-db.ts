@@ -22,6 +22,7 @@ export {
   mapFinalReportRow,
   mapInteractionRow,
   mapJobRow,
+  mapResearchPlanRow,
   mapSubQuestionRow,
 } from "./deep-research-analysis.record-db-mappers.js";
 
@@ -57,9 +58,18 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     expected_answer_shape TEXT NOT NULL,
     priority TEXT,
     omission_risk TEXT,
+    prompt_bundle_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
     UNIQUE(job_id, model_question_id),
     UNIQUE(job_id, ordinal)
+  )`,
+  `CREATE TABLE IF NOT EXISTS research_plans (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL UNIQUE,
+    interaction_id TEXT NOT NULL,
+    research_plan_json TEXT NOT NULL,
+    plan_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS research_interactions (
     id TEXT PRIMARY KEY,
@@ -171,9 +181,10 @@ const createSubQuestionsV2Table = (db: Database.Database): void => {
       required_evidence_json TEXT NOT NULL DEFAULT '[]',
       scope TEXT NOT NULL,
       expected_answer_shape TEXT NOT NULL,
-      priority TEXT,
-      omission_risk TEXT,
-      created_at TEXT NOT NULL,
+       priority TEXT,
+       omission_risk TEXT,
+      prompt_bundle_json TEXT NOT NULL DEFAULT '{}',
+       created_at TEXT NOT NULL,
       UNIQUE(job_id, model_question_id),
       UNIQUE(job_id, ordinal)
     )
@@ -188,8 +199,8 @@ const copyPreviousSchemaSubQuestionRows = (
     `INSERT INTO research_sub_questions_v2 (
       id, job_id, interaction_id, model_question_id, ordinal, title, question_text,
       purpose, why_it_matters, decision_weight, analysis_focus, required_evidence_json,
-      scope, expected_answer_shape, priority, omission_risk, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      scope, expected_answer_shape, priority, omission_risk, prompt_bundle_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const idRemap = new Map<string, string>();
   for (const row of previousSchemaRows) {
@@ -212,6 +223,7 @@ const copyPreviousSchemaSubQuestionRows = (
       row.expected_answer_shape,
       null,
       null,
+      "{}",
       row.created_at,
     );
   }
@@ -280,10 +292,18 @@ const migrateResearchSubQuestionStructuredFields = (db: Database.Database): void
   if (!hasColumn(db, "research_sub_questions", "omission_risk")) {
     db.exec("ALTER TABLE research_sub_questions ADD COLUMN omission_risk TEXT");
   }
+  if (!hasColumn(db, "research_sub_questions", "prompt_bundle_json")) {
+    db.exec("ALTER TABLE research_sub_questions ADD COLUMN prompt_bundle_json TEXT NOT NULL DEFAULT '{}'");
+  }
   db.prepare(
     `UPDATE research_sub_questions
      SET required_evidence_json = '[]'
      WHERE required_evidence_json IS NULL OR trim(required_evidence_json) = ''`,
+  ).run();
+  db.prepare(
+    `UPDATE research_sub_questions
+     SET prompt_bundle_json = '{}'
+     WHERE prompt_bundle_json IS NULL OR trim(prompt_bundle_json) = ''`,
   ).run();
 };
 
@@ -309,6 +329,22 @@ const migrateResearchExportsPayloadJson = (db: Database.Database): void => {
   ).run();
 };
 
+const pruneResearchExportKindsSingleFlow = (db: Database.Database): void => {
+  db.prepare(
+    `DELETE FROM research_exports
+     WHERE export_kind NOT IN (
+       'final-report.md',
+       'full-case-file.md',
+       'full-case-file.json',
+       'research-plan.json',
+       'prompt-bundles.json',
+       'decision-package.json',
+       'business-report.html',
+       'evidence-index.json'
+     )`,
+  ).run();
+};
+
 export const resolveDeepResearchDbPath = (dataDir: string): string =>
   path.join(dataDir, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH);
 
@@ -326,6 +362,7 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
   migrateResearchSubQuestionStructuredFields(db);
   migrateResearchAnswersParsedPayload(db);
   migrateResearchExportsPayloadJson(db);
+  pruneResearchExportKindsSingleFlow(db);
   for (const statement of DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL) {
     db.exec(statement);
   }

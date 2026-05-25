@@ -9,6 +9,7 @@ export type RuntimeLogOwner =
   | "local-runtime"
   | "startup-entrypoint"
   | "amazon-invoice-upload"
+  | "amazon-product-mining"
   | "facebook-product-video-mining"
   | "deep-research-analysis"
   | "dom-automation"

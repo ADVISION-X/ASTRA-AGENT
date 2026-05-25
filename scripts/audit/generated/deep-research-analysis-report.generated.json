@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T14:44:49.646Z",
+  "generatedAt": "2026-05-25T16:31:11.871Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,8 +10,49 @@
     "GRASSEYE-DEEP-RESEARCH-041-V1",
     "GRASSEYE-DEEP-RESEARCH-042-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "deep-research/no-compatibility-vocabulary",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
+      "clauseId": "primary",
+      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts"
+    },
+    {
+      "checkId": "deep-research/no-compatibility-vocabulary",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
+      "clauseId": "primary",
+      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts"
+    },
+    {
+      "checkId": "deep-research/no-compatibility-vocabulary",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
+      "clauseId": "primary",
+      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-schema.ts"
+    },
+    {
+      "checkId": "deep-research/no-compatibility-vocabulary",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
+      "clauseId": "primary",
+      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"
+    },
+    {
+      "checkId": "deep-research/no-compatibility-vocabulary",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
+      "clauseId": "primary",
+      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
@@ -26,7 +67,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-core.ts",
@@ -45,11 +85,15 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-capture-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
@@ -58,8 +102,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
@@ -73,6 +115,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-result-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-persist.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.source-notes.ts",

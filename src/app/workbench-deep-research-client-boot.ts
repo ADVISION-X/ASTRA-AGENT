@@ -163,6 +163,18 @@ async function openDeepResearchExport(state: DeepResearchClientState, kind: stri
   writeActivity(`deep research export opened: ${exported.fileName || kind}`, "ok");
 }
 
+async function regenerateDeepResearchHtmlReport(state: DeepResearchClientState): Promise<void> {
+  if (!state.selectedJobId) {
+    writeActivity("deep research job id is required", "warn");
+    return;
+  }
+  await readResearchJson(`/api/deep-research-analysis/regenerate-html-report?jobId=${encodeURIComponent(state.selectedJobId)}`, {
+    method: "POST",
+  });
+  writeActivity("deep research HTML report regenerated", "ok");
+  await loadSelectedReport(state, state.selectedJobId);
+}
+
 async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: string): Promise<void> {
   if (!jobId || !confirm("Delete this Deep Research report and its exported artifacts?")) {
     return;
@@ -209,6 +221,12 @@ function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEve
   if (exportButton) {
     downloadDeepResearchExport(state, exportButton.getAttribute("data-deep-research-export") || "").catch((error) => {
       writeActivity(`deep research export failed: ${error.message}`, "bad");
+    });
+    return;
+  }
+  if (target?.closest("[data-deep-research-regenerate-html]")) {
+    regenerateDeepResearchHtmlReport(state).catch((error) => {
+      writeActivity(`deep research HTML regenerate failed: ${error.message}`, "bad");
     });
     return;
   }
@@ -282,6 +300,7 @@ export const deepResearchClientBootFunctions = [
   loadLatestReport,
   startDeepResearch,
   downloadDeepResearchExport,
+  regenerateDeepResearchHtmlReport,
   deleteDeepResearchJob,
   handleDeepResearchClick,
   handleDeepResearchInput,

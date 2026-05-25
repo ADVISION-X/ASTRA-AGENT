@@ -1,13 +1,18 @@
 import { createId } from "../../lib/local-runtime/ids.js";
+import { stableJsonHash } from "../../lib/storage/hash.js";
 import {
   DeepResearchSubQuestionSchema,
   type DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
+import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
+import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
 import {
+  ResearchPlanRecordSchema,
   ResearchSubQuestionSchema,
   type ResearchAnswer,
   type ResearchAnswerKind,
   type ResearchInteraction,
+  type ResearchPlanRecord,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
 import {
@@ -15,6 +20,7 @@ import {
   getCurrentTimestamp,
   mapAnswerRow,
   mapInteractionRow,
+  mapResearchPlanRow,
   mapSubQuestionRow,
 } from "./deep-research-analysis.record-db.js";
 
@@ -89,12 +95,29 @@ export const saveSubQuestions = (
     subQuestions: readonly DeepResearchSubQuestion[];
   },
 ): ResearchSubQuestion[] => {
+  const buildDefaultPromptBundle = (subQuestion: DeepResearchSubQuestion): DeepResearchPromptBundle => ({
+    promptBundleId: `${subQuestion.id}-default-prompt-bundle`,
+    promptRole: "sub_question_analysis",
+    taskInstruction: `Analyze this sub-question: ${subQuestion.questionText}`,
+    questionSpecificFocus: [subQuestion.title],
+    mustUseInputs: ["userQuestion", "analysisGoal", "subQuestion"],
+    mustNotDo: ["Do not issue browser commands.", "Do not invent evidence."],
+    evidenceOrReasoningNeeds: ["State claims, evidence mentions, assumptions, limitations, and counter conditions."],
+    outputGuidance: {
+      preferredFormat: "json_object",
+      requiredContent: ["answer", "coreFinding", "keyClaims", "confidence", "limitations"],
+      optionalContent: ["failureCases", "uncertainties"],
+      forbiddenContent: ["workflow instructions"],
+    },
+    safetyBoundary: ["This is analysis only."],
+    languageInstruction: "Respond in the requested language.",
+  });
   const insert = db.prepare(
     `INSERT INTO research_sub_questions (
       id, job_id, interaction_id, model_question_id, ordinal, title, question_text, purpose,
       why_it_matters, decision_weight, analysis_focus, required_evidence_json,
-      scope, expected_answer_shape, priority, omission_risk, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      scope, expected_answer_shape, priority, omission_risk, prompt_bundle_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const createdAt = getCurrentTimestamp();
   const rows: ResearchSubQuestion[] = [];
@@ -118,6 +141,7 @@ export const saveSubQuestions = (
       parsed.expectedAnswerShape,
       parsed.priority ?? null,
       parsed.omissionRisk ?? null,
+      JSON.stringify(parsed.promptBundle ?? buildDefaultPromptBundle(parsed)),
       createdAt,
     );
     rows.push(ResearchSubQuestionSchema.parse({
@@ -139,6 +163,50 @@ export const listSubQuestions = (
 ): ResearchSubQuestion[] =>
   (db.prepare(`SELECT * FROM research_sub_questions WHERE job_id = ? ORDER BY ordinal ASC`).all(jobId) as Parameters<typeof mapSubQuestionRow>[0][])
     .map(mapSubQuestionRow);
+
+export const saveResearchPlan = (
+  db: DeepResearchDatabaseHandle,
+  input: {
+    jobId: string;
+    interactionId: string;
+    researchPlan: DeepResearchPlan;
+  },
+): ResearchPlanRecord => {
+  const id = createId("deep_research_plan");
+  const createdAt = getCurrentTimestamp();
+  const researchPlanJson = JSON.stringify(input.researchPlan);
+  const planHash = stableJsonHash(input.researchPlan);
+  db.prepare(
+    `INSERT INTO research_plans (
+      id, job_id, interaction_id, research_plan_json, plan_hash, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(job_id) DO UPDATE SET
+      interaction_id = excluded.interaction_id,
+      research_plan_json = excluded.research_plan_json,
+      plan_hash = excluded.plan_hash,
+      created_at = excluded.created_at`,
+  ).run(
+    id,
+    input.jobId,
+    input.interactionId,
+    researchPlanJson,
+    planHash,
+    createdAt,
+  );
+  const row = db.prepare(`SELECT * FROM research_plans WHERE job_id = ?`).get(input.jobId) as Parameters<typeof mapResearchPlanRow>[0] | undefined;
+  if (!row) {
+    throw new Error(`Deep research plan for job ${input.jobId} was not persisted.`);
+  }
+  return ResearchPlanRecordSchema.parse(mapResearchPlanRow(row));
+};
+
+export const getResearchPlan = (
+  db: DeepResearchDatabaseHandle,
+  jobId: string,
+): DeepResearchPlan | null => {
+  const row = db.prepare(`SELECT * FROM research_plans WHERE job_id = ?`).get(jobId) as Parameters<typeof mapResearchPlanRow>[0] | undefined;
+  return row ? mapResearchPlanRow(row).researchPlan : null;
+};
 
 export const saveAnswer = (
   db: DeepResearchDatabaseHandle,

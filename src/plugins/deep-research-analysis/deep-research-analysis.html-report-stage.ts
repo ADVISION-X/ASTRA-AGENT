@@ -2,7 +2,7 @@ import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import {
-  businessHtmlReportPublisherPrompt,
+  businessHtmlReportShellPrompt,
   renderDeepResearchBusinessHtmlReportPrompt,
 } from "./deep-research-analysis.html-report-prompt.js";
 import {
@@ -47,19 +47,14 @@ type HtmlReportSuccess = {
 
 const buildBusinessHtmlPromptText = (input: {
   context: AnalysisExecutionContext;
-  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
 }): string => renderDeepResearchBusinessHtmlReportPrompt({
-  structuredIndex: input.finalPackage,
   finalReport: input.finalReport,
   fullCaseFile: input.fullCaseFile,
   fullCaseFileMarkdown: input.fullCaseFileMarkdown,
-  sourceNotes: buildHtmlSourceNotes({
-    finalPackage: input.finalPackage,
-    finalReport: input.finalReport,
-  }),
+  htmlReportPromptBundle: input.fullCaseFile.researchPlan.htmlReportPromptBundle,
   language: input.context.input.language,
 });
 
@@ -76,8 +71,8 @@ const persistBusinessHtmlReport = (input: {
     payload: {
       jobId: input.context.jobId,
       phaseId: "HTML_REPORT_PERSIST",
-      promptId: businessHtmlReportPublisherPrompt.promptId,
-      promptVersion: businessHtmlReportPublisherPrompt.promptVersion,
+      promptId: businessHtmlReportShellPrompt.promptId,
+      promptVersion: businessHtmlReportShellPrompt.promptVersion,
       rawAssistantText: input.interaction.rawResponseText,
       artifactName: input.parsed.artifactName,
       artifactMimeType: input.parsed.artifactMimeType,
@@ -116,17 +111,16 @@ export const runBusinessHtmlReportPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: businessHtmlReportPublisherPrompt,
+    prompt: businessHtmlReportShellPrompt,
     promptKey: "business-html-report",
     renderedPromptText: buildBusinessHtmlPromptText({
       context,
-      finalPackage,
       finalReport,
       fullCaseFile,
       fullCaseFileMarkdown,
     }),
     inputRefs: [
-      `job:${context.jobId}:final-package`,
+      `job:${context.jobId}:structured-index`,
       `job:${context.jobId}:final-report`,
       `job:${context.jobId}:full-case-file`,
     ],

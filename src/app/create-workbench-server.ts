@@ -3,6 +3,7 @@ import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
+import { handleAmazonProductMiningRequest } from "./workbench-amazon-product-mining-routes.js";
 import { handleDeepResearchRequest } from "./workbench-deep-research-routes.js";
 import { handleFacebookRequest } from "./workbench-facebook-routes.js";
 import { writeCorsPreflight, writeJson } from "./workbench-http.js";
@@ -65,6 +66,9 @@ const handleKnownWorkbenchApiRequest = async (input: {
     return true;
   }
   if (await handleFacebookRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleAmazonProductMiningRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
   return handleVideoDownloadRequest(input.request, input.response, input.workbench);

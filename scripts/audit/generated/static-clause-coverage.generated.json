@@ -1,11 +1,131 @@
 {
-  "generatedAt": "2026-05-25T14:44:32.719Z",
+  "generatedAt": "2026-05-25T16:30:55.524Z",
   "summary": {
-    "activeLawCount": 120,
-    "coveredLawCount": 120,
+    "activeLawCount": 132,
+    "coveredLawCount": 132,
     "coveragePercent": 100
   },
   "coverage": [
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
     {
       "lawId": "APEX-ARCH-001-V1",
       "capabilityDomain": "architecture-boundary",

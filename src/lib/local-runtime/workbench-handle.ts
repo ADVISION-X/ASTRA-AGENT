@@ -29,6 +29,10 @@ type StartFacebookProductVideoMiningMission = typeof import("../../plugins/faceb
 type GetFacebookProductVideoMiningRunStatus = typeof import("../../plugins/facebook-product-video-mining/index.js").getFacebookProductVideoMiningRunStatus;
 type ListFacebookProductVideoMiningSavedRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").listFacebookProductVideoMiningSavedRecords;
 type ExportFacebookProductVideoMiningSelectionRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").exportFacebookProductVideoMiningSelectionRecords;
+type StartAmazonProductMiningMission = typeof import("../../plugins/amazon-product-mining/index.js").startAmazonProductMiningMission;
+type GetAmazonProductMiningTaskStatus = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningTaskStatus;
+type GetLatestAmazonProductMiningTask = typeof import("../../plugins/amazon-product-mining/index.js").getLatestAmazonProductMiningTask;
+type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -41,6 +45,10 @@ type FacebookProductVideoMiningMissionInput = Parameters<StartFacebookProductVid
 type FacebookProductVideoMiningRunStatus = Awaited<ReturnType<GetFacebookProductVideoMiningRunStatus>>;
 type FacebookProductVideoMiningSavedRecords = Awaited<ReturnType<ListFacebookProductVideoMiningSavedRecords>>;
 type FacebookProductVideoMiningSelectionExport = Awaited<ReturnType<ExportFacebookProductVideoMiningSelectionRecords>>;
+type AmazonProductMiningMissionInput = Parameters<StartAmazonProductMiningMission>[0]["rawInput"];
+type AmazonProductMiningStartResult = ReturnType<StartAmazonProductMiningMission>;
+type AmazonProductMiningTaskResult = ReturnType<GetAmazonProductMiningTaskStatus>;
+type AmazonProductMiningExportResult = ReturnType<ExportAmazonProductMiningResult>;
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -101,6 +109,9 @@ export type GrassEyeWorkbenchHandle = {
   startDeepResearchAnalysis: (
     input: DeepResearchAnalysisStartInput,
   ) => Promise<DeepResearchJobSnapshot>;
+  rerunDeepResearchBusinessHtmlReport: (
+    input: { jobId: string },
+  ) => Promise<DeepResearchJobSnapshot | null>;
   getDeepResearchAnalysisJob: (
     jobId: string,
   ) => Promise<DeepResearchJobSnapshot | null>;
@@ -122,4 +133,14 @@ export type GrassEyeWorkbenchHandle = {
   deleteDeepResearchAnalysisJob: (
     jobId: string,
   ) => Promise<{ deleted: boolean; jobId: string }>;
+  startAmazonProductMiningMission: (
+    input: AmazonProductMiningMissionInput,
+  ) => AmazonProductMiningStartResult;
+  getAmazonProductMiningTaskStatus: (
+    taskId: string,
+  ) => AmazonProductMiningTaskResult;
+  getLatestAmazonProductMiningTask: () => AmazonProductMiningTaskResult;
+  exportAmazonProductMiningResult: (
+    taskId: string,
+  ) => AmazonProductMiningExportResult;
 };

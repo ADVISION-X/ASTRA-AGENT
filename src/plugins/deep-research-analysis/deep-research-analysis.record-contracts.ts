@@ -8,6 +8,7 @@ import {
   DeepResearchPhaseSchema,
   DeepResearchSubQuestionSchema,
 } from "./deep-research-analysis.schema.js";
+import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 
 export const DeepResearchProviderKindSchema = z.enum([
@@ -22,6 +23,8 @@ const ResearchExportKindSchema = z.enum([
   "final-report.md",
   "full-case-file.md",
   "full-case-file.json",
+  "research-plan.json",
+  "prompt-bundles.json",
   "decision-package.json",
   "business-report.html",
   "evidence-index.json",
@@ -54,6 +57,15 @@ export const ResearchSubQuestionSchema = z.object({
   modelQuestionId: z.string().trim().min(1),
   ordinal: z.number().int().nonnegative(),
   question: DeepResearchSubQuestionSchema,
+  createdAt: z.string().datetime(),
+}).strict();
+
+export const ResearchPlanRecordSchema = z.object({
+  id: z.string().trim().min(1),
+  jobId: z.string().trim().min(1),
+  interactionId: z.string().trim().min(1),
+  researchPlan: DeepResearchPlanSchema,
+  planHash: z.string().trim().min(1),
   createdAt: z.string().datetime(),
 }).strict();
 
@@ -115,6 +127,7 @@ export const ResearchExportSchema = z.object({
 
 export type ResearchJob = z.infer<typeof ResearchJobSchema>;
 export type ResearchSubQuestion = z.infer<typeof ResearchSubQuestionSchema>;
+export type ResearchPlanRecord = z.infer<typeof ResearchPlanRecordSchema>;
 export type ResearchInteraction = z.infer<typeof ResearchInteractionSchema>;
 export type ResearchAnswer = z.infer<typeof ResearchAnswerSchema>;
 export type ResearchAnswerKind = z.infer<typeof ResearchAnswerKindSchema>;

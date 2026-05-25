@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-25T14:44:49.063Z",
-  "status": "PASS",
-  "scannedFiles": 305,
+  "generatedAt": "2026-05-25T16:31:11.456Z",
+  "status": "FAIL",
+  "scannedFiles": 323,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -9,6 +9,7 @@
     "scripts/audit/domains/runtime-log-spine/inspector.ts",
     "src/app/create-workbench-server.ts",
     "src/app/server.ts",
+    "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-contracts.ts",
@@ -203,6 +204,20 @@
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+    "src/plugins/amazon-product-mining/index.ts",
     "src/plugins/deep-research-analysis/acceptance-surface.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
@@ -210,7 +225,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-core.ts",
@@ -229,11 +243,15 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-capture-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-core.ts",
@@ -242,8 +260,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stages.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
@@ -257,6 +273,8 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-result-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-persist.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.source-notes.ts",
@@ -309,15 +327,15 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 12,
+  "emitCallCount": 13,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
-  "missingTraceContractCount": 0,
+  "missingTraceContractCount": 1,
   "catchBranchCount": 1,
-  "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 26,
+  "catchBranchWithoutLogCount": 1,
+  "failureBranchCount": 27,
   "failureWithoutClassCount": 0,
   "stageStartCount": 18,
   "stageTerminalCount": 37,
@@ -325,10 +343,10 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 0,
-    "fatalFindings": 0,
-    "scannedFiles": 305,
-    "emitCallCount": 12,
+    "totalFindings": 3,
+    "fatalFindings": 3,
+    "scannedFiles": 323,
+    "emitCallCount": 13,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -338,7 +356,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 300,
+      "scannedFiles": 318,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -347,43 +365,43 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 249
+      "scannedFiles": 266
     },
     {
       "name": "runtime-log-emit-contract",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 246,
+      "status": "FAIL",
+      "findingCount": 2,
+      "scannedFiles": 263,
       "metrics": {
-        "emitCallCount": 2
+        "emitCallCount": 3
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 246
+      "scannedFiles": 263
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 250,
+      "scannedFiles": 267,
       "metrics": {
         "stageCoveragePercent": 100
       }
     },
     {
       "name": "catch-branch-log",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 20
+      "status": "FAIL",
+      "findingCount": 1,
+      "scannedFiles": 22
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 250,
+      "scannedFiles": 267,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -404,7 +422,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 41
+      "scannedFiles": 42
     },
     {
       "name": "browser-action-log-contract",
@@ -416,12 +434,12 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 20,
+      "scannedFiles": 22,
       "metrics": {
-        "emitCallCount": 12,
+        "emitCallCount": 13,
         "stageStartCount": 18,
         "stageTerminalCount": 37,
-        "failureBranchCount": 26
+        "failureBranchCount": 27
       }
     },
     {
@@ -431,5 +449,33 @@
       "scannedFiles": 2
     }
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "runtime-log-spine/emit-trace-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+      "file": "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+      "line": 13,
+      "severity": "fatal",
+      "message": "RuntimeLogger.emit contract is incomplete",
+      "hint": "Add traceId, level, modeVisibility, eventType, owner and mission/run/round identifiers. Failed/review_required/skipped events must include failureClass contract. Spread fields must be statically proven."
+    },
+    {
+      "checkId": "runtime-log-spine/emit-event-type-registry",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
+      "file": "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+      "line": 13,
+      "severity": "fatal",
+      "message": "eventType is not proven to come from RuntimeLogEventType registry",
+      "hint": "Import RuntimeLogEventType from the runtime log registry and use RuntimeLogEventType.X directly or through a traceable constant."
+    },
+    {
+      "checkId": "runtime-log-spine/throw-log",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+      "file": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts",
+      "line": 89,
+      "severity": "fatal",
+      "message": "control-flow failure branch has no proven structured log",
+      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating."
+    }
+  ]
 }

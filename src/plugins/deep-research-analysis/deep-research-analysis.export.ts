@@ -21,6 +21,7 @@ import type {
   ResearchSubQuestion,
   ResearchAnswer,
 } from "./deep-research-analysis.records.js";
+import { buildDeepResearchPromptBundleExport } from "./deep-research-analysis.research-plan-persist.js";
 
 type DeepResearchEvidenceIndexEntry = {
   interactionId: string;
@@ -35,6 +36,8 @@ type DeepResearchExportArtifacts = {
   finalReportMarkdown: ResearchExport;
   fullCaseFileJson: ResearchExport;
   fullCaseFileMarkdown: ResearchExport;
+  researchPlan: ResearchExport;
+  promptBundles: ResearchExport;
   decisionPackage: ResearchExport;
   businessHtmlReport: ResearchExport;
   evidenceIndex: ResearchExport;
@@ -147,6 +150,8 @@ const buildDecisionPackage = (input: {
   analysisCoverage: input.finalPackage.analysisCoverage,
   missingAnalysisSubQuestionIds: input.finalPackage.missingAnalysisSubQuestionIds,
   finalReport: input.finalReport,
+  researchPlan: input.finalPackage.researchPlan,
+  promptBundles: input.finalPackage.promptBundles,
   recordHashes: input.finalPackage.recordHashes,
 });
 
@@ -156,6 +161,9 @@ type DeepResearchPreparedExportArtifacts = {
   finalReportArtifact: { filePath: string; fileHash: string };
   decisionPackage: ReturnType<typeof buildDecisionPackage>;
   decisionPackageArtifact: { filePath: string; fileHash: string };
+  researchPlanArtifact: { filePath: string; fileHash: string };
+  promptBundlesArtifact: { filePath: string; fileHash: string };
+  promptBundles: ReturnType<typeof buildDeepResearchPromptBundleExport>;
   businessHtmlExport: ResearchExport | null;
   evidenceIndex: DeepResearchEvidenceIndexEntry[];
   evidenceIndexArtifact: { filePath: string; fileHash: string };
@@ -178,6 +186,18 @@ const prepareExportArtifacts = (input: {
     path.join(input.exportDir, DECISION_PACKAGE_EXPORT_KIND),
     decisionPackage,
   );
+  const researchPlanArtifact = writeJsonArtifact(
+    path.join(input.exportDir, "research-plan.json"),
+    input.finalPackage.researchPlan,
+  );
+  const promptBundles = buildDeepResearchPromptBundleExport({
+    researchPlan: input.finalPackage.researchPlan,
+    subQuestions: input.finalPackage.decompositionRecords,
+  });
+  const promptBundlesArtifact = writeJsonArtifact(
+    path.join(input.exportDir, "prompt-bundles.json"),
+    promptBundles,
+  );
   const businessHtmlExport = input.persisted.exports.find((record) => record.exportKind === "business-report.html") ?? null;
   const evidenceIndex = buildEvidenceIndexEntries({
     interactions: input.persisted.interactions,
@@ -193,6 +213,9 @@ const prepareExportArtifacts = (input: {
     finalReportArtifact,
     decisionPackage,
     decisionPackageArtifact,
+    researchPlanArtifact,
+    promptBundlesArtifact,
+    promptBundles,
     businessHtmlExport,
     evidenceIndex,
     evidenceIndexArtifact,
@@ -203,7 +226,7 @@ const savePreparedExportRecords = (input: {
   jobId: string;
   store: DeepResearchRecordStore;
   prepared: DeepResearchPreparedExportArtifacts;
-}): Pick<DeepResearchExportArtifacts, "finalReportMarkdown" | "decisionPackage" | "evidenceIndex"> & {
+}): Pick<DeepResearchExportArtifacts, "finalReportMarkdown" | "decisionPackage" | "researchPlan" | "promptBundles" | "evidenceIndex"> & {
   businessHtmlReport: ResearchExport | null;
 } => ({
   finalReportMarkdown: input.store.saveExport({
@@ -222,6 +245,20 @@ const savePreparedExportRecords = (input: {
     filePath: input.prepared.decisionPackageArtifact.filePath,
     fileHash: input.prepared.decisionPackageArtifact.fileHash,
     payload: input.prepared.decisionPackage,
+  }),
+  researchPlan: input.store.saveExport({
+    jobId: input.jobId,
+    exportKind: "research-plan.json",
+    filePath: input.prepared.researchPlanArtifact.filePath,
+    fileHash: input.prepared.researchPlanArtifact.fileHash,
+    payload: input.prepared.decisionPackage.researchPlan,
+  }),
+  promptBundles: input.store.saveExport({
+    jobId: input.jobId,
+    exportKind: "prompt-bundles.json",
+    filePath: input.prepared.promptBundlesArtifact.filePath,
+    fileHash: input.prepared.promptBundlesArtifact.fileHash,
+    payload: input.prepared.promptBundles,
   }),
   businessHtmlReport: input.prepared.businessHtmlExport,
   evidenceIndex: input.store.saveExport({
@@ -264,7 +301,7 @@ export const exportDeepResearchArtifacts = async (input: {
     fullCaseFile: input.fullCaseFile ?? buildDeepResearchFullCaseFile({
       store: input.store,
       jobId: input.jobId,
-      structuredFinalPackage: input.finalPackage,
+      structuredIndex: input.finalPackage,
     }),
   });
   const savedArtifacts = savePreparedExportRecords({

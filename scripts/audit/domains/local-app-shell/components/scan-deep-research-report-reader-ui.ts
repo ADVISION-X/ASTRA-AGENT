@@ -208,9 +208,11 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
     "Open Full Case File",
     "Download full-case-file.md",
     "Download full-case-file.json",
-    "Open structured final package",
+    "Open structured index",
     "Open HTML Report",
     "Download HTML Report",
+    "Regenerate HTML Report",
+    "data-deep-research-regenerate-html",
     "HTML report not generated",
     "AI-generated HTML decision report",
     "Generated At",
@@ -225,6 +227,7 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
   for (const marker of [
     "/api/deep-research-analysis/history",
     "/api/deep-research-analysis/report",
+    "/api/deep-research-analysis/regenerate-html-report",
   ]) {
     requireText(findings, lawId, routesPath, marker);
   }

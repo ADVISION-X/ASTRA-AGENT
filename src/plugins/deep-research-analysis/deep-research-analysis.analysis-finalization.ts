@@ -11,7 +11,7 @@ import {
 } from "./deep-research-analysis.logging.js";
 import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-analysis.parser.js";
 import {
-  finalAdjudicationPrompt,
+  finalAdjudicationShellPrompt,
   renderDeepResearchFinalAdjudicationPrompt,
 } from "./deep-research-analysis.final-adjudication-prompt.js";
 import { type DeepResearchFinalReport, type DeepResearchResult } from "./deep-research-analysis.result.js";
@@ -125,7 +125,7 @@ const failFinalPackageStage = (
       traceContext: context.traceContext,
       jobId: context.jobId,
       status: "review_required",
-      phase: "FINAL_PACKAGE_BUILD",
+      phase: "FULL_CASE_FILE_BUILD",
       reason,
       failureClass: RuntimeFailureClass.SCHEMA_CONTRACT_VIOLATION,
       recordHashes: context.recordHashes,
@@ -144,7 +144,7 @@ const completeFinalPackageStage = (input: {
   logDeepResearchStructuredIndexBuilt({
     logger: input.context.runtimeLogger,
     traceContext: input.context.traceContext,
-    phase: "FINAL_PACKAGE_BUILD",
+    phase: "FULL_CASE_FILE_BUILD",
     packageHash: finalPackageHash,
     recordHashCount: Object.keys(input.finalPackage.recordHashes).length,
     promptVersionCount: Object.keys(input.finalPackage.promptVersions).length,
@@ -274,14 +274,14 @@ export const buildFullCaseFileStage = (
   context.store.updateJobState({
     jobId: context.jobId,
     status: "running",
-    phase: "FINAL_PACKAGE_BUILD",
+    phase: "FULL_CASE_FILE_BUILD",
   });
   const finalPackageStage = context.stageLogger.start({
     ...buildFlowStageStartFields({
     traceContext: context.traceContext,
     preview: { jobId: context.jobId },
     }),
-    stageName: "FINAL_PACKAGE_BUILD",
+    stageName: "FULL_CASE_FILE_BUILD",
   });
   let finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   let fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
@@ -293,13 +293,13 @@ export const buildFullCaseFileStage = (
     fullCaseFile = buildDeepResearchFullCaseFile({
       store: context.store,
       jobId: context.jobId,
-      structuredFinalPackage: finalPackage,
+      structuredIndex: finalPackage,
     });
   } catch (error) {
     return failFinalPackageStage(
       context,
       finalPackageStage,
-      error instanceof Error ? error.message : "deep_research_final_package_build_failed",
+      error instanceof Error ? error.message : "deep_research_full_case_file_build_failed",
     );
   }
   completeFinalPackageStage({
@@ -331,17 +331,16 @@ export const runFinalReportPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: finalAdjudicationPrompt,
+    prompt: finalAdjudicationShellPrompt,
     promptKey: "final-adjudication",
     renderedPromptText: renderDeepResearchFinalAdjudicationPrompt({
-      userQuestion: context.input.userQuestion,
-      analysisGoal: context.input.analysisGoal,
       language: context.input.language,
       structuredIndex: finalPackage,
       fullCaseFile,
       fullCaseFileMarkdown,
+      finalAdjudicationPromptBundle: fullCaseFile.researchPlan.finalAdjudicationPromptBundle,
     }),
-    inputRefs: [`job:${context.jobId}:final-package`, `job:${context.jobId}:full-case-file`],
+    inputRefs: [`job:${context.jobId}:structured-index`, `job:${context.jobId}:full-case-file`],
     timeoutMs: 1_200_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {

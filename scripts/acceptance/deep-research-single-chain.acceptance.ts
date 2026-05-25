@@ -7,11 +7,13 @@ const runner = readFileSync("src/plugins/deep-research-analysis/deep-research-an
 [
   "runDecompositionPhase",
   "runSubQuestionPhases",
-  "buildFinalPackageStage",
+  "buildFullCaseFileStage",
   "runFinalReportPhase",
   "runBusinessHtmlReportPhase",
   "completeSuccessfulRun",
 ].forEach((symbol) => assert(runner.includes(symbol), `runner must include ${symbol}`));
+
+assert(!runner.includes("buildFinalPackageStage"), "runner must not include removed buildFinalPackageStage.");
 
 assert(!runner.includes(decode("cnVuQnVzaW5lc3NEZWNrUGhhc2U=")), "runner must not include removed report phases.");
 assert(!runner.includes(decode("cnVuUHB0QXJ0aWZhY3RQaGFzZQ==")), "runner must not include retired binary report-side phases.");

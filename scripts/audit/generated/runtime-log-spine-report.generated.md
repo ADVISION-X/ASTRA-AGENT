@@ -1,13 +1,13 @@
 # Runtime Log Spine Quality Report
 
-Status: PASS
+Status: FAIL
 
 ## Summary
 
-- Total findings: 0
-- Fatal findings: 0
-- Scanned files: 305
-- Emit calls: 12
+- Total findings: 3
+- Fatal findings: 3
+- Scanned files: 323
+- Emit calls: 13
 - Console violations: 0
 - Failure events without class: 0
 - Stage coverage: 100%
@@ -18,10 +18,10 @@ Status: PASS
 |---|---:|---:|
 | forbidden-console | PASS | 0 |
 | event-type-registry | PASS | 0 |
-| runtime-log-emit-contract | PASS | 0 |
+| runtime-log-emit-contract | FAIL | 2 |
 | mode-visibility | PASS | 0 |
 | stage-pair-coverage | PASS | 0 |
-| catch-branch-log | PASS | 0 |
+| catch-branch-log | FAIL | 1 |
 | failure-class | PASS | 0 |
 | redaction | PASS | 0 |
 | debug-bundle | PASS | 0 |
@@ -32,7 +32,11 @@ Status: PASS
 
 ## Fatal Findings
 
-No fatal findings.
+| Law | File | Line | Message | Hint |
+|---|---|---:|---|---|
+| GRASSEYE-RUNTIME-LOG-SPINE-003-V1 | src/plugins/amazon-product-mining/amazon-product-mining.logging.ts | 13 | RuntimeLogger.emit contract is incomplete | Add traceId, level, modeVisibility, eventType, owner and mission/run/round identifiers. Failed/review_required/skipped events must include failureClass contract. Spread fields must be statically proven. |
+| GRASSEYE-RUNTIME-LOG-SPINE-017-V1 | src/plugins/amazon-product-mining/amazon-product-mining.logging.ts | 13 | eventType is not proven to come from RuntimeLogEventType registry | Import RuntimeLogEventType from the runtime log registry and use RuntimeLogEventType.X directly or through a traceable constant. |
+| GRASSEYE-RUNTIME-LOG-SPINE-004-V1 | src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts | 89 | control-flow failure branch has no proven structured log | Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating. |
 
 ## Coverage
 

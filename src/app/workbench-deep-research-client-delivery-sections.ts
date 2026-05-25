@@ -9,8 +9,6 @@ const {
   setResearchHtml,
 } = deepResearchClientSharedRuntime;
 
-const decisionPackageReaderLabel = "Open decision package";
-
 const findExport = (report: DeepResearchReport, kind: string) =>
   report.exports.find((record) => record.exportKind === kind) ?? null;
 
@@ -44,7 +42,6 @@ const renderFullCaseFileDelivery = (report: DeepResearchReport): void => {
       ${fullCaseFileMarkdown ? '<button class="btn secondary" type="button" data-deep-research-open-export="full-case-file.md">Open Full Case File</button>' : ""}
       ${fullCaseFileMarkdown ? '<button class="btn secondary" type="button" data-deep-research-export="full-case-file.md">Download full-case-file.md</button>' : ""}
       ${fullCaseFileJson ? '<button class="btn secondary" type="button" data-deep-research-export="full-case-file.json">Download full-case-file.json</button>' : ""}
-      ${findExport(report, "decision-package.json") ? `<button class="btn secondary" type="button" data-deep-research-open-export="decision-package.json">${decisionPackageReaderLabel}</button>` : ""}
     </div>
     <div class="research-summary-grid">
       ${renderListSection("Case File Coverage", [
@@ -63,12 +60,15 @@ const renderPrimaryBusinessReport = (report: DeepResearchReport): void => {
   if (!primaryReport || !primaryReport.htmlExport) {
     setResearchHtml("[data-deep-research-primary-business-report]", `
       <div class="research-section-head">
-        <div>
+      <div>
           <p class="research-kicker">Primary Business Report</p>
           <h2>HTML report not generated</h2>
         </div>
       </div>
-      <p class="muted">The AI HTML Report Publisher runs after final adjudication and persists business-report.html when available.</p>`);
+      <p class="muted">The AI HTML Report Publisher runs after final adjudication and persists business-report.html when available.</p>
+      <div class="research-delivery-strip">
+        <button class="btn secondary" type="button" data-deep-research-regenerate-html>Regenerate HTML Report</button>
+      </div>`);
     return;
   }
   const sourceLabel = primaryReport.sourceKind === "html_artifact"

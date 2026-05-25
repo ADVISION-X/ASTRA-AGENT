@@ -7,10 +7,12 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
+import { inspectFinalAdjudicationFullInput } from "./components/scan-final-adjudication-full-input.js";
 import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
 import { inspectHtmlReportOnlyArtifact } from "./components/scan-html-report-only-artifact.js";
+import { inspectNoCompatibilityVocabulary } from "./components/scan-forbidden-execution-vocabulary.js";
 import { inspectNoDeadCodeAdjudication } from "./components/scan-no-dead-code-adjudication.js";
-import { inspectNoPresentationArtifacts } from "./components/scan-no-presentation-artifacts.js";
+import { inspectRawInteractionPersistence } from "./components/scan-raw-interaction-persistence.js";
 import { inspectSingleChainSovereignty } from "./components/scan-single-chain-sovereignty.js";
 
 const requiredFiles = [
@@ -73,17 +75,31 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
   });
+  inspectRawInteractionPersistence({
+    recordContractsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts"),
+    recordInteractionOpsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
+  });
+  inspectFinalAdjudicationFullInput({
+    finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
+    finalAdjudicationPromptFile: getSourceFile(context, requiredFiles[5]),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
+  });
   inspectHtmlReportOnlyArtifact({
     sourceFiles,
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
   });
-  inspectNoPresentationArtifacts({
+  inspectNoCompatibilityVocabulary({
     sourceFiles,
     findings,
     inspectedFiles,
-    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
   });
   inspectNoDeadCodeAdjudication({
     sourceFiles,
@@ -92,7 +108,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     parserSupportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts"),
     findings,
     inspectedFiles,
-    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
   });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

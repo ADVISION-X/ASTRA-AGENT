@@ -2,13 +2,15 @@ import { z } from "zod";
 
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import {
-  finalAdjudicationPrompt,
+  finalAdjudicationShellPrompt,
 } from "./deep-research-analysis.final-adjudication-prompt.js";
 import type { DeepResearchSourceNote } from "./deep-research-analysis.result.js";
 import { DeepResearchSourceNoteSchema } from "./deep-research-analysis.result.js";
 import type {
   DeepResearchPromptOutputContract,
 } from "./deep-research-analysis.prompt-contracts.js";
+import { buildDeepResearchPromptBundleExport } from "./deep-research-analysis.research-plan-persist.js";
+import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
 import type {
   DeepResearchRecordStore,
   ResearchAnswer,
@@ -29,6 +31,8 @@ const DeepResearchFinalPackageBaseSchema = z.object({
   jobId: z.string().trim().min(1),
   userQuestion: z.string().trim().min(1),
   analysisGoal: z.string().trim().min(1).nullable(),
+  researchPlan: z.unknown(),
+  promptBundles: z.unknown(),
   decompositionRecords: z.array(z.unknown()),
   analysisRecords: z.array(z.unknown()),
   analysisCoverage: DeepResearchAnalysisCoverageSchema,
@@ -50,6 +54,8 @@ type DeepResearchFinalPackageBase = {
   jobId: string;
   userQuestion: string;
   analysisGoal: string | null;
+  researchPlan: DeepResearchPlan;
+  promptBundles: ReturnType<typeof buildDeepResearchPromptBundleExport>;
   decompositionRecords: ResearchSubQuestion[];
   analysisRecords: ResearchAnswer[];
   analysisCoverage: {
@@ -120,6 +126,7 @@ const buildAnalysisCoverage = (
 
 type DeepResearchFinalPackageState = {
   job: ResearchJob;
+  researchPlan: DeepResearchPlan;
   subQuestions: ResearchSubQuestion[];
   analysisAnswers: ResearchAnswer[];
   interactions: ResearchInteraction[];
@@ -135,11 +142,16 @@ const loadDeepResearchFinalPackageState = (
     throw new Error(`Deep research job ${jobId} was not found.`);
   }
   const subQuestions = store.listSubQuestions(jobId);
+  const researchPlan = store.getResearchPlan(jobId);
+  if (!researchPlan) {
+    throw new Error(`Deep research job ${jobId} has no persisted ResearchPlan.`);
+  }
   const analysisAnswers = store.listAnswers({ jobId, answerKind: "analysis" });
   const interactions = store.listInteractions(jobId);
   const analysisSubQuestionIds = new Set(analysisAnswers.map((answer) => answer.subQuestionId));
   return {
     job,
+    researchPlan,
     subQuestions,
     analysisAnswers,
     interactions,
@@ -173,6 +185,11 @@ const buildDeepResearchFinalPackageBase = (
   jobId: state.job.id,
   userQuestion: state.job.userQuestion,
   analysisGoal: state.job.analysisGoal,
+  researchPlan: state.researchPlan,
+  promptBundles: buildDeepResearchPromptBundleExport({
+    researchPlan: state.researchPlan,
+    subQuestions: state.subQuestions,
+  }),
   decompositionRecords: state.subQuestions,
   analysisRecords: state.analysisAnswers,
   analysisCoverage: buildAnalysisCoverage(state.subQuestions, state.analysisAnswers),
@@ -180,7 +197,7 @@ const buildDeepResearchFinalPackageBase = (
   sourceNotes: buildDeepResearchSourceNotesFromAnswers(state.analysisAnswers),
   recordHashes: {},
   promptVersions: buildPromptVersionMap(state.interactions),
-  outputContract: finalAdjudicationPrompt.expectedOutputContract,
+  outputContract: finalAdjudicationShellPrompt.expectedOutputContract,
 });
 
 const buildSingleFlowFinalPackage = (

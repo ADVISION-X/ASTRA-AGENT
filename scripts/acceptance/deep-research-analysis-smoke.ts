@@ -5,7 +5,7 @@ import path from "node:path";
 import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import {
-  buildDeepResearchFinalPackage,
+  buildDeepResearchStructuredIndex,
   createDeepResearchRecordStore,
   exportDeepResearchArtifacts,
   parseDeepResearchFinalAdjudicationResponse,
@@ -41,12 +41,25 @@ const FIXTURE_RESPONSES = [
         questionText: "How durable is warehouse robotics demand over the next 24 months?",
         whyItMatters: "Entry should not proceed unless there is durable demand support.",
         decisionWeight: "decisive",
-        analysisFocus: "Evaluate whether buyer demand remains strong enough to justify market entry timing.",
-        requiredEvidence: ["buyer capex plans", "automation ROI benchmarks"],
         scope: "Enterprise warehouse robotics demand over the next 24 months.",
-        expectedAnswerShape: "neutral demand assessment",
-        priority: "high",
-        omissionRisk: "Without this, the final answer cannot distinguish a real market from a temporary narrative."
+        omissionRisk: "Without this, the final answer cannot distinguish a real market from a temporary narrative.",
+        promptBundle: {
+          promptBundleId: "Q1-demand-durability-prompt-bundle",
+          promptRole: "sub_question_analysis",
+          taskInstruction: "Analyze warehouse robotics demand durability over the next 24 months.",
+          questionSpecificFocus: ["demand durability", "buyer capex resilience"],
+          mustUseInputs: ["user question", "Q1 sub-question JSON"],
+          mustNotDo: ["Do not decide the overall market entry recommendation."],
+          evidenceOrReasoningNeeds: ["buyer capex plans", "automation ROI benchmarks"],
+          outputGuidance: {
+            preferredFormat: "json_object",
+            requiredContent: ["local demand finding", "supporting reasons", "conditions that weaken the finding"],
+            optionalContent: [],
+            forbiddenContent: ["system operation commands"]
+          },
+          safetyBoundary: ["No operational action instructions."],
+          languageInstruction: "Respond in English."
+        }
       },
       {
         id: "Q2",
@@ -54,25 +67,68 @@ const FIXTURE_RESPONSES = [
         questionText: "What execution constraints are most likely to block a successful entry?",
         whyItMatters: "Even strong demand does not justify entry if execution barriers dominate the outcome.",
         decisionWeight: "high",
-        analysisFocus: "Identify integration, channel, deployment, and operating risks that materially affect feasibility.",
-        requiredEvidence: ["deployment benchmarks", "partner capability evidence"],
         scope: "Execution constraints for the first 24 months of entry.",
-        expectedAnswerShape: "execution feasibility summary",
-        priority: "high",
-        omissionRisk: "Without this, the final adjudicator may confuse demand support with practical readiness."
+        omissionRisk: "Without this, the final adjudicator may confuse demand support with practical readiness.",
+        promptBundle: {
+          promptBundleId: "Q2-execution-feasibility-prompt-bundle",
+          promptRole: "sub_question_analysis",
+          taskInstruction: "Analyze first-24-month execution constraints for warehouse robotics entry.",
+          questionSpecificFocus: ["integration risk", "partner-led rollout feasibility"],
+          mustUseInputs: ["user question", "Q2 sub-question JSON"],
+          mustNotDo: ["Do not decide the overall market entry recommendation."],
+          evidenceOrReasoningNeeds: ["deployment benchmarks", "partner capability evidence"],
+          outputGuidance: {
+            preferredFormat: "json_object",
+            requiredContent: ["local execution finding", "blocking constraints", "conditions that change feasibility"],
+            optionalContent: [],
+            forbiddenContent: ["system operation commands"]
+          },
+          safetyBoundary: ["No operational action instructions."],
+          languageInstruction: "Respond in English."
+        }
       }
     ],
-    exhaustivenessCheck: {
-      keyDimensionsCovered: ["demand", "execution feasibility"],
-      knownBlindSpots: [],
-      whyNoMoreQuestionsAreNeeded: "Demand durability and execution feasibility are the two decision-dominant dimensions for this entry question."
+    finalAdjudicationPromptBundle: {
+      promptBundleId: "robotics-entry-final-adjudication-prompt-bundle",
+      promptRole: "final_adjudication",
+      taskInstruction: "Adjudicate whether the company should enter the robotics warehouse market using the full case file.",
+      questionSpecificFocus: ["entry recommendation", "demand versus execution constraints"],
+      mustUseInputs: ["fullCaseFile", "all raw responses", "structured index"],
+      mustNotDo: ["Do not ignore raw responses."],
+      evidenceOrReasoningNeeds: ["compare demand durability against execution feasibility"],
+      outputGuidance: {
+        preferredFormat: "json_object",
+        requiredContent: ["direct recommendation", "conditions", "reasoning", "risks"],
+        optionalContent: [],
+        forbiddenContent: ["system operation commands"]
+      },
+      safetyBoundary: ["No investment, legal, or operational action instructions."],
+      languageInstruction: "Respond in English."
     },
-    qualitySelfCheck: {
-      isNeutral: true,
-      hasNoDuplicateQuestions: true,
-      hasNoPureFalsificationQuestions: true,
-      isReadyForIndependentAnalysis: true,
-      isReadyForFinalAdjudication: true
+    htmlReportPromptBundle: {
+      promptBundleId: "robotics-entry-html-report-prompt-bundle",
+      promptRole: "html_report_publisher",
+      taskInstruction: "Publish a browser-readable HTML business report for the robotics market-entry adjudication.",
+      questionSpecificFocus: ["executive readability", "entry conditions", "risk boundaries"],
+      mustUseInputs: ["finalReport", "fullCaseFile"],
+      mustNotDo: ["Do not change the final meaning."],
+      evidenceOrReasoningNeeds: ["preserve final report and supporting case-file context"],
+      outputGuidance: {
+        preferredFormat: "html_document",
+        requiredContent: ["final recommendation", "reasons", "conditions", "limitations"],
+        optionalContent: [],
+        forbiddenContent: ["scripts", "external resources"]
+      },
+      safetyBoundary: ["Self-contained safe HTML only."],
+      languageInstruction: "Write in English."
+    },
+    planIntegrityCheck: {
+      everySubQuestionHasPromptBundle: true,
+      promptBundlesAreQuestionSpecific: true,
+      noGenericUniversalPromptBundle: true,
+      readyForIndependentAnalysis: true,
+      readyForFullCaseAdjudication: true,
+      readyForHtmlReportPublishing: true
     }
   }),
   JSON.stringify({
@@ -211,7 +267,7 @@ const assert = (condition: unknown, message: string): void => {
 const verifySmokeUsesRealSurfaces = (): void => {
   assert(typeof parseDeepResearchSubQuestionAnalysisResponse === "function", "Analysis parser must be imported by smoke.");
   assert(typeof parseDeepResearchFinalAdjudicationResponse === "function", "Final adjudication parser must be imported by smoke.");
-  assert(typeof buildDeepResearchFinalPackage === "function", "Final package builder must be imported by smoke.");
+  assert(typeof buildDeepResearchStructuredIndex === "function", "Structured index builder must be imported by smoke.");
   assert(typeof exportDeepResearchArtifacts === "function", "Export function must be imported by smoke.");
 };
 

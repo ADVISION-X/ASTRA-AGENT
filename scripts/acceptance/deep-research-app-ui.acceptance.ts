@@ -27,6 +27,10 @@ const assertTextInAnyFile = (filePaths: readonly string[], marker: string): void
   assert(filePaths.some((filePath) => read(filePath).includes(marker)), `${filePaths.join(", ")} must contain ${marker}.`);
 };
 
+const assertNoTextInAnyFile = (filePaths: readonly string[], marker: string): void => {
+  assert(filePaths.every((filePath) => !read(filePath).includes(marker)), `${filePaths.join(", ")} must not contain ${marker}.`);
+};
+
 const assertImport = (filePath: string, symbolName: string, moduleSuffix: string): void => {
   const found = source(filePath).getImportDeclarations().some((declaration) =>
     declaration.getModuleSpecifierValue().endsWith(moduleSuffix)
@@ -101,6 +105,7 @@ assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-anal
 assertText("src/app/workbench-deep-research-routes.ts", "DELETE:/api/deep-research-analysis/job");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/report");
 assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/timeline");
+assertText("src/app/workbench-deep-research-routes.ts", "/api/deep-research-analysis/regenerate-html-report");
 assertText("src/app/workbench-deep-research-routes.ts", "decision-package.json");
 assertText("src/app/workbench-deep-research-routes.ts", "full-case-file.md");
 assertText("src/app/workbench-deep-research-routes.ts", "full-case-file.json");
@@ -112,6 +117,7 @@ assertText("src/plugins/deep-research-analysis/deep-research-analysis.record-con
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-primary-business-report");
 assertText("src/app/workbench-deep-research-report-view.ts", "data-deep-research-full-case-file");
 assertText("src/lib/local-runtime/workbench-handle.ts", "startDeepResearchAnalysis");
+assertText("src/lib/local-runtime/workbench-handle.ts", "rerunDeepResearchBusinessHtmlReport");
 assertText("src/lib/local-runtime/workbench-handle.ts", "listDeepResearchAnalysisJobs");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisReport");
 assertText("src/lib/local-runtime/workbench-handle.ts", "getDeepResearchAnalysisTimeline");
@@ -123,9 +129,11 @@ assertTextInAnyFile(clientRuntimePaths, "Primary Business Report");
 assertTextInAnyFile(clientRuntimePaths, "Open Full Case File");
 assertTextInAnyFile(clientRuntimePaths, "Download full-case-file.md");
 assertTextInAnyFile(clientRuntimePaths, "Download full-case-file.json");
-assertTextInAnyFile(clientRuntimePaths, "Open decision package");
+assertNoTextInAnyFile(clientRuntimePaths, "Open decision package");
 assertTextInAnyFile(clientRuntimePaths, "Open HTML Report");
 assertTextInAnyFile(clientRuntimePaths, "Download HTML Report");
+assertTextInAnyFile(clientRuntimePaths, "Regenerate HTML Report");
+assertTextInAnyFile(clientRuntimePaths, "data-deep-research-regenerate-html");
 assertTextInAnyFile(clientRuntimePaths, "Show Full Prompt");
 assertTextInAnyFile(clientRuntimePaths, "Show Full AI Response");
 assertTextInAnyFile(clientRuntimePaths, "Show Parsed Result");

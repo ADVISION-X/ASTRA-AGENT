@@ -94,7 +94,7 @@ const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
   "final-report.md": "Final report",
   "full-case-file.md": "Full case file (Markdown)",
   "full-case-file.json": "Full case file (JSON)",
-  "decision-package.json": "Decision package",
+  "decision-package.json": "Structured index (JSON)",
 };
 
 const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string =>

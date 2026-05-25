@@ -109,7 +109,7 @@ export const renderDeepResearchFullCaseFileMarkdown = (
   input: DeepResearchFullCaseFile,
 ): string => [
   "# Deep Research Full Case File",
-  "Decision package is not the complete case file.",
+  "The structured index is not the complete case file.",
   "The raw interactions below remain the sovereign record for final adjudication and HTML publishing.",
   buildMetadataLines(input).join("\n"),
   buildDecompositionSection(input),
@@ -118,6 +118,6 @@ export const renderDeepResearchFullCaseFileMarkdown = (
     ? input.subQuestionAnalyses.map(buildSubQuestionSection).join("\n\n")
     : "_No sub-question analysis records were persisted._",
   buildFailedInteractionSection(input),
-  "## Structured Final Package",
+  "## Structured Index",
   jsonBlock(input.structuredIndex),
 ].join("\n\n");

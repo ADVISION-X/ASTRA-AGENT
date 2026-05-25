@@ -6,10 +6,13 @@ const decode = (value: string): string => Buffer.from(value, "base64").toString(
 const exportFile = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.export.ts", "utf8");
 const contracts = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", "utf8");
 const delivery = readFileSync("src/app/workbench-deep-research-client-delivery-sections.ts", "utf8");
+const reentry = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
 
 assert(exportFile.includes("business-report.html"), "business-report.html export is required.");
+assert(reentry.includes("runBusinessHtmlReportPhase"), "HTML re-entry must reuse the primary HTML report stage.");
+assert(reentry.includes("completeSuccessfulRun"), "HTML re-entry must complete through the primary export path.");
 assert(contracts.includes("business-report.html"), "business-report.html must be an export kind.");
 assert(!contracts.includes(decode("LnBwdA==")), "Previous presentation export kinds must not exist.");
 assert(!delivery.includes(decode("T3BlbiBQUFQ=")), "UI must not expose previous presentation open action.");

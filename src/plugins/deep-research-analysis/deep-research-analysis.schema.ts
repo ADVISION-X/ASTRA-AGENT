@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DeepResearchPromptBundleSchema } from "./deep-research-analysis.prompt-bundle-schema.js";
+
 const DeepResearchLanguageSchema = z.enum(["zh-CN", "en"]);
 
 const DeepResearchOutputFormatSchema = z.enum(["markdown"]);
@@ -22,7 +24,7 @@ export const DeepResearchPhaseSchema = z.enum([
   "ANALYSIS_CAPTURE",
   "ANALYSIS_PARSE",
   "ANALYSIS_PERSIST",
-  "FINAL_PACKAGE_BUILD",
+  "FULL_CASE_FILE_BUILD",
   "FINAL_ADJUDICATION_SEND",
   "FINAL_ADJUDICATION_CAPTURE",
   "FINAL_ADJUDICATION_PARSE",
@@ -69,6 +71,9 @@ export const DeepResearchSubQuestionSchema = z.object({
   expectedAnswerShape: z.string().trim().min(1),
   priority: z.enum(["low", "medium", "high"]).optional(),
   omissionRisk: z.string().trim().min(1).optional(),
+  promptBundle: DeepResearchPromptBundleSchema.extend({
+    promptRole: z.literal("sub_question_analysis"),
+  }).optional(),
 }).strict();
 
 export const DeepResearchInputSchema = z.object({

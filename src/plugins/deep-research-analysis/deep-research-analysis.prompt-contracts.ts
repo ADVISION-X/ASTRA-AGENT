@@ -2,13 +2,6 @@ import { z } from "zod";
 
 import { DeepResearchInteractionPhaseSchema } from "./deep-research-analysis.schema.js";
 
-export type DecompositionPromptRenderInput = {
-  userQuestion: string;
-  maxSubQuestions: number;
-  language: "zh-CN" | "en";
-  questionTypeHint?: string | null;
-};
-
 const DeepResearchPromptIdSchema = z.enum([
   "deep-research.decomposition",
   "deep-research.sub-question-analysis",

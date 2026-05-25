@@ -42,7 +42,7 @@ N 个问题 -> AI 逐个回答，全量保存
 }
 ```
 
-### [GRASSEYE-DEEP-RESEARCH-038-V1] Single Flow Sovereignty
+### [GRASSEYE-DEEP-RESEARCH-038-V1] Single Chain Sovereignty
 
 ```apex-law
 {
@@ -52,24 +52,26 @@ N 个问题 -> AI 逐个回答，全量保存
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs+acceptance",
-  "summary": "Deep Research must have exactly one active production flow: user question, AI decomposition into N sub-questions, N independent AI analyses with full raw persistence, full case file construction, final AI adjudication using the full case file, then AI-generated business HTML report using final adjudication and the full case file."
+  "summary": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system."
 }
 ```
 
-Deep Research must have exactly one active production flow:
+Deep Research has exactly one valid execution chain:
 
 ```txt
-User question
--> AI decomposition into N sub-questions
--> N independent AI analyses with full raw persistence
--> full case file construction
--> final AI adjudication using the full case file
--> AI-generated business HTML report using final adjudication and the full case file
+decompose
+-> analyze N
+-> build full case file
+-> final adjudication
+-> business HTML report
+-> export
 ```
 
-No legacy, optional, fallback, compatibility, demotion, or alternative production flow may remain active.
+No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system.
 
-### [GRASSEYE-DEEP-RESEARCH-039-V1] Delete Legacy and Optional Paths
+If the chain has already persisted the full case file inputs and final adjudication but the business HTML report did not persist, the system may re-enter the same chain at `HTML_REPORT_SEND` for the same job. This re-entry must use the persisted full case file and latest final report, must call the same HTML report stage and prompt, and must continue through export. It must not introduce a second HTML generator, second artifact kind, or app-owned report writer.
+
+### [GRASSEYE-DEEP-RESEARCH-039-V1] Delete Non-Primary Path
 
 ```apex-law
 {
@@ -79,13 +81,13 @@ No legacy, optional, fallback, compatibility, demotion, or alternative productio
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "Any Deep Research code path related to legacy positive/falsification mode, PPT deck generation, local PPT generation, deck outline JSON, optional presentation deck, fallback generation, compact package, lite package, or compatibility mode must be physically deleted unless transformed into the single active HTML full-case-file flow."
+  "summary": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted."
 }
 ```
 
-Deprecation is not enough. Disabling is not enough. Commenting out is not enough. Only physical deletion or full conversion into the single active flow is acceptable.
+Non-primary path includes PPT primary flow, deck outline flow, local PPT generator, AI PPT artifact flow, legacy positive/falsification flow, compact/lite package flow, and optional deck completion logic.
 
-### [GRASSEYE-DEEP-RESEARCH-040-V1] Binary Existence Rule
+### [GRASSEYE-DEEP-RESEARCH-040-V1] Full Case File as Sole Adjudication Material
 
 ```apex-law
 {
@@ -95,13 +97,18 @@ Deprecation is not enough. Disabling is not enough. Commenting out is not enough
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs+acceptance",
-  "summary": "Every Deep Research module, function, export kind, status, UI section, inspector, acceptance, and prompt must be classified as either ACTIVE_SINGLE_FLOW or DELETE."
+  "summary": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses."
 }
 ```
 
-Every Deep Research module, function, export kind, status, UI section, inspector, acceptance, and prompt must be classified as either `ACTIVE_SINGLE_FLOW` or `DELETE`. No `OPTIONAL`, `LEGACY`, `FALLBACK`, `COMPATIBILITY`, `SOFT_DEPRECATED`, or `DEMOTED` state is allowed.
+Final adjudication must receive the full case file.
 
-### [GRASSEYE-DEEP-RESEARCH-041-V1] Full Case File Is Mandatory
+Structured records may exist only as navigation and index data.
+They must not replace raw AI prompts and raw AI responses.
+
+If raw AI text exists, it must be included in the full case file and made available to the final AI adjudicator.
+
+### [GRASSEYE-DEEP-RESEARCH-041-V1] Business HTML as Sole Final Presentation Artifact
 
 ```apex-law
 {
@@ -111,13 +118,15 @@ Every Deep Research module, function, export kind, status, UI section, inspector
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+ast+export",
-  "summary": "Final adjudication and business HTML report generation must receive the full case file; if the full case file is missing, the job must fail before final adjudication."
+  "summary": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system."
 }
 ```
 
-Final adjudication and business HTML report generation must receive the full case file. A structured final package alone is not sufficient. A decision package alone is not sufficient. A summary package alone is not sufficient. If the full case file is missing, the job must fail before final adjudication.
+The only final presentation artifact of Deep Research is `business-report.html`.
 
-### [GRASSEYE-DEEP-RESEARCH-042-V1] HTML Report Is the Only Final Artifact
+PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system.
+
+### [GRASSEYE-DEEP-RESEARCH-042-V1] No Compatibility Vocabulary
 
 ```apex-law
 {
@@ -127,8 +136,23 @@ Final adjudication and business HTML report generation must receive the full cas
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast+ui",
-  "summary": "The only final presentation artifact of Deep Research is business-report.html; PPTX, deck outline JSON, local deck generation, AI PPT artifact, or optional presentation deck must not exist in the active production flow."
+  "summary": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist."
 }
 ```
 
-The only final presentation artifact of Deep Research is `business-report.html`. PPTX, deck outline JSON, local deck generation, AI PPT artifact, or optional presentation deck must not exist in the active Deep Research production flow.
+Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching:
+
+```txt
+legacy
+fallback
+optional
+degrade
+localFallback
+compat
+oldFlow
+v1/v2 dual flow
+lite
+compact
+```
+
+If a concept is not part of the unique chain, it must not exist.

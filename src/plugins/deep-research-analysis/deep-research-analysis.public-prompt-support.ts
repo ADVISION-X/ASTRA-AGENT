@@ -1,17 +1,6 @@
 import {
   type DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
-import {
-  buildRenderedDeepResearchPromptHash,
-  decompositionPrompt,
-  renderDeepResearchDecompositionPrompt,
-  renderDeepResearchSubQuestionAnalysisPrompt,
-  subQuestionAnalysisPrompt,
-} from "./deep-research-analysis.prompts.js";
-import {
-  finalAdjudicationPrompt,
-  renderDeepResearchFinalAdjudicationPrompt,
-} from "./deep-research-analysis.final-adjudication-prompt.js";
 import type {
   ResearchAnswer,
   ResearchInteraction,
@@ -32,84 +21,6 @@ const truncateText = (value: string, maxLength = 220): string => {
   return `${normalized.slice(0, maxLength - 1)}...`;
 };
 
-type VerifiedPrompt = {
-  prompt:
-    | typeof decompositionPrompt
-    | typeof subQuestionAnalysisPrompt
-    | typeof finalAdjudicationPrompt;
-  promptText: string;
-};
-
-const renderDecompositionVerifiedPrompt = (input: {
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-}): VerifiedPrompt | null => input.interaction.phase === "decomposition"
-  ? {
-    prompt: decompositionPrompt,
-    promptText: renderDeepResearchDecompositionPrompt({
-      userQuestion: input.job.userQuestion,
-      analysisGoal: input.job.analysisGoal,
-      language: input.job.language,
-      maxSubQuestions: input.job.maxSubQuestions,
-    }),
-  }
-  : null;
-
-const renderAnalysisVerifiedPrompt = (input: {
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-  subQuestionById: Map<string, ResearchSubQuestion>;
-}): VerifiedPrompt | null => {
-  const subQuestion = input.interaction.subQuestionId
-    ? input.subQuestionById.get(input.interaction.subQuestionId)
-    : null;
-  return subQuestion
-    ? {
-      prompt: subQuestionAnalysisPrompt,
-      promptText: renderDeepResearchSubQuestionAnalysisPrompt({
-        userQuestion: input.job.userQuestion,
-        analysisGoal: input.job.analysisGoal,
-        language: input.job.language,
-        subQuestion: subQuestion.question,
-      }),
-    }
-    : null;
-};
-
-const renderFinalAdjudicationVerifiedPrompt = (input: {
-  finalPackage: DeepResearchStructuredIndex | null;
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-}): VerifiedPrompt | null => input.interaction.phase === "final_adjudication" && input.finalPackage
-  ? {
-    prompt: finalAdjudicationPrompt,
-    promptText: renderDeepResearchFinalAdjudicationPrompt({
-      userQuestion: input.job.userQuestion,
-      analysisGoal: input.job.analysisGoal,
-      language: input.job.language,
-      structuredIndex: input.finalPackage,
-    }),
-  }
-  : null;
-
-const renderVerifiedPrompt = (input: {
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-  subQuestionById: Map<string, ResearchSubQuestion>;
-  finalPackage: DeepResearchStructuredIndex | null;
-}): VerifiedPrompt | null => {
-  switch (input.interaction.phase) {
-    case "decomposition":
-      return renderDecompositionVerifiedPrompt(input);
-    case "analysis":
-      return renderAnalysisVerifiedPrompt(input);
-    case "final_adjudication":
-      return renderFinalAdjudicationVerifiedPrompt(input);
-    default:
-      return null;
-  }
-};
-
 export const buildPromptText = (input: {
   interaction: ResearchInteraction;
   job: ResearchJob;
@@ -119,6 +30,9 @@ export const buildPromptText = (input: {
   promptText: string | null;
   promptReconstructionStatus: PromptReconstructionStatus;
 } => {
+  void input.job;
+  void input.subQuestionById;
+  void input.finalPackage;
   if (input.interaction.renderedPromptText.trim().length > 0) {
     return {
       promptText: input.interaction.renderedPromptText,
@@ -126,28 +40,9 @@ export const buildPromptText = (input: {
     };
   }
 
-  const reconstructed = renderVerifiedPrompt(input);
-  if (!reconstructed) {
-    return {
-      promptText: null,
-      promptReconstructionStatus: "unavailable",
-    };
-  }
-
-  const expectedHash = buildRenderedDeepResearchPromptHash({
-    prompt: reconstructed.prompt,
-    renderedPromptText: reconstructed.promptText,
-  });
-  if (expectedHash !== input.interaction.promptHash) {
-    return {
-      promptText: reconstructed.promptText,
-      promptReconstructionStatus: "hash_mismatch",
-    };
-  }
-
   return {
-    promptText: reconstructed.promptText,
-    promptReconstructionStatus: "verified",
+    promptText: null,
+    promptReconstructionStatus: "unavailable",
   };
 };
 

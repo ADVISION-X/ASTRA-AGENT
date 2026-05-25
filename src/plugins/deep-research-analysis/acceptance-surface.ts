@@ -1,8 +1,12 @@
 export {
   runDeepResearchAnalysis,
-  runDeepResearchDecompositionPhase,
 } from "./deep-research-analysis.flow.js";
-export { buildDeepResearchStructuredIndex as buildDeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+export {
+  rerunDeepResearchBusinessHtmlReport,
+} from "./deep-research-analysis.html-report-reentry.js";
+export {
+  buildDeepResearchStructuredIndex,
+} from "./deep-research-analysis.final-package.js";
 export { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 export { renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file-render.js";
 export { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
@@ -16,9 +20,3 @@ export {
   renderDecompositionPrompt,
 } from "./deep-research-analysis.decomposition-prompt.js";
 export { parseDecompositionResponse } from "./deep-research-analysis.decomposition-parser.js";
-export {
-  detectFinalAdjudicationLeakage,
-  detectCurrentEventMissingInfo,
-  scoreDecompositionQuality,
-} from "./deep-research-analysis.prompt-quality.js";
-export { DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES } from "./deep-research-analysis.prompt-regression.js";

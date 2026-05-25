@@ -57,7 +57,7 @@ const inferDefaultFlowPhase = (input: {
   if (input.analysisAnswers.length < input.subQuestions.length) {
     return "ANALYSIS_PERSIST";
   }
-  return input.finalReport ? "FINAL_ADJUDICATION_PERSIST" : "FINAL_PACKAGE_BUILD";
+  return input.finalReport ? "FINAL_ADJUDICATION_PERSIST" : "FULL_CASE_FILE_BUILD";
 };
 
 const inferCurrentPhase = (input: {

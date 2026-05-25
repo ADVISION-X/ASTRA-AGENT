@@ -15,6 +15,7 @@ import {
   ResearchFinalReportRecordSchema,
   ResearchInteractionSchema,
   ResearchJobSchema,
+  ResearchPlanRecordSchema,
   ResearchSubQuestionSchema,
   type ResearchAnswer,
   type ResearchAnswerKind,
@@ -23,8 +24,11 @@ import {
   type ResearchFinalReportRecord,
   type ResearchInteraction,
   type ResearchJob,
+  type ResearchPlanRecord,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
+import { DeepResearchPromptBundleSchema } from "./deep-research-analysis.prompt-bundle-schema.js";
+import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 
 const parseStringArray = (value: string): string[] =>
@@ -36,6 +40,11 @@ const parseUnknownRecord = (value: string): Record<string, unknown> => {
     return parsed as Record<string, unknown>;
   }
   return {};
+};
+
+const parsePromptBundle = (value: string): z.infer<typeof DeepResearchPromptBundleSchema> => {
+  const parsed = JSON.parse(value) as unknown;
+  return DeepResearchPromptBundleSchema.parse(parsed);
 };
 
 export const mapJobRow = (row: {
@@ -84,6 +93,7 @@ export const mapSubQuestionRow = (row: {
   expected_answer_shape: string;
   priority: DeepResearchSubQuestion["priority"] | null;
   omission_risk: string | null;
+  prompt_bundle_json: string;
   created_at: string;
 }): ResearchSubQuestion =>
   ResearchSubQuestionSchema.parse({
@@ -105,7 +115,25 @@ export const mapSubQuestionRow = (row: {
       expectedAnswerShape: row.expected_answer_shape,
       ...(row.priority ? { priority: row.priority } : {}),
       ...(row.omission_risk ? { omissionRisk: row.omission_risk } : {}),
+      promptBundle: parsePromptBundle(row.prompt_bundle_json),
     },
+    createdAt: row.created_at,
+  });
+
+export const mapResearchPlanRow = (row: {
+  id: string;
+  job_id: string;
+  interaction_id: string;
+  research_plan_json: string;
+  plan_hash: string;
+  created_at: string;
+}): ResearchPlanRecord =>
+  ResearchPlanRecordSchema.parse({
+    id: row.id,
+    jobId: row.job_id,
+    interactionId: row.interaction_id,
+    researchPlan: DeepResearchPlanSchema.parse(JSON.parse(row.research_plan_json)),
+    planHash: row.plan_hash,
     createdAt: row.created_at,
   });
 

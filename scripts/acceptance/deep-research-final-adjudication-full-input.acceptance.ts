@@ -20,7 +20,7 @@ try {
     fullCaseFileMarkdown: fixture.fullCaseFileMarkdown,
   });
   for (const marker of [
-    "The structured package is for navigation.",
+    "The structured index is for navigation.",
     "The full case file is the complete source of truth.",
     "If structured fields and raw responses differ, use the raw responses as primary evidence.",
     "Do not ignore raw responses that failed parsing.",

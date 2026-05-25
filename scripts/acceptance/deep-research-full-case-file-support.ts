@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  buildDeepResearchFinalPackage,
+  buildDeepResearchStructuredIndex,
   buildDeepResearchFullCaseFile,
   createDeepResearchRecordStore,
   renderDeepResearchFullCaseFileMarkdown,
@@ -239,7 +239,7 @@ const persistFinalReport = (input: {
     promptId: "deep-research.final-adjudication",
     promptVersion: "v1.1.0",
     promptHash: "sha256:fixture-final-adjudication-prompt",
-    renderedPromptText: buildPromptText("Final adjudication prompt with structured package and full case file."),
+    renderedPromptText: buildPromptText("Final adjudication prompt with structured index and full case file."),
     rawResponseText: buildJsonText(input.finalReport),
     rawResponseHash: "sha256:fixture-final-adjudication-raw",
     parseStatus: "parsed",
@@ -258,7 +258,7 @@ export type DeepResearchFullCaseFixture = {
   store: DeepResearchStore;
   job: DeepResearchJob;
   subQuestions: PersistedSubQuestion[];
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
   fullCaseFileMarkdown: string;
   finalReport: DeepResearchFinalReport;
@@ -284,11 +284,11 @@ export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture
   persistRawOnlyAnalysis({ store, jobId: job.id, subQuestion: secondSubQuestion });
   const finalReport = buildFinalReportFixture();
   persistFinalReport({ store, jobId: job.id, finalReport });
-  const finalPackage = buildDeepResearchFinalPackage({ store, jobId: job.id });
+  const finalPackage = buildDeepResearchStructuredIndex({ store, jobId: job.id });
   const fullCaseFile = buildDeepResearchFullCaseFile({
     store,
     jobId: job.id,
-    structuredFinalPackage: finalPackage,
+    structuredIndex: finalPackage,
   });
   return {
     dataDir,

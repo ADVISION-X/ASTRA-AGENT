@@ -9,9 +9,9 @@ import {
 import {
   decompositionPrompt,
   renderDeepResearchDecompositionPrompt,
-  renderDeepResearchSubQuestionAnalysisPrompt,
-  subQuestionAnalysisPrompt,
 } from "./deep-research-analysis.prompts.js";
+import { renderSubQuestionAnalysisFromPromptBundle } from "./deep-research-analysis.prompt-bundle-render.js";
+import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-contracts.js";
 import type { DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
 import type { ResearchSubQuestion } from "./deep-research-analysis.records.js";
 import {
@@ -39,12 +39,37 @@ const toPersistedSubQuestion = (
   purpose: subQuestion.whyItMatters,
   whyItMatters: subQuestion.whyItMatters,
   decisionWeight: subQuestion.decisionWeight,
-  analysisFocus: subQuestion.analysisFocus,
-  requiredEvidence: [...subQuestion.requiredEvidence],
+  analysisFocus: subQuestion.promptBundle.questionSpecificFocus.join("; "),
+  requiredEvidence: [...subQuestion.promptBundle.evidenceOrReasoningNeeds],
   scope: subQuestion.scope,
-  expectedAnswerShape: subQuestion.expectedAnswerShape,
-  priority: subQuestion.priority,
+  expectedAnswerShape: subQuestion.promptBundle.outputGuidance.preferredFormat,
   omissionRisk: subQuestion.omissionRisk,
+  promptBundle: subQuestion.promptBundle,
+});
+
+const buildPromptBundleShellPrompt = (input: {
+  promptVersion: string;
+  phase: DeepResearchPrompt["phase"];
+}): DeepResearchPrompt => ({
+  promptId: "deep-research.sub-question-analysis",
+  promptVersion: input.promptVersion,
+  phase: input.phase,
+  promptText: "Runtime shell for AI-generated promptBundle.",
+  expectedOutputContract: {
+    contractId: `deep-research.sub-question-analysis.shell.${input.promptVersion}`,
+    format: "json_object",
+    requiredFields: ["raw content preserved"],
+    forbiddenFields: [
+      "browserCommand",
+      "selector",
+      "coordinate",
+      "workflow",
+      "multiStepPlan",
+      "runNext",
+      "databaseCommand",
+      "filePath",
+    ],
+  },
 });
 
 export const runDecompositionPhase = async (
@@ -76,6 +101,11 @@ export const runDecompositionPhase = async (
       }),
     successRecordCount: (parsed) => parsed.subQuestions.length,
     persist: ({ interaction, parsed }) => {
+      context.store.saveResearchPlan({
+        jobId: context.jobId,
+        interactionId: interaction.id,
+        researchPlan: parsed,
+      });
       const subQuestions = context.store.saveSubQuestions({
         jobId: context.jobId,
         interactionId: interaction.id,
@@ -103,8 +133,12 @@ export const runDecompositionPhase = async (
 const runAnalysisPhase = async (
   context: AnalysisExecutionContext,
   subQuestion: ResearchSubQuestion,
-) =>
-  runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>({
+): Promise<Awaited<ReturnType<typeof runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>>>> => {
+  const promptBundle = subQuestion.question.promptBundle;
+  if (!promptBundle) {
+    throw new Error(`Missing promptBundle for sub-question ${subQuestion.id}.`);
+  }
+  return runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
@@ -113,13 +147,17 @@ const runAnalysisPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: subQuestionAnalysisPrompt,
     promptKey: `analysis:${subQuestion.id}`,
-    renderedPromptText: renderDeepResearchSubQuestionAnalysisPrompt({
+    prompt: buildPromptBundleShellPrompt({
+      promptVersion: "v2.0.0",
+      phase: "analysis",
+    }),
+    renderedPromptText: renderSubQuestionAnalysisFromPromptBundle({
       userQuestion: context.input.userQuestion,
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
       subQuestion: subQuestion.question,
+      promptBundle,
     }),
     inputRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
     stages: {
@@ -144,6 +182,7 @@ const runAnalysisPhase = async (
         parsed,
       }),
   });
+};
 
 const rememberFailedAnalysisHashes = (input: {
   context: AnalysisExecutionContext;

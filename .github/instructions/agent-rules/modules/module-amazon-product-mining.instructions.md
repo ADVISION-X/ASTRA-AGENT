@@ -1,0 +1,580 @@
+---
+name: "Amazon Product Mining"
+description: "Governs the Amazon product mining job flow: keyword AI feeding with historical deduplication, first-page Amazon search extraction, full visible product detail extraction, accessible review pagination, structured data package, PDF report, and advanced AI handoff."
+applyTo: "src/plugins/amazon-product-mining/**,src/app/workbench-amazon-product-mining-routes.ts,scripts/acceptance/amazon-product-mining-*.acceptance.ts,scripts/audit/domains/amazon-product-mining/**,package.json"
+---
+
+# Amazon Product Mining
+
+status: draft
+version: 2026-05-25
+capabilityDomain: amazon-product-mining
+
+## 0. Phase Status
+
+本模块当前为 Phase 1（治理冻结）。
+
+法案条款先以 `status: "draft"` 注册，等待 Phase 2 在以下条件全部满足后，统一切换为 `active`：
+
+```txt
+1. src/plugins/amazon-product-mining/** owner 插件完整存在并通过 typecheck
+2. scripts/audit/domains/amazon-product-mining/{manifest.json,inspector.ts} 完整存在
+3. 至少 fixture-based acceptance 覆盖 keyword / search / detail / review / package
+4. ci:full 在 active 翻转后仍然 PASS
+```
+
+Phase 1 不动 generated artifacts、不动 ci-full.ts 白名单、不新增 audit domain。Phase 2 是后续会话的工作。
+
+## 1. Identity
+
+Amazon Product Mining 是 GrassEye 的一个独立业务 Job Flow。
+
+它只执行：
+
+```txt
+INTAKE
+-> KEYWORD_AI_SEND
+-> KEYWORD_AI_CAPTURE
+-> KEYWORD_PARSE
+-> KEYWORD_DEDUP
+-> KEYWORD_QUEUE_PERSIST
+
+-> KEYWORD_LOOP_START
+  -> AMAZON_SEARCH_OPEN
+  -> SEARCH_PAGE_STABLE
+  -> SEARCH_RESULTS_EXTRACT
+  -> SEARCH_RESULTS_PERSIST
+
+  -> PRODUCT_LOOP_START
+    -> PRODUCT_DETAIL_OPEN
+    -> PRODUCT_DETAIL_STABLE
+    -> PRODUCT_DETAIL_EXTRACT
+    -> PRODUCT_DETAIL_PERSIST
+
+    -> REVIEW_PAGE_OPEN
+    -> REVIEW_PAGE_STABLE
+    -> REVIEW_PAGE_PAGINATE
+    -> REVIEW_RECORDS_PERSIST
+    -> PRODUCT_COMPLETE
+  -> PRODUCT_LOOP_END
+
+  -> KEYWORD_COMPLETE
+-> KEYWORD_LOOP_END
+
+-> DATA_PACKAGE_BUILD
+-> PDF_REPORT_BUILD
+-> ADVANCED_AI_HANDOFF
+-> COMPLETE
+```
+
+唯一 owner：`src/plugins/amazon-product-mining/**`。
+
+最高原则：
+
+```txt
+Agent 负责挖掘、提取、保存、打包、交接。
+高级 AI 负责基于完整数据包做最终选品决策。
+Agent 不做最终产品价值裁决。
+```
+
+App shell 只允许：创建任务 / 查询任务 / 读取结果 / 下载导出。
+
+## 2. Architecture Binding
+
+Amazon Product Mining 归属 GrassEye 单线纵向架构：
+
+```txt
+User Requirement
+-> Job Mediator
+-> Job Flow Library (this plugin)
+-> Ability Groups (dom-automation, ai-input-gateway, forensics-persistence)
+-> Child Abilities
+-> Evidence / Runtime Logs / Result Records
+```
+
+允许复用既有能力组：
+
+- `dom-automation`（搜索页 / 详情页 / 评论页 DOM 提取与等待）
+- `ai-input-gateway`（关键词生成投喂与原始响应捕获）
+- `forensics-persistence`（截图 / DOM 快照 / failure 记录）
+- `runtime-log-spine`（mission / round / stage / capability / artifact 日志）
+- `local-browser-session`（真实 Chrome 会话）
+- `local-persistence-schema`（SQLite + 文件库）
+
+禁止：
+
+- 新建 amazon-product-mining ability group
+- 新建第二 mission loop、第二日志链、第二证据链
+- 把 Amazon 业务步骤塞进 `src/app`、`src/lib`、`src/capabilities`、`src/mediator`
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-001-V1] Independent Job Flow Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast+persisted-record",
+  "summary": "Amazon Product Mining must live as one explicit business job flow under src/plugins/amazon-product-mining and must not become a universal product-discovery agent, ERP, planner, or marketplace crawler framework.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+  ],
+  "forbidden": [
+    "Amazon mining flow placed under src/capabilities, src/mediator, src/lib, or src/app.",
+    "Reusing facebook-product-video-mining as Amazon mining entrypoint.",
+    "Universal marketplace crawler abstraction owning Amazon mining state.",
+    "ERP, profit calculator, or purchase-decision modules introduced into the plugin owner.",
+    "Amazon-specific workflow placed inside any ability group."
+  ]
+}
+```
+
+### 法条
+
+唯一 owner：`src/plugins/amazon-product-mining/**`。
+
+业务流程禁止放入：
+
+- `src/plugins/facebook-product-video-mining/**`
+- `src/plugins/deep-research-analysis/**`
+- `src/capabilities/**`
+- `src/mediator/**`
+- `src/lib/local-runtime/**`
+- `src/app/**`（仅允许最小 routes 转发）
+
+### 禁止漂移
+
+- ERP 漂移
+- 利润测算漂移
+- 采购决策漂移
+- 选品裁决漂移
+- 多平台爬虫漂移
+- 通用 Agent 漂移
+- AI planner 漂移
+- 能力组业务化漂移
+- Deep Research 子流程漂移
+- Facebook mining 复用错位漂移
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-002-V1] Single Fixed Flow
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+fs+acceptance",
+  "summary": "Amazon Product Mining must have exactly one active production flow: task intake, AI keyword generation with historical deduplication, keyword queue, Amazon first-page search extraction, product detail extraction, full accessible review extraction, persistence, package generation, PDF generation, and handoff to advanced AI.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+  ],
+  "forbidden": [
+    "Legacy or fallback flow alongside the production flow.",
+    "Lite / compact / optional package as an alternative final artifact.",
+    "Shadow product decision branch in the flow.",
+    "AI next-action planner driving the browser.",
+    "Multiple execution modes for the same mining demand."
+  ]
+}
+```
+
+### 法条
+
+唯一固定流程见 Section 1。
+
+禁止存在 second chain、shadow flow、fallback flow、compatibility bridge、lite/compact package。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-003-V1] Agent Forbidden From Final Product Adjudication
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+ast+export",
+  "summary": "Amazon Product Mining Agent must not output final product selection, product investment decision, purchase decision, or profit conclusion; it only produces evidence packages for advanced AI decision.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+  ],
+  "forbidden": [
+    "Final product selection output produced by Agent code.",
+    "Purchase / sampling / listing / inventory / ad-budget recommendation produced by Agent code.",
+    "Profit margin conclusion produced by Agent code.",
+    "AI prompt asking the model to pick winning products inside this flow."
+  ]
+}
+```
+
+### 法条
+
+Agent 允许输出：关键词记录 / 搜索结果记录 / 产品详情记录 / 评论记录 / 页面证据索引 / 结构化数据包 / PDF 报告 / 异常说明 / 交接状态。
+
+Agent 禁止输出：最终选品结论 / 这个产品一定赚钱 / 是否采购 / 是否打样 / 是否上架 / 利润率结论 / 库存建议 / 广告预算建议。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-004-V1] Keyword Generation Must Deduplicate
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+persisted-record",
+  "summary": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts"
+  ],
+  "forbidden": [
+    "AI keyword request without injecting historical mined keywords.",
+    "Executing AI natural-language output directly as mining queue.",
+    "Mining the same keyword again without an explicit duplicate marker.",
+    "Agent fabricating keywords to fill requested count."
+  ]
+}
+```
+
+### 法条
+
+向 AI 请求关键词时必须投喂：目标 Amazon 站点 / 目标市场 / 产品方向 / 历史已挖掘关键词 / 本次禁止重复关键词 / 本次数量要求 / 结构化输出要求。
+
+返回后必须：解析 → 清洗 → 历史去重 → 本任务去重 → 入队 → 来源记录。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-005-V1] Search First Page Full Visible Extraction
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "dom+persisted-record+snapshot",
+  "summary": "For each keyword, the system must extract all visible products on the first Amazon search results page and preserve rank, sponsored status, URL, visible commercial fields, and raw page evidence.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.search.ts"
+  ],
+  "forbidden": [
+    "Extracting only a subset of visible first-page products.",
+    "Losing rankPosition or isSponsored on result items.",
+    "Dropping a product because ASIN is not visible while productUrl exists.",
+    "Opening product detail before search results are persisted.",
+    "Mining beyond the first search results page in this flow."
+  ]
+}
+```
+
+### 必须提取字段
+
+`keyword, searchUrl, rankPosition, isSponsored, title, productUrl, asinIfAvailable, mainImageUrl, price, originalPriceOrDiscountIfVisible, rating, reviewCount, primeOrFbaFlagIfVisible, couponTextIfVisible, deliveryTextIfVisible, rawVisibleTextSnapshot`
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-006-V1] Product Detail Full Visible Extraction
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "dom+snapshot+persisted-record",
+  "summary": "For each stored search result item, the system must open the product detail page and extract all currently visible and accessible product information before review extraction.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts"
+  ],
+  "forbidden": [
+    "Extracting only shallow fields like title/price/rating.",
+    "Throwing on missing optional fields; missing fields must be null or empty array.",
+    "Missing raw visible text snapshot for the detail page.",
+    "Deleting search-result evidence when detail extraction fails."
+  ]
+}
+```
+
+### 必须提取字段
+
+`asin, title, brand, sellerOrStoreIfVisible, currentPrice, originalPriceDiscountCouponIfVisible, mainImage, allVisibleImages, visibleVideoInfo, bulletPoints, aboutThisItem, productDescription, aPlusContentIfVisible, variationOptions, colorSizeStyleOptions, productInformation, technicalDetails, additionalInformation, bestSellersRankIfVisible, categoryPathIfVisible, rating, reviewCount, starDistribution, qaContentIfVisible, frequentlyBoughtTogetherIfVisible, customersAlsoBoughtIfVisible, compareWithSimilarItemsIfVisible, deliveryInformation, returnInformation, allOtherVisibleProductParameters, rawVisibleTextSnapshot`
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-007-V1] Accessible Review Pagination Full Extraction
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "dom+pagination+persisted-record",
+  "summary": "For each product, the system must paginate and persist all currently accessible reviews under the current environment, account, region, language, and sorting condition; bypassing restrictions is forbidden.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts"
+  ],
+  "forbidden": [
+    "Skipping review pages (no jumping ahead).",
+    "Extracting only the first review page.",
+    "Persisting only AI summaries in place of raw reviews.",
+    "Bypassing captcha, login walls, region restrictions, or platform risk controls.",
+    "Deleting product-detail records when review extraction fails."
+  ]
+}
+```
+
+### 全量评论定义
+
+「全量评论」= 当前页面环境 / 当前账号状态 / 当前地区 / 当前语言 / 当前排序条件下可正常访问的全部评论。
+
+### 必须保存字段（每条评论）
+
+`reviewIdIfAvailable, reviewerName, rating, reviewTitle, reviewBody, reviewDate, verifiedPurchase, variant, helpfulCountIfVisible, reviewImagesIfVisible, reviewVideosIfVisible, reviewLanguage, reviewRegionIfVisible, rawReviewTextSnapshot`
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-008-V1] Raw Evidence Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "snapshot+persisted-record+hash",
+  "summary": "Raw visible page text, extracted records, page URLs, timestamps, and evidence indexes are sovereign records; structured summaries and PDF sections must not replace raw evidence.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+  ],
+  "forbidden": [
+    "Structured summary replacing raw page text.",
+    "PDF section replacing structured data package.",
+    "AI summary replacing raw review records.",
+    "Discarding URLs / timestamps / failure reasons."
+  ]
+}
+```
+
+### 必须保存
+
+AI keyword raw response / keyword parse result / search page raw visible text / search result structured items / product detail raw visible text / product detail structured record / review page raw visible text 或 per-review raw text / review structured records / URLs / timestamps / failure reasons / evidence indexes。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-009-V1] Platform Restriction Honest Failure
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "runtime-log+failure-record",
+  "summary": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or manual_required records; bypassing restrictions is forbidden.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
+  ],
+  "forbidden": [
+    "Bypassing captcha, login walls, 2FA, region restrictions, or platform risk controls.",
+    "Reading cookie / token / localStorage / sessionStorage.",
+    "Fabricating success when extraction is blocked.",
+    "Treating partial pass / warning as completed."
+  ]
+}
+```
+
+### 必须诚实记录的情况
+
+`loginRequired, captcha, twoFactorOrAccountSecurity, rateLimited, accountRisk, regionRestricted, productUnavailable, reviewUnavailable, pageStructureUnsupported, paginationStoppedByRestriction`
+
+允许的失败状态：`failed`、`manual_required`、`completed_with_errors`。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-010-V1] Fixed Final Artifacts: Data Package + PDF
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+export+hash",
+  "summary": "The final artifacts of Amazon Product Mining are a structured data package, a PDF report, an evidence index, and an exception summary; no alternative final artifact chain may replace them.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts"
+  ],
+  "forbidden": [
+    "PDF-only delivery without structured data package.",
+    "AI summary-only delivery without raw evidence.",
+    "Multiple conflicting versions of the data package.",
+    "Manually editing generated artifacts as source of truth."
+  ]
+}
+```
+
+### 固定最终产物
+
+```txt
+amazon-product-mining-package.json
+amazon-product-mining-report.pdf
+amazon-product-mining-evidence-index.json
+amazon-product-mining-exception-summary.json
+```
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-011-V1] Advanced AI Handoff Boundary
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "export+prompt+handoff-record",
+  "summary": "Advanced AI handoff must receive the PDF report, structured data package, raw evidence index, exception summary, and task scope; the handoff must disclose incomplete data and must not invent missing evidence.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+  ],
+  "forbidden": [
+    "Handoff missing PDF / package / evidence index / exception summary.",
+    "Handoff inventing evidence not present in the package.",
+    "Handoff carrying final product selection produced by Agent."
+  ]
+}
+```
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-012-V1] Audit + Acceptance + CI-FULL Binding
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "acceptance+audit-plan+ci-full",
+  "summary": "Amazon Product Mining production readiness must be enforced by owner inspector, acceptance tests, generated audit plan, and npm run ci:full; warning-only or partial pass must not be called complete.",
+  "appliesTo": [
+    "scripts/audit/domains/amazon-product-mining/manifest.json",
+    "scripts/audit/domains/amazon-product-mining/inspector.ts",
+    "scripts/acceptance/amazon-product-mining-*.acceptance.ts",
+    "package.json",
+    "scripts/audit/ci-full.ts"
+  ],
+  "forbidden": [
+    "Warning-only enforcement for P0 clauses.",
+    "Hand-editing generated registry / matrix / plan as source of truth.",
+    "Bypassing codex-entry-gate.",
+    "Local-only acceptance that is not wired into ci:full.",
+    "Treating partial pass / soft pass as complete."
+  ]
+}
+```
+
+### 完整入口
+
+```bash
+npm run ci:full
+```
+
+## 4. State Contracts
+
+### task status
+
+`created | keyword_generating | keyword_ready | mining | packaging | package_completed | failed | manual_required`
+
+### keyword status
+
+`pending | searching | search_completed | completed | completed_with_errors | failed | manual_required`
+
+### product status
+
+`pending_detail | detail_extracting | detail_completed | review_extracting | completed | failed | manual_required`
+
+### handoff status
+
+`not_started | ready | handoff_completed | failed`
+
+## 5. Allowed / Forbidden Summary
+
+### 允许
+
+- 用户选择 Amazon 站点和市场
+- AI 基于历史关键词生成新关键词
+- Agent 解析和去重关键词
+- Agent 搜索 Amazon 首页
+- Agent 提取首页所有可见产品
+- Agent 打开产品详情页
+- Agent 提取当前可见完整产品信息
+- Agent 分页提取当前可访问评论
+- Agent 保存原始证据和结构化记录
+- Agent 生成结构化数据包和 PDF
+- Agent 交接给高级 AI
+
+### 禁止
+
+- Agent 做最终选品裁决
+- Agent 做利润测算 / 采购建议 / 库存管理
+- Agent 绕过 Amazon 平台限制
+- Agent 用 AI 生成浏览器下一步动作
+- Agent 读取 cookie / token / localStorage / sessionStorage
+- Agent 把 Amazon 业务流程放入能力组
+- Agent 建立第二套日志或证据系统
+- Agent 生成没有原始证据支撑的数据包
+
+## 6. Relationship To Existing Systems
+
+### 与 Deep Research Analysis 的关系
+
+Amazon 产品挖掘学习 Deep Research 的原则：单一流程、全量原始记录、结构化索引不可替代 raw evidence、最终报告基于完整案卷、禁止 legacy / fallback / lite package。但 Amazon 产品挖掘不是 Deep Research 的子流程。
+
+### 与 Facebook Product Video Mining 的关系
+
+Amazon 产品挖掘学习 Facebook mining 的原则：独立插件 owner、固定 round / flow 顺序、失败诚实记录、导出成功候选和证据、AI 不决定浏览器下一步动作、不绕过平台限制。但 Amazon 产品挖掘不是 Facebook mining 的复用版，不能共享其业务 flow。
+
+### 与能力组的关系
+
+Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程顺序；Ability Group 执行同类动作；Child Ability 执行原子动作；Evidence / Logs 证明发生过什么；Storage 保存业务记录。
+
+## 7. Phase 2 Activation Checklist
+
+Phase 2 必须一次性完成以下，并把全部 `status: "draft"` 翻为 `"active"`：
+
+```txt
+1. src/plugins/amazon-product-mining/
+     amazon-product-mining.flow.ts
+     amazon-product-mining.schema.ts
+     amazon-product-mining.keyword.ts
+     amazon-product-mining.search.ts
+     amazon-product-mining.product-detail.ts
+     amazon-product-mining.reviews.ts
+     amazon-product-mining.package.ts
+     amazon-product-mining.pdf.ts
+     amazon-product-mining.handoff.ts
+     amazon-product-mining.storage.ts
+     amazon-product-mining.storage-schema.ts
+     amazon-product-mining.logging.ts
+     amazon-product-mining.result.ts
+     index.ts
+2. src/app/workbench-amazon-product-mining-routes.ts （最小 surface）
+3. scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}
+4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,search-page,detail-page,review-pagination,package}.acceptance.ts
+5. package.json 增加 acceptance:amazon-product-mining 与 audit:amazon-product-mining
+6. scripts/audit/ci-full.ts 白名单追加 amazon-product-mining
+7. inspector 必须真使用 context.project，不得仅靠正则/字符串匹配
+8. 翻 active 后 ci:full 仍 PASS
+```
+
+## 8. Absolute Bans
+
+```txt
+禁止手工编辑 scripts/audit/generated/* 作为源真相
+禁止新增 fallback / shadow / bridge / legacy 流程
+禁止 AI 返回 nextAction / actionPlan / selector / coordinate / browserCommand
+禁止读取 cookie / token / localStorage / sessionStorage
+禁止绕过 Amazon 登录 / 验证码 / 风控 / 地域限制
+禁止 PDF 替代结构化数据包
+禁止 warning-only 当 P0 通过
+禁止把 partial pass 当完成
+```

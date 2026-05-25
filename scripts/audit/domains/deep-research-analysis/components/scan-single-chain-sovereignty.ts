@@ -10,7 +10,17 @@ const forbiddenIdentifiers = new Set([
   decode("cnVuUHB0QXJ0aWZhY3RQaGFzZQ=="),
   "runPositivePhase",
   "runFalsificationPhase",
+  "buildFinalPackageStage",
 ]);
+
+const requiredRunnerIdentifiers = [
+  "runDecompositionPhase",
+  "runSubQuestionPhases",
+  "buildFullCaseFileStage",
+  "runFinalReportPhase",
+  "runBusinessHtmlReportPhase",
+  "completeSuccessfulRun",
+] as const;
 
 export const inspectSingleChainSovereignty = (input: {
   analysisRunnerFile: SourceFile | undefined;
@@ -19,6 +29,19 @@ export const inspectSingleChainSovereignty = (input: {
   inspectedFiles: Set<string>;
   lawId: string;
 }): void => {
+  const runnerRepoPath = input.analysisRunnerFile
+    ? getRepoSourcePath(input.analysisRunnerFile)
+    : "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts";
+  for (const identifier of requiredRunnerIdentifiers) {
+    const hasIdentifier = Boolean(input.analysisRunnerFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((node) => node.getText() === identifier));
+    if (hasIdentifier) continue;
+    input.findings.push(createFinding({
+      checkId: "deep-research/single-chain-missing-identifier",
+      lawId: input.lawId,
+      filePath: runnerRepoPath,
+      message: `Deep Research runner is missing required single-chain identifier: ${identifier}.`,
+    }));
+  }
   for (const sourceFile of [input.analysisRunnerFile, input.finalPackageFile]) {
     if (!sourceFile) continue;
     const repoPath = getRepoSourcePath(sourceFile);

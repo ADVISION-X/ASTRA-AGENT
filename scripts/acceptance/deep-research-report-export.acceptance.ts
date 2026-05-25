@@ -3,9 +3,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  buildDeepResearchFinalPackage,
+  buildDeepResearchStructuredIndex,
   createDeepResearchRecordStore,
   exportDeepResearchArtifacts,
+  rerunDeepResearchBusinessHtmlReport,
 } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
 import type {
   DeepResearchFinalReport,
@@ -70,6 +71,83 @@ const buildSubQuestionFixture = () => [
     omissionRisk: "Without this, the final adjudication may describe a good market without a workable launch path.",
   },
 ];
+
+const buildPromptBundle = (input: {
+  id: string;
+  role: "sub_question_analysis" | "final_adjudication" | "html_report_publisher";
+  instruction: string;
+  format: "json_object" | "structured_text" | "html_document";
+}) => ({
+  promptBundleId: `${input.id}-prompt-bundle`,
+  promptRole: input.role,
+  taskInstruction: input.instruction,
+  questionSpecificFocus: [input.instruction],
+  mustUseInputs: ["persisted case inputs"],
+  mustNotDo: ["Do not invent evidence."],
+  evidenceOrReasoningNeeds: ["Use the persisted fixture evidence."],
+  outputGuidance: {
+    preferredFormat: input.format,
+    requiredContent: ["decision content"],
+    optionalContent: [],
+    forbiddenContent: ["workflow commands"],
+  },
+  safetyBoundary: ["Fixture only."],
+  languageInstruction: "Respond in English.",
+});
+
+const buildResearchPlanFixture = (input: {
+  job: Awaited<ReturnType<DeepResearchStore["createJob"]>>;
+  modelSubQuestions: ReturnType<typeof buildSubQuestionFixture>;
+}) => ({
+  mainQuestion: input.job.userQuestion,
+  questionType: "business" as const,
+  decompositionStrategy: "Split the market-entry question into demand, pricing, and execution.",
+  missingInfo: [],
+  subQuestions: input.modelSubQuestions.map((subQuestion) => ({
+    id: subQuestion.id,
+    title: subQuestion.title,
+    questionText: subQuestion.questionText,
+    whyItMatters: subQuestion.whyItMatters,
+    decisionWeight: subQuestion.decisionWeight,
+    scope: subQuestion.scope,
+    omissionRisk: subQuestion.omissionRisk,
+    promptBundle: {
+      ...buildPromptBundle({
+        id: subQuestion.id,
+        role: "sub_question_analysis",
+        instruction: `Analyze ${subQuestion.title}.`,
+        format: "json_object",
+      }),
+      promptRole: "sub_question_analysis" as const,
+    },
+  })),
+  finalAdjudicationPromptBundle: {
+    ...buildPromptBundle({
+      id: "final-adjudication",
+      role: "final_adjudication",
+      instruction: "Adjudicate the fixture full case file.",
+      format: "json_object",
+    }),
+    promptRole: "final_adjudication" as const,
+  },
+  htmlReportPromptBundle: {
+    ...buildPromptBundle({
+      id: "html-report",
+      role: "html_report_publisher",
+      instruction: "Publish the fixture final report as business-report.html.",
+      format: "html_document",
+    }),
+    promptRole: "html_report_publisher" as const,
+  },
+  planIntegrityCheck: {
+    everySubQuestionHasPromptBundle: true as const,
+    promptBundlesAreQuestionSpecific: true as const,
+    noGenericUniversalPromptBundle: true as const,
+    readyForIndependentAnalysis: true as const,
+    readyForFullCaseAdjudication: true as const,
+    readyForHtmlReportPublishing: true as const,
+  },
+});
 
 const buildAnalysisRawResponse = (subQuestionId: string, ordinal: number) => buildJsonText({
   subQuestionId,
@@ -224,10 +302,26 @@ const persistDecompositionFixture = (input: {
     rawResponseHash: "sha256:decomposition-raw",
     providerProofJson: buildJsonText({ provider: "fixture", phase: "decomposition" }),
   });
+  input.store.saveResearchPlan({
+    jobId: input.job.id,
+    interactionId: interaction.id,
+    researchPlan: buildResearchPlanFixture({
+      job: input.job,
+      modelSubQuestions: input.modelSubQuestions,
+    }),
+  });
   return input.store.saveSubQuestions({
     jobId: input.job.id,
     interactionId: interaction.id,
-    subQuestions: input.modelSubQuestions,
+    subQuestions: buildResearchPlanFixture({
+      job: input.job,
+      modelSubQuestions: input.modelSubQuestions,
+    }).subQuestions.map((subQuestion) => ({
+      ...subQuestion,
+      purpose: subQuestion.whyItMatters,
+      requiredEvidence: subQuestion.promptBundle.evidenceOrReasoningNeeds,
+      expectedAnswerShape: subQuestion.promptBundle.outputGuidance.preferredFormat,
+    })),
   });
 };
 
@@ -352,6 +446,7 @@ const persistBusinessHtmlReportFixture = (input: {
 const persistCompletedResearchFixture = (input: {
   store: DeepResearchStore;
   dataDir: string;
+  includeBusinessHtmlReport?: boolean;
 }) => {
   const job = input.store.createJob({
     userQuestion: "Should the company enter the robotics warehouse market?",
@@ -367,7 +462,9 @@ const persistCompletedResearchFixture = (input: {
   });
   const finalReport = buildFinalReportFixture();
   persistFinalAdjudicationFixture({ store: input.store, jobId: job.id, finalReport });
-  persistBusinessHtmlReportFixture({ store: input.store, dataDir: input.dataDir, jobId: job.id });
+  if (input.includeBusinessHtmlReport ?? true) {
+    persistBusinessHtmlReportFixture({ store: input.store, dataDir: input.dataDir, jobId: job.id });
+  }
   input.store.updateJobState({ jobId: job.id, status: "completed", phase: "EXPORT_REPORT" });
   return { job, finalReport };
 };
@@ -399,7 +496,7 @@ const assertFullFlowReport = (input: {
   assert(!reportText.includes("### Removed Historical Analysis Block"), "Default-flow report must only render independent analysis blocks.");
   assert(!reportText.includes("## Conflict Matrix"), "Default-flow report must not emit a conflict matrix section.");
   assert(!reportText.includes("## Final Synthesis"), "Default-flow report must not regress to final synthesis.");
-  assert(input.store.listExports(input.job.id).length === 6, "Export records must contain final-report.md, full-case-file.md, full-case-file.json, decision-package.json, business-report.html, and evidence-index.json for this fixture.");
+  assert(input.store.listExports(input.job.id).length === 8, "Export records must contain final-report.md, full-case-file.md, full-case-file.json, decision-package.json, research-plan.json, prompt-bundles.json, business-report.html, and evidence-index.json for this fixture.");
 };
 
 async function main(): Promise<void> {
@@ -407,7 +504,7 @@ async function main(): Promise<void> {
   const store = createDeepResearchRecordStore(dataDir);
   try {
     const { job, finalReport } = persistCompletedResearchFixture({ store, dataDir });
-    const finalPackage = buildDeepResearchFinalPackage({ store, jobId: job.id });
+    const finalPackage = buildDeepResearchStructuredIndex({ store, jobId: job.id });
     const artifacts = await exportDeepResearchArtifacts({
       dataDir,
       store,
@@ -418,7 +515,7 @@ async function main(): Promise<void> {
 
     assert(finalPackage.analysisRecords.length === 3, "Report-export fixture must persist three analysis records.");
 
-    const structuredFinalPackage = JSON.parse(readFileSync(artifacts.decisionPackage.filePath, "utf8")) as {
+    const structuredIndexExport = JSON.parse(readFileSync(artifacts.decisionPackage.filePath, "utf8")) as {
       analysisAnswers: unknown[];
     };
     const fullCaseFile = JSON.parse(readFileSync(artifacts.fullCaseFileJson.filePath, "utf8")) as {
@@ -426,7 +523,7 @@ async function main(): Promise<void> {
       subQuestionAnalyses: unknown[];
     };
     const fullCaseFileMarkdown = readFileSync(artifacts.fullCaseFileMarkdown.filePath, "utf8");
-    assert(structuredFinalPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
+    assert(structuredIndexExport.analysisAnswers.length === 3, "Structured index export must expose three analysis answers.");
     assert(fullCaseFile.caseFileVersion === "v1", "Full case file export must expose the case file version.");
     assert(fullCaseFile.subQuestionAnalyses.length === 3, "Full case file export must expose all sub-question analyses.");
     assert(fullCaseFileMarkdown.includes("# Deep Research Full Case File"), "Full case file markdown export must be written.");
@@ -441,6 +538,57 @@ async function main(): Promise<void> {
       job,
       reportPath: artifacts.finalReportMarkdown.filePath,
     });
+
+    const reentryDataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-html-reentry-"));
+    const reentryStore = createDeepResearchRecordStore(reentryDataDir);
+    try {
+      const reentry = persistCompletedResearchFixture({
+        store: reentryStore,
+        dataDir: reentryDataDir,
+        includeBusinessHtmlReport: false,
+      });
+      const sourceHtmlPath = path.join(reentryDataDir, "ai-provider-business-report.html");
+      writeFileSync(sourceHtmlPath, [
+        "<!DOCTYPE html>",
+        "<html>",
+        "<head><meta charset=\"utf-8\"><title>Regenerated Business Report</title></head>",
+        "<body><main><h1>Regenerated Decision</h1></main></body>",
+        "</html>",
+      ].join(""), "utf8");
+      const result = await rerunDeepResearchBusinessHtmlReport({
+        jobId: reentry.job.id,
+        context: {
+          dataDir: reentryDataDir,
+          providerKind: "gemini-api",
+          runtimeLogger: {
+            emit() {},
+            getActiveMode: () => "FLOW",
+            isDebugEnabled: () => false,
+            isTraceEnabled: () => false,
+          },
+          sendPromptPackage: async () => ({
+            status: "completed",
+            rawOutputRef: "artifact://html-reentry",
+            rawOutputHash: "sha256:html-reentry-raw",
+            normalizedText: JSON.stringify({ filePath: sourceHtmlPath }),
+            providerProofJson: JSON.stringify({ provider: "fixture", phase: "html-report-reentry" }),
+            errorReason: null,
+          }),
+        },
+      });
+      assert(result.status === "success", "HTML report re-entry must complete the same Deep Research job.");
+      const htmlExport = reentryStore.listExports(reentry.job.id).find((record) => record.exportKind === "business-report.html");
+      assert(htmlExport, "HTML report re-entry must persist business-report.html.");
+      if (!htmlExport) {
+        throw new Error("HTML report re-entry must persist business-report.html.");
+      }
+      const persistedHtmlExport = htmlExport;
+      assert(existsSync(persistedHtmlExport.filePath), "HTML report re-entry must write business-report.html.");
+      assert(readFileSync(persistedHtmlExport.filePath, "utf8").includes("Regenerated Decision"), "HTML report re-entry must use the provider HTML artifact.");
+      assert(reentryStore.getJob(reentry.job.id)?.status === "completed", "HTML report re-entry must leave the job completed.");
+    } finally {
+      reentryStore.close();
+    }
   } finally {
     store.close();
   }

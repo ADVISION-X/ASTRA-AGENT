@@ -1,0 +1,55 @@
+import type { AmazonMiningInput, AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
+
+export type AmazonTaskRunConfig = {
+  taskId: string;
+  amazonMarketplace: string;
+  targetMarket: string;
+  productDirection: string;
+  requestedKeywordCount: number;
+  languagePreference: string;
+  createdAt: string;
+};
+
+export type AmazonTaskResult = {
+  taskId: string;
+  status: AmazonTaskStatus;
+  failureReason: string | null;
+  packageJsonPath: string | null;
+  pdfReportPath: string | null;
+  evidenceIndexPath: string | null;
+  exceptionSummaryPath: string | null;
+  handoffStatus: string;
+  runConfig: AmazonTaskRunConfig;
+  completedAt: string | null;
+};
+
+export const buildRunConfig = (input: AmazonMiningInput, taskId: string): AmazonTaskRunConfig => ({
+  taskId,
+  amazonMarketplace: input.amazonMarketplace,
+  targetMarket: input.targetMarket,
+  productDirection: input.productDirection,
+  requestedKeywordCount: input.requestedKeywordCount,
+  languagePreference: input.languagePreference ?? "en",
+  createdAt: new Date().toISOString(),
+});
+
+export const taskRecordToResult = (task: AmazonTaskRecord): AmazonTaskResult => ({
+  taskId: task.taskId,
+  status: task.status,
+  failureReason: task.failureReason,
+  packageJsonPath: task.packageJsonPath,
+  pdfReportPath: task.pdfReportPath,
+  evidenceIndexPath: task.evidenceIndexPath,
+  exceptionSummaryPath: task.exceptionSummaryPath,
+  handoffStatus: task.handoffStatus,
+  runConfig: {
+    taskId: task.taskId,
+    amazonMarketplace: task.amazonMarketplace,
+    targetMarket: task.targetMarket,
+    productDirection: task.productDirection,
+    requestedKeywordCount: task.requestedKeywordCount,
+    languagePreference: task.languagePreference,
+    createdAt: task.createdAt,
+  },
+  completedAt: task.updatedAt,
+});

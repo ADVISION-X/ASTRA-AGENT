@@ -43,6 +43,7 @@ const ciCommands: readonly CommandSpec[] = [
   { name: "deep-research-app-ui", command: ["npm", "run", "acceptance:deep-research-app-ui"] },
   { name: "amazon-invoice-upload-smoke", command: ["npm", "run", "acceptance:amazon-invoice-upload-smoke"] },
   { name: "facebook-product-video-mining", command: ["npm", "run", "acceptance:facebook-product-video-mining"] },
+  { name: "amazon-product-mining", command: ["npm", "run", "acceptance:amazon-product-mining"] },
 ];
 
 const createStepResult = (input: {

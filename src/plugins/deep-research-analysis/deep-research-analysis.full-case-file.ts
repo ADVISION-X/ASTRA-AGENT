@@ -114,7 +114,7 @@ const buildCoverage = (input: {
 
 const buildDecompositionCase = (input: {
   interactions: readonly ResearchInteraction[];
-  structuredFinalPackage: DeepResearchStructuredIndex;
+  structuredIndex: DeepResearchStructuredIndex;
 }) => {
   const interaction = input.interactions.find((entry) => entry.phase === "decomposition") ?? null;
   if (!interaction) {
@@ -129,7 +129,7 @@ const buildDecompositionCase = (input: {
     rawResponseHash: interaction.rawResponseHash,
     normalizedText: interaction.normalizedText,
     parseStatus: interaction.parseStatus,
-    parsedSubQuestions: input.structuredFinalPackage.decompositionRecords,
+    parsedSubQuestions: input.structuredIndex.decompositionRecords,
   };
 };
 
@@ -180,16 +180,22 @@ const buildFailedButRawAvailableInteractions = (
 
 const loadFullCaseFileState = (store: DeepResearchRecordStore, jobId: string): {
   job: ResearchJob;
+  researchPlan: DeepResearchFullCaseFile["researchPlan"];
   interactions: ResearchInteraction[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
 } => {
   const job = store.getJob(jobId);
+  const researchPlan = store.getResearchPlan(jobId);
   if (!job) {
     throw new Error(`Deep research job ${jobId} was not found.`);
   }
+  if (!researchPlan) {
+    throw new Error(`Deep research job ${jobId} has no persisted ResearchPlan.`);
+  }
   return {
     job,
+    researchPlan,
     interactions: store.listInteractions(jobId),
     subQuestions: store.listSubQuestions(jobId),
     answers: store.listAnswers({ jobId, answerKind: "analysis" }),
@@ -199,7 +205,7 @@ const loadFullCaseFileState = (store: DeepResearchRecordStore, jobId: string): {
 export const buildDeepResearchFullCaseFile = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
-  structuredFinalPackage: DeepResearchStructuredIndex;
+  structuredIndex: DeepResearchStructuredIndex;
 }): DeepResearchFullCaseFile => {
   const state = loadFullCaseFileState(input.store, input.jobId);
   const fullCaseFile: DeepResearchFullCaseFile = {
@@ -211,9 +217,10 @@ export const buildDeepResearchFullCaseFile = (input: {
       language: state.job.language,
       createdAt: state.job.createdAt,
     },
+    researchPlan: state.researchPlan,
     decomposition: buildDecompositionCase({
       interactions: state.interactions,
-      structuredFinalPackage: input.structuredFinalPackage,
+      structuredIndex: input.structuredIndex,
     }),
     subQuestionAnalyses: buildSubQuestionAnalyses({
       subQuestions: state.subQuestions,
@@ -221,9 +228,9 @@ export const buildDeepResearchFullCaseFile = (input: {
       answers: state.answers,
     }),
     failedButRawAvailableInteractions: buildFailedButRawAvailableInteractions(state.interactions),
-    structuredIndex: input.structuredFinalPackage,
-    sourceNotes: input.structuredFinalPackage.sourceNotes,
-    recordHashes: input.structuredFinalPackage.recordHashes,
+    structuredIndex: input.structuredIndex,
+    sourceNotes: input.structuredIndex.sourceNotes,
+    recordHashes: input.structuredIndex.recordHashes,
     coverage: buildCoverage({
       subQuestions: state.subQuestions,
       answers: state.answers,

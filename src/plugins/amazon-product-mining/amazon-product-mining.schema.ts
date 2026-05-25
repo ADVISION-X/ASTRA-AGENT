@@ -1,0 +1,210 @@
+import { z } from "zod";
+
+export const AmazonMarketplaceSchema = z.enum([
+  "amazon.com",
+  "amazon.co.uk",
+  "amazon.de",
+  "amazon.co.jp",
+  "amazon.fr",
+  "amazon.it",
+  "amazon.es",
+  "amazon.ca",
+  "amazon.com.au",
+  "amazon.com.br",
+  "amazon.com.mx",
+  "amazon.nl",
+  "amazon.se",
+  "amazon.pl",
+  "amazon.ae",
+  "amazon.sg",
+  "amazon.com.tr",
+]);
+
+export const AmazonTaskStatusSchema = z.enum([
+  "created",
+  "keyword_generating",
+  "keyword_ready",
+  "mining",
+  "packaging",
+  "package_completed",
+  "failed",
+  "manual_required",
+]);
+
+export const AmazonKeywordStatusSchema = z.enum([
+  "pending",
+  "searching",
+  "search_completed",
+  "completed",
+  "completed_with_errors",
+  "failed",
+  "manual_required",
+]);
+
+export const AmazonProductStatusSchema = z.enum([
+  "pending_detail",
+  "detail_extracting",
+  "detail_completed",
+  "review_extracting",
+  "completed",
+  "failed",
+  "manual_required",
+]);
+
+export const AmazonHandoffStatusSchema = z.enum([
+  "not_started",
+  "ready",
+  "handoff_completed",
+  "failed",
+]);
+
+export const AmazonMiningInputSchema = z.object({
+  taskId: z.string().min(1).optional(),
+  amazonMarketplace: AmazonMarketplaceSchema,
+  targetMarket: z.string().min(1),
+  productDirection: z.string().min(1),
+  requestedKeywordCount: z.number().int().positive().default(10),
+  languagePreference: z.string().min(1).default("en"),
+}).strict();
+
+export const AmazonKeywordRecordSchema = z.object({
+  keywordId: z.string().min(1),
+  taskId: z.string().min(1),
+  keyword: z.string().min(1),
+  source: z.literal("ai_generated"),
+  aiRunId: z.string().min(1).nullable(),
+  reason: z.string().nullable().default(null),
+  status: AmazonKeywordStatusSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1).nullable().default(null),
+}).strict();
+
+export const AmazonSearchResultItemSchema = z.object({
+  itemId: z.string().min(1),
+  keywordId: z.string().min(1),
+  taskId: z.string().min(1),
+  keyword: z.string().min(1),
+  searchUrl: z.string().min(1),
+  rankPosition: z.number().int().nonnegative(),
+  isSponsored: z.boolean(),
+  title: z.string().nullable().default(null),
+  productUrl: z.string().min(1),
+  asinIfAvailable: z.string().nullable().default(null),
+  mainImageUrl: z.string().nullable().default(null),
+  price: z.string().nullable().default(null),
+  originalPriceOrDiscountIfVisible: z.string().nullable().default(null),
+  rating: z.string().nullable().default(null),
+  reviewCount: z.string().nullable().default(null),
+  primeOrFbaFlagIfVisible: z.string().nullable().default(null),
+  couponTextIfVisible: z.string().nullable().default(null),
+  deliveryTextIfVisible: z.string().nullable().default(null),
+  rawVisibleTextSnapshot: z.string().nullable().default(null),
+  createdAt: z.string().min(1),
+}).strict();
+
+export const AmazonProductDetailSchema = z.object({
+  detailId: z.string().min(1),
+  taskId: z.string().min(1),
+  asin: z.string().nullable().default(null),
+  productUrl: z.string().min(1),
+  title: z.string().nullable().default(null),
+  brand: z.string().nullable().default(null),
+  sellerOrStoreIfVisible: z.string().nullable().default(null),
+  currentPrice: z.string().nullable().default(null),
+  originalPriceDiscountCouponIfVisible: z.string().nullable().default(null),
+  mainImage: z.string().nullable().default(null),
+  allVisibleImages: z.array(z.string()).default([]),
+  visibleVideoInfo: z.string().nullable().default(null),
+  bulletPoints: z.array(z.string()).default([]),
+  aboutThisItem: z.string().nullable().default(null),
+  productDescription: z.string().nullable().default(null),
+  aPlusContentIfVisible: z.string().nullable().default(null),
+  variationOptions: z.string().nullable().default(null),
+  colorSizeStyleOptions: z.string().nullable().default(null),
+  productInformation: z.string().nullable().default(null),
+  technicalDetails: z.string().nullable().default(null),
+  additionalInformation: z.string().nullable().default(null),
+  bestSellersRankIfVisible: z.string().nullable().default(null),
+  categoryPathIfVisible: z.string().nullable().default(null),
+  rating: z.string().nullable().default(null),
+  reviewCount: z.string().nullable().default(null),
+  starDistribution: z.string().nullable().default(null),
+  qaContentIfVisible: z.string().nullable().default(null),
+  frequentlyBoughtTogetherIfVisible: z.string().nullable().default(null),
+  customersAlsoBoughtIfVisible: z.string().nullable().default(null),
+  compareWithSimilarItemsIfVisible: z.string().nullable().default(null),
+  deliveryInformation: z.string().nullable().default(null),
+  returnInformation: z.string().nullable().default(null),
+  allOtherVisibleProductParameters: z.string().nullable().default(null),
+  rawVisibleTextSnapshot: z.string().nullable().default(null),
+  status: AmazonProductStatusSchema,
+  failureReason: z.string().nullable().default(null),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1).nullable().default(null),
+}).strict();
+
+export const AmazonReviewRecordSchema = z.object({
+  reviewId: z.string().min(1),
+  detailId: z.string().min(1),
+  taskId: z.string().min(1),
+  asin: z.string().nullable().default(null),
+  pageIndex: z.number().int().nonnegative(),
+  reviewIdIfAvailable: z.string().nullable().default(null),
+  reviewerName: z.string().nullable().default(null),
+  rating: z.string().nullable().default(null),
+  reviewTitle: z.string().nullable().default(null),
+  reviewBody: z.string().nullable().default(null),
+  reviewDate: z.string().nullable().default(null),
+  verifiedPurchase: z.boolean().nullable().default(null),
+  variant: z.string().nullable().default(null),
+  helpfulCountIfVisible: z.string().nullable().default(null),
+  reviewImagesIfVisible: z.array(z.string()).default([]),
+  reviewVideosIfVisible: z.array(z.string()).default([]),
+  reviewLanguage: z.string().nullable().default(null),
+  reviewRegionIfVisible: z.string().nullable().default(null),
+  rawReviewTextSnapshot: z.string().nullable().default(null),
+  createdAt: z.string().min(1),
+}).strict();
+
+export const AmazonTaskRecordSchema = z.object({
+  taskId: z.string().min(1),
+  amazonMarketplace: AmazonMarketplaceSchema,
+  targetMarket: z.string().min(1),
+  productDirection: z.string().min(1),
+  requestedKeywordCount: z.number().int().positive(),
+  languagePreference: z.string().min(1),
+  status: AmazonTaskStatusSchema,
+  failureReason: z.string().nullable().default(null),
+  packageJsonPath: z.string().nullable().default(null),
+  pdfReportPath: z.string().nullable().default(null),
+  evidenceIndexPath: z.string().nullable().default(null),
+  exceptionSummaryPath: z.string().nullable().default(null),
+  handoffStatus: AmazonHandoffStatusSchema.default("not_started"),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1).nullable().default(null),
+}).strict();
+
+export const AmazonMiningSchemas = {
+  AmazonMiningInputSchema,
+  AmazonMarketplaceSchema,
+  AmazonTaskStatusSchema,
+  AmazonKeywordStatusSchema,
+  AmazonProductStatusSchema,
+  AmazonHandoffStatusSchema,
+  AmazonKeywordRecordSchema,
+  AmazonSearchResultItemSchema,
+  AmazonProductDetailSchema,
+  AmazonReviewRecordSchema,
+  AmazonTaskRecordSchema,
+} as const;
+
+export type AmazonMiningInput = z.infer<typeof AmazonMiningInputSchema>;
+export type AmazonTaskRecord = z.infer<typeof AmazonTaskRecordSchema>;
+export type AmazonKeywordRecord = z.infer<typeof AmazonKeywordRecordSchema>;
+export type AmazonSearchResultItem = z.infer<typeof AmazonSearchResultItemSchema>;
+export type AmazonProductDetail = z.infer<typeof AmazonProductDetailSchema>;
+export type AmazonReviewRecord = z.infer<typeof AmazonReviewRecordSchema>;
+export type AmazonTaskStatus = z.infer<typeof AmazonTaskStatusSchema>;
+export type AmazonKeywordStatus = z.infer<typeof AmazonKeywordStatusSchema>;
+export type AmazonProductStatus = z.infer<typeof AmazonProductStatusSchema>;
+export type AmazonHandoffStatus = z.infer<typeof AmazonHandoffStatusSchema>;

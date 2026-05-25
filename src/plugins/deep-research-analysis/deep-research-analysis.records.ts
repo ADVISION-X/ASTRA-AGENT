@@ -9,6 +9,7 @@ import {
   type DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
 import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
 import {
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
   type ResearchAnswer,
@@ -18,6 +19,7 @@ import {
   type ResearchFinalReportRecord,
   type ResearchInteraction,
   type ResearchJob,
+  type ResearchPlanRecord,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
 import {
@@ -28,10 +30,12 @@ import {
 } from "./deep-research-analysis.record-db.js";
 import {
   createInteraction,
+  getResearchPlan,
   listAnswers,
   listInteractions,
   listSubQuestions,
   saveAnswer,
+  saveResearchPlan,
   saveSubQuestions,
 } from "./deep-research-analysis.record-interaction-ops.js";
 import {
@@ -49,6 +53,7 @@ export type {
   ResearchFinalReportRecord,
   ResearchInteraction,
   ResearchJob,
+  ResearchPlanRecord,
   ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
 
@@ -181,6 +186,12 @@ export type DeepResearchRecordStore = {
     subQuestions: readonly DeepResearchSubQuestion[];
   }): ResearchSubQuestion[];
   listSubQuestions(jobId: string): ResearchSubQuestion[];
+  saveResearchPlan(input: {
+    jobId: string;
+    interactionId: string;
+    researchPlan: DeepResearchPlan;
+  }): ResearchPlanRecord;
+  getResearchPlan(jobId: string): DeepResearchPlan | null;
   saveAnswer(input: {
     jobId: string;
     interactionId: string;
@@ -228,6 +239,8 @@ export const createDeepResearchRecordStore = (dataDir: string): DeepResearchReco
     listInteractions: (jobId) => listInteractions(db, jobId),
     saveSubQuestions: (input) => saveSubQuestions(db, input),
     listSubQuestions: (jobId) => listSubQuestions(db, jobId),
+    saveResearchPlan: (input) => saveResearchPlan(db, input),
+    getResearchPlan: (jobId) => getResearchPlan(db, jobId),
     saveAnswer: (input) => saveAnswer(db, input),
     listAnswers: (input) => listAnswers(db, input),
     saveFinalReport: (input) => saveFinalReport(db, input),

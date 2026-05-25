@@ -99,11 +99,12 @@ const hasDuplicateQuestionText = (parsed: DeepResearchDecompositionResponse): bo
 };
 
 const hasQualitySelfCheckFailure = (parsed: DeepResearchDecompositionResponse): boolean =>
-  !parsed.qualitySelfCheck.isNeutral
-  || !parsed.qualitySelfCheck.hasNoDuplicateQuestions
-  || !parsed.qualitySelfCheck.hasNoPureFalsificationQuestions
-  || !parsed.qualitySelfCheck.isReadyForIndependentAnalysis
-  || !parsed.qualitySelfCheck.isReadyForFinalAdjudication;
+  !parsed.planIntegrityCheck.everySubQuestionHasPromptBundle
+  || !parsed.planIntegrityCheck.promptBundlesAreQuestionSpecific
+  || !parsed.planIntegrityCheck.noGenericUniversalPromptBundle
+  || !parsed.planIntegrityCheck.readyForIndependentAnalysis
+  || !parsed.planIntegrityCheck.readyForFullCaseAdjudication
+  || !parsed.planIntegrityCheck.readyForHtmlReportPublishing;
 
 export const parseDecompositionResponse = (input: {
   rawText: string;
