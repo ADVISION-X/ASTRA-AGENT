@@ -3,9 +3,6 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import {
-  extractInlineHtmlDocumentFromWebChatResponse,
-} from "../../capabilities/ai-input-gateway/index.js";
-import {
   buildFailure,
   buildParsedResult,
   type DeepResearchParserResult,
@@ -19,7 +16,16 @@ import {
 const buildTextHash = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
-const persistInlineHtmlDocument = (input: {
+const isBusinessHtmlArtifactText = (value: string): boolean => {
+  const trimmed = value.trim();
+  const lower = trimmed.toLowerCase();
+  return trimmed.length > 0
+    && (lower.includes("<!doctype html") || lower.includes("<html"))
+    && lower.includes("<body")
+    && (lower.includes("</html>") || lower.includes("</body>"));
+};
+
+const persistBusinessHtmlArtifact = (input: {
   htmlDocument: string;
   outputPath: string;
 }): DeepResearchBusinessHtmlReportRecord => {
@@ -56,8 +62,7 @@ export const parseAndPersistBusinessHtmlReport = (input: {
 }): DeepResearchParserResult<DeepResearchBusinessHtmlReportRecord> => {
   const normalizedText = input.rawText.trim();
   const rawResponseHash = buildTextHash(normalizedText);
-  const inlineHtmlDocument = extractInlineHtmlDocumentFromWebChatResponse(normalizedText);
-  if (!inlineHtmlDocument) {
+  if (!isBusinessHtmlArtifactText(normalizedText)) {
     return buildFailure(
       normalizedText,
       rawResponseHash,
@@ -67,8 +72,8 @@ export const parseAndPersistBusinessHtmlReport = (input: {
   }
   try {
     return buildParsedResult({
-      parsed: persistInlineHtmlDocument({
-        htmlDocument: inlineHtmlDocument,
+      parsed: persistBusinessHtmlArtifact({
+        htmlDocument: normalizedText,
         outputPath: input.outputPath,
       }),
       normalizedText,

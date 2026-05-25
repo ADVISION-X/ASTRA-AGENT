@@ -375,3 +375,89 @@ Deep Research must not retain parallel old prompt formats, finalReport schemas, 
 the current chain exists;
 old modes do not exist.
 ```
+
+### [GRASSEYE-DEEP-RESEARCH-053-V1] App Case Reader Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+ui+acceptance",
+  "summary": "The Deep Research App page must be a case reader, not only a final report viewer. It must expose ResearchPlan, per-subQuestion promptBundle, rendered prompt, clean answer, index view, raw AI response, full case file, final raw adjudication, and primary HTML report delivery."
+}
+```
+
+The Deep Research App page must be a case reader, not only a final report viewer.
+
+It must expose:
+
+```txt
+ResearchPlan
+per-subQuestion promptBundle
+rendered prompt
+clean answer
+index view
+raw AI response
+full case file
+final raw adjudication
+primary HTML report delivery
+```
+
+### [GRASSEYE-DEEP-RESEARCH-054-V1] PromptBundle Visibility
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+ui+acceptance",
+  "summary": "Every persisted subQuestion promptBundle must be visible in the App report reader. The UI must not hide promptBundle behind only full-case-file downloads."
+}
+```
+
+Every persisted `subQuestion.promptBundle` must be visible in the App report reader.
+
+The UI must not hide promptBundle behind only full-case-file downloads.
+
+### [GRASSEYE-DEEP-RESEARCH-055-V1] Clean / Raw / Index Separation
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+ui+acceptance",
+  "summary": "The App UI must display clean answer, raw AI response, and parsed/index data as separate views. The UI must not label answerText as Summary. The UI must not merge raw response and parsed index into one business-looking answer."
+}
+```
+
+The App UI must display `clean answer`, `raw AI response`, and `parsed/index data` as separate views.
+
+The UI must not label `answerText` as `Summary`.
+
+The UI must not merge raw response and parsed index into one business-looking answer.
+
+### [GRASSEYE-DEEP-RESEARCH-056-V1] HTML Delivery Status Visibility
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ui+export+acceptance",
+  "summary": "The App UI must show primary business HTML report delivery status, sourceKind, fileHash, fileSize, and failure/review reason when missing. HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message."
+}
+```
+
+The App UI must show primary business HTML report delivery status, `sourceKind`, `fileHash`, `fileSize`, and failure/review reason when missing.
+
+HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T23:28:32.822Z",
+  "generatedAt": "2026-05-25T23:39:11.121Z",
   "entries": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -221,7 +221,11 @@
         "GRASSEYE-DEEP-RESEARCH-049-V1",
         "GRASSEYE-DEEP-RESEARCH-050-V1",
         "GRASSEYE-DEEP-RESEARCH-051-V1",
-        "GRASSEYE-DEEP-RESEARCH-052-V1"
+        "GRASSEYE-DEEP-RESEARCH-052-V1",
+        "GRASSEYE-DEEP-RESEARCH-053-V1",
+        "GRASSEYE-DEEP-RESEARCH-054-V1",
+        "GRASSEYE-DEEP-RESEARCH-055-V1",
+        "GRASSEYE-DEEP-RESEARCH-056-V1"
       ],
       "clauseIds": [
         "primary"
@@ -231,13 +235,16 @@
         "ast+prompt",
         "ast+prompt+acceptance",
         "ast+prompt+ui",
+        "ast+ui+acceptance",
         "fs+ast",
         "fs+ast+acceptance",
         "fs+ast+ui",
         "prompt+ast+export",
         "schema+ast",
         "schema+ast+export",
-        "schema+ast+prompt"
+        "schema+ast+prompt",
+        "schema+ui+acceptance",
+        "ui+export+acceptance"
       ],
       "blueprintRefs": []
     },

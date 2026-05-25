@@ -12,8 +12,11 @@ import { inspectFinalAdjudicationPromptBundleInput } from "./components/scan-fin
 import { inspectFinalAdjudicationRawSovereignty } from "./components/scan-final-adjudication-raw-sovereignty.js";
 import { inspectFormatShellBoundary } from "./components/scan-format-shell-boundary.js";
 import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
-import { inspectHtmlUsesRawFinalAnswer } from "./components/scan-html-uses-raw-final-answer.js";
-import { inspectHtmlReportPromptBundleInput } from "./components/scan-html-report-promptbundle-input.js";
+import {
+  inspectHtmlArtifactCaptureChain,
+  inspectHtmlReportPromptBundleInput,
+  inspectHtmlUsesRawFinalAnswer,
+} from "./components/html-owner-inspectors.js";
 import { inspectNoSystemGeneratedConfidence } from "./components/scan-no-system-generated-confidence.js";
 import { inspectPerSubQuestionPromptBundleUniqueness } from "./components/scan-per-subquestion-promptbundle-uniqueness.js";
 import { inspectPromptBundleBusinessSovereignty } from "./components/scan-promptbundle-business-sovereignty.js";
@@ -39,6 +42,7 @@ const requiredFiles = [
 const requiredAuditComponentFiles = [
   "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
   "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
+  "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
 ] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -202,6 +206,15 @@ const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
+  });
+  inspectHtmlArtifactCaptureChain({
+    captureFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts"),
+    exportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts"),
+    sharedFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
+    proofFile: getSourceFile(context, "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
   });
   const cleanOutputScan = inspectAnalysisOutputCleanliness({
     promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),

@@ -68,10 +68,8 @@ const renderPrimaryBusinessReport = (report: DeepResearchReport): void => {
       <p class="muted">The AI HTML Report Publisher runs after final adjudication and persists business-report.html when available.</p>`);
     return;
   }
-  const sourceLabel = primaryReport.sourceKind === "inline_html_document"
-    ? "Inline HTML document"
-    : primaryReport.sourceKind === "html_artifact"
-      ? "HTML artifact"
+    const sourceLabel = primaryReport.sourceKind === "inline_html_document"
+      ? "Inline HTML document"
       : "Unknown source";
   setResearchHtml("[data-deep-research-primary-business-report]", `
     <div class="research-section-head">

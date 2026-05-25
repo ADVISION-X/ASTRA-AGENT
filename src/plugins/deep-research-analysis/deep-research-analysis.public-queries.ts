@@ -18,11 +18,13 @@ import {
   type DeepResearchTimelineSnapshot,
 } from "./deep-research-analysis.public-contracts.js";
 import {
+  buildFullCaseFileSummary,
   buildConclusionView,
   buildEvidenceViews,
   buildHistoryJobView,
   buildReportExportViews,
   buildReportJobView,
+  buildResearchPlanView,
   buildStageViews,
 } from "./deep-research-analysis.public-report-support.js";
 import {
@@ -171,16 +173,28 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
     .filter((entry) => hasPairedEvidence || snapshot.finalAdjudication !== null)
     .find((entry) => entry.phase === "final_adjudication") ?? null;
   const exportViews = buildReportExportViews(snapshot.exports);
+  const fullCaseFileSummary = buildFullCaseFileSummary({
+    timeline: snapshot.timeline,
+    subQuestionCount: subQuestions.length,
+    finalAdjudication: snapshot.finalAdjudication,
+    exports: snapshot.exports,
+  });
   return {
     job: buildReportJobView(snapshot),
     conclusion: buildConclusionView(snapshot.finalAdjudication),
     stages: buildStageViews({
       job: snapshot.job,
+      timeline: snapshot.timeline,
+      subQuestionCount: subQuestions.length,
+      analysisCount: snapshot.answers.filter((record) => record.answerKind === "analysis").length,
+      finalAdjudication: snapshot.finalAdjudication,
+      fullCaseFileSummary,
+      exports: snapshot.exports,
+    }),
+    researchPlan: buildResearchPlanView({
+      researchPlan: snapshot.researchPlan,
       decompositionInteraction,
       subQuestionReports,
-      finalInteraction,
-      finalAdjudication: snapshot.finalAdjudication,
-      exports: snapshot.exports,
     }),
     decomposition: {
       interaction: decompositionInteraction,
@@ -196,6 +210,7 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       exports: snapshot.exports,
       exportViews,
     }),
+    fullCaseFileSummary,
     evidence: buildEvidenceViews({ timeline: snapshot.timeline, subQuestionById }),
     exports: exportViews,
   };

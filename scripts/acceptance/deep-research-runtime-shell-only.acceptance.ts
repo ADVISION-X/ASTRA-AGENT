@@ -7,9 +7,11 @@ const finalPrompt = readFileSync("src/plugins/deep-research-analysis/deep-resear
 const htmlPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts", "utf8");
 
 for (const marker of [
-  "Return one complete answer body between ANSWER_TEXT_BEGIN and ANSWER_TEXT_END.",
+  "SUB_QUESTION_ANSWER_TEXT_BEGIN",
+  "SUB_QUESTION_ANSWER_TEXT_END",
   "Do not wrap the answer body in a JSON response envelope.",
-  "You may append one retrieval-only JSON object between INDEX_JSON_BEGIN and INDEX_JSON_END.",
+  "SUB_QUESTION_INDEX_JSON_BEGIN",
+  "SUB_QUESTION_INDEX_JSON_END",
 ]) {
   assert(promptBundleShell.includes(marker), `Runtime shell must contain ${marker}.`);
 }

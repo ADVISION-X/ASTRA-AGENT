@@ -11,6 +11,8 @@ const PRIMARY_ENTRY_WAIT_MS = 4_000;
 const SECONDARY_ENTRY_WAIT_MS = 20_000;
 const DOWNLOAD_SETTLE_MS = 350;
 const HTML_ARTIFACT_NAME = "business-report.html";
+const PRIMARY_CHATGPT_FILE_ENTRY_LABEL = "下载 business-report.html";
+const SECONDARY_CHATGPT_DOWNLOAD_LABEL = "下载代码文件";
 
 type CapturedHtmlArtifact = {
   htmlDocument: string;
@@ -108,10 +110,10 @@ const clickPrimaryChatGptHtmlArtifactEntry = (
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluateActiveTab<ClickEvaluation>({
-    description: "click ChatGPT primary business-report.html file entry",
+    description: `click ChatGPT primary ${HTML_ARTIFACT_NAME} file entry`,
     script: `
 const buttons = Array.from(document.querySelectorAll("button"));
-const target = buttons.find((button) => (button.textContent || "").trim() === ${JSON.stringify(`下载 ${HTML_ARTIFACT_NAME}`)});
+const target = buttons.find((button) => (button.textContent || "").trim() === ${JSON.stringify(PRIMARY_CHATGPT_FILE_ENTRY_LABEL)});
 if (!target) {
   return {status: "pending", message: "primary business HTML file entry not present", pageUrl: location.href};
 }
@@ -126,10 +128,10 @@ const clickSecondaryChatGptPreviewDownload = (
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluateActiveTab<ClickEvaluation>({
-    description: "click ChatGPT preview business-report.html download",
+    description: `click ChatGPT preview ${HTML_ARTIFACT_NAME} download`,
     script: `
 const target = Array.from(document.querySelectorAll("button"))
-  .find((button) => button.getAttribute("aria-label") === "下载代码文件");
+  .find((button) => button.getAttribute("aria-label") === ${JSON.stringify(SECONDARY_CHATGPT_DOWNLOAD_LABEL)});
 if (!target) {
   return {status: "pending", message: "preview business HTML download control not present", pageUrl: location.href};
 }

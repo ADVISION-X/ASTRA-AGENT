@@ -137,6 +137,7 @@ const buildTimelineEntries = (input: {
       rawResponseHash: interaction.rawResponseHash,
       promptText: prompt.promptText,
       rawResponseText: interaction.rawResponseText,
+      parseStatus: interaction.parseStatus,
       parsedSummary: parsed.parsedSummary,
       parsedJson: parsed.parsedJson,
       parsedRecordIds: parsed.parsedRecordIds,
@@ -156,6 +157,7 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
       return null;
     }
     const interactions = store.listInteractions(jobId);
+    const researchPlan = store.getResearchPlan(jobId);
     const subQuestions = store.listSubQuestions(jobId);
     const answers = store.listAnswers({ jobId });
     const finalAdjudicationRecord = store.getLatestFinalAdjudication(jobId);
@@ -178,6 +180,7 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
         finalAdjudication: finalAdjudicationRecord,
         exports,
       }).overview,
+      researchPlan,
       timeline,
       subQuestions,
       answers,
@@ -252,10 +255,7 @@ export const buildPrimaryBusinessReportView = (input: {
   const htmlExport = selectBusinessHtmlExport(input.exports);
   const htmlExportView = input.exportViews.find((entry) => entry.exportKind === "business-report.html") ?? null;
   const payload = readExportPayload(htmlExport);
-  const sourceKind = payload?.sourceKind === "html_artifact"
-    || payload?.sourceKind === "inline_html_document"
-    ? payload.sourceKind
-    : null;
+  const sourceKind = payload?.sourceKind === "inline_html_document" ? payload.sourceKind : null;
   return {
     generatedAt: htmlExportView?.createdAt ?? null,
     status: htmlExportView
@@ -266,5 +266,7 @@ export const buildPrimaryBusinessReportView = (input: {
     generatedBy: "AI HTML Report Publisher" as const,
     htmlExport: htmlExportView,
     sourceKind,
+    failureReason: htmlExportView ? null : input.job.failureReason,
+    reviewReason: htmlExportView ? null : input.job.reviewReason,
   };
 };

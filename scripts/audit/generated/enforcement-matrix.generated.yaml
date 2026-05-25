@@ -1,4 +1,4 @@
-generatedAt: "2026-05-25T23:28:32.822Z"
+generatedAt: "2026-05-25T23:39:11.121Z"
 rows:
   - capabilityDomain: "amazon-product-mining"
     manifestPath: "scripts/audit/domains/amazon-product-mining/manifest.json"
@@ -109,6 +109,10 @@ rows:
       - "GRASSEYE-DEEP-RESEARCH-050-V1"
       - "GRASSEYE-DEEP-RESEARCH-051-V1"
       - "GRASSEYE-DEEP-RESEARCH-052-V1"
+      - "GRASSEYE-DEEP-RESEARCH-053-V1"
+      - "GRASSEYE-DEEP-RESEARCH-054-V1"
+      - "GRASSEYE-DEEP-RESEARCH-055-V1"
+      - "GRASSEYE-DEEP-RESEARCH-056-V1"
   - capabilityDomain: "dom-automation"
     manifestPath: "scripts/audit/domains/dom-automation/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/dom-automation/inspector.ts"

@@ -158,6 +158,16 @@ fullCaseFileMarkdown
 htmlReportPromptBundle
 ```
 
+GPT web-chat 生成 `business-report.html` 时，AI Input Gateway 必须返回真实 HTML artifact 内容作为 raw output：
+
+```txt
+1. primary: assistant 正文 `下载 business-report.html` 文件入口
+2. secondary: 预览框右上角 `下载代码文件`
+3. proof: raw output ref + provider outputRefs
+```
+
+Deep Research 不得保留从 assistant 文本、代码 fence、摘要文本中猜测 HTML 的获取方式。
+
 ## Export
 
 只允许导出：
@@ -173,16 +183,111 @@ structured-index.json
 
 `structured-index.json` 只是导航索引，不是 full case file，也不是最终裁决真相源。
 
-## UI
+## App 页面：Deep Research Case Reader
 
-只允许显示：
+App 页面不是单纯报告展示页。
+
+App 页面是完整案卷阅读器。
+
+固定结构：
 
 ```txt
 History
-Final Adjudication Raw
-Primary Business HTML Report
-Full Case File
-Evidence Index
+-> Final Adjudication Raw
+-> Primary Business HTML Report
+-> ResearchPlan
+-> N Analysis Cards
+-> Full Case File
+-> Process Trace
+```
+
+用户必须能直接在页面上检查：
+
+```txt
+promptBundle
+renderedPrompt
+cleanAnswer
+index
+rawResponse
+final raw adjudication
+HTML artifact delivery status
+Full Case File exports
+```
+
+ResearchPlan 区块必须显示：
+
+```txt
+Main Question
+Question Type if present
+Decomposition Strategy
+N count
+planIntegrityCheck
+finalAdjudicationPromptBundle status
+htmlReportPromptBundle status
+sub-question overview cards
+```
+
+每张 Analysis Card 必须分离显示：
+
+```txt
+PromptBundle
+Rendered Prompt
+Clean Answer
+Index JSON / Index Notes
+Raw AI Response
+```
+
+Final Adjudication Raw 区块只展示：
+
+```txt
+rawFinalAnswerText
+preferredFormat
+parseStatus
+parsedJsonIndex when present
+final interaction prompt and raw response evidence
+```
+
+Primary Business HTML Report 区块必须显示：
+
+```txt
+status
+sourceKind
+fileName
+fileHash
+fileSizeBytes
+generatedAt
+failureReason / reviewReason when missing
+```
+
+Full Case File 区块必须保留 open/download Markdown 和 JSON，并显示 outline preview：
+
+```txt
+decomposition raw present
+analysis raw count
+subQuestion count
+final raw present
+HTML report export present
+```
+
+Process Trace 必须按当前主链显示：
+
+```txt
+DECOMPOSE
+ANALYZE_N
+BUILD_FULL_CASE_FILE
+FINAL_ADJUDICATION
+HTML_REPORT
+EXPORT
+COMPLETE
+```
+
+显式不存在或禁止展示：
+
+```txt
+PPT
+Deck
+Optional Presentation
+旧 final summary / confidence UI
 ```
 
 UI 不得展示系统生成的 confidence、系统生成的 summary，或把 fixed FinalReport schema 字段当成权威。

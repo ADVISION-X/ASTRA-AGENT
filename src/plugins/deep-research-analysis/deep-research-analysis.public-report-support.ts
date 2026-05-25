@@ -14,7 +14,9 @@ import type {
   DeepResearchConclusionView,
   DeepResearchEvidenceView,
   DeepResearchExportView,
+  DeepResearchFullCaseFileSummaryView,
   DeepResearchHistoryJobView,
+  DeepResearchResearchPlanView,
   DeepResearchReportViewModel,
   DeepResearchStageStatus,
   DeepResearchStageView,
@@ -31,21 +33,146 @@ const truncateText = (value: string, maxLength = 220): string => {
   return `${normalized.slice(0, maxLength - 1)}...`;
 };
 
-const buildSubQuestionView = (record: ResearchSubQuestion): DeepResearchSubQuestionView => ({
-  id: record.id,
-  modelQuestionId: record.modelQuestionId,
-  ordinal: record.ordinal,
-  title: record.question.title,
-  questionText: record.question.questionText,
-  purpose: record.question.purpose,
-  whyItMatters: record.question.whyItMatters ?? null,
-  decisionWeight: record.question.decisionWeight ?? null,
-  analysisFocus: record.question.analysisFocus ?? null,
-  requiredEvidence: [...record.question.requiredEvidence],
-  scope: record.question.scope,
-  expectedAnswerShape: record.question.expectedAnswerShape,
-  priority: record.question.priority ?? null,
-  omissionRisk: record.question.omissionRisk ?? null,
+const normalizeStringArray = (values: readonly string[]): string[] =>
+  [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
+
+const readParsedIndexNotes = (answer: ResearchAnswer): string[] => {
+  const candidate = answer.parsedPayload["indexNotes"];
+  const parsedNotes = Array.isArray(candidate)
+    ? candidate.filter((entry): entry is string => typeof entry === "string")
+    : [];
+  return normalizeStringArray([
+    ...parsedNotes,
+    ...answer.keyPoints,
+    ...answer.evidenceMentions,
+  ]);
+};
+
+const readParsedJsonIndex = (answer: ResearchAnswer): unknown | null =>
+  Object.keys(answer.parsedPayload).length > 0 ? answer.parsedPayload : null;
+
+const hasExportKind = (exports: readonly ResearchExport[], kind: ResearchExport["exportKind"]): boolean =>
+  exports.some((record) => record.exportKind === kind);
+
+const chainStageOrder = [
+  "stage-decompose",
+  "stage-analyze-n",
+  "stage-build-full-case-file",
+  "stage-final-adjudication",
+  "stage-html-report",
+  "stage-export",
+  "stage-complete",
+] as const;
+
+const buildInteractionHashes = (
+  interactions: readonly DeepResearchTimelineEntry[],
+): Pick<DeepResearchStageView, "promptHashes" | "rawResponseHashes" | "parseStatuses"> => ({
+  promptHashes: normalizeStringArray(interactions.map((entry) => entry.promptHash)),
+  rawResponseHashes: normalizeStringArray(interactions.map((entry) => entry.rawResponseHash)),
+  parseStatuses: normalizeStringArray(interactions.map((entry) => entry.parseStatus)),
+});
+
+const resolveChainStageId = (phase: DeepResearchTimelineSnapshot["job"]["phase"]): typeof chainStageOrder[number] => {
+  if (phase.startsWith("DECOMPOSE_")) {
+    return "stage-decompose";
+  }
+  if (phase.startsWith("ANALYSIS_")) {
+    return "stage-analyze-n";
+  }
+  if (phase === "FULL_CASE_FILE_BUILD") {
+    return "stage-build-full-case-file";
+  }
+  if (phase.startsWith("FINAL_ADJUDICATION_")) {
+    return "stage-final-adjudication";
+  }
+  if (phase.startsWith("HTML_REPORT_")) {
+    return "stage-html-report";
+  }
+  if (phase === "EXPORT_REPORT") {
+    return "stage-export";
+  }
+  if (phase === "COMPLETE") {
+    return "stage-complete";
+  }
+  return "stage-decompose";
+};
+
+const stageOrderIndex = (stageId: typeof chainStageOrder[number]): number =>
+  chainStageOrder.indexOf(stageId);
+
+const resolveStageStatus = (input: {
+  stageId: typeof chainStageOrder[number];
+  currentStageId: typeof chainStageOrder[number];
+  jobStatus: ResearchJob["status"];
+  hasRecord: boolean;
+}): DeepResearchStageStatus => {
+  const currentIndex = stageOrderIndex(input.currentStageId);
+  const stageIndex = stageOrderIndex(input.stageId);
+  if (stageIndex < currentIndex) {
+    return "completed";
+  }
+  if (stageIndex > currentIndex) {
+    return "pending";
+  }
+  if (input.jobStatus === "failed") {
+    return "failed";
+  }
+  if (input.jobStatus === "review_required") {
+    return "review_required";
+  }
+  if (input.jobStatus === "running") {
+    return "running";
+  }
+  return input.hasRecord ? "completed" : "pending";
+};
+
+const buildStageView = (input: {
+  stageId: typeof chainStageOrder[number];
+  label: string;
+  anchorId: string;
+  job: DeepResearchTimelineSnapshot["job"];
+  currentStageId: typeof chainStageOrder[number];
+  interactions?: readonly DeepResearchTimelineEntry[];
+  recordCount: number;
+  hasRecord: boolean;
+}): DeepResearchStageView => ({
+  id: input.stageId,
+  label: input.label,
+  anchorId: input.anchorId,
+  status: resolveStageStatus({
+    stageId: input.stageId,
+    currentStageId: input.currentStageId,
+    jobStatus: input.job.status,
+    hasRecord: input.hasRecord,
+  }),
+  ...buildInteractionHashes(input.interactions ?? []),
+  recordCount: input.recordCount,
+  failureReason: input.stageId === input.currentStageId ? input.job.failureReason : null,
+  reviewReason: input.stageId === input.currentStageId ? input.job.reviewReason : null,
+});
+
+const buildSubQuestionView = (input: {
+  record: ResearchSubQuestion;
+  analysisStatus?: string | null;
+  parseStatus?: string | null;
+}): DeepResearchSubQuestionView => ({
+  id: input.record.id,
+  modelQuestionId: input.record.modelQuestionId,
+  ordinal: input.record.ordinal,
+  title: input.record.question.title,
+  questionText: input.record.question.questionText,
+  purpose: input.record.question.purpose,
+  whyItMatters: input.record.question.whyItMatters ?? null,
+  decisionWeight: input.record.question.decisionWeight ?? null,
+  analysisFocus: input.record.question.analysisFocus ?? null,
+  requiredEvidence: [...input.record.question.requiredEvidence],
+  scope: input.record.question.scope,
+  expectedAnswerShape: input.record.question.expectedAnswerShape,
+  priority: input.record.question.priority ?? null,
+  omissionRisk: input.record.question.omissionRisk ?? null,
+  promptBundle: input.record.question.promptBundle,
+  analysisStatus: input.analysisStatus ?? null,
+  parseStatus: input.parseStatus ?? null,
 });
 
 const buildAnswerBlockView = (input: {
@@ -60,32 +187,15 @@ const buildAnswerBlockView = (input: {
     answerKind: input.answer.answerKind,
     answerText: input.answer.answerText,
     preview: truncateText(input.answer.answerText, 360),
+    indexNotes: readParsedIndexNotes(input.answer),
     keyPoints: [...input.answer.keyPoints],
     evidenceMentions: [...input.answer.evidenceMentions],
     assumptions: [...input.answer.assumptions],
     limitations: [...input.answer.limitations],
     contradictionPoints: [...input.answer.contradictionPoints],
     parsedPayload: input.answer.parsedPayload,
+    parsedJsonIndex: readParsedJsonIndex(input.answer),
   };
-};
-
-const resolveStageStatus = (
-  isCompleted: boolean,
-  jobStatus: ResearchJob["status"],
-): DeepResearchStageStatus => {
-  if (isCompleted) {
-    return "completed";
-  }
-  if (jobStatus === "failed") {
-    return "failed";
-  }
-  if (jobStatus === "review_required") {
-    return "review_required";
-  }
-  if (jobStatus === "running") {
-    return "running";
-  }
-  return "pending";
 };
 
 const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
@@ -99,77 +209,89 @@ const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
 const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string =>
   exportLabels[exportKind] ?? "Evidence index";
 
-const buildSubQuestionStageViews = (input: {
-  jobStatus: ResearchJob["status"];
-  subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
-}): DeepResearchStageView[] =>
-  input.subQuestionReports.map((report) => {
-    const questionLabel = `Q${report.subQuestion.ordinal + 1}: ${report.subQuestion.title}`;
-    return {
-      id: `stage-${report.subQuestion.id}-analysis`,
-      label: `${questionLabel} Independent Analysis`,
-      anchorId: `subquestion-${report.subQuestion.id}`,
-      status: resolveStageStatus(Boolean(report.analysis), input.jobStatus),
-    };
-  });
-
-const buildFinalStageView = (input: {
-  jobStatus: ResearchJob["status"];
-  finalInteraction: DeepResearchTimelineEntry | null;
-  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
-}): DeepResearchStageView => ({
-  id: "stage-final-adjudication",
-  label: "Final Adjudication",
-  anchorId: "final-adjudication",
-  status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalAdjudication), input.jobStatus),
-});
-
-const buildBusinessHtmlStageView = (input: {
-  jobStatus: ResearchJob["status"];
-  exports: readonly ResearchExport[];
-}): DeepResearchStageView | null => {
-  const hasBusinessHtmlReport = input.exports.some((entry) => entry.exportKind === "business-report.html");
-  return {
-    id: "stage-business-html-report",
-    label: "Business HTML Report",
-    anchorId: "business-report",
-    status: resolveStageStatus(hasBusinessHtmlReport, input.jobStatus),
-  };
-};
-
 export const buildStageViews = (input: {
   job: ResearchJob;
-  decompositionInteraction: DeepResearchTimelineEntry | null;
-  subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
-  finalInteraction: DeepResearchTimelineEntry | null;
+  timeline: readonly DeepResearchTimelineEntry[];
+  subQuestionCount: number;
+  analysisCount: number;
   finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
+  fullCaseFileSummary: DeepResearchFullCaseFileSummaryView;
   exports: readonly ResearchExport[];
 }): DeepResearchStageView[] => {
-  const stages: DeepResearchStageView[] = [
-    {
-      id: "stage-decomposition",
-      label: "Decomposition",
-      anchorId: "decomposition",
-      status: resolveStageStatus(Boolean(input.decompositionInteraction), input.job.status),
-    },
-    ...buildSubQuestionStageViews({
-      jobStatus: input.job.status,
-      subQuestionReports: input.subQuestionReports,
+  const decompositionInteractions = input.timeline.filter((entry) => entry.phase === "decomposition");
+  const analysisInteractions = input.timeline.filter((entry) => entry.phase === "analysis");
+  const finalInteractions = input.timeline.filter((entry) => entry.phase === "final_adjudication");
+  const htmlInteractions = input.timeline.filter((entry) => entry.phase === "html_report");
+  const currentStageId = resolveChainStageId(input.job.phase);
+  return [
+    buildStageView({
+      stageId: "stage-decompose",
+      label: "DECOMPOSE",
+      anchorId: "research-plan",
+      job: input.job,
+      currentStageId,
+      interactions: decompositionInteractions,
+      recordCount: input.subQuestionCount,
+      hasRecord: decompositionInteractions.length > 0,
     }),
-    buildFinalStageView({
-      jobStatus: input.job.status,
-      finalInteraction: input.finalInteraction,
-      finalAdjudication: input.finalAdjudication,
+    buildStageView({
+      stageId: "stage-analyze-n",
+      label: "ANALYZE_N",
+      anchorId: "analysis-cards",
+      job: input.job,
+      currentStageId,
+      interactions: analysisInteractions,
+      recordCount: Math.max(input.analysisCount, analysisInteractions.length),
+      hasRecord: input.analysisCount > 0 || analysisInteractions.length > 0,
+    }),
+    buildStageView({
+      stageId: "stage-build-full-case-file",
+      label: "BUILD_FULL_CASE_FILE",
+      anchorId: "full-case-file",
+      job: input.job,
+      currentStageId,
+      recordCount: Number(input.fullCaseFileSummary.hasMarkdown) + Number(input.fullCaseFileSummary.hasJson),
+      hasRecord: input.fullCaseFileSummary.hasMarkdown || input.fullCaseFileSummary.hasJson,
+    }),
+    buildStageView({
+      stageId: "stage-final-adjudication",
+      label: "FINAL_ADJUDICATION",
+      anchorId: "conclusion",
+      job: input.job,
+      currentStageId,
+      interactions: finalInteractions,
+      recordCount: input.finalAdjudication ? 1 : 0,
+      hasRecord: Boolean(input.finalAdjudication) || finalInteractions.length > 0,
+    }),
+    buildStageView({
+      stageId: "stage-html-report",
+      label: "HTML_REPORT",
+      anchorId: "business-report",
+      job: input.job,
+      currentStageId,
+      interactions: htmlInteractions,
+      recordCount: Number(hasExportKind(input.exports, "business-report.html")),
+      hasRecord: hasExportKind(input.exports, "business-report.html") || htmlInteractions.length > 0,
+    }),
+    buildStageView({
+      stageId: "stage-export",
+      label: "EXPORT",
+      anchorId: "full-case-file",
+      job: input.job,
+      currentStageId,
+      recordCount: input.exports.length,
+      hasRecord: input.exports.length > 0,
+    }),
+    buildStageView({
+      stageId: "stage-complete",
+      label: "COMPLETE",
+      anchorId: "process-trace",
+      job: input.job,
+      currentStageId,
+      recordCount: input.job.status === "completed" ? 1 : 0,
+      hasRecord: input.job.status === "completed",
     }),
   ];
-  const businessHtmlStage = buildBusinessHtmlStageView({
-    jobStatus: input.job.status,
-    exports: input.exports,
-  });
-  if (businessHtmlStage) {
-    stages.push(businessHtmlStage);
-  }
-  return stages;
 };
 
 export const buildConclusionView = (
@@ -185,6 +307,43 @@ export const buildConclusionView = (
     parsedJsonIndex: finalAdjudication.parsedJsonIndex,
   };
 };
+
+export const buildResearchPlanView = (input: {
+  researchPlan: DeepResearchTimelineSnapshot["researchPlan"];
+  decompositionInteraction: DeepResearchTimelineEntry | null;
+  subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
+}): DeepResearchResearchPlanView | null => {
+  if (!input.researchPlan) {
+    return null;
+  }
+  return {
+    interaction: input.decompositionInteraction,
+    mainQuestion: input.researchPlan.mainQuestion,
+    questionType: input.researchPlan.questionType,
+    decompositionStrategy: input.researchPlan.decompositionStrategy,
+    subQuestions: input.subQuestionReports.map((entry) => entry.subQuestion),
+    finalAdjudicationPromptBundle: input.researchPlan.finalAdjudicationPromptBundle,
+    htmlReportPromptBundle: input.researchPlan.htmlReportPromptBundle,
+    planIntegrityCheck: input.researchPlan.planIntegrityCheck,
+  };
+};
+
+export const buildFullCaseFileSummary = (input: {
+  timeline: readonly DeepResearchTimelineEntry[];
+  subQuestionCount: number;
+  finalAdjudication: DeepResearchFinalAdjudicationRecord | null;
+  exports: readonly ResearchExport[];
+}): DeepResearchFullCaseFileSummaryView => ({
+  hasMarkdown: hasExportKind(input.exports, "full-case-file.md"),
+  hasJson: hasExportKind(input.exports, "full-case-file.json"),
+  decompositionRawPresent: input.timeline.some((entry) =>
+    entry.phase === "decomposition" && entry.rawResponseText.trim().length > 0),
+  analysisRawCount: input.timeline.filter((entry) =>
+    entry.phase === "analysis" && entry.rawResponseText.trim().length > 0).length,
+  subQuestionCount: input.subQuestionCount,
+  finalRawPresent: Boolean(input.finalAdjudication?.rawFinalAnswerText.trim()),
+  htmlReportPresent: hasExportKind(input.exports, "business-report.html"),
+});
 
 const buildInteractionHeadline = (input: {
   interaction: DeepResearchTimelineEntry;
@@ -237,6 +396,14 @@ export const buildHistoryJobView = (input: {
     subQuestionCount: subQuestions.length,
     interactionCount: interactions.length,
     exportCount: exports.length,
+    htmlReportStatus: hasExportKind(exports, "business-report.html")
+      ? "generated"
+      : input.job.status === "failed" || input.job.status === "review_required"
+        ? "failed"
+        : "missing",
+    fullCaseFileStatus: hasExportKind(exports, "full-case-file.md") || hasExportKind(exports, "full-case-file.json")
+      ? "generated"
+      : "missing",
     finalAdjudicationPreview: finalAdjudication
       ? truncateText(finalAdjudication.rawFinalAnswerText, 220)
       : null,
@@ -268,7 +435,7 @@ export const buildReportSubQuestionViews = (
 ): DeepResearchSubQuestionView[] =>
   [...subQuestions]
     .sort((left, right) => left.ordinal - right.ordinal)
-    .map(buildSubQuestionView);
+    .map((record) => buildSubQuestionView({ record }));
 
 export const buildSubQuestionReports = (input: {
   subQuestions: readonly DeepResearchSubQuestionView[];
@@ -279,7 +446,15 @@ export const buildSubQuestionReports = (input: {
     const analysisAnswer = input.answerByKindAndSubQuestionId.get(`analysis:${subQuestion.id}`);
     const analysisInteraction = input.timelineByPhaseAndSubQuestionId.get(`analysis:${subQuestion.id}`);
     return {
-      subQuestion,
+      subQuestion: {
+        ...subQuestion,
+        analysisStatus: analysisAnswer
+          ? "persisted"
+          : analysisInteraction
+            ? "raw_response_only"
+            : "missing",
+        parseStatus: analysisInteraction?.parseStatus ?? null,
+      },
       analysis: buildAnswerBlockView({ answer: analysisAnswer, interaction: analysisInteraction }),
     };
   });

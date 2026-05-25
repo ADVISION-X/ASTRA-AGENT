@@ -1,16 +1,5 @@
 {
-  "generatedAt": "2026-05-25T23:28:50.508Z",
-  "itemCount": 1,
-  "items": [
-    {
-      "checkId": "code-purity/import-source-budget",
-      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:deep-research-analysis",
-      "reason": "Import source count 25 exceeds red line 24.",
-      "remediation": "Split the file by runtime role and keep only the owner-local dependencies in each slice.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-05-25T23:39:26.139Z",
+  "itemCount": 0,
+  "items": []
 }
