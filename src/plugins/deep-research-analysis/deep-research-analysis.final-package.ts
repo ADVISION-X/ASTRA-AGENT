@@ -7,7 +7,9 @@ import {
 } from "./deep-research-analysis.prompts.js";
 import type {
   DeepResearchConflictMatrixRow,
+  DeepResearchSourceNote,
 } from "./deep-research-analysis.result.js";
+import { DeepResearchSourceNoteSchema } from "./deep-research-analysis.result.js";
 import type {
   DeepResearchPromptOutputContract,
 } from "./deep-research-analysis.prompt-contracts.js";
@@ -18,6 +20,7 @@ import type {
   ResearchJob,
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
+import { buildDeepResearchSourceNotesFromAnswers } from "./deep-research-analysis.source-notes.js";
 
 const DeepResearchAnalysisCoverageSchema = z.object({
   totalSubQuestionCount: z.number().int().nonnegative(),
@@ -34,6 +37,7 @@ const DeepResearchFinalPackageBaseSchema = z.object({
   analysisRecords: z.array(z.unknown()),
   analysisCoverage: DeepResearchAnalysisCoverageSchema,
   missingAnalysisSubQuestionIds: z.array(z.string().trim().min(1)).default([]),
+  sourceNotes: z.array(DeepResearchSourceNoteSchema).default([]),
   recordHashes: z.record(z.string(), z.string()),
   promptVersions: z.record(z.string(), z.string()),
   outputContract: z.object({
@@ -79,6 +83,7 @@ type DeepResearchFinalPackageBase = {
     coverageRatio: number;
   };
   missingAnalysisSubQuestionIds: string[];
+  sourceNotes: DeepResearchSourceNote[];
   recordHashes: Record<string, string>;
   promptVersions: Record<string, string>;
   outputContract: DeepResearchPromptOutputContract;
@@ -250,6 +255,7 @@ const buildDeepResearchFinalPackageBase = (
   analysisRecords: state.analysisAnswers,
   analysisCoverage: buildAnalysisCoverage(state.subQuestions, state.analysisAnswers),
   missingAnalysisSubQuestionIds: state.missingAnalysisSubQuestionIds,
+  sourceNotes: buildDeepResearchSourceNotesFromAnswers(state.analysisAnswers),
   recordHashes: {},
   promptVersions: buildPromptVersionMap(state.interactions),
   outputContract: state.job.flowMode === "legacy_1_n_n_1"

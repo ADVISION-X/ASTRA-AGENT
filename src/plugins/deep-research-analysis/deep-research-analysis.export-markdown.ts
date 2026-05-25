@@ -221,6 +221,9 @@ const buildDecisionSummarySection = (input: {
     "",
     "### Limitations",
     buildMarkdownList(input.finalReport.limitations),
+    "",
+    "### Source Notes",
+    buildMarkdownList(input.finalReport.sourceNotes.map((note) => note.note), "- unavailable"),
   ].join("\n");
 };
 
@@ -266,6 +269,8 @@ const buildFinalStageSection = (input: {
       buildMarkdownList(input.finalReport.followUpSignals),
       "limitations",
       buildMarkdownList(input.finalReport.limitations),
+      "sourceNotes",
+      buildMarkdownList(input.finalReport.sourceNotes.map((note) => note.note), "- unavailable"),
     ].join("\n\n");
   return [
     `## ${sectionLabel}`,

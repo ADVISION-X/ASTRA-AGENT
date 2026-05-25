@@ -12,6 +12,8 @@ export type DeepResearchAuditFiles = {
   contractFile: SourceFile | undefined;
   regressionFile: SourceFile | undefined;
   promptsFile: SourceFile | undefined;
+  resultFile: SourceFile | undefined;
+  finalPackageFile: SourceFile | undefined;
   qualityFile: SourceFile | undefined;
   schemaFile: SourceFile | undefined;
   recordsFile: SourceFile | undefined;
@@ -46,6 +48,8 @@ export const buildDeepResearchAuditFiles = (context: InspectorContext): DeepRese
   contractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts"),
   regressionFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"),
   promptsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"),
+  resultFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.result.ts"),
+  finalPackageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts"),
   qualityFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts"),
   schemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts"),
   recordsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.records.ts"),

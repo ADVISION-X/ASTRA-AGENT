@@ -99,6 +99,15 @@ type DeepResearchRankedConclusion = {
   reverseCondition: string;
 };
 
+type DeepResearchSourceNote = {
+  sourceNoteId: string;
+  label: string;
+  note: string;
+  sourceType: string;
+  subQuestionIds: string[];
+  url: string | null;
+};
+
 type DeepResearchConclusion = {
   directAnswer: string;
   finalVerdict: string;
@@ -120,6 +129,7 @@ type DeepResearchConclusion = {
   multiStageValueAdded: string[];
   limitations: string[];
   references: string[];
+  sourceNotes: DeepResearchSourceNote[];
 };
 
 type DeepResearchStage = {

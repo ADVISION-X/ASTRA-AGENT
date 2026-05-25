@@ -261,6 +261,10 @@ async function main(): Promise<void> {
   assert(result.status === "success", `Expected smoke success, received ${JSON.stringify(result)}.`);
   assert(result.phase === "COMPLETE", `Expected COMPLETE phase, received ${result.phase}.`);
   assert(result.report?.finalVerdict === "conditional", "Smoke report must persist the final adjudication verdict.");
+  assert(
+    (result.report?.sourceNotes ?? []).length >= 4,
+    "Final adjudication must merge analysis evidenceMentions into structured sourceNotes.",
+  );
   verifyRuntimeLogCoverage(runtimeLogBundlePath);
   verifyPersistedResearchState(dataDir, result);
   verifySubQuestionIdsAreJobScoped();

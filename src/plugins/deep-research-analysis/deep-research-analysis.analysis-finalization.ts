@@ -13,6 +13,7 @@ import {
   renderDeepResearchFinalAdjudicationPrompt,
 } from "./deep-research-analysis.prompts.js";
 import { type DeepResearchFinalReport, type DeepResearchResult } from "./deep-research-analysis.result.js";
+import { mergeDeepResearchFinalReportSourceNotes } from "./deep-research-analysis.source-notes.js";
 import {
   type FlowStageHandle,
   buildFlowStageStartFields,
@@ -89,6 +90,7 @@ const buildFinalAdjudicationFallback = (
         ...readPayloadStringArray(record.parsedPayload, "failureCases"),
       ]),
     ),
+    sourceNotes: finalPackage.sourceNotes,
   };
   if (finalPackage.missingAnalysisSubQuestionIds.length === 0) {
     return fallback;
@@ -331,10 +333,14 @@ export const runFinalReportPhase = async (
       ),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) => {
+      const reportWithSourceNotes = mergeDeepResearchFinalReportSourceNotes({
+        finalReport: parsed,
+        packageSourceNotes: finalPackage.sourceNotes,
+      });
       const finalReportRecord = context.store.saveFinalReport({
         jobId: context.jobId,
         interactionId: interaction.id,
-        report: parsed,
+        report: reportWithSourceNotes,
       });
       return {
         recordType: "final-report",
@@ -346,7 +352,13 @@ export const runFinalReportPhase = async (
   if (finalReport.status !== "parsed") {
     return finishPromptFailure(context, finalReport);
   }
-  return { ok: true, finalReport: finalReport.parsed };
+  return {
+    ok: true,
+    finalReport: mergeDeepResearchFinalReportSourceNotes({
+      finalReport: finalReport.parsed,
+      packageSourceNotes: finalPackage.sourceNotes,
+    }),
+  };
 };
 
 export const completeSuccessfulRun = async (

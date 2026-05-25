@@ -203,6 +203,7 @@ export type DeepResearchConclusionView = {
   multiStageValueAdded: string[];
   limitations: string[];
   references: string[];
+  sourceNotes: DeepResearchFinalReport["sourceNotes"];
 };
 
 export type DeepResearchReportViewModel = {

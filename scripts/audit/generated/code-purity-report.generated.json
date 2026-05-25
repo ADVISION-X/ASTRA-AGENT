@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-25T10:58:10.786Z",
+  "generatedAt": "2026-05-25T11:26:35.881Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
@@ -107,6 +107,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-ppt-demoted-to-optional.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",
@@ -445,6 +446,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.source-notes.ts",
     "src/plugins/deep-research-analysis/index.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
@@ -797,9 +799,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1296,
+  "liveExportCount": 1303,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 486,
+  "reachableFileCount": 488,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -807,9 +809,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1296,
+    "liveExportCount": 1303,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 486,
+    "reachableFileCount": 488,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

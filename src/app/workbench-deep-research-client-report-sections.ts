@@ -134,7 +134,8 @@ function renderConclusionCard(report: DeepResearchReport): void {
       ${renderListSection("Follow-up Signals", report.conclusion.followUpSignals, { emptyText: "No follow-up signals recorded." })}
       ${renderListSection("Multi-stage Value Added", report.conclusion.multiStageValueAdded, { emptyText: "No multi-stage value-added notes recorded." })}
     </div>
-    ${renderListSection("Limitations", report.conclusion.limitations, { emptyText: "No limitations recorded." })}`);
+    ${renderListSection("Limitations", report.conclusion.limitations, { emptyText: "No limitations recorded." })}
+    ${renderListSection("Source Notes", report.conclusion.sourceNotes.map((note) => note.note), { emptyText: "No source notes recorded." })}`);
 }
 
 function renderStageOverview(report: DeepResearchReport): void {

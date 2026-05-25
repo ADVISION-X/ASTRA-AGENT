@@ -69,6 +69,16 @@ const businessHtmlReportPublisherPromptValue: DeepResearchPrompt = {
     "13. Appendix: Brief Method / Multi-stage Value Added",
     "",
     "Design requirements:",
+    "- Use a centered report shell with max-width: 1180px.",
+    "- Put an executive summary section near the top before the detailed sections.",
+    "- Include a side or top table of contents navigation that links to the main sections.",
+    "- Include print CSS with @media print so the report can be exported cleanly to PDF.",
+    "- Every major section must have a stable section id for anchor navigation.",
+    "- Present Ranked Conclusions as a table or a set of decision cards, not as a loose paragraph.",
+    "- Present Reverse Conditions as warning callouts.",
+    "- Present Evidence Gaps and Limitations in a visually de-emphasized but still readable section.",
+    "- Avoid a raw JSON feel; translate structured materials into executive prose, tables, cards, and callouts.",
+    "- Include an applicability comparison section that contrasts Applicable and Not Applicable conditions.",
     "- Use clear visual hierarchy.",
     "- Use section cards.",
     "- Use tables where comparison is helpful.",
@@ -105,7 +115,7 @@ export const businessHtmlReportPublisherPrompt =
 export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
   finalPackage: DeepResearchFinalPackage;
   finalReport: DeepResearchFinalReport;
-  evidenceReferences: unknown[];
+  sourceNotes: unknown[];
   language: DeepResearchInput["language"];
 }): string => [
   businessHtmlReportPublisherPrompt.promptText,
@@ -114,7 +124,7 @@ export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
   JSON.stringify({
     finalPackage: input.finalPackage,
     finalReport: input.finalReport,
-    evidenceReferences: input.evidenceReferences,
+    sourceNotes: input.sourceNotes,
   }, null, 2),
   "",
   `Response language:\n${input.language}`,

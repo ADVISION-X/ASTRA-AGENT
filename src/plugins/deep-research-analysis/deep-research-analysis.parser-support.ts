@@ -48,6 +48,7 @@ export type FinalReportNormalizationFallback = {
   reverseConditions?: readonly string[];
   followUpSignals?: readonly string[];
   limitations?: readonly string[];
+  sourceNotes?: DeepResearchFinalReport["sourceNotes"];
 };
 
 const buildTextHash = (value: string): string =>

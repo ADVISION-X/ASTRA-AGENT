@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T10:58:13.766Z",
+  "generatedAt": "2026-05-25T11:26:38.741Z",
   "status": "PASS",
   "inspectorFileCount": 14,
   "generatedPlanEntryCount": 14,
@@ -69,6 +69,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-ppt-demoted-to-optional.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-provider-handoff.ts",

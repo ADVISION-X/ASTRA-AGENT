@@ -289,6 +289,7 @@ const buildFinalReportFixture = (): DeepResearchFinalReport => ({
     "peer pricing evidence",
     "implementation benchmarks",
   ],
+  sourceNotes: [],
 });
 
 const persistFinalAdjudicationFixture = (input: {

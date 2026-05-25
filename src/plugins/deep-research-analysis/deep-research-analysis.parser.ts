@@ -5,6 +5,9 @@ import {
   buildFalsificationCandidate,
   buildPositiveCandidate,
 } from "./deep-research-analysis.parser-candidates.js";
+import {
+  buildDeepResearchSourceNotesFromReferences,
+} from "./deep-research-analysis.source-notes.js";
 import { parseDecompositionResponse } from "./deep-research-analysis.decomposition-parser.js";
 import type { DeepResearchDecompositionResponse } from "./deep-research-analysis.decomposition-schema.js";
 import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
@@ -188,6 +191,11 @@ const buildDirectAnswerFinalReport = (
       fallback.limitations ?? buildDefaultLimitations(),
     ),
     references: takeFirstStringArray(candidate, ["references", "sourceNotes"]),
+    sourceNotes: fallback.sourceNotes?.length
+      ? [...fallback.sourceNotes]
+      : buildDeepResearchSourceNotesFromReferences(
+        takeFirstStringArray(candidate, ["sourceNotes", "references"]),
+      ),
     executiveConclusion: takeFirstString(candidate, ["executiveConclusion"]) ?? directAnswer,
     positiveReasons: decisiveReasons,
     strongestOpposingArguments: opposingArguments,
@@ -247,6 +255,12 @@ const buildLegacyFinalReportCandidate = (
         takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
         fallback.limitations ?? buildDefaultLimitations(),
       ),
+      references: takeFirstStringArray(candidate, ["references", "sourceNotes"]),
+      sourceNotes: fallback.sourceNotes?.length
+        ? [...fallback.sourceNotes]
+        : buildDeepResearchSourceNotesFromReferences(
+          takeFirstStringArray(candidate, ["sourceNotes", "references"]),
+        ),
     },
   };
 };
@@ -314,6 +328,7 @@ const buildFinalAdjudicationTextFallbackValue = (input: {
       ? [...input.fallback.limitations]
       : ["Model returned narrative final adjudication instead of the requested JSON contract."],
     references: [],
+    sourceNotes: input.fallback.sourceNotes ? [...input.fallback.sourceNotes] : [],
     executiveConclusion: lead,
     positiveReasons: decisiveReasons,
     strongestOpposingArguments: [...(input.fallback.strongestOpposingArguments ?? [])],

@@ -11,23 +11,31 @@ import {
 import type { DeepResearchBusinessHtmlReportRecord } from "./deep-research-analysis.html-report-records.js";
 import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import {
+  buildDeepResearchSourceNotesFromReferences,
+} from "./deep-research-analysis.source-notes.js";
+import {
   type AnalysisExecutionContext,
   type AnalysisFailure,
   finishPromptFailure,
 } from "./deep-research-analysis.analysis-support.js";
 
-const buildEvidenceReferences = (input: {
+const buildHtmlSourceNotes = (input: {
   finalPackage: DeepResearchFinalPackage;
   finalReport: DeepResearchFinalReport;
 }): unknown[] => {
+  if (input.finalReport.sourceNotes.length > 0) {
+    return input.finalReport.sourceNotes;
+  }
+  if (input.finalPackage.sourceNotes.length > 0) {
+    return input.finalPackage.sourceNotes;
+  }
   const references = Array.isArray(input.finalReport.references) ? input.finalReport.references : [];
   if (references.length > 0) {
-    return references;
+    return buildDeepResearchSourceNotesFromReferences(references);
   }
   return input.finalPackage.analysisRecords.flatMap((record) => {
-    const payload = record.parsedPayload;
-    const evidenceReferences = payload.evidenceReferences;
-    return Array.isArray(evidenceReferences) ? evidenceReferences : [];
+    const evidenceMentions = record.evidenceMentions;
+    return buildDeepResearchSourceNotesFromReferences(evidenceMentions);
   });
 };
 
@@ -43,7 +51,7 @@ const buildBusinessHtmlPromptText = (input: {
 }): string => renderDeepResearchBusinessHtmlReportPrompt({
   finalPackage: input.finalPackage,
   finalReport: input.finalReport,
-  evidenceReferences: buildEvidenceReferences({
+  sourceNotes: buildHtmlSourceNotes({
     finalPackage: input.finalPackage,
     finalReport: input.finalReport,
   }),

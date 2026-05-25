@@ -44,6 +44,15 @@ const DeepResearchRankedConclusionSchema = z.object({
   reverseCondition: z.string().trim().default(""),
 }).strict();
 
+export const DeepResearchSourceNoteSchema = z.object({
+  sourceNoteId: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  note: z.string().trim().min(1),
+  sourceType: z.enum(["analysis_evidence_mention", "final_reference", "unstructured_reference"]),
+  subQuestionIds: z.array(z.string().trim().min(1)).default([]),
+  url: z.string().trim().min(1).nullable().default(null),
+}).strict();
+
 const DeepResearchNormalizedFinalReportSchema = z.object({
   directAnswer: z.string().trim().min(1),
   finalVerdict: z.string().trim().min(1),
@@ -62,6 +71,7 @@ const DeepResearchNormalizedFinalReportSchema = z.object({
   multiStageValueAdded: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
   references: z.array(z.string().trim().min(1)).default([]),
+  sourceNotes: z.array(DeepResearchSourceNoteSchema).default([]),
   executiveConclusion: z.string().trim().min(1),
   positiveReasons: z.array(z.string().trim().min(1)).default([]),
   strongestOpposingArguments: z.array(z.string().trim().min(1)).default([]),
@@ -79,6 +89,7 @@ const DeepResearchLegacyFinalReportSchema = z.object({
   followUpSignals: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
   references: z.array(z.string().trim().min(1)).default([]),
+  sourceNotes: z.array(DeepResearchSourceNoteSchema).default([]),
 }).strict();
 
 const DeepResearchModernFinalReportSchema = z.object({
@@ -99,6 +110,7 @@ const DeepResearchModernFinalReportSchema = z.object({
   multiStageValueAdded: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
   references: z.array(z.string().trim().min(1)).default([]),
+  sourceNotes: z.array(DeepResearchSourceNoteSchema).default([]),
 }).strict();
 
 const buildLegacyVerdictLabel = (value: string): string =>
@@ -125,6 +137,7 @@ const normalizeLegacyFinalReport = (
     multiStageValueAdded: [],
     limitations: report.limitations,
     references: report.references,
+    sourceNotes: report.sourceNotes,
     executiveConclusion: report.executiveConclusion,
     positiveReasons: report.positiveReasons,
     strongestOpposingArguments: report.strongestOpposingArguments,
@@ -172,5 +185,6 @@ const DeepResearchTerminalResultSchema = z.object({
 }).strict();
 
 export type DeepResearchConflictMatrixRow = z.infer<typeof DeepResearchConflictMatrixRowSchema>;
+export type DeepResearchSourceNote = z.infer<typeof DeepResearchSourceNoteSchema>;
 export type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
 export type DeepResearchResult = z.infer<typeof DeepResearchResultSchema> | z.infer<typeof DeepResearchTerminalResultSchema>;

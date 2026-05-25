@@ -234,6 +234,7 @@ export const buildConclusionView = (
     multiStageValueAdded: [...report.multiStageValueAdded],
     limitations: [...report.limitations],
     references: [...report.references],
+    sourceNotes: [...report.sourceNotes],
   };
 };
 

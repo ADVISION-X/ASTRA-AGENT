@@ -21,6 +21,7 @@ import { inspectPptDemotedToOptional } from "./components/scan-ppt-demoted-to-op
 import { inspectNoHtmlContentRejudgment } from "./components/scan-no-html-content-rejudgment.js";
 import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
 import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
+import { inspectSourceNotesFlow } from "./components/scan-source-notes-flow.js";
 
 const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyName: string): string | null => {
   const property = objectLiteral.getProperty(propertyName);
@@ -386,6 +387,16 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
     htmlReportExportFile: input.files.exportFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
+  });
+  inspectSourceNotesFlow({
+    finalPackageFile: input.files.finalPackageFile,
+    finalizationFile: input.files.analysisFinalizationFile,
+    htmlReportStageFile: input.files.htmlReportStageFile,
+    htmlReportPromptFile: input.files.htmlReportPromptFile,
+    resultFile: input.files.resultFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: input.reportLawId,
   });
 };
 

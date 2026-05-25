@@ -274,6 +274,33 @@ Business HTML Report Publisher
 
 它不是研究员，不是裁判，不是二次分析器，不是本地模板大纲生成器。Prompt 负责约束 AI 不重新研究、不改变最终判断、不新增事实、不遗漏风险/限制/证据缺口/反转条件/被拒绝观点/references，并明确要求 GPT 生成可下载的 `business-report.html` 文件 artifact；AI 负责直接生成专业商业 HTML 文件；系统只负责 artifact 检测、下载/保存、hash、export record 和 UI 展示。
 
+顶级商业 HTML 报告版式规范必须由 `deep-research-analysis.html-report-prompt.ts` 明确传达，并由 deep-research owner inspector 固化 prompt marker。该规范只约束 AI 生成 artifact 的提示词，不允许 runtime 对完成后的 HTML 做 section-level semantic re-judgment。
+
+`business-report.html` 必须被提示为面向高层决策阅读的完整商业报告，而不是 JSON 包装页或普通 markdown 转 HTML。Prompt 必须要求：
+
+```txt
+centered report shell with max-width: 1180px
+top executive summary section before detailed sections
+side or top table of contents navigation
+print CSS with @media print for PDF export
+stable section id on every major section
+Ranked Conclusions rendered as table or decision cards
+Reverse Conditions rendered as warning callouts
+Evidence Gaps and Limitations visually de-emphasized but readable
+avoid raw JSON feel
+Applicable / Not Applicable comparison section
+```
+
+防复发规则：
+
+```txt
+缺少上述任一 prompt marker -> deep-research owner inspector FAIL
+删除 inspector 接入 -> ci:full FAIL
+不得新增平行 HTML 语义验收链
+不得用 acceptance fixture 替代 owner inspector 固化
+不得把施工图当作高于 active law 的授权来源
+```
+
 HTML 主交付只有一个成功来源：
 
 ```txt
