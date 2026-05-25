@@ -73,7 +73,7 @@ export const DeepResearchSubQuestionSchema = z.object({
   omissionRisk: z.string().trim().min(1).optional(),
   promptBundle: DeepResearchPromptBundleSchema.extend({
     promptRole: z.literal("sub_question_analysis"),
-  }).optional(),
+  }),
 }).strict();
 
 export const DeepResearchInputSchema = z.object({

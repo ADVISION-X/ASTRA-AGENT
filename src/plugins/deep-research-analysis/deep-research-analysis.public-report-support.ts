@@ -180,24 +180,9 @@ export const buildConclusionView = (
     return null;
   }
   return {
-    directAnswer: report.directAnswer,
-    finalVerdict: report.finalVerdict,
-    oneSentenceDecision: report.oneSentenceDecision ?? report.directAnswer,
-    executiveConclusion: report.executiveConclusion,
+    summary: report.summary,
     confidence: report.confidence,
-    rankedConclusions: [...report.rankedConclusions],
-    strongConclusions: [...report.strongConclusions],
-    conditionalConclusions: [...report.conditionalConclusions],
-    weakOrRejectedClaims: [...report.weakOrRejectedClaims],
-    decisiveReasons: [...report.decisiveReasons],
-    strongestOpposingArguments: [...report.strongestOpposingArguments],
-    evidenceGaps: [...report.evidenceGaps],
-    reverseConditions: [...report.reverseConditions],
-    applicability: [...report.applicability],
-    nonApplicability: [...report.nonApplicability],
-    followUpSignals: [...report.followUpSignals],
-    multiStageValueAdded: [...report.multiStageValueAdded],
-    limitations: [...report.limitations],
+    structuredPayload: { ...report.structuredPayload },
     references: [...report.references],
     sourceNotes: [...report.sourceNotes],
   };
@@ -241,7 +226,7 @@ export const buildHistoryJobView = (input: {
     title: truncateText(input.job.userQuestion, 84),
     userQuestion: input.job.userQuestion,
     questionSummary: truncateText(
-      finalReport?.directAnswer ?? input.job.analysisGoal ?? input.job.userQuestion,
+      finalReport?.summary ?? input.job.analysisGoal ?? input.job.userQuestion,
       180,
     ),
     analysisGoal: input.job.analysisGoal,
@@ -255,7 +240,7 @@ export const buildHistoryJobView = (input: {
     interactionCount: interactions.length,
     exportCount: exports.length,
     finalConfidence: finalReport?.confidence ?? null,
-    finalConclusionPreview: finalReport ? truncateText(finalReport.directAnswer, 220) : null,
+    finalConclusionPreview: finalReport ? truncateText(finalReport.summary, 220) : null,
   };
 };
 

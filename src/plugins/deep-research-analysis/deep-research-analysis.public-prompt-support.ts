@@ -92,7 +92,7 @@ export const buildParsedEntry = (input: {
     };
   }
   return {
-    parsedSummary: truncateText(input.finalReportRecord.report.directAnswer),
+    parsedSummary: truncateText(input.finalReportRecord.report.summary),
     parsedJson: input.finalReportRecord.report,
     parsedRecordIds: [input.finalReportRecord.id],
   };

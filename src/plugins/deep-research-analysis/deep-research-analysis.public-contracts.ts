@@ -148,24 +148,9 @@ export type DeepResearchPrimaryBusinessReportView = {
 };
 
 export type DeepResearchConclusionView = {
-  directAnswer: string;
-  finalVerdict: string;
-  oneSentenceDecision: string;
-  executiveConclusion: string;
+  summary: string;
   confidence: DeepResearchFinalReport["confidence"];
-  rankedConclusions: DeepResearchFinalReport["rankedConclusions"];
-  strongConclusions: string[];
-  conditionalConclusions: string[];
-  weakOrRejectedClaims: string[];
-  decisiveReasons: string[];
-  strongestOpposingArguments: string[];
-  evidenceGaps: string[];
-  reverseConditions: string[];
-  applicability: string[];
-  nonApplicability: string[];
-  followUpSignals: string[];
-  multiStageValueAdded: string[];
-  limitations: string[];
+  structuredPayload: DeepResearchFinalReport["structuredPayload"];
   references: string[];
   sourceNotes: DeepResearchFinalReport["sourceNotes"];
 };

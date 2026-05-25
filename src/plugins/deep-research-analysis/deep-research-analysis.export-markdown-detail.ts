@@ -57,19 +57,8 @@ const buildStageStatus = (input: {
   return "Status: available";
 };
 
-const readPayloadString = (payload: Record<string, unknown>, key: string): string[] => {
-  const value = payload[key];
-  if (typeof value === "string" && value.trim().length > 0) {
-    return [value.trim()];
-  }
-  if (Array.isArray(value)) {
-    return value
-      .filter((item): item is string => typeof item === "string")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  }
-  return [];
-};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const takeFirstDefined = <T>(...values: readonly (T | null | undefined)[]): T | undefined =>
   values.find((value): value is T => value !== undefined && value !== null);
@@ -79,17 +68,14 @@ const takeFirstDefinedList = (
 ): string[] => [...(takeFirstDefined(...values) ?? [])];
 
 type AnalysisParsedSectionData = {
-  answerText: string;
+  summary: string;
   confidence: string;
-  coreFinding: string;
-  impactOnFinalAdjudication: string;
-  keyClaims: string[];
-  counterConditions: string[];
-  failureCases: string[];
+  keyPoints: string[];
   evidenceMentions: string[];
   assumptions: string[];
-  uncertainties: string[];
+  contradictionPoints: string[];
   limitations: string[];
+  structuredPayload: Record<string, unknown>;
 };
 
 const buildAnalysisParsedSectionData = (input: {
@@ -99,24 +85,18 @@ const buildAnalysisParsedSectionData = (input: {
   const reparsed = reparseAnalysisInteraction(input.interaction);
   const payload = input.answer?.parsedPayload ?? {};
   return {
-    answerText: takeFirstDefined(input.answer?.answerText, reparsed?.answer, "Analysis answer: MISSING")
+    summary: takeFirstDefined(input.answer?.answerText, reparsed?.summary, "Analysis answer: MISSING")
       ?? "Analysis answer: MISSING",
     confidence: takeFirstDefined(input.answer?.confidence, reparsed?.confidence, "unavailable")
       ?? "unavailable",
-    coreFinding: takeFirstDefined(readPayloadString(payload, "coreFinding")[0], reparsed?.coreFinding, "unavailable")
-      ?? "unavailable",
-    impactOnFinalAdjudication: takeFirstDefined(
-      readPayloadString(payload, "impactOnFinalAdjudication")[0],
-      reparsed?.impactOnFinalAdjudication,
-      "unavailable",
-    ) ?? "unavailable",
-    keyClaims: takeFirstDefinedList(input.answer?.keyPoints, reparsed?.keyClaims),
-    counterConditions: takeFirstDefinedList(input.answer?.contradictionPoints, reparsed?.counterConditions),
-    failureCases: takeFirstDefinedList(readPayloadString(payload, "failureCases"), reparsed?.failureCases),
+    keyPoints: takeFirstDefinedList(input.answer?.keyPoints, reparsed?.keyPoints),
     evidenceMentions: takeFirstDefinedList(input.answer?.evidenceMentions, reparsed?.evidenceMentions),
     assumptions: takeFirstDefinedList(input.answer?.assumptions, reparsed?.assumptions),
-    uncertainties: takeFirstDefinedList(readPayloadString(payload, "uncertainties"), reparsed?.uncertainties),
+    contradictionPoints: takeFirstDefinedList(input.answer?.contradictionPoints, reparsed?.contradictionPoints),
     limitations: takeFirstDefinedList(input.answer?.limitations, reparsed?.limitations),
+    structuredPayload: isRecord(payload)
+      ? payload
+      : reparsed?.structuredPayload ?? {},
   };
 };
 
@@ -131,29 +111,20 @@ export const buildAnalysisParsedSection = (input: {
       answer: input.answer,
       stageName: "Independent Analysis",
     }),
-    `Answer: ${data.answerText}`,
+    `Summary: ${data.summary}`,
     `Confidence: ${data.confidence}`,
-    "Core Finding",
-    buildMarkdownList(data.coreFinding === "unavailable" ? [] : [data.coreFinding], "- unavailable"),
-    "Key Claims",
-    buildMarkdownList(data.keyClaims, "- unavailable"),
-    "Counter Conditions",
-    buildMarkdownList(data.counterConditions, "- unavailable"),
-    "Failure Cases",
-    buildMarkdownList(data.failureCases, "- none"),
+    "Key Points",
+    buildMarkdownList(data.keyPoints, "- unavailable"),
+    "Contradiction Points",
+    buildMarkdownList(data.contradictionPoints, "- none"),
     "Evidence Mentions",
     buildMarkdownList(data.evidenceMentions, "- unavailable"),
     "Assumptions",
     buildMarkdownList(data.assumptions, "- none"),
-    "Uncertainties",
-    buildMarkdownList(data.uncertainties, "- none"),
-    "Impact On Final Adjudication",
-    buildMarkdownList(
-      data.impactOnFinalAdjudication === "unavailable" ? [] : [data.impactOnFinalAdjudication],
-      "- unavailable",
-    ),
     "Limitations",
     buildMarkdownList(data.limitations, "- unavailable"),
+    "Structured Payload",
+    `\`\`\`json\n${JSON.stringify(data.structuredPayload, null, 2)}\n\`\`\``,
   ].join("\n\n");
 };
 

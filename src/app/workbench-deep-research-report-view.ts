@@ -9,13 +9,9 @@ export const renderDeepResearchReportView = (): string => `
     <article class="research-report hidden research-reading-rhythm" data-deep-research-report>
       <header class="research-report-header" data-deep-research-report-header></header>
       <section class="research-section" id="conclusion" data-deep-research-final-card></section>
-      <section class="research-section" data-deep-research-stage-overview></section>
-      <section class="research-section" id="decomposition" data-deep-research-decomposition></section>
-      <section class="research-section" data-deep-research-subquestions></section>
-      <section class="research-section" id="final-adjudication" data-deep-research-final-adjudication></section>
-      <section class="research-section" id="full-case-file" data-deep-research-full-case-file></section>
       <section class="research-section" id="business-report" data-deep-research-primary-business-report></section>
-      <section class="research-section" id="evidence" data-deep-research-evidence></section>
+      <section class="research-section" id="full-case-file" data-deep-research-full-case-file></section>
+      <section class="research-section" id="process-trace" data-deep-research-process-trace></section>
     </article>
   </main>
   <aside class="research-side" data-deep-research-side data-deep-research-side-panel data-deep-research-side-compact>

@@ -3,9 +3,6 @@ import {
   type DeepResearchAnalysisContext,
 } from "./deep-research-analysis.flow.js";
 import {
-  rerunDeepResearchBusinessHtmlReport,
-} from "./deep-research-analysis.html-report-reentry.js";
-import {
   type DeepResearchInput,
 } from "./deep-research-analysis.schema.js";
 import {
@@ -27,7 +24,6 @@ export type { DeepResearchExportArtifactPayload } from "./deep-research-analysis
 
 export const deepResearchAnalysisPublicFacade = {
   runDeepResearchAnalysis,
-  rerunDeepResearchBusinessHtmlReport,
   getDeepResearchAnalysisJob,
   listDeepResearchAnalysisHistory,
   getDeepResearchAnalysisReport,

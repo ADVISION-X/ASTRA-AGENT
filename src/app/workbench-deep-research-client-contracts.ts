@@ -78,16 +78,6 @@ type DeepResearchSubQuestionReport = {
   analysis: DeepResearchAnswerBlock | null;
 };
 
-type DeepResearchRankedConclusion = {
-  rank: number;
-  conclusion: string;
-  whyItMatters: string;
-  strength: string;
-  appliesTo: string[];
-  doesNotApplyTo: string[];
-  reverseCondition: string;
-};
-
 type DeepResearchSourceNote = {
   sourceNoteId: string;
   label: string;
@@ -98,24 +88,9 @@ type DeepResearchSourceNote = {
 };
 
 type DeepResearchConclusion = {
-  directAnswer: string;
-  finalVerdict: string;
-  oneSentenceDecision: string;
-  executiveConclusion: string;
+  summary: string;
   confidence: string;
-  rankedConclusions: DeepResearchRankedConclusion[];
-  strongConclusions: string[];
-  conditionalConclusions: string[];
-  weakOrRejectedClaims: string[];
-  decisiveReasons: string[];
-  strongestOpposingArguments: string[];
-  evidenceGaps: string[];
-  reverseConditions: string[];
-  applicability: string[];
-  nonApplicability: string[];
-  followUpSignals: string[];
-  multiStageValueAdded: string[];
-  limitations: string[];
+  structuredPayload: Record<string, unknown>;
   references: string[];
   sourceNotes: DeepResearchSourceNote[];
 };

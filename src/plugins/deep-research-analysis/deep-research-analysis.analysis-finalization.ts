@@ -40,71 +40,6 @@ type FinalReportSuccess = {
   finalReport: DeepResearchFinalReport;
 };
 
-const readPayloadString = (
-  payload: Record<string, unknown>,
-  key: string,
-): string | null => {
-  const value = payload[key];
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-};
-
-const readPayloadStringArray = (
-  payload: Record<string, unknown>,
-  key: string,
-): string[] => {
-  const value = payload[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-};
-
-const uniqueStrings = (values: readonly string[]): string[] =>
-  [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
-
-const buildFinalAdjudicationRawIndex = (
-  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>,
-) => {
-  const rawIndex = {
-    decisiveReasons: uniqueStrings(
-      finalPackage.analysisRecords.map((record) =>
-        readPayloadString(record.parsedPayload, "coreFinding")
-        ?? record.keyPoints[0]
-        ?? record.answerText),
-    ),
-    strongestOpposingArguments: uniqueStrings(
-      finalPackage.analysisRecords.flatMap((record) => [
-        ...record.contradictionPoints,
-        ...readPayloadStringArray(record.parsedPayload, "failureCases"),
-      ]),
-    ),
-    evidenceGaps: uniqueStrings([
-      ...finalPackage.missingAnalysisSubQuestionIds.map((subQuestionId) =>
-        `Missing structured independent analysis record for ${subQuestionId}.`),
-    ]),
-    reverseConditions: uniqueStrings(
-      finalPackage.analysisRecords.flatMap((record) => record.contradictionPoints),
-    ),
-    followUpSignals: uniqueStrings(
-      finalPackage.analysisRecords.flatMap((record) => [
-        ...readPayloadStringArray(record.parsedPayload, "uncertainties"),
-        ...readPayloadStringArray(record.parsedPayload, "failureCases"),
-      ]),
-    ),
-    sourceNotes: finalPackage.sourceNotes,
-  };
-  if (finalPackage.missingAnalysisSubQuestionIds.length === 0) {
-    return rawIndex;
-  }
-  return {
-    ...rawIndex,
-    limitations: [`Structured independent analysis is incomplete for: ${finalPackage.missingAnalysisSubQuestionIds.join(", ")}.`],
-  };
-};
-
 const failFinalPackageStage = (
   context: AnalysisExecutionContext,
   finalPackageStage: FlowStageHandle,
@@ -349,11 +284,7 @@ export const runFinalReportPhase = async (
       parse: "FINAL_ADJUDICATION_PARSE",
       persist: "FINAL_ADJUDICATION_PERSIST",
     },
-    parse: (rawText) =>
-      parseDeepResearchFinalAdjudicationResponse(
-        rawText,
-        buildFinalAdjudicationRawIndex(finalPackage),
-      ),
+    parse: (rawText) => parseDeepResearchFinalAdjudicationResponse(rawText),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) => {
       const reportWithSourceNotes = mergeDeepResearchFinalReportSourceNotes({

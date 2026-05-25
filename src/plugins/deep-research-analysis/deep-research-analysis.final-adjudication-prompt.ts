@@ -18,24 +18,6 @@ export const finalAdjudicationShellPrompt: DeepResearchPrompt = {
 
 export const finalAdjudicationPrompt = finalAdjudicationShellPrompt;
 
-const buildDefaultFinalAdjudicationPromptBundle = (language: DeepResearchInput["language"]): DeepResearchPromptBundle => ({
-  promptBundleId: "final-adjudication-default-prompt-bundle",
-  promptRole: "final_adjudication",
-  taskInstruction: "Adjudicate the full case file and return the final Deep Research decision report.",
-  questionSpecificFocus: ["Use the persisted full case file and structured index as the complete record."],
-  mustUseInputs: ["structuredIndex", "fullCaseFile", "fullCaseFileMarkdown"],
-  mustNotDo: ["Do not ignore raw AI responses.", "Do not invent evidence outside the case file."],
-  evidenceOrReasoningNeeds: ["Compare decisive reasons, opposing arguments, evidence gaps, and reverse conditions."],
-  outputGuidance: {
-    preferredFormat: "json_object",
-    requiredContent: ["direct answer", "confidence", "decisive reasons", "evidence gaps", "reverse conditions"],
-    optionalContent: ["ranked conclusions", "follow-up signals"],
-    forbiddenContent: ["browser commands", "workflow instructions"],
-  },
-  safetyBoundary: ["The response is analysis, not guaranteed prediction."],
-  languageInstruction: language === "zh-CN" ? "Respond in Simplified Chinese." : "Respond in English.",
-});
-
 export const renderDeepResearchFinalAdjudicationPrompt = (input: {
   userQuestion?: string;
   analysisGoal?: string | null;
@@ -43,12 +25,11 @@ export const renderDeepResearchFinalAdjudicationPrompt = (input: {
   structuredIndex: DeepResearchStructuredIndex;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
-  finalAdjudicationPromptBundle?: DeepResearchPromptBundle;
+  finalAdjudicationPromptBundle: DeepResearchPromptBundle;
 }): string => renderFinalAdjudicationFromPromptBundle({
   language: input.language,
   structuredIndex: input.structuredIndex,
   fullCaseFile: input.fullCaseFile,
   fullCaseFileMarkdown: input.fullCaseFileMarkdown,
-  finalAdjudicationPromptBundle: input.finalAdjudicationPromptBundle
-    ?? buildDefaultFinalAdjudicationPromptBundle(input.language),
+  finalAdjudicationPromptBundle: input.finalAdjudicationPromptBundle,
 });

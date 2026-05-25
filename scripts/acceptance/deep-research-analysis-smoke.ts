@@ -126,67 +126,63 @@ const FIXTURE_RESPONSES = [
       everySubQuestionHasPromptBundle: true,
       promptBundlesAreQuestionSpecific: true,
       noGenericUniversalPromptBundle: true,
-      readyForIndependentAnalysis: true,
-      readyForFullCaseAdjudication: true,
-      readyForHtmlReportPublishing: true
+      finalPromptBundleIsQuestionSpecific: true,
+      htmlPromptBundleIsQuestionSpecific: true,
+      runtimeWillOnlyAddShellConstraints: true
     }
   }),
   JSON.stringify({
     subQuestionId: "Q1",
-    answer: "Demand appears durable enough to justify serious market-entry consideration.",
-    coreFinding: "Demand remains durable enough to support entry evaluation.",
-    keyClaims: ["Large operators continue funding automation upgrades."],
-    supportingReasons: ["Labor pressure and throughput demands keep ROI attractive."],
-    counterConditions: ["A logistics downturn would weaken buyer urgency."],
-    failureCases: ["A severe recession could materially delay automation budgets."],
+    summary: "Demand appears durable enough to justify serious market-entry consideration.",
+    keyPoints: ["Large operators continue funding automation upgrades."],
     evidenceMentions: ["automation capex plans", "warehouse labor constraints"],
-    evidenceQuality: "moderate",
     assumptions: ["No severe macro recession."],
-    uncertainties: ["Public buyer pipeline evidence is incomplete."],
-    impactOnFinalAdjudication: "Supports a measured market-entry recommendation if execution remains manageable.",
+    contradictionPoints: ["A logistics downturn would weaken buyer urgency."],
+    structuredPayload: {
+      demandFinding: "Demand remains durable enough to support entry evaluation.",
+      supportingReasons: ["Labor pressure and throughput demands keep ROI attractive."],
+      failureCases: ["A severe recession could materially delay automation budgets."],
+      impactOnFinalDecision: "Supports a measured market-entry recommendation if execution remains manageable.",
+    },
     confidence: "high",
     limitations: ["Public buyer pipeline evidence is incomplete."],
   }),
   JSON.stringify({
     subQuestionId: "Q2",
-    answer: "Execution risk is manageable only with a narrow workflow launch and strong delivery partners.",
-    coreFinding: "Execution is feasible, but only under a staged entry model.",
-    keyClaims: ["Integration complexity is the main operational constraint."],
-    supportingReasons: ["A narrow workflow and partner-led rollout reduce initial execution load."],
-    counterConditions: ["Weak partner quality or broad scope would sharply raise failure risk."],
-    failureCases: ["A broad first release without delivery partners would likely fail."],
+    summary: "Execution risk is manageable only with a narrow workflow launch and strong delivery partners.",
+    keyPoints: ["Integration complexity is the main operational constraint."],
     evidenceMentions: ["integration benchmarks", "partner rollout model"],
-    evidenceQuality: "moderate",
     assumptions: ["A credible implementation partner is available."],
-    uncertainties: ["Partner quality still needs live validation."],
-    impactOnFinalAdjudication: "Supports entry only as a staged, partner-assisted launch.",
+    contradictionPoints: ["Weak partner quality or broad scope would sharply raise failure risk."],
+    structuredPayload: {
+      executionFinding: "Execution is feasible, but only under a staged entry model.",
+      supportingReasons: ["A narrow workflow and partner-led rollout reduce initial execution load."],
+      failureCases: ["A broad first release without delivery partners would likely fail."],
+      impactOnFinalDecision: "Supports entry only as a staged, partner-assisted launch.",
+    },
     confidence: "medium",
     limitations: ["Partner quality still needs live validation."],
   }),
   JSON.stringify({
-    directAnswer: "The company should consider entering, but only through a staged partner-led beachhead.",
-    finalVerdict: "conditional",
+    summary: "The company should consider entering, but only through a staged partner-led beachhead.",
     confidence: "medium",
-    rankedConclusions: [{
-      rank: 1,
-      conclusion: "Demand is durable enough to justify entry evaluation.",
-      whyItMatters: "Without durable demand, no entry case survives.",
-      strength: "strong",
-      appliesTo: ["Enterprise warehouse automation buyers"],
-      doesNotApplyTo: ["Severe recession scenarios"],
-      reverseCondition: "A sustained logistics downturn would weaken this conclusion.",
-    }],
-    strongConclusions: ["Demand support is real in labor-constrained warehouses."],
-    conditionalConclusions: ["Execution only works as a staged partner-led launch."],
-    weakOrRejectedClaims: ["A broad immediate rollout is not justified."],
-    decisiveReasons: ["Demand is durable and execution can be narrowed to a feasible beachhead."],
-    evidenceGaps: ["Partner deployment quality still needs live validation."],
-    reverseConditions: ["If partner execution quality is weak, the entry thesis should reverse."],
-    applicability: ["Measured warehouse robotics entry decisions"],
-    nonApplicability: ["Immediate full-scale launch decisions"],
-    followUpSignals: ["Track partner deployment time-to-value in the first customer accounts."],
-    multiStageValueAdded: ["Independent analysis separated local findings before the final adjudication."],
-    limitations: ["This smoke uses deterministic fixture responses rather than a live provider."],
+    structuredPayload: {
+      recommendation: "Enter only through a staged partner-led beachhead.",
+      rationale: ["Demand support is real in labor-constrained warehouses."],
+      constraints: ["Execution only works as a staged partner-led launch."],
+      rejectedPaths: ["A broad immediate rollout is not justified."],
+      followUpSignals: ["Track partner deployment time-to-value in the first customer accounts."],
+      applicability: ["Measured warehouse robotics entry decisions"],
+      nonApplicability: ["Immediate full-scale launch decisions"],
+      auditNote: "Independent analysis separated local findings before the final adjudication.",
+    },
+    references: [
+      "automation capex plans",
+      "warehouse labor constraints",
+      "integration benchmarks",
+      "partner rollout model"
+    ],
+    sourceNotes: [],
   }),
 ] as const;
 
@@ -316,7 +312,10 @@ async function main(): Promise<void> {
 
   assert(result.status === "success", `Expected smoke success, received ${JSON.stringify(result)}.`);
   assert(result.phase === "COMPLETE", `Expected COMPLETE phase, received ${result.phase}.`);
-  assert(result.report?.finalVerdict === "conditional", "Smoke report must persist the final adjudication verdict.");
+  assert(
+    result.report?.summary.includes("staged partner-led beachhead"),
+    "Smoke report must persist the final adjudication summary.",
+  );
   assert(
     (result.report?.sourceNotes ?? []).length >= 4,
     "Final adjudication must merge analysis evidenceMentions into structured sourceNotes.",

@@ -31,7 +31,6 @@ type ListFacebookProductVideoMiningSavedRecords = typeof import("../../plugins/f
 type ExportFacebookProductVideoMiningSelectionRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").exportFacebookProductVideoMiningSelectionRecords;
 type StartAmazonProductMiningMission = typeof import("../../plugins/amazon-product-mining/index.js").startAmazonProductMiningMission;
 type GetAmazonProductMiningTaskStatus = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningTaskStatus;
-type GetLatestAmazonProductMiningTask = typeof import("../../plugins/amazon-product-mining/index.js").getLatestAmazonProductMiningTask;
 type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
@@ -109,9 +108,6 @@ export type GrassEyeWorkbenchHandle = {
   startDeepResearchAnalysis: (
     input: DeepResearchAnalysisStartInput,
   ) => Promise<DeepResearchJobSnapshot>;
-  rerunDeepResearchBusinessHtmlReport: (
-    input: { jobId: string },
-  ) => Promise<DeepResearchJobSnapshot | null>;
   getDeepResearchAnalysisJob: (
     jobId: string,
   ) => Promise<DeepResearchJobSnapshot | null>;

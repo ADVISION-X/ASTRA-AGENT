@@ -19,13 +19,13 @@ export const persistAnalysisAnswer = (input: {
     interactionId: input.interaction.id,
     subQuestionId: input.subQuestionId,
     answerKind: "analysis",
-    answerText: input.parsed.answer,
-    keyPoints: input.parsed.keyClaims,
+    answerText: input.parsed.summary,
+    keyPoints: input.parsed.keyPoints,
     evidenceMentions: input.parsed.evidenceMentions,
     assumptions: input.parsed.assumptions,
     limitations: input.parsed.limitations,
-    contradictionPoints: input.parsed.counterConditions,
-    parsedPayload: input.parsed,
+    contradictionPoints: input.parsed.contradictionPoints,
+    parsedPayload: input.parsed.structuredPayload,
     confidence: input.parsed.confidence,
   });
   return {

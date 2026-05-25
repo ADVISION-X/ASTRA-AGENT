@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T16:42:22.438Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-25T16:59:07.048Z",
+  "status": "PASS",
   "inspectorFileCount": 15,
   "generatedPlanEntryCount": 15,
   "inspectedFiles": [
@@ -147,14 +147,5 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": [
-    {
-      "checkId": "audit-truth/source-text-judgment",
-      "lawId": "APEX-AUDIT-TRUTH-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/amazon-product-mining/inspector.ts uses source-text judgment text.includes(\"onPageExtracted\") on tracked ts-morph text.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts"
-    }
-  ]
+  "findings": []
 }

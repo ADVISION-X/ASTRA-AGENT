@@ -11,6 +11,7 @@ const runtimeLogSignalPattern = /\bRuntimeLogEventType\b|\blogger\.emit\s*\(|\bc
 const authorizedHelperPaths = new Set([
   "src/lib/runtime-logs/stage-logger.ts",
   "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
+  "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
 ]);

@@ -290,27 +290,6 @@ const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
     trackDeepResearchExecution({ executions: context.executions, snapshot, runPromise });
     return context.applyExecutionState(snapshot) ?? snapshot;
   },
-  async rerunDeepResearchBusinessHtmlReport(input: { jobId: string }) {
-    await deepResearchAnalysisPublicFacade.rerunDeepResearchBusinessHtmlReport(
-      {
-        jobId: input.jobId,
-        context: {
-          aiInputGateway: context.assembly.aiInputGateway,
-          runtimeLogger: context.assembly.runtimeLogger,
-          dataDir: context.dataDir,
-          providerKind: "gemini-api",
-          modelName: "workbench-default",
-          timeoutMs: 180_000,
-        },
-      },
-    );
-    return context.applyExecutionState(
-      deepResearchAnalysisPublicFacade.getDeepResearchAnalysisJob({
-        dataDir: context.dataDir,
-        jobId: input.jobId,
-      }),
-    );
-  },
 });
 
 const buildDeepResearchQueryHandle = (context: DeepResearchHandleContext) => ({

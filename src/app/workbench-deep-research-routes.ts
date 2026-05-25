@@ -252,24 +252,6 @@ const handleExportRequest = async (
   return true;
 };
 
-const handleRegenerateHtmlReportRequest = async (
-  response: ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-  url: URL,
-): Promise<boolean> => {
-  const jobId = readJobId(response, url);
-  if (!jobId) {
-    return true;
-  }
-  const snapshot = await workbench.rerunDeepResearchBusinessHtmlReport({ jobId });
-  if (!snapshot) {
-    writeJson(response, 404, { error: "job_not_found" });
-    return true;
-  }
-  writeJson(response, 200, snapshot);
-  return true;
-};
-
 const handleDeleteJobRequest = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -304,7 +286,6 @@ const buildDeepResearchRouteHandlers = (
   "GET:/api/deep-research-analysis/latest": () => handleLatestRequest(response, workbench),
   "GET:/api/deep-research-analysis/timeline": () => handleTimelineRequest(response, workbench, url),
   "GET:/api/deep-research-analysis/export": () => handleExportRequest(response, workbench, url),
-  "POST:/api/deep-research-analysis/regenerate-html-report": () => handleRegenerateHtmlReportRequest(response, workbench, url),
 });
 
 export const handleDeepResearchRequest = async (

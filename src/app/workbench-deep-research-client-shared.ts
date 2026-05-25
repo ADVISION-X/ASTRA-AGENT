@@ -252,48 +252,39 @@ function renderAnalysisParsedResult(payload: JsonRecord, title: string): string 
         ])}
       </div>
       ${renderStructuredFields(payload, [
-        { key: "answer", title: "Answer" },
-        { key: "coreFinding", title: "Core Finding" },
-        { key: "impactOnFinalAdjudication", title: "Impact On Final Adjudication" },
+        { key: "summary", title: "Summary" },
       ])}
       <div class="research-summary-grid">
-        ${renderListSection("Key Claims", payload.keyClaims ?? payload.claims ?? payload.keyPoints, { emptyText: "No key claims recorded.", previewCount: 5 })}
-        ${renderListSection("Supporting Reasons", payload.supportingReasons ?? payload.reasons, { emptyText: "No supporting reasons recorded.", previewCount: 5 })}
+        ${renderListSection("Key Points", payload.keyPoints ?? payload.findings ?? payload.takeaways, { emptyText: "No key points recorded.", previewCount: 5 })}
         ${renderListSection("Evidence Mentions", payload.evidenceMentions, { emptyText: "No evidence mentions recorded.", previewCount: 5 })}
-        ${renderListSection("Failure Cases", payload.failureCases ?? payload.failureModes, { emptyText: "No failure cases recorded.", previewCount: 5 })}
         ${renderListSection("Assumptions", payload.assumptions, { emptyText: "No assumptions recorded.", previewCount: 5 })}
+        ${renderListSection("Contradiction Points", payload.contradictionPoints, { emptyText: "No contradiction points recorded.", previewCount: 5 })}
         ${renderListSection("Limitations", payload.limitations, { emptyText: "No limitations recorded.", previewCount: 5 })}
-        ${renderListSection("Uncertainties", payload.uncertainties, { emptyText: "No uncertainties recorded.", previewCount: 5 })}
       </div>
     </section>`;
 }
 
 function renderFinalParsedResult(payload: JsonRecord): string {
-  const rankedConclusions = Array.isArray(payload.rankedConclusions)
-    ? payload.rankedConclusions.map((item) => {
-      const record = asRecord(item);
-      return record ? `${record.rank ? `#${String(record.rank)} ` : ""}${String(record.conclusion ?? "")}`.trim() : "";
-    }).filter(Boolean)
-    : [];
+  const structuredPayload = asRecord(payload.structuredPayload);
   return `
     <section class="research-parsed-panel">
       <div class="research-parsed-head">
         <h3>Parsed Final Adjudication</h3>
         ${renderMetaRow([
           readPayloadString(payload, "confidence"),
-          readPayloadString(payload, "finalVerdict"),
         ])}
       </div>
-      ${renderStructuredField("Direct Answer", payload.directAnswer ?? payload.executiveConclusion)}
-      ${renderStructuredField("One Sentence Decision", payload.oneSentenceDecision)}
+      ${renderStructuredField("Summary", payload.summary)}
       <div class="research-summary-grid">
-        ${renderListSection("Ranked Conclusions", rankedConclusions, { emptyText: "No ranked conclusions recorded.", previewCount: 5 })}
-        ${renderListSection("Decisive Reasons", payload.decisiveReasons ?? payload.strongConclusions, { emptyText: "No decisive reasons recorded.", previewCount: 5 })}
-        ${renderListSection("Weak Or Rejected Claims", payload.weakOrRejectedClaims ?? payload.strongestOpposingArguments, { emptyText: "No rejected claims recorded.", previewCount: 5 })}
-        ${renderListSection("Reverse Conditions", payload.reverseConditions, { emptyText: "No reverse conditions recorded.", previewCount: 5 })}
-        ${renderListSection("Evidence Gaps", payload.evidenceGaps, { emptyText: "No evidence gaps recorded.", previewCount: 5 })}
-        ${renderListSection("Limitations", payload.limitations, { emptyText: "No limitations recorded.", previewCount: 5 })}
+        ${renderListSection("References", payload.references, { emptyText: "No references recorded.", previewCount: 5 })}
+        ${renderListSection("Source Notes", Array.isArray(payload.sourceNotes)
+          ? payload.sourceNotes.map((item) => {
+            const record = asRecord(item);
+            return record ? readPayloadString(record, "note") : "";
+          }).filter(Boolean)
+          : [], { emptyText: "No source notes recorded.", previewCount: 5 })}
       </div>
+      ${structuredPayload ? renderJsonDetails("Structured Payload", structuredPayload, "Show Structured Payload") : ""}
     </section>`;
 }
 
@@ -305,10 +296,10 @@ function renderStructuredParsedResult(title: string, value: unknown): string {
   if (Array.isArray(payload.subQuestions)) {
     return renderDecompositionParsedResult(payload);
   }
-  if (payload.directAnswer || payload.executiveConclusion || payload.finalVerdict) {
+  if (payload.summary && payload.structuredPayload && !payload.subQuestionId) {
     return renderFinalParsedResult(payload);
   }
-  if (payload.answer || payload.coreFinding || payload.impactOnFinalAdjudication) {
+  if (payload.summary && payload.subQuestionId) {
     return renderAnalysisParsedResult(payload, title);
   }
   return renderJsonDetails(title, value, "Show Parsed Result");
@@ -346,12 +337,6 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
   if (!block) {
     return `<article class="research-analysis-card"><h3>${escapeText(title)}</h3><p class="muted">${escapeText(emptyText)}</p></article>`;
   }
-  const coreFinding = readPayloadString(block.parsedPayload, "coreFinding");
-  const impactOnFinalAdjudication = readPayloadString(block.parsedPayload, "impactOnFinalAdjudication");
-  const failureCases = asArray(block.parsedPayload.failureCases);
-  const uncertainties = asArray(block.parsedPayload.uncertainties);
-  const keyClaimTitle = "Key Claims";
-  const contradictionTitle = "Counter Conditions";
   return `
     <article class="research-analysis-card">
       <div class="research-analysis-head">
@@ -363,26 +348,14 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
         className: "response-pre",
         previewLimit: 420,
       })}
-      ${coreFinding ? renderExpandableText("Core Finding", coreFinding, {
-        summaryLabel: "More",
-        className: "response-pre",
-        previewLimit: 280,
-      }) : ""}
-      ${impactOnFinalAdjudication ? renderExpandableText("Impact On Final Adjudication", impactOnFinalAdjudication, {
-        summaryLabel: "More",
-        className: "response-pre",
-        previewLimit: 280,
-      }) : ""}
-      ${renderListSection(keyClaimTitle, block.keyPoints, {
-        emptyText: "No key claims recorded.",
+      ${renderListSection("Key Points", block.keyPoints, {
+        emptyText: "No key points recorded.",
       })}
-      ${renderListSection(contradictionTitle, block.contradictionPoints, {
-        emptyText: "No counter conditions recorded.",
+      ${renderListSection("Contradiction Points", block.contradictionPoints, {
+        emptyText: "No contradiction points recorded.",
       })}
-      ${failureCases.length ? renderListSection("Failure Cases", failureCases, { emptyText: "No failure cases recorded." }) : ""}
       ${renderListSection("Evidence Mentions", block.evidenceMentions, { emptyText: "No evidence mentions recorded." })}
       ${renderListSection("Assumptions", block.assumptions, { emptyText: "No assumptions recorded." })}
-      ${uncertainties.length ? renderListSection("Uncertainties", uncertainties, { emptyText: "No uncertainties recorded." }) : ""}
       ${renderListSection("Limitations", block.limitations, { emptyText: "No limitations recorded." })}
       ${renderStructuredParsedResult("Parsed Answer Structure", block.parsedPayload)}
       ${renderInteractionDebug(block.interaction)}

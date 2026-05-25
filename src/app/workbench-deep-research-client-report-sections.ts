@@ -56,28 +56,11 @@ function renderReportHeader(report: DeepResearchReport): void {
     ${renderExportButtons(report.exports)}`);
 }
 
-function renderRankedConclusions(report: DeepResearchReport): string {
-  const items = report.conclusion?.rankedConclusions ?? [];
-  if (!items.length) {
+function renderStructuredConclusionPayload(report: DeepResearchReport): string {
+  if (!report.conclusion) {
     return "";
   }
-  return `
-    <section class="research-copy-block">
-      <h3>Ranked Conclusions</h3>
-      <div class="research-question-tree">
-        ${items.map((item) => `
-          <article class="research-question-card">
-            <h4>#${escapeText(item.rank)} ${escapeText(item.conclusion)}</h4>
-            <p>${escapeText(item.whyItMatters)}</p>
-            ${renderMetaRow([
-              item.strength,
-              item.reverseCondition || null,
-            ])}
-            ${renderListSection("Applies To", item.appliesTo, { emptyText: "No explicit applicability recorded." })}
-            ${renderListSection("Does Not Apply To", item.doesNotApplyTo, { emptyText: "No explicit exclusions recorded." })}
-          </article>`).join("")}
-      </div>
-    </section>`;
+  return renderJsonDetails("Structured Payload", report.conclusion.structuredPayload, "Show Structured Payload");
 }
 
 function renderConclusionCard(report: DeepResearchReport): void {
@@ -92,12 +75,6 @@ function renderConclusionCard(report: DeepResearchReport): void {
       <p class="muted">This report is still building. The reader will prioritize the final conclusion card as soon as the final adjudication result is persisted.</p>`);
     return;
   }
-  const decisiveReasons = report.conclusion.decisiveReasons.length
-    ? report.conclusion.decisiveReasons
-    : report.conclusion.strongConclusions;
-  const rejectedClaims = report.conclusion.weakOrRejectedClaims.length
-    ? report.conclusion.weakOrRejectedClaims
-    : report.conclusion.strongestOpposingArguments;
   setResearchHtml("[data-deep-research-final-card]", `
     <div class="research-card-head">
       <div>
@@ -106,30 +83,19 @@ function renderConclusionCard(report: DeepResearchReport): void {
       </div>
       ${renderConfidenceBadge(report.conclusion.confidence)}
     </div>
-    ${renderExpandableText("Direct Answer", report.conclusion.directAnswer || report.conclusion.executiveConclusion, {
+    ${renderExpandableText("Summary", report.conclusion.summary, {
       summaryLabel: "More",
       className: "response-pre",
       previewLimit: 800,
     })}
     ${renderMetaRow([
-      report.conclusion.finalVerdict || null,
       renderFlowLabel(report),
     ])}
     <div class="research-summary-grid">
-      ${renderListSection("Decisive Reasons", decisiveReasons, { emptyText: "No decisive reasons recorded." })}
-      ${renderListSection("Weak Or Rejected Claims", rejectedClaims, { emptyText: "No rejected claims recorded." })}
-      ${renderListSection("Reverse Conditions", report.conclusion.reverseConditions, { emptyText: "No reverse conditions recorded." })}
-      ${renderListSection("Evidence Gaps", report.conclusion.evidenceGaps, { emptyText: "No evidence gaps recorded." })}
+      ${renderListSection("References", report.conclusion.references, { emptyText: "No references recorded." })}
+      ${renderListSection("Source Notes", report.conclusion.sourceNotes.map((note) => note.note), { emptyText: "No source notes recorded." })}
     </div>
-    ${renderRankedConclusions(report)}
-    <div class="research-summary-grid">
-      ${renderListSection("Applicability", report.conclusion.applicability, { emptyText: "No explicit applicability recorded." })}
-      ${renderListSection("Non-Applicability", report.conclusion.nonApplicability, { emptyText: "No explicit exclusions recorded." })}
-      ${renderListSection("Follow-up Signals", report.conclusion.followUpSignals, { emptyText: "No follow-up signals recorded." })}
-      ${renderListSection("Multi-stage Value Added", report.conclusion.multiStageValueAdded, { emptyText: "No multi-stage value-added notes recorded." })}
-    </div>
-    ${renderListSection("Limitations", report.conclusion.limitations, { emptyText: "No limitations recorded." })}
-    ${renderListSection("Source Notes", report.conclusion.sourceNotes.map((note) => note.note), { emptyText: "No source notes recorded." })}`);
+    ${renderStructuredConclusionPayload(report)}`);
 }
 
 function renderStageOverview(report: DeepResearchReport): void {
@@ -230,7 +196,7 @@ function renderFinalAdjudication(report: DeepResearchReport): void {
       </div>
     </div>
     <div class="research-article-card">
-      ${report.conclusion ? renderExpandableText("Parsed Final Report", report.conclusion.directAnswer || report.conclusion.executiveConclusion, {
+      ${report.conclusion ? renderExpandableText("Parsed Final Report", report.conclusion.summary, {
         summaryLabel: "More",
         className: "response-pre",
         previewLimit: 700,
@@ -239,6 +205,55 @@ function renderFinalAdjudication(report: DeepResearchReport): void {
       ${interaction ? renderInteractionDebug(interaction) : ""}
       ${renderJsonDetails("Parsed Final Report JSON", report.finalAdjudication.parsedFinalReport, "Show Parsed Result")}
     </div>`);
+}
+
+function renderProcessTrace(report: DeepResearchReport): void {
+  setResearchHtml("[data-deep-research-process-trace]", `
+    <div class="research-section-head">
+      <div>
+        <p class="research-kicker">Process Trace</p>
+        <h2>Execution stages and persisted interaction evidence</h2>
+      </div>
+    </div>
+    <div class="research-stage-grid">
+      ${report.stages.map((stage) => `<article class="research-stage-item"><span>${escapeText(stage.label)}</span><span class="research-stage-chip research-stage-${escapeText(stage.status)}">${escapeText(formatStatusLabel(stage.status))}</span></article>`).join("")}
+    </div>
+    <div class="research-summary-grid">
+      ${renderListSection("Trace Coverage", [
+        `${report.job.interactionCount} persisted interactions`,
+        `${report.job.subQuestionCount} persisted subquestions`,
+        `${report.job.exportCount} export artifacts`,
+      ], { emptyText: "No process-trace coverage recorded." })}
+      ${renderListSection("Source Notes", report.conclusion?.sourceNotes.map((note) => note.note) ?? [], { emptyText: "No source notes recorded." })}
+    </div>
+    <details class="research-evidence-root" open>
+      <summary>Interaction Evidence</summary>
+      <div class="research-evidence-body">
+        ${report.evidence.length ? report.evidence.map((entry) => `
+          <article class="research-evidence-item">
+            <div class="research-evidence-top">
+              ${renderStatusBadge(entry.phase)}
+              <span class="muted">${escapeText(formatDateTime(entry.createdAt))}</span>
+            </div>
+            <h3>${escapeText(entry.headline)}</h3>
+            <p>${escapeText(entry.summary || "No parsed summary recorded.")}</p>
+            ${renderExpandableText("What we asked", entry.promptText || "", {
+              summaryLabel: "Show Full Prompt",
+              className: "prompt-pre",
+              forceDetails: true,
+              previewLimit: 360,
+            })}
+            ${renderExpandableText("What AI answered", entry.rawResponseText || "", {
+              summaryLabel: "Show Full AI Response",
+              className: "response-pre",
+              forceDetails: true,
+              previewLimit: 360,
+            })}
+            ${renderStructuredParsedResult("Parsed Result", entry.parsedJson)}
+            ${renderJsonDetails("Parsed Result JSON", entry.parsedJson, "Show Parsed Result")}
+          </article>`).join("") : '<p class="muted">No evidence recorded yet.</p>'}
+      </div>
+    </details>`);
 }
 
 function renderEvidence(report: DeepResearchReport): void {
@@ -312,16 +327,10 @@ function renderEvidence(report: DeepResearchReport): void {
 
 function renderSidePanels(report: DeepResearchReport): void {
   const navigation = [
-    { id: "conclusion", label: "Conclusion" },
-    { id: "decomposition", label: "Decomposition" },
-    ...report.decomposition.subQuestions.map((subQuestion) => ({
-      id: `subquestion-${subQuestion.id}`,
-      label: `Q${subQuestion.ordinal + 1}`,
-    })),
-    { id: "final-adjudication", label: "Final Adjudication" },
-    { id: "full-case-file", label: "Full Case File" },
+    { id: "conclusion", label: "Final Result" },
     { id: "business-report", label: "Primary Business Report" },
-    { id: "evidence", label: "Evidence" },
+    { id: "full-case-file", label: "Full Case File" },
+    { id: "process-trace", label: "Process Trace" },
   ];
   setResearchHtml("[data-deep-research-nav]", navigation.map((item) => `<a href="#${escapeText(item.id)}">${escapeText(item.label)}</a>`).join(""));
   setResearchHtml("[data-deep-research-meta]", `
@@ -346,13 +355,9 @@ function renderSelectedReport(state: DeepResearchClientState, report: DeepResear
   toggleResearchHidden("[data-deep-research-report]", false);
   renderReportHeader(report);
   renderConclusionCard(report);
-  renderStageOverview(report);
-  renderDecomposition(report);
-  renderSubQuestions(report);
-  renderFinalAdjudication(report);
-  renderFullCaseFileDelivery(report);
   renderPrimaryBusinessReport(report);
-  renderEvidence(report);
+  renderFullCaseFileDelivery(report);
+  renderProcessTrace(report);
   renderSidePanels(report);
   renderLedger({
     record: {
@@ -371,8 +376,8 @@ export const deepResearchClientReportRuntime = {
 } as const;
 
 export const deepResearchClientReportFunctions = [
-  renderFlowLabel, renderReportHeader, renderRankedConclusions, renderConclusionCard,
+  renderFlowLabel, renderReportHeader, renderStructuredConclusionPayload, renderConclusionCard,
   renderStageOverview, renderDecomposition, renderDefaultSubQuestionSection,
-  renderSubQuestions, renderFinalAdjudication,
+  renderSubQuestions, renderFinalAdjudication, renderProcessTrace,
   renderFullCaseFileDelivery, renderPrimaryBusinessReport, renderEvidence, renderSidePanels, renderSelectedReport,
 ] as const;

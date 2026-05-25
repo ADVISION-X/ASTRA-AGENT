@@ -228,10 +228,10 @@ const inspectReviewsPerPagePersistence = (
   const reviewsFile = getRequiredSourceFile(context, repoPath);
   trackSourceFile(inspectedFiles, reviewsFile);
   if (!reviewsFile) return;
-  const text = reviewsFile.getFullText();
-  // onPageExtracted callback must call persistReviews or call onPageExtracted (per-page persistence)
-  const hasOnPageExtracted = text.includes("onPageExtracted");
-  const hasPerPagePersistence = text.includes("onPageExtracted") && text.includes("while");
+  // onPageExtracted callback must be present and called inside a while loop (law 007)
+  const hasOnPageExtracted = hasIdentifier(reviewsFile, "onPageExtracted");
+  const hasWhileLoop = reviewsFile.getDescendantsOfKind(SyntaxKind.WhileStatement).length > 0;
+  const hasPerPagePersistence = hasOnPageExtracted && hasWhileLoop;
   if (!hasOnPageExtracted || !hasPerPagePersistence) {
     findings.push(createFinding({
       checkId: "amazon-mining/reviews-per-page-persistence",

@@ -144,15 +144,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.result.ts exports buildRunConfig without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"symbolName\":\"buildRunConfig\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts exports finalAdjudicationPrompt without any provable final consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
@@ -333,15 +324,6 @@
       "checkId": "code-purity/zombie-top-level-declaration",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/lib/local-runtime/workbench-handle.ts keeps an orphan top-level type-alias named GetLatestAmazonProductMiningTask.",
-      "severity": "fatal",
-      "filePath": "src/lib/local-runtime/workbench-handle.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"local-runtime\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"app-shell\",\"symbolName\":\"GetLatestAmazonProductMiningTask\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts keeps an orphan top-level variable named buildHtmlSourceNotes.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
@@ -375,7 +357,7 @@
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-25T16:42:19.114Z",
+  "generatedAt": "2026-05-25T16:59:03.868Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -1228,19 +1210,19 @@
     }
   ],
   "liveExportCount": 1325,
-  "orphanDeclarationCount": 2,
+  "orphanDeclarationCount": 1,
   "reachableFileCount": 504,
   "status": "FAIL",
   "unreachableFileCount": 0,
-  "zombieExportCount": 5,
+  "zombieExportCount": 4,
   "zombieSummary": {
     "antiEvasionFindingCount": 3,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
     "liveExportCount": 1325,
-    "orphanDeclarationCount": 2,
+    "orphanDeclarationCount": 1,
     "reachableFileCount": 504,
     "unreachableFileCount": 0,
-    "zombieExportCount": 5
+    "zombieExportCount": 4
   }
 }

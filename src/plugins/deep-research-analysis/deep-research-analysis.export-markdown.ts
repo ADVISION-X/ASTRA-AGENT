@@ -133,39 +133,20 @@ const buildDecisionSummarySection = (input: {
       "Final report not available.",
     ].join("\n");
   }
-  const decisiveReasons = input.finalReport.decisiveReasons.length > 0
-    ? input.finalReport.decisiveReasons
-    : input.finalReport.strongConclusions;
-  const opposingClaims = input.finalReport.weakOrRejectedClaims.length > 0
-    ? input.finalReport.weakOrRejectedClaims
-    : input.finalReport.strongestOpposingArguments;
   return [
     "## Final Summary",
     "",
-    `Direct Answer: ${input.finalReport.directAnswer}`,
-    `Final Verdict: ${input.finalReport.finalVerdict}`,
+    `Summary: ${input.finalReport.summary}`,
     `Confidence: ${input.finalReport.confidence}`,
     "",
-    "### Decisive Reasons",
-    buildMarkdownList(decisiveReasons),
-    "",
-    "### Weak Or Rejected Claims",
-    buildMarkdownList(opposingClaims),
-    "",
-    "### Evidence Gaps",
-    buildMarkdownList(input.finalReport.evidenceGaps),
-    "",
-    "### Reverse Conditions",
-    buildMarkdownList(input.finalReport.reverseConditions),
-    "",
-    "### Follow-up Signals",
-    buildMarkdownList(input.finalReport.followUpSignals),
-    "",
-    "### Limitations",
-    buildMarkdownList(input.finalReport.limitations),
+    "### References",
+    buildMarkdownList(input.finalReport.references, "- unavailable"),
     "",
     "### Source Notes",
     buildMarkdownList(input.finalReport.sourceNotes.map((note) => note.note), "- unavailable"),
+    "",
+    "### Structured Payload",
+    `\`\`\`json\n${JSON.stringify(input.finalReport.structuredPayload, null, 2)}\n\`\`\``,
   ].join("\n");
 };
 
@@ -189,27 +170,14 @@ const buildFinalStageSection = (input: {
   const parsedSection = !input.finalReport
     ? "Final report not available."
     : [
-      `directAnswer: ${input.finalReport.directAnswer}`,
-      `finalVerdict: ${input.finalReport.finalVerdict}`,
+      `summary: ${input.finalReport.summary}`,
       `confidence: ${input.finalReport.confidence}`,
-      "decisiveReasons",
-      buildMarkdownList(input.finalReport.decisiveReasons.length > 0
-        ? input.finalReport.decisiveReasons
-        : input.finalReport.strongConclusions),
-      "weakOrRejectedClaims",
-      buildMarkdownList(input.finalReport.weakOrRejectedClaims.length > 0
-        ? input.finalReport.weakOrRejectedClaims
-        : input.finalReport.strongestOpposingArguments),
-      "evidenceGaps",
-      buildMarkdownList(input.finalReport.evidenceGaps),
-      "reverseConditions",
-      buildMarkdownList(input.finalReport.reverseConditions),
-      "followUpSignals",
-      buildMarkdownList(input.finalReport.followUpSignals),
-      "limitations",
-      buildMarkdownList(input.finalReport.limitations),
+      "references",
+      buildMarkdownList(input.finalReport.references, "- unavailable"),
       "sourceNotes",
       buildMarkdownList(input.finalReport.sourceNotes.map((note) => note.note), "- unavailable"),
+      "structuredPayload",
+      `\`\`\`json\n${JSON.stringify(input.finalReport.structuredPayload, null, 2)}\n\`\`\``,
     ].join("\n\n");
   return [
     `## ${sectionLabel}`,

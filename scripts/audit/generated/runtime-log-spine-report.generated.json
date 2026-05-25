@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T16:42:21.538Z",
+  "generatedAt": "2026-05-25T16:59:06.168Z",
   "status": "FAIL",
   "scannedFiles": 323,
   "inspectedFiles": [
@@ -332,7 +332,7 @@
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
-  "missingTraceContractCount": 1,
+  "missingTraceContractCount": 0,
   "catchBranchCount": 1,
   "catchBranchWithoutLogCount": 1,
   "failureBranchCount": 27,
@@ -343,8 +343,8 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 3,
-    "fatalFindings": 3,
+    "totalFindings": 1,
+    "fatalFindings": 1,
     "scannedFiles": 323,
     "emitCallCount": 13,
     "consoleViolationCount": 0,
@@ -369,18 +369,18 @@
     },
     {
       "name": "runtime-log-emit-contract",
-      "status": "FAIL",
-      "findingCount": 2,
-      "scannedFiles": 263,
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 262,
       "metrics": {
-        "emitCallCount": 3
+        "emitCallCount": 2
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 263
+      "scannedFiles": 262
     },
     {
       "name": "stage-pair-coverage",
@@ -450,24 +450,6 @@
     }
   ],
   "findings": [
-    {
-      "checkId": "runtime-log-spine/emit-trace-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-      "file": "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
-      "line": 13,
-      "severity": "fatal",
-      "message": "RuntimeLogger.emit contract is incomplete",
-      "hint": "Add traceId, level, modeVisibility, eventType, owner and mission/run/round identifiers. Failed/review_required/skipped events must include failureClass contract. Spread fields must be statically proven."
-    },
-    {
-      "checkId": "runtime-log-spine/emit-event-type-registry",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
-      "file": "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
-      "line": 13,
-      "severity": "fatal",
-      "message": "eventType is not proven to come from RuntimeLogEventType registry",
-      "hint": "Import RuntimeLogEventType from the runtime log registry and use RuntimeLogEventType.X directly or through a traceable constant."
-    },
     {
       "checkId": "runtime-log-spine/throw-log",
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",

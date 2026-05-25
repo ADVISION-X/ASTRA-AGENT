@@ -2,9 +2,6 @@ export {
   runDeepResearchAnalysis,
 } from "./deep-research-analysis.flow.js";
 export {
-  rerunDeepResearchBusinessHtmlReport,
-} from "./deep-research-analysis.html-report-reentry.js";
-export {
   buildDeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 export { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";

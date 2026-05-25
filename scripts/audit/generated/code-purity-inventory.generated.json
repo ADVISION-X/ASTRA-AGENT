@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T16:42:19.113Z",
-  "itemCount": 41,
+  "generatedAt": "2026-05-25T16:59:03.867Z",
+  "itemCount": 39,
   "items": [
     {
       "checkId": "code-purity/object-budget",
@@ -73,18 +73,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "declarationKind": "type-alias",
-      "filePath": "src/lib/local-runtime/workbench-handle.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Top-level type-alias GetLatestAmazonProductMiningTask has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "app-shell",
-      "symbolName": "GetLatestAmazonProductMiningTask",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/function-budget",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
@@ -122,18 +110,6 @@
       "reason": "Object literal near line 126 has member count 38 and exceeds red line 30.",
       "remediation": "Split the object into smaller owner-local contract or configuration objects.",
       "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Export buildRunConfig has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "symbolName": "buildRunConfig",
       "verificationCommand": "npm run ci:full"
     },
     {

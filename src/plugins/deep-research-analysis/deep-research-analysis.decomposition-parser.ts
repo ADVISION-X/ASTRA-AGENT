@@ -102,9 +102,9 @@ const hasQualitySelfCheckFailure = (parsed: DeepResearchDecompositionResponse): 
   !parsed.planIntegrityCheck.everySubQuestionHasPromptBundle
   || !parsed.planIntegrityCheck.promptBundlesAreQuestionSpecific
   || !parsed.planIntegrityCheck.noGenericUniversalPromptBundle
-  || !parsed.planIntegrityCheck.readyForIndependentAnalysis
-  || !parsed.planIntegrityCheck.readyForFullCaseAdjudication
-  || !parsed.planIntegrityCheck.readyForHtmlReportPublishing;
+  || !parsed.planIntegrityCheck.finalPromptBundleIsQuestionSpecific
+  || !parsed.planIntegrityCheck.htmlPromptBundleIsQuestionSpecific
+  || !parsed.planIntegrityCheck.runtimeWillOnlyAddShellConstraints;
 
 export const parseDecompositionResponse = (input: {
   rawText: string;

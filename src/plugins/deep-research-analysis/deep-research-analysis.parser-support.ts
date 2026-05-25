@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   DeepResearchFinalReportSchema,
+  type DeepResearchSourceNote,
 } from "./deep-research-analysis.result.js";
 
 type DeepResearchParserFailureStatus =
@@ -43,13 +44,8 @@ export type DeepResearchParserResult<T> =
 type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
 
 export type FinalReportNormalizationRawIndex = {
-  decisiveReasons?: readonly string[];
-  strongestOpposingArguments?: readonly string[];
-  evidenceGaps?: readonly string[];
-  reverseConditions?: readonly string[];
-  followUpSignals?: readonly string[];
-  limitations?: readonly string[];
-  sourceNotes?: DeepResearchFinalReport["sourceNotes"];
+  references?: readonly string[];
+  sourceNotes?: readonly DeepResearchSourceNote[];
 };
 
 const buildTextHash = (value: string): string =>
@@ -235,15 +231,6 @@ export const normalizeConfidenceValue = (
   }
   return null;
 };
-
-export const takeRawIndexArray = (
-  values: readonly string[],
-  rawIndex: readonly string[] | undefined,
-): string[] => values.length > 0 ? [...values] : [...(rawIndex ?? [])];
-
-export const buildDefaultLimitations = (): string[] => [
-  "Model did not provide explicit limitations.",
-];
 
 const extractCandidateJson = (rawText: string): {
   candidateJson: string;

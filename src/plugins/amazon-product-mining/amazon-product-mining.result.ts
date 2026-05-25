@@ -1,4 +1,4 @@
-import type { AmazonMiningInput, AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
+import type { AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
 
 export type AmazonTaskRunConfig = {
   taskId: string;
@@ -22,16 +22,6 @@ export type AmazonTaskResult = {
   runConfig: AmazonTaskRunConfig;
   completedAt: string | null;
 };
-
-export const buildRunConfig = (input: AmazonMiningInput, taskId: string): AmazonTaskRunConfig => ({
-  taskId,
-  amazonMarketplace: input.amazonMarketplace,
-  targetMarket: input.targetMarket,
-  productDirection: input.productDirection,
-  requestedKeywordCount: input.requestedKeywordCount,
-  languagePreference: input.languagePreference ?? "en",
-  createdAt: new Date().toISOString(),
-});
 
 export const taskRecordToResult = (task: AmazonTaskRecord): AmazonTaskResult => ({
   taskId: task.taskId,

@@ -40,9 +40,9 @@ export const DeepResearchPlanIntegrityCheckSchema = z.object({
   everySubQuestionHasPromptBundle: z.literal(true),
   promptBundlesAreQuestionSpecific: z.literal(true),
   noGenericUniversalPromptBundle: z.literal(true),
-  readyForIndependentAnalysis: z.literal(true),
-  readyForFullCaseAdjudication: z.literal(true),
-  readyForHtmlReportPublishing: z.literal(true),
+  finalPromptBundleIsQuestionSpecific: z.literal(true),
+  htmlPromptBundleIsQuestionSpecific: z.literal(true),
+  runtimeWillOnlyAddShellConstraints: z.literal(true),
 }).strict();
 
 export const DeepResearchPlanSchema = z.object({

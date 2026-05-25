@@ -65,10 +65,7 @@ const renderPrimaryBusinessReport = (report: DeepResearchReport): void => {
           <h2>HTML report not generated</h2>
         </div>
       </div>
-      <p class="muted">The AI HTML Report Publisher runs after final adjudication and persists business-report.html when available.</p>
-      <div class="research-delivery-strip">
-        <button class="btn secondary" type="button" data-deep-research-regenerate-html>Regenerate HTML Report</button>
-      </div>`);
+      <p class="muted">The AI HTML Report Publisher runs after final adjudication and persists business-report.html when available.</p>`);
     return;
   }
   const sourceLabel = primaryReport.sourceKind === "html_artifact"

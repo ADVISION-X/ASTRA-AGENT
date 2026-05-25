@@ -77,10 +77,14 @@ json_object, structured_text, html_document.
 Rules:
 - Every sub-question must have its own promptBundle.
 - Every sub-question promptBundle must be specific to that exact sub-question.
+- Each subQuestion.promptBundle is the only business analysis instruction for that sub-question.
+- The runtime will not write a replacement prompt later.
 - Do not use a generic universal N-stage promptBundle.
 - Each sub-question promptBundle.taskInstruction must be different from the other sub-question taskInstruction values.
 - The finalAdjudicationPromptBundle must instruct the later AI how to adjudicate the full case file for this user question.
 - The htmlReportPromptBundle must instruct the later AI how to publish the final report for this user question.
+- The finalAdjudicationPromptBundle must be tailored to this user question and must not be a generic universal bundle.
+- The htmlReportPromptBundle must be tailored to this user question and must not be a generic universal bundle.
 - The promptBundle may ask for output structures suitable for the question, but the runtime will not add business fields later.
 - Do not include system operation commands in any promptBundle.
 
@@ -157,9 +161,9 @@ Output JSON shape:
     "everySubQuestionHasPromptBundle": true,
     "promptBundlesAreQuestionSpecific": true,
     "noGenericUniversalPromptBundle": true,
-    "readyForIndependentAnalysis": true,
-    "readyForFullCaseAdjudication": true,
-    "readyForHtmlReportPublishing": true
+    "finalPromptBundleIsQuestionSpecific": true,
+    "htmlPromptBundleIsQuestionSpecific": true,
+    "runtimeWillOnlyAddShellConstraints": true
   }
 }`,
 } as const;
