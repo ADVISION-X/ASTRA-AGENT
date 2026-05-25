@@ -119,5 +119,5 @@ export const renderDeepResearchFullCaseFileMarkdown = (
     : "_No sub-question analysis records were persisted._",
   buildFailedInteractionSection(input),
   "## Structured Final Package",
-  jsonBlock(input.structuredFinalPackage),
+  jsonBlock(input.structuredIndex),
 ].join("\n\n");

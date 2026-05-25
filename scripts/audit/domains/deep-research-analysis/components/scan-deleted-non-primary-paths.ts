@@ -33,7 +33,7 @@ export const inspectDeletedNonPrimaryPaths = (input: {
     );
     if (found.length === 0) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/delete-retired-path",
+      checkId: "deep-research/delete-non-primary-path",
       lawId: input.lawId,
       filePath: repoPath,
       message: "Forbidden Deep Research historical path markers remain in active runtime source.",

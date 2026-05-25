@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -26,7 +26,7 @@ export const inspectSingleChainSovereignty = (input: {
     sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).forEach((identifier) => {
       if (!forbiddenIdentifiers.has(identifier.getText())) return;
       input.findings.push(createFinding({
-        checkId: "deep-research/single-flow-forbidden-identifier",
+        checkId: "deep-research/single-chain-forbidden-identifier",
         lawId: input.lawId,
         filePath: repoPath,
         message: `Forbidden Deep Research phase identifier remains: ${identifier.getText()}.`,

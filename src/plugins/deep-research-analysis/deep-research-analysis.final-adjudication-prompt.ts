@@ -1,5 +1,5 @@
 import type {
-  DeepResearchFinalPackage,
+  DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 import type {
   DeepResearchFullCaseFile,
@@ -185,7 +185,7 @@ export const renderDeepResearchFinalAdjudicationPrompt = (input: {
   userQuestion: string;
   analysisGoal: string | null;
   language: DeepResearchInput["language"];
-  finalPackage: DeepResearchFinalPackage;
+  structuredIndex: DeepResearchStructuredIndex;
   fullCaseFile?: DeepResearchFullCaseFile;
   fullCaseFileMarkdown?: string | null;
 }): string => buildPromptDocument([
@@ -193,7 +193,7 @@ export const renderDeepResearchFinalAdjudicationPrompt = (input: {
   `User question:\n${input.userQuestion}`,
   buildUnavailableAnalysisGoalSection(input.analysisGoal),
   `Response language:\n${input.language}`,
-  `Decision package JSON:\n${JSON.stringify(input.finalPackage, null, 2)}`,
+  `Decision package JSON:\n${JSON.stringify(input.structuredIndex, null, 2)}`,
   input.fullCaseFile
     ? `Full case file metadata JSON:\n${JSON.stringify({
       caseFileVersion: input.fullCaseFile.caseFileVersion,

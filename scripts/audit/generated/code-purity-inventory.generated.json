@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-05-25T14:22:39.912Z",
-  "itemCount": 3,
+  "generatedAt": "2026-05-25T14:44:45.335Z",
+  "itemCount": 10,
   "items": [
     {
       "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/deep-research-no-dead-code-adjudication.acceptance.ts",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-full-input.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "acceptance",
+      "owner": "audit:deep-research-analysis",
       "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
       "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "acceptance-smoke",
+      "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -23,15 +23,103 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-top-level-declaration",
+      "checkId": "code-purity/zombie-file",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/barrel-reexport-laundering",
+      "declarationKind": "re-export",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Barrel re-export runDeepResearchDecompositionPhase forwards src/plugins/deep-research-analysis/deep-research-analysis.flow.ts without any final reachable consumer.",
+      "remediation": "Delete the unused re-export or reconnect a real final consumer for the symbol.",
+      "role": "job-step",
+      "symbolName": "runDeepResearchDecompositionPhase",
+      "usageKind": "re-export",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/barrel-reexport-laundering",
+      "declarationKind": "re-export",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Barrel re-export DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES forwards src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts without any final reachable consumer.",
+      "remediation": "Delete the unused re-export or reconnect a real final consumer for the symbol.",
+      "role": "job-step",
+      "symbolName": "DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES",
+      "usageKind": "re-export",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
       "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Top-level variable rawTextPreservationMarker has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "reason": "Export runDeepResearchDecompositionPhase only survives through a re-export chain and has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
-      "symbolName": "rawTextPreservationMarker",
+      "symbolName": "runDeepResearchDecompositionPhase",
+      "usageKind": "re-export",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/acceptance-surface.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES only survives through a re-export chain and has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "symbolName": "DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES",
+      "usageKind": "re-export",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level variable captureLawfulDecompositionEvidence is only reachable from a dead exported subgraph and has no live runtime root.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-flow",
+      "symbolName": "captureLawfulDecompositionEvidence",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export runDeepResearchDecompositionPhase only survives through a re-export chain and has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-flow",
+      "symbolName": "runDeepResearchDecompositionPhase",
+      "usageKind": "re-export",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES only survives through a re-export chain and has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "symbolName": "DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES",
+      "usageKind": "re-export",
       "verificationCommand": "npm run ci:full"
     }
   ]

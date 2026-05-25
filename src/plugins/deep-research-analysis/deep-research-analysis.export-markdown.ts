@@ -1,4 +1,4 @@
-import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
 import {
   type ResearchAnswer,
   type ResearchFinalReportRecord,
@@ -107,7 +107,7 @@ const buildDefaultSubQuestionSection = (input: {
 ].join("\n");
 
 const buildReportMetadataLines = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   persisted: DeepResearchPersistedExportState;
   finalReport: DeepResearchFinalReport | null;
 }): string[] => [
@@ -123,7 +123,7 @@ const buildReportMetadataLines = (input: {
 ];
 
 const buildDecisionSummarySection = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport | null;
 }): string => {
   if (!input.finalReport) {
@@ -169,7 +169,7 @@ const buildDecisionSummarySection = (input: {
   ].join("\n");
 };
 
-const buildCoverageSection = (finalPackage: DeepResearchFinalPackage): string => [
+const buildCoverageSection = (finalPackage: DeepResearchStructuredIndex): string => [
   "## Analysis Coverage",
   "",
   `Total Sub-Questions: ${String(finalPackage.analysisCoverage.totalSubQuestionCount)}`,
@@ -237,7 +237,7 @@ type DeepResearchMarkdownContext = {
 };
 
 const buildMarkdownContext = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport | null;
   persisted: DeepResearchPersistedExportState;
   stageRows: ReturnType<typeof buildStageOverviewRows>;
@@ -256,7 +256,7 @@ const buildMarkdownContext = (input: {
 };
 
 const buildSubQuestionSections = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   persisted: DeepResearchPersistedExportState;
   answerMaps: PersistedAnswerMaps;
 }): string[] =>
@@ -268,7 +268,7 @@ const buildSubQuestionSections = (input: {
     }));
 
 const buildFullFlowReportSections = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   persisted: DeepResearchPersistedExportState;
   context: DeepResearchMarkdownContext;
   stageRows: ReturnType<typeof buildStageOverviewRows>;
@@ -320,7 +320,7 @@ const buildFullFlowReportSections = (input: {
 };
 
 export const buildDeepResearchFullFlowReportMarkdown = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport | null;
   persisted: DeepResearchPersistedExportState;
 }): string => {

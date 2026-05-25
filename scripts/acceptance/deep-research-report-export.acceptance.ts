@@ -418,7 +418,7 @@ async function main(): Promise<void> {
 
     assert(finalPackage.analysisRecords.length === 3, "Report-export fixture must persist three analysis records.");
 
-    const decisionPackage = JSON.parse(readFileSync(artifacts.decisionPackage.filePath, "utf8")) as {
+    const structuredFinalPackage = JSON.parse(readFileSync(artifacts.decisionPackage.filePath, "utf8")) as {
       analysisAnswers: unknown[];
     };
     const fullCaseFile = JSON.parse(readFileSync(artifacts.fullCaseFileJson.filePath, "utf8")) as {
@@ -426,7 +426,7 @@ async function main(): Promise<void> {
       subQuestionAnalyses: unknown[];
     };
     const fullCaseFileMarkdown = readFileSync(artifacts.fullCaseFileMarkdown.filePath, "utf8");
-    assert(decisionPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
+    assert(structuredFinalPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
     assert(fullCaseFile.caseFileVersion === "v1", "Full case file export must expose the case file version.");
     assert(fullCaseFile.subQuestionAnalyses.length === 3, "Full case file export must expose all sub-question analyses.");
     assert(fullCaseFileMarkdown.includes("# Deep Research Full Case File"), "Full case file markdown export must be written.");

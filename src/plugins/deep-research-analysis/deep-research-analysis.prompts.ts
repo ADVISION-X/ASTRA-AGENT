@@ -8,7 +8,7 @@ import type {
   DeepResearchInput,
 } from "./deep-research-analysis.schema.js";
 import type {
-  DeepResearchFinalPackage,
+  DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 import {
   DEEP_RESEARCH_DECOMPOSITION_PROMPT,

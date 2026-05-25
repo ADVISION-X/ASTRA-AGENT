@@ -9,7 +9,7 @@ const {
   setResearchHtml,
 } = deepResearchClientSharedRuntime;
 
-const decisionPackageReaderLabel = "Open structured final package";
+const decisionPackageReaderLabel = "Open decision package";
 
 const findExport = (report: DeepResearchReport, kind: string) =>
   report.exports.find((record) => record.exportKind === kind) ?? null;

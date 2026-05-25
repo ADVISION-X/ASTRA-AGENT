@@ -65,7 +65,7 @@ type DeepResearchFinalPackageBase = {
   outputContract: DeepResearchPromptOutputContract;
 };
 
-export type DeepResearchFinalPackage = DeepResearchFinalPackageBase;
+export type DeepResearchStructuredIndex = DeepResearchFinalPackageBase;
 
 const buildPromptVersionMap = (interactions: readonly ResearchInteraction[]): Record<string, string> =>
   interactions.reduce<Record<string, string>>((accumulator, interaction) => {
@@ -186,7 +186,7 @@ const buildDeepResearchFinalPackageBase = (
 const buildSingleFlowFinalPackage = (
   baseFinalPackage: DeepResearchFinalPackageBase,
   state: DeepResearchFinalPackageState,
-): DeepResearchFinalPackage => ({
+): DeepResearchStructuredIndex => ({
   ...baseFinalPackage,
   recordHashes: buildRecordHashes({
     job: state.job,
@@ -197,13 +197,13 @@ const buildSingleFlowFinalPackage = (
   }),
 });
 
-export const buildDeepResearchFinalPackage = (input: {
+export const buildDeepResearchStructuredIndex = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
-}): DeepResearchFinalPackage => {
+}): DeepResearchStructuredIndex => {
   const state = loadDeepResearchFinalPackageState(input.store, input.jobId);
   validateDeepResearchFinalPackageState(input.jobId, state);
   const baseFinalPackage = buildDeepResearchFinalPackageBase(state);
   const finalPackage = buildSingleFlowFinalPackage(baseFinalPackage, state);
-  return DeepResearchFinalPackageSchema.parse(finalPackage) as DeepResearchFinalPackage;
+  return DeepResearchFinalPackageSchema.parse(finalPackage) as DeepResearchStructuredIndex;
 };

@@ -15,7 +15,7 @@ try {
     userQuestion: fixture.job.userQuestion,
     analysisGoal: fixture.job.analysisGoal,
     language: fixture.job.language,
-    finalPackage: fixture.finalPackage,
+    structuredIndex: fixture.finalPackage,
     fullCaseFile: fixture.fullCaseFile,
     fullCaseFileMarkdown: fixture.fullCaseFileMarkdown,
   });

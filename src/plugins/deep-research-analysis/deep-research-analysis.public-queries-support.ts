@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 
 import {
-  buildDeepResearchFinalPackage,
-  type DeepResearchFinalPackage,
+  buildDeepResearchStructuredIndex,
+  type DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 import {
   createDeepResearchRecordStore,
@@ -117,7 +117,7 @@ const buildTimelineEntries = (input: {
   job: ResearchJob;
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalPackage: DeepResearchFinalPackage | null;
+  finalPackage: DeepResearchStructuredIndex | null;
   finalReportRecord: { id: string; report: DeepResearchFinalReport } | null;
 }): DeepResearchTimelineEntry[] => {
   const subQuestionById = new Map(input.subQuestions.map((record) => [record.id, record]));
@@ -171,7 +171,7 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
     const finalReportRecord = store.getLatestFinalReport(jobId);
     const exports = store.listExports(jobId);
     const finalPackage = interactions.some((record) => record.phase === "final_adjudication")
-      ? buildDeepResearchFinalPackage({ store, jobId })
+      ? buildDeepResearchStructuredIndex({ store, jobId })
       : null;
     const timeline = buildTimelineEntries({
       interactions,

@@ -9,8 +9,8 @@ import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
 import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
 import { inspectHtmlReportOnlyArtifact } from "./components/scan-html-report-only-artifact.js";
-import { inspectNoCompatibilityVocabulary } from "./components/scan-no-presentation-artifacts.js";
 import { inspectNoDeadCodeAdjudication } from "./components/scan-no-dead-code-adjudication.js";
+import { inspectNoPresentationArtifacts } from "./components/scan-no-presentation-artifacts.js";
 import { inspectSingleChainSovereignty } from "./components/scan-single-chain-sovereignty.js";
 
 const requiredFiles = [
@@ -50,7 +50,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
   const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
   sourceFiles.forEach((sourceFile) => inspectedFiles.add(getRepoSourcePath(sourceFile)));
-
   inspectRequiredFiles(findings, inspectedFiles, lawId);
   inspectSingleChainSovereignty({
     analysisRunnerFile: getSourceFile(context, requiredFiles[0]),
@@ -80,7 +79,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
   });
-  inspectNoCompatibilityVocabulary({
+  inspectNoPresentationArtifacts({
     sourceFiles,
     findings,
     inspectedFiles,
@@ -95,7 +94,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
   });
-
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

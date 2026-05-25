@@ -4,7 +4,7 @@ import {
   type DeepResearchFullCaseFile,
 } from "./deep-research-analysis.full-case-file-schema.js";
 import type {
-  DeepResearchFinalPackage,
+  DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 import type {
   DeepResearchRecordStore,
@@ -114,7 +114,7 @@ const buildCoverage = (input: {
 
 const buildDecompositionCase = (input: {
   interactions: readonly ResearchInteraction[];
-  structuredFinalPackage: DeepResearchFinalPackage;
+  structuredFinalPackage: DeepResearchStructuredIndex;
 }) => {
   const interaction = input.interactions.find((entry) => entry.phase === "decomposition") ?? null;
   if (!interaction) {
@@ -199,7 +199,7 @@ const loadFullCaseFileState = (store: DeepResearchRecordStore, jobId: string): {
 export const buildDeepResearchFullCaseFile = (input: {
   store: DeepResearchRecordStore;
   jobId: string;
-  structuredFinalPackage: DeepResearchFinalPackage;
+  structuredFinalPackage: DeepResearchStructuredIndex;
 }): DeepResearchFullCaseFile => {
   const state = loadFullCaseFileState(input.store, input.jobId);
   const fullCaseFile: DeepResearchFullCaseFile = {
@@ -221,7 +221,7 @@ export const buildDeepResearchFullCaseFile = (input: {
       answers: state.answers,
     }),
     failedButRawAvailableInteractions: buildFailedButRawAvailableInteractions(state.interactions),
-    structuredFinalPackage: input.structuredFinalPackage,
+    structuredIndex: input.structuredFinalPackage,
     sourceNotes: input.structuredFinalPackage.sourceNotes,
     recordHashes: input.structuredFinalPackage.recordHashes,
     coverage: buildCoverage({

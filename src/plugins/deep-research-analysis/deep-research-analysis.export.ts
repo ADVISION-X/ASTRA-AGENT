@@ -11,7 +11,7 @@ import type {
   DeepResearchFinalReport,
 } from "./deep-research-analysis.result.js";
 import type {
-  DeepResearchFinalPackage,
+  DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 import type {
   DeepResearchRecordStore,
@@ -57,6 +57,8 @@ const buildTextHash = (value: string): string =>
 
 const buildExportDir = (dataDir: string, jobId: string): string =>
   path.join(dataDir, "deep-research-analysis", "exports", jobId);
+
+const DECISION_PACKAGE_EXPORT_KIND = "decision-package.json";
 
 const buildEvidenceIndexEntries = (input: {
   interactions: readonly ResearchInteraction[];
@@ -133,7 +135,7 @@ const writeJsonArtifact = <TPayload>(filePath: string, payload: TPayload): { fil
 };
 
 const buildDecisionPackage = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport;
 }) => ({
   jobId: input.finalPackage.jobId,
@@ -161,7 +163,7 @@ type DeepResearchPreparedExportArtifacts = {
 
 const prepareExportArtifacts = (input: {
   persisted: DeepResearchPersistedExportState;
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport;
   exportDir: string;
   finalReportMarkdownText: string;
@@ -172,7 +174,10 @@ const prepareExportArtifacts = (input: {
     finalPackage: input.finalPackage,
     finalReport: persistedFinalReport,
   });
-  const decisionPackageArtifact = writeJsonArtifact(path.join(input.exportDir, "decision-package.json"), decisionPackage);
+  const decisionPackageArtifact = writeJsonArtifact(
+    path.join(input.exportDir, DECISION_PACKAGE_EXPORT_KIND),
+    decisionPackage,
+  );
   const businessHtmlExport = input.persisted.exports.find((record) => record.exportKind === "business-report.html") ?? null;
   const evidenceIndex = buildEvidenceIndexEntries({
     interactions: input.persisted.interactions,
@@ -213,7 +218,7 @@ const savePreparedExportRecords = (input: {
   }),
   decisionPackage: input.store.saveExport({
     jobId: input.jobId,
-    exportKind: "decision-package.json",
+    exportKind: DECISION_PACKAGE_EXPORT_KIND,
     filePath: input.prepared.decisionPackageArtifact.filePath,
     fileHash: input.prepared.decisionPackageArtifact.fileHash,
     payload: input.prepared.decisionPackage,
@@ -232,7 +237,7 @@ export const exportDeepResearchArtifacts = async (input: {
   dataDir: string;
   store: DeepResearchRecordStore;
   jobId: string;
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   fullCaseFile?: DeepResearchFullCaseFile;
   finalReport: DeepResearchFinalReport;
 }): Promise<DeepResearchExportArtifacts> => {

@@ -275,7 +275,7 @@ const inspectLayoutQualityBoundaries = (findings: InspectorFinding[], lawId: str
   }
   for (const marker of [
     "data-deep-research-reader-primary",
-    "data-deep-research-side-compact",
+    "data-deep-research-side-panel",
     "research-reading-rhythm",
   ]) {
     requireText(findings, lawId, reportViewPath, marker);

@@ -3,10 +3,10 @@ import { stableJsonHash } from "../../lib/storage/hash.js";
 import { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
 import { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 import { renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file-render.js";
-import { buildDeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+import { buildDeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
 import {
   logDeepResearchExportCompleted,
-  logDeepResearchFinalPackageBuilt,
+  logDeepResearchStructuredIndexBuilt,
   logDeepResearchJobCompleted,
 } from "./deep-research-analysis.logging.js";
 import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-analysis.parser.js";
@@ -30,7 +30,7 @@ import {
 
 type FinalPackageSuccess = {
   ok: true;
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
   fullCaseFileMarkdown: string;
 };
@@ -66,7 +66,7 @@ const uniqueStrings = (values: readonly string[]): string[] =>
   [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 
 const buildFinalAdjudicationRawIndex = (
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>,
 ) => {
   const rawIndex = {
     decisiveReasons: uniqueStrings(
@@ -136,12 +136,12 @@ const failFinalPackageStage = (
 const completeFinalPackageStage = (input: {
   context: AnalysisExecutionContext;
   finalPackageStage: FlowStageHandle;
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
 }) => {
   const { finalPackageStage } = input;
   const finalPackageHash = stableJsonHash(input.finalPackage);
-  logDeepResearchFinalPackageBuilt({
+  logDeepResearchStructuredIndexBuilt({
     logger: input.context.runtimeLogger,
     traceContext: input.context.traceContext,
     phase: "FINAL_PACKAGE_BUILD",
@@ -163,7 +163,7 @@ const completeFinalPackageStage = (input: {
 
 const runExportStage = async (
   context: AnalysisExecutionContext,
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>,
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   finalReport: DeepResearchFinalReport,
 ) => {
@@ -214,7 +214,7 @@ const runExportStage = async (
 
 const buildMergedRecordHashes = (input: {
   context: AnalysisExecutionContext;
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   exportArtifacts: Awaited<ReturnType<typeof exportDeepResearchArtifacts>>;
   finalReportRecord: ReturnType<AnalysisExecutionContext["store"]["getLatestFinalReport"]>;
 }) => ({
@@ -268,7 +268,7 @@ const markJobCompleted = (input: {
   };
 };
 
-export const buildFinalPackageStage = (
+export const buildFullCaseFileStage = (
   context: AnalysisExecutionContext,
 ): FinalPackageSuccess | AnalysisFailure => {
   context.store.updateJobState({
@@ -283,10 +283,10 @@ export const buildFinalPackageStage = (
     }),
     stageName: "FINAL_PACKAGE_BUILD",
   });
-  let finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  let finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   let fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
   try {
-    finalPackage = buildDeepResearchFinalPackage({
+    finalPackage = buildDeepResearchStructuredIndex({
       store: context.store,
       jobId: context.jobId,
     });
@@ -318,7 +318,7 @@ export const buildFinalPackageStage = (
 
 export const runFinalReportPhase = async (
   context: AnalysisExecutionContext,
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>,
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   fullCaseFileMarkdown: string,
 ): Promise<FinalReportSuccess | AnalysisFailure> => {
@@ -337,7 +337,7 @@ export const runFinalReportPhase = async (
       userQuestion: context.input.userQuestion,
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
-      finalPackage,
+      structuredIndex: finalPackage,
       fullCaseFile,
       fullCaseFileMarkdown,
     }),
@@ -387,7 +387,7 @@ export const runFinalReportPhase = async (
 
 export const completeSuccessfulRun = async (
   context: AnalysisExecutionContext,
-  finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>,
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   finalReport: DeepResearchFinalReport,
 ): Promise<DeepResearchResult> => {

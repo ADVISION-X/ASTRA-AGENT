@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-
 import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -24,7 +23,7 @@ export const inspectHtmlReportOnlyArtifact = (input: {
       || identifiers.some((value) => value === decode("YnVzaW5lc3NEZWNr") || value === decode("cHB0eEV4cG9ydA=="));
     if (!hasForbiddenArtifact) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/html-only-final-artifact",
+      checkId: "deep-research/html-report-only-artifact",
       lawId: input.lawId,
       filePath: repoPath,
       message: "Deep Research final artifact surface must only expose business-report.html.",
@@ -41,11 +40,9 @@ export const inspectHtmlReportOnlyArtifact = (input: {
   ];
   for (const check of repoChecks) {
     input.inspectedFiles.add(check.filePath);
-    if (check.ok) {
-      continue;
-    }
+    if (check.ok) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/html-only-final-artifact-required-surface",
+      checkId: "deep-research/html-report-only-artifact-required-surface",
       lawId: input.lawId,
       filePath: check.filePath,
       message: check.message,

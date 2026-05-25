@@ -1,4 +1,4 @@
-import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import type {
   DeepResearchPrompt,
@@ -95,7 +95,7 @@ const businessHtmlReportPublisherPromptValue: DeepResearchPrompt = {
     "- Make the first screen useful within 10 seconds.",
     "",
     "Content boundary:",
-    "- Preserve the final decision package faithfully.",
+    "- Preserve the decision package faithfully.",
     "- You may reorganize and shorten wording for report clarity.",
     "- You may improve layout and section flow.",
     "- You may choose professional section titles.",
@@ -118,7 +118,7 @@ export const businessHtmlReportPublisherPrompt =
   businessHtmlReportPublisherPromptValue;
 
 export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  structuredIndex: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
@@ -129,7 +129,7 @@ export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
   "",
   "Deep Research final decision materials:",
   JSON.stringify({
-    finalPackage: input.finalPackage,
+    finalPackage: input.structuredIndex,
     finalReport: input.finalReport,
     fullCaseFile: {
       caseFileVersion: input.fullCaseFile.caseFileVersion,

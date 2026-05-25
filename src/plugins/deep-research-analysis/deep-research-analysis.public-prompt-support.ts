@@ -1,5 +1,5 @@
 import {
-  type DeepResearchFinalPackage,
+  type DeepResearchStructuredIndex,
 } from "./deep-research-analysis.final-package.js";
 import {
   buildRenderedDeepResearchPromptHash,
@@ -77,7 +77,7 @@ const renderAnalysisVerifiedPrompt = (input: {
 };
 
 const renderFinalAdjudicationVerifiedPrompt = (input: {
-  finalPackage: DeepResearchFinalPackage | null;
+  finalPackage: DeepResearchStructuredIndex | null;
   interaction: ResearchInteraction;
   job: ResearchJob;
 }): VerifiedPrompt | null => input.interaction.phase === "final_adjudication" && input.finalPackage
@@ -87,7 +87,7 @@ const renderFinalAdjudicationVerifiedPrompt = (input: {
       userQuestion: input.job.userQuestion,
       analysisGoal: input.job.analysisGoal,
       language: input.job.language,
-      finalPackage: input.finalPackage,
+      structuredIndex: input.finalPackage,
     }),
   }
   : null;
@@ -96,7 +96,7 @@ const renderVerifiedPrompt = (input: {
   interaction: ResearchInteraction;
   job: ResearchJob;
   subQuestionById: Map<string, ResearchSubQuestion>;
-  finalPackage: DeepResearchFinalPackage | null;
+  finalPackage: DeepResearchStructuredIndex | null;
 }): VerifiedPrompt | null => {
   switch (input.interaction.phase) {
     case "decomposition":
@@ -114,7 +114,7 @@ export const buildPromptText = (input: {
   interaction: ResearchInteraction;
   job: ResearchJob;
   subQuestionById: Map<string, ResearchSubQuestion>;
-  finalPackage: DeepResearchFinalPackage | null;
+  finalPackage: DeepResearchStructuredIndex | null;
 }): {
   promptText: string | null;
   promptReconstructionStatus: PromptReconstructionStatus;

@@ -73,7 +73,7 @@ export const DeepResearchFullCaseFileSchema = z.object({
   decomposition: DeepResearchCaseDecompositionSchema.nullable(),
   subQuestionAnalyses: z.array(DeepResearchFullCaseFileSubQuestionAnalysisSchema),
   failedButRawAvailableInteractions: z.array(DeepResearchFailedRawInteractionSchema),
-  structuredFinalPackage: z.unknown(),
+  structuredIndex: z.unknown(),
   sourceNotes: z.array(z.unknown()),
   recordHashes: z.record(z.string(), z.string()),
   coverage: DeepResearchFullCaseFileCoverageSchema,

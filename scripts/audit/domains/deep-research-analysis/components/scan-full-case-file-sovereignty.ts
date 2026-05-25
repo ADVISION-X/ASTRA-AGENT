@@ -1,8 +1,8 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
 import { existsSync, readFileSync } from "node:fs";
-import { resolveFromRepo } from "../../../shared/paths.js";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const fileExists = (repoPath: string): boolean => existsSync(resolveFromRepo(repoPath));
@@ -40,7 +40,7 @@ export const inspectFullCaseFileSovereignty = (input: {
   ];
   for (const check of checks) {
     if (check.ok) continue;
-    input.findings.push(createFinding({ checkId: "deep-research/full-case-file-required", lawId: input.lawId, filePath: check.filePath, message: check.message }));
+    input.findings.push(createFinding({ checkId: "deep-research/full-case-file-sovereignty", lawId: input.lawId, filePath: check.filePath, message: check.message }));
   }
 
   const repoChecks = [
@@ -52,11 +52,9 @@ export const inspectFullCaseFileSovereignty = (input: {
   ];
   for (const check of repoChecks) {
     input.inspectedFiles.add(check.filePath);
-    if (check.ok) {
-      continue;
-    }
+    if (check.ok) continue;
     input.findings.push(createFinding({
-      checkId: "deep-research/full-case-file-required-repo-surface",
+      checkId: "deep-research/full-case-file-sovereignty-surface",
       lawId: input.lawId,
       filePath: check.filePath,
       message: check.message,

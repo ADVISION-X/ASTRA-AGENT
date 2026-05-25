@@ -23,7 +23,7 @@ import {
 import { type AnalysisExecutionContext } from "./deep-research-analysis.analysis-support.js";
 import {
   completeSuccessfulRun,
-  buildFinalPackageStage,
+  buildFullCaseFileStage,
   runFinalReportPhase,
 } from "./deep-research-analysis.analysis-finalization.js";
 import { runBusinessHtmlReportPhase } from "./deep-research-analysis.html-report-stage.js";
@@ -69,7 +69,7 @@ const runAnalysisPhases = async (
   if (!subQuestionOutcome.ok) {
     return subQuestionOutcome.result;
   }
-  const finalPackageStage = buildFinalPackageStage(executionContext);
+  const finalPackageStage = buildFullCaseFileStage(executionContext);
   if (!finalPackageStage.ok) {
     return finalPackageStage.result;
   }

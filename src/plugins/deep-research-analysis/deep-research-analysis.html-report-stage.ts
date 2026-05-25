@@ -1,5 +1,5 @@
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
-import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.final-package.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import {
   businessHtmlReportPublisherPrompt,
@@ -21,7 +21,7 @@ import {
 } from "./deep-research-analysis.analysis-support.js";
 
 const buildHtmlSourceNotes = (input: {
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport;
 }): unknown[] => {
   if (input.finalReport.sourceNotes.length > 0) {
@@ -47,12 +47,12 @@ type HtmlReportSuccess = {
 
 const buildBusinessHtmlPromptText = (input: {
   context: AnalysisExecutionContext;
-  finalPackage: DeepResearchFinalPackage;
+  finalPackage: DeepResearchStructuredIndex;
   finalReport: DeepResearchFinalReport;
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
 }): string => renderDeepResearchBusinessHtmlReportPrompt({
-  finalPackage: input.finalPackage,
+  structuredIndex: input.finalPackage,
   finalReport: input.finalReport,
   fullCaseFile: input.fullCaseFile,
   fullCaseFileMarkdown: input.fullCaseFileMarkdown,
@@ -101,7 +101,7 @@ const persistBusinessHtmlReport = (input: {
 
 export const runBusinessHtmlReportPhase = async (
   context: AnalysisExecutionContext,
-  finalPackage: DeepResearchFinalPackage,
+  finalPackage: DeepResearchStructuredIndex,
   finalReport: DeepResearchFinalReport,
   fullCaseFile: DeepResearchFullCaseFile,
   fullCaseFileMarkdown: string,

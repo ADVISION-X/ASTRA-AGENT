@@ -229,7 +229,7 @@ export const logDeepResearchRecordPersisted = (input: {
   });
 };
 
-export const logDeepResearchFinalPackageBuilt = (input: {
+export const logDeepResearchStructuredIndexBuilt = (input: {
   logger: RuntimeLogger;
   traceContext: RuntimeTraceContext;
   phase: DeepResearchPhase;

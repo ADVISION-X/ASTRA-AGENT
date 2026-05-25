@@ -113,7 +113,7 @@ const verifyPersistedFinalPackage = (input: {
     userQuestion: input.job?.userQuestion ?? "",
     analysisGoal: input.job?.analysisGoal ?? null,
     language: input.job?.language ?? "zh-CN",
-    finalPackage,
+    structuredIndex: finalPackage,
     fullCaseFile,
     fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
   });
@@ -129,7 +129,9 @@ const verifyPersistedExports = (
   const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
   const fullCaseMarkdownExport = exports.find((record) => record.exportKind === "full-case-file.md");
   const fullCaseJsonExport = exports.find((record) => record.exportKind === "full-case-file.json");
-  const decisionPackageExport = exports.find((record) => record.exportKind === "decision-package.json");
+  const decisionPackageExport = exports.find((record) =>
+    record.exportKind === "decision-package.json"
+  );
   const businessHtmlExport = exports.find((record) => record.exportKind === "business-report.html");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
   if (!finalReportExport) throw new Error("Missing final-report.md export record.");
