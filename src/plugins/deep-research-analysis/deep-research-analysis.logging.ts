@@ -258,6 +258,8 @@ export const logDeepResearchExportCompleted = (input: {
   phase: DeepResearchPhase;
   exportDir: string;
   finalReportHash: string;
+  fullCaseFileJsonHash?: string;
+  fullCaseFileMarkdownHash?: string;
   decisionPackageHash: string;
   evidenceIndexHash: string;
 }): void => {
@@ -271,6 +273,8 @@ export const logDeepResearchExportCompleted = (input: {
     refs: { exportDir: input.exportDir },
     hashes: {
       finalReportHash: input.finalReportHash,
+      ...(input.fullCaseFileJsonHash ? { fullCaseFileJsonHash: input.fullCaseFileJsonHash } : {}),
+      ...(input.fullCaseFileMarkdownHash ? { fullCaseFileMarkdownHash: input.fullCaseFileMarkdownHash } : {}),
       decisionPackageHash: input.decisionPackageHash,
       evidenceIndexHash: input.evidenceIndexHash,
     },

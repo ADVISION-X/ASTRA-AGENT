@@ -4,7 +4,7 @@ export const renderDeepResearchReportView = (): string => `
     <section class="research-empty-state" data-deep-research-empty>
       <p class="research-kicker">Report Reader</p>
       <h2>Select a report from history</h2>
-      <p class="muted">Choose a report above to open the conclusion, analysis, deck, and evidence trace.</p>
+      <p class="muted">Choose a report above to open the conclusion, analysis, and evidence trace.</p>
     </section>
     <article class="research-report hidden research-reading-rhythm" data-deep-research-report>
       <header class="research-report-header" data-deep-research-report-header></header>
@@ -13,8 +13,8 @@ export const renderDeepResearchReportView = (): string => `
       <section class="research-section" id="decomposition" data-deep-research-decomposition></section>
       <section class="research-section" data-deep-research-subquestions></section>
       <section class="research-section" id="final-adjudication" data-deep-research-final-adjudication></section>
+      <section class="research-section" id="full-case-file" data-deep-research-full-case-file></section>
       <section class="research-section" id="business-report" data-deep-research-primary-business-report></section>
-      <section class="research-section" id="presentation-deck" data-deep-research-business-deck></section>
       <section class="research-section" id="evidence" data-deep-research-evidence></section>
     </article>
   </main>

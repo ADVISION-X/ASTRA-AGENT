@@ -4,15 +4,9 @@ import {
 import {
   buildRenderedDeepResearchPromptHash,
   decompositionPrompt,
-  falsificationPrompt,
   finalAdjudicationPrompt,
-  finalSynthesisPrompt,
-  positiveAnalysisPrompt,
   renderDeepResearchDecompositionPrompt,
-  renderDeepResearchFalsificationPrompt,
   renderDeepResearchFinalAdjudicationPrompt,
-  renderDeepResearchFinalSynthesisPrompt,
-  renderDeepResearchPositivePrompt,
   renderDeepResearchSubQuestionAnalysisPrompt,
   subQuestionAnalysisPrompt,
 } from "./deep-research-analysis.prompts.js";
@@ -40,10 +34,7 @@ type VerifiedPrompt = {
   prompt:
     | typeof decompositionPrompt
     | typeof subQuestionAnalysisPrompt
-    | typeof positiveAnalysisPrompt
-    | typeof falsificationPrompt
-    | typeof finalAdjudicationPrompt
-    | typeof finalSynthesisPrompt;
+    | typeof finalAdjudicationPrompt;
   promptText: string;
 };
 
@@ -83,60 +74,6 @@ const renderAnalysisVerifiedPrompt = (input: {
     : null;
 };
 
-const renderPositiveVerifiedPrompt = (input: {
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-  subQuestionById: Map<string, ResearchSubQuestion>;
-}): VerifiedPrompt | null => {
-  const subQuestion = input.interaction.subQuestionId
-    ? input.subQuestionById.get(input.interaction.subQuestionId)
-    : null;
-  return subQuestion
-    ? {
-      prompt: positiveAnalysisPrompt,
-      promptText: renderDeepResearchPositivePrompt({
-        userQuestion: input.job.userQuestion,
-        analysisGoal: input.job.analysisGoal,
-        language: input.job.language,
-        subQuestion: subQuestion.question,
-      }),
-    }
-    : null;
-};
-
-const renderFalsificationVerifiedPrompt = (input: {
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-  subQuestionById: Map<string, ResearchSubQuestion>;
-  positiveAnswerBySubQuestionId: Map<string, ResearchAnswer>;
-}): VerifiedPrompt | null => {
-  const subQuestion = input.interaction.subQuestionId
-    ? input.subQuestionById.get(input.interaction.subQuestionId)
-    : null;
-  const positiveAnswer = input.interaction.subQuestionId
-    ? input.positiveAnswerBySubQuestionId.get(input.interaction.subQuestionId)
-    : null;
-  return subQuestion && positiveAnswer
-    ? {
-      prompt: falsificationPrompt,
-      promptText: renderDeepResearchFalsificationPrompt({
-        userQuestion: input.job.userQuestion,
-        analysisGoal: input.job.analysisGoal,
-        language: input.job.language,
-        subQuestion: subQuestion.question,
-        positiveAnswer: {
-          answer: positiveAnswer.answerText,
-          keyClaims: positiveAnswer.keyPoints,
-          evidenceMentions: positiveAnswer.evidenceMentions,
-          assumptions: positiveAnswer.assumptions,
-          confidence: positiveAnswer.confidence,
-          limitations: positiveAnswer.limitations,
-        },
-      }),
-    }
-    : null;
-};
-
 const renderFinalAdjudicationVerifiedPrompt = (input: {
   finalPackage: DeepResearchFinalPackage | null;
   interaction: ResearchInteraction;
@@ -153,27 +90,10 @@ const renderFinalAdjudicationVerifiedPrompt = (input: {
   }
   : null;
 
-const renderFinalSynthesisVerifiedPrompt = (input: {
-  finalPackage: DeepResearchFinalPackage | null;
-  interaction: ResearchInteraction;
-  job: ResearchJob;
-}): VerifiedPrompt | null => input.interaction.phase === "final_synthesis" && input.finalPackage
-  ? {
-    prompt: finalSynthesisPrompt,
-    promptText: renderDeepResearchFinalSynthesisPrompt({
-      userQuestion: input.job.userQuestion,
-      analysisGoal: input.job.analysisGoal,
-      language: input.job.language,
-      finalPackage: input.finalPackage,
-    }),
-  }
-  : null;
-
 const renderVerifiedPrompt = (input: {
   interaction: ResearchInteraction;
   job: ResearchJob;
   subQuestionById: Map<string, ResearchSubQuestion>;
-  positiveAnswerBySubQuestionId: Map<string, ResearchAnswer>;
   finalPackage: DeepResearchFinalPackage | null;
 }): VerifiedPrompt | null => {
   switch (input.interaction.phase) {
@@ -181,14 +101,8 @@ const renderVerifiedPrompt = (input: {
       return renderDecompositionVerifiedPrompt(input);
     case "analysis":
       return renderAnalysisVerifiedPrompt(input);
-    case "positive":
-      return renderPositiveVerifiedPrompt(input);
-    case "falsification":
-      return renderFalsificationVerifiedPrompt(input);
     case "final_adjudication":
       return renderFinalAdjudicationVerifiedPrompt(input);
-    case "final_synthesis":
-      return renderFinalSynthesisVerifiedPrompt(input);
     default:
       return null;
   }
@@ -198,7 +112,6 @@ export const buildPromptText = (input: {
   interaction: ResearchInteraction;
   job: ResearchJob;
   subQuestionById: Map<string, ResearchSubQuestion>;
-  positiveAnswerBySubQuestionId: Map<string, ResearchAnswer>;
   finalPackage: DeepResearchFinalPackage | null;
 }): {
   promptText: string | null;
@@ -259,8 +172,6 @@ export const buildParsedEntry = (input: {
   }
   if (
     input.interaction.phase === "analysis"
-    || input.interaction.phase === "positive"
-    || input.interaction.phase === "falsification"
   ) {
     const answer = input.answersByInteractionId.get(input.interaction.id);
     if (!answer) {

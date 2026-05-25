@@ -116,17 +116,17 @@ const inspectRenderedPromptSchema = (input: {
 
   const exportKinds = getEnumValues(sourceFile, "ResearchExportKindSchema");
   const humanReadableKinds = exportKinds.filter((value) => value.endsWith(".md") || value.endsWith(".html"));
-  const requiredHumanReadableKinds = ["final-report.md", "business-report.html"] as const;
+  const requiredHumanReadableKinds = ["final-report.md", "full-case-file.md", "business-report.html"] as const;
   const hasExpectedHumanReadableKinds = requiredHumanReadableKinds.every((kind) => humanReadableKinds.includes(kind));
   if (!hasExpectedHumanReadableKinds || humanReadableKinds.length !== requiredHumanReadableKinds.length) {
     input.findings.push(createFinding({
       checkId: "deep-research/report-export-single-human-report-kind",
       lawId: input.lawId,
       filePath: recordContractsPath,
-      message: "ResearchExportKindSchema must expose exactly two human-readable report kinds: final-report.md and business-report.html.",
+      message: "ResearchExportKindSchema must expose exactly three human-readable report kinds: final-report.md, full-case-file.md, and business-report.html.",
     }));
   }
-  const requiredMachineArtifacts = ["decision-package.json", "evidence-index.json"] as const;
+  const requiredMachineArtifacts = ["structured-final-package.json", "evidence-index.json"] as const;
   const missingMachineArtifact = requiredMachineArtifacts.find((artifact) => !exportKinds.includes(artifact));
   if (missingMachineArtifact) {
     input.findings.push(createFinding({
@@ -311,7 +311,7 @@ const inspectMarkdownBuilderCalls = (input: {
     renderer?.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().getText() === callText),
   );
-  const hasSubQuestionBuilders = ["buildDefaultSubQuestionSection", "buildLegacySubQuestionSection"].every((identifier) =>
+  const hasSubQuestionBuilders = ["buildDefaultSubQuestionSection"].every((identifier) =>
     renderer?.getDescendantsOfKind(SyntaxKind.Identifier)
       .some((node) => node.getText() === identifier),
   );
@@ -321,7 +321,7 @@ const inspectMarkdownBuilderCalls = (input: {
     fullFlowSectionBuilder?.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().getText() === callText),
   );
-  const helperCoversSubQuestionBuilders = ["buildDefaultSubQuestionSection", "buildLegacySubQuestionSection"].every((identifier) =>
+  const helperCoversSubQuestionBuilders = ["buildDefaultSubQuestionSection"].every((identifier) =>
     subQuestionSectionBuilder?.getDescendantsOfKind(SyntaxKind.Identifier)
       .some((node) => node.getText() === identifier),
   );
@@ -334,7 +334,7 @@ const inspectMarkdownBuilderCalls = (input: {
       checkId: "deep-research/report-export-no-summary-only-builder",
       lawId: input.lawId,
       filePath: exportMarkdownPath,
-      message: "Full-flow report renderer must build stage overview, analysis coverage, decomposition, default and legacy sub-question stages, final adjudication, and evidence index instead of summary-only markdown.",
+      message: "Full-flow report renderer must build stage overview, analysis coverage, decomposition, default sub-question stages, final adjudication, and evidence index instead of summary-only markdown.",
     }));
   }
 };
@@ -481,7 +481,7 @@ export const inspectFullFlowReportExport = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-  deckTextCeilingLawId: string;
+  htmlReportTextCeilingLawId: string;
 }): void => {
   inspectRenderedPromptSchema(input);
   inspectRenderedPromptPersistence(input);
@@ -490,7 +490,7 @@ export const inspectFullFlowReportExport = (input: {
     htmlReportStageFile: getSourceFile(input.context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
-    lawId: input.deckTextCeilingLawId,
+    lawId: input.htmlReportTextCeilingLawId,
   });
   inspectMarkdownRenderer(input);
   inspectAcceptanceAndCi(input);

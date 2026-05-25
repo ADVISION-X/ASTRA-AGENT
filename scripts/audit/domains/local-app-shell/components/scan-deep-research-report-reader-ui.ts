@@ -179,8 +179,8 @@ const inspectDeliveryMarkers = (findings: InspectorFinding[], lawId: string): vo
   for (const marker of [
     "data-deep-research-reader-shell",
     "data-deep-research-final-card",
+    "data-deep-research-full-case-file",
     "data-deep-research-primary-business-report",
-    "data-deep-research-business-deck",
     "data-deep-research-stage-overview",
     "data-deep-research-decomposition",
     "data-deep-research-subquestions",
@@ -203,19 +203,17 @@ const inspectClientMarkers = (findings: InspectorFinding[], lawId: string): void
     "Default 1+N+1+1",
     "Independent Analysis",
     "Final Adjudication",
+    "Full Case File",
     "Primary Business Report",
+    "Open Full Case File",
+    "Download full-case-file.md",
+    "Download full-case-file.json",
+    "Open structured final package",
     "Open HTML Report",
     "Download HTML Report",
-    "Optional Presentation Deck",
-    "Open PPT",
-    "Download PPT",
-    "Open Deck Outline",
     "HTML report not generated",
-    "Presentation deck not generated",
     "AI-generated HTML decision report",
-    "PPT is optional and does not block the primary business HTML report.",
     "Generated At",
-    "Deck Warnings",
     "Evidence / Debug",
     "Show Full Prompt",
     "Show Full AI Response",
@@ -253,17 +251,17 @@ const inspectDebugBoundaries = (findings: InspectorFinding[], lawId: string): vo
   }
 };
 
-const inspectBusinessDeckDeliveryOrder = (findings: InspectorFinding[], lawId: string): void => {
+const inspectDeliveryOrder = (findings: InspectorFinding[], lawId: string): void => {
   const reportViewText = readRepoFile(reportViewPath);
   const finalCardIndex = reportViewText.indexOf("data-deep-research-final-card");
+  const fullCaseFileIndex = reportViewText.indexOf("data-deep-research-full-case-file");
   const primaryBusinessReportIndex = reportViewText.indexOf("data-deep-research-primary-business-report");
-  const businessDeckIndex = reportViewText.indexOf("data-deep-research-business-deck");
-  if (!(finalCardIndex >= 0 && primaryBusinessReportIndex > finalCardIndex && businessDeckIndex > primaryBusinessReportIndex)) {
+  if (!(finalCardIndex >= 0 && fullCaseFileIndex > finalCardIndex && primaryBusinessReportIndex > fullCaseFileIndex)) {
     pushFinding(findings, {
-      checkId: "local-app-shell/deep-research-business-deck-order",
+      checkId: "local-app-shell/deep-research-delivery-order",
       lawId,
       filePath: reportViewPath,
-      message: "Primary Business Report must stay after the Decision Card, and Optional Presentation Deck must stay after the Primary Business Report in the report view.",
+      message: "Full Case File must stay after the Decision Card, and Primary Business Report must stay after the Full Case File in the report view.",
     });
   }
 };
@@ -323,7 +321,7 @@ export const inspectDeepResearchReportReaderUi = (input: {
   inspectDeliveryMarkers(input.findings, input.deliveryLawId);
   inspectClientMarkers(input.findings, input.deliveryLawId);
   inspectDebugBoundaries(input.findings, input.deliveryLawId);
-  inspectBusinessDeckDeliveryOrder(input.findings, input.deliveryLawId);
+  inspectDeliveryOrder(input.findings, input.deliveryLawId);
   inspectLayoutQualityBoundaries(input.findings, input.deliveryLawId);
   clientRuntimePaths.forEach((repoPath) => {
     const clientSource = getSourceFile(input.context, repoPath);

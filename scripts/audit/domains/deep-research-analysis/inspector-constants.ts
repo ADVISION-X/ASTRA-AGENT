@@ -7,6 +7,11 @@ export const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-schema.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-export.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
@@ -19,7 +24,10 @@ export const requiredFiles = [
   "scripts/acceptance/deep-research-ai-html-report.acceptance.ts",
   "scripts/acceptance/deep-research-html-prompt-boundary.acceptance.ts",
   "scripts/acceptance/deep-research-html-artifact-persist.acceptance.ts",
-  "scripts/acceptance/deep-research-ppt-optional-demotion.acceptance.ts",
+  "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
+  "scripts/acceptance/deep-research-raw-response-sovereignty.acceptance.ts",
+  "scripts/acceptance/deep-research-final-adjudication-full-input.acceptance.ts",
+  "scripts/acceptance/deep-research-html-full-input.acceptance.ts",
   "scripts/acceptance/deep-research-report-export.acceptance.ts",
 ] as const;
 
@@ -37,6 +45,7 @@ export const forbiddenRuntimeFields = [
 export const promptTextAllowedFiles = new Set([
   "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
 ]);

@@ -174,7 +174,7 @@ const inspectSmokeExportAssertions = (input: {
 }): void => {
   for (const exportFile of [
     "final-report.md",
-    "decision-package.json",
+    "structured-final-package.json",
     "business-report.html",
     "evidence-index.json",
   ]) {

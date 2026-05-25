@@ -15,9 +15,6 @@ export {
 
 export {
   buildAnalysisParsedSection,
-  buildConflictMatrixTable,
   buildEvidenceIndexTable,
-  buildFalsificationParsedSection,
   buildInteractionEvidence,
-  buildPositiveParsedSection,
 } from "./deep-research-analysis.export-markdown-detail.js";

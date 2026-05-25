@@ -37,7 +37,14 @@ const ciCommands: readonly CommandSpec[] = [
   { name: "deep-research-ai-html-report", command: ["npm", "run", "acceptance:deep-research-ai-html-report"] },
   { name: "deep-research-html-prompt-boundary", command: ["npm", "run", "acceptance:deep-research-html-prompt-boundary"] },
   { name: "deep-research-html-artifact-persist", command: ["npm", "run", "acceptance:deep-research-html-artifact-persist"] },
-  { name: "deep-research-ppt-optional-demotion", command: ["npm", "run", "acceptance:deep-research-ppt-optional-demotion"] },
+  { name: "deep-research-full-case-file", command: ["npm", "run", "acceptance:deep-research-full-case-file"] },
+  { name: "deep-research-single-flow", command: ["npm", "run", "acceptance:deep-research-single-flow"] },
+  { name: "deep-research-delete-retired-paths", command: ["npm", "run", "acceptance:deep-research-delete-retired-paths"] },
+  { name: "deep-research-full-case-file-required", command: ["npm", "run", "acceptance:deep-research-full-case-file-required"] },
+  { name: "deep-research-html-only-final-artifact", command: ["npm", "run", "acceptance:deep-research-html-only-final-artifact"] },
+  { name: "deep-research-raw-response-sovereignty", command: ["npm", "run", "acceptance:deep-research-raw-response-sovereignty"] },
+  { name: "deep-research-final-adjudication-full-input", command: ["npm", "run", "acceptance:deep-research-final-adjudication-full-input"] },
+  { name: "deep-research-html-full-input", command: ["npm", "run", "acceptance:deep-research-html-full-input"] },
   { name: "deep-research-report-export", command: ["npm", "run", "acceptance:deep-research-report-export"] },
   { name: "deep-research-report-reader-ui", command: ["npm", "run", "acceptance:deep-research-report-reader-ui"] },
   { name: "deep-research-app-ui", command: ["npm", "run", "acceptance:deep-research-app-ui"] },
@@ -187,7 +194,7 @@ const main = async (): Promise<void> => {
   if (hasFailures) {
     throw new Error("ci:full failed");
   }
-  process.stdout.write("[CI-FULL] PASS — audit plan, typecheck, runtime log acceptance, Deep Research smoke, HTML report flow/prompt/persist/PPT-optional acceptance, Deep Research report export acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
+  process.stdout.write("[CI-FULL] PASS — audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-flow/delete-retired/full-case/HTML-only governance acceptance, full-case/raw/parser/final-input/HTML-input sovereignty acceptance, HTML report flow/prompt/persist acceptance, Deep Research report export acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
 };
 
 const isEntrypoint = (): boolean => {

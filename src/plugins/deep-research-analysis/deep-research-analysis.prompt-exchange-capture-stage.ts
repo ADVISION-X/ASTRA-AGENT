@@ -132,18 +132,6 @@ const handlePrimaryCaptureStages = async (
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
-    case "POSITIVE_CAPTURE": {
-      const captureStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_CAPTURE" });
-      return continueCapturePromptOutput({ ...input, captureStage });
-    }
-    case "FALSIFY_CAPTURE": {
-      const captureStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_CAPTURE" });
-      return continueCapturePromptOutput({ ...input, captureStage });
-    }
-    case "FINAL_CAPTURE": {
-      const captureStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_CAPTURE" });
-      return continueCapturePromptOutput({ ...input, captureStage });
-    }
     default:
       return null;
   }
@@ -160,14 +148,6 @@ const handleExtendedCaptureStages = async (
     }
     case "HTML_REPORT_CAPTURE": {
       const captureStage = input.stageLogger.start({ ...startFields, stageName: "HTML_REPORT_CAPTURE" });
-      return continueCapturePromptOutput({ ...input, captureStage });
-    }
-    case "DECK_CAPTURE": {
-      const captureStage = input.stageLogger.start({ ...startFields, stageName: "DECK_CAPTURE" });
-      return continueCapturePromptOutput({ ...input, captureStage });
-    }
-    case "DECK_PPT_CAPTURE": {
-      const captureStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PPT_CAPTURE" });
       return continueCapturePromptOutput({ ...input, captureStage });
     }
     default:

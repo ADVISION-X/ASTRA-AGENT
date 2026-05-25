@@ -86,21 +86,14 @@ function exportActionLabel(kind: string): string {
   if (kind === "final-report.md") {
     return "Open final report";
   }
-  if (kind === "decision-package.json") {
-    return "Open decision package";
+  if (kind === "full-case-file.md") {
+    return "Open Full Case File";
   }
-  if (kind === "research-bundle.json") {
-    return "Download research bundle";
+  if (kind === "full-case-file.json") {
+    return "Download full-case-file.json";
   }
-  if (kind === "business-deck-outline.json") {
-    return "Open Deck Outline";
-  }
-  if (
-    kind === "business-deck.pptx"
-    || kind === "business-deck.ai-pptx"
-    || kind === "business-deck.local-pptx"
-  ) {
-    return "Download PPT";
+  if (kind === "structured-final-package.json") {
+    return "Open structured final package";
   }
   return "Download evidence index";
 }
@@ -262,7 +255,6 @@ function renderAnalysisParsedResult(payload: JsonRecord, title: string): string 
         { key: "answer", title: "Answer" },
         { key: "coreFinding", title: "Core Finding" },
         { key: "impactOnFinalAdjudication", title: "Impact On Final Adjudication" },
-        { key: "falsificationSummary", title: "Falsification Summary" },
       ])}
       <div class="research-summary-grid">
         ${renderListSection("Key Claims", payload.keyClaims ?? payload.claims ?? payload.keyPoints, { emptyText: "No key claims recorded.", previewCount: 5 })}
@@ -296,7 +288,7 @@ function renderFinalParsedResult(payload: JsonRecord): string {
       ${renderStructuredField("One Sentence Decision", payload.oneSentenceDecision)}
       <div class="research-summary-grid">
         ${renderListSection("Ranked Conclusions", rankedConclusions, { emptyText: "No ranked conclusions recorded.", previewCount: 5 })}
-        ${renderListSection("Decisive Reasons", payload.decisiveReasons ?? payload.positiveReasons, { emptyText: "No decisive reasons recorded.", previewCount: 5 })}
+        ${renderListSection("Decisive Reasons", payload.decisiveReasons ?? payload.strongConclusions, { emptyText: "No decisive reasons recorded.", previewCount: 5 })}
         ${renderListSection("Weak Or Rejected Claims", payload.weakOrRejectedClaims ?? payload.strongestOpposingArguments, { emptyText: "No rejected claims recorded.", previewCount: 5 })}
         ${renderListSection("Reverse Conditions", payload.reverseConditions, { emptyText: "No reverse conditions recorded.", previewCount: 5 })}
         ${renderListSection("Evidence Gaps", payload.evidenceGaps, { emptyText: "No evidence gaps recorded.", previewCount: 5 })}
@@ -316,7 +308,7 @@ function renderStructuredParsedResult(title: string, value: unknown): string {
   if (payload.directAnswer || payload.executiveConclusion || payload.finalVerdict) {
     return renderFinalParsedResult(payload);
   }
-  if (payload.answer || payload.coreFinding || payload.falsificationSummary) {
+  if (payload.answer || payload.coreFinding || payload.impactOnFinalAdjudication) {
     return renderAnalysisParsedResult(payload, title);
   }
   return renderJsonDetails(title, value, "Show Parsed Result");
@@ -358,12 +350,8 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
   const impactOnFinalAdjudication = readPayloadString(block.parsedPayload, "impactOnFinalAdjudication");
   const failureCases = asArray(block.parsedPayload.failureCases);
   const uncertainties = asArray(block.parsedPayload.uncertainties);
-  const keyClaimTitle = block.answerKind === "falsification"
-    ? "Strongest Opposing Arguments"
-    : "Key Claims";
-  const contradictionTitle = block.answerKind === "analysis"
-    ? "Counter Conditions"
-    : "Contradiction Points";
+  const keyClaimTitle = "Key Claims";
+  const contradictionTitle = "Counter Conditions";
   return `
     <article class="research-analysis-card">
       <div class="research-analysis-head">
@@ -386,15 +374,11 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
         previewLimit: 280,
       }) : ""}
       ${renderListSection(keyClaimTitle, block.keyPoints, {
-        emptyText: block.answerKind === "falsification"
-          ? "No opposing arguments recorded."
-          : "No key claims recorded.",
+        emptyText: "No key claims recorded.",
       })}
-      ${block.answerKind !== "positive" ? renderListSection(contradictionTitle, block.contradictionPoints, {
-        emptyText: block.answerKind === "analysis"
-          ? "No counter conditions recorded."
-          : "No contradiction points recorded.",
-      }) : ""}
+      ${renderListSection(contradictionTitle, block.contradictionPoints, {
+        emptyText: "No counter conditions recorded.",
+      })}
       ${failureCases.length ? renderListSection("Failure Cases", failureCases, { emptyText: "No failure cases recorded." }) : ""}
       ${renderListSection("Evidence Mentions", block.evidenceMentions, { emptyText: "No evidence mentions recorded." })}
       ${renderListSection("Assumptions", block.assumptions, { emptyText: "No assumptions recorded." })}

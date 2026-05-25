@@ -27,7 +27,6 @@ import {
 } from "./deep-research-analysis.public-report-support.js";
 import {
   buildPrimaryBusinessReportView,
-  buildBusinessDeckView,
   buildJobSnapshotForId as buildJobSnapshotForIdSupport,
   buildReportSubQuestionState,
   buildTimelineSnapshot as buildTimelineSnapshotSupport,
@@ -39,7 +38,7 @@ export type DeepResearchExportArtifactPayload = {
   kind: ResearchExportKind;
   fileName: string;
   filePath: string;
-  contentType: "text/markdown" | "text/html" | "application/json" | "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  contentType: "text/markdown" | "text/html" | "application/json";
   fileHash: string;
   payloadHash: string;
   textContent?: string;
@@ -51,7 +50,6 @@ const JOB_STATUSES: readonly ResearchJob["status"][] = [
   "queued",
   "running",
   "completed",
-  "deck_export_partial",
   "review_required",
   "failed",
 ];
@@ -130,8 +128,6 @@ const buildJobSnapshot = (input: {
   interactionCount: input.timeline.length,
   subQuestionCount: input.subQuestions.length,
   analysisCount: input.answers.filter((record) => record.answerKind === "analysis").length,
-  positiveCount: input.answers.filter((record) => record.answerKind === "positive").length,
-  falsificationCount: input.answers.filter((record) => record.answerKind === "falsification").length,
   exportCount: input.exports.length,
 });
 
@@ -165,16 +161,15 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
     subQuestions,
     subQuestionById,
     answerByKindAndSubQuestionId,
-    conflictBySubQuestionId,
     subQuestionReports,
   } = buildReportSubQuestionState(snapshot);
   const decompositionInteraction = snapshot.timeline.find((entry) => entry.phase === "decomposition") ?? null;
   const hasPairedEvidence = subQuestions.some((subQuestion) =>
-    answerByKindAndSubQuestionId.has(subQuestion.id) || conflictBySubQuestionId.has(subQuestion.id));
+    answerByKindAndSubQuestionId.has(`analysis:${subQuestion.id}`));
   const finalInteraction = [...snapshot.timeline]
     .reverse()
     .filter((entry) => hasPairedEvidence || snapshot.finalReport !== null)
-    .find((entry) => entry.phase === "final_adjudication" || entry.phase === "final_synthesis") ?? null;
+    .find((entry) => entry.phase === "final_adjudication") ?? null;
   const exportViews = buildReportExportViews(snapshot.exports);
   return {
     job: buildReportJobView(snapshot),
@@ -201,7 +196,6 @@ const buildReportViewModel = (dataDir: string, jobId: string): DeepResearchRepor
       exports: snapshot.exports,
       exportViews,
     }),
-    businessDeck: buildBusinessDeckView({ exports: snapshot.exports, exportViews }),
     evidence: buildEvidenceViews({ timeline: snapshot.timeline, subQuestionById }),
     exports: exportViews,
   };
@@ -270,7 +264,7 @@ export const getDeepResearchExportArtifact = (input: {
       return null;
     }
     const fileName = path.basename(exported.filePath);
-    if (input.kind === "final-report.md") {
+    if (input.kind === "final-report.md" || input.kind === "full-case-file.md") {
       return {
         jobId: input.jobId,
         kind: input.kind,
@@ -292,22 +286,6 @@ export const getDeepResearchExportArtifact = (input: {
         fileHash: exported.fileHash,
         payloadHash: exported.payloadHash,
         textContent: readFileSync(exported.filePath, "utf8"),
-      };
-    }
-    if (
-      input.kind === "business-deck.pptx"
-      || input.kind === "business-deck.ai-pptx"
-      || input.kind === "business-deck.local-pptx"
-    ) {
-      return {
-        jobId: input.jobId,
-        kind: input.kind,
-        fileName,
-        filePath: exported.filePath,
-        contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        fileHash: exported.fileHash,
-        payloadHash: exported.payloadHash,
-        base64Content: readFileSync(exported.filePath).toString("base64"),
       };
     }
     return {

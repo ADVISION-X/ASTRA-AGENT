@@ -1,6 +1,8 @@
 import { RuntimeFailureClass } from "../../lib/runtime-logs/index.js";
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
+import { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
+import { renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file-render.js";
 import { buildDeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
 import {
   logDeepResearchExportCompleted,
@@ -11,7 +13,7 @@ import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-anal
 import {
   finalAdjudicationPrompt,
   renderDeepResearchFinalAdjudicationPrompt,
-} from "./deep-research-analysis.prompts.js";
+} from "./deep-research-analysis.final-adjudication-prompt.js";
 import { type DeepResearchFinalReport, type DeepResearchResult } from "./deep-research-analysis.result.js";
 import { mergeDeepResearchFinalReportSourceNotes } from "./deep-research-analysis.source-notes.js";
 import {
@@ -29,6 +31,8 @@ import {
 type FinalPackageSuccess = {
   ok: true;
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
+  fullCaseFileMarkdown: string;
 };
 
 type FinalReportSuccess = {
@@ -65,7 +69,7 @@ const buildFinalAdjudicationFallback = (
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
 ) => {
   const fallback = {
-    positiveReasons: uniqueStrings(
+    decisiveReasons: uniqueStrings(
       finalPackage.analysisRecords.map((record) =>
         readPayloadString(record.parsedPayload, "coreFinding")
         ?? record.keyPoints[0]
@@ -133,6 +137,7 @@ const completeFinalPackageStage = (input: {
   context: AnalysisExecutionContext;
   finalPackageStage: FlowStageHandle;
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
 }) => {
   const { finalPackageStage } = input;
   const finalPackageHash = stableJsonHash(input.finalPackage);
@@ -151,6 +156,7 @@ const completeFinalPackageStage = (input: {
       analysisRecordCount: input.finalPackage.analysisRecords.length,
       missingAnalysisCount: input.finalPackage.missingAnalysisSubQuestionIds.length,
       recordHashCount: Object.keys(input.finalPackage.recordHashes).length,
+      rawAnalysisCoverageCount: input.fullCaseFile.coverage.rawAnalysisInteractionCount,
     },
   });
 };
@@ -158,6 +164,7 @@ const completeFinalPackageStage = (input: {
 const runExportStage = async (
   context: AnalysisExecutionContext,
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   finalReport: DeepResearchFinalReport,
 ) => {
   context.store.updateJobState({
@@ -177,6 +184,7 @@ const runExportStage = async (
     store: context.store,
     jobId: context.jobId,
     finalPackage,
+    fullCaseFile,
     finalReport,
   });
   logDeepResearchExportCompleted({
@@ -185,6 +193,8 @@ const runExportStage = async (
     phase: "EXPORT_REPORT",
     exportDir: exportArtifacts.exportDir,
     finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
+    fullCaseFileJsonHash: exportArtifacts.fullCaseFileJson.fileHash,
+    fullCaseFileMarkdownHash: exportArtifacts.fullCaseFileMarkdown.fileHash,
     decisionPackageHash: exportArtifacts.decisionPackage.fileHash,
     evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
   });
@@ -193,6 +203,8 @@ const runExportStage = async (
     refs: { exportDir: exportArtifacts.exportDir },
     hashes: {
       finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
+      fullCaseFileJsonHash: exportArtifacts.fullCaseFileJson.fileHash,
+      fullCaseFileMarkdownHash: exportArtifacts.fullCaseFileMarkdown.fileHash,
       decisionPackageHash: exportArtifacts.decisionPackage.fileHash,
       evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
     },
@@ -209,15 +221,11 @@ const buildMergedRecordHashes = (input: {
   ...input.finalPackage.recordHashes,
   ...input.context.recordHashes,
   exportFinalReportHash: input.exportArtifacts.finalReportMarkdown.fileHash,
+  exportFullCaseFileJsonHash: input.exportArtifacts.fullCaseFileJson.fileHash,
+  exportFullCaseFileMarkdownHash: input.exportArtifacts.fullCaseFileMarkdown.fileHash,
   exportDecisionPackageHash: input.exportArtifacts.decisionPackage.fileHash,
   exportBusinessHtmlReportHash: input.exportArtifacts.businessHtmlReport.fileHash,
   exportEvidenceIndexHash: input.exportArtifacts.evidenceIndex.fileHash,
-  ...(input.exportArtifacts.businessDeckOutline
-    ? { exportBusinessDeckOutlineHash: input.exportArtifacts.businessDeckOutline.fileHash }
-    : {}),
-  ...(input.exportArtifacts.businessDeckPptx
-    ? { exportBusinessDeckPptxHash: input.exportArtifacts.businessDeckPptx.fileHash }
-    : {}),
   ...(input.finalReportRecord
     ? {
         [`finalReport:${input.finalReportRecord.id}`]:
@@ -276,10 +284,16 @@ export const buildFinalPackageStage = (
     stageName: "FINAL_PACKAGE_BUILD",
   });
   let finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>;
+  let fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
   try {
     finalPackage = buildDeepResearchFinalPackage({
       store: context.store,
       jobId: context.jobId,
+    });
+    fullCaseFile = buildDeepResearchFullCaseFile({
+      store: context.store,
+      jobId: context.jobId,
+      structuredFinalPackage: finalPackage,
     });
   } catch (error) {
     return failFinalPackageStage(
@@ -292,13 +306,21 @@ export const buildFinalPackageStage = (
     context,
     finalPackageStage,
     finalPackage,
+    fullCaseFile,
   });
-  return { ok: true, finalPackage };
+  return {
+    ok: true,
+    finalPackage,
+    fullCaseFile,
+    fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
+  };
 };
 
 export const runFinalReportPhase = async (
   context: AnalysisExecutionContext,
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
+  fullCaseFileMarkdown: string,
 ): Promise<FinalReportSuccess | AnalysisFailure> => {
   const finalReport = await runPromptExchange<DeepResearchFinalReport>({
     store: context.store,
@@ -316,8 +338,10 @@ export const runFinalReportPhase = async (
       analysisGoal: context.input.analysisGoal,
       language: context.input.language,
       finalPackage,
+      fullCaseFile,
+      fullCaseFileMarkdown,
     }),
-    inputRefs: [`job:${context.jobId}:final-package`],
+    inputRefs: [`job:${context.jobId}:final-package`, `job:${context.jobId}:full-case-file`],
     timeoutMs: 1_200_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
@@ -364,9 +388,10 @@ export const runFinalReportPhase = async (
 export const completeSuccessfulRun = async (
   context: AnalysisExecutionContext,
   finalPackage: ReturnType<typeof buildDeepResearchFinalPackage>,
+  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   finalReport: DeepResearchFinalReport,
 ): Promise<DeepResearchResult> => {
-  const exportArtifacts = await runExportStage(context, finalPackage, finalReport);
+  const exportArtifacts = await runExportStage(context, finalPackage, fullCaseFile, finalReport);
   const finalReportRecord = context.store.getLatestFinalReport(context.jobId);
   const mergedRecordHashes = buildMergedRecordHashes({
     context,

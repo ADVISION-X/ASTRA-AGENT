@@ -52,6 +52,7 @@ export const inspectCaptureAndSmokeRules = (input: DeepResearchCaptureAndSmokeIn
   });
   inspectConfidenceContract({
     promptsFile: input.files.promptsFile,
+    finalAdjudicationPromptFile: input.files.finalAdjudicationPromptFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.lawId,

@@ -5,8 +5,6 @@ import {
 } from "./deep-research-analysis.records.js";
 import type {
   DeepResearchSubQuestionAnalysisAnswer,
-  DeepResearchFalsificationAnswer,
-  DeepResearchPositiveAnswer,
 } from "./deep-research-analysis.parser.js";
 
 export const persistAnalysisAnswer = (input: {

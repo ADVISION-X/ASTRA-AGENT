@@ -1,4 +1,5 @@
 import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import type {
   DeepResearchPrompt,
   DeepResearchPromptOutputContract,
@@ -34,6 +35,10 @@ const businessHtmlReportPublisherPromptValue: DeepResearchPrompt = {
     "You are not allowed to change confidence, probability, verdict, ranking, or the user's final decision answer.",
     "",
     "Your only task is to organize the provided Deep Research final decision materials into a professional business HTML decision report file.",
+    "The final report is the decision authority.",
+    "The full case file is the complete supporting material.",
+    "The structured package is only an index.",
+    "Do not treat missing structured fields as missing content if raw responses exist in the full case file.",
     "",
     "Create a downloadable HTML file artifact named business-report.html.",
     "",
@@ -115,6 +120,8 @@ export const businessHtmlReportPublisherPrompt =
 export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
   finalPackage: DeepResearchFinalPackage;
   finalReport: DeepResearchFinalReport;
+  fullCaseFile: DeepResearchFullCaseFile;
+  fullCaseFileMarkdown: string;
   sourceNotes: unknown[];
   language: DeepResearchInput["language"];
 }): string => [
@@ -124,8 +131,17 @@ export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
   JSON.stringify({
     finalPackage: input.finalPackage,
     finalReport: input.finalReport,
+    fullCaseFile: {
+      caseFileVersion: input.fullCaseFile.caseFileVersion,
+      job: input.fullCaseFile.job,
+      coverage: input.fullCaseFile.coverage,
+      failedButRawAvailableInteractionCount: input.fullCaseFile.failedButRawAvailableInteractions.length,
+    },
     sourceNotes: input.sourceNotes,
   }, null, 2),
+  "",
+  "Full case file markdown:",
+  input.fullCaseFileMarkdown,
   "",
   `Response language:\n${input.language}`,
   "",

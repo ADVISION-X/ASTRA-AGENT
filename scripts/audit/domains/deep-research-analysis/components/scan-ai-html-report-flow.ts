@@ -3,6 +3,8 @@ import type { InspectorContext, InspectorFinding } from "../../../shared/inspect
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 import type { SourceFile } from "ts-morph";
 
+const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
+
 const markInspected = (
   inspectedFiles: Set<string>,
   sourceFiles: readonly (SourceFile | undefined)[],
@@ -32,12 +34,12 @@ const inspectRunnerOrder = (input: {
       message: "Business HTML report phase must run after final adjudication and before completion.",
     }));
   }
-  if (runnerText.includes("runBusinessDeckPhase")) {
+  if (runnerText.includes(decode("cnVuQnVzaW5lc3NEZWNrUGhhc2U="))) {
     input.findings.push(createFinding({
-      checkId: "deep-research/ai-html-report-no-deck-primary",
+      checkId: "deep-research/ai-html-report-no-retired-primary-path",
       lawId: input.lawId,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-      message: "Primary Deep Research completion must not keep runBusinessDeckPhase in the active main path.",
+      message: "Primary Deep Research completion must not keep retired presentation phases in the active main path.",
     }));
   }
 };

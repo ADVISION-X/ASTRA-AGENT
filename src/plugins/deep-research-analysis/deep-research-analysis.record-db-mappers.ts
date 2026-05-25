@@ -8,13 +8,9 @@ import type {
   DeepResearchPhase,
   DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
-import type {
-  DeepResearchConflictMatrixRow,
-} from "./deep-research-analysis.result.js";
 import {
-  LEGACY_RENDERED_PROMPT_TEXT,
+  MISSING_RENDERED_PROMPT_TEXT,
   ResearchAnswerSchema,
-  ResearchConflictMatrixSchema,
   ResearchExportSchema,
   ResearchFinalReportRecordSchema,
   ResearchInteractionSchema,
@@ -22,7 +18,6 @@ import {
   ResearchSubQuestionSchema,
   type ResearchAnswer,
   type ResearchAnswerKind,
-  type ResearchConflictMatrix,
   type ResearchExport,
   type ResearchExportKind,
   type ResearchFinalReportRecord,
@@ -65,7 +60,7 @@ export const mapJobRow = (row: {
     language: row.language,
     maxSubQuestions: row.max_sub_questions,
     outputFormat: row.output_format,
-    flowMode: row.flow_mode ?? "legacy_1_n_n_1",
+    flowMode: row.flow_mode ?? "default_1_n_1_1",
     status: row.status,
     phase: row.phase,
     failureReason: row.failure_reason,
@@ -142,7 +137,7 @@ export const mapInteractionRow = (row: {
     promptId: row.prompt_id,
     promptVersion: row.prompt_version,
     promptHash: row.prompt_hash,
-    renderedPromptText: row.rendered_prompt_text ?? LEGACY_RENDERED_PROMPT_TEXT,
+    renderedPromptText: row.rendered_prompt_text ?? MISSING_RENDERED_PROMPT_TEXT,
     domRef: row.dom_ref,
     rawResponseText: row.raw_response_text,
     rawResponseHash: row.raw_response_hash,
@@ -183,31 +178,6 @@ export const mapAnswerRow = (row: {
     contradictionPoints: parseStringArray(row.contradiction_points_json),
     parsedPayload: parseUnknownRecord(row.parsed_payload_json),
     confidence: row.confidence,
-    createdAt: row.created_at,
-  });
-
-export const mapConflictRow = (row: {
-  id: string;
-  job_id: string;
-  sub_question_id: string;
-  positive_claim_summary: string;
-  falsification_summary: string;
-  conflict_level: DeepResearchConflictMatrixRow["conflictLevel"];
-  evidence_gap: string;
-  needs_human_review: number;
-  created_at: string;
-}): ResearchConflictMatrix =>
-  ResearchConflictMatrixSchema.parse({
-    id: row.id,
-    jobId: row.job_id,
-    row: {
-      subQuestionId: row.sub_question_id,
-      positiveClaimSummary: row.positive_claim_summary,
-      falsificationSummary: row.falsification_summary,
-      conflictLevel: row.conflict_level,
-      evidenceGap: row.evidence_gap,
-      needsHumanReview: row.needs_human_review === 1,
-    },
     createdAt: row.created_at,
   });
 

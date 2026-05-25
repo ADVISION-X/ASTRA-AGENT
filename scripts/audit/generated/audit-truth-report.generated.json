@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T11:26:38.741Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-25T13:59:03.736Z",
+  "status": "FAIL",
   "inspectorFileCount": 14,
   "generatedPlanEntryCount": 14,
   "inspectedFiles": [
@@ -62,13 +62,23 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-capture-and-parse-resilience.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-confidence-contract.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-decomposition-prompt-v2.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-delete-retired-deep-research-paths.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-full-input.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-required.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-full-flow-report-export.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-gateway-raw-capture-boundary.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-html-only-final-artifact.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-artifact-persist.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-html-report-full-input.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-no-dead-code-adjudication.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-no-html-content-rejudgment.ts",
-    "scripts/audit/domains/deep-research-analysis/components/scan-ppt-demoted-to-optional.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-no-legacy-flow-symbols.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-parser-fallback-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-public-timeline-delivery.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-report-reader-view-model.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-single-flow-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-source-notes-flow.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-fault-isolation.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-sub-question-persistence-identity.ts",
@@ -157,5 +167,14 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-required.ts uses source-text judgment sourceFile?.getFullText().includes(value) on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-required.ts"
+    }
+  ]
 }

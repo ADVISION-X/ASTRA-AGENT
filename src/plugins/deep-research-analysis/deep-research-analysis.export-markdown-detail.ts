@@ -1,10 +1,6 @@
 import {
   isDeepResearchParserSuccess,
-  parseDeepResearchFalsificationResponse,
-  parseDeepResearchPositiveResponse,
   parseDeepResearchSubQuestionAnalysisResponse,
-  type DeepResearchFalsificationAnswer,
-  type DeepResearchPositiveAnswer,
   type DeepResearchSubQuestionAnalysisAnswer,
 } from "./deep-research-analysis.parser.js";
 import {
@@ -12,15 +8,34 @@ import {
   type ResearchInteraction,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
-import type { DeepResearchConflictMatrixRow } from "./deep-research-analysis.result.js";
 import {
   buildInteractionPhaseLabel,
   buildMarkdownList,
-  buildSubQuestionLabel,
   escapeTableCell,
   toDisplayValue,
   type InteractionEvidence,
 } from "./deep-research-analysis.export-markdown-core.js";
+
+type RemovedAnswer = {
+  answer: string;
+  confidence: string;
+  keyClaims?: string[];
+  supportingReasons?: string[];
+  evidenceMentions?: string[];
+  assumptions?: string[];
+  limitations?: string[];
+  strongestOpposingArguments?: string[];
+  contradictionPoints?: string[];
+};
+
+type DeepResearchConflictMatrixRow = {
+  subQuestionId: string;
+  positiveClaimSummary: string;
+  falsificationSummary: string;
+  conflictLevel: string;
+  evidenceGap: string;
+  needsHumanReview: boolean;
+};
 
 const reparseAnalysisInteraction = (
   interaction: ResearchInteraction | null,
@@ -35,25 +50,9 @@ const reparseAnalysisInteraction = (
   return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
 };
 
-const reparsePositiveInteraction = (
-  interaction: ResearchInteraction | null,
-): DeepResearchPositiveAnswer | null => {
-  if (!interaction) {
-    return null;
-  }
-  const parsed = parseDeepResearchPositiveResponse(interaction.rawResponseText);
-  return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
-};
+const reparsePositiveInteraction = (_interaction: ResearchInteraction | null): RemovedAnswer | null => null;
 
-const reparseFalsificationInteraction = (
-  interaction: ResearchInteraction | null,
-): DeepResearchFalsificationAnswer | null => {
-  if (!interaction) {
-    return null;
-  }
-  const parsed = parseDeepResearchFalsificationResponse(interaction.rawResponseText);
-  return isDeepResearchParserSuccess(parsed) ? parsed.parsed : null;
-};
+const reparseFalsificationInteraction = (_interaction: ResearchInteraction | null): RemovedAnswer | null => null;
 
 const buildStageStatus = (input: {
   interaction: ResearchInteraction | null;
@@ -181,95 +180,6 @@ export const buildAnalysisParsedSection = (input: {
     "Limitations",
     buildMarkdownList(data.limitations, "- unavailable"),
   ].join("\n\n");
-};
-
-export const buildPositiveParsedSection = (input: {
-  interaction: ResearchInteraction | null;
-  answer: ResearchAnswer | null;
-}): string => {
-  const reparsed = reparsePositiveInteraction(input.interaction);
-  const answerText = input.answer?.answerText ?? reparsed?.answer ?? "Positive answer: MISSING";
-  const confidence = input.answer?.confidence ?? reparsed?.confidence ?? "unavailable";
-  const keyClaims = input.answer?.keyPoints ?? reparsed?.keyClaims ?? [];
-  const supportingReasons = reparsed?.supportingReasons ?? [];
-  const evidenceMentions = input.answer?.evidenceMentions ?? reparsed?.evidenceMentions ?? [];
-  const assumptions = input.answer?.assumptions ?? reparsed?.assumptions ?? [];
-  const limitations = input.answer?.limitations ?? reparsed?.limitations ?? [];
-  return [
-    buildStageStatus({
-      interaction: input.interaction,
-      answer: input.answer,
-      stageName: "Positive",
-    }),
-    `Answer: ${answerText}`,
-    `Confidence: ${confidence}`,
-    "Key Claims",
-    buildMarkdownList(keyClaims, "- unavailable"),
-    "Supporting Reasons",
-    buildMarkdownList(
-      supportingReasons,
-      "- unavailable in persisted answer record; inspect AI Raw Response",
-    ),
-    "Evidence Mentions",
-    buildMarkdownList(evidenceMentions, "- unavailable"),
-    "Assumptions",
-    buildMarkdownList(assumptions, "- none"),
-    "Limitations",
-    buildMarkdownList(limitations, "- unavailable"),
-  ].join("\n\n");
-};
-
-export const buildFalsificationParsedSection = (input: {
-  interaction: ResearchInteraction | null;
-  answer: ResearchAnswer | null;
-}): string => {
-  const reparsed = reparseFalsificationInteraction(input.interaction);
-  const answerText = input.answer?.answerText ?? reparsed?.answer ?? "Falsification answer: MISSING";
-  const confidence = input.answer?.confidence ?? reparsed?.confidence ?? "unavailable";
-  const strongestOpposingArguments = input.answer?.keyPoints ?? reparsed?.strongestOpposingArguments ?? [];
-  const contradictionPoints = input.answer?.contradictionPoints ?? reparsed?.contradictionPoints ?? [];
-  const evidenceMentions = input.answer?.evidenceMentions ?? reparsed?.evidenceMentions ?? [];
-  const limitations = input.answer?.limitations ?? reparsed?.limitations ?? [];
-  return [
-    buildStageStatus({
-      interaction: input.interaction,
-      answer: input.answer,
-      stageName: "Falsification",
-    }),
-    `Answer: ${answerText}`,
-    `Confidence: ${confidence}`,
-    "Strongest Opposing Arguments",
-    buildMarkdownList(strongestOpposingArguments, "- unavailable"),
-    "Contradiction Points",
-    buildMarkdownList(contradictionPoints, "- unavailable"),
-    "Evidence Mentions",
-    buildMarkdownList(evidenceMentions, "- unavailable"),
-    "Limitations",
-    buildMarkdownList(limitations, "- unavailable"),
-  ].join("\n\n");
-};
-
-export const buildConflictMatrixTable = (
-  rows: readonly DeepResearchConflictMatrixRow[],
-  subQuestionById: ReadonlyMap<string, ResearchSubQuestion>,
-): string => {
-  const header = [
-    "| Sub-question | Positive Claim | Falsification | Conflict Level | Evidence Gap | Human Review |",
-    "| --- | --- | --- | --- | --- | --- |",
-  ];
-  const body = rows.map((row) => {
-    const subQuestion = subQuestionById.get(row.subQuestionId);
-    const label = subQuestion ? buildSubQuestionLabel(subQuestion) : row.subQuestionId;
-    return [
-      escapeTableCell(label),
-      escapeTableCell(row.positiveClaimSummary),
-      escapeTableCell(row.falsificationSummary),
-      escapeTableCell(row.conflictLevel),
-      escapeTableCell(row.evidenceGap),
-      escapeTableCell(row.needsHumanReview ? "yes" : "no"),
-    ];
-  }).map((cells) => `| ${cells.join(" | ")} |`);
-  return [...header, ...body].join("\n");
 };
 
 export const buildEvidenceIndexTable = (

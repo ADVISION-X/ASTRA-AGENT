@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-import {
-  buildAnalysisCandidate,
-  buildFalsificationCandidate,
-  buildPositiveCandidate,
-} from "./deep-research-analysis.parser-candidates.js";
+import { buildAnalysisCandidate } from "./deep-research-analysis.parser-candidates.js";
 import {
   buildDeepResearchSourceNotesFromReferences,
 } from "./deep-research-analysis.source-notes.js";
@@ -17,7 +13,6 @@ import {
   buildSentenceFallback,
   isDeepResearchParserSuccess,
   normalizeConfidenceValue,
-  normalizeConflictMatrixRows,
   normalizeWithSchema,
   parseJsonObject,
   takeFallbackArray,
@@ -37,17 +32,6 @@ const DeepResearchEvidenceQualitySchema = z.enum([
   "unknown",
 ]);
 
-const DeepResearchPositiveAnswerSchema = z.object({
-  subQuestionId: z.string().trim().min(1),
-  answer: z.string().trim().min(1),
-  keyClaims: z.array(z.string().trim().min(1)).default([]),
-  supportingReasons: z.array(z.string().trim().min(1)).default([]),
-  assumptions: z.array(z.string().trim().min(1)).default([]),
-  evidenceMentions: z.array(z.string().trim().min(1)).default([]),
-  confidence: DeepResearchConfidenceSchema,
-  limitations: z.array(z.string().trim().min(1)).default([]),
-}).strict();
-
 const DeepResearchSubQuestionAnalysisAnswerSchema = z.object({
   subQuestionId: z.string().trim().min(1),
   answer: z.string().trim().min(1),
@@ -65,19 +49,7 @@ const DeepResearchSubQuestionAnalysisAnswerSchema = z.object({
   limitations: z.array(z.string().trim().min(1)).default([]),
 }).catchall(z.unknown());
 
-const DeepResearchFalsificationAnswerSchema = z.object({
-  subQuestionId: z.string().trim().min(1),
-  answer: z.string().trim().min(1),
-  strongestOpposingArguments: z.array(z.string().trim().min(1)).default([]),
-  contradictionPoints: z.array(z.string().trim().min(1)).default([]),
-  evidenceMentions: z.array(z.string().trim().min(1)).default([]),
-  confidence: DeepResearchConfidenceSchema,
-  limitations: z.array(z.string().trim().min(1)).default([]),
-}).strict();
-
-export type DeepResearchPositiveAnswer = z.infer<typeof DeepResearchPositiveAnswerSchema>;
 export type DeepResearchSubQuestionAnalysisAnswer = z.infer<typeof DeepResearchSubQuestionAnalysisAnswerSchema>;
-export type DeepResearchFalsificationAnswer = z.infer<typeof DeepResearchFalsificationAnswerSchema>;
 
 export type {
   DeepResearchParserResult,
@@ -135,7 +107,7 @@ const buildFinalReportCandidate = (
       value: directAnswerReport,
     };
   }
-  return buildLegacyFinalReportCandidate(candidate, fallback);
+  return { ok: false as const, reason: "missing_direct_answer_or_final_verdict" };
 };
 
 const buildDirectAnswerFinalReport = (
@@ -153,14 +125,13 @@ const buildDirectAnswerFinalReport = (
     return null;
   }
   const decisiveReasons = takeFallbackArray(
-    takeFirstStringArray(candidate, ["decisiveReasons", "reasons", "positiveReasons"]),
-    fallback.positiveReasons,
+    takeFirstStringArray(candidate, ["decisiveReasons", "reasons"]),
+    fallback.decisiveReasons,
   );
   const opposingArguments = takeFallbackArray(
     takeFirstStringArray(candidate, ["weakOrRejectedClaims", "rejectedClaims", "strongestOpposingArguments"]),
     fallback.strongestOpposingArguments,
   );
-  const conflictMatrix = normalizeConflictMatrixRows(candidate.conflictMatrix);
   return {
     directAnswer,
     finalVerdict,
@@ -197,71 +168,7 @@ const buildDirectAnswerFinalReport = (
         takeFirstStringArray(candidate, ["sourceNotes", "references"]),
       ),
     executiveConclusion: takeFirstString(candidate, ["executiveConclusion"]) ?? directAnswer,
-    positiveReasons: decisiveReasons,
     strongestOpposingArguments: opposingArguments,
-    conflictMatrix,
-  };
-};
-
-const buildLegacyFinalReportCandidate = (
-  candidate: Record<string, unknown>,
-  fallback: FinalReportNormalizationFallback,
-) => {
-  const executiveConclusion = takeFirstString(candidate, [
-    "executiveConclusion",
-    "conclusion",
-    "summary",
-    "finalConclusion",
-  ]);
-  const confidence = normalizeConfidenceValue(
-    candidate.confidence
-    ?? candidate.confidenceScore
-    ?? candidate.confidenceLevel,
-  );
-  if (!executiveConclusion || !confidence) {
-    return { ok: false as const, reason: "missing_direct_answer_or_legacy_conclusion" };
-  }
-  const conflictMatrix = normalizeConflictMatrixRows(candidate.conflictMatrix);
-  const effectiveConflictMatrix = conflictMatrix.length > 0
-    ? conflictMatrix
-    : [...(fallback.conflictMatrix ?? [])];
-  return {
-    ok: true as const,
-    value: {
-      executiveConclusion,
-      confidence,
-      positiveReasons: takeFallbackArray(
-        takeFirstStringArray(candidate, ["positiveReasons", "supportingReasons", "reasons"]),
-        fallback.positiveReasons ?? effectiveConflictMatrix.map((row) => row.positiveClaimSummary),
-      ),
-      strongestOpposingArguments: takeFallbackArray(
-        takeFirstStringArray(candidate, ["strongestOpposingArguments", "opposingArguments", "counterArguments"]),
-        fallback.strongestOpposingArguments ?? effectiveConflictMatrix.map((row) => row.falsificationSummary),
-      ),
-      conflictMatrix: effectiveConflictMatrix,
-      evidenceGaps: takeFallbackArray(
-        takeFirstStringArray(candidate, ["evidenceGaps", "gaps"]),
-        fallback.evidenceGaps ?? effectiveConflictMatrix.map((row) => row.evidenceGap),
-      ),
-      reverseConditions: takeFallbackArray(
-        takeFirstStringArray(candidate, ["reverseConditions", "reversalConditions"]),
-        fallback.reverseConditions ?? ["Model did not provide explicit reverse conditions."],
-      ),
-      followUpSignals: takeFallbackArray(
-        takeFirstStringArray(candidate, ["followUpSignals", "followUps", "watchSignals"]),
-        fallback.followUpSignals ?? ["Model did not provide explicit follow-up signals."],
-      ),
-      limitations: takeFallbackArray(
-        takeFirstStringArray(candidate, ["limitations", "caveats", "risks"]),
-        fallback.limitations ?? buildDefaultLimitations(),
-      ),
-      references: takeFirstStringArray(candidate, ["references", "sourceNotes"]),
-      sourceNotes: fallback.sourceNotes?.length
-        ? [...fallback.sourceNotes]
-        : buildDeepResearchSourceNotesFromReferences(
-          takeFirstStringArray(candidate, ["sourceNotes", "references"]),
-        ),
-    },
   };
 };
 
@@ -330,9 +237,7 @@ const buildFinalAdjudicationTextFallbackValue = (input: {
     references: [],
     sourceNotes: input.fallback.sourceNotes ? [...input.fallback.sourceNotes] : [],
     executiveConclusion: lead,
-    positiveReasons: decisiveReasons,
     strongestOpposingArguments: [...(input.fallback.strongestOpposingArguments ?? [])],
-    conflictMatrix: [...(input.fallback.conflictMatrix ?? [])],
   };
 };
 
@@ -341,16 +246,6 @@ export const parseDeepResearchDecompositionResponse = (input: {
   maxSubQuestions: number;
 }): DeepResearchParserResult<DeepResearchDecompositionResponse> =>
   parseDecompositionResponse(input);
-
-export const parseDeepResearchPositiveResponse = (
-  rawText: string,
-): DeepResearchParserResult<DeepResearchPositiveAnswer> =>
-  normalizeWithSchema({
-    parsedJson: parseJsonObject(rawText),
-    schema: DeepResearchPositiveAnswerSchema,
-    normalize: buildPositiveCandidate,
-    missingRequiredReason: "invalid_positive_analysis_contract",
-  });
 
 export const parseDeepResearchSubQuestionAnalysisResponse = (
   input: string | {
@@ -378,16 +273,6 @@ export const parseDeepResearchSubQuestionAnalysisResponse = (
     failureReason: "invalid_sub_question_analysis_text_fallback",
   });
 };
-
-export const parseDeepResearchFalsificationResponse = (
-  rawText: string,
-): DeepResearchParserResult<DeepResearchFalsificationAnswer> =>
-  normalizeWithSchema({
-    parsedJson: parseJsonObject(rawText),
-    schema: DeepResearchFalsificationAnswerSchema,
-    normalize: buildFalsificationCandidate,
-    missingRequiredReason: "invalid_falsification_contract",
-  });
 
 export const parseDeepResearchFinalAdjudicationResponse = (
   rawText: string,

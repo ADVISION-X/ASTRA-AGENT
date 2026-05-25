@@ -8,10 +8,7 @@ import {
   DeepResearchPhaseSchema,
   DeepResearchSubQuestionSchema,
 } from "./deep-research-analysis.schema.js";
-import {
-  DeepResearchConflictMatrixRowSchema,
-  DeepResearchFinalReportSchema,
-} from "./deep-research-analysis.result.js";
+import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 
 export const DeepResearchProviderKindSchema = z.enum([
   "gemini-api",
@@ -19,26 +16,23 @@ export const DeepResearchProviderKindSchema = z.enum([
   "gpt-web-chat",
 ]);
 
-const ResearchAnswerKindSchema = z.enum(["analysis", "positive", "falsification"]);
+const ResearchAnswerKindSchema = z.enum(["analysis"]);
 
-const ResearchFlowModeSchema = z.enum(["default_1_n_1", "default_1_n_1_1", "legacy_1_n_n_1"]);
+const ResearchFlowModeSchema = z.literal("default_1_n_1_1");
 
 const ResearchExportKindSchema = z.enum([
   "final-report.md",
-  "research-bundle.json",
-  "decision-package.json",
+  "full-case-file.md",
+  "full-case-file.json",
+  "structured-final-package.json",
   "business-report.html",
-  "business-deck-outline.json",
-  "business-deck.pptx",
-  "business-deck.ai-pptx",
-  "business-deck.local-pptx",
   "evidence-index.json",
 ]);
 
 const ResearchParsedPayloadSchema = z.record(z.string(), z.unknown()).default({});
 
-export const LEGACY_RENDERED_PROMPT_TEXT =
-  "[legacy interaction did not persist rendered prompt text]";
+export const MISSING_RENDERED_PROMPT_TEXT =
+  "[interaction did not persist rendered prompt text]";
 
 export const ResearchJobSchema = z.object({
   id: z.string().trim().min(1),
@@ -102,15 +96,6 @@ export const ResearchAnswerSchema = z.object({
   createdAt: z.string().datetime(),
 }).strict();
 
-export const ResearchConflictMatrixSchema = z.object({
-  id: z.string().trim().min(1),
-  jobId: z.string().trim().min(1),
-  row: DeepResearchConflictMatrixRowSchema.extend({
-    subQuestionId: z.string().trim().min(1),
-  }),
-  createdAt: z.string().datetime(),
-}).strict();
-
 export const ResearchFinalReportRecordSchema = z.object({
   id: z.string().trim().min(1),
   jobId: z.string().trim().min(1),
@@ -136,7 +121,6 @@ export type ResearchSubQuestion = z.infer<typeof ResearchSubQuestionSchema>;
 export type ResearchInteraction = z.infer<typeof ResearchInteractionSchema>;
 export type ResearchAnswer = z.infer<typeof ResearchAnswerSchema>;
 export type ResearchAnswerKind = z.infer<typeof ResearchAnswerKindSchema>;
-export type ResearchConflictMatrix = z.infer<typeof ResearchConflictMatrixSchema>;
 export type ResearchFinalReportRecord = z.infer<typeof ResearchFinalReportRecordSchema>;
 export type ResearchExport = z.infer<typeof ResearchExportSchema>;
 export type ResearchExportKind = z.infer<typeof ResearchExportKindSchema>;

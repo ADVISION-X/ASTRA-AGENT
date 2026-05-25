@@ -27,31 +27,52 @@ const readPromptTextLiterals = (
 ): string => {
   const declaration = sourceFile.getVariableDeclaration(promptName);
   const initializer = declaration?.getInitializer();
-  if (!initializer || !Node.isCallExpression(initializer)) return "";
-  return initializer.getDescendants()
-    .filter((node) => Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node))
-    .map((node) => Node.isStringLiteral(node) ? node.getLiteralValue() : node.getLiteralText())
+  if (!initializer) return "";
+  const promptTextProperty = Node.isObjectLiteralExpression(initializer)
+    ? initializer.getProperty("promptText")
+    : null;
+  const promptTextInitializer = promptTextProperty && Node.isPropertyAssignment(promptTextProperty)
+    ? promptTextProperty.getInitializer()
+    : initializer;
+  if (!promptTextInitializer) {
+    return "";
+  }
+  return promptTextInitializer.getDescendants()
+    .flatMap((node) => {
+      if (Node.isStringLiteral(node)) {
+        return [node.getLiteralValue()];
+      }
+      if (Node.isNoSubstitutionTemplateLiteral(node)) {
+        return [node.getLiteralText()];
+      }
+      return [];
+    })
     .join("\n");
 };
 
 export const inspectConfidenceContract = (input: {
   promptsFile: SourceFile | undefined;
+  finalAdjudicationPromptFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
 }): void => {
-  if (!input.promptsFile) {
+  if (!input.promptsFile || !input.finalAdjudicationPromptFile) {
     input.findings.push(createFinding({
       checkId: "deep-research/confidence-contract",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      message: "Deep Research prompt file is required for confidence contract inspection.",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      message: "Deep Research prompt owner files are required for confidence contract inspection.",
     }));
     return;
   }
   input.inspectedFiles.add(getRepoSourcePath(input.promptsFile));
+  input.inspectedFiles.add(getRepoSourcePath(input.finalAdjudicationPromptFile));
   for (const promptName of promptNames) {
-    const promptText = readPromptTextLiterals(input.promptsFile, promptName);
+    const sourceFile = promptName === "finalAdjudicationPrompt"
+      ? input.finalAdjudicationPromptFile
+      : input.promptsFile;
+    const promptText = readPromptTextLiterals(sourceFile, promptName);
     const requiredSnippets = [
       ...confidenceRuleSnippets,
       ...(promptSpecificSnippets[promptName] ?? []),
@@ -60,7 +81,7 @@ export const inspectConfidenceContract = (input: {
     input.findings.push(createFinding({
       checkId: "deep-research/confidence-contract",
       lawId: input.lawId,
-      filePath: getRepoSourcePath(input.promptsFile),
+      filePath: getRepoSourcePath(sourceFile),
       message: `${promptName} must prioritize analytical content over exact formatting and must allow runtime confidence normalization in the default 1+N+1 flow.`,
     }));
   }

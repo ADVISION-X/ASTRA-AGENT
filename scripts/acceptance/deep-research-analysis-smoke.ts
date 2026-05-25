@@ -157,7 +157,9 @@ const writeHtmlArtifactFixture = (input: {
 
 const REQUIRED_SMOKE_EXPORTS = [
   "final-report.md",
-  "decision-package.json",
+  "full-case-file.md",
+  "full-case-file.json",
+  "structured-final-package.json",
   "business-report.html",
   "evidence-index.json",
 ] as const;
@@ -216,7 +218,7 @@ const verifySmokeUsesRealSurfaces = (): void => {
 };
 
 const verifySmokeCoverageDelegation = (): void => {
-  assert(REQUIRED_SMOKE_EXPORTS.length === 4, "Smoke must keep explicit export artifact verification coverage.");
+  assert(REQUIRED_SMOKE_EXPORTS.length === 6, "Smoke must keep explicit export artifact verification coverage.");
   assert(REQUIRED_SMOKE_RUNTIME_SIGNALS.length === 3, "Smoke must keep explicit runtime signal verification coverage.");
   assert(typeof verifyPersistedResearchState === "function", "Smoke must delegate persisted-state assertions to the support verifier.");
 };

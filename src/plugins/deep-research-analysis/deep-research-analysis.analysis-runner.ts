@@ -76,6 +76,8 @@ const runAnalysisPhases = async (
   const finalReport = await runFinalReportPhase(
     executionContext,
     finalPackageStage.finalPackage,
+    finalPackageStage.fullCaseFile,
+    finalPackageStage.fullCaseFileMarkdown,
   );
   if (!finalReport.ok) {
     return finalReport.result;
@@ -84,6 +86,8 @@ const runAnalysisPhases = async (
     executionContext,
     finalPackageStage.finalPackage,
     finalReport.finalReport,
+    finalPackageStage.fullCaseFile,
+    finalPackageStage.fullCaseFileMarkdown,
   );
   if (!businessHtmlReport.ok) {
     return businessHtmlReport.result;
@@ -91,6 +95,7 @@ const runAnalysisPhases = async (
   return await completeSuccessfulRun(
     executionContext,
     finalPackageStage.finalPackage,
+    finalPackageStage.fullCaseFile,
     finalReport.finalReport,
   );
 };

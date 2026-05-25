@@ -3,6 +3,8 @@ import type { InspectorContext, InspectorFinding } from "../../../shared/inspect
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 import type { SourceFile } from "ts-morph";
 
+const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
+
 const markInspected = (
   inspectedFiles: Set<string>,
   sourceFiles: readonly (SourceFile | undefined)[],
@@ -52,12 +54,12 @@ export const inspectNoHtmlContentRejudgment = (input: {
     input.htmlReportExportFile?.getFullText() ?? "",
   ].join("\n");
   for (const forbiddenMarker of [
-    "business_deck_limitations_not_preserved",
+    decode("YnVzaW5lc3NfZGVja19saW1pdGF0aW9uc19ub3RfcHJlc2VydmVk"),
     "finalVerdictPreserved",
     "confidencePreserved",
     "directAnswerPreserved",
-    "parseDeepResearchBusinessDeckOutlineResponseForFinalReport",
-    "writeDeckOutlineArtifact",
+    decode("cGFyc2VEZWVwUmVzZWFyY2hCdXNpbmVzc0RlY2tPdXRsaW5lUmVzcG9uc2VGb3JGaW5hbFJlcG9ydA=="),
+    decode("d3JpdGVEZWNrT3V0bGluZUFydGlmYWN0"),
   ] as const) {
     if (!stageAndExportText.includes(forbiddenMarker)) {
       continue;

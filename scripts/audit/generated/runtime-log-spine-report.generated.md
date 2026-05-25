@@ -6,7 +6,7 @@ Status: PASS
 
 - Total findings: 0
 - Fatal findings: 0
-- Scanned files: 301
+- Scanned files: 305
 - Emit calls: 12
 - Console violations: 0
 - Failure events without class: 0

@@ -1,16 +1,12 @@
 import { createId } from "../../lib/local-runtime/ids.js";
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import {
-  DeepResearchConflictMatrixRowSchema,
   DeepResearchFinalReportSchema,
-  type DeepResearchConflictMatrixRow,
   type DeepResearchFinalReport,
 } from "./deep-research-analysis.result.js";
 import {
-  ResearchConflictMatrixSchema,
   ResearchExportSchema,
   ResearchFinalReportRecordSchema,
-  type ResearchConflictMatrix,
   type ResearchExport,
   type ResearchExportKind,
   type ResearchFinalReportRecord,
@@ -18,56 +14,11 @@ import {
 import {
   createDeepResearchDatabase,
   getCurrentTimestamp,
-  mapConflictRow,
   mapExportRow,
   mapFinalReportRow,
 } from "./deep-research-analysis.record-db.js";
 
 type DeepResearchDatabaseHandle = ReturnType<typeof createDeepResearchDatabase>;
-
-export const saveConflictMatrixRows = (
-  db: DeepResearchDatabaseHandle,
-  input: {
-    jobId: string;
-    rows: readonly DeepResearchConflictMatrixRow[];
-  },
-): ResearchConflictMatrix[] => {
-  const insert = db.prepare(
-    `INSERT INTO research_conflict_matrix (
-      id, job_id, sub_question_id, positive_claim_summary, falsification_summary,
-      conflict_level, evidence_gap, needs_human_review, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  );
-  const createdAt = getCurrentTimestamp();
-  return input.rows.map((row) => {
-    const parsed = DeepResearchConflictMatrixRowSchema.parse(row);
-    const id = createId("deep_research_conflict");
-    insert.run(
-      id,
-      input.jobId,
-      parsed.subQuestionId,
-      parsed.positiveClaimSummary,
-      parsed.falsificationSummary,
-      parsed.conflictLevel,
-      parsed.evidenceGap,
-      parsed.needsHumanReview ? 1 : 0,
-      createdAt,
-    );
-    return ResearchConflictMatrixSchema.parse({
-      id,
-      jobId: input.jobId,
-      row: parsed,
-      createdAt,
-    });
-  });
-};
-
-export const listConflictMatrix = (
-  db: DeepResearchDatabaseHandle,
-  jobId: string,
-): ResearchConflictMatrix[] =>
-  (db.prepare(`SELECT * FROM research_conflict_matrix WHERE job_id = ? ORDER BY created_at ASC, sub_question_id ASC`).all(jobId) as Parameters<typeof mapConflictRow>[0][])
-    .map(mapConflictRow);
 
 export const saveFinalReport = (
   db: DeepResearchDatabaseHandle,

@@ -92,12 +92,9 @@ const resolveStageStatus = (
 const exportLabels: Partial<Record<ResearchExport["exportKind"], string>> = {
   "business-report.html": "Primary business HTML report",
   "final-report.md": "Final report",
-  "decision-package.json": "Decision package",
-  "research-bundle.json": "Research bundle",
-  "business-deck-outline.json": "Business deck outline",
-  "business-deck.pptx": "Business deck PPTX",
-  "business-deck.ai-pptx": "AI-generated business PPT",
-  "business-deck.local-pptx": "Local fallback business PPT",
+  "full-case-file.md": "Full case file (Markdown)",
+  "full-case-file.json": "Full case file (JSON)",
+  "structured-final-package.json": "Structured final package",
 };
 
 const formatExportLabel = (exportKind: ResearchExport["exportKind"]): string =>
@@ -108,30 +105,14 @@ const buildSubQuestionStageViews = (input: {
   jobStatus: ResearchJob["status"];
   subQuestionReports: DeepResearchReportViewModel["subQuestionReports"];
 }): DeepResearchStageView[] =>
-  input.subQuestionReports.flatMap((report) => {
+  input.subQuestionReports.map((report) => {
     const questionLabel = `Q${report.subQuestion.ordinal + 1}: ${report.subQuestion.title}`;
-    if (input.flowMode === "legacy_1_n_n_1") {
-      return [
-        {
-          id: `stage-${report.subQuestion.id}-positive`,
-          label: `${questionLabel} Positive Analysis`,
-          anchorId: `subquestion-${report.subQuestion.id}`,
-          status: resolveStageStatus(Boolean(report.positive), input.jobStatus),
-        },
-        {
-          id: `stage-${report.subQuestion.id}-falsification`,
-          label: `${questionLabel} Falsification`,
-          anchorId: `subquestion-${report.subQuestion.id}`,
-          status: resolveStageStatus(Boolean(report.falsification), input.jobStatus),
-        },
-      ];
-    }
-    return [{
+    return {
       id: `stage-${report.subQuestion.id}-analysis`,
       label: `${questionLabel} Independent Analysis`,
       anchorId: `subquestion-${report.subQuestion.id}`,
       status: resolveStageStatus(Boolean(report.analysis), input.jobStatus),
-    }];
+    };
   });
 
 const buildFinalStageView = (input: {
@@ -140,15 +121,9 @@ const buildFinalStageView = (input: {
   finalInteraction: DeepResearchTimelineEntry | null;
   finalReport: DeepResearchFinalReport | null;
 }): DeepResearchStageView => ({
-  id: input.flowMode === "legacy_1_n_n_1"
-    ? "stage-final-synthesis"
-    : "stage-final-adjudication",
-  label: input.flowMode === "legacy_1_n_n_1"
-    ? "Final Synthesis"
-    : "Final Adjudication",
-  anchorId: input.flowMode === "legacy_1_n_n_1"
-    ? "final-synthesis"
-    : "final-adjudication",
+  id: "stage-final-adjudication",
+  label: "Final Adjudication",
+  anchorId: "final-adjudication",
   status: resolveStageStatus(Boolean(input.finalInteraction) || Boolean(input.finalReport), input.jobStatus),
 });
 
@@ -157,9 +132,6 @@ const buildBusinessHtmlStageView = (input: {
   jobStatus: ResearchJob["status"];
   exports: readonly ResearchExport[];
 }): DeepResearchStageView | null => {
-  if (!(input.flowMode === "default_1_n_1" || input.flowMode === "default_1_n_1_1")) {
-    return null;
-  }
   const hasBusinessHtmlReport = input.exports.some((entry) => entry.exportKind === "business-report.html");
   return {
     id: "stage-business-html-report",
@@ -224,7 +196,6 @@ export const buildConclusionView = (
     conditionalConclusions: [...report.conditionalConclusions],
     weakOrRejectedClaims: [...report.weakOrRejectedClaims],
     decisiveReasons: [...report.decisiveReasons],
-    positiveReasons: [...report.positiveReasons],
     strongestOpposingArguments: [...report.strongestOpposingArguments],
     evidenceGaps: [...report.evidenceGaps],
     reverseConditions: [...report.reverseConditions],
@@ -251,12 +222,6 @@ const buildInteractionHeadline = (input: {
   if (input.interaction.phase === "html_report") {
     return "Business HTML Report Publisher";
   }
-  if (input.interaction.phase === "deck") {
-    return "Business Deck Secretary";
-  }
-  if (input.interaction.phase === "final_synthesis") {
-    return "Final Synthesis";
-  }
   const subQuestion = input.interaction.subQuestionId
     ? input.subQuestionById.get(input.interaction.subQuestionId)
     : null;
@@ -266,7 +231,7 @@ const buildInteractionHeadline = (input: {
   if (input.interaction.phase === "analysis") {
     return `${prefix} Independent Analysis`;
   }
-  return `${prefix} ${input.interaction.phase === "positive" ? "Positive Analysis" : "Falsification"}`;
+  return `${prefix} ${input.interaction.phase}`;
 };
 
 export const buildHistoryJobView = (input: {
@@ -320,11 +285,6 @@ export const buildAnswerByKindAndSubQuestionId = (
   return answerByKindAndSubQuestionId;
 };
 
-export const buildConflictBySubQuestionId = (
-  conflictMatrix: DeepResearchTimelineSnapshot["conflictMatrix"],
-): Map<string, DeepResearchTimelineSnapshot["conflictMatrix"][number]> =>
-  new Map(conflictMatrix.map((record) => [record.row.subQuestionId, record]));
-
 export const buildReportSubQuestionViews = (
   subQuestions: readonly ResearchSubQuestion[],
 ): DeepResearchSubQuestionView[] =>
@@ -336,28 +296,13 @@ export const buildSubQuestionReports = (input: {
   subQuestions: readonly DeepResearchSubQuestionView[];
   timelineByPhaseAndSubQuestionId: Map<string, DeepResearchTimelineEntry>;
   answerByKindAndSubQuestionId: Map<string, ResearchAnswer>;
-  conflictBySubQuestionId: Map<string, DeepResearchTimelineSnapshot["conflictMatrix"][number]>;
 }): DeepResearchReportViewModel["subQuestionReports"] =>
   input.subQuestions.map((subQuestion) => {
     const analysisAnswer = input.answerByKindAndSubQuestionId.get(`analysis:${subQuestion.id}`);
-    const positiveAnswer = input.answerByKindAndSubQuestionId.get(`positive:${subQuestion.id}`);
-    const falsificationAnswer = input.answerByKindAndSubQuestionId.get(`falsification:${subQuestion.id}`);
     const analysisInteraction = input.timelineByPhaseAndSubQuestionId.get(`analysis:${subQuestion.id}`);
-    const positiveInteraction = input.timelineByPhaseAndSubQuestionId.get(`positive:${subQuestion.id}`);
-    const falsificationInteraction = input.timelineByPhaseAndSubQuestionId.get(`falsification:${subQuestion.id}`);
-    const conflict = input.conflictBySubQuestionId.get(subQuestion.id);
     return {
       subQuestion,
       analysis: buildAnswerBlockView({ answer: analysisAnswer, interaction: analysisInteraction }),
-      positive: buildAnswerBlockView({ answer: positiveAnswer, interaction: positiveInteraction }),
-      falsification: buildAnswerBlockView({ answer: falsificationAnswer, interaction: falsificationInteraction }),
-      conflict: conflict
-        ? {
-          rowId: conflict.id,
-          createdAt: conflict.createdAt,
-          ...conflict.row,
-        }
-        : null,
     };
   });
 

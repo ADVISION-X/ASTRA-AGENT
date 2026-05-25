@@ -1,5 +1,316 @@
 {
-  "generatedAt": "2026-05-25T11:26:35.880Z",
-  "itemCount": 0,
-  "items": []
+  "generatedAt": "2026-05-25T13:59:00.551Z",
+  "itemCount": 29,
+  "items": [
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "scripts/acceptance/deep-research-full-case-file-support.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "acceptance",
+      "reason": "Export persistBusinessHtmlExport has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "acceptance-smoke",
+      "symbolName": "persistBusinessHtmlExport",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-full-input.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 15 breaks function budget: physical line count 105 exceeds red line 75; cyclomatic complexity 18 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 36 breaks function budget: physical line count 117 exceeds red line 75; cyclomatic complexity 19 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-html-report-full-input.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 15 breaks function budget: physical line count 128 exceeds red line 75; cyclomatic complexity 22 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/banned-active-path",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-no-legacy-flow-symbols.ts",
+      "lawId": "APEX-CODE-PURITY-010-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Path contains a banned bridge/legacy token.",
+      "remediation": "Delete the bridge/legacy surface or rename it into the single live owner path.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/banned-active-path",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-parser-fallback-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-010-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Path contains a banned bridge/legacy token.",
+      "remediation": "Delete the bridge/legacy surface or rename it into the single live owner path.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-parser-fallback-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 15 breaks function budget: physical line count 76 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-file",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-parser-fallback-sovereignty.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 15 breaks function budget: physical line count 111 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector-file-map.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Object literal near line 55 has member count 43 and exceeds red line 30.",
+      "remediation": "Split the object into smaller owner-local contract or configuration objects.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "active executable source file has 538 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 349 breaks function budget: physical line count 139 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/import-source-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Import source count 28 exceeds red line 24.",
+      "remediation": "Split the file by runtime role and keep only the owner-local dependencies in each slice.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/dead-internal-declaration-subgraph",
+      "declarationKind": "type-alias",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level type-alias RemovedAnswer survives only inside a dead internal declaration subgraph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "RemovedAnswer",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "type-alias",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level type-alias DeepResearchConflictMatrixRow has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "DeepResearchConflictMatrixRow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level variable reparsePositiveInteraction has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "reparsePositiveInteraction",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Top-level variable reparseFalsificationInteraction has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "reparseFalsificationInteraction",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt uses dynamic access typeof finalAdjudicationPrompt and cannot prove property-level liveness.",
+      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt uses dynamic access prompt: finalAdjudicationPrompt and cannot prove property-level liveness.",
+      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt property promptId has no property-level live consumer proof.",
+      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "role": "job-step",
+      "symbolName": "promptId",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt property promptVersion has no property-level live consumer proof.",
+      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "role": "job-step",
+      "symbolName": "promptVersion",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt property phase has no property-level live consumer proof.",
+      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "role": "job-step",
+      "symbolName": "phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export buildPositiveCandidate has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "symbolName": "buildPositiveCandidate",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-candidates.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export buildFalsificationCandidate has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "symbolName": "buildFalsificationCandidate",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt uses dynamic access typeof finalAdjudicationPrompt and cannot prove property-level liveness.",
+      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-dynamic-usage",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+      "lawId": "APEX-CODE-PURITY-018-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt uses dynamic access prompt: finalAdjudicationPrompt and cannot prove property-level liveness.",
+      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt property promptId has no property-level live consumer proof.",
+      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "role": "job-step",
+      "symbolName": "promptId",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt property promptVersion has no property-level live consumer proof.",
+      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "role": "job-step",
+      "symbolName": "promptVersion",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-bag-unused-property",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Object bag finalAdjudicationPrompt property phase has no property-level live consumer proof.",
+      "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
+      "role": "job-step",
+      "symbolName": "phase",
+      "verificationCommand": "npm run ci:full"
+    }
+  ]
 }

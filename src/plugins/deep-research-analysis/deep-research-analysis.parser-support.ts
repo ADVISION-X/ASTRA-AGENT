@@ -2,9 +2,12 @@ import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
-import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
+import {
+  DeepResearchFinalReportSchema,
+} from "./deep-research-analysis.result.js";
 
 type DeepResearchParserFailureStatus =
+  | "parse_failed_raw_available"
   | "partial_review_required"
   | "failed"
   | "failed_empty"
@@ -38,11 +41,9 @@ export type DeepResearchParserResult<T> =
   | DeepResearchParserSuccess<T>;
 
 type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
-type ConflictMatrixRow = DeepResearchFinalReport["conflictMatrix"][number];
 
 export type FinalReportNormalizationFallback = {
-  conflictMatrix?: readonly ConflictMatrixRow[];
-  positiveReasons?: readonly string[];
+  decisiveReasons?: readonly string[];
   strongestOpposingArguments?: readonly string[];
   evidenceGaps?: readonly string[];
   reverseConditions?: readonly string[];
@@ -89,7 +90,9 @@ export const buildFailure = (
   normalizedText: string,
   rawResponseHash: string,
   reason: string,
-  parseStatus: DeepResearchParserFailure["parseStatus"] = "failed_unusable",
+  parseStatus: DeepResearchParserFailure["parseStatus"] = normalizedText
+    ? "parse_failed_raw_available"
+    : "failed_empty",
 ): DeepResearchParserFailure => ({
   parseStatus,
   parsed: null,
@@ -110,26 +113,6 @@ const coerceTrimmedString = (value: unknown): string | null => {
   }
   if (typeof value === "number" && Number.isFinite(value)) {
     return String(value);
-  }
-  return null;
-};
-
-const coerceBoolean = (value: unknown): boolean | null => {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  if (typeof value === "number") {
-    return value !== 0;
-  }
-  if (typeof value !== "string") {
-    return null;
-  }
-  const normalized = value.trim().toLowerCase();
-  if (["true", "yes", "y", "1"].includes(normalized)) {
-    return true;
-  }
-  if (["false", "no", "n", "0"].includes(normalized)) {
-    return false;
   }
   return null;
 };
@@ -251,68 +234,10 @@ export const normalizeConfidenceValue = (
   return null;
 };
 
-const normalizeConflictLevelFromString = (value: string): ConflictMatrixRow["conflictLevel"] | null => {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) {
-    return null;
-  }
-  if (normalized.includes("critical") || /严重|关键/u.test(value)) {
-    return "critical";
-  }
-  if (normalized.includes("high") || normalized.includes("medium-high") || /高|较高|偏高/u.test(value)) {
-    return "high";
-  }
-  if (normalized.includes("medium") || normalized.includes("moderate") || /中|中等/u.test(value)) {
-    return "medium";
-  }
-  if (normalized.includes("low") || /低|较低/u.test(value)) {
-    return "low";
-  }
-  return null;
-};
-
-const normalizeConflictLevel = (value: unknown): ConflictMatrixRow["conflictLevel"] | null => {
-  if (value === "low" || value === "medium" || value === "high" || value === "critical") {
-    return value;
-  }
-  if (typeof value === "string") {
-    return normalizeConflictLevelFromString(value);
-  }
-  return null;
-};
-
 export const takeFallbackArray = (
   values: readonly string[],
   fallback: readonly string[] | undefined,
 ): string[] => values.length > 0 ? [...values] : [...(fallback ?? [])];
-
-export const normalizeConflictMatrixRows = (value: unknown): DeepResearchFinalReport["conflictMatrix"] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((item) => {
-    if (!isRecord(item)) {
-      return [];
-    }
-    const subQuestionId = takeFirstString(item, ["subQuestionId", "questionId", "id"]);
-    const positiveClaimSummary = takeFirstString(item, ["positiveClaimSummary", "positiveSummary", "positive"]);
-    const falsificationSummary = takeFirstString(item, ["falsificationSummary", "negativeSummary", "opposingSummary", "falsification"]);
-    const conflictLevel = normalizeConflictLevel(item.conflictLevel ?? item.level ?? item.severity);
-    const evidenceGap = takeFirstString(item, ["evidenceGap", "gap", "evidenceGaps"]);
-    const needsHumanReview = coerceBoolean(item.needsHumanReview);
-    if (!subQuestionId || !positiveClaimSummary || !falsificationSummary || !conflictLevel || !evidenceGap || needsHumanReview === null) {
-      return [];
-    }
-    return [{
-      subQuestionId,
-      positiveClaimSummary,
-      falsificationSummary,
-      conflictLevel,
-      evidenceGap,
-      needsHumanReview,
-    }];
-  });
-};
 
 export const buildDefaultLimitations = (): string[] => [
   "Model did not provide explicit limitations.",
@@ -414,7 +339,9 @@ export const refineSchemaResult = <TSchema extends z.ZodTypeAny>(input: {
       input.parsedJson.normalizedText,
       input.parsedJson.rawResponseHash,
       `${input.missingRequiredReason}:${parsed.error.issues.map((issue) => issue.message).join("; ")}`,
-      hasCustomIssue && input.partialReviewOnCustomIssue ? "partial_review_required" : "failed",
+      hasCustomIssue && input.partialReviewOnCustomIssue
+        ? "partial_review_required"
+        : "parse_failed_raw_available",
     );
   }
   return buildParsedResult({

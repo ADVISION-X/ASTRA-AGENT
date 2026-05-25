@@ -29,18 +29,12 @@ const {
 } = deepResearchClientSharedRuntime;
 
 const {
+  renderFullCaseFileDelivery,
   renderPrimaryBusinessReport,
-  renderBusinessDeckActions,
-  renderBusinessDeckMeta,
-  renderOptionalPresentationDeck,
 } = deepResearchClientDeliverySectionsRuntime;
 
-function isLegacyFlow(report: DeepResearchReport): boolean {
-  return report.job.flowMode === "legacy_1_n_n_1";
-}
-
 function renderFlowLabel(report: DeepResearchReport): string {
-  return isLegacyFlow(report) ? "Legacy 1+N+N+1" : "Default 1+N+1+1";
+  return "Default 1+N+1+1";
 }
 
 function renderReportHeader(report: DeepResearchReport): void {
@@ -91,7 +85,7 @@ function renderConclusionCard(report: DeepResearchReport): void {
     setResearchHtml("[data-deep-research-final-card]", `
       <div class="research-card-head">
         <div>
-          <p class="research-kicker">${escapeText(isLegacyFlow(report) ? "Final Synthesis" : "Final Adjudication")}</p>
+          <p class="research-kicker">Final Adjudication</p>
           <h2>Final report not persisted yet</h2>
         </div>
       </div>
@@ -100,14 +94,14 @@ function renderConclusionCard(report: DeepResearchReport): void {
   }
   const decisiveReasons = report.conclusion.decisiveReasons.length
     ? report.conclusion.decisiveReasons
-    : report.conclusion.positiveReasons;
+    : report.conclusion.strongConclusions;
   const rejectedClaims = report.conclusion.weakOrRejectedClaims.length
     ? report.conclusion.weakOrRejectedClaims
     : report.conclusion.strongestOpposingArguments;
   setResearchHtml("[data-deep-research-final-card]", `
     <div class="research-card-head">
       <div>
-        <p class="research-kicker">${escapeText(isLegacyFlow(report) ? "Final Synthesis" : "Final Adjudication")}</p>
+        <p class="research-kicker">Final Adjudication</p>
         <h2>Decision-grade conclusion</h2>
       </div>
       ${renderConfidenceBadge(report.conclusion.confidence)}
@@ -143,7 +137,7 @@ function renderStageOverview(report: DeepResearchReport): void {
     <div class="research-section-head">
       <div>
         <p class="research-kicker">Stage Overview</p>
-        <h2>${escapeText(isLegacyFlow(report) ? "Legacy 1+N+N+1 research flow" : "Default 1+N+1+1 research flow")}</h2>
+        <h2>Default 1+N+1+1 research flow</h2>
       </div>
     </div>
     <div class="research-stage-grid">
@@ -188,42 +182,6 @@ function renderDecomposition(report: DeepResearchReport): void {
     </div>`);
 }
 
-function renderLegacySubQuestionSection(report: DeepResearchReport): string {
-  return report.subQuestionReports.map((entry) => `
-    <section class="research-subquestion-section" id="subquestion-${escapeText(entry.subQuestion.id)}">
-      <div class="research-section-head">
-        <div>
-          <p class="research-kicker">Sub-question</p>
-          <h2>Q${escapeText(entry.subQuestion.ordinal + 1)}: ${escapeText(entry.subQuestion.title)}</h2>
-        </div>
-      </div>
-      <div class="research-question-card research-question-card-full">
-        <p>${escapeText(entry.subQuestion.questionText)}</p>
-        ${renderMetaRow([
-          entry.subQuestion.whyItMatters || entry.subQuestion.purpose,
-          entry.subQuestion.scope,
-          entry.subQuestion.expectedAnswerShape,
-        ])}
-      </div>
-      <div class="research-analysis-grid">
-        ${renderAnswerCard("Positive Analysis", entry.positive, "Positive analysis has not been persisted yet.")}
-        ${renderAnswerCard("Falsification", entry.falsification, "Falsification has not been persisted yet.")}
-      </div>
-      <section class="research-conflict-card">
-        <h3>Conflict Judgment</h3>
-        ${entry.conflict ? `
-          ${renderListSection("Positive Claim Summary", [entry.conflict.positiveClaimSummary])}
-          ${renderListSection("Falsification Summary", [entry.conflict.falsificationSummary])}
-          ${renderMetaRow([
-            `conflict ${entry.conflict.conflictLevel}`,
-            entry.conflict.needsHumanReview ? "needs human review" : "no human review required",
-          ])}
-          ${renderListSection("Evidence Gap", [entry.conflict.evidenceGap])}
-        ` : '<p class="muted">Conflict matrix row has not been persisted yet.</p>'}
-      </section>
-    </section>`).join("");
-}
-
 function renderDefaultSubQuestionSection(report: DeepResearchReport): string {
   return report.subQuestionReports.map((entry) => `
     <section class="research-subquestion-section" id="subquestion-${escapeText(entry.subQuestion.id)}">
@@ -256,19 +214,19 @@ function renderDefaultSubQuestionSection(report: DeepResearchReport): string {
 
 function renderSubQuestions(report: DeepResearchReport): void {
   const html = report.subQuestionReports.length
-    ? (isLegacyFlow(report) ? renderLegacySubQuestionSection(report) : renderDefaultSubQuestionSection(report))
+    ? renderDefaultSubQuestionSection(report)
     : '<section class="research-section"><p class="muted">No sub-question analysis has been persisted yet.</p></section>';
   setResearchHtml("[data-deep-research-subquestions]", html);
 }
 
 function renderFinalAdjudication(report: DeepResearchReport): void {
   const interaction = report.finalAdjudication.interaction;
-  const sectionLabel = isLegacyFlow(report) ? "Final Synthesis" : "Final Adjudication";
+  const sectionLabel = "Final Adjudication";
   setResearchHtml("[data-deep-research-final-adjudication]", `
     <div class="research-section-head">
       <div>
         <p class="research-kicker">${escapeText(sectionLabel)}</p>
-        <h2>${escapeText(isLegacyFlow(report) ? "How the legacy synthesis was built" : "How the final adjudication was reached")}</h2>
+        <h2>How the final adjudication was reached</h2>
       </div>
     </div>
     <div class="research-article-card">
@@ -360,16 +318,9 @@ function renderSidePanels(report: DeepResearchReport): void {
       id: `subquestion-${subQuestion.id}`,
       label: `Q${subQuestion.ordinal + 1}`,
     })),
-    {
-      id: "final-adjudication",
-      label: isLegacyFlow(report) ? "Final Synthesis" : "Final Adjudication",
-    },
-    ...(!isLegacyFlow(report)
-      ? [
-        { id: "business-report", label: "Primary Business Report" },
-        { id: "presentation-deck", label: "Optional Presentation Deck" },
-      ]
-      : []),
+    { id: "final-adjudication", label: "Final Adjudication" },
+    { id: "full-case-file", label: "Full Case File" },
+    { id: "business-report", label: "Primary Business Report" },
     { id: "evidence", label: "Evidence" },
   ];
   setResearchHtml("[data-deep-research-nav]", navigation.map((item) => `<a href="#${escapeText(item.id)}">${escapeText(item.label)}</a>`).join(""));
@@ -399,8 +350,8 @@ function renderSelectedReport(state: DeepResearchClientState, report: DeepResear
   renderDecomposition(report);
   renderSubQuestions(report);
   renderFinalAdjudication(report);
+  renderFullCaseFileDelivery(report);
   renderPrimaryBusinessReport(report);
-  renderOptionalPresentationDeck(report);
   renderEvidence(report);
   renderSidePanels(report);
   renderLedger({
@@ -420,8 +371,8 @@ export const deepResearchClientReportRuntime = {
 } as const;
 
 export const deepResearchClientReportFunctions = [
-  isLegacyFlow, renderFlowLabel, renderReportHeader, renderRankedConclusions, renderConclusionCard,
-  renderStageOverview, renderDecomposition, renderLegacySubQuestionSection, renderDefaultSubQuestionSection,
-  renderSubQuestions, renderFinalAdjudication, renderBusinessDeckActions, renderBusinessDeckMeta,
-  renderPrimaryBusinessReport, renderOptionalPresentationDeck, renderEvidence, renderSidePanels, renderSelectedReport,
+  renderFlowLabel, renderReportHeader, renderRankedConclusions, renderConclusionCard,
+  renderStageOverview, renderDecomposition, renderDefaultSubQuestionSection,
+  renderSubQuestions, renderFinalAdjudication,
+  renderFullCaseFileDelivery, renderPrimaryBusinessReport, renderEvidence, renderSidePanels, renderSelectedReport,
 ] as const;

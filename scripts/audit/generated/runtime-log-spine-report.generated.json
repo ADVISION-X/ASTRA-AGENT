@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-25T11:26:38.014Z",
+  "generatedAt": "2026-05-25T13:59:02.651Z",
   "status": "PASS",
-  "scannedFiles": 301,
+  "scannedFiles": 305,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -209,7 +209,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.deck-schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-phase.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -219,9 +218,14 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-export.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-schema.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-records.ts",
@@ -323,7 +327,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 301,
+    "scannedFiles": 305,
     "emitCallCount": 12,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -334,7 +338,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 296,
+      "scannedFiles": 300,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -343,13 +347,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 245
+      "scannedFiles": 249
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 242,
+      "scannedFiles": 246,
       "metrics": {
         "emitCallCount": 2
       }
@@ -358,13 +362,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 242
+      "scannedFiles": 246
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 246,
+      "scannedFiles": 250,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -379,7 +383,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 246,
+      "scannedFiles": 250,
       "metrics": {
         "failureWithoutClassCount": 0
       }

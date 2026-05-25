@@ -48,7 +48,7 @@ Deep Research Analysis 是独立 job flow。页面只负责展示它的输入、
 - job status / phase / jobId。
 - final report 主结论、置信度、证据缺口、反转条件和 limitations。
 - persisted subQuestions / positive answers / falsification answers / exports 计数。
-- `final-report.md`、`research-bundle.json`、`evidence-index.json` 的 export refs、file hash、file path。
+- `final-report.md`、`structured-final-package.json`、`evidence-index.json` 的 export refs、file hash、file path。
 - timeline evidence：interactionId、phase、promptHash、rawResponseHash、parsedRecordIds、domRef。
 
 禁止：

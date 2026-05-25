@@ -73,20 +73,9 @@ export type DeepResearchAnswerBlock = {
   parsedPayload: Record<string, unknown>;
 };
 
-type DeepResearchConflict = {
-  positiveClaimSummary: string;
-  falsificationSummary: string;
-  conflictLevel: string;
-  evidenceGap: string;
-  needsHumanReview: boolean;
-};
-
 type DeepResearchSubQuestionReport = {
   subQuestion: DeepResearchSubQuestion;
   analysis: DeepResearchAnswerBlock | null;
-  positive: DeepResearchAnswerBlock | null;
-  falsification: DeepResearchAnswerBlock | null;
-  conflict: DeepResearchConflict | null;
 };
 
 type DeepResearchRankedConclusion = {
@@ -119,7 +108,6 @@ type DeepResearchConclusion = {
   conditionalConclusions: string[];
   weakOrRejectedClaims: string[];
   decisiveReasons: string[];
-  positiveReasons: string[];
   strongestOpposingArguments: string[];
   evidenceGaps: string[];
   reverseConditions: string[];
@@ -158,32 +146,6 @@ export type DeepResearchPrimaryBusinessReport = {
   sourceKind: string | null;
 };
 
-export type DeepResearchBusinessDeck = {
-  generatedAt: string | null;
-  status: string;
-  generatedBy: string;
-  outlineExport: DeepResearchExportRecord | null;
-  pptxExport: DeepResearchExportRecord | null;
-  deckTitle: string | null;
-  deckSubtitle: string | null;
-  audience: string | null;
-  slideCount: number;
-  warnings: string[];
-  preservationSummary: {
-    usedRankedConclusionCount: number;
-    usedReverseConditionCount: number;
-    usedEvidenceGapCount: number;
-    usedReferenceCount: number;
-    omittedItemCount: number;
-  } | null;
-  slideSummaries: Array<{
-    slideNumber: number;
-    slideType: string;
-    title: string;
-    headline: string;
-  }>;
-};
-
 export type DeepResearchEvidence = DeepResearchInteraction & {
   headline: string;
   summary: string;
@@ -217,7 +179,6 @@ export type DeepResearchReport = {
     parsedFinalReport: unknown | null;
   };
   primaryBusinessReport: DeepResearchPrimaryBusinessReport | null;
-  businessDeck: DeepResearchBusinessDeck | null;
   evidence: DeepResearchEvidence[];
   exports: DeepResearchExportRecord[];
 };

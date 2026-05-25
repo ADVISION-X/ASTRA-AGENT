@@ -269,7 +269,7 @@ After all sub-questions complete:
 1. The job moves to `EXPORT_REPORT`.
 2. `exportDeepResearchArtifacts(...)` writes:
    - `final-report.md`
-   - `research-bundle.json`
+   - `structured-final-package.json`
    - `evidence-index.json`
 3. The job emits `DEEP_RESEARCH_EXPORT_COMPLETED`.
 4. The job moves to `COMPLETE`.

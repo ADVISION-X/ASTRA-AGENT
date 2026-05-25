@@ -1,5 +1,5 @@
 import {
-  LEGACY_RENDERED_PROMPT_TEXT,
+  MISSING_RENDERED_PROMPT_TEXT,
   type ResearchFinalReportRecord,
   type ResearchInteraction,
   type ResearchJob,
@@ -55,7 +55,7 @@ export const buildPromptBlock = (interaction: ResearchInteraction | null): strin
   if (!interaction) {
     return "Prompt: unavailable; interaction missing for this stage.";
   }
-  if (interaction.renderedPromptText === LEGACY_RENDERED_PROMPT_TEXT) {
+  if (interaction.renderedPromptText === MISSING_RENDERED_PROMPT_TEXT) {
     return [
       "Prompt text was not persisted in ResearchInteraction.",
       `Prompt ID: ${interaction.promptId}`,
@@ -82,14 +82,10 @@ export const buildInteractionPhaseLabel = (phase: ResearchInteraction["phase"]):
       return "Decomposition";
     case "analysis":
       return "Independent Analysis";
-    case "positive":
-      return "Positive Analysis";
-    case "falsification":
-      return "Falsification";
     case "final_adjudication":
       return "Final Adjudication";
-    case "final_synthesis":
-      return "Final Synthesis";
+    case "html_report":
+      return "Business HTML Report";
     default:
       return phase;
   }
@@ -130,23 +126,6 @@ export const buildStageOverviewRows = (input: {
   });
   order += 1;
   for (const subQuestion of input.subQuestions) {
-    if (input.job.flowMode === "legacy_1_n_n_1") {
-      rows.push({
-        order,
-        phase: "Positive Analysis",
-        subQuestionLabel: buildSubQuestionLabel(subQuestion),
-        interaction: findInteraction(input.interactions, "positive", subQuestion.id),
-      });
-      order += 1;
-      rows.push({
-        order,
-        phase: "Falsification",
-        subQuestionLabel: buildSubQuestionLabel(subQuestion),
-        interaction: findInteraction(input.interactions, "falsification", subQuestion.id),
-      });
-      order += 1;
-      continue;
-    }
     rows.push({
       order,
       phase: "Independent Analysis",
@@ -155,18 +134,15 @@ export const buildStageOverviewRows = (input: {
     });
     order += 1;
   }
-  const finalPhase = input.job.flowMode === "legacy_1_n_n_1"
-    ? "final_synthesis"
-    : "final_adjudication";
   rows.push({
     order,
-    phase: input.job.flowMode === "legacy_1_n_n_1" ? "Final Synthesis" : "Final Adjudication",
+    phase: "Final Adjudication",
     subQuestionLabel: "-",
     interaction:
       (input.finalReportRecord
         ? input.interactions.find((interaction) => interaction.id === input.finalReportRecord?.interactionId)
         : null)
-      ?? findInteraction(input.interactions, finalPhase),
+      ?? findInteraction(input.interactions, "final_adjudication"),
   });
   return rows;
 };

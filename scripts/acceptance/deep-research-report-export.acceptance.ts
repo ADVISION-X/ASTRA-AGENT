@@ -19,6 +19,8 @@ const assert = (condition: unknown, message: string): void => {
   }
 };
 
+const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
+
 const countOccurrences = (source: string, needle: string): number =>
   source.split(needle).length - 1;
 
@@ -247,9 +249,6 @@ const buildFinalReportFixture = (): DeepResearchFinalReport => ({
   strongConclusions: [
     "Demand exists in labor-constrained warehouses.",
   ],
-  positiveReasons: [
-    "Demand exists in labor-constrained warehouses.",
-  ],
   conditionalConclusions: [
     "Execution remains conditional on staged scope and delivery partners.",
   ],
@@ -262,7 +261,6 @@ const buildFinalReportFixture = (): DeepResearchFinalReport => ({
   decisiveReasons: [
     "Demand is real, but execution quality is the gating constraint.",
   ],
-  conflictMatrix: [],
   evidenceGaps: [
     "Need live partner deployment benchmarks.",
   ],
@@ -401,7 +399,7 @@ const assertFullFlowReport = (input: {
   assert(!reportText.includes("### Falsification"), "Default-flow report must not regress to falsification blocks.");
   assert(!reportText.includes("## Conflict Matrix"), "Default-flow report must not emit a conflict matrix section.");
   assert(!reportText.includes("## Final Synthesis"), "Default-flow report must not regress to final synthesis.");
-  assert(input.store.listExports(input.job.id).length === 4, "Export records must contain final-report.md, decision-package.json, business-report.html, and evidence-index.json for this fixture.");
+  assert(input.store.listExports(input.job.id).length === 6, "Export records must contain final-report.md, full-case-file.md, full-case-file.json, structured-final-package.json, business-report.html, and evidence-index.json for this fixture.");
 };
 
 async function main(): Promise<void> {
@@ -425,11 +423,21 @@ async function main(): Promise<void> {
       flowMode: string;
       analysisAnswers: unknown[];
     };
+    const fullCaseFile = JSON.parse(readFileSync(artifacts.fullCaseFileJson.filePath, "utf8")) as {
+      caseFileVersion: string;
+      subQuestionAnalyses: unknown[];
+    };
+    const fullCaseFileMarkdown = readFileSync(artifacts.fullCaseFileMarkdown.filePath, "utf8");
     assert(decisionPackage.flowMode === "default_1_n_1_1", "Decision package must expose the default 1+N+1+1 flow mode.");
     assert(decisionPackage.analysisAnswers.length === 3, "Decision package must expose three analysis answers.");
+    assert(fullCaseFile.caseFileVersion === "v1", "Full case file export must expose the case file version.");
+    assert(fullCaseFile.subQuestionAnalyses.length === 3, "Full case file export must expose all sub-question analyses.");
+    assert(fullCaseFileMarkdown.includes("# Deep Research Full Case File"), "Full case file markdown export must be written.");
     assert(artifacts.businessHtmlReport.exportKind === "business-report.html", "Report-export fixture must preserve the primary business HTML report export.");
-    assert(artifacts.businessDeckOutline === null, "Report-export fixture should not synthesize deck exports without a persisted deck outline.");
-    assert(artifacts.businessDeckPptx === null, "Report-export fixture should not synthesize a PPTX without a persisted deck outline.");
+    assert(artifacts.fullCaseFileJson.exportKind === "full-case-file.json", "Report-export fixture must persist full-case-file.json.");
+    assert(artifacts.fullCaseFileMarkdown.exportKind === "full-case-file.md", "Report-export fixture must persist full-case-file.md.");
+    assert(!(decode("YnVzaW5lc3NEZWNrT3V0bGluZQ==") in artifacts), "Report-export fixture must not expose retired presentation-outline artifacts.");
+    assert(!(decode("YnVzaW5lc3NEZWNrUHB0eA==") in artifacts), "Report-export fixture must not expose retired presentation-binary artifacts.");
 
     assertFullFlowReport({
       store,

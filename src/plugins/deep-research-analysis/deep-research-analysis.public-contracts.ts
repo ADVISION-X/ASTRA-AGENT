@@ -1,6 +1,5 @@
 import type {
   ResearchAnswer,
-  ResearchConflictMatrix,
   ResearchExport,
   ResearchInteraction,
   ResearchJob,
@@ -38,8 +37,6 @@ export type DeepResearchJobSnapshot = {
     interactionCount: number;
     subQuestionCount: number;
     analysisCount: number;
-    positiveCount: number;
-    falsificationCount: number;
     exportCount: number;
   };
   finalReport: DeepResearchFinalReport | null;
@@ -52,7 +49,6 @@ export type DeepResearchTimelineSnapshot = {
   timeline: DeepResearchTimelineEntry[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
-  conflictMatrix: ResearchConflictMatrix[];
   finalReport: DeepResearchFinalReport | null;
   exports: ResearchExport[];
 };
@@ -113,11 +109,6 @@ export type DeepResearchAnswerBlockView = {
   parsedPayload: ResearchAnswer["parsedPayload"];
 };
 
-type DeepResearchConflictMatrixRowView = ResearchConflictMatrix["row"] & {
-  rowId: string;
-  createdAt: string;
-};
-
 export type DeepResearchStageStatus =
   | "completed"
   | "running"
@@ -156,32 +147,6 @@ export type DeepResearchPrimaryBusinessReportView = {
   sourceKind: "html_artifact" | null;
 };
 
-export type DeepResearchBusinessDeckView = {
-  generatedAt: string | null;
-  status: "ai_generated" | "local_fallback" | "outline_only";
-  generatedBy: "AI PPT Artifact" | "Local fallback" | "Deck outline only";
-  outlineExport: DeepResearchExportView | null;
-  pptxExport: DeepResearchExportView | null;
-  deckTitle: string | null;
-  deckSubtitle: string | null;
-  audience: string | null;
-  slideCount: number;
-  warnings: string[];
-  preservationSummary: {
-    usedRankedConclusionCount: number;
-    usedReverseConditionCount: number;
-    usedEvidenceGapCount: number;
-    usedReferenceCount: number;
-    omittedItemCount: number;
-  } | null;
-  slideSummaries: Array<{
-    slideNumber: number;
-    slideType: string;
-    title: string;
-    headline: string;
-  }>;
-};
-
 export type DeepResearchConclusionView = {
   directAnswer: string;
   finalVerdict: string;
@@ -193,7 +158,6 @@ export type DeepResearchConclusionView = {
   conditionalConclusions: string[];
   weakOrRejectedClaims: string[];
   decisiveReasons: string[];
-  positiveReasons: string[];
   strongestOpposingArguments: string[];
   evidenceGaps: string[];
   reverseConditions: string[];
@@ -232,16 +196,12 @@ export type DeepResearchReportViewModel = {
   subQuestionReports: Array<{
     subQuestion: DeepResearchSubQuestionView;
     analysis: DeepResearchAnswerBlockView | null;
-    positive: DeepResearchAnswerBlockView | null;
-    falsification: DeepResearchAnswerBlockView | null;
-    conflict: DeepResearchConflictMatrixRowView | null;
   }>;
   finalAdjudication: {
     interaction: DeepResearchReportInteractionView | null;
     parsedFinalReport: DeepResearchFinalReport | null;
   };
   primaryBusinessReport: DeepResearchPrimaryBusinessReportView | null;
-  businessDeck: DeepResearchBusinessDeckView | null;
   evidence: DeepResearchEvidenceView[];
   exports: DeepResearchExportView[];
 };

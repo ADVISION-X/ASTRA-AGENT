@@ -8,15 +8,11 @@ import {
   type DeepResearchPhase,
   type DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
-import {
-  type DeepResearchConflictMatrixRow,
-  type DeepResearchFinalReport,
-} from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import {
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
   type ResearchAnswer,
   type ResearchAnswerKind,
-  type ResearchConflictMatrix,
   type ResearchExport,
   type ResearchExportKind,
   type ResearchFinalReportRecord,
@@ -40,9 +36,7 @@ import {
 } from "./deep-research-analysis.record-interaction-ops.js";
 import {
   getLatestFinalReport,
-  listConflictMatrix,
   listExports,
-  saveConflictMatrixRows,
   saveExport,
   saveFinalReport,
 } from "./deep-research-analysis.record-result-ops.js";
@@ -50,7 +44,6 @@ import {
 export { DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH };
 export type {
   ResearchAnswer,
-  ResearchConflictMatrix,
   ResearchExport,
   ResearchExportKind,
   ResearchFinalReportRecord,
@@ -135,7 +128,6 @@ const createDeleteJobOperation = (db: DeepResearchDatabaseHandle) =>
     const deleted = db.transaction(() => {
       db.prepare(`DELETE FROM research_exports WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_final_reports WHERE job_id = ?`).run(jobId);
-      db.prepare(`DELETE FROM research_conflict_matrix WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_answers WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_sub_questions WHERE job_id = ?`).run(jobId);
       db.prepare(`DELETE FROM research_interactions WHERE job_id = ?`).run(jobId);
@@ -208,11 +200,6 @@ export type DeepResearchRecordStore = {
     jobId: string;
     answerKind?: ResearchAnswerKind;
   }): ResearchAnswer[];
-  saveConflictMatrixRows(input: {
-    jobId: string;
-    rows: readonly DeepResearchConflictMatrixRow[];
-  }): ResearchConflictMatrix[];
-  listConflictMatrix(jobId: string): ResearchConflictMatrix[];
   saveFinalReport(input: {
     jobId: string;
     interactionId: string;
@@ -244,8 +231,6 @@ export const createDeepResearchRecordStore = (dataDir: string): DeepResearchReco
     listSubQuestions: (jobId) => listSubQuestions(db, jobId),
     saveAnswer: (input) => saveAnswer(db, input),
     listAnswers: (input) => listAnswers(db, input),
-    saveConflictMatrixRows: (input) => saveConflictMatrixRows(db, input),
-    listConflictMatrix: (jobId) => listConflictMatrix(db, jobId),
     saveFinalReport: (input) => saveFinalReport(db, input),
     getLatestFinalReport: (jobId) => getLatestFinalReport(db, jobId),
     saveExport: (input) => saveExport(db, input),

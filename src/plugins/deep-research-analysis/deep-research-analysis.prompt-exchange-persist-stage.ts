@@ -100,18 +100,6 @@ const handlePrimaryPersistStages = <TParsed>(
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
-    case "POSITIVE_PERSIST": {
-      const persistStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_PERSIST" });
-      return continuePersistPromptOutput({ ...input, persistStage });
-    }
-    case "FALSIFY_PERSIST": {
-      const persistStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_PERSIST" });
-      return continuePersistPromptOutput({ ...input, persistStage });
-    }
-    case "FINAL_PERSIST": {
-      const persistStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PERSIST" });
-      return continuePersistPromptOutput({ ...input, persistStage });
-    }
     default:
       return null;
   }
@@ -128,14 +116,6 @@ const handleExtendedPersistStages = <TParsed>(
     }
     case "HTML_REPORT_PERSIST": {
       const persistStage = input.stageLogger.start({ ...startFields, stageName: "HTML_REPORT_PERSIST" });
-      return continuePersistPromptOutput({ ...input, persistStage });
-    }
-    case "DECK_PERSIST": {
-      const persistStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PERSIST" });
-      return continuePersistPromptOutput({ ...input, persistStage });
-    }
-    case "DECK_PPT_PERSIST": {
-      const persistStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PPT_PERSIST" });
       return continuePersistPromptOutput({ ...input, persistStage });
     }
     default:

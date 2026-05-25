@@ -129,21 +129,6 @@ const handlePrimarySendStages = (input: {
       finishStartedPromptSend(sendStage, input);
       return true;
     }
-    case "POSITIVE_SEND": {
-      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "POSITIVE_SEND" });
-      finishStartedPromptSend(sendStage, input);
-      return true;
-    }
-    case "FALSIFY_SEND": {
-      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "FALSIFY_SEND" });
-      finishStartedPromptSend(sendStage, input);
-      return true;
-    }
-    case "FINAL_SEND": {
-      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "FINAL_SEND" });
-      finishStartedPromptSend(sendStage, input);
-      return true;
-    }
     default:
       return false;
   }
@@ -167,16 +152,6 @@ const handleExtendedSendStages = (input: {
     }
     case "HTML_REPORT_SEND": {
       const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "HTML_REPORT_SEND" });
-      finishStartedPromptSend(sendStage, input);
-      return true;
-    }
-    case "DECK_SEND": {
-      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "DECK_SEND" });
-      finishStartedPromptSend(sendStage, input);
-      return true;
-    }
-    case "DECK_PPT_SEND": {
-      const sendStage = input.stageLogger.start({ ...input.startFields, stageName: "DECK_PPT_SEND" });
       finishStartedPromptSend(sendStage, input);
       return true;
     }

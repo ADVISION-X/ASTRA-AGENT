@@ -6,19 +6,13 @@ import {
   type ResearchJob,
   type ResearchSubQuestion,
 } from "./deep-research-analysis.record-contracts.js";
-import type {
-  DeepResearchConflictMatrixRow,
-  DeepResearchFinalReport,
-} from "./deep-research-analysis.result.js";
+import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import {
   buildAnalysisParsedSection,
-  buildConflictMatrixTable,
   buildEvidenceIndexTable,
   buildEvidenceLines,
-  buildFalsificationParsedSection,
   buildInteractionEvidence,
   buildMarkdownList,
-  buildPositiveParsedSection,
   buildPromptBlock,
   buildRawResponseBlock,
   buildStageOverviewRows,
@@ -69,8 +63,6 @@ const buildDecompositionSection = (input: {
 
 type PersistedAnswerMaps = {
   analysisAnswerBySubQuestionId: Map<string, ResearchAnswer>;
-  positiveAnswerBySubQuestionId: Map<string, ResearchAnswer>;
-  falsificationAnswerBySubQuestionId: Map<string, ResearchAnswer>;
 };
 
 const buildAnswerMapByKind = (
@@ -85,8 +77,6 @@ const buildAnswerMapByKind = (
 
 const buildPersistedAnswerMaps = (answers: readonly ResearchAnswer[]): PersistedAnswerMaps => ({
   analysisAnswerBySubQuestionId: buildAnswerMapByKind(answers, "analysis"),
-  positiveAnswerBySubQuestionId: buildAnswerMapByKind(answers, "positive"),
-  falsificationAnswerBySubQuestionId: buildAnswerMapByKind(answers, "falsification"),
 });
 
 const buildDefaultSubQuestionSection = (input: {
@@ -114,52 +104,6 @@ const buildDefaultSubQuestionSection = (input: {
   "",
   "#### Evidence",
   buildEvidenceLines(input.analysisInteraction),
-].join("\n");
-
-const buildLegacySubQuestionSection = (input: {
-  subQuestion: ResearchSubQuestion;
-  positiveInteraction: ResearchInteraction | null;
-  falsificationInteraction: ResearchInteraction | null;
-  positiveAnswer: ResearchAnswer | null;
-  falsificationAnswer: ResearchAnswer | null;
-}): string => [
-  `## Sub-question ${input.subQuestion.modelQuestionId}: ${input.subQuestion.question.title}`,
-  "",
-  buildSubQuestionMetadata(input.subQuestion),
-  "",
-  "### Positive Analysis",
-  "",
-  "#### Prompt",
-  buildPromptBlock(input.positiveInteraction),
-  "",
-  "#### AI Raw Response",
-  buildRawResponseBlock(input.positiveInteraction),
-  "",
-  "#### Parsed Positive Answer",
-  buildPositiveParsedSection({
-    interaction: input.positiveInteraction,
-    answer: input.positiveAnswer,
-  }),
-  "",
-  "#### Evidence",
-  buildEvidenceLines(input.positiveInteraction),
-  "",
-  "### Falsification",
-  "",
-  "#### Prompt",
-  buildPromptBlock(input.falsificationInteraction),
-  "",
-  "#### AI Raw Response",
-  buildRawResponseBlock(input.falsificationInteraction),
-  "",
-  "#### Parsed Falsification Answer",
-  buildFalsificationParsedSection({
-    interaction: input.falsificationInteraction,
-    answer: input.falsificationAnswer,
-  }),
-  "",
-  "#### Evidence",
-  buildEvidenceLines(input.falsificationInteraction),
 ].join("\n");
 
 const buildReportMetadataLines = (input: {
@@ -192,7 +136,7 @@ const buildDecisionSummarySection = (input: {
   }
   const decisiveReasons = input.finalReport.decisiveReasons.length > 0
     ? input.finalReport.decisiveReasons
-    : input.finalReport.positiveReasons;
+    : input.finalReport.strongConclusions;
   const opposingClaims = input.finalReport.weakOrRejectedClaims.length > 0
     ? input.finalReport.weakOrRejectedClaims
     : input.finalReport.strongestOpposingArguments;
@@ -244,9 +188,7 @@ const buildFinalStageSection = (input: {
   finalReport: DeepResearchFinalReport | null;
   flowMode: DeepResearchFinalPackage["flowMode"];
 }): string => {
-  const sectionLabel = input.flowMode === "legacy_1_n_n_1"
-    ? "Final Synthesis"
-    : "Final Adjudication";
+  const sectionLabel = "Final Adjudication";
   const parsedSection = !input.finalReport
     ? "Final report not available."
     : [
@@ -256,7 +198,7 @@ const buildFinalStageSection = (input: {
       "decisiveReasons",
       buildMarkdownList(input.finalReport.decisiveReasons.length > 0
         ? input.finalReport.decisiveReasons
-        : input.finalReport.positiveReasons),
+        : input.finalReport.strongConclusions),
       "weakOrRejectedClaims",
       buildMarkdownList(input.finalReport.weakOrRejectedClaims.length > 0
         ? input.finalReport.weakOrRejectedClaims
@@ -295,7 +237,6 @@ type DeepResearchMarkdownContext = {
   stageRows: ReturnType<typeof buildStageOverviewRows>;
   decompositionInteraction: ResearchInteraction | null;
   finalInteraction: ResearchInteraction | null;
-  conflictMatrixRows: readonly DeepResearchConflictMatrixRow[];
 };
 
 const buildMarkdownContext = (input: {
@@ -313,12 +254,7 @@ const buildMarkdownContext = (input: {
     finalReport,
     stageRows: input.stageRows,
     decompositionInteraction: findInteraction(input.persisted.interactions, "decomposition"),
-    finalInteraction: input.finalPackage.flowMode === "legacy_1_n_n_1"
-      ? findInteraction(input.persisted.interactions, "final_synthesis")
-      : findInteraction(input.persisted.interactions, "final_adjudication"),
-    conflictMatrixRows: input.finalPackage.flowMode === "legacy_1_n_n_1"
-      ? input.finalPackage.conflictMatrix
-      : [],
+    finalInteraction: findInteraction(input.persisted.interactions, "final_adjudication"),
   };
 };
 
@@ -328,20 +264,11 @@ const buildSubQuestionSections = (input: {
   answerMaps: PersistedAnswerMaps;
 }): string[] =>
   input.persisted.subQuestions.map((subQuestion) =>
-    input.finalPackage.flowMode === "legacy_1_n_n_1"
-      ? buildLegacySubQuestionSection({
-        subQuestion,
-        positiveInteraction: findInteraction(input.persisted.interactions, "positive", subQuestion.id),
-        falsificationInteraction: findInteraction(input.persisted.interactions, "falsification", subQuestion.id),
-        positiveAnswer: input.answerMaps.positiveAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-        falsificationAnswer: input.answerMaps.falsificationAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-      })
-      : buildDefaultSubQuestionSection({
-        subQuestion,
-        analysisInteraction: findInteraction(input.persisted.interactions, "analysis", subQuestion.id),
-        analysisAnswer: input.answerMaps.analysisAnswerBySubQuestionId.get(subQuestion.id) ?? null,
-      }),
-  );
+    buildDefaultSubQuestionSection({
+      subQuestion,
+      analysisInteraction: findInteraction(input.persisted.interactions, "analysis", subQuestion.id),
+      analysisAnswer: input.answerMaps.analysisAnswerBySubQuestionId.get(subQuestion.id) ?? null,
+    }));
 
 const buildFullFlowReportSections = (input: {
   finalPackage: DeepResearchFinalPackage;
@@ -369,9 +296,8 @@ const buildFullFlowReportSections = (input: {
     finalReport: input.context.finalReport,
   }),
   "",
-  ...((input.finalPackage.flowMode === "default_1_n_1" || input.finalPackage.flowMode === "default_1_n_1_1")
-    ? [buildCoverageSection(input.finalPackage), ""]
-    : []),
+  buildCoverageSection(input.finalPackage),
+  "",
   "## Stage Overview",
   "",
   buildStageOverviewTable(stageRows),
@@ -382,14 +308,6 @@ const buildFullFlowReportSections = (input: {
   }),
   "",
   ...input.subQuestionSections.flatMap((section) => [section, ""]),
-  ...(input.finalPackage.flowMode === "legacy_1_n_n_1"
-    ? [
-      "## Conflict Matrix",
-      "",
-      buildConflictMatrixTable(input.context.conflictMatrixRows, input.context.subQuestionById),
-      "",
-    ]
-    : []),
   buildFinalStageSection({
     interaction: input.context.finalInteraction,
     finalReport: input.context.finalReport,

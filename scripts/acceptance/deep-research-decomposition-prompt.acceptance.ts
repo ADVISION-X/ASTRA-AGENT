@@ -267,25 +267,26 @@ const numericFinalParsed = numericFinal.parsed;
 if (isParsedSuccessStatus(numericFinal.parseStatus) && numericFinalParsed) {
   assert.equal(numericFinalParsed.confidence, "high");
 }
-const fallbackFinal = parseDeepResearchFinalAdjudicationResponse(
+const rawCaseFileFinal = parseDeepResearchFinalAdjudicationResponse(
   JSON.stringify({
-    executiveConclusion: "Legacy conclusion still parses.",
+    directAnswer: "Raw case material supports a conditional decision.",
+    finalVerdict: "conditional_decision",
     confidence: "80%",
   }),
   {
-    positiveReasons: ["legacy reason"],
-    strongestOpposingArguments: ["legacy opposing argument"],
-    evidenceGaps: ["legacy gap"],
-    reverseConditions: ["legacy reverse condition"],
-    followUpSignals: ["legacy follow-up"],
-    limitations: ["legacy limitation"],
+    decisiveReasons: ["case-file reason"],
+    strongestOpposingArguments: ["case-file opposing argument"],
+    evidenceGaps: ["case-file gap"],
+    reverseConditions: ["case-file reverse condition"],
+    followUpSignals: ["case-file follow-up"],
+    limitations: ["case-file limitation"],
   },
 );
-assertParsedStatus(fallbackFinal.parseStatus);
-const fallbackFinalParsed = fallbackFinal.parsed;
-if (isParsedSuccessStatus(fallbackFinal.parseStatus) && fallbackFinalParsed) {
-  assert.equal(fallbackFinalParsed.confidence, "high");
-  assert.ok(fallbackFinalParsed.directAnswer.includes("Legacy conclusion"));
+assertParsedStatus(rawCaseFileFinal.parseStatus);
+const rawCaseFileFinalParsed = rawCaseFileFinal.parsed;
+if (isParsedSuccessStatus(rawCaseFileFinal.parseStatus) && rawCaseFileFinalParsed) {
+  assert.equal(rawCaseFileFinalParsed.confidence, "high");
+  assert.ok(rawCaseFileFinalParsed.directAnswer.includes("Raw case material"));
 }
 
 const flowResult = await runDeepResearchDecompositionPhase({

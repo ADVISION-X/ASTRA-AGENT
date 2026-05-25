@@ -15,12 +15,21 @@ import { inspectCaptureAndSmokeRules } from "./inspector-capture-and-smoke.js";
 import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 import { inspectAiHtmlReportFlow } from "./components/scan-ai-html-report-flow.js";
 import { inspectBusinessHtmlPromptBoundary } from "./components/scan-business-html-prompt-boundary.js";
+import { inspectDeleteRetiredDeepResearchPaths } from "./components/scan-delete-retired-deep-research-paths.js";
+import { inspectFinalAdjudicationFullInput } from "./components/scan-final-adjudication-full-input.js";
+import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file-sovereignty.js";
+import { inspectFullCaseFileRequired } from "./components/scan-full-case-file-required.js";
 import { inspectFullFlowReportExport } from "./components/scan-full-flow-report-export.js";
 import { inspectHtmlReportArtifactPersist } from "./components/scan-html-report-artifact-persist.js";
-import { inspectPptDemotedToOptional } from "./components/scan-ppt-demoted-to-optional.js";
+import { inspectHtmlOnlyFinalArtifact } from "./components/scan-html-only-final-artifact.js";
+import { inspectHtmlReportFullInput } from "./components/scan-html-report-full-input.js";
+import { inspectNoLegacyFlowSymbols } from "./components/scan-no-legacy-flow-symbols.js";
+import { inspectNoDeadCodeAdjudication } from "./components/scan-no-dead-code-adjudication.js";
 import { inspectNoHtmlContentRejudgment } from "./components/scan-no-html-content-rejudgment.js";
 import { inspectPublicTimelineDelivery } from "./components/scan-public-timeline-delivery.js";
+import { inspectRawInteractionPersistence } from "./components/scan-raw-interaction-persistence.js";
 import { inspectReportReaderViewModel } from "./components/scan-report-reader-view-model.js";
+import { inspectSingleFlowSovereignty } from "./components/scan-single-flow-sovereignty.js";
 import { inspectSourceNotesFlow } from "./components/scan-source-notes-flow.js";
 
 const getObjectPropertyText = (objectLiteral: ObjectLiteralExpression, propertyName: string): string | null => {
@@ -300,7 +309,7 @@ type DeepResearchStaticRulesInput = {
   smokeLawId: string;
   reportLawId: string;
   readerLawId: string;
-  deckTextCeilingLawId: string;
+  htmlReportTextCeilingLawId: string;
 };
 
 const inspectCoreStaticRules = (input: DeepResearchStaticRulesInput): void => {
@@ -326,7 +335,7 @@ const inspectDeliveryRules = (input: DeepResearchStaticRulesInput): void => {
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
     lawId: input.reportLawId,
-    deckTextCeilingLawId: input.deckTextCeilingLawId,
+    htmlReportTextCeilingLawId: input.htmlReportTextCeilingLawId,
   });
   inspectReportReaderViewModel({
     queriesFile: input.files.queryFile,
@@ -351,12 +360,66 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
   });
+  inspectRawInteractionPersistence({
+    promptExchangeStageSupportFile: input.files.promptExchangeStageSupportFile,
+    recordContractsFile: input.files.recordContractsFile,
+    recordInteractionOpsFile: input.files.recordInteractionOpsFile,
+    acceptanceFile: input.files.rawResponseSovereigntyAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-033-V1"),
+  });
+  inspectFullCaseFileSovereignty({
+    analysisFinalizationFile: input.files.analysisFinalizationFile,
+    fullCaseFileFile: input.files.fullCaseFileFile,
+    fullCaseFileRenderFile: input.files.fullCaseFileRenderFile,
+    fullCaseFileExportFile: input.files.fullCaseFileExportFile,
+    exportFile: input.files.exportFile,
+    recordContractsFile: input.files.recordContractsFile,
+    acceptanceFile: input.files.fullCaseFileAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-035-V1"),
+  });
+  inspectFinalAdjudicationFullInput({
+    analysisRunnerFile: input.files.analysisRunnerFile,
+    analysisFinalizationFile: input.files.analysisFinalizationFile,
+    finalAdjudicationPromptFile: input.files.finalAdjudicationPromptFile,
+    acceptanceFile: input.files.finalAdjudicationFullInputAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-035-V1"),
+  });
+  inspectNoDeadCodeAdjudication({
+    sourceFiles: input.sourceFiles,
+    finalPackageFile: input.files.finalPackageFile,
+    acceptanceFile: input.files.finalAdjudicationFullInputAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-036-V1"),
+  });
   inspectBusinessHtmlPromptBoundary({
     context: input.context,
     promptFile: input.files.htmlReportPromptFile,
     ciFullFile: input.files.ciFullFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
+  });
+  inspectHtmlReportFullInput({
+    htmlReportPromptFile: input.files.htmlReportPromptFile,
+    htmlReportStageFile: input.files.htmlReportStageFile,
+    clientDeliverySectionsFile: input.files.clientDeliverySectionsFile,
+    workbenchRoutesFile: input.files.workbenchRoutesFile,
+    reportViewFile: input.files.reportViewFile,
+    acceptanceFile: input.files.htmlFullInputAcceptanceFile,
+    ciFullFile: input.files.ciFullFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-037-V1"),
   });
   inspectHtmlReportArtifactPersist({
     context: input.context,
@@ -365,17 +428,6 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
     exportFile: input.files.exportFile,
     recordsFile: input.files.htmlReportRecordsFile,
     recordContractsFile: input.files.recordContractsFile,
-    ciFullFile: input.files.ciFullFile,
-    findings: input.findings,
-    inspectedFiles: input.inspectedFiles,
-  });
-  inspectPptDemotedToOptional({
-    context: input.context,
-    exportFile: input.files.exportFile,
-    finalizationFile: input.files.analysisFinalizationFile,
-    deliveryFile: input.files.clientDeliverySectionsFile,
-    reportSectionsFile: input.files.clientReportSectionsFile,
-    acceptanceFile: input.files.pptOptionalDemotionAcceptanceFile,
     ciFullFile: input.files.ciFullFile,
     findings: input.findings,
     inspectedFiles: input.inspectedFiles,
@@ -398,6 +450,40 @@ const inspectDeepResearchStaticRules = (input: DeepResearchStaticRulesInput): vo
     inspectedFiles: input.inspectedFiles,
     lawId: input.reportLawId,
   });
+  inspectSingleFlowSovereignty({
+    analysisRunnerFile: input.files.analysisRunnerFile,
+    finalPackageFile: input.files.finalPackageFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-038-V1"),
+  });
+  inspectDeleteRetiredDeepResearchPaths({
+    sourceFiles: input.sourceFiles,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-039-V1"),
+  });
+  inspectFullCaseFileRequired({
+    finalAdjudicationPromptFile: input.files.finalAdjudicationPromptFile,
+    htmlReportPromptFile: input.files.htmlReportPromptFile,
+    fullCaseFileFile: input.files.fullCaseFileFile,
+    exportFile: input.files.exportFile,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
+  });
+  inspectHtmlOnlyFinalArtifact({
+    sourceFiles: input.sourceFiles,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
+  });
+  inspectNoLegacyFlowSymbols({
+    sourceFiles: input.sourceFiles,
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    lawId: selectLawId(input.context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-042-V1"),
+  });
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
@@ -406,7 +492,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const smokeLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-013-V1");
   const reportLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-015-V1");
   const readerLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-014-V1");
-  const deckTextCeilingLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-017-V1");
+  const htmlReportTextCeilingLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-017-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
   const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
@@ -431,7 +517,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     smokeLawId,
     reportLawId,
     readerLawId,
-    deckTextCeilingLawId,
+    htmlReportTextCeilingLawId,
   });
   if (astCoverageCount === 0) {
     findings.push(createFinding({

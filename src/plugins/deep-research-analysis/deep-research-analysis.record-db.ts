@@ -6,10 +6,9 @@ import Database from "better-sqlite3";
 import { createId } from "../../lib/local-runtime/ids.js";
 import {
   DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
-  LEGACY_RENDERED_PROMPT_TEXT,
+  MISSING_RENDERED_PROMPT_TEXT,
   type ResearchAnswer,
   type ResearchAnswerKind,
-  type ResearchConflictMatrix,
   type ResearchExport,
   type ResearchExportKind,
   type ResearchFinalReportRecord,
@@ -19,7 +18,6 @@ import {
 } from "./deep-research-analysis.record-contracts.js";
 export {
   mapAnswerRow,
-  mapConflictRow,
   mapExportRow,
   mapFinalReportRow,
   mapInteractionRow,
@@ -98,17 +96,6 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     confidence TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
-  `CREATE TABLE IF NOT EXISTS research_conflict_matrix (
-    id TEXT PRIMARY KEY,
-    job_id TEXT NOT NULL,
-    sub_question_id TEXT NOT NULL,
-    positive_claim_summary TEXT NOT NULL,
-    falsification_summary TEXT NOT NULL,
-    conflict_level TEXT NOT NULL,
-    evidence_gap TEXT NOT NULL,
-    needs_human_review INTEGER NOT NULL,
-    created_at TEXT NOT NULL
-  )`,
   `CREATE TABLE IF NOT EXISTS research_final_reports (
     id TEXT PRIMARY KEY,
     job_id TEXT NOT NULL,
@@ -130,7 +117,6 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
   `CREATE INDEX IF NOT EXISTS idx_research_sub_questions_job ON research_sub_questions(job_id, ordinal)`,
   `CREATE INDEX IF NOT EXISTS idx_research_interactions_job ON research_interactions(job_id, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_research_answers_job ON research_answers(job_id, answer_kind, created_at)`,
-  `CREATE INDEX IF NOT EXISTS idx_research_conflict_job ON research_conflict_matrix(job_id, sub_question_id)`,
   `CREATE INDEX IF NOT EXISTS idx_research_exports_job ON research_exports(job_id, export_kind, created_at)`,
 ] as const;
 
@@ -244,15 +230,11 @@ const remapSubQuestionReferences = (
   const updateAnswers = db.prepare(
     `UPDATE research_answers SET sub_question_id = ? WHERE job_id = ? AND sub_question_id = ?`,
   );
-  const updateConflictRows = db.prepare(
-    `UPDATE research_conflict_matrix SET sub_question_id = ? WHERE job_id = ? AND sub_question_id = ?`,
-  );
   for (const row of legacyRows) {
     const systemId = idRemap.get(`${row.job_id}\u0000${row.id}`);
     if (!systemId) continue;
     updateInteractions.run(systemId, row.job_id, row.id);
     updateAnswers.run(systemId, row.job_id, row.id);
-    updateConflictRows.run(systemId, row.job_id, row.id);
   }
 };
 
@@ -277,7 +259,7 @@ const migrateResearchInteractionsRenderedPromptText = (db: Database.Database): v
     `UPDATE research_interactions
      SET rendered_prompt_text = ?
      WHERE rendered_prompt_text IS NULL OR trim(rendered_prompt_text) = ''`,
-  ).run(LEGACY_RENDERED_PROMPT_TEXT);
+  ).run(MISSING_RENDERED_PROMPT_TEXT);
 };
 
 const migrateResearchJobsFlowMode = (db: Database.Database): void => {
@@ -288,7 +270,7 @@ const migrateResearchJobsFlowMode = (db: Database.Database): void => {
     `UPDATE research_jobs
      SET flow_mode = ?
      WHERE flow_mode IS NULL OR trim(flow_mode) = ''`,
-  ).run("legacy_1_n_n_1");
+  ).run("default_1_n_1_1");
 };
 
 const migrateResearchSubQuestionStructuredFields = (db: Database.Database): void => {

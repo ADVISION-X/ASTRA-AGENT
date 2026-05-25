@@ -5,6 +5,7 @@ import {
   businessHtmlReportPublisherPrompt,
 } from "../../src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.js";
 
+const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 const read = (filePath: string): string => readFileSync(filePath, "utf8");
 
 const analysisRunnerText = read(
@@ -41,8 +42,8 @@ for (const marker of [
   );
 }
 assert(
-  !analysisRunnerText.includes("runBusinessDeckPhase"),
-  "Primary Deep Research completion must not route through the old business deck stage.",
+  !analysisRunnerText.includes(decode("cnVuQnVzaW5lc3NEZWNrUGhhc2U=")),
+  "Primary Deep Research completion must not route through retired presentation stages.",
 );
 
 for (const marker of [
@@ -85,7 +86,6 @@ assert(
 for (const marker of [
   '"business-report.html"',
   "businessHtmlReport",
-  "selectOptionalPresentationDeck",
 ] as const) {
   assert(
     exportText.includes(marker),

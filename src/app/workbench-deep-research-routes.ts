@@ -14,20 +14,16 @@ const DEEP_RESEARCH_JOB_STATUSES = [
   "queued",
   "running",
   "completed",
-  "deck_export_partial",
   "review_required",
   "failed",
 ] as const;
 
 const DEEP_RESEARCH_EXPORT_KINDS = [
   "final-report.md",
-  "research-bundle.json",
-  "decision-package.json",
+  "full-case-file.md",
+  "full-case-file.json",
+  "structured-final-package.json",
   "business-report.html",
-  "business-deck-outline.json",
-  "business-deck.pptx",
-  "business-deck.ai-pptx",
-  "business-deck.local-pptx",
   "evidence-index.json",
 ] as const;
 

@@ -154,18 +154,6 @@ const handlePrimaryParseStages = <TParsed>(
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "ANALYSIS_PARSE" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
-    case "POSITIVE_PARSE": {
-      const parseStage = input.stageLogger.start({ ...startFields, stageName: "POSITIVE_PARSE" });
-      return continueParsePromptOutput({ ...input, parseStage });
-    }
-    case "FALSIFY_PARSE": {
-      const parseStage = input.stageLogger.start({ ...startFields, stageName: "FALSIFY_PARSE" });
-      return continueParsePromptOutput({ ...input, parseStage });
-    }
-    case "FINAL_PARSE": {
-      const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_PARSE" });
-      return continueParsePromptOutput({ ...input, parseStage });
-    }
     default:
       return null;
   }
@@ -182,14 +170,6 @@ const handleExtendedParseStages = <TParsed>(
     }
     case "HTML_REPORT_DETECT": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "HTML_REPORT_DETECT" });
-      return continueParsePromptOutput({ ...input, parseStage });
-    }
-    case "DECK_PARSE": {
-      const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PARSE" });
-      return continueParsePromptOutput({ ...input, parseStage });
-    }
-    case "DECK_PPT_ARTIFACT_DETECT": {
-      const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECK_PPT_ARTIFACT_DETECT" });
       return continueParsePromptOutput({ ...input, parseStage });
     }
     default:

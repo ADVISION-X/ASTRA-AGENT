@@ -1,5 +1,6 @@
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import type { DeepResearchFinalPackage } from "./deep-research-analysis.final-package.js";
+import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import {
   businessHtmlReportPublisherPrompt,
   renderDeepResearchBusinessHtmlReportPrompt,
@@ -48,9 +49,13 @@ const buildBusinessHtmlPromptText = (input: {
   context: AnalysisExecutionContext;
   finalPackage: DeepResearchFinalPackage;
   finalReport: DeepResearchFinalReport;
+  fullCaseFile: DeepResearchFullCaseFile;
+  fullCaseFileMarkdown: string;
 }): string => renderDeepResearchBusinessHtmlReportPrompt({
   finalPackage: input.finalPackage,
   finalReport: input.finalReport,
+  fullCaseFile: input.fullCaseFile,
+  fullCaseFileMarkdown: input.fullCaseFileMarkdown,
   sourceNotes: buildHtmlSourceNotes({
     finalPackage: input.finalPackage,
     finalReport: input.finalReport,
@@ -98,6 +103,8 @@ export const runBusinessHtmlReportPhase = async (
   context: AnalysisExecutionContext,
   finalPackage: DeepResearchFinalPackage,
   finalReport: DeepResearchFinalReport,
+  fullCaseFile: DeepResearchFullCaseFile,
+  fullCaseFileMarkdown: string,
 ): Promise<HtmlReportSuccess | AnalysisFailure> => {
   const outputPath = buildBusinessHtmlReportOutputPath(context.dataDir, context.jobId);
   const result = await runPromptExchange<DeepResearchBusinessHtmlReportRecord>({
@@ -115,10 +122,13 @@ export const runBusinessHtmlReportPhase = async (
       context,
       finalPackage,
       finalReport,
+      fullCaseFile,
+      fullCaseFileMarkdown,
     }),
     inputRefs: [
       `job:${context.jobId}:final-package`,
       `job:${context.jobId}:final-report`,
+      `job:${context.jobId}:full-case-file`,
     ],
     timeoutMs: 1_800_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
