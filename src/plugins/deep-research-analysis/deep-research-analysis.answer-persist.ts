@@ -1,11 +1,6 @@
 import type { ExchangePersistSummary } from "./deep-research-analysis.flow-shared.js";
-import {
-  type DeepResearchRecordStore,
-  type ResearchInteraction,
-} from "./deep-research-analysis.records.js";
-import type {
-  DeepResearchSubQuestionAnalysisAnswer,
-} from "./deep-research-analysis.parser.js";
+import { type DeepResearchRecordStore, type ResearchInteraction } from "./deep-research-analysis.records.js";
+import type { DeepResearchSubQuestionAnalysisAnswer } from "./deep-research-analysis.parser.js";
 
 export const persistAnalysisAnswer = (input: {
   store: DeepResearchRecordStore;
@@ -28,9 +23,5 @@ export const persistAnalysisAnswer = (input: {
     parsedPayload: input.parsed.structuredPayload,
     confidence: input.parsed.confidence,
   });
-  return {
-    recordType: "analysis-answer",
-    recordId: answer.id,
-    count: 1,
-  };
+  return { recordType: "analysis-answer", recordId: answer.id, count: 1 };
 };

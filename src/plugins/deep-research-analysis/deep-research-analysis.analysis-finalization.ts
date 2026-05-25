@@ -11,7 +11,7 @@ import {
 } from "./deep-research-analysis.logging.js";
 import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-analysis.parser.js";
 import {
-  finalAdjudicationShellPrompt,
+  buildFinalAdjudicationShellPrompt,
   renderDeepResearchFinalAdjudicationPrompt,
 } from "./deep-research-analysis.final-adjudication-prompt.js";
 import { type DeepResearchFinalReport, type DeepResearchResult } from "./deep-research-analysis.result.js";
@@ -73,134 +73,30 @@ const completeFinalPackageStage = (input: {
   finalPackageStage: FlowStageHandle;
   finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
+  fullCaseFileMarkdown: string;
 }) => {
-  const { finalPackageStage } = input;
   const finalPackageHash = stableJsonHash(input.finalPackage);
+  const fullCaseFileHash = stableJsonHash(input.fullCaseFile);
+  const fullCaseFileMarkdownHash = stableJsonHash(input.fullCaseFileMarkdown);
+  input.context.recordHashes.structuredIndexHash = finalPackageHash;
+  input.context.recordHashes.fullCaseFileHash = fullCaseFileHash;
+  input.context.recordHashes.fullCaseFileMarkdownHash = fullCaseFileMarkdownHash;
   logDeepResearchStructuredIndexBuilt({
     logger: input.context.runtimeLogger,
     traceContext: input.context.traceContext,
     phase: "FULL_CASE_FILE_BUILD",
     packageHash: finalPackageHash,
-    recordHashCount: Object.keys(input.finalPackage.recordHashes).length,
+    recordHashCount: Object.keys(input.context.recordHashes).length,
     promptVersionCount: Object.keys(input.finalPackage.promptVersions).length,
   });
-  finalPackageStage.complete({
-    durationMs: Math.max(0, Date.now() - finalPackageStage.startedAt),
-    hashes: { packageHash: finalPackageHash },
-    metrics: {
-      analysisRecordCount: input.finalPackage.analysisRecords.length,
-      missingAnalysisCount: input.finalPackage.missingAnalysisSubQuestionIds.length,
-      recordHashCount: Object.keys(input.finalPackage.recordHashes).length,
-      rawAnalysisCoverageCount: input.fullCaseFile.coverage.rawAnalysisInteractionCount,
-    },
-  });
-};
-
-const runExportStage = async (
-  context: AnalysisExecutionContext,
-  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>,
-  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
-  finalReport: DeepResearchFinalReport,
-) => {
-  context.store.updateJobState({
-    jobId: context.jobId,
-    status: "running",
-    phase: "EXPORT_REPORT",
-  });
-  const exportStage = context.stageLogger.start({
-    ...buildFlowStageStartFields({
-    traceContext: context.traceContext,
-    preview: { jobId: context.jobId },
-    }),
-    stageName: "EXPORT_REPORT",
-  });
-  const exportArtifacts = await exportDeepResearchArtifacts({
-    dataDir: context.dataDir,
-    store: context.store,
-    jobId: context.jobId,
-    structuredIndex: finalPackage,
-    fullCaseFile,
-    finalReport,
-  });
-  logDeepResearchExportCompleted({
-    logger: context.runtimeLogger,
-    traceContext: context.traceContext,
-    phase: "EXPORT_REPORT",
-    exportDir: exportArtifacts.exportDir,
-    finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
-    fullCaseFileJsonHash: exportArtifacts.fullCaseFileJson.fileHash,
-    fullCaseFileMarkdownHash: exportArtifacts.fullCaseFileMarkdown.fileHash,
-    structuredIndexHash: exportArtifacts.structuredIndex.fileHash,
-    evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
-  });
-  exportStage.complete({
-    durationMs: Math.max(0, Date.now() - exportStage.startedAt),
-    refs: { exportDir: exportArtifacts.exportDir },
+  input.finalPackageStage.complete({
+    durationMs: Math.max(0, Date.now() - input.finalPackageStage.startedAt),
     hashes: {
-      finalReportHash: exportArtifacts.finalReportMarkdown.fileHash,
-      fullCaseFileJsonHash: exportArtifacts.fullCaseFileJson.fileHash,
-      fullCaseFileMarkdownHash: exportArtifacts.fullCaseFileMarkdown.fileHash,
-      structuredIndexHash: exportArtifacts.structuredIndex.fileHash,
-      evidenceIndexHash: exportArtifacts.evidenceIndex.fileHash,
+      finalPackageHash,
+      fullCaseFileHash,
+      fullCaseFileMarkdownHash,
     },
   });
-  return exportArtifacts;
-};
-
-const buildMergedRecordHashes = (input: {
-  context: AnalysisExecutionContext;
-  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
-  exportArtifacts: Awaited<ReturnType<typeof exportDeepResearchArtifacts>>;
-  finalReportRecord: ReturnType<AnalysisExecutionContext["store"]["getLatestFinalReport"]>;
-}) => ({
-  ...input.finalPackage.recordHashes,
-  ...input.context.recordHashes,
-  exportFinalReportHash: input.exportArtifacts.finalReportMarkdown.fileHash,
-  exportFullCaseFileJsonHash: input.exportArtifacts.fullCaseFileJson.fileHash,
-  exportFullCaseFileMarkdownHash: input.exportArtifacts.fullCaseFileMarkdown.fileHash,
-  exportStructuredIndexHash: input.exportArtifacts.structuredIndex.fileHash,
-  exportBusinessHtmlReportHash: input.exportArtifacts.businessHtmlReport.fileHash,
-  exportEvidenceIndexHash: input.exportArtifacts.evidenceIndex.fileHash,
-  ...(input.finalReportRecord
-    ? {
-        [`finalReport:${input.finalReportRecord.id}`]:
-          input.finalReportRecord.reportHash,
-      }
-    : {}),
-});
-
-const markJobCompleted = (input: {
-  context: AnalysisExecutionContext;
-  finalReport: DeepResearchFinalReport;
-  mergedRecordHashes: Record<string, string>;
-  finalReportRecord: ReturnType<AnalysisExecutionContext["store"]["getLatestFinalReport"]>;
-}): DeepResearchResult => {
-  input.context.store.updateJobState({
-    jobId: input.context.jobId,
-    status: "completed",
-    phase: "COMPLETE",
-    failureReason: null,
-    reviewReason: null,
-  });
-  logDeepResearchJobCompleted({
-    logger: input.context.runtimeLogger,
-    traceContext: input.context.traceContext,
-    phase: "COMPLETE",
-    reportHash: input.finalReportRecord
-      ? input.finalReportRecord.reportHash
-      : stableJsonHash(input.finalReport),
-    recordHashCount: Object.keys(input.mergedRecordHashes).length,
-  });
-  return {
-    jobId: input.context.jobId,
-    status: "success",
-    jobStatus: "completed",
-    phase: "COMPLETE",
-    report: input.finalReport,
-    recordHashes: input.mergedRecordHashes,
-    failureReason: null,
-    reviewReason: null,
-  };
 };
 
 export const buildFullCaseFileStage = (
@@ -213,43 +109,51 @@ export const buildFullCaseFileStage = (
   });
   const finalPackageStage = context.stageLogger.start({
     ...buildFlowStageStartFields({
-    traceContext: context.traceContext,
-    preview: { jobId: context.jobId },
+      traceContext: context.traceContext,
+      refs: { jobId: context.jobId },
     }),
     stageName: "FULL_CASE_FILE_BUILD",
   });
-  let finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
-  let fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
   try {
-    finalPackage = buildDeepResearchStructuredIndex({
+    const finalPackage = buildDeepResearchStructuredIndex({
       store: context.store,
       jobId: context.jobId,
     });
-    fullCaseFile = buildDeepResearchFullCaseFile({
+    const fullCaseFile = buildDeepResearchFullCaseFile({
       store: context.store,
       jobId: context.jobId,
       structuredIndex: finalPackage,
     });
-  } catch (error) {
-    return failFinalPackageStage(
+    const fullCaseFileMarkdown = renderDeepResearchFullCaseFileMarkdown(fullCaseFile);
+    completeFinalPackageStage({
       context,
       finalPackageStage,
-      error instanceof Error ? error.message : "deep_research_full_case_file_build_failed",
-    );
+      finalPackage,
+      fullCaseFile,
+      fullCaseFileMarkdown,
+    });
+    return {
+      ok: true,
+      finalPackage,
+      fullCaseFile,
+      fullCaseFileMarkdown,
+    };
+  } catch (error) {
+    const reason = error instanceof Error
+      ? error.message
+      : "deep_research_full_case_file_build_failed";
+    return failFinalPackageStage(context, finalPackageStage, reason);
   }
-  completeFinalPackageStage({
-    context,
-    finalPackageStage,
-    finalPackage,
-    fullCaseFile,
-  });
-  return {
-    ok: true,
-    finalPackage,
-    fullCaseFile,
-    fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
-  };
 };
+
+const buildMergedFinalReport = (input: {
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
+  finalReport: DeepResearchFinalReport;
+}): DeepResearchFinalReport =>
+  mergeDeepResearchFinalReportSourceNotes({
+    finalReport: input.finalReport,
+    packageSourceNotes: input.finalPackage.sourceNotes,
+  });
 
 export const runFinalReportPhase = async (
   context: AnalysisExecutionContext,
@@ -257,7 +161,7 @@ export const runFinalReportPhase = async (
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   fullCaseFileMarkdown: string,
 ): Promise<FinalReportSuccess | AnalysisFailure> => {
-  const finalReport = await runPromptExchange<DeepResearchFinalReport>({
+  const result = await runPromptExchange<DeepResearchFinalReport>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
@@ -266,7 +170,7 @@ export const runFinalReportPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: finalAdjudicationShellPrompt,
+    prompt: buildFinalAdjudicationShellPrompt(),
     promptKey: "final-adjudication",
     renderedPromptText: renderDeepResearchFinalAdjudicationPrompt({
       language: context.input.language,
@@ -275,8 +179,12 @@ export const runFinalReportPhase = async (
       fullCaseFileMarkdown,
       finalAdjudicationPromptBundle: fullCaseFile.researchPlan.finalAdjudicationPromptBundle,
     }),
-    inputRefs: [`job:${context.jobId}:structured-index`, `job:${context.jobId}:full-case-file`],
-    timeoutMs: 1_200_000,
+    inputRefs: [
+      `job:${context.jobId}:structured-index`,
+      `job:${context.jobId}:full-case-file`,
+      `job:${context.jobId}:full-case-file-markdown`,
+    ],
+    timeoutMs: 1800000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     stages: {
       send: "FINAL_ADJUDICATION_SEND",
@@ -287,15 +195,16 @@ export const runFinalReportPhase = async (
     parse: (rawText) => parseDeepResearchFinalAdjudicationResponse(rawText),
     successRecordCount: () => 1,
     persist: ({ interaction, parsed }) => {
-      const reportWithSourceNotes = mergeDeepResearchFinalReportSourceNotes({
+      const finalReport = buildMergedFinalReport({
+        finalPackage,
         finalReport: parsed,
-        packageSourceNotes: finalPackage.sourceNotes,
       });
       const finalReportRecord = context.store.saveFinalReport({
         jobId: context.jobId,
         interactionId: interaction.id,
-        report: reportWithSourceNotes,
+        report: finalReport,
       });
+      context.recordHashes.finalReportHash = finalReportRecord.reportHash;
       return {
         recordType: "final-report",
         recordId: finalReportRecord.id,
@@ -303,17 +212,143 @@ export const runFinalReportPhase = async (
       };
     },
   });
-  if (finalReport.status !== "parsed") {
-    return finishPromptFailure(context, finalReport);
+  if (result.status !== "parsed") {
+    return finishPromptFailure(context, result);
   }
   return {
     ok: true,
-    finalReport: mergeDeepResearchFinalReportSourceNotes({
-      finalReport: finalReport.parsed,
-      packageSourceNotes: finalPackage.sourceNotes,
+    finalReport: buildMergedFinalReport({
+      finalPackage,
+      finalReport: result.parsed,
     }),
   };
 };
+
+const buildSuccessResult = (input: {
+  context: AnalysisExecutionContext;
+  finalReport: DeepResearchFinalReport;
+}): DeepResearchResult => ({
+  jobId: input.context.jobId,
+  status: "success",
+  jobStatus: "completed",
+  phase: "COMPLETE",
+  report: input.finalReport,
+  recordHashes: input.context.recordHashes,
+  failureReason: null,
+  reviewReason: null,
+});
+
+const recordExportHashes = (
+  context: AnalysisExecutionContext,
+  exports: Awaited<ReturnType<typeof exportDeepResearchArtifacts>>,
+): void => {
+  context.recordHashes.finalReportMarkdownHash = exports.finalReportMarkdown.fileHash;
+  context.recordHashes.fullCaseFileJsonHash = exports.fullCaseFileJson.fileHash;
+  context.recordHashes.fullCaseFileMarkdownExportHash = exports.fullCaseFileMarkdown.fileHash;
+  context.recordHashes.structuredIndexExportHash = exports.structuredIndex.fileHash;
+  context.recordHashes.evidenceIndexHash = exports.evidenceIndex.fileHash;
+  context.recordHashes.businessHtmlReportHash = exports.businessHtmlReport.fileHash;
+};
+
+const runExportStage = async (input: {
+  context: AnalysisExecutionContext;
+  finalPackage: ReturnType<typeof buildDeepResearchStructuredIndex>;
+  fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>;
+  finalReport: DeepResearchFinalReport;
+}): Promise<Awaited<ReturnType<typeof exportDeepResearchArtifacts>>> => {
+  input.context.store.updateJobState({
+    jobId: input.context.jobId,
+    status: "running",
+    phase: "EXPORT_REPORT",
+  });
+  const exportStage = input.context.stageLogger.start({
+    ...buildFlowStageStartFields({
+      traceContext: input.context.traceContext,
+      refs: { jobId: input.context.jobId },
+    }),
+    stageName: "EXPORT_REPORT",
+  });
+  try {
+    const exports = await exportDeepResearchArtifacts({
+      dataDir: input.context.dataDir,
+      store: input.context.store,
+      jobId: input.context.jobId,
+      structuredIndex: input.finalPackage,
+      fullCaseFile: input.fullCaseFile,
+      finalReport: input.finalReport,
+    });
+    recordExportHashes(input.context, exports);
+    exportStage.complete({
+      durationMs: Math.max(0, Date.now() - exportStage.startedAt),
+      hashes: {
+        finalReportHash: exports.finalReportMarkdown.fileHash,
+        structuredIndexHash: exports.structuredIndex.fileHash,
+        evidenceIndexHash: exports.evidenceIndex.fileHash,
+      },
+    });
+    return exports;
+  } catch (error) {
+    const reason = error instanceof Error
+      ? error.message
+      : "deep_research_completion_failed";
+    exportStage.fail({
+      reason,
+      failureClass: RuntimeFailureClass.INTERNAL_BUG,
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "terminal",
+      durationMs: Math.max(0, Date.now() - exportStage.startedAt),
+    });
+    throw error;
+  }
+};
+
+const finalizeSuccessfulCompletion = (input: {
+  context: AnalysisExecutionContext;
+  exports: Awaited<ReturnType<typeof exportDeepResearchArtifacts>>;
+  finalReport: DeepResearchFinalReport;
+}): string => {
+  logDeepResearchExportCompleted({
+    logger: input.context.runtimeLogger,
+    traceContext: input.context.traceContext,
+    phase: "COMPLETE",
+    exportDir: input.exports.exportDir,
+    finalReportHash: input.exports.finalReportMarkdown.fileHash,
+    fullCaseFileJsonHash: input.exports.fullCaseFileJson.fileHash,
+    fullCaseFileMarkdownHash: input.exports.fullCaseFileMarkdown.fileHash,
+    structuredIndexHash: input.exports.structuredIndex.fileHash,
+    evidenceIndexHash: input.exports.evidenceIndex.fileHash,
+  });
+  input.context.store.updateJobState({
+    jobId: input.context.jobId,
+    status: "completed",
+    phase: "COMPLETE",
+  });
+  const reportHash = stableJsonHash(input.finalReport);
+  logDeepResearchJobCompleted({
+    logger: input.context.runtimeLogger,
+    traceContext: input.context.traceContext,
+    phase: "COMPLETE",
+    reportHash,
+    recordHashCount: Object.keys(input.context.recordHashes).length,
+  });
+  return reportHash;
+};
+
+const buildCompletionFailureResult = (input: {
+  context: AnalysisExecutionContext;
+  reason: string;
+}): DeepResearchResult => finishFailure({
+  store: input.context.store,
+  runtimeLogger: input.context.runtimeLogger,
+  traceContext: input.context.traceContext,
+  jobId: input.context.jobId,
+  status: "failed",
+  phase: "COMPLETE",
+  reason: input.reason,
+  failureClass: RuntimeFailureClass.INTERNAL_BUG,
+  recordHashes: input.context.recordHashes,
+});
 
 export const completeSuccessfulRun = async (
   context: AnalysisExecutionContext,
@@ -321,18 +356,48 @@ export const completeSuccessfulRun = async (
   fullCaseFile: ReturnType<typeof buildDeepResearchFullCaseFile>,
   finalReport: DeepResearchFinalReport,
 ): Promise<DeepResearchResult> => {
-  const exportArtifacts = await runExportStage(context, finalPackage, fullCaseFile, finalReport);
-  const finalReportRecord = context.store.getLatestFinalReport(context.jobId);
-  const mergedRecordHashes = buildMergedRecordHashes({
-    context,
-    finalPackage,
-    exportArtifacts,
-    finalReportRecord,
+  const completeStage = context.stageLogger.start({
+    ...buildFlowStageStartFields({
+      traceContext: context.traceContext,
+      refs: { jobId: context.jobId },
+    }),
+    stageName: "COMPLETE",
   });
-  return markJobCompleted({
-    context,
-    finalReport,
-    mergedRecordHashes,
-    finalReportRecord,
-  });
+  try {
+    const exports = await runExportStage({
+      context,
+      finalPackage,
+      fullCaseFile,
+      finalReport,
+    });
+    const reportHash = finalizeSuccessfulCompletion({
+      context,
+      exports,
+      finalReport,
+    });
+    completeStage.complete({
+      durationMs: Math.max(0, Date.now() - completeStage.startedAt),
+      hashes: {
+        reportHash,
+        structuredIndexHash: exports.structuredIndex.fileHash,
+      },
+    });
+    return buildSuccessResult({ context, finalReport });
+  } catch (error) {
+    const reason = error instanceof Error
+      ? error.message
+      : "deep_research_completion_failed";
+    completeStage.fail({
+      reason,
+      failureClass: RuntimeFailureClass.INTERNAL_BUG,
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "terminal",
+      durationMs: Math.max(0, Date.now() - completeStage.startedAt),
+    });
+    return buildCompletionFailureResult({
+      context,
+      reason,
+    });
+  }
 };

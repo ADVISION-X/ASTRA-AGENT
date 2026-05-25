@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import {
-  finalAdjudicationShellPrompt,
+  buildFinalAdjudicationOutputContract,
 } from "./deep-research-analysis.final-adjudication-prompt.js";
 import type { DeepResearchSourceNote } from "./deep-research-analysis.result.js";
 import { DeepResearchSourceNoteSchema } from "./deep-research-analysis.result.js";
@@ -197,7 +197,7 @@ const buildDeepResearchStructuredIndexBase = (
   sourceNotes: buildDeepResearchSourceNotesFromAnswers(state.analysisAnswers),
   recordHashes: {},
   promptVersions: buildPromptVersionMap(state.interactions),
-  outputContract: finalAdjudicationShellPrompt.expectedOutputContract,
+  outputContract: buildFinalAdjudicationOutputContract(),
 });
 
 const buildSingleFlowStructuredIndex = (

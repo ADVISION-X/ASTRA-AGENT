@@ -36,7 +36,6 @@ const buildStructuredAnswer = (answer: ResearchAnswer | null): unknown | null =>
     limitations: answer.limitations,
     contradictionPoints: answer.contradictionPoints,
     parsedPayload: answer.parsedPayload,
-    confidence: answer.confidence,
   };
 };
 

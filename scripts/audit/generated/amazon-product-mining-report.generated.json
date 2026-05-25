@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T18:59:56.719Z",
+  "generatedAt": "2026-05-25T20:26:30.153Z",
   "capabilityDomain": "amazon-product-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,17 +16,8 @@
     "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "amazon-mining/search-persist-before-detail",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
-      "clauseId": "primary",
-      "message": "persistSearchResults must appear before runProductDetailExtraction in flow.ts (law 005).",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "package.json",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",

@@ -203,8 +203,7 @@ export const saveAnswer = (
     assumptions?: readonly string[];
     limitations: readonly string[];
     contradictionPoints?: readonly string[];
-    parsedPayload?: Record<string, unknown>;
-    confidence: ResearchAnswer["confidence"];
+    parsedPayload?: Record<string, unknown>;;
   },
 ): ResearchAnswer => {
   const id = createId(`deep_research_${input.answerKind}`);
@@ -213,8 +212,8 @@ export const saveAnswer = (
     `INSERT INTO research_answers (
       id, job_id, interaction_id, sub_question_id, answer_kind, answer_text,
       key_points_json, evidence_mentions_json, assumptions_json, limitations_json,
-      contradiction_points_json, parsed_payload_json, confidence, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      contradiction_points_json, parsed_payload_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.jobId,
@@ -228,7 +227,6 @@ export const saveAnswer = (
     JSON.stringify(input.limitations),
     JSON.stringify(input.contradictionPoints ?? []),
     JSON.stringify(input.parsedPayload ?? {}),
-    input.confidence,
     createdAt,
   );
   const row = db.prepare(`SELECT * FROM research_answers WHERE id = ?`).get(id) as Parameters<typeof mapAnswerRow>[0] | undefined;

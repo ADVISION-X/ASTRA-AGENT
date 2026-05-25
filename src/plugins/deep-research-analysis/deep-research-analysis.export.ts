@@ -3,24 +3,23 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { stableJsonHash } from "../../lib/storage/hash.js";
-import { buildDeepResearchFullFlowReportMarkdown } from "./deep-research-analysis.export-markdown.js";
 import { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 import { saveFullCaseFileExports } from "./deep-research-analysis.full-case-file-export.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
-import type {
-  DeepResearchFinalReport,
-} from "./deep-research-analysis.result.js";
-import type {
-  DeepResearchStructuredIndex,
-} from "./deep-research-analysis.structured-index.js";
+import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import type {
   DeepResearchRecordStore,
+  ResearchAnswer,
   ResearchExport,
   ResearchFinalReportRecord,
   ResearchInteraction,
   ResearchSubQuestion,
-  ResearchAnswer,
 } from "./deep-research-analysis.records.js";
+
+export const FINAL_REPORT_EXPORT_KIND = "final-report.md" as const;
+export const STRUCTURED_INDEX_EXPORT_KIND = "structured-index.json" as const;
+export const EVIDENCE_INDEX_EXPORT_KIND = "evidence-index.json" as const;
 
 type DeepResearchEvidenceIndexEntry = {
   interactionId: string;
@@ -43,13 +42,19 @@ type DeepResearchExportArtifacts = {
   failureReason: null;
 };
 
-type DeepResearchPersistedExportState = {
-  job: ReturnType<DeepResearchRecordStore["getJob"]> extends infer TJob | null ? TJob : never;
-  finalReportRecord: ResearchFinalReportRecord | null;
-  interactions: ResearchInteraction[];
-  subQuestions: ResearchSubQuestion[];
-  answers: ResearchAnswer[];
-  exports: ResearchExport[];
+type DeepResearchExportState = {
+  exportDir: string;
+  fullCaseFile: DeepResearchFullCaseFile;
+  finalReportRecord: ResearchFinalReportRecord;
+  businessHtmlExport: ResearchExport;
+  evidenceIndex: DeepResearchEvidenceIndexEntry[];
+};
+
+type DeepResearchExportFiles = {
+  finalReportMarkdownArtifact: { filePath: string; fileHash: string };
+  structuredIndexArtifact: { filePath: string; fileHash: string };
+  evidenceIndexArtifact: { filePath: string; fileHash: string };
+  fullCaseFileExports: ReturnType<typeof saveFullCaseFileExports>;
 };
 
 const buildTextHash = (value: string): string =>
@@ -58,13 +63,68 @@ const buildTextHash = (value: string): string =>
 const buildExportDir = (dataDir: string, jobId: string): string =>
   path.join(dataDir, "deep-research-analysis", "exports", jobId);
 
-const STRUCTURED_INDEX_EXPORT_KIND = "structured-index.json";
+const renderFinalReportMarkdown = (finalReport: DeepResearchFinalReport): string => [
+  "# Final Report",
+  "",
+  `Confidence: ${finalReport.confidence}`,
+  "",
+  "## Summary",
+  finalReport.summary,
+  "",
+  "## References",
+  finalReport.references.length > 0 ? finalReport.references.map((item) => `- ${item}`).join("\n") : "- unavailable",
+  "",
+  "## Source Notes",
+  finalReport.sourceNotes.length > 0
+    ? finalReport.sourceNotes.map((note) => `- ${note.label}: ${note.note}`).join("\n")
+    : "- unavailable",
+  "",
+  "## Structured Payload",
+  "```json",
+  JSON.stringify(finalReport.structuredPayload, null, 2),
+  "```",
+].join("\n");
+
+const writeTextArtifact = (filePath: string, text: string): { filePath: string; fileHash: string } => {
+  const fileHash = buildTextHash(text);
+  writeFileSync(filePath, `${text.trimEnd()}\n`, "utf8");
+  return { filePath, fileHash };
+};
+
+const writeJsonArtifact = <TPayload>(filePath: string, payload: TPayload): { filePath: string; fileHash: string } => {
+  const fileHash = stableJsonHash(payload);
+  writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return { filePath, fileHash };
+};
+
+const requireFinalReportRecord = (
+  store: DeepResearchRecordStore,
+  jobId: string,
+): ResearchFinalReportRecord => {
+  const finalReportRecord = store.getLatestFinalReport(jobId);
+  if (!finalReportRecord) {
+    throw new Error("Deep Research final report record is missing.");
+  }
+  return finalReportRecord;
+};
+
+const requireBusinessHtmlExport = (
+  store: DeepResearchRecordStore,
+  jobId: string,
+): ResearchExport => {
+  const businessHtmlExport = store.listExports(jobId)
+    .find((record) => record.exportKind === "business-report.html") ?? null;
+  if (!businessHtmlExport) {
+    throw new Error("Deep Research primary business HTML report is missing.");
+  }
+  return businessHtmlExport;
+};
 
 const buildEvidenceIndexEntries = (input: {
   interactions: readonly ResearchInteraction[];
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalReportRecord: ResearchFinalReportRecord | null;
+  finalReportRecord: ResearchFinalReportRecord;
   businessHtmlExport: ResearchExport | null;
 }): DeepResearchEvidenceIndexEntry[] => {
   const entries: DeepResearchEvidenceIndexEntry[] = [];
@@ -90,7 +150,6 @@ const buildEvidenceIndexEntries = (input: {
     }
     if (
       interaction.phase === "final_adjudication"
-      && input.finalReportRecord
       && input.finalReportRecord.interactionId === interaction.id
     ) {
       entries.push({ ...base, parsedRecordId: input.finalReportRecord.id });
@@ -103,112 +162,100 @@ const buildEvidenceIndexEntries = (input: {
   return entries;
 };
 
-const loadPersistedExportState = (
-  store: DeepResearchRecordStore,
-  jobId: string,
-): DeepResearchPersistedExportState => {
-  const job = store.getJob(jobId);
-  if (!job) {
-    throw new Error(`Deep research job ${jobId} was not found.`);
-  }
-
-  return {
-    job,
-    finalReportRecord: store.getLatestFinalReport(jobId),
-    interactions: store.listInteractions(jobId),
-    subQuestions: store.listSubQuestions(jobId),
-    answers: store.listAnswers({ jobId }),
-    exports: store.listExports(jobId),
-  };
-};
-
-const writeTextArtifact = (filePath: string, text: string): { filePath: string; fileHash: string } => {
-  const fileHash = buildTextHash(text);
-  writeFileSync(filePath, `${text.trimEnd()}\n`, "utf8");
-  return { filePath, fileHash };
-};
-
-const writeJsonArtifact = <TPayload>(filePath: string, payload: TPayload): { filePath: string; fileHash: string } => {
-  const fileHash = stableJsonHash(payload);
-  writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  return { filePath, fileHash };
-};
-
-type DeepResearchPreparedExportArtifacts = {
-  persisted: DeepResearchPersistedExportState;
+const resolveExportState = (input: {
+  dataDir: string;
+  store: DeepResearchRecordStore;
+  jobId: string;
   structuredIndex: DeepResearchStructuredIndex;
-  finalReportMarkdownText: string;
-  finalReportArtifact: { filePath: string; fileHash: string };
-  structuredIndexArtifact: { filePath: string; fileHash: string };
-  businessHtmlExport: ResearchExport | null;
-  evidenceIndex: DeepResearchEvidenceIndexEntry[];
-  evidenceIndexArtifact: { filePath: string; fileHash: string };
-};
-
-const prepareExportArtifacts = (input: {
-  persisted: DeepResearchPersistedExportState;
-  structuredIndex: DeepResearchStructuredIndex;
-  exportDir: string;
-  finalReportMarkdownText: string;
-}): DeepResearchPreparedExportArtifacts => {
-  const finalReportArtifact = writeTextArtifact(path.join(input.exportDir, "final-report.md"), input.finalReportMarkdownText);
-  const structuredIndexArtifact = writeJsonArtifact(
-    path.join(input.exportDir, STRUCTURED_INDEX_EXPORT_KIND),
-    input.structuredIndex,
-  );
-  const businessHtmlExport = input.persisted.exports.find((record) => record.exportKind === "business-report.html") ?? null;
+  fullCaseFile?: DeepResearchFullCaseFile;
+}): DeepResearchExportState => {
+  const exportDir = buildExportDir(input.dataDir, input.jobId);
+  mkdirSync(exportDir, { recursive: true });
+  const fullCaseFile = input.fullCaseFile ?? buildDeepResearchFullCaseFile({
+    store: input.store,
+    jobId: input.jobId,
+    structuredIndex: input.structuredIndex,
+  });
+  const finalReportRecord = requireFinalReportRecord(input.store, input.jobId);
+  const businessHtmlExport = requireBusinessHtmlExport(input.store, input.jobId);
   const evidenceIndex = buildEvidenceIndexEntries({
-    interactions: input.persisted.interactions,
-    subQuestions: input.persisted.subQuestions,
-    answers: input.persisted.answers,
-    finalReportRecord: input.persisted.finalReportRecord,
+    interactions: input.store.listInteractions(input.jobId),
+    subQuestions: input.store.listSubQuestions(input.jobId),
+    answers: input.store.listAnswers({ jobId: input.jobId }),
+    finalReportRecord,
     businessHtmlExport,
   });
-  const evidenceIndexArtifact = writeJsonArtifact(path.join(input.exportDir, "evidence-index.json"), evidenceIndex);
   return {
-    persisted: input.persisted,
-    structuredIndex: input.structuredIndex,
-    finalReportMarkdownText: input.finalReportMarkdownText,
-    finalReportArtifact,
-    structuredIndexArtifact,
+    exportDir,
+    fullCaseFile,
+    finalReportRecord,
     businessHtmlExport,
     evidenceIndex,
-    evidenceIndexArtifact,
   };
 };
 
-const savePreparedExportRecords = (input: {
-  jobId: string;
+const writeExportFiles = (input: {
+  state: DeepResearchExportState;
   store: DeepResearchRecordStore;
-  prepared: DeepResearchPreparedExportArtifacts;
-}): Pick<DeepResearchExportArtifacts, "finalReportMarkdown" | "structuredIndex" | "evidenceIndex"> & {
-  businessHtmlReport: ResearchExport | null;
-} => ({
+  jobId: string;
+  structuredIndex: DeepResearchStructuredIndex;
+  finalReport: DeepResearchFinalReport;
+}): DeepResearchExportFiles => ({
+  finalReportMarkdownArtifact: writeTextArtifact(
+    path.join(input.state.exportDir, FINAL_REPORT_EXPORT_KIND),
+    renderFinalReportMarkdown(input.finalReport),
+  ),
+  structuredIndexArtifact: writeJsonArtifact(
+    path.join(input.state.exportDir, STRUCTURED_INDEX_EXPORT_KIND),
+    input.structuredIndex,
+  ),
+  evidenceIndexArtifact: writeJsonArtifact(
+    path.join(input.state.exportDir, EVIDENCE_INDEX_EXPORT_KIND),
+    input.state.evidenceIndex,
+  ),
+  fullCaseFileExports: saveFullCaseFileExports({
+    store: input.store,
+    jobId: input.jobId,
+    exportDir: input.state.exportDir,
+    fullCaseFile: input.state.fullCaseFile,
+  }),
+});
+
+const persistExportRecords = (input: {
+  store: DeepResearchRecordStore;
+  jobId: string;
+  structuredIndex: DeepResearchStructuredIndex;
+  finalReport: DeepResearchFinalReport;
+  state: DeepResearchExportState;
+  files: DeepResearchExportFiles;
+}): DeepResearchExportArtifacts => ({
   finalReportMarkdown: input.store.saveExport({
     jobId: input.jobId,
-    exportKind: "final-report.md",
-    filePath: input.prepared.finalReportArtifact.filePath,
-    fileHash: input.prepared.finalReportArtifact.fileHash,
-    payload: {
-      finalReportHash: input.prepared.finalReportArtifact.fileHash,
-      content: input.prepared.finalReportMarkdownText,
-    },
+    exportKind: FINAL_REPORT_EXPORT_KIND,
+    filePath: input.files.finalReportMarkdownArtifact.filePath,
+    fileHash: input.files.finalReportMarkdownArtifact.fileHash,
+    payload: input.finalReport,
   }),
+  fullCaseFileJson: input.files.fullCaseFileExports.fullCaseFileJson,
+  fullCaseFileMarkdown: input.files.fullCaseFileExports.fullCaseFileMarkdown,
   structuredIndex: input.store.saveExport({
     jobId: input.jobId,
     exportKind: STRUCTURED_INDEX_EXPORT_KIND,
-    filePath: input.prepared.structuredIndexArtifact.filePath,
-    fileHash: input.prepared.structuredIndexArtifact.fileHash,
-    payload: input.prepared.structuredIndex,
+    filePath: input.files.structuredIndexArtifact.filePath,
+    fileHash: input.files.structuredIndexArtifact.fileHash,
+    payload: input.structuredIndex,
   }),
-  businessHtmlReport: input.prepared.businessHtmlExport,
+  businessHtmlReport: input.state.businessHtmlExport,
   evidenceIndex: input.store.saveExport({
     jobId: input.jobId,
-    exportKind: "evidence-index.json",
-    filePath: input.prepared.evidenceIndexArtifact.filePath,
-    fileHash: input.prepared.evidenceIndexArtifact.fileHash,
-    payload: input.prepared.evidenceIndex,
+    exportKind: EVIDENCE_INDEX_EXPORT_KIND,
+    filePath: input.files.evidenceIndexArtifact.filePath,
+    fileHash: input.files.evidenceIndexArtifact.fileHash,
+    payload: input.state.evidenceIndex,
   }),
+  exportDir: input.state.exportDir,
+  status: "completed",
+  failureReason: null,
 });
 
 export const exportDeepResearchArtifacts = async (input: {
@@ -219,48 +266,20 @@ export const exportDeepResearchArtifacts = async (input: {
   fullCaseFile?: DeepResearchFullCaseFile;
   finalReport: DeepResearchFinalReport;
 }): Promise<DeepResearchExportArtifacts> => {
-  const exportDir = buildExportDir(input.dataDir, input.jobId);
-  mkdirSync(exportDir, { recursive: true });
-  const persisted = loadPersistedExportState(input.store, input.jobId);
-  const finalReport = persisted.finalReportRecord?.report ?? input.finalReport;
-  const finalReportMarkdownText = buildDeepResearchFullFlowReportMarkdown({
-    finalPackage: input.structuredIndex,
-    finalReport: finalReport,
-    persisted: persisted,
-  });
-  const prepared = prepareExportArtifacts({
-    persisted,
+  const state = resolveExportState(input);
+  const files = writeExportFiles({
+    state,
+    store: input.store,
+    jobId: input.jobId,
     structuredIndex: input.structuredIndex,
-    exportDir,
-    finalReportMarkdownText,
+    finalReport: input.finalReport,
   });
-  const fullCaseFileExports = saveFullCaseFileExports({
+  return persistExportRecords({
     store: input.store,
     jobId: input.jobId,
-    exportDir,
-    fullCaseFile: input.fullCaseFile ?? buildDeepResearchFullCaseFile({
-      store: input.store,
-      jobId: input.jobId,
-      structuredIndex: input.structuredIndex,
-    }),
+    structuredIndex: input.structuredIndex,
+    finalReport: input.finalReport,
+    state,
+    files,
   });
-  const savedArtifacts = savePreparedExportRecords({
-    jobId: input.jobId,
-    store: input.store,
-    prepared,
-  });
-  if (!savedArtifacts.businessHtmlReport) {
-    throw new Error("Deep Research primary business HTML report is missing.");
-  }
-  const businessHtmlReport = savedArtifacts.businessHtmlReport;
-
-  return {
-    ...savedArtifacts,
-    fullCaseFileJson: fullCaseFileExports.fullCaseFileJson,
-    fullCaseFileMarkdown: fullCaseFileExports.fullCaseFileMarkdown,
-    businessHtmlReport,
-    exportDir,
-    status: "completed",
-    failureReason: null,
-  };
 };

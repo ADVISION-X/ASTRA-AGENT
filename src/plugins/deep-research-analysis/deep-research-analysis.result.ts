@@ -1,15 +1,8 @@
 import { z } from "zod";
 
 import {
-  DeepResearchJobStatusSchema,
   DeepResearchPhaseSchema,
 } from "./deep-research-analysis.schema.js";
-
-const DeepResearchReportConfidenceSchema = z.enum([
-  "low",
-  "medium",
-  "high",
-]);
 
 export const DeepResearchSourceNoteSchema = z.object({
   sourceNoteId: z.string().trim().min(1),
@@ -20,15 +13,13 @@ export const DeepResearchSourceNoteSchema = z.object({
   url: z.string().trim().min(1).nullable().default(null),
 }).strict();
 
-const DeepResearchNormalizedFinalReportSchema = z.object({
+export const DeepResearchFinalReportSchema = z.object({
   summary: z.string().trim().min(1),
-  confidence: DeepResearchReportConfidenceSchema,
+  confidence: z.enum(["low", "medium", "high"]),
   structuredPayload: z.record(z.string(), z.unknown()),
   references: z.array(z.string().trim().min(1)).default([]),
   sourceNotes: z.array(DeepResearchSourceNoteSchema).default([]),
 }).strict();
-
-export const DeepResearchFinalReportSchema = DeepResearchNormalizedFinalReportSchema;
 
 const DeepResearchResultSchema = z.object({
   jobId: z.string().trim().min(1),

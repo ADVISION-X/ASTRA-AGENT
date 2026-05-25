@@ -6,20 +6,25 @@ import { buildPromptOutputShellContract } from "./deep-research-analysis.prompts
 import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import type { DeepResearchInput } from "./deep-research-analysis.schema.js";
 
+export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_ID =
+  "deep-research.business-html-report-publisher" as const;
+export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_VERSION = "v2.0.0" as const;
 export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_CONTRACT_ID =
   "deep-research.business-html-report.shell.v2.0" as const;
 
-export const businessHtmlReportShellPrompt: DeepResearchPrompt = {
-  promptId: "deep-research.business-html-report-publisher",
-  promptVersion: "v2.0.0",
+export const buildBusinessHtmlReportOutputContract = () => buildPromptOutputShellContract({
+  contractId: DEEP_RESEARCH_BUSINESS_HTML_REPORT_CONTRACT_ID,
+  format: "html_artifact",
+  requiredFields: ["complete self-contained HTML document"],
+});
+
+export const buildBusinessHtmlReportShellPrompt = (): DeepResearchPrompt => ({
+  promptId: DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_ID,
+  promptVersion: DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_VERSION,
   phase: "html_report",
   promptText: "Runtime shell for AI-generated htmlReportPromptBundle.",
-  expectedOutputContract: buildPromptOutputShellContract({
-    contractId: DEEP_RESEARCH_BUSINESS_HTML_REPORT_CONTRACT_ID,
-    format: "html_artifact",
-    requiredFields: ["complete self-contained HTML document"],
-  }),
-};
+  expectedOutputContract: buildBusinessHtmlReportOutputContract(),
+});
 
 export const renderDeepResearchBusinessHtmlReportPrompt = (input: {
   finalReport: DeepResearchFinalReport;

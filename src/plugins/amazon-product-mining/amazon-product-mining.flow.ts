@@ -162,41 +162,6 @@ const recordSearchFailure = (
 const resolveItemAsin = (productUrl: string, asinIfAvailable: string | null): string =>
   asinIfAvailable ?? productUrl.match(/\/dp\/([A-Z0-9]{10})/)?.[1] ?? productUrl;
 
-const extractAndPersistProductDetail = async (
-  runtime: AmazonFlowRuntime,
-  itemId: string,
-  productUrl: string,
-  asin: string,
-) => {
-  const { ctx, storage, logger, taskId } = runtime;
-  logger.logDetailOpen({ taskId, detailId: itemId, productUrl });
-
-  try {
-    const productDetail = await runProductDetailExtraction({
-      browser: ctx.browser,
-      productUrl,
-      asin,
-      taskId,
-    });
-    logger.logDetailExtracted({ taskId, detailId: productDetail.detailId });
-    storage.persistProductDetail(productDetail, [itemId]);
-    logger.logDetailPersisted({ taskId, detailId: productDetail.detailId });
-    return productDetail;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    storage.persistException({
-      exceptionId: randomUUID(),
-      taskId,
-      scope: "product_detail",
-      scopeId: itemId,
-      exceptionKind: "detail_extraction_failed",
-      message,
-    });
-    logger.logFailure({ taskId, scope: "product_detail", scopeId: itemId, reason: message });
-    return null;
-  }
-};
-
 const extractAndPersistReviews = async (
   runtime: AmazonFlowRuntime,
   detailId: string,
@@ -276,6 +241,41 @@ const processKeywordRecord = async (
   storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "completed" });
 };
 
+const extractAndPersistProductDetail = async (
+  runtime: AmazonFlowRuntime,
+  itemId: string,
+  productUrl: string,
+  asin: string,
+) => {
+  const { ctx, storage, logger, taskId } = runtime;
+  logger.logDetailOpen({ taskId, detailId: itemId, productUrl });
+
+  try {
+    const productDetail = await runProductDetailExtraction({
+      browser: ctx.browser,
+      productUrl,
+      asin,
+      taskId,
+    });
+    logger.logDetailExtracted({ taskId, detailId: productDetail.detailId });
+    storage.persistProductDetail(productDetail, [itemId]);
+    logger.logDetailPersisted({ taskId, detailId: productDetail.detailId });
+    return productDetail;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    storage.persistException({
+      exceptionId: randomUUID(),
+      taskId,
+      scope: "product_detail",
+      scopeId: itemId,
+      exceptionKind: "detail_extraction_failed",
+      message,
+    });
+    logger.logFailure({ taskId, scope: "product_detail", scopeId: itemId, reason: message });
+    return null;
+  }
+};
+
 const runMiningPhase = async (
   runtime: AmazonFlowRuntime,
   keywordRecords: ReturnType<typeof buildKeywordRecords>,
@@ -310,8 +310,9 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
     targetMarket: miningInput.targetMarket,
   });
 
-  const pdfPath = reportResult.ok ? reportResult.pdfReportPath : null;
-  if (pdfPath) {
+  let pdfPath: string | null = null;
+  if (reportResult.ok) {
+    pdfPath = reportResult.pdfReportPath;
     logger.logPdfBuilt({ taskId, pdfReportPath: pdfPath });
   } else {
     manualRequiredReasons.push(`report_build_failed:${reportResult.reason}`);

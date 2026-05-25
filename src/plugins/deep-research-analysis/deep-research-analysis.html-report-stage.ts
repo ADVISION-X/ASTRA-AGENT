@@ -2,7 +2,9 @@ import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import {
-  businessHtmlReportShellPrompt,
+  buildBusinessHtmlReportShellPrompt,
+  DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_ID,
+  DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_VERSION,
   renderDeepResearchBusinessHtmlReportPrompt,
 } from "./deep-research-analysis.html-report-prompt.js";
 import {
@@ -12,33 +14,10 @@ import {
 import type { DeepResearchBusinessHtmlReportRecord } from "./deep-research-analysis.html-report-records.js";
 import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import {
-  buildDeepResearchSourceNotesFromReferences,
-} from "./deep-research-analysis.source-notes.js";
-import {
   type AnalysisExecutionContext,
   type AnalysisFailure,
   finishPromptFailure,
 } from "./deep-research-analysis.analysis-support.js";
-
-const buildHtmlSourceNotes = (input: {
-  finalPackage: DeepResearchStructuredIndex;
-  finalReport: DeepResearchFinalReport;
-}): unknown[] => {
-  if (input.finalReport.sourceNotes.length > 0) {
-    return input.finalReport.sourceNotes;
-  }
-  if (input.finalPackage.sourceNotes.length > 0) {
-    return input.finalPackage.sourceNotes;
-  }
-  const references = Array.isArray(input.finalReport.references) ? input.finalReport.references : [];
-  if (references.length > 0) {
-    return buildDeepResearchSourceNotesFromReferences(references);
-  }
-  return input.finalPackage.analysisRecords.flatMap((record) => {
-    const evidenceMentions = record.evidenceMentions;
-    return buildDeepResearchSourceNotesFromReferences(evidenceMentions);
-  });
-};
 
 type HtmlReportSuccess = {
   ok: true;
@@ -71,8 +50,8 @@ const persistBusinessHtmlReport = (input: {
     payload: {
       jobId: input.context.jobId,
       phaseId: "HTML_REPORT_PERSIST",
-      promptId: businessHtmlReportShellPrompt.promptId,
-      promptVersion: businessHtmlReportShellPrompt.promptVersion,
+      promptId: DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_ID,
+      promptVersion: DEEP_RESEARCH_BUSINESS_HTML_REPORT_PROMPT_VERSION,
       rawAssistantText: input.interaction.rawResponseText,
       artifactName: input.parsed.artifactName,
       artifactMimeType: input.parsed.artifactMimeType,
@@ -111,7 +90,7 @@ export const runBusinessHtmlReportPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: businessHtmlReportShellPrompt,
+    prompt: buildBusinessHtmlReportShellPrompt(),
     promptKey: "business-html-report",
     renderedPromptText: buildBusinessHtmlPromptText({
       context,

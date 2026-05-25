@@ -102,7 +102,7 @@ export const AmazonSearchResultItemSchema = z.object({
   createdAt: z.string().min(1),
 }).strict();
 
-export const AmazonProductDetailSchema = z.object({
+const amazonProductDetailIdentityShape = {
   detailId: z.string().min(1),
   taskId: z.string().min(1),
   asin: z.string().nullable().default(null),
@@ -112,6 +112,9 @@ export const AmazonProductDetailSchema = z.object({
   sellerOrStoreIfVisible: z.string().nullable().default(null),
   currentPrice: z.string().nullable().default(null),
   originalPriceDiscountCouponIfVisible: z.string().nullable().default(null),
+};
+
+const amazonProductDetailContentShape = {
   mainImage: z.string().nullable().default(null),
   allVisibleImages: z.array(z.string()).default([]),
   visibleVideoInfo: z.string().nullable().default(null),
@@ -121,6 +124,9 @@ export const AmazonProductDetailSchema = z.object({
   aPlusContentIfVisible: z.string().nullable().default(null),
   variationOptions: z.string().nullable().default(null),
   colorSizeStyleOptions: z.string().nullable().default(null),
+};
+
+const amazonProductDetailCommerceShape = {
   productInformation: z.string().nullable().default(null),
   technicalDetails: z.string().nullable().default(null),
   additionalInformation: z.string().nullable().default(null),
@@ -136,11 +142,21 @@ export const AmazonProductDetailSchema = z.object({
   deliveryInformation: z.string().nullable().default(null),
   returnInformation: z.string().nullable().default(null),
   allOtherVisibleProductParameters: z.string().nullable().default(null),
+};
+
+const amazonProductDetailStatusShape = {
   rawVisibleTextSnapshot: z.string().nullable().default(null),
   status: AmazonProductStatusSchema,
   failureReason: z.string().nullable().default(null),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1).nullable().default(null),
+};
+
+export const AmazonProductDetailSchema = z.object({
+  ...amazonProductDetailIdentityShape,
+  ...amazonProductDetailContentShape,
+  ...amazonProductDetailCommerceShape,
+  ...amazonProductDetailStatusShape,
 }).strict();
 
 export const AmazonReviewRecordSchema = z.object({

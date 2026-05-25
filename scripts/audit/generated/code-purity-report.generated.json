@@ -1,309 +1,11 @@
 {
-  "antiEvasionFindingCount": 3,
+  "antiEvasionFindingCount": 0,
   "capabilityDomain": "code-purity",
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/object-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts has an object literal that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts has an object literal that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts has an over-line function near line 131.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts has an over-line function near line 195.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts has an object literal that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts exports finalAdjudicationPrompt without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"finalAdjudicationPrompt\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts exports takeFirstStringArray without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"takeFirstStringArray\",\"usageKind\":\"import-binding\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts exports renderDeepResearchSubQuestionAnalysisPrompt without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"renderDeepResearchSubQuestionAnalysisPrompt\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-persist.ts exports loadDeepResearchPlan without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-persist.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"loadDeepResearchPlan\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts exports DeepResearchPlannedSubQuestion without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"DeepResearchPlannedSubQuestion\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts exposes object bag finalAdjudicationShellPrompt to dynamic access finalAdjudicationPrompt = finalAdjudicationShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts exposes object bag finalAdjudicationShellPrompt to dynamic access prompt: finalAdjudicationShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property promptId in finalAdjudicationShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptId\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property promptVersion in finalAdjudicationShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptVersion\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property phase in finalAdjudicationShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts keeps unused object bag property promptText in finalAdjudicationShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptText\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts exposes object bag businessHtmlReportShellPrompt to dynamic access prompt: businessHtmlReportShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts keeps unused object bag property phase in businessHtmlReportShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts keeps unused object bag property promptText in businessHtmlReportShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptText\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts keeps unused object bag property expectedOutputContract in businessHtmlReportShellPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"expectedOutputContract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts exposes object bag decompositionPrompt to dynamic access prompt: decompositionPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property promptId in decompositionPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptId\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property promptVersion in decompositionPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptVersion\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property phase in decompositionPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property promptText in decompositionPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"promptText\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/object-bag-unused-property",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts keeps unused object bag property expectedOutputContract in decompositionPrompt.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the unused bag property or reconnect it through an explicit property consumer.\",\"role\":\"job-step\",\"symbolName\":\"expectedOutputContract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts keeps an orphan top-level variable named buildHtmlSourceNotes.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"buildHtmlSourceNotes\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts keeps an orphan top-level type-alias named DeepResearchFinalReport.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"DeepResearchFinalReport\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts keeps dead helper coerceStringArray alive only through a dead export subgraph.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"coerceStringArray\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts keeps an orphan top-level variable named isRecord.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"isRecord\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts uses void input.job as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts uses void input.subQuestionById as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts uses void input.finalPackage as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-05-25T18:59:54.453Z",
+  "findings": [],
+  "generatedAt": "2026-05-25T20:26:27.962Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -715,10 +417,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-core.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",
@@ -1182,20 +880,20 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1320,
-  "orphanDeclarationCount": 4,
-  "reachableFileCount": 507,
-  "status": "FAIL",
+  "liveExportCount": 1290,
+  "orphanDeclarationCount": 0,
+  "reachableFileCount": 503,
+  "status": "PASS",
   "unreachableFileCount": 0,
-  "zombieExportCount": 5,
+  "zombieExportCount": 0,
   "zombieSummary": {
-    "antiEvasionFindingCount": 3,
+    "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1320,
-    "orphanDeclarationCount": 4,
-    "reachableFileCount": 507,
+    "liveExportCount": 1290,
+    "orphanDeclarationCount": 0,
+    "reachableFileCount": 503,
     "unreachableFileCount": 0,
-    "zombieExportCount": 5
+    "zombieExportCount": 0
   }
 }

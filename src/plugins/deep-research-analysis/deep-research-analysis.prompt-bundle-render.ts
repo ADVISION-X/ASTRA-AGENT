@@ -1,12 +1,13 @@
 import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
 import {
-  renderDeepResearchHtmlArtifactShell,
-  renderDeepResearchRuntimeShell,
+  buildFinalAdjudicationFormatShell,
+  buildHtmlReportFormatShell,
+  buildSubQuestionAnalysisFormatShell,
 } from "./deep-research-analysis.prompt-bundle-shell.js";
+import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 import type { DeepResearchInput, DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file-schema.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
-import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
 
 const buildSection = (title: string, value: unknown): string =>
   `${title}:\n${typeof value === "string" ? value : JSON.stringify(value, null, 2)}`;
@@ -21,10 +22,8 @@ export const renderSubQuestionAnalysisFromPromptBundle = (input: {
   subQuestion: DeepResearchSubQuestion;
   promptBundle: DeepResearchPromptBundle;
 }): string => [
-  renderDeepResearchRuntimeShell({
-    preferredFormat: input.promptBundle.outputGuidance.preferredFormat,
-  }),
   renderPromptBundleSection(input.promptBundle),
+  buildSubQuestionAnalysisFormatShell(),
   buildSection("CONTEXT", {
     userQuestion: input.userQuestion,
     analysisGoal: input.analysisGoal,
@@ -40,16 +39,13 @@ export const renderFinalAdjudicationFromPromptBundle = (input: {
   fullCaseFileMarkdown: string;
   structuredIndex: DeepResearchStructuredIndex;
 }): string => [
-  renderDeepResearchRuntimeShell({
-    preferredFormat: input.finalAdjudicationPromptBundle.outputGuidance.preferredFormat,
-  }),
-  "- Use the full case file as the source of truth.",
-  "The full case file is the complete source of truth.",
+  renderPromptBundleSection(input.finalAdjudicationPromptBundle),
+  "Use the full case file as the source of truth.",
   "The structured index is for navigation.",
   "If structured fields and raw responses differ, use the raw responses as primary evidence.",
+  "Do not ignore raw responses.",
   "Do not ignore raw responses that failed parsing.",
-  "- Do not ignore raw responses.",
-  renderPromptBundleSection(input.finalAdjudicationPromptBundle),
+  buildFinalAdjudicationFormatShell(),
   buildSection("CONTEXT", {
     responseLanguage: input.language,
     structuredIndex: input.structuredIndex,
@@ -70,8 +66,9 @@ export const renderHtmlReportFromPromptBundle = (input: {
   fullCaseFile: DeepResearchFullCaseFile;
   fullCaseFileMarkdown: string;
 }): string => [
-  renderDeepResearchHtmlArtifactShell(),
   renderPromptBundleSection(input.htmlReportPromptBundle),
+  "Organize the HTML as a professional report according to the promptBundle.",
+  buildHtmlReportFormatShell(),
   buildSection("CONTEXT", {
     responseLanguage: input.language,
     finalReport: input.finalReport,
@@ -83,5 +80,4 @@ export const renderHtmlReportFromPromptBundle = (input: {
     },
   }),
   buildSection("FULL CASE FILE MARKDOWN", input.fullCaseFileMarkdown),
-  "Organize the HTML as a professional report according to the promptBundle.",
 ].join("\n\n");

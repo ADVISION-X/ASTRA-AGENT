@@ -29,17 +29,16 @@ import {
 } from "./deep-research-analysis.record-contracts.js";
 import { DeepResearchPromptBundleSchema, type DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
 import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
-import { DeepResearchFinalReportSchema, type DeepResearchFinalReport } from "./deep-research-analysis.result.js";
+import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));
 
 const parseUnknownRecord = (value: string): Record<string, unknown> => {
   const parsed = JSON.parse(value) as unknown;
-  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-    return parsed as Record<string, unknown>;
-  }
-  return {};
+  return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    ? parsed as Record<string, unknown>
+    : {};
 };
 
 const buildUnavailablePromptBundle = (row: {
@@ -48,7 +47,7 @@ const buildUnavailablePromptBundle = (row: {
   question_text: string;
   expected_answer_shape: string;
 }): DeepResearchPromptBundle => ({
-  promptBundleId: `${row.model_question_id}-prompt-bundle-unavailable`,
+  promptBundleId: row.model_question_id + "-prompt-bundle-unavailable",
   promptRole: "sub_question_analysis",
   taskInstruction: "PromptBundle is unavailable in this persisted record. Use raw interaction records as the source of truth.",
   questionSpecificFocus: [row.title],
@@ -74,57 +73,8 @@ const parsePromptBundle = (
     expected_answer_shape: string;
   },
 ): DeepResearchPromptBundle => {
-  const parsed = JSON.parse(value) as unknown;
-  const promptBundle = DeepResearchPromptBundleSchema.safeParse(parsed);
+  const promptBundle = DeepResearchPromptBundleSchema.safeParse(JSON.parse(value) as unknown);
   return promptBundle.success ? promptBundle.data : buildUnavailablePromptBundle(row);
-};
-
-const readStringField = (record: Record<string, unknown>, keys: readonly string[]): string | null => {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return null;
-};
-
-const readConfidence = (record: Record<string, unknown>): DeepResearchFinalReport["confidence"] => {
-  const confidence = record.confidence;
-  return confidence === "low" || confidence === "medium" || confidence === "high"
-    ? confidence
-    : "medium";
-};
-
-const parseFinalReport = (value: string): DeepResearchFinalReport => {
-  const parsed = JSON.parse(value) as unknown;
-  const finalReport = DeepResearchFinalReportSchema.safeParse(parsed);
-  if (finalReport.success) {
-    return finalReport.data;
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return DeepResearchFinalReportSchema.parse({
-      summary: value,
-      confidence: "medium",
-      structuredPayload: { rawReportJson: parsed },
-    });
-  }
-  const record = parsed as Record<string, unknown>;
-  return DeepResearchFinalReportSchema.parse({
-    summary: readStringField(record, [
-      "summary",
-      "directAnswer",
-      "oneSentenceDecision",
-      "executiveConclusion",
-      "finalVerdict",
-    ]) ?? "Final report is stored as structured payload.",
-    confidence: readConfidence(record),
-    structuredPayload: record,
-    references: Array.isArray(record.references)
-      ? record.references.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-      : [],
-    sourceNotes: [],
-  });
 };
 
 export const mapJobRow = (row: {
@@ -299,7 +249,7 @@ export const mapFinalReportRow = (row: {
     id: row.id,
     jobId: row.job_id,
     interactionId: row.interaction_id,
-    report: parseFinalReport(row.report_json),
+    report: DeepResearchFinalReportSchema.parse(JSON.parse(row.report_json)),
     reportHash: row.report_hash,
     createdAt: row.created_at,
   });

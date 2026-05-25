@@ -7,7 +7,8 @@ import {
   parseDeepResearchSubQuestionAnalysisResponse,
 } from "./deep-research-analysis.parser.js";
 import {
-  decompositionPrompt,
+  buildDecompositionPrompt,
+  requireSubQuestionPromptBundle,
   renderDeepResearchDecompositionPrompt,
 } from "./deep-research-analysis.prompts.js";
 import { renderSubQuestionAnalysisFromPromptBundle } from "./deep-research-analysis.prompt-bundle-render.js";
@@ -84,7 +85,7 @@ export const runDecompositionPhase = async (
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
-    prompt: decompositionPrompt,
+    prompt: buildDecompositionPrompt(),
     promptKey: "decomposition",
     renderedPromptText: renderDeepResearchDecompositionPrompt(context.input),
     inputRefs: [`job:${context.jobId}:user-question`],
@@ -134,10 +135,7 @@ const runAnalysisPhase = async (
   context: AnalysisExecutionContext,
   subQuestion: ResearchSubQuestion,
 ): Promise<Awaited<ReturnType<typeof runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>>>> => {
-  const promptBundle = subQuestion.question.promptBundle;
-  if (!promptBundle) {
-    throw new Error(`Missing promptBundle for sub-question ${subQuestion.id}.`);
-  }
+  const promptBundle = subQuestion.question.promptBundle ?? requireSubQuestionPromptBundle(subQuestion.question);
   return runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,

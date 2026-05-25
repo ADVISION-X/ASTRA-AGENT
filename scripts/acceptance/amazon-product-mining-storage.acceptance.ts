@@ -159,7 +159,7 @@ try {
     returnInformation: null,
     allOtherVisibleProductParameters: null,
     rawVisibleTextSnapshot: "Test detail page snapshot",
-    status: "pending_detail",
+    status: "pending_detail" as const,
     failureReason: null,
     createdAt: now,
     updatedAt: null,

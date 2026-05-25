@@ -1,10 +1,6 @@
 import { existsSync } from "node:fs";
 
 import {
-  buildDeepResearchStructuredIndex,
-  type DeepResearchStructuredIndex,
-} from "./deep-research-analysis.structured-index.js";
-import {
   createDeepResearchRecordStore,
   type ResearchAnswer,
   type ResearchExport,
@@ -114,22 +110,16 @@ const buildJobSnapshot = (input: {
 
 const buildTimelineEntries = (input: {
   interactions: readonly ResearchInteraction[];
-  job: ResearchJob;
   subQuestions: readonly ResearchSubQuestion[];
   answers: readonly ResearchAnswer[];
-  finalPackage: DeepResearchStructuredIndex | null;
   finalReportRecord: { id: string; report: DeepResearchFinalReport } | null;
 }): DeepResearchTimelineEntry[] => {
-  const subQuestionById = new Map(input.subQuestions.map((record) => [record.id, record]));
   const answersByInteractionId = new Map(
     input.answers.map((record) => [record.interactionId, record]),
   );
   return input.interactions.map((interaction): DeepResearchTimelineEntry => {
     const prompt = buildPromptText({
-      job: input.job,
       interaction,
-      subQuestionById,
-      finalPackage: input.finalPackage,
     });
     const parsed = buildParsedEntry({
       interaction,
@@ -159,23 +149,6 @@ const buildTimelineEntries = (input: {
   });
 };
 
-const buildReaderStructuredIndex = (input: {
-  store: ReturnType<typeof createDeepResearchRecordStore>;
-  jobId: string;
-  interactions: readonly ResearchInteraction[];
-}): DeepResearchStructuredIndex | null => {
-  if (!input.interactions.some((record) => record.phase === "final_adjudication")) {
-    return null;
-  }
-  if (!input.store.getResearchPlan(input.jobId)) {
-    return null;
-  }
-  return buildDeepResearchStructuredIndex({
-    store: input.store,
-    jobId: input.jobId,
-  });
-};
-
 export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null =>
   withStore(dataDir, (store) => {
     const job = store.getJob(jobId);
@@ -187,13 +160,10 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
     const answers = store.listAnswers({ jobId });
     const finalReportRecord = store.getLatestFinalReport(jobId);
     const exports = store.listExports(jobId);
-    const finalPackage = buildReaderStructuredIndex({ store, jobId, interactions });
     const timeline = buildTimelineEntries({
       interactions,
-      job,
       subQuestions,
       answers,
-      finalPackage,
       finalReportRecord: finalReportRecord
         ? { id: finalReportRecord.id, report: finalReportRecord.report }
         : null,

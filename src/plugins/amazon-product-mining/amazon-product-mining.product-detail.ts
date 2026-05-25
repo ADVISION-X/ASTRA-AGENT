@@ -112,6 +112,71 @@ type ExtractedDetail = {
   rawText: string;
 };
 
+const buildProductDetailRecord = (input: {
+  raw: ExtractedDetail;
+  asin: string;
+  productUrl: string;
+  taskId: string;
+  createdAt: string;
+}): AmazonProductDetail => {
+  const identity = {
+    detailId: randomUUID(),
+    taskId: input.taskId,
+    asin: input.raw.asin ?? input.asin,
+    productUrl: input.productUrl,
+    title: input.raw.title,
+    brand: input.raw.brand,
+    sellerOrStoreIfVisible: input.raw.sellerOrStore,
+    currentPrice: input.raw.currentPrice,
+    originalPriceDiscountCouponIfVisible: input.raw.origOrCoupon,
+  };
+
+  const content = {
+    mainImage: input.raw.mainImage,
+    allVisibleImages: input.raw.allVisibleImages,
+    visibleVideoInfo: null,
+    bulletPoints: input.raw.bulletPoints,
+    aboutThisItem: input.raw.aboutThisItem,
+    productDescription: input.raw.productDescription,
+    aPlusContentIfVisible: null,
+    variationOptions: input.raw.variationOptions,
+    colorSizeStyleOptions: input.raw.colorOpts,
+  };
+
+  const commerce = {
+    productInformation: null,
+    technicalDetails: input.raw.technicalDetails,
+    additionalInformation: null,
+    bestSellersRankIfVisible: input.raw.bestSellersRankIfVisible,
+    categoryPathIfVisible: null,
+    rating: input.raw.rating,
+    reviewCount: input.raw.reviewCount,
+    starDistribution: null,
+    qaContentIfVisible: null,
+    frequentlyBoughtTogetherIfVisible: null,
+    customersAlsoBoughtIfVisible: null,
+    compareWithSimilarItemsIfVisible: null,
+    deliveryInformation: input.raw.deliveryInfo,
+    returnInformation: null,
+    allOtherVisibleProductParameters: null,
+  };
+
+  const status = {
+    rawVisibleTextSnapshot: input.raw.rawText,
+    status: "pending_detail" as const,
+    failureReason: null,
+    createdAt: input.createdAt,
+    updatedAt: null,
+  };
+
+  return {
+    ...identity,
+    ...content,
+    ...commerce,
+    ...status,
+  };
+};
+
 const buildBrowserDetailAdapter = (browser: BrowserController): DetailPageAdapter => ({
   async extractProductDetail({ productUrl, asin, taskId }) {
     await browser.open({ url: productUrl, title: `Amazon product: ${asin}` });
@@ -123,46 +188,7 @@ const buildBrowserDetailAdapter = (browser: BrowserController): DetailPageAdapte
     });
 
     const now = new Date().toISOString();
-    return {
-      detailId: randomUUID(),
-      taskId,
-      asin: raw.asin ?? asin,
-      productUrl,
-      title: raw.title,
-      brand: raw.brand,
-      sellerOrStoreIfVisible: raw.sellerOrStore,
-      currentPrice: raw.currentPrice,
-      originalPriceDiscountCouponIfVisible: raw.origOrCoupon,
-      mainImage: raw.mainImage,
-      allVisibleImages: raw.allVisibleImages,
-      visibleVideoInfo: null,
-      bulletPoints: raw.bulletPoints,
-      aboutThisItem: raw.aboutThisItem,
-      productDescription: raw.productDescription,
-      aPlusContentIfVisible: null,
-      variationOptions: raw.variationOptions,
-      colorSizeStyleOptions: raw.colorOpts,
-      productInformation: null,
-      technicalDetails: raw.technicalDetails,
-      additionalInformation: null,
-      bestSellersRankIfVisible: raw.bestSellersRankIfVisible,
-      categoryPathIfVisible: null,
-      rating: raw.rating,
-      reviewCount: raw.reviewCount,
-      starDistribution: null,
-      qaContentIfVisible: null,
-      frequentlyBoughtTogetherIfVisible: null,
-      customersAlsoBoughtIfVisible: null,
-      compareWithSimilarItemsIfVisible: null,
-      deliveryInformation: raw.deliveryInfo,
-      returnInformation: null,
-      allOtherVisibleProductParameters: null,
-      rawVisibleTextSnapshot: raw.rawText,
-      status: "pending_detail" as const,
-      failureReason: null,
-      createdAt: now,
-      updatedAt: null,
-    };
+    return buildProductDetailRecord({ raw, asin, productUrl, taskId, createdAt: now });
   },
 });
 

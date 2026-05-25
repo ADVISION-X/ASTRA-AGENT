@@ -105,5 +105,4 @@ export const DeepResearchPlanSchema = z.object({
   }
 });
 
-export type DeepResearchPlannedSubQuestion = z.infer<typeof DeepResearchPlannedSubQuestionSchema>;
 export type DeepResearchPlan = z.infer<typeof DeepResearchPlanSchema>;

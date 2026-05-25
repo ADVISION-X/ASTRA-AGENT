@@ -1,10 +1,6 @@
-import {
-  type DeepResearchStructuredIndex,
-} from "./deep-research-analysis.structured-index.js";
 import type {
   ResearchAnswer,
   ResearchInteraction,
-  ResearchJob,
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
 import type { DeepResearchFinalReport } from "./deep-research-analysis.result.js";
@@ -23,16 +19,10 @@ const truncateText = (value: string, maxLength = 220): string => {
 
 export const buildPromptText = (input: {
   interaction: ResearchInteraction;
-  job: ResearchJob;
-  subQuestionById: Map<string, ResearchSubQuestion>;
-  finalPackage: DeepResearchStructuredIndex | null;
 }): {
   promptText: string | null;
   promptReconstructionStatus: PromptReconstructionStatus;
 } => {
-  void input.job;
-  void input.subQuestionById;
-  void input.finalPackage;
   if (input.interaction.renderedPromptText.trim().length > 0) {
     return {
       promptText: input.interaction.renderedPromptText,

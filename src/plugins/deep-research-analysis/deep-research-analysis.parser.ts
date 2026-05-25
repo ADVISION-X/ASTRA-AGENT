@@ -1,258 +1,189 @@
+import { createHash } from "node:crypto";
+
 import { z } from "zod";
 
-import {
-  buildDeepResearchSourceNotesFromReferences,
-} from "./deep-research-analysis.source-notes.js";
 import { parseDecompositionResponse } from "./deep-research-analysis.decomposition-parser.js";
 import type { DeepResearchDecompositionResponse } from "./deep-research-analysis.decomposition-schema.js";
-import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.js";
 import {
-  buildTextRawIndexResult,
-  buildSentenceRawIndex,
+  DeepResearchFinalReportSchema,
+  DeepResearchSourceNoteSchema,
+  type DeepResearchFinalReport,
+} from "./deep-research-analysis.result.js";
+import {
+  buildFailure,
+  buildParsedResult,
   isDeepResearchParserSuccess,
-  normalizeConfidenceValue,
-  normalizeWithSchema,
   parseJsonObject,
-  takeFirstString,
-  takeFirstStringArray,
   type DeepResearchParserResult,
-  type FinalReportNormalizationRawIndex,
 } from "./deep-research-analysis.parser-support.js";
 
-const DeepResearchConfidenceSchema = z.enum(["low", "medium", "high"]);
-
 const DeepResearchSubQuestionAnalysisAnswerSchema = z.object({
-  subQuestionId: z.string().trim().min(1),
   summary: z.string().trim().min(1),
   keyPoints: z.array(z.string().trim().min(1)).default([]),
   evidenceMentions: z.array(z.string().trim().min(1)).default([]),
   assumptions: z.array(z.string().trim().min(1)).default([]),
-  contradictionPoints: z.array(z.string().trim().min(1)).default([]),
   limitations: z.array(z.string().trim().min(1)).default([]),
-  confidence: DeepResearchConfidenceSchema,
-  structuredPayload: z.record(z.string(), z.unknown()),
+  contradictionPoints: z.array(z.string().trim().min(1)).default([]),
+  confidence: z.enum(["low", "medium", "high"]).default("medium"),
+  structuredPayload: z.record(z.string(), z.unknown()).default({}),
 }).strict();
 
 export type DeepResearchSubQuestionAnalysisAnswer = z.infer<typeof DeepResearchSubQuestionAnalysisAnswerSchema>;
 
-export type {
-  DeepResearchParserResult,
-} from "./deep-research-analysis.parser-support.js";
-export {
-  isDeepResearchParserSuccess,
-} from "./deep-research-analysis.parser-support.js";
+export type { DeepResearchParserResult } from "./deep-research-analysis.parser-support.js";
+export { isDeepResearchParserSuccess } from "./deep-research-analysis.parser-support.js";
 
-type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
+const normalizeRawText = (rawText: string): string => rawText.trim();
+
+const buildRawTextHash = (value: string): string =>
+  "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const normalizeKey = (value: string): string => value.toLowerCase();
+const readString = (value: unknown): string | null =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 
-const pickTopLevelString = (
-  candidate: Record<string, unknown>,
-  preferredKeys: readonly string[],
-): string | null => {
-  const preferred = takeFirstString(candidate, preferredKeys);
-  if (preferred) {
-    return preferred;
+const readStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+    : [];
+
+const readConfidence = (value: unknown): DeepResearchSubQuestionAnalysisAnswer["confidence"] =>
+  value === "low" || value === "medium" || value === "high"
+    ? value
+    : "medium";
+
+const readStructuredPayload = (value: unknown): Record<string, unknown> =>
+  isRecord(value) ? value : {};
+
+const parseSourceNotes = (value: unknown): DeepResearchFinalReport["sourceNotes"] => {
+  if (!Array.isArray(value)) {
+    return [];
   }
-  for (const value of Object.values(candidate)) {
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
+  return value
+    .map((entry) => DeepResearchSourceNoteSchema.safeParse(entry))
+    .filter((entry): entry is { success: true; data: DeepResearchFinalReport["sourceNotes"][number] } => entry.success)
+    .map((entry) => entry.data);
 };
 
-const pickStringArrayByKeyFragments = (
-  candidate: Record<string, unknown>,
-  fragments: readonly string[],
-): string[] => {
-  for (const [key, value] of Object.entries(candidate)) {
-    const normalizedKey = normalizeKey(key);
-    if (!fragments.some((fragment) => normalizedKey.includes(fragment))) {
-      continue;
-    }
-    if (!Array.isArray(value)) {
-      continue;
-    }
-    const strings = value
-      .filter((item): item is string => typeof item === "string")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-    if (strings.length > 0) {
-      return strings;
-    }
+const buildSubQuestionAnalysisCandidate = (value: unknown): DeepResearchSubQuestionAnalysisAnswer | null => {
+  if (!isRecord(value)) {
+    return null;
   }
-  return [];
-};
-
-const pickConfidence = (candidate: Record<string, unknown>): DeepResearchFinalReport["confidence"] | null => {
-  const explicitConfidence = candidate.confidence ?? candidate.confidenceLevel ?? candidate.confidenceScore;
-  const normalizedExplicitConfidence = normalizeConfidenceValue(explicitConfidence);
-  if (normalizedExplicitConfidence) {
-    return normalizedExplicitConfidence;
+  const summary = readString(value.summary) ?? readString(value.answerText);
+  if (!summary) {
+    return null;
   }
-  for (const [key, value] of Object.entries(candidate)) {
-    if (!normalizeKey(key).includes("confidence")) {
-      continue;
-    }
-    const normalized = normalizeConfidenceValue(value);
-    if (normalized) {
-      return normalized;
-    }
-  }
-  return null;
-};
-
-const buildSubQuestionAnalysisCandidate = (
-  candidate: Record<string, unknown>,
-): { ok: true; value: DeepResearchSubQuestionAnalysisAnswer } | { ok: false; reason: string } => {
-  const subQuestionId = pickTopLevelString(candidate, ["subQuestionId", "questionId", "id"]);
-  const summary = pickTopLevelString(candidate, ["summary", "answer", "conclusion", "finding", "analysis"]);
-  const confidence = pickConfidence(candidate);
-  if (!subQuestionId || !summary || !confidence) {
-    return { ok: false, reason: "missing_sub_question_summary_or_confidence" };
-  }
-  const keyPoints = pickStringArrayByKeyFragments(candidate, ["key", "point", "finding", "takeaway", "reason"]);
-  return {
-    ok: true,
-    value: {
-      subQuestionId,
-      summary,
-      keyPoints: keyPoints.length > 0 ? keyPoints : buildSentenceRawIndex(summary),
-      evidenceMentions: pickStringArrayByKeyFragments(candidate, ["evidence", "reference", "source", "citation", "url", "link"]),
-      assumptions: pickStringArrayByKeyFragments(candidate, ["assumption", "premise"]),
-      contradictionPoints: pickStringArrayByKeyFragments(candidate, ["counter", "contradict", "oppos", "reverse"]),
-      limitations: pickStringArrayByKeyFragments(candidate, ["limitation", "risk", "caveat", "gap", "uncertaint"]),
-      confidence,
-      structuredPayload: candidate,
-    },
-  };
-};
-
-const buildFinalReportCandidate = (
-  candidate: Record<string, unknown>,
-  rawIndex: FinalReportNormalizationRawIndex,
-) => {
-  const summary = pickTopLevelString(candidate, ["summary", "conclusion", "decision", "answer", "verdict"]);
-  const confidence = pickConfidence(candidate);
-  if (summary && confidence) {
-    return {
-      ok: true as const,
-      value: {
-        summary,
-        confidence,
-        structuredPayload: candidate,
-        references: pickStringArrayByKeyFragments(candidate, ["reference", "source", "citation", "url", "link"]),
-        sourceNotes: rawIndex.sourceNotes ? [...rawIndex.sourceNotes] : [],
-      },
-    };
-  }
-  return { ok: false as const, reason: "missing_final_report_summary_or_confidence" };
-};
-
-const buildNarrativeLead = (rawText: string): string =>
-  buildSentenceRawIndex(rawText)[0]
-  ?? rawText.replace(/\s+/gu, " ").trim().slice(0, 240)
-  ?? "Model returned a narrative answer without a structured summary.";
-
-const buildSubQuestionAnalysisTextRawIndexValue = (input: {
-  rawText: string;
-  subQuestionId?: string;
-}): DeepResearchSubQuestionAnalysisAnswer => {
-  const normalized = input.rawText.replace(/\s+/gu, " ").trim();
-  const keyPoints = buildSentenceRawIndex(normalized);
-  return {
-    subQuestionId: input.subQuestionId ?? "unknown-sub-question",
-    summary: buildNarrativeLead(normalized),
-    keyPoints,
-    evidenceMentions: [],
-    assumptions: [],
-    contradictionPoints: [],
-    limitations: ["Model returned narrative analysis instead of the requested JSON contract."],
-    confidence: "medium",
-    structuredPayload: {
-      summary: buildNarrativeLead(normalized),
-      narrative: normalized,
-      keyPoints,
-    },
-  };
-};
-
-const buildFinalAdjudicationTextRawIndexValue = (input: {
-  rawText: string;
-  rawIndex: FinalReportNormalizationRawIndex;
-}): DeepResearchFinalReport => {
-  const normalized = input.rawText.replace(/\s+/gu, " ").trim();
-  const summary = buildNarrativeLead(normalized);
-  const references = input.rawIndex.references ? [...input.rawIndex.references] : [];
-  return {
+  return DeepResearchSubQuestionAnalysisAnswerSchema.parse({
     summary,
-    confidence: "medium",
-    structuredPayload: {
-      summary,
-      narrative: normalized,
-      supportingSignals: buildSentenceRawIndex(normalized),
-    },
-    references,
-    sourceNotes: input.rawIndex.sourceNotes
-      ? [...input.rawIndex.sourceNotes]
-      : buildDeepResearchSourceNotesFromReferences(references),
-  };
+    keyPoints: readStringArray(value.keyPoints),
+    evidenceMentions: readStringArray(value.evidenceMentions),
+    assumptions: readStringArray(value.assumptions),
+    limitations: readStringArray(value.limitations),
+    contradictionPoints: readStringArray(value.contradictionPoints),
+    confidence: readConfidence(value.confidence),
+    structuredPayload: isRecord(value.structuredPayload)
+      ? value.structuredPayload
+      : readStructuredPayload(value),
+  });
+};
+
+const buildFinalReportCandidate = (value: unknown): DeepResearchFinalReport | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const summary = readString(value.summary) ?? readString(value.rawFinalAnswerText);
+  if (!summary) {
+    return null;
+  }
+  return DeepResearchFinalReportSchema.parse({
+    summary,
+    confidence: readConfidence(value.confidence),
+    structuredPayload: isRecord(value.structuredPayload)
+      ? value.structuredPayload
+      : readStructuredPayload(value),
+    references: readStringArray(value.references),
+    sourceNotes: parseSourceNotes(value.sourceNotes),
+  });
 };
 
 export const parseDeepResearchDecompositionResponse = (input: {
   rawText: string;
   maxSubQuestions: number;
-}): DeepResearchParserResult<DeepResearchDecompositionResponse> =>
-  parseDecompositionResponse(input);
+}): DeepResearchParserResult<DeepResearchDecompositionResponse> => parseDecompositionResponse(input);
 
 export const parseDeepResearchSubQuestionAnalysisResponse = (
-  input: string | {
-    rawText: string;
-    subQuestionId?: string;
-  },
+  input: string | { rawText: string; subQuestionId?: string },
 ): DeepResearchParserResult<DeepResearchSubQuestionAnalysisAnswer> => {
   const rawText = typeof input === "string" ? input : input.rawText;
-  const normalized = normalizeWithSchema({
-    parsedJson: parseJsonObject(rawText),
-    schema: DeepResearchSubQuestionAnalysisAnswerSchema,
-    normalize: buildSubQuestionAnalysisCandidate,
-    missingRequiredReason: "invalid_sub_question_analysis_contract",
-  });
-  if (isDeepResearchParserSuccess(normalized) || !normalized.normalizedText) {
-    return normalized;
+  const normalizedText = normalizeRawText(rawText);
+  const rawResponseHash = buildRawTextHash(normalizedText);
+  if (!normalizedText) {
+    return buildFailure(normalizedText, rawResponseHash, "empty_ai_response", "failed_empty");
   }
-  return buildTextRawIndexResult({
-    rawText,
-    schema: DeepResearchSubQuestionAnalysisAnswerSchema,
-    value: buildSubQuestionAnalysisTextRawIndexValue({
-      rawText,
-      ...(typeof input === "string" ? {} : { subQuestionId: input.subQuestionId }),
+  const parsedJson = parseJsonObject(rawText);
+  if (isDeepResearchParserSuccess(parsedJson)) {
+    const candidate = buildSubQuestionAnalysisCandidate(parsedJson.parsed);
+    if (candidate) {
+      return buildParsedResult({
+        parsed: candidate,
+        normalizedText,
+        rawResponseHash,
+        parseStatus: "parsed_json_index",
+      });
+    }
+  }
+  return buildParsedResult({
+    parsed: DeepResearchSubQuestionAnalysisAnswerSchema.parse({
+      summary: normalizedText,
+      keyPoints: [],
+      evidenceMentions: [],
+      assumptions: [],
+      limitations: [],
+      contradictionPoints: [],
+      confidence: "medium",
+      structuredPayload: {},
     }),
-    failureReason: "invalid_sub_question_analysis_text_raw_index",
+    normalizedText,
+    rawResponseHash,
+    parseStatus: "parsed_text_raw_index",
   });
 };
 
 export const parseDeepResearchFinalAdjudicationResponse = (
   rawText: string,
-  rawIndex: FinalReportNormalizationRawIndex = {},
 ): DeepResearchParserResult<DeepResearchFinalReport> => {
-  const normalized = normalizeWithSchema({
-    parsedJson: parseJsonObject(rawText),
-    schema: DeepResearchFinalReportSchema,
-    normalize: (candidate) => buildFinalReportCandidate(candidate, rawIndex),
-    missingRequiredReason: "invalid_final_adjudication_contract",
-  });
-  if (isDeepResearchParserSuccess(normalized) || !normalized.normalizedText) {
-    return normalized;
+  const normalizedText = normalizeRawText(rawText);
+  const rawResponseHash = buildRawTextHash(normalizedText);
+  if (!normalizedText) {
+    return buildFailure(normalizedText, rawResponseHash, "empty_final_adjudication", "failed_empty");
   }
-  return buildTextRawIndexResult({
-    rawText,
-    schema: DeepResearchFinalReportSchema,
-    value: buildFinalAdjudicationTextRawIndexValue({ rawText, rawIndex }),
-    failureReason: "invalid_final_adjudication_text_raw_index",
+  const parsedJson = parseJsonObject(rawText);
+  if (isDeepResearchParserSuccess(parsedJson)) {
+    const candidate = buildFinalReportCandidate(parsedJson.parsed);
+    if (candidate) {
+      return buildParsedResult({
+        parsed: candidate,
+        normalizedText,
+        rawResponseHash,
+        parseStatus: "parsed_json_index",
+      });
+    }
+  }
+  return buildParsedResult({
+    parsed: DeepResearchFinalReportSchema.parse({
+      summary: normalizedText,
+      confidence: "medium",
+      structuredPayload: {},
+      references: [],
+      sourceNotes: [],
+    }),
+    normalizedText,
+    rawResponseHash,
+    parseStatus: "parsed_text_raw_index",
   });
 };

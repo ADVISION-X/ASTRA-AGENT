@@ -1,11 +1,6 @@
 import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
 import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
-import type { DeepResearchRecordStore, ResearchSubQuestion } from "./deep-research-analysis.records.js";
-
-export const loadDeepResearchPlan = (input: {
-  store: DeepResearchRecordStore;
-  jobId: string;
-}): DeepResearchPlan | null => input.store.getResearchPlan(input.jobId);
+import type { ResearchSubQuestion } from "./deep-research-analysis.records.js";
 
 export const buildDeepResearchPromptBundleExport = (input: {
   researchPlan: DeepResearchPlan;

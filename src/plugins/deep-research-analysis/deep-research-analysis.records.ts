@@ -150,7 +150,6 @@ const createJobOperations = (db: DeepResearchDatabaseHandle): Pick<DeepResearchR
   };
 };
 
-
 export type DeepResearchRecordStore = {
   dbPath: string;
   createJob(input: DeepResearchInput): ResearchJob;

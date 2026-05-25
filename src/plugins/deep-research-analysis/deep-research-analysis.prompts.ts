@@ -42,7 +42,7 @@ const buildPromptDocument = (sections: readonly (string | null | undefined)[]): 
     .filter((section): section is string => typeof section === "string" && section.trim().length > 0)
     .join("\n\n");
 
-export const decompositionPrompt: DeepResearchPrompt = {
+export const buildDecompositionPrompt = (): DeepResearchPrompt => ({
   promptId: DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptId,
   promptVersion: DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion,
   phase: "decomposition",
@@ -60,7 +60,7 @@ export const decompositionPrompt: DeepResearchPrompt = {
       "planIntegrityCheck",
     ],
   }),
-};
+});
 
 export const buildRenderedDeepResearchPromptHash = (input: {
   prompt: DeepResearchPrompt;
@@ -85,18 +85,12 @@ export const renderDeepResearchDecompositionPrompt = (input: Pick<DeepResearchIn
     input.analysisGoal ? `Analysis goal:\n${input.analysisGoal}` : null,
   ]);
 
-export const renderDeepResearchSubQuestionAnalysisPrompt = (input: Pick<DeepResearchInput, "userQuestion" | "analysisGoal" | "language"> & {
-  subQuestion: DeepResearchSubQuestion;
-}): string => {
-  const promptBundle = input.subQuestion.promptBundle;
+export const requireSubQuestionPromptBundle = (
+  subQuestion: DeepResearchSubQuestion,
+): NonNullable<DeepResearchSubQuestion["promptBundle"]> => {
+  const promptBundle = subQuestion.promptBundle;
   if (!promptBundle) {
-    throw new Error(`Missing promptBundle for sub-question ${input.subQuestion.id}.`);
+    throw new Error(`Missing promptBundle for sub-question ${subQuestion.id}.`);
   }
-  return renderSubQuestionAnalysisFromPromptBundle({
-    userQuestion: input.userQuestion,
-    analysisGoal: input.analysisGoal,
-    language: input.language,
-    subQuestion: input.subQuestion,
-    promptBundle,
-  });
+  return promptBundle;
 };

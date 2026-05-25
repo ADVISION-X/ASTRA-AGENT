@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T18:59:57.174Z",
+  "generatedAt": "2026-05-25T20:26:30.582Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -494,10 +494,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-core.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-detail.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown-support.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-markdown.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.flow-shared.ts",

@@ -133,5 +133,4 @@ export type ResearchFinalReportRecord = z.infer<typeof ResearchFinalReportRecord
 export type ResearchExport = z.infer<typeof ResearchExportSchema>;
 export type ResearchExportKind = z.infer<typeof ResearchExportKindSchema>;
 
-export const DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH =
-  "deep-research-analysis/deep_research_analysis.sqlite";
+export const DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH = "deep-research-analysis/deep_research_analysis.sqlite";

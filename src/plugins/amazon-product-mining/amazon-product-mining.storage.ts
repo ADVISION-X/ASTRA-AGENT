@@ -128,7 +128,10 @@ const rowToSearchItem = (row: Record<string, unknown>): AmazonSearchResultItem =
   createdAt: row["created_at"] as string,
 });
 
-const rowToDetail = (row: Record<string, unknown>): AmazonProductDetail => ({
+const parseStringArray = (value: unknown): string[] =>
+  value ? (JSON.parse(value as string) as string[]) : [];
+
+const buildDetailIdentity = (row: Record<string, unknown>) => ({
   detailId: row["detail_id"] as string,
   taskId: row["task_id"] as string,
   asin: (row["asin"] as string | null) ?? null,
@@ -138,15 +141,21 @@ const rowToDetail = (row: Record<string, unknown>): AmazonProductDetail => ({
   sellerOrStoreIfVisible: (row["seller_or_store_if_visible"] as string | null) ?? null,
   currentPrice: (row["current_price"] as string | null) ?? null,
   originalPriceDiscountCouponIfVisible: (row["original_price_discount_coupon_if_visible"] as string | null) ?? null,
+});
+
+const buildDetailContent = (row: Record<string, unknown>) => ({
   mainImage: (row["main_image"] as string | null) ?? null,
-  allVisibleImages: row["all_visible_images_json"] ? (JSON.parse(row["all_visible_images_json"] as string) as string[]) : [],
+  allVisibleImages: parseStringArray(row["all_visible_images_json"]),
   visibleVideoInfo: (row["visible_video_info"] as string | null) ?? null,
-  bulletPoints: row["bullet_points_json"] ? (JSON.parse(row["bullet_points_json"] as string) as string[]) : [],
+  bulletPoints: parseStringArray(row["bullet_points_json"]),
   aboutThisItem: (row["about_this_item"] as string | null) ?? null,
   productDescription: (row["product_description"] as string | null) ?? null,
   aPlusContentIfVisible: (row["a_plus_content_if_visible"] as string | null) ?? null,
   variationOptions: (row["variation_options"] as string | null) ?? null,
   colorSizeStyleOptions: (row["color_size_style_options"] as string | null) ?? null,
+});
+
+const buildDetailCommerce = (row: Record<string, unknown>) => ({
   productInformation: (row["product_information"] as string | null) ?? null,
   technicalDetails: (row["technical_details"] as string | null) ?? null,
   additionalInformation: (row["additional_information"] as string | null) ?? null,
@@ -162,11 +171,21 @@ const rowToDetail = (row: Record<string, unknown>): AmazonProductDetail => ({
   deliveryInformation: (row["delivery_information"] as string | null) ?? null,
   returnInformation: (row["return_information"] as string | null) ?? null,
   allOtherVisibleProductParameters: (row["all_other_visible_product_parameters"] as string | null) ?? null,
+});
+
+const buildDetailStatus = (row: Record<string, unknown>) => ({
   rawVisibleTextSnapshot: (row["raw_visible_text_snapshot"] as string | null) ?? null,
   status: row["status"] as AmazonProductStatus,
   failureReason: (row["failure_reason"] as string | null) ?? null,
   createdAt: row["created_at"] as string,
   updatedAt: (row["updated_at"] as string | null) ?? null,
+});
+
+const rowToDetail = (row: Record<string, unknown>): AmazonProductDetail => ({
+  ...buildDetailIdentity(row),
+  ...buildDetailContent(row),
+  ...buildDetailCommerce(row),
+  ...buildDetailStatus(row),
 });
 
 const rowToReview = (row: Record<string, unknown>): AmazonReviewRecord => ({
@@ -192,13 +211,15 @@ const rowToReview = (row: Record<string, unknown>): AmazonReviewRecord => ({
   createdAt: row["created_at"] as string,
 });
 
-export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage => {
-  const db = createAmazonMiningDatabase(dataDir);
-  const dbPath = resolveDbPath(dataDir);
+const createTaskOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "createTask" | "updateTaskStatus" | "getTask" | "getLatestTask"> => {
+  const getTask = (taskId: string): AmazonTaskRecord | null => {
+    const row = db.prepare("SELECT * FROM amazon_mining_tasks WHERE task_id=?").get(taskId);
+    return row ? rowToTask(row as Record<string, unknown>) : null;
+  };
 
   return {
-    dbPath,
-
     createTask(task) {
       db.prepare(`INSERT INTO amazon_mining_tasks (
         task_id, amazon_marketplace, target_market, product_direction, requested_keyword_count,
@@ -208,7 +229,7 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
         task.requestedKeywordCount, task.languagePreference, task.status,
         task.handoffStatus, task.createdAt,
       );
-      return this.getTask(task.taskId)!;
+      return getTask(task.taskId)!;
     },
 
     updateTaskStatus({ taskId, status, failureReason, packageJsonPath, pdfReportPath, evidenceIndexPath, exceptionSummaryPath, handoffStatus }) {
@@ -219,175 +240,206 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
         evidenceIndexPath ?? null, exceptionSummaryPath ?? null,
         handoffStatus ?? null, new Date().toISOString(), taskId,
       );
-      return this.getTask(taskId);
+      return getTask(taskId);
     },
 
-    getTask(taskId) {
-      const row = db.prepare("SELECT * FROM amazon_mining_tasks WHERE task_id=?").get(taskId);
-      return row ? rowToTask(row as Record<string, unknown>) : null;
-    },
+    getTask,
 
     getLatestTask() {
       const row = db.prepare("SELECT * FROM amazon_mining_tasks ORDER BY created_at DESC LIMIT 1").get();
       return row ? rowToTask(row as Record<string, unknown>) : null;
     },
+  };
+};
 
-    saveKeywords(keywords) {
-      const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_keywords (
-        keyword_id, task_id, keyword, source, ai_run_id, reason, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-      for (const kw of keywords) {
-        stmt.run(kw.keywordId, kw.taskId, kw.keyword, kw.source, kw.aiRunId, kw.reason, kw.status, kw.createdAt);
-      }
-    },
+const createKeywordOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "saveKeywords" | "updateKeywordStatus" | "getKeywordsForTask" | "getAllMinedKeywordsForDedup" | "saveAiKeywordRun"> => ({
+  saveKeywords(keywords) {
+    const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_keywords (
+      keyword_id, task_id, keyword, source, ai_run_id, reason, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const keyword of keywords) {
+      stmt.run(keyword.keywordId, keyword.taskId, keyword.keyword, keyword.source, keyword.aiRunId, keyword.reason, keyword.status, keyword.createdAt);
+    }
+  },
 
-    updateKeywordStatus({ keywordId, status }) {
-      db.prepare("UPDATE amazon_mining_keywords SET status=?, updated_at=? WHERE keyword_id=?")
-        .run(status, new Date().toISOString(), keywordId);
-    },
+  updateKeywordStatus({ keywordId, status }) {
+    db.prepare("UPDATE amazon_mining_keywords SET status=?, updated_at=? WHERE keyword_id=?")
+      .run(status, new Date().toISOString(), keywordId);
+  },
 
-    getKeywordsForTask(taskId) {
-      const rows = db.prepare("SELECT * FROM amazon_mining_keywords WHERE task_id=? ORDER BY created_at ASC").all(taskId);
-      return rows.map((r) => rowToKeyword(r as Record<string, unknown>));
-    },
+  getKeywordsForTask(taskId) {
+    const rows = db.prepare("SELECT * FROM amazon_mining_keywords WHERE task_id=? ORDER BY created_at ASC").all(taskId);
+    return rows.map((row) => rowToKeyword(row as Record<string, unknown>));
+  },
 
-    getAllMinedKeywordsForDedup() {
-      const rows = db.prepare("SELECT DISTINCT keyword FROM amazon_mining_keywords").all() as Array<{ keyword: string }>;
-      return rows.map((r) => r.keyword);
-    },
+  getAllMinedKeywordsForDedup() {
+    const rows = db.prepare("SELECT DISTINCT keyword FROM amazon_mining_keywords").all() as Array<{ keyword: string }>;
+    return rows.map((row) => row.keyword);
+  },
 
-    saveAiKeywordRun({ runId, taskId, promptText, rawResponse, parsedKeywords, dedupedKeywords, status, failureReason }) {
-      db.prepare(`INSERT INTO amazon_mining_ai_keyword_runs (
-        run_id, task_id, prompt_text, raw_response, parsed_keywords_json,
-        deduped_keywords_json, status, failure_reason, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-        runId, taskId, promptText, rawResponse,
-        JSON.stringify(parsedKeywords), JSON.stringify(dedupedKeywords),
-        status, failureReason ?? null, new Date().toISOString(),
+  saveAiKeywordRun({ runId, taskId, promptText, rawResponse, parsedKeywords, dedupedKeywords, status, failureReason }) {
+    db.prepare(`INSERT INTO amazon_mining_ai_keyword_runs (
+      run_id, task_id, prompt_text, raw_response, parsed_keywords_json,
+      deduped_keywords_json, status, failure_reason, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      runId, taskId, promptText, rawResponse,
+      JSON.stringify(parsedKeywords), JSON.stringify(dedupedKeywords),
+      status, failureReason ?? null, new Date().toISOString(),
+    );
+  },
+});
+
+const createSearchOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "persistSearchResults" | "getSearchResultsForKeyword"> => ({
+  persistSearchResults(items) {
+    const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_search_results (
+      item_id, keyword_id, task_id, keyword, search_url, rank_position, is_sponsored,
+      title, product_url, asin_if_available, main_image_url, price,
+      original_price_or_discount_if_visible, rating, review_count,
+      prime_or_fba_flag_if_visible, coupon_text_if_visible, delivery_text_if_visible,
+      raw_visible_text_snapshot, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const item of items) {
+      stmt.run(
+        item.itemId, item.keywordId, item.taskId, item.keyword, item.searchUrl,
+        item.rankPosition, item.isSponsored ? 1 : 0, item.title, item.productUrl,
+        item.asinIfAvailable, item.mainImageUrl, item.price,
+        item.originalPriceOrDiscountIfVisible, item.rating, item.reviewCount,
+        item.primeOrFbaFlagIfVisible, item.couponTextIfVisible, item.deliveryTextIfVisible,
+        item.rawVisibleTextSnapshot, item.createdAt,
       );
-    },
+    }
+  },
 
-    persistSearchResults(items) {
-      const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_search_results (
-        item_id, keyword_id, task_id, keyword, search_url, rank_position, is_sponsored,
-        title, product_url, asin_if_available, main_image_url, price,
-        original_price_or_discount_if_visible, rating, review_count,
-        prime_or_fba_flag_if_visible, coupon_text_if_visible, delivery_text_if_visible,
-        raw_visible_text_snapshot, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-      for (const item of items) {
-        stmt.run(
-          item.itemId, item.keywordId, item.taskId, item.keyword, item.searchUrl,
-          item.rankPosition, item.isSponsored ? 1 : 0, item.title, item.productUrl,
-          item.asinIfAvailable, item.mainImageUrl, item.price,
-          item.originalPriceOrDiscountIfVisible, item.rating, item.reviewCount,
-          item.primeOrFbaFlagIfVisible, item.couponTextIfVisible, item.deliveryTextIfVisible,
-          item.rawVisibleTextSnapshot, item.createdAt,
-        );
-      }
-    },
+  getSearchResultsForKeyword(keywordId) {
+    const rows = db.prepare("SELECT * FROM amazon_mining_search_results WHERE keyword_id=? ORDER BY rank_position ASC").all(keywordId);
+    return rows.map((row) => rowToSearchItem(row as Record<string, unknown>));
+  },
+});
 
-    getSearchResultsForKeyword(keywordId) {
-      const rows = db.prepare("SELECT * FROM amazon_mining_search_results WHERE keyword_id=? ORDER BY rank_position ASC").all(keywordId);
-      return rows.map((r) => rowToSearchItem(r as Record<string, unknown>));
-    },
+const createProductOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "persistProductDetail" | "updateProductStatus" | "getProductDetailsForTask" | "getProductDetail"> => ({
+  persistProductDetail(detail, linkedItemIds) {
+    db.prepare(`INSERT OR REPLACE INTO amazon_mining_product_details (
+      detail_id, task_id, asin, product_url, title, brand, seller_or_store_if_visible,
+      current_price, original_price_discount_coupon_if_visible, main_image,
+      all_visible_images_json, visible_video_info, bullet_points_json, about_this_item,
+      product_description, a_plus_content_if_visible, variation_options,
+      color_size_style_options, product_information, technical_details,
+      additional_information, best_sellers_rank_if_visible, category_path_if_visible,
+      rating, review_count, star_distribution, qa_content_if_visible,
+      frequently_bought_together_if_visible, customers_also_bought_if_visible,
+      compare_with_similar_items_if_visible, delivery_information, return_information,
+      all_other_visible_product_parameters, raw_visible_text_snapshot, status,
+      failure_reason, created_at, updated_at
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      detail.detailId, detail.taskId, detail.asin, detail.productUrl, detail.title,
+      detail.brand, detail.sellerOrStoreIfVisible, detail.currentPrice,
+      detail.originalPriceDiscountCouponIfVisible, detail.mainImage,
+      JSON.stringify(detail.allVisibleImages), detail.visibleVideoInfo,
+      JSON.stringify(detail.bulletPoints), detail.aboutThisItem, detail.productDescription,
+      detail.aPlusContentIfVisible, detail.variationOptions, detail.colorSizeStyleOptions,
+      detail.productInformation, detail.technicalDetails, detail.additionalInformation,
+      detail.bestSellersRankIfVisible, detail.categoryPathIfVisible, detail.rating,
+      detail.reviewCount, detail.starDistribution, detail.qaContentIfVisible,
+      detail.frequentlyBoughtTogetherIfVisible, detail.customersAlsoBoughtIfVisible,
+      detail.compareWithSimilarItemsIfVisible, detail.deliveryInformation,
+      detail.returnInformation, detail.allOtherVisibleProductParameters,
+      detail.rawVisibleTextSnapshot, detail.status, detail.failureReason,
+      detail.createdAt, detail.updatedAt,
+    );
+    const linkStmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_search_result_product_link (item_id, detail_id) VALUES (?, ?)`);
+    for (const itemId of linkedItemIds) {
+      linkStmt.run(itemId, detail.detailId);
+    }
+  },
 
-    persistProductDetail(detail, linkedItemIds) {
-      db.prepare(`INSERT OR REPLACE INTO amazon_mining_product_details (
-        detail_id, task_id, asin, product_url, title, brand, seller_or_store_if_visible,
-        current_price, original_price_discount_coupon_if_visible, main_image,
-        all_visible_images_json, visible_video_info, bullet_points_json, about_this_item,
-        product_description, a_plus_content_if_visible, variation_options,
-        color_size_style_options, product_information, technical_details,
-        additional_information, best_sellers_rank_if_visible, category_path_if_visible,
-        rating, review_count, star_distribution, qa_content_if_visible,
-        frequently_bought_together_if_visible, customers_also_bought_if_visible,
-        compare_with_similar_items_if_visible, delivery_information, return_information,
-        all_other_visible_product_parameters, raw_visible_text_snapshot, status,
-        failure_reason, created_at, updated_at
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        detail.detailId, detail.taskId, detail.asin, detail.productUrl, detail.title,
-        detail.brand, detail.sellerOrStoreIfVisible, detail.currentPrice,
-        detail.originalPriceDiscountCouponIfVisible, detail.mainImage,
-        JSON.stringify(detail.allVisibleImages), detail.visibleVideoInfo,
-        JSON.stringify(detail.bulletPoints), detail.aboutThisItem, detail.productDescription,
-        detail.aPlusContentIfVisible, detail.variationOptions, detail.colorSizeStyleOptions,
-        detail.productInformation, detail.technicalDetails, detail.additionalInformation,
-        detail.bestSellersRankIfVisible, detail.categoryPathIfVisible, detail.rating,
-        detail.reviewCount, detail.starDistribution, detail.qaContentIfVisible,
-        detail.frequentlyBoughtTogetherIfVisible, detail.customersAlsoBoughtIfVisible,
-        detail.compareWithSimilarItemsIfVisible, detail.deliveryInformation,
-        detail.returnInformation, detail.allOtherVisibleProductParameters,
-        detail.rawVisibleTextSnapshot, detail.status, detail.failureReason,
-        detail.createdAt, detail.updatedAt,
+  updateProductStatus({ detailId, status, failureReason }) {
+    db.prepare("UPDATE amazon_mining_product_details SET status=?, failure_reason=?, updated_at=? WHERE detail_id=?")
+      .run(status, failureReason ?? null, new Date().toISOString(), detailId);
+  },
+
+  getProductDetailsForTask(taskId) {
+    const rows = db.prepare("SELECT * FROM amazon_mining_product_details WHERE task_id=? ORDER BY created_at ASC").all(taskId);
+    return rows.map((row) => rowToDetail(row as Record<string, unknown>));
+  },
+
+  getProductDetail(detailId) {
+    const row = db.prepare("SELECT * FROM amazon_mining_product_details WHERE detail_id=?").get(detailId);
+    return row ? rowToDetail(row as Record<string, unknown>) : null;
+  },
+});
+
+const createReviewOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "persistReviews" | "getReviewsForProduct"> => ({
+  persistReviews(reviews) {
+    const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_reviews (
+      review_id, detail_id, task_id, asin, page_index, review_id_if_available,
+      reviewer_name, rating, review_title, review_body, review_date, verified_purchase,
+      variant, helpful_count_if_visible, review_images_if_visible_json,
+      review_videos_if_visible_json, review_language, review_region_if_visible,
+      raw_review_text_snapshot, created_at
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    for (const review of reviews) {
+      stmt.run(
+        review.reviewId, review.detailId, review.taskId, review.asin, review.pageIndex,
+        review.reviewIdIfAvailable, review.reviewerName, review.rating, review.reviewTitle,
+        review.reviewBody, review.reviewDate,
+        review.verifiedPurchase === null ? null : (review.verifiedPurchase ? 1 : 0),
+        review.variant, review.helpfulCountIfVisible,
+        JSON.stringify(review.reviewImagesIfVisible), JSON.stringify(review.reviewVideosIfVisible),
+        review.reviewLanguage, review.reviewRegionIfVisible, review.rawReviewTextSnapshot, review.createdAt,
       );
-      const linkStmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_search_result_product_link (item_id, detail_id) VALUES (?, ?)`);
-      for (const itemId of linkedItemIds) {
-        linkStmt.run(itemId, detail.detailId);
-      }
-    },
+    }
+  },
 
-    updateProductStatus({ detailId, status, failureReason }) {
-      db.prepare("UPDATE amazon_mining_product_details SET status=?, failure_reason=?, updated_at=? WHERE detail_id=?")
-        .run(status, failureReason ?? null, new Date().toISOString(), detailId);
-    },
+  getReviewsForProduct(detailId) {
+    const rows = db.prepare("SELECT * FROM amazon_mining_reviews WHERE detail_id=? ORDER BY page_index ASC, created_at ASC").all(detailId);
+    return rows.map((row) => rowToReview(row as Record<string, unknown>));
+  },
+});
 
-    getProductDetailsForTask(taskId) {
-      const rows = db.prepare("SELECT * FROM amazon_mining_product_details WHERE task_id=? ORDER BY created_at ASC").all(taskId);
-      return rows.map((r) => rowToDetail(r as Record<string, unknown>));
-    },
+const createExceptionOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "persistException" | "getExceptionsForTask"> => ({
+  persistException({ exceptionId, taskId, scope, scopeId, exceptionKind, message }) {
+    db.prepare(`INSERT OR IGNORE INTO amazon_mining_exception_records (
+      exception_id, task_id, scope, scope_id, exception_kind, message, created_at
+    ) VALUES (?,?,?,?,?,?,?)`).run(
+      exceptionId, taskId, scope, scopeId ?? null, exceptionKind, message, new Date().toISOString(),
+    );
+  },
 
-    getProductDetail(detailId) {
-      const row = db.prepare("SELECT * FROM amazon_mining_product_details WHERE detail_id=?").get(detailId);
-      return row ? rowToDetail(row as Record<string, unknown>) : null;
-    },
+  getExceptionsForTask(taskId) {
+    const rows = db.prepare("SELECT * FROM amazon_mining_exception_records WHERE task_id=? ORDER BY created_at ASC").all(taskId) as Array<Record<string, unknown>>;
+    return rows.map((row) => ({
+      exceptionId: row["exception_id"] as string,
+      scope: row["scope"] as string,
+      scopeId: (row["scope_id"] as string | null) ?? null,
+      exceptionKind: row["exception_kind"] as string,
+      message: row["message"] as string,
+      createdAt: row["created_at"] as string,
+    }));
+  },
+});
 
-    persistReviews(reviews) {
-      const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_reviews (
-        review_id, detail_id, task_id, asin, page_index, review_id_if_available,
-        reviewer_name, rating, review_title, review_body, review_date, verified_purchase,
-        variant, helpful_count_if_visible, review_images_if_visible_json,
-        review_videos_if_visible_json, review_language, review_region_if_visible,
-        raw_review_text_snapshot, created_at
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-      for (const r of reviews) {
-        stmt.run(
-          r.reviewId, r.detailId, r.taskId, r.asin, r.pageIndex,
-          r.reviewIdIfAvailable, r.reviewerName, r.rating, r.reviewTitle,
-          r.reviewBody, r.reviewDate,
-          r.verifiedPurchase === null ? null : (r.verifiedPurchase ? 1 : 0),
-          r.variant, r.helpfulCountIfVisible,
-          JSON.stringify(r.reviewImagesIfVisible), JSON.stringify(r.reviewVideosIfVisible),
-          r.reviewLanguage, r.reviewRegionIfVisible, r.rawReviewTextSnapshot, r.createdAt,
-        );
-      }
-    },
+export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage => {
+  const db = createAmazonMiningDatabase(dataDir);
+  const dbPath = resolveDbPath(dataDir);
 
-    getReviewsForProduct(detailId) {
-      const rows = db.prepare("SELECT * FROM amazon_mining_reviews WHERE detail_id=? ORDER BY page_index ASC, created_at ASC").all(detailId);
-      return rows.map((r) => rowToReview(r as Record<string, unknown>));
-    },
-
-    persistException({ exceptionId, taskId, scope, scopeId, exceptionKind, message }) {
-      db.prepare(`INSERT OR IGNORE INTO amazon_mining_exception_records (
-        exception_id, task_id, scope, scope_id, exception_kind, message, created_at
-      ) VALUES (?,?,?,?,?,?,?)`).run(
-        exceptionId, taskId, scope, scopeId ?? null, exceptionKind, message, new Date().toISOString(),
-      );
-    },
-
-    getExceptionsForTask(taskId) {
-      const rows = db.prepare("SELECT * FROM amazon_mining_exception_records WHERE task_id=? ORDER BY created_at ASC").all(taskId) as Array<Record<string, unknown>>;
-      return rows.map((r) => ({
-        exceptionId: r["exception_id"] as string,
-        scope: r["scope"] as string,
-        scopeId: (r["scope_id"] as string | null) ?? null,
-        exceptionKind: r["exception_kind"] as string,
-        message: r["message"] as string,
-        createdAt: r["created_at"] as string,
-      }));
-    },
-
+  return {
+    dbPath,
+    ...createTaskOperations(db),
+    ...createKeywordOperations(db),
+    ...createSearchOperations(db),
+    ...createProductOperations(db),
+    ...createReviewOperations(db),
+    ...createExceptionOperations(db),
     close() {
       db.close();
     },

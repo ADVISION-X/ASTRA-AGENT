@@ -51,6 +51,8 @@ export const DeepResearchParseStatusSchema = z.enum([
   "parsed_json_from_fence",
   "parsed_json_from_balanced_object",
   "parsed_text_raw_index",
+  "raw_structured_text",
+  "parsed_json_index",
   "parse_failed_raw_available",
   "partial_review_required",
   "failed",

@@ -6,17 +6,20 @@ import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-contrac
 import { buildPromptOutputShellContract } from "./deep-research-analysis.prompts.js";
 import type { DeepResearchInput } from "./deep-research-analysis.schema.js";
 
-export const finalAdjudicationShellPrompt: DeepResearchPrompt = {
+export const DEEP_RESEARCH_FINAL_ADJUDICATION_CONTRACT_ID =
+  "deep-research.final-adjudication.shell.v2.0" as const;
+
+export const buildFinalAdjudicationOutputContract = () => buildPromptOutputShellContract({
+  contractId: DEEP_RESEARCH_FINAL_ADJUDICATION_CONTRACT_ID,
+});
+
+export const buildFinalAdjudicationShellPrompt = (): DeepResearchPrompt => ({
   promptId: "deep-research.final-adjudication",
   promptVersion: "v2.0.0",
   phase: "final_adjudication",
   promptText: "Runtime shell for AI-generated finalAdjudicationPromptBundle.",
-  expectedOutputContract: buildPromptOutputShellContract({
-    contractId: "deep-research.final-adjudication.shell.v2.0",
-  }),
-};
-
-export const finalAdjudicationPrompt = finalAdjudicationShellPrompt;
+  expectedOutputContract: buildFinalAdjudicationOutputContract(),
+});
 
 export const renderDeepResearchFinalAdjudicationPrompt = (input: {
   userQuestion?: string;
