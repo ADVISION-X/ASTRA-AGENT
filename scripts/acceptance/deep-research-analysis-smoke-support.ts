@@ -108,15 +108,15 @@ const verifyPersistedFinalPackage = (input: {
   assert(finalPackage.analysisCoverage.missingAnalysisSubQuestionCount === 0, "Structured index should report zero missing analysis rows in the smoke fixture.");
   assert(fullCaseFile.caseFileVersion === "v1", "Full case file must be built for the smoke fixture.");
   assert(fullCaseFile.coverage.rawAnalysisInteractionCount === 2, "Full case file must preserve raw coverage for each sub-question.");
-  assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.json.v1.1", "Smoke fixture must target the current final adjudication contract.");
+  assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.shell.v2.0", "Smoke fixture must target the current shell-only final adjudication contract.");
   const finalPromptText = renderDeepResearchFinalAdjudicationPrompt({
-    userQuestion: input.job?.userQuestion ?? "",
-    analysisGoal: input.job?.analysisGoal ?? null,
     language: input.job?.language ?? "zh-CN",
     structuredIndex: finalPackage,
     fullCaseFile,
     fullCaseFileMarkdown: renderDeepResearchFullCaseFileMarkdown(fullCaseFile),
+    finalAdjudicationPromptBundle: fullCaseFile.researchPlan.finalAdjudicationPromptBundle,
   });
+  assert(finalPromptText.includes("AI-GENERATED PROMPTBUNDLE"), "Final prompt must include the AI-generated promptBundle.");
 };
 
 const verifyPersistedExports = (
@@ -124,7 +124,7 @@ const verifyPersistedExports = (
   jobId: string,
 ): void => {
   const exports = store.listExports(jobId);
-  assert(exports.length === 6, `Expected 6 export records, received ${exports.length}.`);
+  assert(exports.length === 8, `Expected 8 export records, received ${exports.length}.`);
 
   const finalReportExport = exports.find((record) => record.exportKind === "final-report.md");
   const fullCaseMarkdownExport = exports.find((record) => record.exportKind === "full-case-file.md");
@@ -132,12 +132,16 @@ const verifyPersistedExports = (
   const decisionPackageExport = exports.find((record) =>
     record.exportKind === "decision-package.json"
   );
+  const researchPlanExport = exports.find((record) => record.exportKind === "research-plan.json");
+  const promptBundlesExport = exports.find((record) => record.exportKind === "prompt-bundles.json");
   const businessHtmlExport = exports.find((record) => record.exportKind === "business-report.html");
   const evidenceExport = exports.find((record) => record.exportKind === "evidence-index.json");
   if (!finalReportExport) throw new Error("Missing final-report.md export record.");
   if (!fullCaseMarkdownExport) throw new Error("Missing full-case-file.md export record.");
   if (!fullCaseJsonExport) throw new Error("Missing full-case-file.json export record.");
   if (!decisionPackageExport) throw new Error("Missing decision-package.json export record.");
+  if (!researchPlanExport) throw new Error("Missing research-plan.json export record.");
+  if (!promptBundlesExport) throw new Error("Missing prompt-bundles.json export record.");
   if (!businessHtmlExport) throw new Error("Missing business-report.html export record.");
   if (!evidenceExport) throw new Error("Missing evidence-index.json export record.");
 
@@ -145,6 +149,8 @@ const verifyPersistedExports = (
   assert(existsSync(fullCaseMarkdownExport.filePath), "full-case-file.md file was not written.");
   assert(existsSync(fullCaseJsonExport.filePath), "full-case-file.json file was not written.");
   assert(existsSync(decisionPackageExport.filePath), "decision-package.json file was not written.");
+  assert(existsSync(researchPlanExport.filePath), "research-plan.json file was not written.");
+  assert(existsSync(promptBundlesExport.filePath), "prompt-bundles.json file was not written.");
   assert(existsSync(businessHtmlExport.filePath), "business-report.html file was not written.");
   assert(existsSync(evidenceExport.filePath), "evidence-index.json file was not written.");
 
@@ -197,6 +203,27 @@ const buildModelSubQuestions = () => [
   },
 ];
 
+const withIdentityPromptBundle = (subQuestion: ReturnType<typeof buildModelSubQuestions>[number]) => ({
+  ...subQuestion,
+  promptBundle: {
+    promptBundleId: `${subQuestion.id}-identity-prompt-bundle`,
+    promptRole: "sub_question_analysis" as const,
+    taskInstruction: `Verify persistence identity for ${subQuestion.id}.`,
+    questionSpecificFocus: [subQuestion.title],
+    mustUseInputs: ["subQuestion"],
+    mustNotDo: ["Do not issue system operations."],
+    evidenceOrReasoningNeeds: ["database identity reasoning"],
+    outputGuidance: {
+      preferredFormat: "json_object" as const,
+      requiredContent: ["identity finding"],
+      optionalContent: [],
+      forbiddenContent: ["workflow commands"],
+    },
+    safetyBoundary: ["fixture only"],
+    languageInstruction: "Respond in English.",
+  },
+});
+
 export const verifySubQuestionIdsAreJobScoped = (): void => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-id-scope-"));
   const store = createDeepResearchRecordStore(dataDir);
@@ -209,6 +236,7 @@ export const verifySubQuestionIdsAreJobScoped = (): void => {
       outputFormat: "markdown" as const,
     };
     const modelSubQuestions = buildModelSubQuestions();
+    const persistedSubQuestions = modelSubQuestions.map(withIdentityPromptBundle);
     const firstJob = store.createJob(input);
     const firstInteraction = store.createInteraction({
       jobId: firstJob.id,
@@ -224,7 +252,7 @@ export const verifySubQuestionIdsAreJobScoped = (): void => {
     const firstRecords = store.saveSubQuestions({
       jobId: firstJob.id,
       interactionId: firstInteraction.id,
-      subQuestions: modelSubQuestions,
+      subQuestions: persistedSubQuestions,
     });
 
     const secondJob = store.createJob(input);
@@ -242,7 +270,7 @@ export const verifySubQuestionIdsAreJobScoped = (): void => {
     const secondRecords = store.saveSubQuestions({
       jobId: secondJob.id,
       interactionId: secondInteraction.id,
-      subQuestions: modelSubQuestions,
+      subQuestions: persistedSubQuestions,
     });
 
     assert(firstRecords[0]?.modelQuestionId === "Q1", "First job must preserve Q1 as modelQuestionId.");

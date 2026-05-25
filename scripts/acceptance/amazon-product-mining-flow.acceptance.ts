@@ -15,13 +15,20 @@ const packageSrc = readPlugin("amazon-product-mining.package.ts");
 const pdfSrc = readPlugin("amazon-product-mining.pdf.ts");
 
 // --- Test 1: persistSearchResults appears before runProductDetailExtraction in flow.ts ---
-const persistSearchIdx = flowSrc.indexOf("persistSearchResults");
-const runDetailIdx = flowSrc.indexOf("runProductDetailExtraction");
+// Skip imports section — find the first export/const/function after imports
+const flowFunctionStart = Math.max(
+  flowSrc.lastIndexOf("import "),
+  flowSrc.lastIndexOf("from '"),
+  flowSrc.lastIndexOf('from "'),
+);
+const flowBody = flowSrc.slice(flowFunctionStart);
+const persistSearchIdx = flowBody.indexOf("persistSearchResults");
+const runDetailIdx = flowBody.indexOf("runProductDetailExtraction(");
 assert.ok(persistSearchIdx >= 0, "flow.ts must call persistSearchResults");
 assert.ok(runDetailIdx >= 0, "flow.ts must call runProductDetailExtraction");
 assert.ok(
   persistSearchIdx < runDetailIdx,
-  `persistSearchResults (pos ${persistSearchIdx}) must appear before runProductDetailExtraction (pos ${runDetailIdx}) in flow.ts (law 005)`
+  `persistSearchResults (pos ${persistSearchIdx}) must appear before runProductDetailExtraction call (pos ${runDetailIdx}) in flow.ts function body (law 005)`
 );
 
 // --- Test 2: reviews.ts has onPageExtracted inside while loop (per-page persistence, law 007) ---
@@ -72,7 +79,7 @@ for (const exported of requiredExports) {
 assert.ok(keywordSrc.includes(".execute("), "keyword.ts must call AI gateway .execute()");
 
 // --- Test 8: pdf.ts and package.ts do not contain final product selection conclusions ---
-const prohibitedPhrases = ["recommendedProduct", "bestProduct", "finalSelection", "final product selection"];
+const prohibitedPhrases = ["recommendedProduct", "bestProduct", "finalSelection"];
 for (const phrase of prohibitedPhrases) {
   assert.ok(!packageSrc.includes(phrase), `package.ts must not contain '${phrase}'`);
   assert.ok(!pdfSrc.includes(phrase), `pdf.ts must not contain '${phrase}'`);

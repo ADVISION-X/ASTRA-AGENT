@@ -8,14 +8,19 @@ capabilityDomain: `deep-research-analysis`
 ## 唯一流程
 
 ```txt
-INTAKE
+USER QUESTION
 -> DECOMPOSE_SEND
 -> DECOMPOSE_CAPTURE
 -> DECOMPOSE_RAW_PERSIST
 -> DECOMPOSE_PARSE
--> SUB_QUESTIONS_PERSIST
+-> RESEARCH_PLAN_PERSIST:
+   - subQuestions[]
+   - subQuestions[].promptBundle
+   - finalAdjudicationPromptBundle
+   - htmlReportPromptBundle
 
--> ANALYSIS_SEND for each sub-question
+-> ANALYSIS_SEND for each sub-question:
+   runtime shell + subQuestion.promptBundle + user question + subQuestion
 -> ANALYSIS_CAPTURE
 -> ANALYSIS_RAW_PERSIST
 -> ANALYSIS_PARSE_OR_RAW_PRESERVE
@@ -25,12 +30,14 @@ INTAKE
 -> FULL_CASE_FILE_EXPORT_JSON
 -> FULL_CASE_FILE_EXPORT_MD
 
--> FINAL_ADJUDICATION_SEND
+-> FINAL_ADJUDICATION_SEND:
+   runtime shell + finalAdjudicationPromptBundle + fullCaseFile
 -> FINAL_ADJUDICATION_CAPTURE
 -> FINAL_ADJUDICATION_RAW_PERSIST
 -> FINAL_REPORT_PERSIST
 
--> HTML_REPORT_SEND
+-> HTML_REPORT_SEND:
+   runtime shell + htmlReportPromptBundle + finalReport + fullCaseFile
 -> HTML_REPORT_CAPTURE
 -> HTML_REPORT_RAW_PERSIST
 -> HTML_REPORT_PERSIST_AS_BUSINESS_REPORT_HTML
@@ -61,6 +68,8 @@ persisted full case file + latest final report
 business-report.html
 full-case-file.json
 full-case-file.md
+research-plan.json
+prompt-bundles.json
 decision-package.json
 final-report.md
 evidence-index.json
@@ -81,7 +90,34 @@ evidence-index.json
 
 `FULL_CASE_FILE` 是最终裁决案卷。所有 AI prompt、所有 AI raw response、parse status、结构化索引、record hashes、provider proof 都必须进入案卷。结构化解析只是索引，不得替代 raw response。
 
-最终裁决 prompt 必须接收 `structuredIndex + fullCaseFile`。HTML report prompt 必须接收 `finalReport + fullCaseFile`。
+最终裁决必须接收 `finalAdjudicationPromptBundle + fullCaseFile`。HTML report 必须接收 `htmlReportPromptBundle + finalReport + fullCaseFile`。
+
+## Prompt 主权
+
+系统外壳不等于业务提示词。
+
+系统外壳只管：
+
+```txt
+安全边界
+格式边界
+发送
+捕获
+保存
+全量案卷
+导出
+```
+
+业务提示词只来自第一轮 AI 生成的 `promptBundle`。
+
+禁止保留：
+
+```txt
+fixed sub-question business prompt
+fixed final adjudication business prompt
+fixed HTML business report structure
+default business prompt fallback
+```
 
 ## 已删除历史，不在系统内保留
 
@@ -96,7 +132,7 @@ fallback / compatibility
 
 ## HTML 商业报告
 
-HTML prompt 必须要求完整自包含 HTML、inline CSS、no external JS、no external CSS、no external images、no markdown fence、business decision report structure。
+HTML shell 只能要求完整自包含 HTML、inline CSS、no external JS、no external CSS、no external images、no markdown fence。
 
 系统只检查 HTML 非空、包含 html/body、文件保存成功、hash 保存成功。系统不得重裁决内容。
 

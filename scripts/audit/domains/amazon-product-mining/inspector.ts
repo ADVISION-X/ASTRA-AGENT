@@ -194,8 +194,11 @@ const inspectFlowSearchBeforeDetail = (
   trackSourceFile(inspectedFiles, flowFile);
   if (!flowFile) return;
   const text = flowFile.getFullText();
-  const persistSearchIdx = text.indexOf("persistSearchResults");
-  const productDetailOpenIdx = text.indexOf("runProductDetailExtraction");
+  // Skip past import declarations to find actual call positions in the function body
+  const lastFromIdx = Math.max(text.lastIndexOf("from '"), text.lastIndexOf('from "'));
+  const bodyStart = lastFromIdx > 0 ? lastFromIdx : 0;
+  const persistSearchIdx = text.indexOf("persistSearchResults", bodyStart);
+  const productDetailOpenIdx = text.indexOf("runProductDetailExtraction(", bodyStart);
   if (persistSearchIdx < 0 || productDetailOpenIdx < 0) {
     findings.push(createFinding({
       checkId: "amazon-mining/search-before-detail",

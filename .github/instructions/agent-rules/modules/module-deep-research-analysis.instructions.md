@@ -156,3 +156,81 @@ compact
 ```
 
 If a concept is not part of the unique chain, it must not exist.
+
+### [GRASSEYE-DEEP-RESEARCH-043-V1] AI Prompt Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+prompt",
+  "summary": "Business prompt sovereignty belongs to the first decomposition AI. Runtime may define only transport, persistence, safety, and output-shell constraints."
+}
+```
+
+Runtime must not hard-code domain-specific analysis prompts, final adjudication business prompts, or report-content prompts.
+
+### [GRASSEYE-DEEP-RESEARCH-044-V1] Per-Question PromptBundle Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+ast",
+  "summary": "The decomposition AI must generate an independent promptBundle for every sub-question, and N-stage analysis must use that exact sub-question promptBundle."
+}
+```
+
+A single generic N-stage business prompt template is forbidden.
+
+### [GRASSEYE-DEEP-RESEARCH-045-V1] Final PromptBundle Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+ast",
+  "summary": "Final adjudication must use the decomposition AI generated finalAdjudicationPromptBundle plus the full case file."
+}
+```
+
+Runtime may wrap it with format and safety boundaries only.
+
+### [GRASSEYE-DEEP-RESEARCH-046-V1] HTML Report PromptBundle Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+ast",
+  "summary": "HTML report publishing must use the decomposition AI generated htmlReportPromptBundle plus finalReport and fullCaseFile."
+}
+```
+
+Runtime may require self-contained safe HTML artifact boundaries only.
+
+### [GRASSEYE-DEEP-RESEARCH-047-V1] No Default Business Prompt Fallback
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+fs",
+  "summary": "If a required promptBundle is missing, invalid, or not question-specific, the job must fail instead of falling back to a default fixed business prompt."
+}
+```

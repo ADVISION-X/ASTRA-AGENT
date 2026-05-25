@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T16:31:11.871Z",
+  "generatedAt": "2026-05-25T16:42:22.020Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -8,7 +8,12 @@
     "GRASSEYE-DEEP-RESEARCH-039-V1",
     "GRASSEYE-DEEP-RESEARCH-040-V1",
     "GRASSEYE-DEEP-RESEARCH-041-V1",
-    "GRASSEYE-DEEP-RESEARCH-042-V1"
+    "GRASSEYE-DEEP-RESEARCH-042-V1",
+    "GRASSEYE-DEEP-RESEARCH-043-V1",
+    "GRASSEYE-DEEP-RESEARCH-044-V1",
+    "GRASSEYE-DEEP-RESEARCH-045-V1",
+    "GRASSEYE-DEEP-RESEARCH-046-V1",
+    "GRASSEYE-DEEP-RESEARCH-047-V1"
   ],
   "status": "FAIL",
   "findings": [
@@ -26,31 +31,7 @@
       "clauseId": "primary",
       "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts"
-    },
-    {
-      "checkId": "deep-research/no-compatibility-vocabulary",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
-      "clauseId": "primary",
-      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
-      "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-schema.ts"
-    },
-    {
-      "checkId": "deep-research/no-compatibility-vocabulary",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
-      "clauseId": "primary",
-      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"
-    },
-    {
-      "checkId": "deep-research/no-compatibility-vocabulary",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
-      "clauseId": "primary",
-      "message": "Deep Research active source contains forbidden compatibility term(s): optional.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts"
     }
   ],
   "inspectedFiles": [

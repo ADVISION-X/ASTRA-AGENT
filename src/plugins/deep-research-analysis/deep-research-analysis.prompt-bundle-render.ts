@@ -44,6 +44,10 @@ export const renderFinalAdjudicationFromPromptBundle = (input: {
     preferredFormat: input.finalAdjudicationPromptBundle.outputGuidance.preferredFormat,
   }),
   "- Use the full case file as the source of truth.",
+  "The full case file is the complete source of truth.",
+  "The structured index is for navigation.",
+  "If structured fields and raw responses differ, use the raw responses as primary evidence.",
+  "Do not ignore raw responses that failed parsing.",
   "- Do not ignore raw responses.",
   renderPromptBundleSection(input.finalAdjudicationPromptBundle),
   buildSection("CONTEXT", {

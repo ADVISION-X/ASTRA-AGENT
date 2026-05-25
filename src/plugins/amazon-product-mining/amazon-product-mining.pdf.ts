@@ -45,7 +45,7 @@ h2 { color: #232f3e; }
 <h1>Amazon Product Mining Report</h1>
 <div class="note">
   This report is a surface summary. The complete structured data is available in the data package JSON file.
-  This report does NOT include final product selection conclusions — AI analysis is required for adjudication.
+  This report provides mining evidence only. AI analysis is required for adjudication.
 </div>
 <h2>Mission Parameters</h2>
 <table class="meta-table">

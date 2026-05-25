@@ -148,6 +148,7 @@ export const runReviewPagination = async (input: {
     : (() => { throw new Error("No browser or adapter provided for review pagination"); })());
 
   let pageIndex = 0;
+  let totalPagesVisited = 0;
   let totalReviewsCollected = 0;
   let finalRestriction: "manual_required" | null = null;
 
@@ -162,6 +163,7 @@ export const runReviewPagination = async (input: {
 
     // Persist reviews per page INSIDE pagination loop (law 007)
     await input.onPageExtracted(reviews, pageIndex);
+    totalPagesVisited++;
     totalReviewsCollected += reviews.length;
 
     if (restriction === "manual_required") {
@@ -175,7 +177,7 @@ export const runReviewPagination = async (input: {
 
   return {
     totalReviewsCollected,
-    totalPagesVisited: pageIndex + 1,
+    totalPagesVisited,
     restriction: finalRestriction,
   };
 };

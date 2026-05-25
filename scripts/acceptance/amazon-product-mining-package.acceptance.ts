@@ -132,7 +132,7 @@ try {
   // --- Verify JSON package file exists and has correct structure ---
   assert.ok(existsSync(packageResult.packageJsonPath), "packageJsonPath file must exist on disk");
   const packageJson = JSON.parse(readFileSync(packageResult.packageJsonPath, "utf8"));
-  assert.ok(packageJson.taskId, "Package JSON must have taskId");
+  assert.ok(packageJson.task_id, "Package JSON must have task_id");
   assert.ok(Array.isArray(packageJson.keywords), "Package JSON must have keywords array");
   assert.ok(Array.isArray(packageJson.products), "Package JSON must have products array");
   assert.equal(packageJson.products.length, 2, "Should have 2 products in JSON");

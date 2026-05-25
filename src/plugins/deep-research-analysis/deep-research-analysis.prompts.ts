@@ -9,7 +9,6 @@ import {
   DEEP_RESEARCH_DECOMPOSITION_PROMPT,
   renderDecompositionPrompt,
 } from "./deep-research-analysis.decomposition-prompt.js";
-import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
 import { renderSubQuestionAnalysisFromPromptBundle } from "./deep-research-analysis.prompt-bundle-render.js";
 
 const FORBIDDEN_CONTROL_FIELDS = [
@@ -86,50 +85,18 @@ export const renderDeepResearchDecompositionPrompt = (input: Pick<DeepResearchIn
     input.analysisGoal ? `Analysis goal:\n${input.analysisGoal}` : null,
   ]);
 
-export const subQuestionAnalysisPrompt: DeepResearchPrompt = {
-  promptId: "deep-research.sub-question-analysis",
-  promptVersion: "v2.0.0",
-  phase: "analysis",
-  promptText: "Runtime shell for AI-generated sub-question promptBundle.",
-  expectedOutputContract: buildPromptOutputShellContract({
-    contractId: "deep-research.sub-question-analysis.shell.v2.0",
-  }),
-};
-
-const buildDefaultSubQuestionPromptBundle = (input: {
-  id: string;
-  title: string;
-  questionText: string;
-  language: DeepResearchInput["language"];
-}): DeepResearchPromptBundle => ({
-  promptBundleId: `${input.id}-default-prompt-bundle`,
-  promptRole: "sub_question_analysis",
-  taskInstruction: `Analyze this sub-question: ${input.questionText}`,
-  questionSpecificFocus: [input.title],
-  mustUseInputs: ["userQuestion", "analysisGoal", "subQuestion"],
-  mustNotDo: ["Do not issue browser commands.", "Do not invent evidence."],
-  evidenceOrReasoningNeeds: ["State claims, evidence mentions, assumptions, limitations, and counter conditions."],
-  outputGuidance: {
-    preferredFormat: "json_object",
-    requiredContent: ["answer", "coreFinding", "keyClaims", "confidence", "limitations"],
-    optionalContent: ["failureCases", "uncertainties"],
-    forbiddenContent: ["workflow instructions"],
-  },
-  safetyBoundary: ["This is analysis only."],
-  languageInstruction: input.language === "zh-CN" ? "Respond in Simplified Chinese." : "Respond in English.",
-});
-
 export const renderDeepResearchSubQuestionAnalysisPrompt = (input: Pick<DeepResearchInput, "userQuestion" | "analysisGoal" | "language"> & {
   subQuestion: DeepResearchSubQuestion;
-}): string => renderSubQuestionAnalysisFromPromptBundle({
-  userQuestion: input.userQuestion,
-  analysisGoal: input.analysisGoal,
-  language: input.language,
-  subQuestion: input.subQuestion,
-  promptBundle: input.subQuestion.promptBundle ?? buildDefaultSubQuestionPromptBundle({
-    id: input.subQuestion.id,
-    title: input.subQuestion.title,
-    questionText: input.subQuestion.questionText,
+}): string => {
+  const promptBundle = input.subQuestion.promptBundle;
+  if (!promptBundle) {
+    throw new Error(`Missing promptBundle for sub-question ${input.subQuestion.id}.`);
+  }
+  return renderSubQuestionAnalysisFromPromptBundle({
+    userQuestion: input.userQuestion,
+    analysisGoal: input.analysisGoal,
     language: input.language,
-  }),
-});
+    subQuestion: input.subQuestion,
+    promptBundle,
+  });
+};

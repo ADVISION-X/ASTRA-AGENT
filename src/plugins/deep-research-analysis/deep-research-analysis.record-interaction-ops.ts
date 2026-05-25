@@ -4,7 +4,6 @@ import {
   DeepResearchSubQuestionSchema,
   type DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
-import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
 import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
 import {
   ResearchPlanRecordSchema,
@@ -95,23 +94,6 @@ export const saveSubQuestions = (
     subQuestions: readonly DeepResearchSubQuestion[];
   },
 ): ResearchSubQuestion[] => {
-  const buildDefaultPromptBundle = (subQuestion: DeepResearchSubQuestion): DeepResearchPromptBundle => ({
-    promptBundleId: `${subQuestion.id}-default-prompt-bundle`,
-    promptRole: "sub_question_analysis",
-    taskInstruction: `Analyze this sub-question: ${subQuestion.questionText}`,
-    questionSpecificFocus: [subQuestion.title],
-    mustUseInputs: ["userQuestion", "analysisGoal", "subQuestion"],
-    mustNotDo: ["Do not issue browser commands.", "Do not invent evidence."],
-    evidenceOrReasoningNeeds: ["State claims, evidence mentions, assumptions, limitations, and counter conditions."],
-    outputGuidance: {
-      preferredFormat: "json_object",
-      requiredContent: ["answer", "coreFinding", "keyClaims", "confidence", "limitations"],
-      optionalContent: ["failureCases", "uncertainties"],
-      forbiddenContent: ["workflow instructions"],
-    },
-    safetyBoundary: ["This is analysis only."],
-    languageInstruction: "Respond in the requested language.",
-  });
   const insert = db.prepare(
     `INSERT INTO research_sub_questions (
       id, job_id, interaction_id, model_question_id, ordinal, title, question_text, purpose,
@@ -141,7 +123,7 @@ export const saveSubQuestions = (
       parsed.expectedAnswerShape,
       parsed.priority ?? null,
       parsed.omissionRisk ?? null,
-      JSON.stringify(parsed.promptBundle ?? buildDefaultPromptBundle(parsed)),
+      JSON.stringify(parsed.promptBundle),
       createdAt,
     );
     rows.push(ResearchSubQuestionSchema.parse({

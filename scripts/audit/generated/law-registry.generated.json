@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-25T16:30:55.524Z",
+  "generatedAt": "2026-05-25T16:42:28.426Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -1200,6 +1200,61 @@
       "summary": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+prompt",
+      "summary": "Business prompt sovereignty belongs to the first decomposition AI. Runtime may define only transport, persistence, safety, and output-shell constraints.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+ast",
+      "summary": "The decomposition AI must generate an independent promptBundle for every sub-question, and N-stage analysis must use that exact sub-question promptBundle.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+ast",
+      "summary": "Final adjudication must use the decomposition AI generated finalAdjudicationPromptBundle plus the full case file.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+ast",
+      "summary": "HTML report publishing must use the decomposition AI generated htmlReportPromptBundle plus finalReport and fullCaseFile.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs",
+      "summary": "If a required promptBundle is missing, invalid, or not question-specific, the job must fail instead of falling back to a default fixed business prompt.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 10
     },
     {
       "lawId": "APEX-DOM-001-V1",

@@ -12,6 +12,7 @@ import { inspectFullCaseFileSovereignty } from "./components/scan-full-case-file
 import { inspectHtmlReportOnlyArtifact } from "./components/scan-html-report-only-artifact.js";
 import { inspectNoCompatibilityVocabulary } from "./components/scan-forbidden-execution-vocabulary.js";
 import { inspectNoDeadCodeAdjudication } from "./components/scan-no-dead-code-adjudication.js";
+import { inspectPromptBundleSovereignty } from "./components/scan-prompt-bundle-sovereignty.js";
 import { inspectRawInteractionPersistence } from "./components/scan-raw-interaction-persistence.js";
 import { inspectSingleChainSovereignty } from "./components/scan-single-chain-sovereignty.js";
 
@@ -109,6 +110,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-040-V1"),
+  });
+  inspectPromptBundleSovereignty({
+    sourceFiles,
+    researchPlanSchemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts"),
+    analysisSubQuestionsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts"),
+    finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
+    htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-043-V1"),
   });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

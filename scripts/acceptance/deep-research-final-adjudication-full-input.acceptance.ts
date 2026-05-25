@@ -12,18 +12,17 @@ const project = new Project({ tsConfigFilePath: "tsconfig.json" });
 
 try {
   const promptText = renderDeepResearchFinalAdjudicationPrompt({
-    userQuestion: fixture.job.userQuestion,
-    analysisGoal: fixture.job.analysisGoal,
     language: fixture.job.language,
     structuredIndex: fixture.finalPackage,
     fullCaseFile: fixture.fullCaseFile,
     fullCaseFileMarkdown: fixture.fullCaseFileMarkdown,
+    finalAdjudicationPromptBundle: fixture.fullCaseFile.researchPlan.finalAdjudicationPromptBundle,
   });
   for (const marker of [
     "The structured index is for navigation.",
-    "The full case file is the complete source of truth.",
-    "If structured fields and raw responses differ, use the raw responses as primary evidence.",
-    "Do not ignore raw responses that failed parsing.",
+    "Use the full case file as the source of truth.",
+    "Do not ignore raw responses.",
+    "AI-GENERATED PROMPTBUNDLE",
   ]) {
     assert.match(promptText, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
   }

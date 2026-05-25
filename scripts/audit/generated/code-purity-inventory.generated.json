@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T16:31:09.164Z",
-  "itemCount": 44,
+  "generatedAt": "2026-05-25T16:42:19.113Z",
+  "itemCount": 41,
   "items": [
     {
       "checkId": "code-purity/object-budget",
@@ -50,6 +50,16 @@
       "reason": "Function near line 502 breaks function budget: physical line count 94 exceeds red line 75.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "acceptance-smoke",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 50 breaks function budget: physical line count 81 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-inspector",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -247,16 +257,6 @@
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
       "lawId": "APEX-CODE-PURITY-018-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Object bag businessHtmlReportShellPrompt uses dynamic access businessHtmlReportPublisherPrompt = businessHtmlReportShellPrompt and cannot prove property-level liveness.",
-      "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/object-bag-dynamic-usage",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "plugin:deep-research-analysis",
       "reason": "Object bag businessHtmlReportShellPrompt uses dynamic access prompt: businessHtmlReportShellPrompt and cannot prove property-level liveness.",
       "remediation": "Replace dynamic bag access with explicit property reads or declare a lawful dynamic registry consumer exemption.",
       "role": "job-step",
@@ -296,18 +296,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export businessHtmlReportPublisherPrompt has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "symbolName": "businessHtmlReportPublisherPrompt",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/zombie-top-level-declaration",
       "declarationKind": "variable",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
@@ -317,18 +305,6 @@
       "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
       "role": "job-step",
       "symbolName": "buildHtmlSourceNotes",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Top-level variable buildDefaultSubQuestionPromptBundle is only reachable from a dead exported subgraph and has no live runtime root.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "job-step",
-      "symbolName": "buildDefaultSubQuestionPromptBundle",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -394,18 +370,6 @@
       "remediation": "Delete the unused bag property or reconnect it through an explicit property consumer.",
       "role": "job-step",
       "symbolName": "expectedOutputContract",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export subQuestionAnalysisPrompt has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "symbolName": "subQuestionAnalysisPrompt",
       "verificationCommand": "npm run ci:full"
     },
     {

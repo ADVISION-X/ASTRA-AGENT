@@ -18,6 +18,29 @@ const buildJsonText = (value: unknown): string => JSON.stringify(value, null, 2)
 
 const buildPromptText = (label: string): string => `${label}\nPreserve the full prompt and full raw response.`;
 
+const buildPromptBundle = (input: {
+  id: string;
+  role: "sub_question_analysis" | "final_adjudication" | "html_report_publisher";
+  instruction: string;
+  format: "json_object" | "html_document";
+}) => ({
+  promptBundleId: `${input.id}-prompt-bundle`,
+  promptRole: input.role,
+  taskInstruction: input.instruction,
+  questionSpecificFocus: [input.instruction],
+  mustUseInputs: ["persisted fixture inputs"],
+  mustNotDo: ["Do not invent evidence."],
+  evidenceOrReasoningNeeds: ["Use fixture evidence and raw responses."],
+  outputGuidance: {
+    preferredFormat: input.format,
+    requiredContent: ["fixture content"],
+    optionalContent: [],
+    forbiddenContent: ["workflow commands"],
+  },
+  safetyBoundary: ["Fixture only."],
+  languageInstruction: "Respond in English.",
+});
+
 const buildSubQuestionFixture = () => [
   {
     id: "Q1",
@@ -32,6 +55,15 @@ const buildSubQuestionFixture = () => [
     expectedAnswerShape: "demand-summary",
     priority: "high" as const,
     omissionRisk: "Without this, the final verdict can confuse a temporary signal for a durable market.",
+    promptBundle: {
+      ...buildPromptBundle({
+        id: "Q1",
+        role: "sub_question_analysis",
+        instruction: "Analyze durable demand for the fixture.",
+        format: "json_object",
+      }),
+      promptRole: "sub_question_analysis" as const,
+    },
   },
   {
     id: "Q2",
@@ -46,6 +78,15 @@ const buildSubQuestionFixture = () => [
     expectedAnswerShape: "execution-summary",
     priority: "high" as const,
     omissionRisk: "Without this, the final verdict can overrate demand while ignoring rollout failure risk.",
+    promptBundle: {
+      ...buildPromptBundle({
+        id: "Q2",
+        role: "sub_question_analysis",
+        instruction: "Analyze execution bottlenecks for the fixture.",
+        format: "json_object",
+      }),
+      promptRole: "sub_question_analysis" as const,
+    },
   },
 ];
 
@@ -103,6 +144,52 @@ const persistDecomposition = (input: {
     parseStatus: "parsed",
     providerProofJson: buildJsonText({ provider: "fixture", phase: "decomposition" }),
     domRef: "artifact://fixture/decomposition",
+  });
+  input.store.saveResearchPlan({
+    jobId: input.job.id,
+    interactionId: interaction.id,
+    researchPlan: {
+      mainQuestion: input.job.userQuestion,
+      questionType: "business",
+      decompositionStrategy: "Fixture decomposition for full case file coverage.",
+      missingInfo: [],
+      subQuestions: modelSubQuestions.map((subQuestion) => ({
+        id: subQuestion.id,
+        title: subQuestion.title,
+        questionText: subQuestion.questionText,
+        whyItMatters: subQuestion.whyItMatters,
+        decisionWeight: subQuestion.decisionWeight,
+        scope: subQuestion.scope,
+        omissionRisk: subQuestion.omissionRisk,
+        promptBundle: subQuestion.promptBundle,
+      })),
+      finalAdjudicationPromptBundle: {
+        ...buildPromptBundle({
+          id: "final-adjudication",
+          role: "final_adjudication",
+          instruction: "Adjudicate the full fixture case file.",
+          format: "json_object",
+        }),
+        promptRole: "final_adjudication",
+      },
+      htmlReportPromptBundle: {
+        ...buildPromptBundle({
+          id: "html-report",
+          role: "html_report_publisher",
+          instruction: "Publish the fixture as HTML.",
+          format: "html_document",
+        }),
+        promptRole: "html_report_publisher",
+      },
+      planIntegrityCheck: {
+        everySubQuestionHasPromptBundle: true,
+        promptBundlesAreQuestionSpecific: true,
+        noGenericUniversalPromptBundle: true,
+        readyForIndependentAnalysis: true,
+        readyForFullCaseAdjudication: true,
+        readyForHtmlReportPublishing: true,
+      },
+    },
   });
   return input.store.saveSubQuestions({
     jobId: input.job.id,
