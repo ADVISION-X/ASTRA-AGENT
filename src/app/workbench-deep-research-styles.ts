@@ -1,3 +1,5 @@
+import { renderWorkbenchDeepResearchCaseReaderStyles } from "./workbench-deep-research-case-reader-styles.js";
+
 const WORKBENCH_DEEP_RESEARCH_STYLES = `
 .research-shell { display: grid; gap: 14px; }
 .research-shell.hidden,
@@ -493,4 +495,4 @@ textarea {
     grid-template-columns: 1fr;
   }
 }`;
-export const renderWorkbenchDeepResearchStyles = (): string => WORKBENCH_DEEP_RESEARCH_STYLES;
+export const renderWorkbenchDeepResearchStyles = (): string => `${WORKBENCH_DEEP_RESEARCH_STYLES}${renderWorkbenchDeepResearchCaseReaderStyles()}`;

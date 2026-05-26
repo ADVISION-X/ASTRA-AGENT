@@ -6,6 +6,11 @@ import type {
   DeepResearchListOptions,
   DeepResearchTextOptions,
 } from "./workbench-deep-research-client-contracts.js";
+import {
+  deepResearchClientCaseReaderFunctions,
+  deepResearchClientCaseReaderRuntime,
+  renderPromptBundleDetails,
+} from "./workbench-deep-research-client-case-reader.js";
 
 declare const qs: (selector: string) => Element | null;
 declare const readJson: (url: string, options?: RequestInit) => Promise<unknown>;
@@ -247,7 +252,7 @@ function renderAnalysisParsedResult(payload: JsonRecord, title: string): string 
         ])}
       </div>
       ${renderStructuredFields(payload, [
-        { key: "summary", title: "Summary" },
+        { key: "summary", title: "Analysis Summary" },
       ])}
       <div class="research-summary-grid">
         ${renderListSection("Key Points", payload.keyPoints ?? payload.findings ?? payload.takeaways, { emptyText: "No key points recorded.", previewCount: 5 })}
@@ -318,7 +323,11 @@ function renderInteractionDebug(interaction: DeepResearchEvidence | DeepResearch
       className: "response-pre",
       forceDetails: true,
     }),
-    renderStructuredParsedResult("Parsed Result", interaction.parsedJson),
+    renderMetaRow([
+      interaction.parseStatus,
+      interaction.promptHash,
+      interaction.rawResponseHash,
+    ]),
     renderJsonDetails("Parsed Result JSON", interaction.parsedJson, "Show Parsed Result"),
   ].join("");
   return `<details class="research-debug-root"><summary>Interaction Evidence</summary>${body}</details>`;
@@ -333,7 +342,7 @@ function renderAnswerCard(title: string, block: DeepResearchAnswerBlock | null, 
       <div class="research-analysis-head">
         <h3>${escapeText(title)}</h3>
       </div>
-      ${renderExpandableText("Summary", block.answerText, {
+      ${renderExpandableText("Clean Answer", block.answerText, {
         summaryLabel: "More",
         className: "response-pre",
         previewLimit: 420,
@@ -378,6 +387,8 @@ function renderHistory(state: DeepResearchClientState): void {
         </button>
         <div class="research-history-top">
           ${renderStatusBadge(job.status)}
+          ${job.htmlReportStatus ? `<span class="muted">HTML ${escapeText(formatStatusLabel(job.htmlReportStatus))}</span>` : ""}
+          ${job.fullCaseFileStatus ? `<span class="muted">FullCase ${escapeText(formatStatusLabel(job.fullCaseFileStatus))}</span>` : ""}
           ${job.finalAdjudicationPreview ? `<span class="muted">${escapeText(job.finalAdjudicationPreview)}</span>` : ""}
         </div>
         <button class="btn secondary research-history-delete" type="button" data-deep-research-delete-job="${escapeText(job.id)}" aria-label="Delete ${escapeText(job.title)}">Delete</button>
@@ -385,6 +396,7 @@ function renderHistory(state: DeepResearchClientState): void {
           `${job.subQuestionCount} subquestions`,
           `${job.interactionCount} interactions`,
           `${job.exportCount} exports`,
+          job.failureReason || job.reviewReason,
         ])}
       </article>`;
   }).join(""));
@@ -396,7 +408,7 @@ function renderEmptyReader(message: string): void {
   setResearchHtml("[data-deep-research-empty]", `
     <p class="research-kicker">Report Reader</p>
     <h2>${escapeText(message || "Select a report from history")}</h2>
-    <p class="muted">The reader will show decomposition, independent analysis, final adjudication, exports, and evidence trace.</p>`);
+    <p class="muted">The reader will show ResearchPlan, promptBundle, rendered prompt, clean answer, index, raw response, final raw adjudication, exports, and process trace.</p>`);
   setResearchHtml("[data-deep-research-nav]", '<p class="muted">No report selected.</p>');
   setResearchHtml("[data-deep-research-meta]", '<p class="muted">No metadata available.</p>');
 }
@@ -414,11 +426,14 @@ export const deepResearchClientSharedRuntime = {
   readResearchJson, researchQuery, researchJson, asArray, escapeText, setResearchHtml, toggleResearchHidden,
   normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge,
   renderMetaRow, renderListSection, renderExpandableText, renderJsonDetails, renderExportButtons,
+  caseReaderLabels: ["Clean Answer", "Raw AI Response", "Index JSON", "Index Notes"],
   renderInteractionDebug, readPayloadString, renderStructuredParsedResult, renderAnswerCard, renderHistory,
+  ...deepResearchClientCaseReaderRuntime,
   renderEmptyReader, syncFormVisibility,
 } as const;
 
 export const deepResearchClientSharedFunctions = [
+  ...deepResearchClientCaseReaderFunctions,
   readResearchJson, researchQuery, researchJson, asArray, asRecord, escapeText, setResearchHtml,
   toggleResearchHidden, normalizeText, formatDateTime, formatStatusLabel, exportActionLabel, renderStatusBadge,
   renderMetaRow, renderListSection, readPayloadString, renderStructuredField,

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-25T23:39:26.140Z",
+  "generatedAt": "2026-05-26T00:03:27.149Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -21,11 +21,14 @@
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
+    "scripts/acceptance/deep-research-case-reader-ui.acceptance.ts",
+    "scripts/acceptance/deep-research-clean-raw-index-ui.acceptance.ts",
     "scripts/acceptance/deep-research-final-adjudication-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-final-adjudication-raw.acceptance.ts",
     "scripts/acceptance/deep-research-format-shell-boundary.acceptance.ts",
     "scripts/acceptance/deep-research-full-case-file-support.ts",
     "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
+    "scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
@@ -34,6 +37,7 @@
     "scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
     "scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",
     "scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
+    "scripts/acceptance/deep-research-promptbundle-visibility-ui.acceptance.ts",
     "scripts/acceptance/deep-research-raw-response-sovereignty.acceptance.ts",
     "scripts/acceptance/deep-research-report-export.acceptance.ts",
     "scripts/acceptance/deep-research-runtime-shell-only.acceptance.ts",
@@ -157,7 +161,11 @@
     "scripts/audit/domains/facebook-product-video-mining/input-surface-safety-inspector.ts",
     "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
     "scripts/audit/domains/facebook-product-video-mining/state-machine-inspector.ts",
-    "scripts/audit/domains/local-app-shell/components/scan-deep-research-report-reader-ui.ts",
+    "scripts/audit/domains/local-app-shell/components/deep-research-ui-ast.ts",
+    "scripts/audit/domains/local-app-shell/components/scan-deep-research-case-reader-ui.ts",
+    "scripts/audit/domains/local-app-shell/components/scan-deep-research-clean-raw-index-ui.ts",
+    "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
+    "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
@@ -222,7 +230,9 @@
     "src/app/server.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-deep-research-case-reader-styles.ts",
     "src/app/workbench-deep-research-client-boot.ts",
+    "src/app/workbench-deep-research-client-case-reader.ts",
     "src/app/workbench-deep-research-client-contracts.ts",
     "src/app/workbench-deep-research-client-delivery-sections.ts",
     "src/app/workbench-deep-research-client-report-sections.ts",
@@ -464,6 +474,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.public-queries-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public-stage-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts",
@@ -632,6 +643,18 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-case-reader-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-case-reader-ui",
+      "scriptName": "acceptance:deep-research-case-reader-ui"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-clean-raw-index-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-clean-raw-index-ui",
+      "scriptName": "acceptance:deep-research-clean-raw-index-ui"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/deep-research-final-adjudication-promptbundle-input.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-final-adjudication-promptbundle-input",
       "scriptName": "acceptance:deep-research-final-adjudication-promptbundle-input"
@@ -653,6 +676,12 @@
       "filePath": "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-full-case-file",
       "scriptName": "acceptance:deep-research-full-case-file"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-html-delivery-status-ui",
+      "scriptName": "acceptance:deep-research-html-delivery-status-ui"
     },
     {
       "entryKind": "package-script",
@@ -701,6 +730,12 @@
       "filePath": "scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-promptbundle-sovereignty",
       "scriptName": "acceptance:deep-research-promptbundle-sovereignty"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-promptbundle-visibility-ui.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-promptbundle-visibility-ui",
+      "scriptName": "acceptance:deep-research-promptbundle-visibility-ui"
     },
     {
       "entryKind": "package-script",
@@ -943,9 +978,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1299,
+  "liveExportCount": 1325,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 518,
+  "reachableFileCount": 529,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -953,9 +988,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1299,
+    "liveExportCount": 1325,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 518,
+    "reachableFileCount": 529,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

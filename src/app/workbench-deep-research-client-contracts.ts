@@ -16,23 +16,31 @@ type DeepResearchHistoryJob = {
   title: string;
   userQuestion: string;
   questionSummary: string;
+  analysisGoal: string | null;
   status: string;
+  phase: string;
+  failureReason: string | null;
+  reviewReason: string | null;
+  createdAt: string;
   finalAdjudicationPreview: string | null;
   updatedAt: string;
   subQuestionCount: number;
   interactionCount: number;
   exportCount: number;
+  htmlReportStatus: string | null;
+  fullCaseFileStatus: string | null;
 };
 
 export type DeepResearchHistoryPayload = {
   jobs: DeepResearchHistoryJob[];
 };
 
-type DeepResearchInteraction = {
+export type DeepResearchInteraction = {
   interactionId: string;
   phase: string;
   promptText: string | null;
   rawResponseText: string;
+  parseStatus: string;
   parsedJson: unknown;
   parsedSummary: string;
   createdAt: string;
@@ -42,6 +50,24 @@ type DeepResearchInteraction = {
   providerKind: string | null;
   providerProofJson: string | null;
   parsedRecordIds: string[];
+};
+
+export type DeepResearchPromptBundleView = {
+  promptBundleId: string;
+  promptRole: string;
+  taskInstruction: string;
+  questionSpecificFocus: string[];
+  mustUseInputs: string[];
+  mustNotDo: string[];
+  evidenceOrReasoningNeeds: string[];
+  outputGuidance: {
+    preferredFormat: string;
+    requiredContent: string[];
+    supplementalContent: string[];
+    forbiddenContent: string[];
+  };
+  safetyBoundary: string[];
+  languageInstruction: string;
 };
 
 type DeepResearchSubQuestion = {
@@ -58,18 +84,23 @@ type DeepResearchSubQuestion = {
   expectedAnswerShape: string;
   priority: string | null;
   omissionRisk: string | null;
+  promptBundle: DeepResearchPromptBundleView;
+  analysisStatus: string | null;
+  parseStatus: string | null;
 };
 
 export type DeepResearchAnswerBlock = {
   interaction: DeepResearchInteraction | null;
   answerKind: string;
   answerText: string;
+  indexNotes: string[];
   keyPoints: string[];
   evidenceMentions: string[];
   assumptions: string[];
   limitations: string[];
   contradictionPoints: string[];
   parsedPayload: Record<string, unknown>;
+  parsedJsonIndex: unknown | null;
 };
 
 type DeepResearchSubQuestionReport = {
@@ -89,6 +120,33 @@ type DeepResearchStage = {
   label: string;
   anchorId: string;
   status: string;
+  promptHashes: string[];
+  rawResponseHashes: string[];
+  parseStatuses: string[];
+  recordCount: number;
+  failureReason: string | null;
+  reviewReason: string | null;
+};
+
+export type DeepResearchResearchPlanView = {
+  interaction: DeepResearchInteraction | null;
+  mainQuestion: string;
+  questionType: string;
+  decompositionStrategy: string;
+  subQuestions: DeepResearchSubQuestion[];
+  finalAdjudicationPromptBundle: DeepResearchPromptBundleView | null;
+  htmlReportPromptBundle: DeepResearchPromptBundleView | null;
+  planIntegrityCheck: Record<string, unknown> | null;
+};
+
+export type DeepResearchFullCaseFileSummaryView = {
+  hasMarkdown: boolean;
+  hasJson: boolean;
+  decompositionRawPresent: boolean;
+  analysisRawCount: number;
+  subQuestionCount: number;
+  finalRawPresent: boolean;
+  htmlReportPresent: boolean;
 };
 
 export type DeepResearchExportRecord = {
@@ -108,6 +166,8 @@ export type DeepResearchPrimaryBusinessReport = {
   generatedBy: string;
   htmlExport: DeepResearchExportRecord | null;
   sourceKind: string | null;
+  failureReason: string | null;
+  reviewReason: string | null;
 };
 
 export type DeepResearchEvidence = DeepResearchInteraction & {
@@ -132,6 +192,7 @@ export type DeepResearchReport = {
   };
   conclusion: DeepResearchConclusion | null;
   stages: DeepResearchStage[];
+  researchPlan: DeepResearchResearchPlanView | null;
   decomposition: {
     interaction: DeepResearchInteraction | null;
     subQuestions: DeepResearchSubQuestion[];
@@ -142,6 +203,7 @@ export type DeepResearchReport = {
     record: unknown | null;
   };
   primaryBusinessReport: DeepResearchPrimaryBusinessReport | null;
+  fullCaseFileSummary: DeepResearchFullCaseFileSummaryView;
   evidence: DeepResearchEvidence[];
   exports: DeepResearchExportRecord[];
 };

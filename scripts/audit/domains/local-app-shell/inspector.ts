@@ -6,7 +6,10 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
-import { inspectDeepResearchReportReaderUi } from "./components/scan-deep-research-report-reader-ui.js";
+import { inspectDeepResearchCaseReaderUi } from "./components/scan-deep-research-case-reader-ui.js";
+import { inspectDeepResearchCleanRawIndexUi } from "./components/scan-deep-research-clean-raw-index-ui.js";
+import { inspectDeepResearchHtmlDeliveryStatusUi } from "./components/scan-deep-research-html-delivery-status-ui.js";
+import { inspectDeepResearchPromptBundleUi } from "./components/scan-deep-research-promptbundle-ui.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -161,12 +164,29 @@ const inspectDeepResearchAppSurface = (
   requireCall({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
   requireCall({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", checkId: "local-app-shell/deep-research-route-call" });
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-job-card=\"deep-research\"", checkId: "local-app-shell/deep-research-surface" });
-  inspectDeepResearchReportReaderUi({
+  inspectDeepResearchCaseReaderUi({
     context,
     findings,
     inspectedFiles,
-    inputLawId: lawId,
-    deliveryLawId,
+    lawId: deliveryLawId,
+  });
+  inspectDeepResearchPromptBundleUi({
+    context,
+    findings,
+    inspectedFiles,
+    lawId: deliveryLawId,
+  });
+  inspectDeepResearchCleanRawIndexUi({
+    context,
+    findings,
+    inspectedFiles,
+    lawId: deliveryLawId,
+  });
+  inspectDeepResearchHtmlDeliveryStatusUi({
+    context,
+    findings,
+    inspectedFiles,
+    lawId: deliveryLawId,
   });
 };
 
