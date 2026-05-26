@@ -96,23 +96,32 @@ const inspectCaptureOrder = (input: HtmlCaptureInspectionInput, paths: HtmlCaptu
   });
 };
 
-const inspectInlineHtmlExport = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {
+const inspectHtmlArtifactExport = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {
   if (!hasIdentifier(input.exportFile, "isBusinessHtmlArtifactText")) {
     pushCaptureFinding({
       findings: input.findings,
       lawId: input.lawId,
       filePath: paths.exportPath,
-      message: "HTML report export must keep the inline HTML document detector for direct HTML delivery.",
+      message: "HTML report export must validate the provider HTML artifact document.",
     });
   }
   if (hasStringLiteral(input.exportFile, "inline_html_document")) {
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.exportPath,
+      message: "HTML report export must not keep inline_html_document source kind.",
+    });
+    return;
+  }
+  if (hasStringLiteral(input.exportFile, "html_artifact")) {
     return;
   }
   pushCaptureFinding({
     findings: input.findings,
     lawId: input.lawId,
     filePath: paths.exportPath,
-    message: "HTML report export must persist the inline_html_document source kind.",
+    message: "HTML report export must persist the html_artifact source kind.",
   });
 };
 
@@ -163,7 +172,7 @@ export const inspectHtmlArtifactCaptureChain = (input: {
   inspectCaptureMarkers(input, paths);
   inspectCaptureIdentifiers(input, paths);
   inspectCaptureOrder(input, paths);
-  inspectInlineHtmlExport(input, paths);
+  inspectHtmlArtifactExport(input, paths);
   inspectSharedRuntime(input, paths);
   inspectProofRefs(input, paths);
 };

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-26T00:03:27.149Z",
+  "generatedAt": "2026-05-26T01:41:27.271Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -32,7 +32,6 @@
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
-    "scripts/acceptance/deep-research-inline-html-report.acceptance.ts",
     "scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
     "scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
     "scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",
@@ -703,12 +702,6 @@
     },
     {
       "entryKind": "package-script",
-      "filePath": "scripts/acceptance/deep-research-inline-html-report.acceptance.ts",
-      "reason": "package.json script acceptance:deep-research-inline-html-report",
-      "scriptName": "acceptance:deep-research-inline-html-report"
-    },
-    {
-      "entryKind": "package-script",
       "filePath": "scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-no-system-confidence",
       "scriptName": "acceptance:deep-research-no-system-confidence"
@@ -978,9 +971,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1325,
+  "liveExportCount": 1330,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 529,
+  "reachableFileCount": 528,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -988,9 +981,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1325,
+    "liveExportCount": 1330,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 529,
+    "reachableFileCount": 528,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T00:03:12.944Z",
+  "generatedAt": "2026-05-26T01:41:14.987Z",
   "capabilityDomain": "architecture-boundary",
   "executionGroup": "foundation",
   "lawIds": [
@@ -42,7 +42,6 @@
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
-    "scripts/acceptance/deep-research-inline-html-report.acceptance.ts",
     "scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
     "scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
     "scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",

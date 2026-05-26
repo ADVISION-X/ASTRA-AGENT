@@ -41,7 +41,7 @@ const persistBusinessHtmlArtifact = (input: {
     generatedAt: new Date().toISOString(),
     status: "business_html_report_generated",
     exportKind: DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND,
-    sourceKind: "inline_html_document",
+    sourceKind: "html_artifact",
   };
 };
 

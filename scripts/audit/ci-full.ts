@@ -47,7 +47,6 @@ const ciCommands: readonly CommandSpec[] = [
   { name: "deep-research-html-uses-raw-final-answer", command: ["npm", "run", "acceptance:deep-research-html-uses-raw-final-answer"] },
   { name: "deep-research-final-adjudication-promptbundle-input", command: ["npm", "run", "acceptance:deep-research-final-adjudication-promptbundle-input"] },
   { name: "deep-research-html-promptbundle-input", command: ["npm", "run", "acceptance:deep-research-html-promptbundle-input"] },
-  { name: "deep-research-inline-html-report", command: ["npm", "run", "acceptance:deep-research-inline-html-report"] },
   { name: "deep-research-html-report-only", command: ["npm", "run", "acceptance:deep-research-html-report-only"] },
   { name: "deep-research-subquestion-failure-stop", command: ["npm", "run", "acceptance:deep-research-subquestion-failure-stop"] },
   { name: "deep-research-report-export", command: ["npm", "run", "acceptance:deep-research-report-export"] },

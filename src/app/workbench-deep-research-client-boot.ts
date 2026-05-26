@@ -282,6 +282,7 @@ export const deepResearchClientBootFunctions = [
   loadLatestReport,
   startDeepResearch,
   downloadDeepResearchExport,
+  openDeepResearchExport,
   deleteDeepResearchJob,
   handleDeepResearchClick,
   handleDeepResearchInput,

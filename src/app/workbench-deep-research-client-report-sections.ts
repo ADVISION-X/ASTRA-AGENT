@@ -38,6 +38,35 @@ function renderFlowLabel(): string {
   return "PromptBundle 1+N+1+1";
 }
 
+function renderChainProgress(report: DeepResearchReport): string {
+  const stages = report.stages.filter((stage) => [
+    "stage-decompose",
+    "stage-analyze-n",
+    "stage-final-adjudication",
+    "stage-html-report",
+  ].includes(stage.id));
+  return `
+    <div class="research-chain-strip" aria-label="PromptBundle 1+N+1+1 chain">
+      ${stages.map((stage, index) => `
+        <a class="research-chain-step research-chain-${escapeText(stage.status)}" href="#${escapeText(stage.anchorId)}">
+          <span class="research-chain-index">${escapeText(index === 0 ? "1" : index === 1 ? "N" : "+1")}</span>
+          <b>${escapeText(stage.label)}</b>
+          ${renderStatusBadge(stage.status)}
+        </a>`).join("")}
+    </div>`;
+}
+
+function renderPrimaryHtmlActions(report: DeepResearchReport): string {
+  if (!report.primaryBusinessReport?.htmlExport) {
+    return "";
+  }
+  return `
+    <div class="research-primary-actions">
+      <button class="btn" type="button" data-deep-research-open-export="business-report.html">Open HTML Report</button>
+      <button class="btn secondary" type="button" data-deep-research-export="business-report.html">Download HTML Report</button>
+    </div>`;
+}
+
 function renderReportHeader(report: DeepResearchReport): void {
   setResearchHtml("[data-deep-research-report-header]", `
     <div class="research-report-kicker">
@@ -52,7 +81,9 @@ function renderReportHeader(report: DeepResearchReport): void {
       <span><b>${escapeText(report.job.interactionCount)}</b> interactions</span>
       <span><b>${escapeText(report.job.exportCount)}</b> exports</span>
       <span>${escapeText(formatDateTime(report.job.updatedAt))}</span>
-    </div>`);
+    </div>
+    ${renderChainProgress(report)}
+    ${renderPrimaryHtmlActions(report)}`);
 }
 
 function renderConclusionCard(report: DeepResearchReport): void {
@@ -184,6 +215,8 @@ export const deepResearchClientReportRuntime = {
 
 export const deepResearchClientReportFunctions = [
   renderFlowLabel,
+  renderChainProgress,
+  renderPrimaryHtmlActions,
   renderReportHeader,
   renderConclusionCard,
   renderResearchPlan,

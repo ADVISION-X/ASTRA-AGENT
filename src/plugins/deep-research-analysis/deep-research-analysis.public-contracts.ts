@@ -186,7 +186,7 @@ export type DeepResearchPrimaryBusinessReportView = {
   status: "generated" | "missing" | "failed";
   generatedBy: "AI HTML Report Publisher";
   htmlExport: DeepResearchExportView | null;
-  sourceKind: "inline_html_document" | null;
+  sourceKind: "html_artifact" | null;
   failureReason: string | null;
   reviewReason: string | null;
 };
