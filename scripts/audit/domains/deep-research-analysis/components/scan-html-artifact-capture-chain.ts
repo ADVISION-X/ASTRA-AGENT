@@ -61,6 +61,24 @@ const inspectCaptureMarkers = (input: HtmlCaptureInspectionInput, paths: HtmlCap
       message: `HTML artifact capture must include marker ${marker}.`,
     });
   }
+  const shellPredicateMarker = "isChatGptShellHtmlDocument";
+  if (!hasIdentifier(input.captureFile, shellPredicateMarker) || !hasIdentifier(input.exportFile, shellPredicateMarker)) {
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.capturePath,
+      message: `HTML artifact capture and export must reject ChatGPT shell documents and require business report marker ${shellPredicateMarker}.`,
+    });
+  }
+  for (const marker of ["window.__reactroutercontext", "/cdn/assets/", "data-message-author-role"]) {
+    if (hasStringLiteral(input.captureFile, marker) && hasStringLiteral(input.exportFile, marker)) continue;
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.capturePath,
+      message: `HTML artifact capture and export must reject ChatGPT shell documents and require business report marker ${marker}.`,
+    });
+  }
 };
 
 const inspectCaptureIdentifiers = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {

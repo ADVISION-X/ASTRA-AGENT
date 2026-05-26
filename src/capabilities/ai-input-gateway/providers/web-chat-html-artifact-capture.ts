@@ -41,10 +41,19 @@ export const isBusinessHtmlReportRequest = (request: AiFeedInput): boolean =>
 const isHtmlDocumentText = (value: string): boolean => {
   const trimmed = value.trim();
   const lower = trimmed.toLowerCase();
+  const isChatGptShellHtmlDocument = lower.includes('property="og:title" content="chatgpt"')
+    || lower.includes("window.__reactroutercontext")
+    || lower.includes("/cdn/assets/")
+    || lower.includes("data-message-author-role")
+    || lower.includes("prompt-textarea")
+    || lower.includes("composer-submit-button")
+    || lower.includes("chatgpt 是一款")
+    || lower.includes("历史聊天记录");
   return trimmed.length > 0
     && (lower.includes("<!doctype html") || lower.includes("<html"))
     && lower.includes("<body")
-    && (lower.includes("</html>") || lower.includes("</body>"));
+    && (lower.includes("</html>") || lower.includes("</body>"))
+    && !isChatGptShellHtmlDocument;
 };
 
 const getDownloadsDir = (): string => path.join(os.homedir(), "Downloads");
@@ -94,9 +103,9 @@ const waitForDownloadedBusinessHtml = async (input: {
 }): Promise<CapturedHtmlArtifact | null> => {
   const deadline = Date.now() + input.timeoutMs;
   while (Date.now() < deadline) {
-    const candidate = (await listBusinessHtmlDownloads())
-      .find((entry) => entry.mtimeMs >= input.startedAtMs - 1_000);
-    if (candidate) {
+    const candidates = (await listBusinessHtmlDownloads())
+      .filter((entry) => entry.mtimeMs >= input.startedAtMs - 1_000);
+    for (const candidate of candidates) {
       const settled = await readSettledDownload(candidate);
       if (settled) return settled;
     }
@@ -151,12 +160,15 @@ const readActiveHtmlDocument = async (
   }>({
     description: "read opened ChatGPT business HTML artifact document",
     script: `
-const htmlDocument = document.documentElement ? document.documentElement.outerHTML : null;
+const htmlDocument = document.documentElement ? new XMLSerializer().serializeToString(document) : null;
 return {htmlDocument, pageUrl: location.href};
 `,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
   if (!captured.htmlDocument || !isHtmlDocumentText(captured.htmlDocument)) {
+    return null;
+  }
+  if (captured.pageUrl.startsWith("https://chatgpt.com/")) {
     return null;
   }
   return {

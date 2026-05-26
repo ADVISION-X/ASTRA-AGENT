@@ -54,13 +54,17 @@ export type DeepResearchBusinessHtmlReportRecord = {
 const buildHtmlTextHash = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
+const CHATGPT_SHELL_HTML_MARKERS = ['property="og:title" content="chatgpt"', "window.__reactroutercontext", "/cdn/assets/", "data-message-author-role", "prompt-textarea", "composer-submit-button", "chatgpt 是一款", "历史聊天记录"];
+
 const isBusinessHtmlArtifactText = (value: string): boolean => {
   const trimmed = value.trim();
   const lower = trimmed.toLowerCase();
+  const isChatGptShellHtmlDocument = CHATGPT_SHELL_HTML_MARKERS.some((marker) => lower.includes(marker));
   return trimmed.length > 0
     && (lower.includes("<!doctype html") || lower.includes("<html"))
     && lower.includes("<body")
-    && (lower.includes("</html>") || lower.includes("</body>"));
+    && (lower.includes("</html>") || lower.includes("</body>"))
+    && !isChatGptShellHtmlDocument;
 };
 
 const persistBusinessHtmlArtifact = (input: {

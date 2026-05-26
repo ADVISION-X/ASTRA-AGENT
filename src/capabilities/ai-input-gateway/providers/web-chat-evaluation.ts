@@ -83,12 +83,14 @@ const expectedPrefix = ${JSON.stringify(expectedPrefix)};
 const promptPrefixVisible = expectedPrefix.length > 0 && actual.includes(expectedPrefix);
 const inputFocused = Boolean(input instanceof HTMLElement && (document.activeElement === input || input.contains(document.activeElement)));
 ${CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT}
-if (promptPrefixVisible || pastedTextCardReady) {
+if (promptPrefixVisible || pastedTextCardReady || sendReady) {
   return {
     status: "success",
     message: promptPrefixVisible
       ? "provider prompt prefix detected in composer"
-      : "chatgpt pasted text card ready for submit",
+      : pastedTextCardReady
+        ? "chatgpt pasted text card ready for submit"
+        : "provider send button ready after paste",
     pageUrl: location.href,
     composerText: actual,
     inputFocused,
