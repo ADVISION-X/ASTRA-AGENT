@@ -2,7 +2,26 @@ import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js
 
 type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
 
-export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null; attachmentCount?: number; attachmentScope?: "input" | "global" | "none"; inputFocused?: boolean; promptPrefixVisible?: boolean; pastedTextCardReady?: boolean };
+export type WebChatEvaluation = {
+  status: WebChatActionStatus;
+  message: string;
+  answerText?: string | null;
+  pageUrl?: string | null;
+  selector?: string | null;
+  generating?: boolean;
+  target?: "composer-plus" | "upload-menu-item";
+  x?: number;
+  y?: number;
+  assistantCount?: number;
+  composerText?: string | null;
+  attachmentCount?: number;
+  attachmentScope?: "input" | "global" | "none";
+  inputFocused?: boolean;
+  promptPrefixVisible?: boolean;
+  pastedTextCardReady?: boolean;
+  hasPastedTextCard?: boolean;
+  sendReady?: boolean;
+};
 
 const WEB_CHAT_STATUS_TEXT_SCRIPT = `
 const visibleStatusText = Array.from(document.querySelectorAll("[role='status'], [aria-live], [data-testid*='status'], [class*='status'], [class*='thinking'], [class*='reasoning'], [class*='loading']"))
@@ -50,9 +69,10 @@ const hasPastedTextCard = Boolean(composerRoot)
     || composerRootText.toLowerCase().includes("pasted text")
     || composerRootText.toLowerCase().includes("pasted content"));
 const sendButton = composerRoot?.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']");
-const pastedTextCardReady = hasPastedTextCard && (sendButton instanceof HTMLButtonElement
+const sendReady = sendButton instanceof HTMLButtonElement
   ? !sendButton.disabled && sendButton.getAttribute("aria-disabled") !== "true"
-  : sendButton instanceof HTMLElement);
+  : sendButton instanceof HTMLElement;
+const pastedTextCardReady = hasPastedTextCard && sendReady;
 `;
 
 export const buildVerifyPromptPastedScript = (expectedPrefix: string): string => `
@@ -74,6 +94,8 @@ if (promptPrefixVisible || pastedTextCardReady) {
     inputFocused,
     promptPrefixVisible,
     pastedTextCardReady,
+    hasPastedTextCard,
+    sendReady,
   };
 }
 return {
@@ -86,6 +108,8 @@ return {
   inputFocused,
   promptPrefixVisible,
   pastedTextCardReady,
+  hasPastedTextCard,
+  sendReady,
 };
 `;
 
@@ -119,6 +143,8 @@ if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generating || 
     composerText: actual,
     promptPrefixVisible: promptStillInComposer,
     pastedTextCardReady,
+    hasPastedTextCard,
+    sendReady,
   };
 }
 return {
@@ -132,6 +158,8 @@ return {
   composerText: actual,
   promptPrefixVisible: promptStillInComposer,
   pastedTextCardReady,
+  hasPastedTextCard,
+  sendReady,
 };
 `;
 

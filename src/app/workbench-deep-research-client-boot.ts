@@ -3,6 +3,7 @@ import type {
   DeepResearchExportPayload,
   DeepResearchHistoryPayload,
   DeepResearchLatestPayload,
+  DeepResearchLoadReportOptions,
   DeepResearchReport,
   DeepResearchStartPayload,
 } from "./workbench-deep-research-client-contracts.js";
@@ -34,6 +35,24 @@ function stopPolling(state: DeepResearchClientState): void {
   state.poll = null;
 }
 
+function isDeepResearchFormActive(): boolean {
+  const form = researchQuery("[data-deep-research-form]");
+  if (!(form instanceof HTMLFormElement)) {
+    return false;
+  }
+  const activeElement = document.activeElement;
+  const focusedInside = activeElement instanceof Element && form.contains(activeElement);
+  const userQuestion = (form.elements.namedItem("userQuestion") as HTMLTextAreaElement | null)?.value.trim() ?? "";
+  const analysisGoal = (form.elements.namedItem("analysisGoal") as HTMLInputElement | null)?.value.trim() ?? "";
+  return focusedInside || userQuestion.length > 0 || analysisGoal.length > 0;
+}
+
+function closeDeepResearchFormUnlessActive(state: DeepResearchClientState): void {
+  if (!isDeepResearchFormActive()) {
+    state.formOpen = false;
+  }
+}
+
 function refreshHistory(
   state: DeepResearchClientState,
   preferredJobId?: string,
@@ -54,11 +73,13 @@ function refreshHistory(
 async function loadSelectedReport(
   state: DeepResearchClientState,
   jobId: string,
-  options: { skipHistoryRefresh?: boolean } = {},
+  options: DeepResearchLoadReportOptions = {},
 ): Promise<DeepResearchReport> {
   setSelectedJobId(state, jobId);
   const report = await readResearchJson<DeepResearchReport>(`/api/deep-research-analysis/report?jobId=${encodeURIComponent(jobId)}`);
-  state.formOpen = false;
+  if (options.closeForm === true && options.preserveFormOpen !== true) {
+    closeDeepResearchFormUnlessActive(state);
+  }
   renderHistory(state);
   renderSelectedReport(state, report);
   if (!options.skipHistoryRefresh) {
@@ -67,7 +88,7 @@ async function loadSelectedReport(
   if (report?.job?.status === "queued" || report?.job?.status === "running") {
     stopPolling(state);
     state.poll = setInterval(() => {
-      loadSelectedReport(state, jobId, { skipHistoryRefresh: false }).catch((error) => {
+      loadSelectedReport(state, jobId, { skipHistoryRefresh: false, preserveFormOpen: true }).catch((error) => {
         writeActivity(`deep research refresh failed: ${error.message}`, "bad");
       });
     }, 5000);
@@ -83,7 +104,7 @@ async function loadLatestReport(state: DeepResearchClientState): Promise<void> {
     renderEmptyReader("No Deep Research reports yet");
     return;
   }
-  await loadSelectedReport(state, latest.job.id);
+  await loadSelectedReport(state, latest.job.id, { closeForm: true });
 }
 
 async function startDeepResearch(state: DeepResearchClientState, event: Event): Promise<void> {
@@ -178,7 +199,7 @@ async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: stri
   writeActivity("deep research report deleted", "ok");
   const nextJobId = await refreshHistory(state);
   if (nextJobId) {
-    await loadSelectedReport(state, nextJobId, { skipHistoryRefresh: true });
+    await loadSelectedReport(state, nextJobId, { skipHistoryRefresh: true, closeForm: true });
   }
 }
 
@@ -200,7 +221,7 @@ function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEve
   }
   const selectedJob = target?.closest("[data-deep-research-select-job]");
   if (selectedJob) {
-    loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "").catch((error) => {
+    loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "", { closeForm: true }).catch((error) => {
       writeActivity(`deep research selection failed: ${error.message}`, "bad");
     });
     return;
@@ -255,7 +276,7 @@ function handleDeepResearchDomReady(state: DeepResearchClientState): void {
       if (!jobId) {
         return undefined;
       }
-      state.formOpen = false;
+      closeDeepResearchFormUnlessActive(state);
       return loadSelectedReport(state, jobId, { skipHistoryRefresh: true });
     })
     .catch((error) => writeActivity(`deep research history load failed: ${error.message}`, "bad"));
@@ -277,6 +298,8 @@ function bootWorkbenchDeepResearchClient(): void {
 export const deepResearchClientBootFunctions = [
   setSelectedJobId,
   stopPolling,
+  isDeepResearchFormActive,
+  closeDeepResearchFormUnlessActive,
   refreshHistory,
   loadSelectedReport,
   loadLatestReport,

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-26T13:16:38.920Z",
+  "generatedAt": "2026-05-26T13:48:21.972Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -164,6 +164,7 @@
     "scripts/audit/domains/local-app-shell/components/deep-research-ui-ast.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-case-reader-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-clean-raw-index-ui.ts",
+    "scripts/audit/domains/local-app-shell/components/scan-deep-research-form-polling-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
@@ -938,9 +939,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1305,
+  "liveExportCount": 1307,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 495,
+  "reachableFileCount": 496,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -948,9 +949,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1305,
+    "liveExportCount": 1307,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 495,
+    "reachableFileCount": 496,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

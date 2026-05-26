@@ -8,6 +8,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectDeepResearchCaseReaderUi } from "./components/scan-deep-research-case-reader-ui.js";
 import { inspectDeepResearchCleanRawIndexUi } from "./components/scan-deep-research-clean-raw-index-ui.js";
+import { inspectDeepResearchFormPollingUi } from "./components/scan-deep-research-form-polling-ui.js";
 import { inspectDeepResearchHtmlDeliveryStatusUi } from "./components/scan-deep-research-html-delivery-status-ui.js";
 import { inspectDeepResearchPromptBundleUi } from "./components/scan-deep-research-promptbundle-ui.js";
 
@@ -175,6 +176,12 @@ const inspectDeepResearchAppSurface = (
     findings,
     inspectedFiles,
     lawId: deliveryLawId,
+  });
+  inspectDeepResearchFormPollingUi({
+    context,
+    findings,
+    inspectedFiles,
+    lawId,
   });
   inspectDeepResearchCleanRawIndexUi({
     context,

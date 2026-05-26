@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T13:16:28.775Z",
+  "generatedAt": "2026-05-26T13:48:10.969Z",
   "capabilityDomain": "architecture-boundary",
   "executionGroup": "foundation",
   "lawIds": [
@@ -235,6 +235,7 @@
     "scripts/audit/domains/local-app-shell/components/deep-research-ui-ast.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-case-reader-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-clean-raw-index-ui.ts",
+    "scripts/audit/domains/local-app-shell/components/scan-deep-research-form-polling-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",

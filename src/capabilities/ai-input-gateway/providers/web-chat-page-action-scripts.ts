@@ -14,8 +14,16 @@ if (input instanceof HTMLElement) {
   if (!input.isContentEditable) {
     return {status: "review_required", message: "provider composer is not the editable root", pageUrl: location.href};
   }
-  input.textContent = "";
-  input.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "deleteContentBackward", data: null}));
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(input);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  const deletedByEditor = document.execCommand("delete");
+  if (!deletedByEditor || clip(input.textContent || "").length > 0) {
+    input.textContent = "";
+    input.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "deleteContentBackward", data: null}));
+  }
 }
 return {status: "success", message: "provider composer cleared", pageUrl: location.href};
 `;

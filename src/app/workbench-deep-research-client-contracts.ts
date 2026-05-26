@@ -233,3 +233,9 @@ export type DeepResearchClientState = {
   formOpen: boolean;
   poll: ReturnType<typeof setInterval> | null;
 };
+
+export type DeepResearchLoadReportOptions = {
+  skipHistoryRefresh?: boolean;
+  closeForm?: boolean;
+  preserveFormOpen?: boolean;
+};

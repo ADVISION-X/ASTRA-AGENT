@@ -57,11 +57,16 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
         "waitForPromptReady",
         "verifyPromptPasted",
         "MAX_PROMPT_PASTE_ATTEMPTS",
+        "PROMPT_PASTE_VERIFY_TIMEOUT_MS",
+        "REFUSING_TO_CLEAR_EXISTING_PROMPT_COMPOSER",
+        "probePromptRetryStateBeforeClear",
+        "shouldPreservePromptComposer",
         "verify_prompt_pasted_before_submit",
+        "verify_prompt_still_settling_before_retry",
         "verify_prompt_ready_before_submit",
         "wasPromptVerifiedBeforeSubmit",
       ],
-      message: "web-chat submit runtime must verify prompt paste before submit and carry pre-submit verification state.",
+      message: "web-chat submit runtime must verify prompt paste before submit, preserve settling composer state before retry clear, and carry pre-submit verification state.",
     },
     {
       sourceFile: input.submitPageActionsFile,
@@ -79,6 +84,8 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
       markers: [
         "buildVerifyPromptPastedScript",
         "pastedTextCardReady",
+        "hasPastedTextCard",
+        "sendReady",
         "wasPromptVerifiedBeforeSubmit",
       ],
       message: "web-chat evaluation must distinguish verified prompt submission from empty-composer false positives.",
@@ -134,6 +141,35 @@ const inspectUnsafeComposerSuccess = (input: WebChatPromptSubmitVerificationInpu
   });
 };
 
+const inspectRetryClearProtection = (input: WebChatPromptSubmitVerificationInput): void => {
+  const preparePromptComposerText = getVariableInitializerText(input.submitFile, "preparePromptComposer");
+  const pasteTimeoutText = getVariableInitializerText(input.submitFile, "PROMPT_PASTE_VERIFY_TIMEOUT_MS");
+  if (pasteTimeoutText !== "20_000") {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+      message: "web-chat prompt paste verification must keep the long prompt observation window at 20_000ms.",
+    });
+  }
+  const missingMarkers = [
+    "probePromptRetryStateBeforeClear",
+    "REFUSING_TO_CLEAR_EXISTING_PROMPT_COMPOSER",
+    'retryState === "settling"',
+    'retryState === "empty"',
+    "verify_prompt_still_settling_before_retry",
+  ].filter((marker) => !preparePromptComposerText.includes(marker));
+  if (missingMarkers.length === 0) {
+    return;
+  }
+  pushFinding({
+    findings: input.findings,
+    lawId: input.lawId,
+    filePath: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    message: `web-chat prompt retry must probe composer state and only clear after an empty-state proof. Missing: ${missingMarkers.join(", ")}.`,
+  });
+};
+
 export const inspectWebChatPromptSubmitVerification = (
   input: WebChatPromptSubmitVerificationInput,
 ): void => {
@@ -143,4 +179,5 @@ export const inspectWebChatPromptSubmitVerification = (
   inspectRequiredTokens(input);
   inspectSubmissionOrdering(input);
   inspectUnsafeComposerSuccess(input);
+  inspectRetryClearProtection(input);
 };

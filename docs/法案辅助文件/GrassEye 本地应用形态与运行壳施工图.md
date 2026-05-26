@@ -43,6 +43,8 @@ health / mode
 
 Deep Research Analysis 是独立 job flow。页面只负责展示它的输入、状态和持久化结果，不拥有研究阶段顺序、prompt、parser、最终报告生成或导出算法。
 
+New Research 输入面必须是稳定可输入表单。运行中 job 的状态轮询、历史刷新、报告重绘、Latest/Refresh 读取不得在用户已经打开表单、焦点位于表单内，或 `User Question` / `Analysis Goal` 存在草稿内容时自动收回输入面。只有用户显式点击 Hide New Research、提交 Start 后，或用户主动选择报告且表单没有焦点和草稿时，页面才可以收起输入面。
+
 完成态必须显示：
 
 - job status / phase / jobId。
@@ -200,6 +202,7 @@ local-app-shell owner inspector 检查：
 - Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start，以及 Telegram Web 授权页边界提示。
 - Video Download route 是否存在 `/api/video-download/start`，且 route 必须经 mediator + job flow 后再调用能力组，页面只展示真实 result 状态。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
+- Deep Research New Research 输入面是否在轮询刷新中保留打开状态，并在收起前检查焦点和草稿内容。
 - Deep Research completed delivery surface 是否展示 final report、真实 persisted counts、export refs、evidence hashes，且 raw JSON 只作为折叠审计视图。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。
