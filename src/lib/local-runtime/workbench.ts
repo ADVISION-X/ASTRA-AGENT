@@ -49,7 +49,7 @@ import {
   type DeepResearchJobSnapshot,
   type DeepResearchReportViewModel,
   type DeepResearchTimelineSnapshot,
-} from "../../plugins/deep-research-analysis/deep-research-analysis.public-queries.js";
+} from "../../plugins/deep-research-analysis/index.js";
 
 type DeepResearchExecutionState = {
   status: DeepResearchJobSnapshot["job"]["status"];

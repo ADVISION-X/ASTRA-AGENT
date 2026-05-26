@@ -81,7 +81,7 @@ const lawfulDynamicRegistryConsumers: readonly ZombieDynamicRegistryConsumerExem
     reason: "Final adjudication stage passes the full prompt contract as a bounded prompt asset.",
   },
   {
-    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
     registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     registryExportName: "finalAdjudicationPrompt",
     reason: "Report reader prompt reconstruction uses the full prompt contract for hash verification.",

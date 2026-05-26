@@ -2,6 +2,7 @@ import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gat
 import {
     RuntimeFailureClass,
     RuntimeLogEventType,
+  createRuntimeLogger,
     createRuntimeEvent,
     createStageLogger,
     type RuntimeLogger,
@@ -135,6 +136,23 @@ export const buildGatewaySender = (
   }
   const aiInputGateway = context.aiInputGateway;
   if (!aiInputGateway) {
+    const preflightLogger = context.runtimeLogger ?? createRuntimeLogger();
+    preflightLogger.emit(createRuntimeEvent({
+      context: createDeepResearchTraceContext("deep-research-preflight:gateway"),
+      eventType: RuntimeLogEventType.DEEP_RESEARCH_JOB_FAILED,
+      level: "error",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      status: "failed",
+      reason: "Deep Research analysis requires sendPromptPackage or aiInputGateway.",
+      payload: {
+        phase: "INTAKE",
+        failureClass: RuntimeFailureClass.INTERNAL_BUG,
+        stageName: "INTAKE",
+        retryable: false,
+        terminal: true,
+        recoveryPolicy: "terminal",
+      },
+    }));
     throw new Error(
       "Deep Research analysis requires sendPromptPackage or aiInputGateway.",
     );
@@ -205,9 +223,42 @@ export const ensureRuntimeContext = (
   dataDir: string;
 } => {
   if (!context.runtimeLogger) {
+    const preflightLogger = createRuntimeLogger();
+    preflightLogger.emit(createRuntimeEvent({
+      context: createDeepResearchTraceContext("deep-research-preflight:runtime-logger"),
+      eventType: RuntimeLogEventType.DEEP_RESEARCH_JOB_FAILED,
+      level: "error",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      status: "failed",
+      reason: "Deep Research analysis requires runtimeLogger.",
+      payload: {
+        phase: "INTAKE",
+        failureClass: RuntimeFailureClass.INTERNAL_BUG,
+        stageName: "INTAKE",
+        retryable: false,
+        terminal: true,
+        recoveryPolicy: "terminal",
+      },
+    }));
     throw new Error("Deep Research analysis requires runtimeLogger.");
   }
   if (!context.dataDir) {
+    context.runtimeLogger.emit(createRuntimeEvent({
+      context: createDeepResearchTraceContext("deep-research-preflight:data-dir"),
+      eventType: RuntimeLogEventType.DEEP_RESEARCH_JOB_FAILED,
+      level: "error",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      status: "failed",
+      reason: "Deep Research analysis requires dataDir.",
+      payload: {
+        phase: "INTAKE",
+        failureClass: RuntimeFailureClass.INTERNAL_BUG,
+        stageName: "INTAKE",
+        retryable: false,
+        terminal: true,
+        recoveryPolicy: "terminal",
+      },
+    }));
     throw new Error("Deep Research analysis requires dataDir.");
   }
   return {

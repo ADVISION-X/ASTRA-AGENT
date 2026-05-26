@@ -127,7 +127,7 @@ const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
     sourceFiles,
     routesFile: getSourceFile(context, "src/app/workbench-deep-research-routes.ts"),
     workbenchHandleFile: getSourceFile(context, "src/lib/local-runtime/workbench-handle.ts"),
-    publicFacadeFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts"),
+    publicFacadeFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.public.ts"),
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-038-V1"),

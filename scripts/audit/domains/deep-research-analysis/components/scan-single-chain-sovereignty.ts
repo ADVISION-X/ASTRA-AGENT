@@ -136,7 +136,7 @@ const inspectHtmlReentrySurfaces = (input: SingleChainSovereigntyInput): void =>
     },
     {
       text: input.publicFacadeFile?.getFullText() ?? "",
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
       message: "Public facade must not expose HTML reentry.",
     },
   ] as const) {
