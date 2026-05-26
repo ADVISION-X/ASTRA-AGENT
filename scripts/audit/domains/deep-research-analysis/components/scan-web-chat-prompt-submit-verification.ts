@@ -5,6 +5,7 @@ import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 type WebChatPromptSubmitVerificationInput = {
+  answerSupportFile: SourceFile | undefined;
   submitFile: SourceFile | undefined;
   submitPageActionsFile: SourceFile | undefined;
   evaluationFile: SourceFile | undefined;
@@ -67,6 +68,16 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
         "wasPromptVerifiedBeforeSubmit",
       ],
       message: "web-chat submit runtime must verify prompt paste before submit, preserve settling composer state before retry clear, and carry pre-submit verification state.",
+    },
+    {
+      sourceFile: input.answerSupportFile,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+      markers: [
+        "hasAnswerProgressWithoutAssistantCount",
+        "seenGenerating",
+        "previousAnswerText",
+      ],
+      message: "web-chat answer extraction must not block solely on assistant count when generating or new answer text proves current-round progress.",
     },
     {
       sourceFile: input.submitPageActionsFile,
@@ -143,6 +154,15 @@ const inspectUnsafeComposerSuccess = (input: WebChatPromptSubmitVerificationInpu
 
 const inspectRetryClearProtection = (input: WebChatPromptSubmitVerificationInput): void => {
   const preparePromptComposerText = getVariableInitializerText(input.submitFile, "preparePromptComposer");
+  const shouldPreservePromptComposerText = getVariableInitializerText(input.submitFile, "shouldPreservePromptComposer");
+  if (shouldPreservePromptComposerText.includes("evaluation.sendReady")) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+      message: "web-chat retry clear protection must not treat sendReady alone as prompt content evidence.",
+    });
+  }
   const pasteTimeoutText = getVariableInitializerText(input.submitFile, "PROMPT_PASTE_VERIFY_TIMEOUT_MS");
   if (pasteTimeoutText !== "20_000") {
     pushFinding({
@@ -173,7 +193,7 @@ const inspectRetryClearProtection = (input: WebChatPromptSubmitVerificationInput
 export const inspectWebChatPromptSubmitVerification = (
   input: WebChatPromptSubmitVerificationInput,
 ): void => {
-  for (const sourceFile of [input.submitFile, input.submitPageActionsFile, input.evaluationFile]) {
+  for (const sourceFile of [input.answerSupportFile, input.submitFile, input.submitPageActionsFile, input.evaluationFile]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
   inspectRequiredTokens(input);

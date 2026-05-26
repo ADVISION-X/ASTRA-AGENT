@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T13:48:24.823Z",
+  "generatedAt": "2026-05-26T14:51:17.594Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -87,6 +87,7 @@
     "src/app/workbench-deep-research-report-view.ts",
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",

@@ -54,6 +54,16 @@ const isPreviousStableAnswer = (input: {
       && !input.seenGenerating,
   );
 
+const hasAnswerProgressWithoutAssistantCount = (input: {
+  currentAnswerText: string;
+  previousAnswerText: string | null | undefined;
+  seenGenerating: boolean;
+}): boolean => {
+  if (input.currentAnswerText.length === 0) return false;
+  const previousAnswerText = input.previousAnswerText?.trim() ?? "";
+  return input.seenGenerating || previousAnswerText.length === 0 || input.currentAnswerText !== previousAnswerText;
+};
+
 export const createStableAnswerState = (): StableAnswerState => ({
   lastText: "",
   lastGenerating: false,
@@ -157,14 +167,23 @@ export const shouldContinueWaiting = async (input: {
   state: StableAnswerState;
 }): Promise<boolean> => {
   input.state.lastAssistantCount = input.evaluation.assistantCount ?? input.state.lastAssistantCount;
-  if (input.minAssistantCount !== undefined && input.state.lastAssistantCount < input.minAssistantCount) {
+  if (input.evaluation.generating === true) input.state.seenGenerating = true;
+  const currentAnswerText = input.evaluation.answerText?.trim() ?? "";
+  if (
+    input.minAssistantCount !== undefined
+    && input.state.lastAssistantCount < input.minAssistantCount
+    && !hasAnswerProgressWithoutAssistantCount({
+      currentAnswerText,
+      previousAnswerText: input.previousAnswerText,
+      seenGenerating: input.state.seenGenerating,
+    })
+  ) {
     await input.browser.wait(input.pollIntervalMs);
     return true;
   }
-  if (input.evaluation.generating === true) input.state.seenGenerating = true;
   if (
     isPreviousStableAnswer({
-      currentAnswerText: input.evaluation.answerText?.trim() ?? "",
+      currentAnswerText,
       previousAnswerText: input.previousAnswerText,
       seenGenerating: input.state.seenGenerating,
     })

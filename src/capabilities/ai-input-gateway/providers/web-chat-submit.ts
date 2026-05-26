@@ -97,8 +97,7 @@ const shouldPreservePromptComposer = (evaluation: WebChatEvaluation): boolean =>
     composerText.length > 0
       || evaluation.promptPrefixVisible
       || evaluation.hasPastedTextCard
-      || evaluation.pastedTextCardReady
-      || evaluation.sendReady,
+      || evaluation.pastedTextCardReady,
   );
 };
 

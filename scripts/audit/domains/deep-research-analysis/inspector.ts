@@ -219,6 +219,7 @@ const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-041-V1"),
   });
   inspectWebChatPromptSubmitVerification({
+    answerSupportFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts"),
     submitFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"),
     submitPageActionsFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts"),
     evaluationFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts"),
