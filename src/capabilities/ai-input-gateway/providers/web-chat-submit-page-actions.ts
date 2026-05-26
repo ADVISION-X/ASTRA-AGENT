@@ -8,11 +8,13 @@ import {
 export const verifyPromptSubmitted = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
-  expectedText: string,
-  previousAssistantCount: number,
+  input: {
+    expectedPrefix: string;
+    previousAssistantCount: number;
+  },
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: "verify AI web chat prompt was submitted",
-    script: buildVerifyPromptSubmittedScript(expectedText, previousAssistantCount),
+    script: buildVerifyPromptSubmittedScript(input.expectedPrefix, input.previousAssistantCount),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

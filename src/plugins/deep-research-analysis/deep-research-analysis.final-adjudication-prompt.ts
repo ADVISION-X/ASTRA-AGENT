@@ -11,6 +11,8 @@ export const DEEP_RESEARCH_FINAL_ADJUDICATION_CONTRACT_ID =
 
 export const buildFinalAdjudicationOutputContract = () => buildPromptOutputShellContract({
   contractId: DEEP_RESEARCH_FINAL_ADJUDICATION_CONTRACT_ID,
+  format: "structured_text",
+  requiredFields: ["rawFinalAnswerText"],
 });
 
 export const buildFinalAdjudicationShellPrompt = (): DeepResearchPrompt => ({

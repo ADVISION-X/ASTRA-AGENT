@@ -106,15 +106,27 @@ const hasQualitySelfCheckFailure = (parsed: DeepResearchDecompositionResponse): 
   || !parsed.planIntegrityCheck.htmlPromptBundleIsQuestionSpecific
   || !parsed.planIntegrityCheck.runtimeWillOnlyAddShellConstraints;
 
-export const parseDecompositionResponse = (input: {
-  rawText: string;
-  maxSubQuestions: number;
-}): DecompositionParseResult => {
-  const normalizedText = normalizeRawText(input.rawText);
-  const raw = parseJson(normalizedText);
-  if (isDecompositionParseFailure(raw)) {
-    return raw;
+const readPreferredFormatFailure = (
+  parsed: DeepResearchDecompositionResponse,
+): string | null => {
+  for (const subQuestion of parsed.subQuestions) {
+    if (subQuestion.promptBundle.outputGuidance.preferredFormat !== "structured_text") {
+      return `invalid_decomposition_contract:sub_question_prompt_bundle_preferred_format_must_be_structured_text:${subQuestion.id}`;
+    }
   }
+  if (parsed.finalAdjudicationPromptBundle.outputGuidance.preferredFormat !== "structured_text") {
+    return "invalid_decomposition_contract:final_adjudication_prompt_bundle_preferred_format_must_be_structured_text";
+  }
+  if (parsed.htmlReportPromptBundle.outputGuidance.preferredFormat !== "html_document") {
+    return "invalid_decomposition_contract:html_report_prompt_bundle_preferred_format_must_be_html_document";
+  }
+  return null;
+};
+
+const parseDecompositionContract = (
+  raw: unknown,
+  normalizedText: string,
+): DeepResearchDecompositionResponse | DecompositionParseFailure => {
   if (hasForbiddenContractMetadata(raw)) {
     return buildFailure(
       normalizedText,
@@ -125,21 +137,68 @@ export const parseDecompositionResponse = (input: {
   if (!parsed.success) {
     return buildFailure(normalizedText, formatSchemaFailureReason(parsed.error.issues));
   }
-  if (parsed.data.subQuestions.length === 0) {
-    return buildFailure(normalizedText, "empty_sub_questions");
+  return parsed.data;
+};
+
+const readResponseValidationFailure = (input: {
+  parsed: DeepResearchDecompositionResponse;
+  maxSubQuestions: number;
+}): {
+  reason: string;
+  parseStatus?: Exclude<ParseStatus, "parsed">;
+} | null => {
+  if (input.parsed.subQuestions.length === 0) {
+    return { reason: "empty_sub_questions" };
   }
-  if (parsed.data.subQuestions.length > input.maxSubQuestions) {
-    return buildFailure(normalizedText, "sub_questions_exceed_limit", "partial_review_required");
+  if (input.parsed.subQuestions.length > input.maxSubQuestions) {
+    return {
+      reason: "sub_questions_exceed_limit",
+      parseStatus: "partial_review_required",
+    };
   }
-  if (hasDuplicateQuestionText(parsed.data)) {
-    return buildFailure(normalizedText, "duplicate_sub_questions", "partial_review_required");
+  if (hasDuplicateQuestionText(input.parsed)) {
+    return {
+      reason: "duplicate_sub_questions",
+      parseStatus: "partial_review_required",
+    };
   }
-  if (hasQualitySelfCheckFailure(parsed.data)) {
-    return buildFailure(normalizedText, "quality_self_check_failed", "partial_review_required");
+  if (hasQualitySelfCheckFailure(input.parsed)) {
+    return {
+      reason: "quality_self_check_failed",
+      parseStatus: "partial_review_required",
+    };
+  }
+  const preferredFormatFailure = readPreferredFormatFailure(input.parsed);
+  return preferredFormatFailure ? { reason: preferredFormatFailure } : null;
+};
+
+export const parseDecompositionResponse = (input: {
+  rawText: string;
+  maxSubQuestions: number;
+}): DecompositionParseResult => {
+  const normalizedText = normalizeRawText(input.rawText);
+  const raw = parseJson(normalizedText);
+  if (isDecompositionParseFailure(raw)) {
+    return raw;
+  }
+  const parsed = parseDecompositionContract(raw, normalizedText);
+  if (isDecompositionParseFailure(parsed)) {
+    return parsed;
+  }
+  const validationFailure = readResponseValidationFailure({
+    parsed,
+    maxSubQuestions: input.maxSubQuestions,
+  });
+  if (validationFailure) {
+    return buildFailure(
+      normalizedText,
+      validationFailure.reason,
+      validationFailure.parseStatus,
+    );
   }
   return {
     parseStatus: "parsed",
-    parsed: parsed.data,
+    parsed,
     normalizedText,
     rawResponseHash: buildDeepResearchTextHash(normalizedText),
   };

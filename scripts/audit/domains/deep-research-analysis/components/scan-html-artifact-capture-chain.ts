@@ -126,14 +126,30 @@ const inspectHtmlArtifactExport = (input: HtmlCaptureInspectionInput, paths: Htm
 };
 
 const inspectSharedRuntime = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {
-  if (hasIdentifier(input.sharedFile, "captureChatGptBusinessHtmlArtifact")) {
+  if (!hasIdentifier(input.sharedFile, "captureChatGptBusinessHtmlArtifact")) {
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.sharedPath,
+      message: "GPT web-chat shared runtime must call captureChatGptBusinessHtmlArtifact.",
+    });
+  }
+  if (!hasIdentifier(input.sharedFile, "isBusinessHtmlReportRequest")) {
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.sharedPath,
+      message: "GPT web-chat shared runtime must detect governed business HTML artifact requests before allowing inline response success.",
+    });
+  }
+  if (hasStringLiteral(input.sharedFile, "review_required: provider did not produce a business-report.html artifact.")) {
     return;
   }
   pushCaptureFinding({
     findings: input.findings,
     lawId: input.lawId,
     filePath: paths.sharedPath,
-    message: "GPT web-chat shared runtime must call captureChatGptBusinessHtmlArtifact.",
+    message: "GPT web-chat shared runtime must reject business HTML report success when no business-report.html artifact was captured.",
   });
 };
 

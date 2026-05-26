@@ -34,7 +34,7 @@ type ClickEvaluation = {
   pageUrl: string;
 };
 
-const isBusinessHtmlReportRequest = (request: AiFeedInput): boolean =>
+export const isBusinessHtmlReportRequest = (request: AiFeedInput): boolean =>
   request.providerKind === "gpt-web-chat"
   && request.promptContractId.includes("business-html-report");
 

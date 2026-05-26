@@ -31,11 +31,11 @@ const assistantCount = Array.from(document.querySelectorAll("[data-message-autho
   .length;
 `;
 
-export const buildVerifyPromptSubmittedScript = (expectedText: string, previousAssistantCount: number): string => `
+export const buildVerifyPromptSubmittedScript = (expectedPrefix: string, previousAssistantCount: number): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
 const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
-const expectedPrefix = clip(${JSON.stringify(expectedText)}).slice(0, 80);
+const expectedPrefix = ${JSON.stringify(expectedPrefix)};
 ${WEB_CHAT_ASSISTANT_COUNT_SCRIPT}
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
 const promptStillInComposer = actual.includes(expectedPrefix);

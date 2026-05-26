@@ -22,7 +22,7 @@ const buildPromptBundle = (input: {
   id: string;
   role: "sub_question_analysis" | "final_adjudication" | "html_report_publisher";
   instruction: string;
-  format: "json_object" | "html_document";
+  format: "structured_text" | "html_document";
   questionSpecificFocus?: readonly string[];
   evidenceOrReasoningNeeds?: readonly string[];
   requiredContent?: readonly string[];
@@ -65,7 +65,7 @@ const buildSubQuestionFixture = () => [
         id: "Q1",
         role: "sub_question_analysis",
         instruction: "Analyze durable demand for the fixture.",
-        format: "json_object",
+        format: "structured_text",
         questionSpecificFocus: ["demand durability", "buyer replacement urgency"],
         evidenceOrReasoningNeeds: ["buyer ROI", "replacement demand"],
         requiredContent: ["demand durability finding", "demand weakening conditions"],
@@ -91,7 +91,7 @@ const buildSubQuestionFixture = () => [
         id: "Q2",
         role: "sub_question_analysis",
         instruction: "Analyze execution bottlenecks for the fixture.",
-        format: "json_object",
+        format: "structured_text",
         questionSpecificFocus: ["service bottleneck", "integration lead time"],
         evidenceOrReasoningNeeds: ["service capacity", "integration lead time"],
         requiredContent: ["dominant execution bottleneck", "conditions that reduce rollout risk"],
@@ -179,7 +179,7 @@ const persistDecomposition = (input: {
           id: "final-adjudication",
           role: "final_adjudication",
           instruction: "Adjudicate the full fixture case file.",
-          format: "json_object",
+          format: "structured_text",
         }),
         promptRole: "final_adjudication",
       },

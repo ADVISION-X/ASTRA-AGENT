@@ -39,7 +39,7 @@ const decompositionResponse = JSON.stringify({
         mustNotDo: ["Do not decide the overall recommendation."],
         evidenceOrReasoningNeeds: ["market demand evidence"],
         outputGuidance: {
-          preferredFormat: "json_object",
+          preferredFormat: "structured_text",
           requiredContent: ["demand answerText"],
           supplementalContent: [],
           forbiddenContent: ["workflow commands"],
@@ -65,7 +65,7 @@ const decompositionResponse = JSON.stringify({
         mustNotDo: ["Do not decide the overall recommendation."],
         evidenceOrReasoningNeeds: ["execution constraints"],
         outputGuidance: {
-          preferredFormat: "json_object",
+          preferredFormat: "structured_text",
           requiredContent: ["execution answerText"],
           supplementalContent: [],
           forbiddenContent: ["workflow commands"],
@@ -84,7 +84,7 @@ const decompositionResponse = JSON.stringify({
     mustNotDo: ["Do not ignore missing evidence."],
     evidenceOrReasoningNeeds: ["all sub-question answers"],
     outputGuidance: {
-      preferredFormat: "json_object",
+      preferredFormat: "structured_text",
       requiredContent: ["recommendation"],
       supplementalContent: [],
       forbiddenContent: ["workflow commands"],

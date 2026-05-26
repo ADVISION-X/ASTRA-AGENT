@@ -18,6 +18,10 @@ import {
 import { clearComposer } from "./web-chat-upload-page-actions.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
+const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
+
+const buildPromptSubmissionExpectedPrefix = (promptText: string): string =>
+  promptText.replace(/\s+/gu, " ").trim().slice(0, PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS);
 
 const withWebChatStep = async <T>(
   step: string,
@@ -33,7 +37,7 @@ const withWebChatStep = async <T>(
 const waitForPromptSubmitted = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
-  promptText: string;
+  expectedPrefix: string;
   previousAssistantCount: number;
   timeoutMs: number;
 }): Promise<boolean> => {
@@ -41,7 +45,10 @@ const waitForPromptSubmitted = async (input: {
   let lastMessage = "provider submit result was not checked";
   while (Date.now() < deadline) {
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
-      verifyPromptSubmitted(input.browser, input.context, input.promptText, input.previousAssistantCount));
+      verifyPromptSubmitted(input.browser, input.context, {
+        expectedPrefix: input.expectedPrefix,
+        previousAssistantCount: input.previousAssistantCount,
+      }));
     lastMessage = `${submitted.status}: ${submitted.message}`;
     if (submitted.status === "success") return true;
     if (submitted.status === "review_required" || submitted.status === "failed") {
@@ -82,6 +89,7 @@ const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Pro
 
 const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
+  const expectedPromptPrefix = buildPromptSubmissionExpectedPrefix(input.request.textPrompt);
   if (expectedAttachmentCount > 0) {
     await withWebChatStep("verify_attachments_before_submit", () =>
       waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
@@ -96,7 +104,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
   const submittedAfterReturn = await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,
-    promptText: input.request.textPrompt,
+    expectedPrefix: expectedPromptPrefix,
     previousAssistantCount: input.previousAssistantCount,
     timeoutMs: pastedTextCard ? 8_000 : input.request.timeoutMs,
   });
@@ -110,7 +118,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
     const submittedAfterClick = await waitForPromptSubmitted({
       browser: input.browser,
       context: input.context,
-      promptText: input.request.textPrompt,
+      expectedPrefix: expectedPromptPrefix,
       previousAssistantCount: input.previousAssistantCount,
       timeoutMs: input.request.timeoutMs,
     });

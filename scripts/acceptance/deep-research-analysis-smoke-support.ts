@@ -109,6 +109,11 @@ const verifyPersistedFinalPackage = (input: {
   assert(fullCaseFile.caseFileVersion === "v1", "Full case file must be built for the smoke fixture.");
   assert(fullCaseFile.coverage.rawAnalysisInteractionCount === 2, "Full case file must preserve raw coverage for each sub-question.");
   assert(finalPackage.outputContract.contractId === "deep-research.final-adjudication.shell.v2.0", "Smoke fixture must target the current shell-only final adjudication contract.");
+  assert(finalPackage.outputContract.format === "structured_text", "Final adjudication contract must use structured_text.");
+  assert(finalPackage.outputContract.requiredFields.includes("rawFinalAnswerText"), "Final adjudication contract must require rawFinalAnswerText.");
+  assert(fullCaseFile.researchPlan.subQuestions.every((entry) => entry.promptBundle.outputGuidance.preferredFormat === "structured_text"), "All sub-question promptBundles must target structured_text.");
+  assert(fullCaseFile.researchPlan.finalAdjudicationPromptBundle.outputGuidance.preferredFormat === "structured_text", "Final adjudication promptBundle must target structured_text.");
+  assert(fullCaseFile.researchPlan.htmlReportPromptBundle.outputGuidance.preferredFormat === "html_document", "HTML report promptBundle must target html_document.");
   const finalPromptText = renderDeepResearchFinalAdjudicationPrompt({
     language: input.job?.language ?? "zh-CN",
     structuredIndex: finalPackage,
@@ -208,7 +213,7 @@ const withIdentityPromptBundle = (subQuestion: ReturnType<typeof buildModelSubQu
     mustNotDo: ["Do not issue system operations."],
     evidenceOrReasoningNeeds: ["database identity reasoning"],
     outputGuidance: {
-      preferredFormat: "json_object" as const,
+      preferredFormat: "structured_text" as const,
       requiredContent: ["identity finding"],
       supplementalContent: [],
       forbiddenContent: ["workflow commands"],

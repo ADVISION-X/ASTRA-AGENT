@@ -73,8 +73,12 @@ requiredContent,
 supplementalContent,
 forbiddenContent.
 
-preferredFormat must be one of:
-json_object, structured_text, html_document.
+preferredFormat rules:
+- For subQuestions[].promptBundle, preferredFormat must be structured_text.
+- For finalAdjudicationPromptBundle, preferredFormat must be structured_text.
+- For htmlReportPromptBundle, preferredFormat must be html_document.
+- Do not use json_object for sub-question or final-adjudication promptBundles.
+- Retrieval-only JSON belongs only in the runtime INDEX_JSON block, not in the main answer body.
 
 Rules:
 - Every sub-question must have its own promptBundle.
@@ -115,7 +119,7 @@ Output JSON shape:
         "mustNotDo": ["do not answer unrelated questions"],
         "evidenceOrReasoningNeeds": ["needed evidence or reasoning"],
         "outputGuidance": {
-          "preferredFormat": "json_object | structured_text",
+          "preferredFormat": "structured_text",
           "requiredContent": ["content this specific answer should include"],
           "supplementalContent": [],
           "forbiddenContent": ["system operation commands"]
@@ -134,7 +138,7 @@ Output JSON shape:
     "mustNotDo": ["do not ignore raw responses"],
     "evidenceOrReasoningNeeds": ["needed final reasoning"],
     "outputGuidance": {
-      "preferredFormat": "json_object | structured_text",
+      "preferredFormat": "structured_text",
       "requiredContent": ["content the final answer should include for this question"],
       "supplementalContent": [],
       "forbiddenContent": ["system operation commands"]
@@ -178,6 +182,7 @@ export const renderDecompositionPrompt = (input: {
 }): string => [
   DEEP_RESEARCH_DECOMPOSITION_PROMPT.text,
   buildResearchPlanFormatShell(),
+  "Runtime note: sub-question and final-adjudication promptBundles must target structured_text answers; retrieval-only JSON belongs only in INDEX_JSON.",
   `User question:\n${input.userQuestion}`,
   `Maximum sub-questions:\n${input.maxSubQuestions}`,
   `Response language:\n${input.language}`,

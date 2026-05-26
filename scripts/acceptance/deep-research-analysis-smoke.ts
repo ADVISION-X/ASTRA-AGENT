@@ -52,7 +52,7 @@ const FIXTURE_RESPONSES = [
           mustNotDo: ["Do not decide the overall market entry recommendation."],
           evidenceOrReasoningNeeds: ["buyer capex plans", "automation ROI benchmarks"],
           outputGuidance: {
-            preferredFormat: "json_object",
+            preferredFormat: "structured_text",
             requiredContent: ["local demand finding", "supporting reasons", "conditions that weaken the finding"],
             supplementalContent: [],
             forbiddenContent: ["system operation commands"]
@@ -78,7 +78,7 @@ const FIXTURE_RESPONSES = [
           mustNotDo: ["Do not decide the overall market entry recommendation."],
           evidenceOrReasoningNeeds: ["deployment benchmarks", "partner capability evidence"],
           outputGuidance: {
-            preferredFormat: "json_object",
+            preferredFormat: "structured_text",
             requiredContent: ["local execution finding", "blocking constraints", "conditions that change feasibility"],
             supplementalContent: [],
             forbiddenContent: ["system operation commands"]
@@ -97,7 +97,7 @@ const FIXTURE_RESPONSES = [
       mustNotDo: ["Do not ignore raw responses."],
       evidenceOrReasoningNeeds: ["compare demand durability against execution feasibility"],
       outputGuidance: {
-        preferredFormat: "json_object",
+        preferredFormat: "structured_text",
         requiredContent: ["direct recommendation", "conditions", "reasoning", "risks"],
         supplementalContent: [],
         forbiddenContent: ["system operation commands"]

@@ -6,7 +6,10 @@ import type {
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
-import { captureChatGptBusinessHtmlArtifact } from "./web-chat-html-artifact-capture.js";
+import {
+  captureChatGptBusinessHtmlArtifact,
+  isBusinessHtmlReportRequest,
+} from "./web-chat-html-artifact-capture.js";
 import { isDeepResearchGptRequest, openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
@@ -154,6 +157,9 @@ const executeWebChatConversation = async (input: {
     context: input.context,
     conversationUrl: conversation.extracted.pageUrl ?? null,
   });
+  if (isBusinessHtmlReportRequest(input.request) && !htmlArtifact) {
+    throw new Error("review_required: provider did not produce a business-report.html artifact.");
+  }
   return buildWebChatRawResponse({
     request: input.request,
     runtimeName: input.runtimeName,

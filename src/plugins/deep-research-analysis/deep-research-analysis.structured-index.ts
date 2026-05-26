@@ -42,7 +42,7 @@ const DeepResearchStructuredIndexBaseSchema = z.object({
   promptVersions: z.record(z.string(), z.string()),
   outputContract: z.object({
     contractId: z.string().trim().min(1),
-    format: z.literal("json_object"),
+    format: z.literal("structured_text"),
     requiredFields: z.array(z.string().trim().min(1)).min(1),
     forbiddenFields: z.array(z.string().trim().min(1)).min(1),
   }).strict(),
