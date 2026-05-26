@@ -13,6 +13,10 @@ const renderJobRail = (): string => `
       <strong>Amazon invoice upload</strong>
       <span class="muted">approved PDF -> order invoice</span>
     </button>
+    <button class="job-card" type="button" data-job-card="amazon-product-mining" aria-pressed="false">
+      <strong>Amazon product mining</strong>
+      <span class="muted">keywords -> search -> detail -> reviews -> package</span>
+    </button>
     <button class="job-card" type="button" data-job-card="facebook" aria-pressed="false">
       <strong>Facebook product video mining</strong>
       <span class="muted">feed scan -> evidence refs</span>
@@ -46,6 +50,68 @@ const renderAmazonPanel = (): string => `
       <button class="btn secondary" type="button" data-amazon-latest>Latest</button>
     </div>
   </form>
+</section>`;
+
+const renderAmazonProductMiningPanel = (): string => `
+<section class="hidden" data-job-panel="amazon-product-mining">
+  <h1>Amazon product mining</h1>
+  <p class="muted">amazon-product-mining.flow.ts</p>
+  <form class="form-grid" data-amazon-product-mining-form>
+    <div class="field">
+      <label>Amazon marketplace</label>
+      <select name="amazonMarketplace">
+        <option value="amazon.com">amazon.com</option>
+        <option value="amazon.co.uk">amazon.co.uk</option>
+        <option value="amazon.de">amazon.de</option>
+        <option value="amazon.co.jp">amazon.co.jp</option>
+        <option value="amazon.fr">amazon.fr</option>
+        <option value="amazon.it">amazon.it</option>
+        <option value="amazon.es">amazon.es</option>
+        <option value="amazon.ca">amazon.ca</option>
+        <option value="amazon.com.au">amazon.com.au</option>
+        <option value="amazon.com.br">amazon.com.br</option>
+        <option value="amazon.com.mx">amazon.com.mx</option>
+        <option value="amazon.nl">amazon.nl</option>
+        <option value="amazon.se">amazon.se</option>
+        <option value="amazon.pl">amazon.pl</option>
+        <option value="amazon.ae">amazon.ae</option>
+        <option value="amazon.sg">amazon.sg</option>
+        <option value="amazon.com.tr">amazon.com.tr</option>
+      </select>
+    </div>
+    <div class="field"><label>Target market</label><input name="targetMarket" required /></div>
+    <div class="field wide"><label>Product direction</label><input name="productDirection" required /></div>
+    <div class="field"><label>Requested keyword count</label><input name="requestedKeywordCount" type="number" min="1" value="10" required /></div>
+    <div class="field">
+      <label>Language preference</label>
+      <select name="languagePreference">
+        <option value="en">en</option>
+        <option value="zh-CN">zh-CN</option>
+        <option value="ja">ja</option>
+        <option value="de">de</option>
+        <option value="fr">fr</option>
+      </select>
+    </div>
+    <div class="actions wide">
+      <button class="btn" type="submit">Start</button>
+      <button class="btn secondary" type="button" data-amazon-product-mining-latest>Latest</button>
+      <button class="btn secondary" type="button" data-amazon-product-mining-export>Export</button>
+    </div>
+  </form>
+  <section class="result-strip" data-amazon-product-mining-results>
+    <div class="result-summary">
+      <span><b data-amazon-product-mining-task-id>-</b></span>
+      <span class="muted">latest task id</span>
+    </div>
+    <div class="result-summary">
+      <span><b data-amazon-product-mining-status>-</b></span>
+      <span class="muted">task status</span>
+    </div>
+    <div class="result-summary">
+      <span><b data-amazon-product-mining-package>-</b></span>
+      <span class="muted">package/pdf ref</span>
+    </div>
+  </section>
 </section>`;
 
 const renderFacebookPanel = (): string => `
@@ -174,7 +240,7 @@ export const renderWorkbenchHomePage = (): string => `<!doctype html>
     </header>
     <main class="main">
       ${renderJobRail()}
-      <div class="workspace">${renderAmazonPanel()}${renderFacebookPanel()}${renderVideoDownloadPanel()}${renderDeepResearchPanel()}</div>
+      <div class="workspace">${renderAmazonPanel()}${renderAmazonProductMiningPanel()}${renderFacebookPanel()}${renderVideoDownloadPanel()}${renderDeepResearchPanel()}</div>
       ${renderLedger()}
     </main>
     <footer class="activity" data-activity-panel>

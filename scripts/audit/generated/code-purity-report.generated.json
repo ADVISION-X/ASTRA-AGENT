@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-26T16:01:55.223Z",
+  "generatedAt": "2026-05-26T18:31:48.140Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",

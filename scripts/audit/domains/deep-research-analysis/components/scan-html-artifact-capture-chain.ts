@@ -16,6 +16,21 @@ const hasPropertyName = (sourceFile: SourceFile | undefined, value: string): boo
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
     .some((assignment) => assignment.getName() === value);
 
+const hasNumericArrayLiteral = (
+  sourceFile: SourceFile | undefined,
+  variableName: string,
+  expectedValues: readonly number[],
+): boolean => {
+  const declaration = sourceFile?.getVariableDeclaration(variableName);
+  const rawInitializer = declaration?.getInitializer();
+  const initializer = rawInitializer?.getKind() === SyntaxKind.AsExpression
+    ? rawInitializer.getFirstChildByKind(SyntaxKind.ArrayLiteralExpression)
+    : rawInitializer?.asKind(SyntaxKind.ArrayLiteralExpression);
+  if (!initializer) return false;
+  const values = initializer.getElements().map((element) => Number(element.getText().replaceAll("_", "")));
+  return expectedValues.every((expectedValue, index) => values[index] === expectedValue);
+};
+
 const identifierPosition = (sourceFile: SourceFile | undefined, value: string): number | null =>
   sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier)
     .find((identifier) => identifier.getText() === value)
@@ -114,6 +129,44 @@ const inspectCaptureOrder = (input: HtmlCaptureInspectionInput, paths: HtmlCaptu
   });
 };
 
+const inspectArtifactDownloadRetry = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {
+  const hasRetryDelays = hasNumericArrayLiteral(
+    input.captureFile,
+    "HTML_ARTIFACT_CAPTURE_RETRY_DELAYS_MS",
+    [1_000, 2_000, 4_000, 8_000, 16_000, 30_000],
+  );
+  const hasRealClick = hasIdentifier(input.captureFile, "clickLocatedChatGptHtmlArtifactControl")
+    && hasStringLiteral(input.captureFile, "browserViewport");
+  const hasCurrentPrimaryLabel = hasIdentifier(input.captureFile, "locatePrimaryChatGptHtmlArtifactEntry")
+    && hasStringLiteral(input.captureFile, "下载 HTML 报告");
+  const checks = [
+    {
+      ok: hasIdentifier(input.captureFile, "waitBeforeHtmlArtifactRetry") && hasRetryDelays,
+      message: "HTML artifact capture must use exponential retry delays while waiting for ChatGPT download readiness.",
+    },
+    {
+      ok: hasRealClick,
+      message: "HTML artifact capture must use a real browser viewport click, not only a DOM click script.",
+    },
+    {
+      ok: hasCurrentPrimaryLabel,
+      message: "HTML artifact capture must locate ChatGPT's current primary HTML report download label.",
+    },
+  ];
+  for (const check of checks) {
+    if (check.ok) continue;
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.capturePath,
+      message: check.message,
+    });
+  }
+  process.stdout.write(
+    `[AUDIT][deep-research-analysis][html-artifact-capture] exponentialRetry=${hasRetryDelays} realClick=${hasRealClick} currentPrimaryLabel=${hasCurrentPrimaryLabel} findings=${checks.filter((check) => !check.ok).length}\n`,
+  );
+};
+
 const inspectHtmlArtifactExport = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {
   if (!hasIdentifier(input.exportFile, "isBusinessHtmlArtifactText")) {
     pushCaptureFinding({
@@ -206,6 +259,7 @@ export const inspectHtmlArtifactCaptureChain = (input: {
   inspectCaptureMarkers(input, paths);
   inspectCaptureIdentifiers(input, paths);
   inspectCaptureOrder(input, paths);
+  inspectArtifactDownloadRetry(input, paths);
   inspectHtmlArtifactExport(input, paths);
   inspectSharedRuntime(input, paths);
   inspectProofRefs(input, paths);

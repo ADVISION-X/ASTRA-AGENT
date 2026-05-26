@@ -168,6 +168,16 @@ GPT web-chat 生成 `business-report.html` 时，AI Input Gateway 必须返回�
 
 Deep Research 不得保留从 assistant 文本、代码 fence、摘要文本中猜测 HTML 的获取方式。
 
+ChatGPT HTML artifact 捕获必须允许真实页面延迟：
+
+```txt
+1. AI 回复稳定后，artifact 入口、预览下载按钮、浏览器下载文件仍可能异步延迟出现。
+2. capture 必须用真实浏览器 viewport click 点击 `下载 HTML 报告` / `business-report.html` 主入口，不能只执行 DOM target.click()。
+3. primary 入口未立即产出文件时，必须继续尝试预览框 `下载代码文件`。
+4. download/read 检查必须按 1s -> 2s -> 4s -> 8s -> 16s -> 30s 指数退避重试，直到捕获到有效 `business-report.html` 或阶段超时。
+5. 每次下载候选都必须拒绝 ChatGPT shell HTML；只有真实业务 HTML 文档可以进入 raw output proof。
+```
+
 ## Export
 
 只允许导出：

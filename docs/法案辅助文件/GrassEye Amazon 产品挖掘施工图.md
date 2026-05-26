@@ -1,31 +1,28 @@
 # GrassEye Amazon 产品挖掘施工图
 
 version: 2026-05-25
-status: frozen-phase-1
+status: frozen-production
 governs: `.github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md`
 capabilityDomain: `amazon-product-mining`
 targetJobFlowRoot: `src/plugins/amazon-product-mining/**`
 
 > 本施工图是法案的实现地图，不高于 active law。
-> Phase 1：仅冻结法案 + 施工图。Phase 2：完成插件代码 / app surface / audit domain / acceptance / ci:full 接入，并把法案块翻 `active`。
+> 本施工图描述 Amazon 产品挖掘当前唯一生产流程。
+> 它只作为实现地图，不高于 active law。
+> 任何新增/修改必须继续遵守单链、无兼容、无 fallback、无第二链路。
 
 ---
 
-## 0. 阶段定位
+## 0. 生产冻结定位
 
 ```txt
-Phase 1（本轮已完成）
-  -> module-amazon-product-mining.instructions.md （draft 法案块）
-  -> 本施工图
-
-Phase 2（后续会话）
+当前唯一生产链：
   -> src/plugins/amazon-product-mining/** owner 实现
   -> src/app/workbench-amazon-product-mining-routes.ts
+  -> src/app/workbench-home-page.ts / workbench-home-client.ts 最小入口面
   -> scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}
   -> scripts/acceptance/amazon-product-mining-*.acceptance.ts
-  -> package.json + ci-full.ts 白名单接入
-  -> 法案 draft -> active
-  -> ci:full PASS
+  -> package.json / ci:full 持续纳入
 ```
 
 施工图允许的只是图纸；不授权新增第二流程、通用 Agent、universal marketplace crawler、ERP、利润测算系统、采购决策系统、绕过 Amazon 限制、手工修改 generated artifacts。
@@ -104,9 +101,9 @@ src/app/workbench-amazon-product-mining-routes.ts
 
 ```
 POST /api/amazon-product-mining/mission       # 创建任务
-GET  /api/amazon-product-mining/run?runId=    # 查询任务
+GET  /api/amazon-product-mining/run?taskId=   # 查询任务
 GET  /api/amazon-product-mining/latest        # 读取最新任务
-GET  /api/amazon-product-mining/export?runId= # 下载导出
+GET  /api/amazon-product-mining/export?taskId=# 下载导出
 ```
 
 禁止：直接写业务步骤 / 直接读 DOM / 直接判断产品好坏 / 直接调用能力组私有实现。
@@ -420,7 +417,7 @@ handoff record:
 
 ## 20. 质检规划
 
-### Owner inspector 必查（Phase 2 实现）
+### Owner inspector 必查
 
 ```txt
 1. 法案文件存在且 status active（draft → active 切换完成）
@@ -444,7 +441,7 @@ handoff record:
 19. inspector 自身真实使用 context.project（满足 audit-truth 元法案）
 ```
 
-### Acceptance 必查（Phase 2 实现）
+### Acceptance 必查
 
 ```txt
 最小任务输入可创建 task
@@ -473,28 +470,26 @@ Agent 不输出最终选品结论
 npm run ci:full
 ```
 
-`ci-full.ts` 白名单必须在 Phase 2 追加 `acceptance:amazon-product-mining`，否则法案 [012] 不算落地。
+`ci-full.ts` 必须持续包含 `acceptance:amazon-product-mining`，否则法案 [012] 不算落地。
 
 ---
 
-## 21. 分阶段施工顺序（Phase 2）
+## 21. 当前生产实现锚点
 
 ```txt
-Phase 2-1：插件 schema + storage-schema + result type（最小骨架，typecheck PASS）
-Phase 2-2：flow.ts 状态机 + logging adapter（不真跑浏览器，先做状态图）
-Phase 2-3：keyword.ts （fixture-based + ai-input-gateway 投喂契约）
-Phase 2-4：search.ts （fixture HTML + DOM-automation 提取器）
-Phase 2-5：product-detail.ts （fixture HTML + 多字段容错）
-Phase 2-6：reviews.ts （fixture HTML + 分页 + 受限模拟）
-Phase 2-7：package.ts + pdf.ts （JSON 真实生成；PDF 最小可下载）
-Phase 2-8：handoff.ts + result.ts （task 终态聚合）
-Phase 2-9：app routes + index.ts public facade
-Phase 2-10：audit manifest + inspector（context.project AST 检查）
-Phase 2-11：7 个 acceptance 脚本 + package scripts
-Phase 2-12：ci-full.ts 白名单接入 + 法案 draft → active + ci:full PASS
+flow.ts：唯一任务状态机与顺序主链
+keyword.ts：AI 关键词生成与去重
+search.ts：Amazon 搜索首页全量可见提取
+product-detail.ts：详情页完整可见信息提取
+reviews.ts：评论分页与逐页保存
+package.ts / pdf.ts / handoff.ts：最终交付物与高级 AI 交接
+workbench-amazon-product-mining-routes.ts：最小 API surface
+workbench-home-page.ts / workbench-home-client.ts：首页入口、状态、latest、export
+inspector.ts：治理与边界执法
+amazon-product-mining-*.acceptance.ts：业务与 UI 验收
 ```
 
-每个 Phase 2-N 完成必须独立 typecheck + 局部 acceptance 通过；最后一步必须 ci:full PASS。
+任何变更都必须重新通过 typecheck、Amazon acceptance、Amazon audit 与 ci:full。
 
 ---
 

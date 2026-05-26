@@ -6,24 +6,24 @@ applyTo: "src/plugins/amazon-product-mining/**,src/app/workbench-amazon-product-
 
 # Amazon Product Mining
 
-status: draft
-version: 2026-05-25
+status: active
+version: 2026-05-26
 capabilityDomain: amazon-product-mining
+tier: P0
+enforcementMode: machine-blocking
 
-## 0. Phase Status
+## 0. Production Freeze Status
 
-本模块当前为 Phase 1（治理冻结）。
+当前 Amazon 产品挖掘已进入 active job flow governance。
 
-法案条款先以 `status: "draft"` 注册，等待 Phase 2 在以下条件全部满足后，统一切换为 `active`：
+所有法条为 active。
 
 ```txt
-1. src/plugins/amazon-product-mining/** owner 插件完整存在并通过 typecheck
-2. scripts/audit/domains/amazon-product-mining/{manifest.json,inspector.ts} 完整存在
-3. 至少 fixture-based acceptance 覆盖 keyword / search / detail / review / package
-4. ci:full 在 active 翻转后仍然 PASS
+后续只能按法案变更流程修改。
+任何收口修复都必须继续遵守单链、无兼容、无 fallback、无第二链路。
 ```
 
-Phase 1 不动 generated artifacts、不动 ci-full.ts 白名单、不新增 audit domain。Phase 2 是后续会话的工作。
+generated artifacts 仍然只能由审计生成链产出，不能手工编辑作为源真相。
 
 ## 1. Identity
 
@@ -537,9 +537,9 @@ Amazon 产品挖掘学习 Facebook mining 的原则：独立插件 owner、固�
 
 Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程顺序；Ability Group 执行同类动作；Child Ability 执行原子动作；Evidence / Logs 证明发生过什么；Storage 保存业务记录。
 
-## 7. Phase 2 Activation Checklist
+## 7. Production Freeze Enforcement
 
-Phase 2 必须一次性完成以下，并把全部 `status: "draft"` 翻为 `"active"`：
+当前生产冻结面必须持续满足以下条件：
 
 ```txt
 1. src/plugins/amazon-product-mining/
@@ -558,12 +558,13 @@ Phase 2 必须一次性完成以下，并把全部 `status: "draft"` 翻为 `"ac
      amazon-product-mining.result.ts
      index.ts
 2. src/app/workbench-amazon-product-mining-routes.ts （最小 surface）
+  3. src/app/workbench-home-page.ts 与 src/app/workbench-home-client.ts 提供 job card / panel / start / latest / export
 3. scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}
-4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,search-page,detail-page,review-pagination,package}.acceptance.ts
-5. package.json 增加 acceptance:amazon-product-mining 与 audit:amazon-product-mining
-6. scripts/audit/ci-full.ts 白名单追加 amazon-product-mining
-7. inspector 必须真使用 context.project，不得仅靠正则/字符串匹配
-8. 翻 active 后 ci:full 仍 PASS
+  4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,search-page,detail-page,review-pagination,package,app-ui}.acceptance.ts
+  5. package.json 暴露 acceptance:amazon-product-mining 与 audit:amazon-product-mining
+  6. taskId 是 Amazon 产品挖掘唯一任务标识，不允许 runId 兼容别名
+  7. inspector 必须真使用 context.project，不得仅靠正则/字符串匹配
+  8. ci:full 持续 PASS
 ```
 
 ## 8. Absolute Bans

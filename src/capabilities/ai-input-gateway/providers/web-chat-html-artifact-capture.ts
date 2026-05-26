@@ -7,11 +7,14 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
-const PRIMARY_ENTRY_WAIT_MS = 4_000;
-const SECONDARY_ENTRY_WAIT_MS = 20_000;
+const PRIMARY_ENTRY_WAIT_MS = 8_000;
+const SECONDARY_ENTRY_WAIT_MS = 30_000;
+const HTML_ARTIFACT_CAPTURE_TIMEOUT_MS = 600_000;
+const HTML_ARTIFACT_CAPTURE_RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000, 30_000] as const;
 const DOWNLOAD_SETTLE_MS = 350;
 const HTML_ARTIFACT_NAME = "business-report.html";
 const PRIMARY_CHATGPT_FILE_ENTRY_LABEL = "下载 business-report.html";
+const PRIMARY_CHATGPT_FILE_DOWNLOAD_LABEL = "下载 HTML 报告";
 const SECONDARY_CHATGPT_DOWNLOAD_LABEL = "下载代码文件";
 
 type CapturedHtmlArtifact = {
@@ -32,7 +35,11 @@ type ClickEvaluation = {
   status: "success" | "pending" | "failed";
   message: string;
   pageUrl: string;
+  point?: { x: number; y: number } | undefined;
 };
+
+const remainingMs = (deadlineMs: number, capMs: number): number =>
+  Math.max(0, Math.min(capMs, deadlineMs - Date.now()));
 
 export const isBusinessHtmlReportRequest = (request: AiFeedInput): boolean =>
   request.providerKind === "gpt-web-chat"
@@ -114,41 +121,111 @@ const waitForDownloadedBusinessHtml = async (input: {
   return null;
 };
 
-const clickPrimaryChatGptHtmlArtifactEntry = (
+const waitBeforeHtmlArtifactRetry = async (
+  browser: BrowserController,
+  attempt: number,
+): Promise<void> => {
+  const delayMs = HTML_ARTIFACT_CAPTURE_RETRY_DELAYS_MS[
+    Math.min(attempt, HTML_ARTIFACT_CAPTURE_RETRY_DELAYS_MS.length - 1)
+  ] ?? 30_000;
+  await browser.wait(delayMs);
+};
+
+const clickLocatedChatGptHtmlArtifactControl = async (
+  browser: BrowserController,
+  located: ClickEvaluation,
+  targetLabel: string,
+): Promise<ClickEvaluation> => {
+  if (located.status !== "success" || !located.point) return located;
+  const clicked = await browser.click({
+    targetLabel,
+    point: located.point,
+    coordinateSpace: "browserViewport",
+  });
+  return {
+    status: clicked.ok ? "success" : "failed",
+    message: clicked.message,
+    pageUrl: located.pageUrl,
+  };
+};
+
+const locatePrimaryChatGptHtmlArtifactEntry = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluateActiveTab<ClickEvaluation>({
-    description: `click ChatGPT primary ${HTML_ARTIFACT_NAME} file entry`,
+    description: `locate ChatGPT primary ${HTML_ARTIFACT_NAME} file entry`,
     script: `
 const buttons = Array.from(document.querySelectorAll("button"));
-const target = buttons.find((button) => (button.textContent || "").trim() === ${JSON.stringify(PRIMARY_CHATGPT_FILE_ENTRY_LABEL)});
+const primaryLabels = ${JSON.stringify([PRIMARY_CHATGPT_FILE_ENTRY_LABEL, PRIMARY_CHATGPT_FILE_DOWNLOAD_LABEL])};
+const target = buttons.find((button) => primaryLabels.includes((button.textContent || "").trim()))
+  || buttons.find((button) => {
+    const label = button.getAttribute("aria-label") || "";
+    const scopeText = button.closest("article, [data-message-author-role], main")?.textContent || "";
+    return label.includes("下载") && scopeText.includes(${JSON.stringify(HTML_ARTIFACT_NAME)});
+  });
 if (!target) {
   return {status: "pending", message: "primary business HTML file entry not present", pageUrl: location.href};
 }
-target.click();
-return {status: "success", message: "primary business HTML file entry clicked", pageUrl: location.href};
+const rect = target.getBoundingClientRect();
+if (rect.width <= 0 || rect.height <= 0) {
+  return {status: "pending", message: "primary business HTML file entry not visible", pageUrl: location.href};
+}
+return {
+  status: "success",
+  message: "primary business HTML file entry located",
+  pageUrl: location.href,
+  point: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
+};
 `,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
-const clickSecondaryChatGptPreviewDownload = (
+const clickPrimaryChatGptHtmlArtifactEntry = async (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+): Promise<ClickEvaluation> =>
+  clickLocatedChatGptHtmlArtifactControl(
+    browser,
+    await locatePrimaryChatGptHtmlArtifactEntry(browser, context),
+    `ChatGPT primary ${HTML_ARTIFACT_NAME} file entry`,
+  );
+
+const locateSecondaryChatGptPreviewDownload = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluateActiveTab<ClickEvaluation>({
-    description: `click ChatGPT preview ${HTML_ARTIFACT_NAME} download`,
+    description: `locate ChatGPT preview ${HTML_ARTIFACT_NAME} download`,
     script: `
 const target = Array.from(document.querySelectorAll("button"))
   .find((button) => button.getAttribute("aria-label") === ${JSON.stringify(SECONDARY_CHATGPT_DOWNLOAD_LABEL)});
 if (!target) {
   return {status: "pending", message: "preview business HTML download control not present", pageUrl: location.href};
 }
-target.click();
-return {status: "success", message: "preview business HTML download clicked", pageUrl: location.href};
+const rect = target.getBoundingClientRect();
+if (rect.width <= 0 || rect.height <= 0) {
+  return {status: "pending", message: "preview business HTML download control not visible", pageUrl: location.href};
+}
+return {
+  status: "success",
+  message: "preview business HTML download control located",
+  pageUrl: location.href,
+  point: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
+};
 `,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
+
+const clickSecondaryChatGptPreviewDownload = async (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+): Promise<ClickEvaluation> =>
+  clickLocatedChatGptHtmlArtifactControl(
+    browser,
+    await locateSecondaryChatGptPreviewDownload(browser, context),
+    `ChatGPT preview ${HTML_ARTIFACT_NAME} download`,
+  );
 
 const readActiveHtmlDocument = async (
   browser: BrowserController,
@@ -195,16 +272,17 @@ const reopenConversation = async (input: {
 const captureViaPrimaryEntry = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  startedAtMs: number;
+  deadlineMs: number;
 }): Promise<CapturedHtmlArtifact | null> => {
-  const startedAtMs = Date.now();
   const clicked = await clickPrimaryChatGptHtmlArtifactEntry(input.browser, input.context);
   if (clicked.status !== "success") {
     return null;
   }
   await input.browser.wait(1_000);
   const downloaded = await waitForDownloadedBusinessHtml({
-    startedAtMs,
-    timeoutMs: PRIMARY_ENTRY_WAIT_MS,
+    startedAtMs: input.startedAtMs,
+    timeoutMs: remainingMs(input.deadlineMs, PRIMARY_ENTRY_WAIT_MS),
   });
   if (downloaded) {
     return {
@@ -218,15 +296,16 @@ const captureViaPrimaryEntry = async (input: {
 const captureViaSecondaryDownload = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  startedAtMs: number;
+  deadlineMs: number;
 }): Promise<CapturedHtmlArtifact | null> => {
-  const startedAtMs = Date.now();
   const clicked = await clickSecondaryChatGptPreviewDownload(input.browser, input.context);
   if (clicked.status !== "success") {
     return null;
   }
   return waitForDownloadedBusinessHtml({
-    startedAtMs,
-    timeoutMs: SECONDARY_ENTRY_WAIT_MS,
+    startedAtMs: input.startedAtMs,
+    timeoutMs: remainingMs(input.deadlineMs, SECONDARY_ENTRY_WAIT_MS),
   });
 };
 
@@ -239,11 +318,29 @@ export const captureChatGptBusinessHtmlArtifact = async (input: {
   if (!isBusinessHtmlReportRequest(input.request) || !input.conversationUrl) {
     return null;
   }
-  const primary = await captureViaPrimaryEntry(input);
-  if (primary) return primary;
-  await reopenConversation({
-    browser: input.browser,
-    conversationUrl: input.conversationUrl,
-  });
-  return captureViaSecondaryDownload(input);
+  const startedAtMs = Date.now();
+  const deadlineMs = startedAtMs + Math.min(input.request.timeoutMs, HTML_ARTIFACT_CAPTURE_TIMEOUT_MS);
+  let attempt = 0;
+  while (Date.now() < deadlineMs) {
+    const downloaded = await waitForDownloadedBusinessHtml({
+      startedAtMs,
+      timeoutMs: remainingMs(deadlineMs, 1_000),
+    });
+    if (downloaded) return downloaded;
+    const primary = await captureViaPrimaryEntry({ ...input, startedAtMs, deadlineMs });
+    if (primary) return primary;
+    await reopenConversation({
+      browser: input.browser,
+      conversationUrl: input.conversationUrl,
+    });
+    const secondary = await captureViaSecondaryDownload({ ...input, startedAtMs, deadlineMs });
+    if (secondary) return secondary;
+    await waitBeforeHtmlArtifactRetry(input.browser, attempt);
+    attempt += 1;
+    await reopenConversation({
+      browser: input.browser,
+      conversationUrl: input.conversationUrl,
+    });
+  }
+  return null;
 };
