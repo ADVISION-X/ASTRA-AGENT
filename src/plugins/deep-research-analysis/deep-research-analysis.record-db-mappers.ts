@@ -1,34 +1,34 @@
 import { z } from "zod";
 
-import type {
-  DeepResearchInput,
-  DeepResearchInteractionPhase,
-  DeepResearchJobStatus,
-  DeepResearchParseStatus,
-  DeepResearchPhase,
-  DeepResearchSubQuestion,
-} from "./deep-research-analysis.schema.js";
+import { DeepResearchPromptBundleSchema, type DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-shell.js";
 import {
-  MISSING_RENDERED_PROMPT_TEXT,
-  ResearchAnswerSchema,
-  ResearchExportSchema,
-  ResearchFinalAdjudicationRecordSchema,
-  ResearchInteractionSchema,
-  ResearchJobSchema,
-  ResearchPlanRecordSchema,
-  ResearchSubQuestionSchema,
-  type ResearchAnswer,
-  type ResearchAnswerKind,
-  type ResearchExport,
-  type ResearchExportKind,
-  type ResearchFinalAdjudicationRecord,
-  type ResearchInteraction,
-  type ResearchJob,
-  type ResearchPlanRecord,
-  type ResearchSubQuestion,
-} from "./deep-research-analysis.record-contracts.js";
-import { DeepResearchPromptBundleSchema, type DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
-import { DeepResearchPlanSchema } from "./deep-research-analysis.research-plan-schema.js";
+    MISSING_RENDERED_PROMPT_TEXT,
+    ResearchAnswerSchema,
+    ResearchExportSchema,
+    ResearchFinalAdjudicationRecordSchema,
+    ResearchInteractionSchema,
+    ResearchJobSchema,
+    ResearchPlanRecordSchema,
+    ResearchSubQuestionSchema,
+    type ResearchAnswer,
+    type ResearchAnswerKind,
+    type ResearchExport,
+    type ResearchExportKind,
+    type ResearchFinalAdjudicationRecord,
+    type ResearchInteraction,
+    type ResearchJob,
+    type ResearchPlanRecord,
+    type ResearchSubQuestion,
+} from "./deep-research-analysis.records.js";
+import type {
+    DeepResearchInput,
+    DeepResearchInteractionPhase,
+    DeepResearchJobStatus,
+    DeepResearchParseStatus,
+    DeepResearchPhase,
+    DeepResearchSubQuestion,
+} from "./deep-research-analysis.schema.js";
+import { DeepResearchPlanSchema } from "./deep-research-analysis.schema.js";
 
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));

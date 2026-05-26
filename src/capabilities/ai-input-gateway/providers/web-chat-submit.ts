@@ -6,6 +6,7 @@ import {
   pressReturnInChrome,
 } from "./web-chat-clipboard.js";
 import {
+  verifyPromptPasted,
   verifyPromptSubmitted,
 } from "./web-chat-submit-page-actions.js";
 import {
@@ -18,6 +19,9 @@ import {
 import { clearComposer } from "./web-chat-upload-page-actions.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
+const MAX_PROMPT_PASTE_ATTEMPTS = 3;
+const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 3_000;
+const PROMPT_READY_BEFORE_SUBMIT_TIMEOUT_MS = 2_000;
 const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
 
 const buildPromptSubmissionExpectedPrefix = (promptText: string): string =>
@@ -39,6 +43,7 @@ const waitForPromptSubmitted = async (input: {
   context: AiProviderAdapterContext;
   expectedPrefix: string;
   previousAssistantCount: number;
+  wasPromptVerifiedBeforeSubmit: boolean;
   timeoutMs: number;
 }): Promise<boolean> => {
   const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
@@ -48,6 +53,7 @@ const waitForPromptSubmitted = async (input: {
       verifyPromptSubmitted(input.browser, input.context, {
         expectedPrefix: input.expectedPrefix,
         previousAssistantCount: input.previousAssistantCount,
+        wasPromptVerifiedBeforeSubmit: input.wasPromptVerifiedBeforeSubmit,
       }));
     lastMessage = `${submitted.status}: ${submitted.message}`;
     if (submitted.status === "success") return true;
@@ -66,6 +72,11 @@ type SubmitPromptViaClipboardInput = {
   previousAssistantCount: number;
 };
 
+type PreparedPromptComposer = {
+  expectedPrefix: string;
+  wasPromptVerifiedBeforeSubmit: true;
+};
+
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
     focusComposer(input.browser, input.context));
@@ -76,24 +87,88 @@ const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): 
     waitForComposerFocused(input.browser, input.context, 2_000));
 };
 
-const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
-  const cleared = await withWebChatStep("clear_composer_before_prompt_paste", () =>
-    clearComposer(input.browser, input.context));
-  if (cleared.status !== "success") {
-    throw new Error(`${cleared.status}: ${cleared.message}`);
+const waitForPromptReady = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  expectedPrefix: string;
+  timeoutMs: number;
+  step: string;
+}): Promise<void> => {
+  const deadline = Date.now() + input.timeoutMs;
+  let lastMessage = "provider prompt readiness was not checked";
+  while (Date.now() < deadline) {
+    const evaluation = await withWebChatStep(input.step, () =>
+      verifyPromptPasted(input.browser, input.context, {
+        expectedPrefix: input.expectedPrefix,
+      }));
+    lastMessage = `${evaluation.status}: ${evaluation.message}`;
+    if (evaluation.status === "success") return;
+    if (evaluation.status === "review_required" || evaluation.status === "failed") {
+      throw new Error(lastMessage);
+    }
+    await input.browser.wait(250);
   }
-  await input.browser.wait(250);
-  await withWebChatStep("paste_prompt_text", () =>
-    pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
+  throw new Error(`review_required: ${input.step}; last=${lastMessage}`);
 };
 
-const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+const preparePromptComposer = async (
+  input: SubmitPromptViaClipboardInput,
+): Promise<PreparedPromptComposer> => {
+  const expectedPrefix = buildPromptSubmissionExpectedPrefix(input.request.textPrompt);
   const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
-  const expectedPromptPrefix = buildPromptSubmissionExpectedPrefix(input.request.textPrompt);
-  if (expectedAttachmentCount > 0) {
-    await withWebChatStep("verify_attachments_before_submit", () =>
-      waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_PROMPT_PASTE_ATTEMPTS; attempt += 1) {
+    try {
+      await focusComposerBeforePrompt(input);
+      const cleared = await withWebChatStep("clear_composer_before_prompt_paste", () =>
+        clearComposer(input.browser, input.context));
+      if (cleared.status !== "success") {
+        throw new Error(`${cleared.status}: ${cleared.message}`);
+      }
+      await input.browser.wait(250);
+      await withWebChatStep("paste_prompt_text", () =>
+        pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
+      await waitForPromptReady({
+        browser: input.browser,
+        context: input.context,
+        expectedPrefix,
+        timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
+        step: "verify_prompt_pasted_before_submit",
+      });
+      if (expectedAttachmentCount > 0) {
+        await withWebChatStep("verify_attachments_before_submit", () =>
+          waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
+      }
+      await waitForPromptReady({
+        browser: input.browser,
+        context: input.context,
+        expectedPrefix,
+        timeoutMs: PROMPT_READY_BEFORE_SUBMIT_TIMEOUT_MS,
+        step: "verify_prompt_ready_before_submit",
+      });
+      return {
+        expectedPrefix,
+        wasPromptVerifiedBeforeSubmit: true,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt === MAX_PROMPT_PASTE_ATTEMPTS) {
+        throw new Error(
+          `review_required: provider prompt paste verification failed after ${MAX_PROMPT_PASTE_ATTEMPTS} attempts; last=${lastError.message}`,
+        );
+      }
+      await input.browser.wait(500);
+    }
   }
+
+  throw lastError ?? new Error("review_required: provider prompt paste verification failed.");
+};
+
+const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
+  preparedPrompt: PreparedPromptComposer;
+}): Promise<void> => {
+  const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
   const pastedTextCard = expectedAttachmentCount === 0
     ? await withWebChatStep("detect_chatgpt_pasted_text_card_before_submit", () =>
       waitForChatGptPastedTextCardReady(input.browser, input.context, 8_000))
@@ -104,8 +179,9 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
   const submittedAfterReturn = await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,
-    expectedPrefix: expectedPromptPrefix,
+    expectedPrefix: input.preparedPrompt.expectedPrefix,
     previousAssistantCount: input.previousAssistantCount,
+    wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
     timeoutMs: pastedTextCard ? 8_000 : input.request.timeoutMs,
   });
   if (submittedAfterReturn) return;
@@ -118,8 +194,9 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
     const submittedAfterClick = await waitForPromptSubmitted({
       browser: input.browser,
       context: input.context,
-      expectedPrefix: expectedPromptPrefix,
+      expectedPrefix: input.preparedPrompt.expectedPrefix,
       previousAssistantCount: input.previousAssistantCount,
+      wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
       timeoutMs: input.request.timeoutMs,
     });
     if (submittedAfterClick) return;
@@ -128,7 +205,9 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): P
 };
 
 export const submitPromptViaClipboard = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
-  await focusComposerBeforePrompt(input);
-  await populatePromptComposer(input);
-  await submitPromptFromComposer(input);
+  const preparedPrompt = await preparePromptComposer(input);
+  await submitPromptFromComposer({
+    ...input,
+    preparedPrompt,
+  });
 };

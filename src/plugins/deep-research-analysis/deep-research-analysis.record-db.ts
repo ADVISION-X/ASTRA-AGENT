@@ -5,25 +5,17 @@ import Database from "better-sqlite3";
 
 import { createId } from "../../lib/local-runtime/ids.js";
 import {
-  DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
-  MISSING_RENDERED_PROMPT_TEXT,
-  type ResearchAnswer,
-  type ResearchAnswerKind,
-  type ResearchExport,
-  type ResearchExportKind,
-  type ResearchFinalAdjudicationRecord,
-  type ResearchInteraction,
-  type ResearchJob,
-  type ResearchSubQuestion,
-} from "./deep-research-analysis.record-contracts.js";
+    DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH,
+    MISSING_RENDERED_PROMPT_TEXT
+} from "./deep-research-analysis.records.js";
 export {
-  mapAnswerRow,
-  mapExportRow,
-  mapFinalAdjudicationRow,
-  mapInteractionRow,
-  mapJobRow,
-  mapResearchPlanRow,
-  mapSubQuestionRow,
+    mapAnswerRow,
+    mapExportRow,
+    mapFinalAdjudicationRow,
+    mapInteractionRow,
+    mapJobRow,
+    mapResearchPlanRow,
+    mapSubQuestionRow
 } from "./deep-research-analysis.record-db-mappers.js";
 
 const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [

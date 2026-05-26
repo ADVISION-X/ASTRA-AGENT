@@ -1,3 +1,70 @@
+import { z } from "zod";
+import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
+import type { DeepResearchInput, DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
+import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
+
+export const DeepResearchPromptBundleRoleSchema = z.enum([
+  "sub_question_analysis",
+  "final_adjudication",
+  "html_report_publisher",
+]);
+
+export const DeepResearchPromptBundleSchema = z.object({
+  promptBundleId: z.string().trim().min(1),
+  promptRole: DeepResearchPromptBundleRoleSchema,
+  taskInstruction: z.string().trim().min(1),
+  questionSpecificFocus: z.array(z.string().trim().min(1)).min(1),
+  mustUseInputs: z.array(z.string().trim().min(1)).min(1),
+  mustNotDo: z.array(z.string().trim().min(1)).default([]),
+  evidenceOrReasoningNeeds: z.array(z.string().trim().min(1)).default([]),
+  outputGuidance: z.object({
+    preferredFormat: z.enum(["json_object", "structured_text", "html_document"]),
+    requiredContent: z.array(z.string().trim().min(1)).default([]),
+    supplementalContent: z.array(z.string().trim().min(1)).default([]),
+    forbiddenContent: z.array(z.string().trim().min(1)).default([]),
+  }).strict(),
+  safetyBoundary: z.array(z.string().trim().min(1)).default([]),
+  languageInstruction: z.string().trim().min(1),
+}).strict();
+
+export type DeepResearchPromptBundle = z.infer<typeof DeepResearchPromptBundleSchema>;
+
+const DeepResearchPromptIdSchema = z.enum([
+  "deep-research.decomposition",
+  "deep-research.sub-question-analysis",
+  "deep-research.final-adjudication",
+  "deep-research.business-html-report-publisher",
+]);
+
+const DeepResearchPromptVersionSchema = z
+  .string()
+  .regex(/^v\d+\.\d+\.\d+$/u, "promptVersion must use semver-like vX.Y.Z format.");
+
+const DeepResearchPromptPhaseSchema = z.enum([
+  "decomposition",
+  "analysis",
+  "final_adjudication",
+  "html_report",
+]);
+
+const DeepResearchPromptOutputContractSchema = z.object({
+  contractId: z.string().trim().min(1),
+  format: z.enum(["json_object", "structured_text", "html_artifact", "html_document"]),
+  requiredFields: z.array(z.string().trim().min(1)).min(1),
+  forbiddenFields: z.array(z.string().trim().min(1)).min(1),
+}).strict();
+
+const DeepResearchPromptSchema = z.object({
+  promptId: DeepResearchPromptIdSchema,
+  promptVersion: DeepResearchPromptVersionSchema,
+  phase: DeepResearchPromptPhaseSchema,
+  promptText: z.string().trim().min(1),
+  expectedOutputContract: DeepResearchPromptOutputContractSchema,
+}).strict();
+
+export type DeepResearchPromptOutputContract = z.infer<typeof DeepResearchPromptOutputContractSchema>;
+export type DeepResearchPrompt = z.infer<typeof DeepResearchPromptSchema>;
+
 const FORBIDDEN_CONTROL_FIELDS = [
   "browserCommand",
   "selector",
@@ -78,3 +145,76 @@ export const buildHtmlReportFormatShell = (): string => [
   "The artifact delivery name is business-report.html.",
   renderForbiddenControlFieldNotice(),
 ].join("\n");
+
+const buildSection = (title: string, value: unknown): string =>
+  `${title}:\n${typeof value === "string" ? value : JSON.stringify(value, null, 2)}`;
+
+const renderPromptBundleSection = (promptBundle: DeepResearchPromptBundle): string =>
+  buildSection("AI-GENERATED PROMPTBUNDLE", promptBundle);
+
+export const renderSubQuestionAnalysisFromPromptBundle = (input: {
+  userQuestion: string;
+  analysisGoal: string | null;
+  language: DeepResearchInput["language"];
+  subQuestion: DeepResearchSubQuestion;
+  promptBundle: DeepResearchPromptBundle;
+}): string => [
+  renderPromptBundleSection(input.promptBundle),
+  buildSubQuestionAnalysisFormatShell(),
+  buildSection("CONTEXT", {
+    userQuestion: input.userQuestion,
+    analysisGoal: input.analysisGoal,
+    responseLanguage: input.language,
+    subQuestion: input.subQuestion,
+  }),
+].join("\n\n");
+
+export const renderFinalAdjudicationFromPromptBundle = (input: {
+  language: DeepResearchInput["language"];
+  finalAdjudicationPromptBundle: DeepResearchPromptBundle;
+  fullCaseFile: DeepResearchFullCaseFile;
+  fullCaseFileMarkdown: string;
+  structuredIndex: DeepResearchStructuredIndex;
+}): string => [
+  renderPromptBundleSection(input.finalAdjudicationPromptBundle),
+  "Use the full case file as the source of truth.",
+  "The structured index is for navigation.",
+  "If structured fields and raw responses differ, use the raw responses as primary evidence.",
+  "Do not ignore raw responses.",
+  "Do not ignore raw responses that failed parsing.",
+  buildFinalAdjudicationFormatShell(),
+  buildSection("CONTEXT", {
+    responseLanguage: input.language,
+    structuredIndex: input.structuredIndex,
+    fullCaseFile: {
+      caseFileVersion: input.fullCaseFile.caseFileVersion,
+      job: input.fullCaseFile.job,
+      coverage: input.fullCaseFile.coverage,
+      failedButRawAvailableInteractionCount: input.fullCaseFile.failedButRawAvailableInteractions.length,
+    },
+  }),
+  buildSection("FULL CASE FILE MARKDOWN", input.fullCaseFileMarkdown),
+].join("\n\n");
+
+export const renderHtmlReportFromPromptBundle = (input: {
+  language: DeepResearchInput["language"];
+  htmlReportPromptBundle: DeepResearchPromptBundle;
+  rawFinalAnswerText: string;
+  fullCaseFile: DeepResearchFullCaseFile;
+  fullCaseFileMarkdown: string;
+}): string => [
+  renderPromptBundleSection(input.htmlReportPromptBundle),
+  "Organize the HTML as a professional report according to the promptBundle.",
+  buildHtmlReportFormatShell(),
+  buildSection("CONTEXT", {
+    responseLanguage: input.language,
+    fullCaseFile: {
+      caseFileVersion: input.fullCaseFile.caseFileVersion,
+      job: input.fullCaseFile.job,
+      coverage: input.fullCaseFile.coverage,
+      failedButRawAvailableInteractionCount: input.fullCaseFile.failedButRawAvailableInteractions.length,
+    },
+  }),
+  buildSection("FINAL ADJUDICATION RAW", input.rawFinalAnswerText),
+  buildSection("FULL CASE FILE MARKDOWN", input.fullCaseFileMarkdown),
+].join("\n\n");

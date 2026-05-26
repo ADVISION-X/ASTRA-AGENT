@@ -2,7 +2,7 @@ import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js
 
 type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
 
-export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null; attachmentCount?: number; attachmentScope?: "input" | "global" | "none"; inputFocused?: boolean };
+export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null; attachmentCount?: number; attachmentScope?: "input" | "global" | "none"; inputFocused?: boolean; promptPrefixVisible?: boolean; pastedTextCardReady?: boolean };
 
 const WEB_CHAT_STATUS_TEXT_SCRIPT = `
 const visibleStatusText = Array.from(document.querySelectorAll("[role='status'], [aria-live], [data-testid*='status'], [class*='status'], [class*='thinking'], [class*='reasoning'], [class*='loading']"))
@@ -31,35 +31,107 @@ const assistantCount = Array.from(document.querySelectorAll("[data-message-autho
   .length;
 `;
 
-export const buildVerifyPromptSubmittedScript = (expectedPrefix: string, previousAssistantCount: number): string => `
+const CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT = `
+const findComposerRoot = () => {
+  if (!(input instanceof HTMLElement)) return null;
+  let cursor = input;
+  for (let depth = 0; depth < 8 && cursor; depth += 1) {
+    if (cursor.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']")) {
+      return cursor;
+    }
+    cursor = cursor.parentElement;
+  }
+  return input.parentElement;
+};
+const composerRoot = findComposerRoot();
+const composerRootText = clip(composerRoot?.innerText || "");
+const hasPastedTextCard = Boolean(composerRoot)
+  && (composerRootText.includes("已粘贴的文本")
+    || composerRootText.toLowerCase().includes("pasted text")
+    || composerRootText.toLowerCase().includes("pasted content"));
+const sendButton = composerRoot?.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']");
+const pastedTextCardReady = hasPastedTextCard && (sendButton instanceof HTMLButtonElement
+  ? !sendButton.disabled && sendButton.getAttribute("aria-disabled") !== "true"
+  : sendButton instanceof HTMLElement);
+`;
+
+export const buildVerifyPromptPastedScript = (expectedPrefix: string): string => `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const input = resolveComposerInput();
+const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
+const expectedPrefix = ${JSON.stringify(expectedPrefix)};
+const promptPrefixVisible = expectedPrefix.length > 0 && actual.includes(expectedPrefix);
+const inputFocused = Boolean(input instanceof HTMLElement && (document.activeElement === input || input.contains(document.activeElement)));
+${CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT}
+if (promptPrefixVisible || pastedTextCardReady) {
+  return {
+    status: "success",
+    message: promptPrefixVisible
+      ? "provider prompt prefix detected in composer"
+      : "chatgpt pasted text card ready for submit",
+    pageUrl: location.href,
+    composerText: actual,
+    inputFocused,
+    promptPrefixVisible,
+    pastedTextCardReady,
+  };
+}
+return {
+  status: "pending",
+  message: hasPastedTextCard
+    ? "chatgpt pasted text card is not ready for submit yet"
+    : "provider prompt was not detected in composer after paste",
+  pageUrl: location.href,
+  composerText: actual,
+  inputFocused,
+  promptPrefixVisible,
+  pastedTextCardReady,
+};
+`;
+
+export const buildVerifyPromptSubmittedScript = (
+  expectedPrefix: string,
+  previousAssistantCount: number,
+  wasPromptVerifiedBeforeSubmit: boolean,
+): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
 const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
 const expectedPrefix = ${JSON.stringify(expectedPrefix)};
 ${WEB_CHAT_ASSISTANT_COUNT_SCRIPT}
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
-const promptStillInComposer = actual.includes(expectedPrefix);
-if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generating || !promptStillInComposer) {
+const promptStillInComposer = expectedPrefix.length > 0 && actual.includes(expectedPrefix);
+${CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT}
+const composerClearedAfterVerifiedPaste = ${JSON.stringify(wasPromptVerifiedBeforeSubmit)}
+  && !promptStillInComposer
+  && !pastedTextCardReady;
+if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generating || composerClearedAfterVerifiedPaste) {
   return {
     status: "success",
     message: assistantCount > ${JSON.stringify(previousAssistantCount)}
       ? "provider assistant count increased after submit"
       : generating
         ? "provider started generating after submit"
-        : "provider composer cleared after submit",
+        : "provider composer cleared after verified submit",
     pageUrl: location.href,
     generating,
     assistantCount,
     composerText: actual,
+    promptPrefixVisible: promptStillInComposer,
+    pastedTextCardReady,
   };
 }
 return {
   status: "pending",
-  message: "provider prompt is still waiting in composer after submit click",
+  message: promptStillInComposer || pastedTextCardReady
+    ? "provider prompt is still waiting in composer after submit click"
+    : "provider submit did not produce verified generation or assistant progress",
   pageUrl: location.href,
   generating,
   assistantCount,
   composerText: actual,
+  promptPrefixVisible: promptStillInComposer,
+  pastedTextCardReady,
 };
 `;
 

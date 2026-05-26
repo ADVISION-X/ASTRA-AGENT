@@ -2,30 +2,27 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
-import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import {
-  buildDeepResearchStructuredIndex,
-  createDeepResearchRecordStore,
-  exportDeepResearchArtifacts,
-  parseDeepResearchFinalAdjudicationResponse,
-  parseDeepResearchSubQuestionAnalysisResponse,
-  runDeepResearchAnalysis,
-} from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
-import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.js";
-import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
 import type {
-  AiProviderAdapter,
-  AiProviderAdapterContext,
-  AiProviderRawResponse,
+    AiProviderAdapter,
+    AiProviderAdapterContext,
+    AiProviderRawResponse,
 } from "../../src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.js";
 import type {
-  AiFeedInput,
+    AiFeedInput,
 } from "../../src/capabilities/ai-input-gateway/index.js";
+import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { runDeepResearchAnalysis } from "../../src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.js";
+import { exportDeepResearchArtifacts } from "../../src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.js";
 import {
-  verifyPersistedResearchState,
-  verifyRuntimeLogCoverage,
-  verifySubQuestionIdsAreJobScoped,
+    parseDeepResearchFinalAdjudicationResponse,
+    parseDeepResearchSubQuestionAnalysisResponse,
+} from "../../src/plugins/deep-research-analysis/deep-research-analysis.parser.js";
+import { buildDeepResearchStructuredIndex } from "../../src/plugins/deep-research-analysis/deep-research-analysis.structured-index.js";
+import {
+    verifyPersistedResearchState,
+    verifyRuntimeLogCoverage,
+    verifySubQuestionIdsAreJobScoped,
 } from "./deep-research-analysis-smoke-support.js";
 
 const FIXTURE_RESPONSES = [

@@ -1,13 +1,13 @@
 import {
-  RuntimeLogEventType,
-  createRuntimeEvent,
-  createMissionTrace,
-  type RuntimeFailureClass,
-  type RuntimeLogger,
-  type RuntimeTraceContext,
+    RuntimeLogEventType,
+    createMissionTrace,
+    createRuntimeEvent,
+    type RuntimeFailureClass,
+    type RuntimeLogger,
+    type RuntimeTraceContext,
 } from "../../lib/runtime-logs/index.js";
 import type {
-  DeepResearchPhase,
+    DeepResearchPhase,
 } from "./deep-research-analysis.schema.js";
 
 const DEEP_RESEARCH_RUNTIME_LOG_OWNER = "deep-research-analysis" as const;
@@ -90,7 +90,11 @@ export const logDeepResearchPromptSent = (input: {
     preview: {
       promptId: input.promptId,
       promptVersion: input.promptVersion,
+      transportState: "send_stage_started_not_provider_confirmed",
       ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+    },
+    payload: {
+      transportEvidenceScope: "deep_research_send_stage_only",
     },
   });
 };

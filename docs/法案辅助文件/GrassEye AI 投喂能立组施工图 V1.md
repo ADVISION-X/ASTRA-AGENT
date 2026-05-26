@@ -105,7 +105,9 @@ flowchart TD
 - 回复读取必须等待稳定回答，避免把旧会话最后一条回复当作当前视频判断。
 - Web Chat provider 在 upload、prompt paste、submit、response capture 前必须证明当前前台标签仍是 provider host；如果前台已经漂移到 APP 或其他页面，必须 `review_required`，不得继续 paste / submit / capture。
 - prompt paste 前必须验证 composer 焦点真实保留；`focus()` 调用本身不等于授权成功，`inputFocused=false` 不得进入 paste。
-- prompt 文本粘贴后等待 2 秒，然后直接用键盘 Return 提交；不得用 exact composer text verification 作为提交前 gate，提交是否成功由 composer 清空 / generating / 新 assistant 回复证明。
+- prompt 文本粘贴后必须先做提交前鉴权：`composerText` 包含受治理的 `expectedPrefix`，或 ChatGPT `pasted text card` 已 ready，二者至少满足其一；两者都不满足时必须重新 focus -> clear -> paste -> verify，最多 3 次，仍失败则 `review_required`。
+- 提交前鉴权只要求 prefix/card-ready 级证明，不要求整段 prompt exact text 全量相等；但在未完成这一步鉴权前，禁止直接按 Return 或点击 send。
+- 提交是否成功由新 assistant 回复 / generating / 或“已完成提交前鉴权后 composer 或 pasted text card 清空”证明；未完成提交前鉴权时，空 composer 不是成功证据。
 - submit 后必须在 provider 标签内等待新 assistant 回复稳定；在拿到 provider response 并构建 raw output proof 之前，不得自动恢复 source APP 标签，避免中断尚未发送或尚在生成的 provider 对话。
 - 回复捕获必须先走主 extractor；如果主 extractor 没拿到 answerText，但页面上存在肉眼可见的最新 assistant message container，则必须走 visible assistant text fallback，不能直接把这次对话判成 timeout。
 - waitForStableAnswer 必须按活动续等：assistant count 增加、answerText 变化、generating/progress 仍在继续时都要延长 idle timeout；固定 wall-clock timeout 只能作为最后保险丝。

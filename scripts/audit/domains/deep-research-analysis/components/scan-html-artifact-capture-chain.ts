@@ -180,7 +180,7 @@ export const inspectHtmlArtifactCaptureChain = (input: {
 
   const paths: HtmlCapturePaths = {
     capturePath: "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
-    exportPath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-export.ts",
+    exportPath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     sharedPath: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     proofPath: "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
   };

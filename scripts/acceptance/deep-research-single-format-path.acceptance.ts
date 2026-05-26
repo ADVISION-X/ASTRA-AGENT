@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 
 const sourceTexts = [
-  readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.result.ts", "utf8"),
-  readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.export.ts", "utf8"),
+  readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.parser.ts", "utf8"),
+  readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8"),
   readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts", "utf8"),
   readFileSync("src/app/workbench-deep-research-client-contracts.ts", "utf8"),
   readFileSync("src/app/workbench-deep-research-client-report-sections.ts", "utf8"),

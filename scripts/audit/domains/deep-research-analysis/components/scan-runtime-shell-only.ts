@@ -136,13 +136,13 @@ const inspectRuntimePromptShellMarkers = (input: RuntimeShellOnlyInput): void =>
     },
     {
       sourceFile: input.finalAdjudicationPromptFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       marker: "Runtime shell for AI-generated finalAdjudicationPromptBundle.",
       message: "Final adjudication prompt must stay a shell around the AI-generated promptBundle.",
     },
     {
       sourceFile: input.htmlReportPromptFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       marker: "Runtime shell for AI-generated htmlReportPromptBundle.",
       message: "HTML report prompt must stay a shell around the AI-generated promptBundle.",
     },
@@ -176,11 +176,11 @@ const inspectRuntimeShellContracts = (input: RuntimeShellOnlyInput): void => {
     },
     {
       sourceFile: input.finalAdjudicationPromptFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     },
     {
       sourceFile: input.htmlReportPromptFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     },
   ] as const) {
     const tokens = collectSourceTokens(check.sourceFile);

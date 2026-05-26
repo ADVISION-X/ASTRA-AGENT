@@ -1,34 +1,60 @@
-import type {
-  DeepResearchSubQuestionAnalysisAnswer,
+import type { ExchangePersistSummary } from "./deep-research-analysis.analysis-runner.js";
+import {
+    finishPromptFailure,
+    type AnalysisExecutionContext,
+    type AnalysisFailure,
+    type AnalysisOutcome,
+} from "./deep-research-analysis.analysis-runner.js";
+import type { DeepResearchSubQuestionAnalysisAnswer } from "./deep-research-analysis.parser.js";
+import {
+    parseDeepResearchDecompositionResponse,
+    parseDeepResearchSubQuestionAnalysisResponse,
 } from "./deep-research-analysis.parser.js";
-import type { DeepResearchDecompositionResponse } from "./deep-research-analysis.decomposition-schema.js";
+import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-bundle-shell.js";
 import {
-  parseDeepResearchDecompositionResponse,
-  parseDeepResearchSubQuestionAnalysisResponse,
-} from "./deep-research-analysis.parser.js";
-import {
-  buildDecompositionPrompt,
-  requireSubQuestionPromptBundle,
-  renderDeepResearchDecompositionPrompt,
-} from "./deep-research-analysis.prompts.js";
-import {
-  SUB_QUESTION_ANSWER_TEXT_BEGIN,
-  SUB_QUESTION_ANSWER_TEXT_END,
+    renderSubQuestionAnalysisFromPromptBundle,
+    SUB_QUESTION_ANSWER_TEXT_BEGIN,
+    SUB_QUESTION_ANSWER_TEXT_END,
 } from "./deep-research-analysis.prompt-bundle-shell.js";
-import { renderSubQuestionAnalysisFromPromptBundle } from "./deep-research-analysis.prompt-bundle-render.js";
-import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-contracts.js";
-import type { DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
+import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
+import {
+    buildDecompositionPrompt,
+    renderDeepResearchDecompositionPrompt,
+    requireSubQuestionPromptBundle,
+} from "./deep-research-analysis.prompts.js";
 import type { ResearchSubQuestion } from "./deep-research-analysis.records.js";
-import {
-  persistAnalysisAnswer,
-  runPromptExchange,
-} from "./deep-research-analysis.prompt-exchange.js";
-import {
-  finishPromptFailure,
-  type AnalysisExecutionContext,
-  type AnalysisFailure,
-  type AnalysisOutcome,
-} from "./deep-research-analysis.analysis-support.js";
+import { type DeepResearchRecordStore, type ResearchInteraction } from "./deep-research-analysis.records.js";
+import type { DeepResearchDecompositionResponse, DeepResearchSubQuestion } from "./deep-research-analysis.schema.js";
+
+const coerceParsedPayload = (
+  parsedJsonIndex: DeepResearchSubQuestionAnalysisAnswer["parsedJsonIndex"],
+): Record<string, unknown> =>
+  typeof parsedJsonIndex === "object" && parsedJsonIndex !== null && !Array.isArray(parsedJsonIndex)
+    ? parsedJsonIndex as Record<string, unknown>
+    : {};
+
+export const persistAnalysisAnswer = (input: {
+  store: DeepResearchRecordStore;
+  jobId: string;
+  interaction: ResearchInteraction;
+  subQuestionId: string;
+  parsed: DeepResearchSubQuestionAnalysisAnswer;
+}): ExchangePersistSummary => {
+  const answer = input.store.saveAnswer({
+    jobId: input.jobId,
+    interactionId: input.interaction.id,
+    subQuestionId: input.subQuestionId,
+    answerKind: "analysis",
+    answerText: input.parsed.answerText,
+    keyPoints: input.parsed.indexNotes,
+    evidenceMentions: input.parsed.indexNotes,
+    assumptions: [],
+    limitations: [],
+    contradictionPoints: [],
+    parsedPayload: coerceParsedPayload(input.parsed.parsedJsonIndex),
+  });
+  return { recordType: "analysis-answer", recordId: answer.id, count: 1 };
+};
 
 type DecompositionSuccess = {
   ok: true;

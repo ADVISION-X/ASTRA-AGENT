@@ -39,7 +39,7 @@ const inspectPromptBundleSchema = (input: PromptBundleSovereigntyInput): void =>
     input.findings.push(createFinding({
       checkId: "deep-research/promptbundle-sovereignty-schema",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
       message: `ResearchPlan schema is missing promptBundle sovereignty marker(s): ${missingSchemaIdentifiers.join(", ")}.`,
     }));
   }
@@ -57,7 +57,7 @@ const inspectPromptBundlePromptMarkers = (input: PromptBundleSovereigntyInput): 
     input.findings.push(createFinding({
       checkId: "deep-research/promptbundle-sovereignty-prompt",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       message: `Decomposition prompt is missing promptBundle sovereignty marker(s): ${missingPromptMarkers.join(", ")}.`,
     }));
   }

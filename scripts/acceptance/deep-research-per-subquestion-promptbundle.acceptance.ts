@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { DeepResearchPlanSchema } from "../../src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.js";
+import { DeepResearchPlanSchema } from "../../src/plugins/deep-research-analysis/deep-research-analysis.schema.js";
 import {
-  createDeepResearchFullCaseFixture,
-  disposeDeepResearchFullCaseFixture,
+    createDeepResearchFullCaseFixture,
+    disposeDeepResearchFullCaseFixture,
 } from "./deep-research-full-case-file-support.js";
 
 const read = (filePath: string): string => readFileSync(filePath, "utf8");
 
 const analysisSubQuestions = read("src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts");
 const prompts = read("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts");
-const persist = read("src/plugins/deep-research-analysis/deep-research-analysis.research-plan-persist.ts");
+const persist = read("src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts");
 const schema = read("src/plugins/deep-research-analysis/deep-research-analysis.schema.ts");
 
 const fixture = createDeepResearchFullCaseFixture();
@@ -78,7 +78,7 @@ for (const marker of [
   "evidenceOrReasoningNeeds must not be identical across every sub-question promptBundle.",
   "requiredContent must not be identical across every sub-question promptBundle.",
 ]) {
-  assert(read("src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts").includes(marker), `ResearchPlan schema must contain uniqueness guard: ${marker}`);
+  assert(read("src/plugins/deep-research-analysis/deep-research-analysis.schema.ts").includes(marker), `ResearchPlan schema must contain uniqueness guard: ${marker}`);
 }
 
 process.stdout.write("[ACCEPTANCE][deep-research-per-subquestion-promptbundle] PASS\n");

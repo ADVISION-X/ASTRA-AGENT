@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { saveFullCaseFileExports } from "../../src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-export.js";
+import { saveFullCaseFileExports } from "../../src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.js";
 import {
-  createDeepResearchFullCaseFixture,
-  disposeDeepResearchFullCaseFixture,
+    createDeepResearchFullCaseFixture,
+    disposeDeepResearchFullCaseFixture,
 } from "./deep-research-full-case-file-support.js";
 
 const fixture = createDeepResearchFullCaseFixture();

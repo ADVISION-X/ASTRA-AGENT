@@ -3,12 +3,12 @@ import { readFileSync } from "node:fs";
 
 const read = (filePath: string): string => readFileSync(filePath, "utf8");
 
-const researchPlanSchema = read("src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts");
-const decompositionPrompt = read("src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts");
-const decompositionParser = read("src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts");
-const finalPrompt = read("src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts");
-const htmlPrompt = read("src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts");
-const promptBundleRender = read("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts");
+const researchPlanSchema = read("src/plugins/deep-research-analysis/deep-research-analysis.schema.ts");
+const decompositionPrompt = read("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts");
+const decompositionParser = read("src/plugins/deep-research-analysis/deep-research-analysis.parser.ts");
+const finalPrompt = read("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts");
+const htmlPrompt = read("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts");
+const promptBundleRender = read("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts");
 
 for (const marker of [
   "promptBundle:",

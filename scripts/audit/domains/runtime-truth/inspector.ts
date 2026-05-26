@@ -4,7 +4,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
-const deepResearchResultPath = "src/plugins/deep-research-analysis/deep-research-analysis.result.ts";
+const deepResearchResultPath = "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts";
 const facebookSchemaPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts";
 
 const deepResearchEvidenceCheckId = "runtime-truth/deep-research-completed-contract";

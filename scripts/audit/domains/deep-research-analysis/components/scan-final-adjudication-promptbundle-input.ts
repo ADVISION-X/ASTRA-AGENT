@@ -50,7 +50,7 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-prompt",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       message: `Final adjudication prompt is missing ${marker}.`,
     }));
   }
@@ -59,7 +59,7 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-default-builder",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       message: "Final adjudication runtime must not contain an obsolete replacement prompt builder.",
     }));
   }

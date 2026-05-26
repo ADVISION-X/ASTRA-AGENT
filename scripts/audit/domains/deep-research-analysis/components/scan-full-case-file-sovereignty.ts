@@ -27,8 +27,8 @@ type FullCaseFileInspectionInput = {
 const inspectRequiredFullCaseFiles = (input: FullCaseFileInspectionInput): void => {
   const required = [
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-export.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
   ];
   for (const repoPath of required) {
     input.inspectedFiles.add(repoPath);
@@ -55,11 +55,11 @@ const inspectFullCaseFileSourceChecks = (input: FullCaseFileInspectionInput): vo
   }
 
   const checks = [
-    { ok: hasIdentifier(input.finalAdjudicationPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts", message: "Final adjudication prompt must include fullCaseFile." },
-    { ok: hasIdentifier(input.htmlReportPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts", message: "HTML report prompt must include fullCaseFile." },
+    { ok: hasIdentifier(input.finalAdjudicationPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts", message: "Final adjudication prompt must include fullCaseFile." },
+    { ok: hasIdentifier(input.htmlReportPromptFile, "fullCaseFile"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts", message: "HTML report prompt must include fullCaseFile." },
     { ok: hasIdentifier(input.fullCaseFileFile, "rawResponseText") && hasIdentifier(input.fullCaseFileFile, "renderedPromptText"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts", message: "Full case file must include rawResponseText and renderedPromptText." },
-    { ok: hasIdentifier(input.exportFile, "saveFullCaseFileExports") && hasIdentifier(input.exportFile, "fullCaseFileExports"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.export.ts", message: "Exports must include both full case file artifacts." },
-    { ok: hasIdentifier(input.recordContractsFile, "renderedPromptText") && hasIdentifier(input.recordContractsFile, "rawResponseText") && hasIdentifier(input.recordContractsFile, "rawResponseHash") && hasIdentifier(input.recordContractsFile, "parseStatus"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", message: "Interaction contracts must preserve raw prompt/response evidence." },
+    { ok: hasIdentifier(input.exportFile, "saveFullCaseFileExports") && hasIdentifier(input.exportFile, "fullCaseFileExports"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", message: "Exports must include both full case file artifacts." },
+    { ok: hasIdentifier(input.recordContractsFile, "renderedPromptText") && hasIdentifier(input.recordContractsFile, "rawResponseText") && hasIdentifier(input.recordContractsFile, "rawResponseHash") && hasIdentifier(input.recordContractsFile, "parseStatus"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.records.ts", message: "Interaction contracts must preserve raw prompt/response evidence." },
     { ok: hasIdentifier(input.recordInteractionOpsFile, "createInteraction") && hasIdentifier(input.recordInteractionOpsFile, "rawResponseText") && hasIdentifier(input.recordInteractionOpsFile, "rawResponseHash") && hasIdentifier(input.recordInteractionOpsFile, "parseStatus"), filePath: "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts", message: "Interaction persistence must preserve raw prompt/response evidence." },
   ] as const;
   for (const check of checks) {

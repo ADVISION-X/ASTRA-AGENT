@@ -1,35 +1,32 @@
 import { RuntimeFailureClass } from "../../lib/runtime-logs/index.js";
 import { stableJsonHash } from "../../lib/storage/hash.js";
-import { exportDeepResearchArtifacts } from "./deep-research-analysis.export.js";
-import { buildDeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
-import { renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file-render.js";
-import { buildDeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 import {
-  logDeepResearchExportCompleted,
-  logDeepResearchJobCompleted,
-  logDeepResearchStructuredIndexBuilt,
+    buildFlowStageStartFields,
+    finishFailure,
+    finishPromptFailure,
+    type AnalysisExecutionContext,
+    type AnalysisFailure,
+    type FlowStageHandle,
+} from "./deep-research-analysis.analysis-runner.js";
+import { buildDeepResearchFullCaseFile, renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file.js";
+import { exportDeepResearchArtifacts } from "./deep-research-analysis.html-report-stage.js";
+import {
+    logDeepResearchExportCompleted,
+    logDeepResearchJobCompleted,
+    logDeepResearchStructuredIndexBuilt,
 } from "./deep-research-analysis.logging.js";
-import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-analysis.parser.js";
-import {
-  buildFinalAdjudicationShellPrompt,
-  renderDeepResearchFinalAdjudicationPrompt,
-} from "./deep-research-analysis.final-adjudication-prompt.js";
 import type {
-  DeepResearchFinalAdjudicationParse,
-  DeepResearchFinalAdjudicationRecord,
-  DeepResearchResult,
-} from "./deep-research-analysis.result.js";
-import {
-  type FlowStageHandle,
-  buildFlowStageStartFields,
-  finishFailure,
-} from "./deep-research-analysis.flow-shared.js";
+    DeepResearchFinalAdjudicationParse,
+    DeepResearchFinalAdjudicationRecord,
+    DeepResearchResult,
+} from "./deep-research-analysis.parser.js";
+import { parseDeepResearchFinalAdjudicationResponse } from "./deep-research-analysis.parser.js";
 import { runPromptExchange } from "./deep-research-analysis.prompt-exchange.js";
 import {
-  finishPromptFailure,
-  type AnalysisExecutionContext,
-  type AnalysisFailure,
-} from "./deep-research-analysis.analysis-support.js";
+    buildFinalAdjudicationShellPrompt,
+    renderDeepResearchFinalAdjudicationPrompt,
+} from "./deep-research-analysis.prompts.js";
+import { buildDeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 
 type FullCaseFileSuccess = {
   ok: true;

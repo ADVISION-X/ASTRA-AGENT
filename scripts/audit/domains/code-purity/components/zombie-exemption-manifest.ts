@@ -70,19 +70,19 @@ const lawfulDynamicRegistryConsumers: readonly ZombieDynamicRegistryConsumerExem
   },
   {
     consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     registryExportName: "businessHtmlReportPublisherPrompt",
     reason: "HTML report stage passes the full prompt contract as a bounded prompt asset.",
   },
   {
     consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     registryExportName: "finalAdjudicationPrompt",
     reason: "Final adjudication stage passes the full prompt contract as a bounded prompt asset.",
   },
   {
-    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.public-prompt-support.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts",
+    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.public-queries.ts",
+    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
     registryExportName: "finalAdjudicationPrompt",
     reason: "Report reader prompt reconstruction uses the full prompt contract for hash verification.",
   },

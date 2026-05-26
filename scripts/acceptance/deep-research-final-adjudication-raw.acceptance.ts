@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { parseDeepResearchFinalAdjudicationResponse } from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
+import { parseDeepResearchFinalAdjudicationResponse } from "../../src/plugins/deep-research-analysis/deep-research-analysis.parser.js";
 
 const oldFinalSchemaName = "DeepResearch" + "FinalReportSchema";
 
@@ -17,7 +17,7 @@ assert(json.parsed?.rawFinalAnswerText.includes("Proceed with constraints"), "JS
 assert.equal(json.parsed?.parseStatus, "parsed_json_index", "JSON final response must store parsedJsonIndex as secondary index.");
 assert.deepEqual(json.parsed?.parsedJsonIndex, { decision: "Proceed with constraints" }, "Parsed JSON index must preserve the JSON object.");
 
-const resultText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.result.ts", "utf8");
+const resultText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.parser.ts", "utf8");
 assert(resultText.includes("DeepResearchFinalAdjudicationRecordSchema"), "Final raw record schema must exist.");
 assert(!resultText.includes(oldFinalSchemaName), "Fixed final report schema must not remain primary.");
 

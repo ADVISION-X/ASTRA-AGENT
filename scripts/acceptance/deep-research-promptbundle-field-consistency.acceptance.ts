@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs";
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 
 const files = [
-  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-schema.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
 ] as const;
 
 const retiredSupplementAlias = decode("b3B0aW9uYWxDb250ZW50");

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const htmlPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts", "utf8");
+const htmlPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts", "utf8");
 const htmlStage = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8");
-const promptRender = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-render.ts", "utf8");
+const promptRender = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts", "utf8");
 
 assert(htmlPrompt.includes("rawFinalAnswerText: input.finalAdjudication.rawFinalAnswerText"), "HTML prompt must pass rawFinalAnswerText.");
 assert(htmlStage.includes("finalAdjudication: input.finalAdjudication"), "HTML stage must pass finalAdjudication.");

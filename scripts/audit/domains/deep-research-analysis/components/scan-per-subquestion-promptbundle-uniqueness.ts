@@ -60,7 +60,7 @@ const inspectMissingPromptBundleGuards = (input: {
     },
     {
       sourceFile: input.researchPlanPersistFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-persist.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
       marker: "Missing promptBundle for sub-question",
       message: "PromptBundle export must fail if a sub-question promptBundle is missing.",
     },
@@ -177,7 +177,7 @@ const inspectResearchPlanUniquenessGuards = (input: {
     input.findings.push(createFinding({
       checkId,
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.research-plan-schema.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
       message,
     }));
   }

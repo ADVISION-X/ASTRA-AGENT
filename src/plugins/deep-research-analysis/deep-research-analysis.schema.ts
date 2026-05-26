@@ -1,6 +1,110 @@
 import { z } from "zod";
+import { DeepResearchPromptBundleSchema } from "./deep-research-analysis.prompt-bundle-shell.js";
 
-import { DeepResearchPromptBundleSchema } from "./deep-research-analysis.prompt-bundle-schema.js";
+const DeepResearchQuestionTypeSchema = z.enum([
+  "stock",
+  "event",
+  "policy",
+  "business",
+  "product",
+  "strategy",
+  "finance",
+  "crypto",
+  "macro",
+  "general",
+  "unknown",
+]);
+
+const DeepResearchDecisionWeightSchema = z.enum([
+  "decisive",
+  "high",
+  "medium",
+  "low",
+]);
+
+export const DeepResearchPlannedSubQuestionSchema = z.object({
+  id: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  questionText: z.string().trim().min(1),
+  whyItMatters: z.string().trim().min(1),
+  decisionWeight: DeepResearchDecisionWeightSchema,
+  scope: z.string().trim().min(1),
+  omissionRisk: z.string().trim().min(1),
+  promptBundle: DeepResearchPromptBundleSchema.extend({
+    promptRole: z.literal("sub_question_analysis"),
+  }),
+}).strict();
+
+export const DeepResearchPlanIntegrityCheckSchema = z.object({
+  everySubQuestionHasPromptBundle: z.literal(true),
+  promptBundlesAreQuestionSpecific: z.literal(true),
+  noGenericUniversalPromptBundle: z.literal(true),
+  finalPromptBundleIsQuestionSpecific: z.literal(true),
+  htmlPromptBundleIsQuestionSpecific: z.literal(true),
+  runtimeWillOnlyAddShellConstraints: z.literal(true),
+}).strict();
+
+export const DeepResearchPlanSchema = z.object({
+  mainQuestion: z.string().trim().min(1),
+  questionType: DeepResearchQuestionTypeSchema,
+  decompositionStrategy: z.string().trim().min(1),
+  missingInfo: z.array(z.string().trim().min(1)).default([]),
+  subQuestions: z.array(DeepResearchPlannedSubQuestionSchema).min(1),
+  finalAdjudicationPromptBundle: DeepResearchPromptBundleSchema.extend({
+    promptRole: z.literal("final_adjudication"),
+  }),
+  htmlReportPromptBundle: DeepResearchPromptBundleSchema.extend({
+    promptRole: z.literal("html_report_publisher"),
+  }),
+  planIntegrityCheck: DeepResearchPlanIntegrityCheckSchema,
+}).strict().superRefine((plan, context) => {
+  const normalizedListKey = (values: readonly string[]): string =>
+    values.map((value) => value.trim()).join("\n");
+  const taskInstructions = new Set<string>();
+  const questionSpecificFocusKeys = plan.subQuestions.map((subQuestion) =>
+    normalizedListKey(subQuestion.promptBundle.questionSpecificFocus)
+  );
+  const evidenceOrReasoningNeedKeys = plan.subQuestions.map((subQuestion) =>
+    normalizedListKey(subQuestion.promptBundle.evidenceOrReasoningNeeds)
+  );
+  const requiredContentKeys = plan.subQuestions.map((subQuestion) =>
+    normalizedListKey(subQuestion.promptBundle.outputGuidance.requiredContent)
+  );
+  for (const [index, subQuestion] of plan.subQuestions.entries()) {
+    const taskInstruction = subQuestion.promptBundle.taskInstruction.trim();
+    if (taskInstructions.has(taskInstruction)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["subQuestions", index, "promptBundle", "taskInstruction"],
+        message: "Each sub-question promptBundle taskInstruction must be distinct.",
+      });
+    }
+    taskInstructions.add(taskInstruction);
+  }
+  if (plan.subQuestions.length > 1 && new Set(questionSpecificFocusKeys).size === 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subQuestions"],
+      message: "questionSpecificFocus must not be identical across every sub-question promptBundle.",
+    });
+  }
+  if (plan.subQuestions.length > 1 && new Set(evidenceOrReasoningNeedKeys).size === 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subQuestions"],
+      message: "evidenceOrReasoningNeeds must not be identical across every sub-question promptBundle.",
+    });
+  }
+  if (plan.subQuestions.length > 1 && new Set(requiredContentKeys).size === 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["subQuestions"],
+      message: "requiredContent must not be identical across every sub-question promptBundle.",
+    });
+  }
+});
+
+export type DeepResearchPlan = z.infer<typeof DeepResearchPlanSchema>;
 
 const DeepResearchLanguageSchema = z.enum(["zh-CN", "en"]);
 
@@ -92,3 +196,5 @@ export type DeepResearchPhase = z.infer<typeof DeepResearchPhaseSchema>;
 export type DeepResearchSubQuestion = z.infer<typeof DeepResearchSubQuestionSchema>;
 export type DeepResearchInteractionPhase = z.infer<typeof DeepResearchInteractionPhaseSchema>;
 export type DeepResearchParseStatus = z.infer<typeof DeepResearchParseStatusSchema>;
+export const DeepResearchDecompositionResponseSchema = DeepResearchPlanSchema;
+export type DeepResearchDecompositionResponse = DeepResearchPlan;

@@ -26,7 +26,7 @@ export const inspectFinalAdjudicationRawSovereignty = (input: {
     input.findings.push(createFinding({
       checkId: "deep-research/final-raw/record-schema",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
       message: "DeepResearchFinalAdjudicationRecordSchema must be the final adjudication record contract.",
     }));
   }

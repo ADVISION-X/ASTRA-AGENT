@@ -3,12 +3,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  buildDeepResearchStructuredIndex,
-  buildDeepResearchFullCaseFile,
-  createDeepResearchRecordStore,
-  renderDeepResearchFullCaseFileMarkdown,
-} from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
-import type { DeepResearchFinalAdjudicationParse } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
+    buildDeepResearchFullCaseFile,
+    renderDeepResearchFullCaseFileMarkdown,
+} from "../../src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.js";
+import type { DeepResearchFinalAdjudicationParse } from "../../src/plugins/deep-research-analysis/deep-research-analysis.parser.js";
+import { createDeepResearchRecordStore } from "../../src/plugins/deep-research-analysis/deep-research-analysis.records.js";
+import { buildDeepResearchStructuredIndex } from "../../src/plugins/deep-research-analysis/deep-research-analysis.structured-index.js";
 
 type DeepResearchStore = ReturnType<typeof createDeepResearchRecordStore>;
 type DeepResearchJob = ReturnType<DeepResearchStore["createJob"]>;

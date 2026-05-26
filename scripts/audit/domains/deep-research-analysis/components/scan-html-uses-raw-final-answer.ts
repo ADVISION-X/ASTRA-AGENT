@@ -29,7 +29,7 @@ export const inspectHtmlUsesRawFinalAnswer = (input: {
     input.findings.push(createFinding({
       checkId: "deep-research/html-uses-raw-final-answer/raw-input",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       message: "HTML prompt must use finalAdjudication.rawFinalAnswerText.",
     }));
   }

@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 
-const exportFile = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.export.ts", "utf8");
-const contracts = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", "utf8");
+const exportFile = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8");
+const contracts = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.records.ts", "utf8");
 const delivery = readFileSync("src/app/workbench-deep-research-client-delivery-sections.ts", "utf8");
 const routes = readFileSync("src/app/workbench-deep-research-routes.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");

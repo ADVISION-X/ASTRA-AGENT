@@ -54,7 +54,7 @@ export const inspectHtmlReportPromptBundleInput = (input: {
     input.findings.push(createFinding({
       checkId: "deep-research/html-report-promptbundle-input-prompt",
       lawId: input.lawId,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
       message: `HTML report prompt is missing ${marker}.`,
     }));
   }

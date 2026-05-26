@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const answerPersist = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.answer-persist.ts", "utf8");
+const answerPersist = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts", "utf8");
 const publicContracts = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts", "utf8");
 const publicReportSupport = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts", "utf8");
 const clientContracts = readFileSync("src/app/workbench-deep-research-client-contracts.ts", "utf8");

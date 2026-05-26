@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 
 const promptBundleShell = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts", "utf8");
 const analysisSubQuestions = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts", "utf8");
-const finalPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts", "utf8");
-const htmlPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-prompt.ts", "utf8");
+const finalPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts", "utf8");
+const htmlPrompt = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts", "utf8");
 
 for (const marker of [
   "SUB_QUESTION_ANSWER_TEXT_BEGIN",

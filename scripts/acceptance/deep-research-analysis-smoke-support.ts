@@ -3,13 +3,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  buildDeepResearchStructuredIndex,
-  buildDeepResearchFullCaseFile,
-  createDeepResearchRecordStore,
-  renderDeepResearchFullCaseFileMarkdown,
-} from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
-import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.js";
-import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.result.js";
+    buildDeepResearchFullCaseFile,
+    renderDeepResearchFullCaseFileMarkdown,
+} from "../../src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.js";
+import type { DeepResearchResult } from "../../src/plugins/deep-research-analysis/deep-research-analysis.parser.js";
+import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.prompts.js";
+import { createDeepResearchRecordStore } from "../../src/plugins/deep-research-analysis/deep-research-analysis.records.js";
+import { buildDeepResearchStructuredIndex } from "../../src/plugins/deep-research-analysis/deep-research-analysis.structured-index.js";
 
 const REQUIRED_STAGE_NAMES = [
   "DECOMPOSE_SEND",

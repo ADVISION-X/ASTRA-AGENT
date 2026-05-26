@@ -1,14 +1,13 @@
+import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.parser.js";
+import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-shell.js";
 import type {
-  ResearchAnswer,
-  ResearchExport,
-  ResearchInteraction,
-  ResearchJob,
-  ResearchSubQuestion,
+    ResearchAnswer,
+    ResearchExport,
+    ResearchInteraction,
+    ResearchJob,
+    ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
-import type { DeepResearchPromptBundle } from "./deep-research-analysis.prompt-bundle-schema.js";
-import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
-import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.result.js";
-import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
+import type { DeepResearchPhase, DeepResearchPlan } from "./deep-research-analysis.schema.js";
 
 export type PromptReconstructionStatus = "verified" | "hash_mismatch" | "unavailable";
 

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.js";
+import { renderDeepResearchFinalAdjudicationPrompt } from "../../src/plugins/deep-research-analysis/deep-research-analysis.prompts.js";
 import {
-  createDeepResearchFullCaseFixture,
-  disposeDeepResearchFullCaseFixture,
+    createDeepResearchFullCaseFixture,
+    disposeDeepResearchFullCaseFixture,
 } from "./deep-research-full-case-file-support.js";
 
 const finalizationText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts", "utf8");
-const finalPromptText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.final-adjudication-prompt.ts", "utf8");
+const finalPromptText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts", "utf8");
 const fixture = createDeepResearchFullCaseFixture();
 
 try {

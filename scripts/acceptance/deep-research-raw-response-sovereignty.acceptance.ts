@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
-  createDeepResearchFullCaseFixture,
-  disposeDeepResearchFullCaseFixture,
+    createDeepResearchFullCaseFixture,
+    disposeDeepResearchFullCaseFixture,
 } from "./deep-research-full-case-file-support.js";
 
 const fullCaseFileText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts", "utf8");
-const fullCaseFileRenderText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts", "utf8");
-const recordContractsText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts", "utf8");
+const fullCaseFileRenderText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts", "utf8");
+const recordContractsText = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.records.ts", "utf8");
 const fixture = createDeepResearchFullCaseFixture();
 
 try {

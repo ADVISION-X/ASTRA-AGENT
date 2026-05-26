@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T11:10:21.169Z",
+  "generatedAt": "2026-05-26T11:55:09.795Z",
   "status": "PASS",
   "inspectorFileCount": 15,
   "generatedPlanEntryCount": 15,
@@ -78,6 +78,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
     "scripts/audit/domains/deep-research-analysis/inspector.ts",
     "scripts/audit/domains/deep-research-analysis/manifest.json",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",

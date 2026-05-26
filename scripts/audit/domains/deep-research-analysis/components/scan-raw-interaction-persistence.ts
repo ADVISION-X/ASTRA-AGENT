@@ -32,7 +32,7 @@ export const inspectRawInteractionPersistence = (input: {
   for (const check of [
     {
       sourceFile: input.fullCaseFileSchemaFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-schema.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
       required: ["renderedPromptText", "rawResponseText", "rawResponseHash"],
       message: "Full case file schema must require renderedPromptText, rawResponseText, and rawResponseHash.",
     },
@@ -44,13 +44,13 @@ export const inspectRawInteractionPersistence = (input: {
     },
     {
       sourceFile: input.fullCaseFileRenderFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file-render.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
       required: ["renderedPromptText", "rawResponseText", "rawResponseHash"],
       message: "Full case file renderer must expose renderedPromptText, rawResponseText, and rawResponseHash.",
     },
     {
       sourceFile: input.recordContractsFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
       required: ["renderedPromptText", "rawResponseText", "rawResponseHash"],
       message: "Record contracts must persist renderedPromptText, rawResponseText, and rawResponseHash.",
     },
@@ -62,7 +62,7 @@ export const inspectRawInteractionPersistence = (input: {
     },
     {
       sourceFile: input.promptExchangeStageSupportFile,
-      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-stage-support.ts",
+      filePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-capture-stage.ts",
       required: ["createInteraction", "renderedPromptText", "rawResponseText", "rawResponseHash"],
       message: "Prompt exchange persistence must create interaction records with renderedPromptText, rawResponseText, and rawResponseHash.",
     },

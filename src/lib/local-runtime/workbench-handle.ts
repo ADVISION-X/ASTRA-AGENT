@@ -8,7 +8,7 @@ import type {
   DeepResearchJobSnapshot,
   DeepResearchReportViewModel,
   DeepResearchTimelineSnapshot,
-} from "../../plugins/deep-research-analysis/index.js";
+} from "../../plugins/deep-research-analysis/deep-research-analysis.public-queries.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
 import type {
   VideoDownloadSourcePage,

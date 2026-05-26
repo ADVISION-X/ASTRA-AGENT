@@ -1,24 +1,78 @@
 import { z } from "zod";
-
 import { stableJsonHash } from "../../lib/storage/hash.js";
+import type { DeepResearchSourceNote } from "./deep-research-analysis.parser.js";
+import { DeepResearchSourceNoteSchema } from "./deep-research-analysis.parser.js";
+import type {
+    DeepResearchPromptOutputContract,
+} from "./deep-research-analysis.prompt-bundle-shell.js";
 import {
-  buildFinalAdjudicationOutputContract,
-} from "./deep-research-analysis.final-adjudication-prompt.js";
-import type { DeepResearchSourceNote } from "./deep-research-analysis.result.js";
-import { DeepResearchSourceNoteSchema } from "./deep-research-analysis.result.js";
+    buildFinalAdjudicationOutputContract,
+} from "./deep-research-analysis.prompts.js";
+import { buildDeepResearchPromptBundleExport } from "./deep-research-analysis.record-interaction-ops.js";
 import type {
-  DeepResearchPromptOutputContract,
-} from "./deep-research-analysis.prompt-contracts.js";
-import { buildDeepResearchPromptBundleExport } from "./deep-research-analysis.research-plan-persist.js";
-import type { DeepResearchPlan } from "./deep-research-analysis.research-plan-schema.js";
-import type {
-  DeepResearchRecordStore,
-  ResearchAnswer,
-  ResearchInteraction,
-  ResearchJob,
-  ResearchSubQuestion,
+    DeepResearchRecordStore, ResearchAnswer, ResearchInteraction,
+    ResearchJob,
+    ResearchSubQuestion
 } from "./deep-research-analysis.records.js";
-import { buildDeepResearchSourceNotesFromAnswers } from "./deep-research-analysis.source-notes.js";
+import type { DeepResearchPlan } from "./deep-research-analysis.schema.js";
+
+type SourceNoteInput = {
+  note: string;
+  sourceType: DeepResearchSourceNote["sourceType"];
+  subQuestionId?: string | null;
+};
+
+const normalizeSourceNoteText = (value: string): string =>
+  value.trim().split(/\s+/u).join(" ");
+
+const buildSourceNoteId = (index: number): string =>
+  `source-note-${String(index + 1).padStart(3, "0")}`;
+
+const readUrl = (note: string): string | null => {
+  const token = note.split(/\s+/u).find((part) =>
+    part.startsWith("https://") || part.startsWith("http://"));
+  return token ?? null;
+};
+
+export const buildDeepResearchSourceNotes = (
+  inputs: readonly SourceNoteInput[],
+): DeepResearchSourceNote[] => {
+  const grouped = new Map<string, { note: string; sourceType: DeepResearchSourceNote["sourceType"]; subQuestionIds: Set<string> }>();
+  for (const input of inputs) {
+    const note = normalizeSourceNoteText(input.note);
+    if (!note) continue;
+    const key = note.toLocaleLowerCase();
+    const existing = grouped.get(key) ?? {
+      note,
+      sourceType: input.sourceType,
+      subQuestionIds: new Set<string>(),
+    };
+    if (input.subQuestionId) {
+      existing.subQuestionIds.add(input.subQuestionId);
+    }
+    grouped.set(key, existing);
+  }
+  return [...grouped.values()].map((entry, index) => ({
+    sourceNoteId: buildSourceNoteId(index),
+    label: `Source Note ${index + 1}`,
+    note: entry.note,
+    sourceType: entry.sourceType,
+    subQuestionIds: [...entry.subQuestionIds].sort(),
+    url: readUrl(entry.note),
+  }));
+};
+
+export const buildDeepResearchSourceNotesFromAnswers = (
+  answers: readonly ResearchAnswer[],
+): DeepResearchSourceNote[] =>
+  buildDeepResearchSourceNotes(
+    answers.flatMap((answer) =>
+      answer.evidenceMentions.map((note) => ({
+        note,
+        sourceType: "analysis_evidence_mention",
+        subQuestionId: answer.subQuestionId,
+      }))),
+  );
 
 const DeepResearchAnalysisCoverageSchema = z.object({
   totalSubQuestionCount: z.number().int().nonnegative(),
