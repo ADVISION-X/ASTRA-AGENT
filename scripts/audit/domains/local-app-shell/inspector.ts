@@ -23,7 +23,7 @@ const videoDownloadRoutePath = "src/app/workbench-video-download-routes.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
-const publicPluginFacadePathPattern = /^src\/plugins\/[^/]+\/index\.ts$/u;
+const publicPluginFacadePathPattern = /^src\/plugins\/[^/]+\/(?:index|[^/]+\.public)\.ts$/u;
 const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
 
 const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");

@@ -117,7 +117,7 @@ const decompositionResponse = JSON.stringify({
   },
 });
 
-class FailingAnalysisAdapter implements AiProviderAdapter {
+class EmptyAnalysisAdapter implements AiProviderAdapter {
   readonly providerKind = "gemini-api" as const;
 
   public callCount = 0;
@@ -158,10 +158,50 @@ class FailingAnalysisAdapter implements AiProviderAdapter {
   }
 }
 
-async function main(): Promise<void> {
+class RawParseFailureAnalysisAdapter implements AiProviderAdapter {
+  readonly providerKind = "gemini-api" as const;
+
+  public callCount = 0;
+
+  async feed(_input: AiFeedInput, _context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+    this.callCount += 1;
+    const responses = [
+      decompositionResponse,
+      JSON.stringify({
+        answerText: "Q1 raw content is usable even though the parser rejects the envelope.",
+        indexNotes: ["raw Q1 demand note"],
+      }),
+      [
+        "ANSWER_TEXT_BEGIN",
+        "Q2 structured answer completed after Q1 produced raw-only content.",
+        "ANSWER_TEXT_END",
+        "INDEX_JSON_BEGIN",
+        JSON.stringify({ indexNotes: ["structured Q2 execution note"] }),
+        "INDEX_JSON_END",
+      ].join("\n"),
+      "Final adjudication considered Q1 raw-only analysis and Q2 structured analysis.",
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Report</title></head><body><main><h1>Report</h1></main></body></html>",
+    ];
+    const rawText = responses[this.callCount - 1];
+    if (rawText === undefined) {
+      throw new Error(`Unexpected prompt call ${this.callCount}.`);
+    }
+    return {
+      rawText,
+      modelName: "fixture-model",
+      runtimeName: "acceptance-fixture",
+      transport: "api",
+      webChatUrl: null,
+      sourcePageUrlBeforeFeed: null,
+      restoredSourcePage: null,
+    };
+  }
+}
+
+async function verifyEmptyAnalysisStillStops(): Promise<void> {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-stop-on-failure-"));
   const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
-  const adapter = new FailingAnalysisAdapter();
+  const adapter = new EmptyAnalysisAdapter();
   const aiInputGateway = createAiInputGatewayAbilityGroup({
     dataDir,
     adapters: {
@@ -200,6 +240,63 @@ async function main(): Promise<void> {
   } finally {
     store.close();
   }
+}
+
+async function verifyRawParseFailureContinues(): Promise<void> {
+  const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-raw-parse-continue-"));
+  const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
+  const adapter = new RawParseFailureAnalysisAdapter();
+  const aiInputGateway = createAiInputGatewayAbilityGroup({
+    dataDir,
+    adapters: {
+      "gemini-api": adapter,
+    },
+  });
+
+  const result = await runDeepResearchAnalysis(
+    {
+      userQuestion: "Should the company enter a new logistics software market?",
+      analysisGoal: "Continue to final adjudication when raw analysis exists but structured parsing fails.",
+      language: "en",
+      maxSubQuestions: 4,
+      outputFormat: "markdown",
+    },
+    {
+      aiInputGateway,
+      runtimeLogger,
+      dataDir,
+      providerKind: "gemini-api",
+      modelName: "fixture-gemini-model",
+      timeoutMs: 5_000,
+    },
+  );
+
+  assert.equal(adapter.callCount, 5, "Raw analysis parse failure must continue through Q2, final adjudication, and HTML report.");
+  assert.equal(result.status, "success", "Non-empty raw analysis parse failure must not terminate the job.");
+  assert.equal(result.jobStatus, "completed", "Persisted job status must complete when raw parse failure reaches final delivery.");
+  assert.equal(result.phase, "COMPLETE", "Raw parse failure continuation must finish the primary chain.");
+  assert(result.finalAdjudication, "Final adjudication must exist after raw parse failure continuation.");
+
+  const store = createDeepResearchRecordStore(dataDir);
+  try {
+    const interactions = store.listInteractions(result.jobId);
+    const rawFailedInteraction = interactions.find((interaction) =>
+      interaction.phase === "analysis"
+      && interaction.parseStatus === "parse_failed_raw_available"
+    );
+    assert(rawFailedInteraction, "The raw parse failure interaction must be persisted.");
+    assert.match(rawFailedInteraction.rawResponseText, /Q1 raw content is usable/u);
+    assert.equal(store.listAnswers({ jobId: result.jobId, answerKind: "analysis" }).length, 1, "Only the parsed Q2 answer should become a structured answer.");
+    assert.equal(store.listExports(result.jobId).length, 6, "Completed raw-available run must write every export artifact.");
+    assert(store.getLatestFinalAdjudication(result.jobId), "Final adjudication record must be persisted after raw-available continuation.");
+  } finally {
+    store.close();
+  }
+}
+
+async function main(): Promise<void> {
+  await verifyEmptyAnalysisStillStops();
+  await verifyRawParseFailureContinues();
 
   process.stdout.write("[ACCEPTANCE][deep-research-subquestion-failure-stop] PASS\n");
 }

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-26T12:47:01.134Z",
+  "generatedAt": "2026-05-26T13:16:38.920Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -455,7 +455,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
-    "src/plugins/deep-research-analysis/index.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
@@ -939,9 +938,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1309,
+  "liveExportCount": 1305,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 496,
+  "reachableFileCount": 495,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -949,9 +948,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1309,
+    "liveExportCount": 1305,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 496,
+    "reachableFileCount": 495,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

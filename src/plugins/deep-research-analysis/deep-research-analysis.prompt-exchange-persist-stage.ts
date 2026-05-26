@@ -14,6 +14,7 @@ import {
 } from "./deep-research-analysis.logging.js";
 import { isDeepResearchParserSuccess } from "./deep-research-analysis.parser.js";
 import {
+    type FailedParserResult,
     type ParsePromptOutputInput,
     type ParseSuccess,
     type PersistPromptOutputInput,
@@ -22,7 +23,17 @@ import {
     createFailedInteractionRecord,
     createInteractionRecord,
 } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
+import type { ResearchInteraction } from "./deep-research-analysis.records.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
+
+export type ParseRawAvailable = {
+  status: "raw_available";
+  interaction: ResearchInteraction;
+  reason: string;
+  parseStatus: "parse_failed_raw_available";
+  rawResponseHash: string;
+  recordCount: 0;
+};
 
 const completeParseFailure = (parseStage: FlowStageHandle, input: {
   status: "failed" | "review_required";
@@ -74,61 +85,110 @@ const completeParseSuccess = <TParsed>(input: {
   });
 };
 
+const completeParseRawAvailable = <TParsed>(input: {
+  reason: string;
+  rawResponseHash: string;
+} & Pick<ParsePromptOutputInput<TParsed>, "promptHash">, parseStage: FlowStageHandle): void => {
+  parseStage.complete({
+    durationMs: Math.max(0, Date.now() - parseStage.startedAt),
+    hashes: {
+      promptHash: input.promptHash,
+      rawResponseHash: input.rawResponseHash,
+    },
+    metrics: { recordCount: 0 },
+    payload: {
+      parseStatus: "parse_failed_raw_available",
+      reason: input.reason,
+      rawAvailableForCaseFile: true,
+    },
+  });
+};
+
+const createLoggedFailedInteraction = <TParsed>(input: {
+  parsed: FailedParserResult<TParsed>;
+} & ParsePromptOutputInput<TParsed>): ResearchInteraction => {
+  const interaction = createFailedInteractionRecord({
+    store: input.store,
+    jobId: input.jobId,
+    providerKind: input.providerKind,
+    prompt: input.prompt,
+    promptHash: input.promptHash,
+    renderedPromptText: input.renderedPromptText,
+    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+    domRef: input.domRef,
+    gatewayResult: input.gatewayResult,
+    parsed: input.parsed,
+  });
+  rememberInteractionHashes(input.recordHashes, interaction);
+  logDeepResearchParseFailed({
+    logger: input.runtimeLogger,
+    traceContext: input.traceContext,
+    phase: input.stage,
+    rawResponseHash: input.parsed.rawResponseHash,
+    reason: input.parsed.reason,
+    failureClass: RuntimeFailureClass.AI_PARSE_FAILURE,
+    parseStatus: input.parsed.parseStatus,
+    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+  });
+  logDeepResearchRecordPersisted({
+    logger: input.runtimeLogger,
+    traceContext: input.traceContext,
+    phase: input.stage,
+    recordType: "interaction",
+    recordId: interaction.id,
+    count: 1,
+    ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
+    promptHash: input.promptHash,
+    rawResponseHash: input.parsed.rawResponseHash,
+  });
+  return interaction;
+};
+
+const finishTerminalParseFailure = <TParsed>(input: {
+  parsed: FailedParserResult<TParsed>;
+} & Pick<ParsePromptOutputInput<TParsed>, "stage" | "promptHash"> & {
+  parseStage: FlowStageHandle;
+}): PromptExchangeFailure => {
+  const status = input.parsed.parseStatus === "failed" || input.parsed.parseStatus === "failed_empty"
+    ? "failed"
+    : "review_required";
+  completeParseFailure(input.parseStage, {
+    status,
+    reason: input.parsed.reason,
+    promptHash: input.promptHash,
+    rawResponseHash: input.parsed.rawResponseHash,
+  });
+  return buildParseFailure({
+    stage: input.stage,
+    promptHash: input.promptHash,
+    rawResponseHash: input.parsed.rawResponseHash,
+    reason: input.parsed.reason,
+    status,
+  });
+};
+
 const continueParsePromptOutput = <TParsed>(
   input: ParsePromptOutputInput<TParsed> & { parseStage: FlowStageHandle },
-): ParseSuccess<TParsed> | PromptExchangeFailure => {
+): ParseSuccess<TParsed> | ParseRawAvailable | PromptExchangeFailure => {
   const parsed = input.parse(input.gatewayResult.normalizedText);
   if (!isDeepResearchParserSuccess(parsed)) {
-    const interaction = createFailedInteractionRecord({
-      store: input.store,
-      jobId: input.jobId,
-      providerKind: input.providerKind,
-      prompt: input.prompt,
-      promptHash: input.promptHash,
-      renderedPromptText: input.renderedPromptText,
-      ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-      domRef: input.domRef,
-      gatewayResult: input.gatewayResult,
-      parsed,
-    });
-    rememberInteractionHashes(input.recordHashes, interaction);
-    logDeepResearchParseFailed({
-      logger: input.runtimeLogger,
-      traceContext: input.traceContext,
-      phase: input.stage,
-      rawResponseHash: parsed.rawResponseHash,
-      reason: parsed.reason,
-      failureClass: RuntimeFailureClass.AI_PARSE_FAILURE,
-      parseStatus: parsed.parseStatus,
-      ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-    });
-    logDeepResearchRecordPersisted({
-      logger: input.runtimeLogger,
-      traceContext: input.traceContext,
-      phase: input.stage,
-      recordType: "interaction",
-      recordId: interaction.id,
-      count: 1,
-      ...(input.subQuestionId ? { subQuestionId: input.subQuestionId } : {}),
-      promptHash: input.promptHash,
-      rawResponseHash: parsed.rawResponseHash,
-    });
-    const status = parsed.parseStatus === "failed" || parsed.parseStatus === "failed_empty"
-      ? "failed"
-      : "review_required";
-    completeParseFailure(input.parseStage, {
-      status,
-      reason: parsed.reason,
-      promptHash: input.promptHash,
-      rawResponseHash: parsed.rawResponseHash,
-    });
-    return buildParseFailure({
-      stage: input.stage,
-      promptHash: input.promptHash,
-      rawResponseHash: parsed.rawResponseHash,
-      reason: parsed.reason,
-      status,
-    });
+    const interaction = createLoggedFailedInteraction({ ...input, parsed });
+    if (input.stage === "ANALYSIS_PARSE" && parsed.parseStatus === "parse_failed_raw_available") {
+      completeParseRawAvailable({
+        promptHash: input.promptHash,
+        rawResponseHash: parsed.rawResponseHash,
+        reason: parsed.reason,
+      }, input.parseStage);
+      return {
+        status: "raw_available",
+        interaction,
+        reason: parsed.reason,
+        parseStatus: parsed.parseStatus,
+        rawResponseHash: parsed.rawResponseHash,
+        recordCount: 0,
+      };
+    }
+    return finishTerminalParseFailure({ ...input, parsed });
   }
   const recordCount = input.successRecordCount(parsed.parsed);
   completeParseSuccess({
@@ -147,7 +207,7 @@ const continueParsePromptOutput = <TParsed>(
 const handlePrimaryParseStages = <TParsed>(
   input: ParsePromptOutputInput<TParsed>,
   startFields: ReturnType<typeof buildFlowStageStartFields>,
-): ParseSuccess<TParsed> | PromptExchangeFailure | null => {
+): ParseSuccess<TParsed> | ParseRawAvailable | PromptExchangeFailure | null => {
   switch (input.stage) {
     case "DECOMPOSE_PARSE": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "DECOMPOSE_PARSE" });
@@ -165,7 +225,7 @@ const handlePrimaryParseStages = <TParsed>(
 const handleExtendedParseStages = <TParsed>(
   input: ParsePromptOutputInput<TParsed>,
   startFields: ReturnType<typeof buildFlowStageStartFields>,
-): ParseSuccess<TParsed> | PromptExchangeFailure | null => {
+): ParseSuccess<TParsed> | ParseRawAvailable | PromptExchangeFailure | null => {
   switch (input.stage) {
     case "FINAL_ADJUDICATION_PARSE": {
       const parseStage = input.stageLogger.start({ ...startFields, stageName: "FINAL_ADJUDICATION_PARSE" });
@@ -182,7 +242,7 @@ const handleExtendedParseStages = <TParsed>(
 
 export const parsePromptOutput = <TParsed>(
   input: ParsePromptOutputInput<TParsed>,
-): ParseSuccess<TParsed> | PromptExchangeFailure => {
+): ParseSuccess<TParsed> | ParseRawAvailable | PromptExchangeFailure => {
   input.store.updateJobState({
     jobId: input.jobId,
     status: "running",

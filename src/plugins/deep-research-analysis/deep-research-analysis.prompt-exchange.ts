@@ -14,7 +14,10 @@ import { logDeepResearchPromptSent } from "./deep-research-analysis.logging.js";
 import type { DeepResearchParserResult } from "./deep-research-analysis.parser.js";
 import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-bundle-shell.js";
 import type { CaptureSuccess } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
-import { capturePromptOutput } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
+import {
+    capturePromptOutput,
+} from "./deep-research-analysis.prompt-exchange-capture-stage.js";
+import type { ParseRawAvailable } from "./deep-research-analysis.prompt-exchange-persist-stage.js";
 import { parsePromptOutput, persistPromptOutput } from "./deep-research-analysis.prompt-exchange-persist-stage.js";
 import { buildRenderedDeepResearchPromptHash } from "./deep-research-analysis.prompts.js";
 import {
@@ -57,6 +60,15 @@ type PromptExchangeInput<TParsed> = {
     interaction: ResearchInteraction;
     parsed: TParsed;
   }) => ExchangePersistSummary;
+};
+
+export type PromptExchangeRawAvailable = PromptExchangeFailure & {
+  status: "review_required";
+  phase: "ANALYSIS_PARSE";
+  interaction: ParseRawAvailable["interaction"];
+  parseStatus: ParseRawAvailable["parseStatus"];
+  rawAvailableForCaseFile: true;
+  rawResponseHash: string;
 };
 
 const buildPromptPreview = (
@@ -239,7 +251,7 @@ const continuePromptExchange = <TParsed>(
   input: PromptExchangeInput<TParsed>,
   prepared: Pick<ReturnType<typeof preparePromptExchange<TParsed>>, "promptHash" | "preview">,
   captured: CaptureSuccess,
-): PromptExchangeSuccess<TParsed> | PromptExchangeFailure => {
+): PromptExchangeSuccess<TParsed> | PromptExchangeRawAvailable | PromptExchangeFailure => {
   const stageInput = buildSharedStageInput(input, prepared);
   const parsed = parsePromptOutput({
     ...stageInput,
@@ -250,6 +262,19 @@ const continuePromptExchange = <TParsed>(
     successRecordCount: input.successRecordCount,
   });
   if ("status" in parsed) {
+    if (parsed.status === "raw_available") {
+      return {
+        status: "review_required",
+        phase: "ANALYSIS_PARSE",
+        failureClass: RuntimeFailureClass.AI_PARSE_FAILURE,
+        interaction: parsed.interaction,
+        reason: parsed.reason,
+        parseStatus: parsed.parseStatus,
+        rawAvailableForCaseFile: true,
+        promptHash: prepared.promptHash,
+        rawResponseHash: parsed.rawResponseHash,
+      };
+    }
     return parsed;
   }
   return persistPromptOutput({
@@ -264,7 +289,7 @@ const continuePromptExchange = <TParsed>(
 
 export const runPromptExchange = async <TParsed>(
   input: PromptExchangeInput<TParsed>,
-): Promise<PromptExchangeSuccess<TParsed> | PromptExchangeFailure> => {
+): Promise<PromptExchangeSuccess<TParsed> | PromptExchangeRawAvailable | PromptExchangeFailure> => {
   const prepared = preparePromptExchange(input);
 
   startPromptSend({

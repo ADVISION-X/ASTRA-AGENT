@@ -1,4 +1,4 @@
-generatedAt: "2026-05-26T12:46:48.451Z"
+generatedAt: "2026-05-26T13:16:27.461Z"
 rows:
   - capabilityDomain: "amazon-product-mining"
     manifestPath: "scripts/audit/domains/amazon-product-mining/manifest.json"

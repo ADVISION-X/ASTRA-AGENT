@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T12:46:49.882Z",
+  "generatedAt": "2026-05-26T13:16:28.790Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -527,7 +527,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
-    "src/plugins/deep-research-analysis/index.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",

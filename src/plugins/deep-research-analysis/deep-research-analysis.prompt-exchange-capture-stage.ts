@@ -30,10 +30,12 @@ export type SuccessfulParserResult<TParsed> = Exclude<
   { parsed: null }
 >;
 
-type FailedParserResult<TParsed> = Extract<
+export type FailedParserResult<TParsed> = Extract<
   DeepResearchParserResult<TParsed>,
   { parsed: null }
->;
+> & {
+  reason: string;
+};
 
 type PromptPreview = {
   promptId: string;

@@ -233,6 +233,11 @@ const runSubQuestionPhase = async (
   subQuestion: ResearchSubQuestion,
 ): Promise<SubQuestionPhaseOutcome | AnalysisFailure> => {
   const analysis = await runAnalysisPhase(context, subQuestion);
+  if ("rawAvailableForCaseFile" in analysis) {
+    context.recordHashes[`analysis-raw-available:${subQuestion.id}:prompt`] = analysis.promptHash;
+    context.recordHashes[`analysis-raw-available:${subQuestion.id}:response`] = analysis.rawResponseHash;
+    return { ok: true };
+  }
   if (analysis.status !== "parsed") {
     rememberFailedAnalysisHashes({
       context,

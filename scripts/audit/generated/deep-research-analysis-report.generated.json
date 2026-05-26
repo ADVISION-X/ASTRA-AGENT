@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T12:47:03.984Z",
+  "generatedAt": "2026-05-26T13:16:41.579Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -124,7 +124,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
-    "src/plugins/deep-research-analysis/index.ts"
+    "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts"
   ]
 }

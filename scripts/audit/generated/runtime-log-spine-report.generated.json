@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-26T12:47:03.310Z",
+  "generatedAt": "2026-05-26T13:16:40.960Z",
   "status": "PASS",
-  "scannedFiles": 284,
+  "scannedFiles": 283,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -239,7 +239,6 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
-    "src/plugins/deep-research-analysis/index.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
@@ -306,7 +305,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 284,
+    "scannedFiles": 283,
     "emitCallCount": 18,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -317,7 +316,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 279,
+      "scannedFiles": 278,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -326,13 +325,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 225
+      "scannedFiles": 224
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 221,
+      "scannedFiles": 220,
       "metrics": {
         "emitCallCount": 7
       }
@@ -341,13 +340,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 221
+      "scannedFiles": 220
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 226,
+      "scannedFiles": 225,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -362,7 +361,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 226,
+      "scannedFiles": 225,
       "metrics": {
         "failureWithoutClassCount": 0
       }
