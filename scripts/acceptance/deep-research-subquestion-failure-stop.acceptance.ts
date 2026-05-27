@@ -4,11 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import type {
-    AiProviderAdapter,
-    AiProviderAdapterContext,
-    AiProviderRawResponse,
-} from "../../src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.js";
-import type { AiFeedInput } from "../../src/capabilities/ai-input-gateway/index.js";
+  AiFeedInput,
+  AiProviderAdapter,
+  AiProviderAdapterContext,
+  AiProviderRawResponse,
+} from "../../src/capabilities/ai-input-gateway/index.js";
 import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runDeepResearchAnalysis } from "../../src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.js";

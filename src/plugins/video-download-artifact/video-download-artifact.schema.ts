@@ -14,23 +14,23 @@ const VideoDownloadArtifactQualitySchema = z.enum([
   "best_available",
 ]);
 
-const VideoDownloadArtifactChildCapabilitySchema = z.enum([
-  "download-web-video-once",
-  "download-facebook-video-once",
-  "download-tiktok-video-once",
-  "download-instagram-video-once",
-  "download-bilibili-video-once",
-  "download-douyin-video-once",
-  "download-x-video-once",
-  "download-xiaohongshu-video-once",
-  "download-youtube-video-once",
-  "download-telegram-web-video-once",
+const VideoDownloadArtifactPlatformSchema = z.enum([
+  "universal",
+  "facebook",
+  "tiktok",
+  "instagram",
+  "bilibili",
+  "douyin",
+  "x",
+  "xiaohongshu",
+  "youtube",
+  "telegram-web",
 ]);
 
 export const VideoDownloadArtifactJobInputSchema = z.object({
   jobType: VideoDownloadArtifactJobTypeSchema.default("video-download-artifact"),
   sourcePageUrl: z.string().url(),
-  childCapabilityId: VideoDownloadArtifactChildCapabilitySchema.default("download-web-video-once"),
+  platform: VideoDownloadArtifactPlatformSchema.default("universal"),
   preferredQuality: VideoDownloadArtifactQualitySchema.default("best_available"),
   maxBytes: z.number().int().min(1024).max(5_000_000_000).default(5_000_000_000),
   timeoutMs: z.number().int().min(1000).max(3_600_000).default(3_600_000),

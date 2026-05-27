@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T19:30:25.953Z",
+  "generatedAt": "2026-05-27T21:04:04.824Z",
   "rows": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -113,6 +113,17 @@
         "APEX-CODE-PURITY-022-V1",
         "APEX-CODE-PURITY-023-V1",
         "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "constitutional-boundary",
+      "manifestPath": "scripts/audit/domains/constitutional-boundary/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+      "lawIds": [
+        "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+        "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+        "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
+        "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1"
       ]
     },
     {

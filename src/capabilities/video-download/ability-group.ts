@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type {
   VideoDownloadAbilityGroup,
   VideoDownloadExecutionContext,
@@ -6,9 +8,12 @@ import type { BrowserMediaSourcePort } from "./ports/browser-media-source-port.j
 import {
   VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
   VideoDownloadAbilityInputSchema,
+  VideoDownloadPublicRequestSchema,
   type ParsedVideoDownloadAbilityInput,
   type VideoDownloadAbilityInput,
   type VideoDownloadChildCapabilityId,
+  type VideoDownloadPublicPlatform,
+  type VideoDownloadPublicRequest,
   type VideoDownloadResult,
 } from "./schema.js";
 import {
@@ -84,6 +89,43 @@ const buildUnknownChildFailure = (
     "Video download child capability is not registered.",
   );
 
+const childCapabilityIdByPlatform: Record<VideoDownloadPublicPlatform, VideoDownloadChildCapabilityId> = {
+  facebook: "download-facebook-video-once",
+  tiktok: "download-tiktok-video-once",
+  instagram: "download-instagram-video-once",
+  bilibili: "download-bilibili-video-once",
+  douyin: "download-douyin-video-once",
+  x: "download-x-video-once",
+  xiaohongshu: "download-xiaohongshu-video-once",
+  youtube: "download-youtube-video-once",
+  "telegram-web": "download-telegram-web-video-once",
+  universal: "download-web-video-once",
+};
+
+const resolveChildCapabilityId = (platform: VideoDownloadPublicPlatform): VideoDownloadChildCapabilityId =>
+  childCapabilityIdByPlatform[platform];
+
+const buildPublicRequestInput = (input: VideoDownloadPublicRequest): VideoDownloadAbilityInput => {
+  const parsed = VideoDownloadPublicRequestSchema.parse(input);
+  return {
+    abilityGroupId: VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
+    childCapabilityId: resolveChildCapabilityId(parsed.platform),
+    missionId: parsed.missionId,
+    runId: parsed.runId,
+    ...(parsed.sessionId ? { sessionId: parsed.sessionId } : {}),
+    ...(parsed.roundId ? { roundId: parsed.roundId } : {}),
+    capabilityCallId: `${parsed.runId}_${resolveChildCapabilityId(parsed.platform)}_${randomUUID()}`,
+    sourcePageUrl: parsed.sourcePageUrl,
+    preferredQuality: parsed.preferredQuality,
+    maxBytes: parsed.maxBytes,
+    timeoutMs: parsed.timeoutMs,
+    artifactDisposition: parsed.artifactPolicy === "staging" ? "staging" : "final",
+    downloadSubtitles: parsed.downloadSubtitles,
+    subtitleLanguages: parsed.subtitleLanguages,
+    ...(parsed.telegramDocumentIdHash ? { telegramDocumentIdHash: parsed.telegramDocumentIdHash } : {}),
+  };
+};
+
 const executeVideoDownloadRequest = async (input: {
   request: VideoDownloadAbilityInput;
   context: VideoDownloadExecutionContext;
@@ -108,6 +150,13 @@ export const createVideoDownloadAbilityGroup = (
     abilityGroupId: VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
     listChildCapabilityIds(): VideoDownloadChildCapabilityId[] {
       return listVideoDownloadChildren();
+    },
+    downloadVideo(input: VideoDownloadPublicRequest): Promise<VideoDownloadResult> {
+      return executeVideoDownloadRequest({
+        request: buildPublicRequestInput(input),
+        context,
+        registry,
+      });
     },
     execute(input: VideoDownloadAbilityInput): Promise<VideoDownloadResult> {
       return executeVideoDownloadRequest({ request: input, context, registry });

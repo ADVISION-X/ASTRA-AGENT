@@ -40,6 +40,21 @@ const VideoDownloadPreferredQualitySchema = z.enum([
   "best_available",
 ]);
 
+const VideoDownloadPublicPlatformSchema = z.enum([
+  "universal",
+  "facebook",
+  "tiktok",
+  "instagram",
+  "bilibili",
+  "douyin",
+  "x",
+  "xiaohongshu",
+  "youtube",
+  "telegram-web",
+]);
+
+const VideoDownloadArtifactPolicySchema = z.enum(["deliverable", "staging"]);
+
 const VideoArtifactDispositionSchema = z.enum(["staging", "final"]);
 
 const VideoDownloadStatusSchema = z.enum([
@@ -96,6 +111,22 @@ const VideoDownloadCandidateSchema = z.object({
   url: z.string().url(),
   source: z.string().min(1),
   quality: z.enum(["hd", "sd", "unknown"]),
+}).strict();
+
+export const VideoDownloadPublicRequestSchema = z.object({
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
+  sessionId: z.string().min(1).optional(),
+  roundId: z.string().min(1).optional(),
+  sourcePageUrl: z.string().url(),
+  platform: VideoDownloadPublicPlatformSchema.default("universal"),
+  preferredQuality: VideoDownloadPreferredQualitySchema.default("best_available"),
+  maxBytes: z.number().int().min(1024).max(5_000_000_000).default(5_000_000_000),
+  timeoutMs: z.number().int().min(1000).max(3_600_000).default(3_600_000),
+  artifactPolicy: VideoDownloadArtifactPolicySchema.default("deliverable"),
+  downloadSubtitles: z.boolean().default(false),
+  subtitleLanguages: z.array(z.string().min(1)).max(8).default(["en"]),
+  telegramDocumentIdHash: z.string().regex(/^[a-f0-9]{24}$/u).optional(),
 }).strict();
 
 // ─── Shared input base ────────────────────────────────────────────────────────
@@ -262,4 +293,6 @@ export type VideoDownloadCandidate = z.infer<typeof VideoDownloadCandidateSchema
 export type VideoDownloadArtifact = z.infer<typeof VideoDownloadArtifactSchema>;
 export type VideoDownloadAbilityInput = z.input<typeof VideoDownloadAbilityInputSchema>;
 export type ParsedVideoDownloadAbilityInput = z.output<typeof VideoDownloadAbilityInputSchema>;
+export type VideoDownloadPublicPlatform = z.infer<typeof VideoDownloadPublicPlatformSchema>;
+export type VideoDownloadPublicRequest = z.input<typeof VideoDownloadPublicRequestSchema>;
 export type VideoDownloadResult = z.infer<typeof VideoDownloadResultSchema>;

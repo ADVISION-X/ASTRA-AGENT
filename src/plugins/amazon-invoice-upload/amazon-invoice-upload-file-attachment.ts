@@ -1,9 +1,4 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import {
-  readDomSnapshotOnce,
-  uploadApprovedFileOnce,
-  waitForDomStateOnce,
-} from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -12,7 +7,10 @@ import {
   evidenceField,
   locateFailureResult,
   locateOrStatus,
+  readSnapshot,
   taskResult,
+  uploadFile,
+  waitForState,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -66,18 +64,18 @@ async function pollForFileInput(
   mission: AmazonInvoiceUploadMissionInput,
 ) {
   const startedAt = Date.now();
-  let snapshot = await readDomSnapshotOnce(browser);
+  let snapshot = await readSnapshot(browser);
   traceFileInputInitialSnapshot(runtimeLogger, mission, snapshot);
   let fileInput = locateInvoiceFileInput(snapshot);
   while (!fileInput.ok && Date.now() - startedAt < FILE_INPUT_READY_TIMEOUT_MS) {
     await browser.wait(FILE_INPUT_READY_POLL_INTERVAL_MS);
-    snapshot = await readDomSnapshotOnce(browser);
+    snapshot = await readSnapshot(browser);
     fileInput = locateInvoiceFileInput(snapshot);
   }
   return { snapshot, fileInput };
 }
 
-function locateInvoiceFileInput(snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>): ReturnType<typeof locateOrStatus> {
+function locateInvoiceFileInput(snapshot: Awaited<ReturnType<typeof readSnapshot>>): ReturnType<typeof locateOrStatus> {
   return locateOrStatus({
     snapshot,
     targetKind: "file-input",
@@ -89,7 +87,7 @@ function locateInvoiceFileInput(snapshot: Awaited<ReturnType<typeof readDomSnaps
 function traceFileInputInitialSnapshot(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
 ): void {
   recordAmazonDomStepTrace({
     runtimeLogger,
@@ -106,7 +104,7 @@ const uploadApprovedPdf = async (
   mission: AmazonInvoiceUploadMissionInput,
   fileInput: DomElementRef,
 ): Promise<StepResult<void>> => {
-  const uploaded = await uploadApprovedFileOnce(browser, {
+  const uploaded = await uploadFile(browser, {
     elementRef: fileInput,
     approvedFilePath: mission.invoicePdfPath,
     approvedTaskFilePath: mission.invoicePdfPath,
@@ -130,7 +128,7 @@ function traceUploadApprovedPdf(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   fileInput: DomElementRef,
-  uploaded: Awaited<ReturnType<typeof uploadApprovedFileOnce>>,
+  uploaded: Awaited<ReturnType<typeof uploadFile>>,
 ): void {
   recordAmazonDomStepTrace({
     runtimeLogger,
@@ -148,7 +146,7 @@ const waitForAttachedInvoice = async (
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<string | undefined>> => {
-  const attached = await waitForDomStateOnce(browser, {
+  const attached = await waitForState(browser, {
     expectedStates: ["file-selected"],
     successHints: ["file attached", "invoice attached", mission.invoiceNo],
     failureHints: ["failed", "invalid file", "error", "文件上传失败", "文件未上传"],
@@ -171,7 +169,7 @@ const waitForAttachedInvoice = async (
 function traceAttachedInvoice(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  attached: Awaited<ReturnType<typeof waitForDomStateOnce>>,
+  attached: Awaited<ReturnType<typeof waitForState>>,
 ): void {
   recordAmazonDomStepTrace({
     runtimeLogger,

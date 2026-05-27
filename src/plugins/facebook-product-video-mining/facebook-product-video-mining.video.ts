@@ -67,18 +67,16 @@ const isSuccessfulVideoDownload = (
   downloaded: VideoDownloadResult,
 ): downloaded is SuccessfulVideoDownload => downloaded.status === "success" && downloaded.output.status === "success";
 
-const buildDownloadExecutionInput = (input: DownloadFacebookVideoInput) => ({
-  abilityGroupId: "video-download" as const,
-  childCapabilityId: "download-facebook-video-once" as const,
+const buildDownloadRequest = (input: DownloadFacebookVideoInput) => ({
   missionId: input.missionId,
   runId: input.runId,
   roundId: input.roundId,
-  capabilityCallId: `${input.roundId}_download`,
   sourcePageUrl: input.sourcePageUrl,
+  platform: "facebook" as const,
   preferredQuality: input.preferredQuality,
   maxBytes: input.maxVideoBytes,
   timeoutMs: 60_000,
-  artifactDisposition: "staging" as const,
+  artifactPolicy: "staging" as const,
 });
 
 const buildFailedDownloadStageSummary = (downloaded: VideoDownloadResult) => ({
@@ -106,7 +104,7 @@ export const downloadCurrentFacebookVideo = async (input: DownloadFacebookVideoI
     modeVisibility: ["FLOW", "DEBUG", "TRACE"],
     payload: FACEBOOK_VIDEO_DOWNLOAD_PAYLOAD,
   });
-  const downloaded = await input.videoDownload.execute(buildDownloadExecutionInput(input));
+  const downloaded = await input.videoDownload.downloadVideo(buildDownloadRequest(input));
   if (isSuccessfulVideoDownload(downloaded)) {
     downloadStage.complete(buildSuccessfulDownloadStageSummary(downloaded));
     return downloaded;

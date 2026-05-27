@@ -1,0 +1,40 @@
+{
+  "capabilityDomain": "constitutional-boundary",
+  "ownerInspectorPath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "lawIdRefs": [
+    "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+    "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+    "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
+    "APEX-DOM-AUTOMATION-BRIDGE-001-V1"
+  ],
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
+      "requiredAnchors": [
+        "## 3. 当前现役能力组"
+      ]
+    },
+    {
+      "filePath": "docs/法案辅助文件/GrassEye_DOM自动化生产稳定态施工图.md",
+      "requiredAnchors": [
+        "## 2. Owner 边界",
+        "## 4. 法定子能力清单"
+      ]
+    },
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md",
+      "requiredAnchors": [
+        "## 3. 目录结构",
+        "## 4. 子能力清单"
+      ]
+    }
+  ],
+  "description": "Constitutional capability boundary enforcement for facade-only imports, symbol anti-escape, protocol leakage, and DOM primitive bridge closure."
+}

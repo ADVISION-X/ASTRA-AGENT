@@ -1,8 +1,5 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import {
-  readDomSnapshotOnce,
-} from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -21,6 +18,7 @@ import {
   gatedResult,
   locateOrStatus,
   locateFailureResult,
+  readSnapshot,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -108,7 +106,7 @@ async function waitForSellerCentralEntry(
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<{ ready: true; snapshot: DomSnapshot } | { ready: false; snapshot: DomSnapshot; reason: string }> {
   const startedAt = Date.now();
-  let lastSnapshot = await readDomSnapshotOnce(browser);
+  let lastSnapshot = await readSnapshot(browser);
   while (Date.now() - startedAt <= ENTRY_READY_TIMEOUT_MS) {
     const gate = gatedResult(lastSnapshot, mission, "open seller central");
     if (gate) {
@@ -124,7 +122,7 @@ async function waitForSellerCentralEntry(
       return { ready: true, snapshot: lastSnapshot };
     }
     await browser.wait(ENTRY_READY_POLL_INTERVAL_MS);
-    lastSnapshot = await readDomSnapshotOnce(browser);
+    lastSnapshot = await readSnapshot(browser);
   }
   return {
     ready: false,
@@ -234,7 +232,7 @@ async function readAndTraceSubmitSnapshot(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<DomSnapshot> {
-  const snapshot = await readDomSnapshotOnce(browser);
+  const snapshot = await readSnapshot(browser);
   recordAmazonDomStepTrace({
     runtimeLogger,
     mission,

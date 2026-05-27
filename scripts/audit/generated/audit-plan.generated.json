@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T19:30:25.953Z",
+  "generatedAt": "2026-05-27T21:04:04.824Z",
   "entries": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -212,6 +212,47 @@
         "hybrid"
       ],
       "blueprintRefs": []
+    },
+    {
+      "capabilityDomain": "constitutional-boundary",
+      "manifestPath": "scripts/audit/domains/constitutional-boundary/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+      "executionGroup": "foundation",
+      "lawIds": [
+        "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+        "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+        "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
+        "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast",
+        "ast+symbol"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
+          "requiredAnchors": [
+            "## 3. 当前现役能力组"
+          ]
+        },
+        {
+          "filePath": "docs/法案辅助文件/GrassEye_DOM自动化生产稳定态施工图.md",
+          "requiredAnchors": [
+            "## 2. Owner 边界",
+            "## 4. 法定子能力清单"
+          ]
+        },
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md",
+          "requiredAnchors": [
+            "## 3. 目录结构",
+            "## 4. 子能力清单"
+          ]
+        }
+      ]
     },
     {
       "capabilityDomain": "deep-research-analysis",

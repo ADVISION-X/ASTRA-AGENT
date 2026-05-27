@@ -22,6 +22,7 @@ import { inspectPackageScript } from "./inspector-package-scripts.js";
 import {
   inspectBrowserTabExtractionContract,
   inspectFlowSearchBeforeDetail,
+  inspectGptWebChatIsolationForKeywordMining,
   inspectProductDetailDomFallbacks,
   inspectReviewsPerPagePersistence,
   inspectSearchExtractionProductionPath,
@@ -49,6 +50,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectWorkbenchHomeSurface(context, findings, inspectedFiles, surfaceLawId);
   inspectArtifactOutputs(context, findings, inspectedFiles, artifactLawId);
   inspectPackageScript(findings, inspectedFiles, deliveryLawId);
+  inspectGptWebChatIsolationForKeywordMining(context, findings, inspectedFiles, keywordLawId);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, searchLawId);
   inspectSearchExtractionProductionPath(context, findings, inspectedFiles, searchLawId);
   inspectBrowserTabExtractionContract(

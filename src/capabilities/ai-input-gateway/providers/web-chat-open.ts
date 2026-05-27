@@ -36,11 +36,24 @@ export const isDeepResearchGptRequest = (input: {
   new URL(input.providerUrl).host === "chatgpt.com"
   && input.request.promptContractId.includes("deep-research.");
 
+export const isAmazonProductMiningGptRequest = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): boolean =>
+  new URL(input.providerUrl).host === "chatgpt.com"
+  && input.request.promptContractId === "amazon-product-mining-keyword-generation-v1";
+
+const requiresFreshChatGptConversation = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): boolean =>
+  isDeepResearchGptRequest(input) || isAmazonProductMiningGptRequest(input);
+
 const resolveProviderReusePolicy = (input: {
   providerUrl: string;
   request: AiFeedInput;
 }): "reuse-exact-url" | "open-new-tab" =>
-  isDeepResearchGptRequest(input) ? "open-new-tab" : "reuse-exact-url";
+  requiresFreshChatGptConversation(input) ? "open-new-tab" : "reuse-exact-url";
 
 const waitForProviderComposer = async (
   browser: BrowserController,
@@ -71,9 +84,9 @@ const startFreshChatGptConversation = async (input: {
   request: AiFeedInput;
   providerUrl: string;
 }): Promise<void> => {
-  if (!isDeepResearchGptRequest(input)) return;
+  if (!requiresFreshChatGptConversation(input)) return;
   const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "click ChatGPT new chat before Deep Research prompt",
+    description: "click ChatGPT new chat before isolated GPT prompt",
     script: CHATGPT_NEW_CHAT_SCRIPT,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });

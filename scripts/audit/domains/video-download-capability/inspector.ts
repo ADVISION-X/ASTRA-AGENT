@@ -234,7 +234,7 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
       checkId: "video-download/mediator-route",
     });
   }
-  for (const marker of ["videoDownload.execute", "VideoDownloadArtifactJobResultSchema", "jobType: \"video-download-artifact\""]) {
+  for (const marker of ["videoDownload.downloadVideo", "VideoDownloadArtifactJobResultSchema", "jobType: \"video-download-artifact\""]) {
     requireText({
       findings,
       lawId,

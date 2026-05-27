@@ -133,6 +133,9 @@ type ReportEvidenceIndex = {
     rawVisibleTextRef?: string;
     searchResultRefs?: string[];
     productDetailRefs?: string[];
+    reviewRefs?: string[];
+    imageRefs?: string[];
+    exceptionRefs?: string[];
   }>;
   products?: Array<{
     detailId?: string;

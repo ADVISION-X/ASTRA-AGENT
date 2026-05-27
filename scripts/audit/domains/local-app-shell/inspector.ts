@@ -135,7 +135,7 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: fieldName, checkId: "local-app-shell/amazon-input" });
   }
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-facebook-form", checkId: "local-app-shell/facebook-input" });
-  for (const marker of ["data-video-download-form", "sourcePageUrl", "childCapabilityId", "preferredQuality", "maxMegabytes", "downloadSubtitles", "download-telegram-web-video-once", "data-video-platform-tabs", "data-video-detect-source", "data-video-download-telegram-boundary"]) {
+  for (const marker of ["data-video-download-form", "sourcePageUrl", "platform", "preferredQuality", "maxMegabytes", "downloadSubtitles", "telegram-web", "data-video-platform-tabs", "data-video-detect-source", "data-video-download-telegram-boundary"]) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/video-download-input" });
   }
   requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: videoClientText, marker: "/api/video-download/start", checkId: "local-app-shell/video-download-client" });

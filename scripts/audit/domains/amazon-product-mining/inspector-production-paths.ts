@@ -229,6 +229,47 @@ export const inspectSearchExtractionProductionPath = (
   });
 };
 
+export const inspectGptWebChatIsolationForKeywordMining = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const repoPath = "src/capabilities/ai-input-gateway/providers/web-chat-open.ts";
+  const sourceFile = getRequiredSourceFile(context, repoPath);
+  trackSourceFile(inspectedFiles, sourceFile);
+  if (!sourceFile) {
+    return;
+  }
+
+  if (!hasIdentifier(sourceFile, "isAmazonProductMiningGptRequest")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/gpt-web-chat-amazon-isolation-classifier",
+      lawId,
+      filePath: repoPath,
+      message: "GPT Web Chat opening logic must classify Amazon keyword mining requests for isolated ChatGPT conversations.",
+    }));
+  }
+
+  const freshConversationDeclaration = sourceFile.getVariableDeclaration("requiresFreshChatGptConversation");
+  const freshConversationInitializer = freshConversationDeclaration?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const freshConversationUsesAmazonClassifier = freshConversationInitializer
+    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) =>
+      Node.isIdentifier(callExpression.getExpression())
+      && callExpression.getExpression().getText() === "isAmazonProductMiningGptRequest",
+    ) ?? false;
+
+  if (!freshConversationUsesAmazonClassifier) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/gpt-web-chat-amazon-fresh-conversation",
+      lawId,
+      filePath: repoPath,
+      message: "Amazon keyword mining through GPT Web Chat must require a fresh ChatGPT conversation to avoid cross-task answer contamination.",
+    }));
+  }
+};
+
 export const inspectBrowserTabExtractionContract = (
   context: InspectorContext,
   findings: InspectorFinding[],

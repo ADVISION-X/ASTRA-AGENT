@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-27T19:30:25.953Z",
+  "generatedAt": "2026-05-27T21:04:04.824Z",
   "summary": {
-    "activeLawCount": 154,
-    "coveredLawCount": 154,
+    "activeLawCount": 158,
+    "coveredLawCount": 158,
     "coveragePercent": 100
   },
   "coverage": [
@@ -723,6 +723,46 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+      "capabilityDomain": "constitutional-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/constitutional-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+      "capabilityDomain": "constitutional-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/constitutional-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
+      "capabilityDomain": "constitutional-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/constitutional-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
+      "capabilityDomain": "constitutional-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/constitutional-boundary/manifest.json"
         }
       ]
     },

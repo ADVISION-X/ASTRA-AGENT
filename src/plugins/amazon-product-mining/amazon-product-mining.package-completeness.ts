@@ -121,6 +121,24 @@ const pushReviewImages = (input: {
           appearsInMasterReport: true,
         });
       }
+      for (const videoUrl of review.reviewVideosIfVisible) {
+        input.images.push({
+          imageId: `image-${input.images.length + 1}`,
+          imageType: "review_video",
+          source: "review",
+          taskId: input.taskId,
+          keywordId: null,
+          itemId: null,
+          detailId,
+          reviewId: review.reviewId,
+          asin: review.asin,
+          url: videoUrl,
+          localFileRef: null,
+          hash: null,
+          caption: review.reviewTitle ?? review.reviewId,
+          appearsInMasterReport: true,
+        });
+      }
     }
   }
 };

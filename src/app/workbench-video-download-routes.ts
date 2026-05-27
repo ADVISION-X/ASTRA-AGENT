@@ -8,17 +8,17 @@ import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-han
 import { routeVideoDownloadArtifactJob } from "../mediator/video-download-artifact-route.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
 
-const VIDEO_DOWNLOAD_CHILD_IDS = [
-  "download-web-video-once",
-  "download-facebook-video-once",
-  "download-tiktok-video-once",
-  "download-instagram-video-once",
-  "download-bilibili-video-once",
-  "download-douyin-video-once",
-  "download-x-video-once",
-  "download-xiaohongshu-video-once",
-  "download-youtube-video-once",
-  "download-telegram-web-video-once",
+const VIDEO_DOWNLOAD_PLATFORMS = [
+  "universal",
+  "facebook",
+  "tiktok",
+  "instagram",
+  "bilibili",
+  "douyin",
+  "x",
+  "xiaohongshu",
+  "youtube",
+  "telegram-web",
 ] as const;
 
 const VIDEO_DOWNLOAD_QUALITIES = [
@@ -33,12 +33,12 @@ const VIDEO_DOWNLOAD_QUALITIES = [
   "best_available",
 ] as const;
 
-type VideoDownloadChildId = typeof VIDEO_DOWNLOAD_CHILD_IDS[number];
+type VideoDownloadPlatform = typeof VIDEO_DOWNLOAD_PLATFORMS[number];
 type VideoDownloadQuality = typeof VIDEO_DOWNLOAD_QUALITIES[number];
 
 type VideoDownloadRequestBody = {
   sourcePageUrl?: unknown;
-  childCapabilityId?: unknown;
+  platform?: unknown;
   preferredQuality?: unknown;
   maxBytes?: unknown;
   timeoutMs?: unknown;
@@ -49,8 +49,8 @@ type VideoDownloadRequestBody = {
 
 type VideoDownloadSourcePlatform = "telegram-web";
 
-const isVideoDownloadChildId = (value: unknown): value is VideoDownloadChildId =>
-  typeof value === "string" && VIDEO_DOWNLOAD_CHILD_IDS.some((childId) => childId === value);
+const isVideoDownloadPlatform = (value: unknown): value is VideoDownloadPlatform =>
+  typeof value === "string" && VIDEO_DOWNLOAD_PLATFORMS.some((platform) => platform === value);
 
 const isVideoDownloadQuality = (value: unknown): value is VideoDownloadQuality =>
   typeof value === "string" && VIDEO_DOWNLOAD_QUALITIES.some((quality) => quality === value);
@@ -61,13 +61,13 @@ const readString = (value: unknown): string | null =>
 const readPositiveInteger = (value: unknown): number | null =>
   typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 
-const buildVideoDownloadJobInputForChild = (
+const buildVideoDownloadJobInputForPlatform = (
   body: VideoDownloadRequestBody,
-  childCapabilityId: VideoDownloadChildId,
+  platform: VideoDownloadPlatform,
   sourcePageUrl: string,
 ): Parameters<typeof routeVideoDownloadArtifactJob>[0] => ({
   jobType: "video-download-artifact",
-  childCapabilityId,
+  platform,
   sourcePageUrl,
   preferredQuality: isVideoDownloadQuality(body.preferredQuality) ? body.preferredQuality : "best_available",
   maxBytes: readPositiveInteger(body.maxBytes) ?? 5_000_000_000,
@@ -81,13 +81,13 @@ const buildVideoDownloadJobInputForChild = (
 
 const buildVideoDownloadJobInput = (body: VideoDownloadRequestBody): Parameters<typeof routeVideoDownloadArtifactJob>[0] | null => {
   const sourcePageUrl = readString(body.sourcePageUrl);
-  const childCapabilityId = isVideoDownloadChildId(body.childCapabilityId)
-    ? body.childCapabilityId
-    : "download-web-video-once";
+  const platform = isVideoDownloadPlatform(body.platform)
+    ? body.platform
+    : "universal";
   if (!sourcePageUrl) {
     return null;
   }
-  return buildVideoDownloadJobInputForChild(body, childCapabilityId, sourcePageUrl);
+  return buildVideoDownloadJobInputForPlatform(body, platform, sourcePageUrl);
 };
 
 const readSourcePlatform = (value: string | null): VideoDownloadSourcePlatform | null =>

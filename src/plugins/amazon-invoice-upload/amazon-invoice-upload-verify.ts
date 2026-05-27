@@ -1,7 +1,6 @@
-import { waitForDomStateOnce } from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { taskResult } from "./amazon-invoice-upload-flow-support.js";
+import { taskResult, waitForState } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -20,14 +19,14 @@ const UPLOAD_SUCCESS_HINTS = [
 const UPLOAD_SUCCESS_TIMEOUT_MS = 15000;
 const UPLOAD_SUCCESS_POLL_INTERVAL_MS = 250;
 
-type VerifySuccessResult = Awaited<ReturnType<typeof waitForDomStateOnce>>;
+type VerifySuccessResult = Awaited<ReturnType<typeof waitForState>>;
 
 export async function verifyUploadSuccess(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const success = await waitForDomStateOnce(browser, {
+  const success = await waitForState(browser, {
     expectedStates: ["success-message"],
     successHints: UPLOAD_SUCCESS_HINTS,
     failureHints: ["failed", "invalid", "error", "文件上传失败", "无法上传"],

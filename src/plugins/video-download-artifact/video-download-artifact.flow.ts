@@ -15,17 +15,15 @@ export const runVideoDownloadArtifactFlow = async (
   context: VideoDownloadArtifactFlowContext,
 ): Promise<VideoDownloadArtifactJobResult> => {
   const jobInput = VideoDownloadArtifactJobInputSchema.parse(input);
-  const result = await context.videoDownload.execute({
-    abilityGroupId: "video-download",
-    childCapabilityId: jobInput.childCapabilityId,
+  const result = await context.videoDownload.downloadVideo({
     missionId: createId("video_download_job"),
     runId: createId("video_download_run"),
-    capabilityCallId: createId("video_download_call"),
     sourcePageUrl: jobInput.sourcePageUrl,
+    platform: jobInput.platform,
     preferredQuality: jobInput.preferredQuality,
     maxBytes: jobInput.maxBytes,
     timeoutMs: jobInput.timeoutMs,
-    artifactDisposition: "final",
+    artifactPolicy: "deliverable",
     downloadSubtitles: jobInput.downloadSubtitles,
     subtitleLanguages: jobInput.subtitleLanguages,
     ...(jobInput.telegramDocumentIdHash ? { telegramDocumentIdHash: jobInput.telegramDocumentIdHash } : {}),

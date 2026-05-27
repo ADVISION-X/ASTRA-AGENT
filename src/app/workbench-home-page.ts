@@ -149,19 +149,19 @@ const renderVideoDownloadPanel = (): string => `
   <h1>Video download skill</h1>
   <p class="muted">one platform, one verified media artifact</p>
   <form class="form-grid" data-video-download-form>
-    <input name="childCapabilityId" type="hidden" value="download-telegram-web-video-once" />
+    <input name="platform" type="hidden" value="telegram-web" />
     <input name="telegramDocumentIdHash" type="hidden" value="" />
     <div class="platform-tabs wide" data-video-platform-tabs>
-      <button class="platform-tab" type="button" data-video-platform="telegram" data-child-capability-id="download-telegram-web-video-once" aria-pressed="true">Telegram Web</button>
-      <button class="platform-tab" type="button" data-video-platform="youtube" data-child-capability-id="download-youtube-video-once" aria-pressed="false">YouTube</button>
-      <button class="platform-tab" type="button" data-video-platform="universal" data-child-capability-id="download-web-video-once" aria-pressed="false">Universal</button>
-      <button class="platform-tab" type="button" data-video-platform="facebook" data-child-capability-id="download-facebook-video-once" aria-pressed="false">Facebook</button>
-      <button class="platform-tab" type="button" data-video-platform="tiktok" data-child-capability-id="download-tiktok-video-once" aria-pressed="false">TikTok</button>
-      <button class="platform-tab" type="button" data-video-platform="instagram" data-child-capability-id="download-instagram-video-once" aria-pressed="false">Instagram</button>
-      <button class="platform-tab" type="button" data-video-platform="bilibili" data-child-capability-id="download-bilibili-video-once" aria-pressed="false">Bilibili</button>
-      <button class="platform-tab" type="button" data-video-platform="douyin" data-child-capability-id="download-douyin-video-once" aria-pressed="false">Douyin</button>
-      <button class="platform-tab" type="button" data-video-platform="x" data-child-capability-id="download-x-video-once" aria-pressed="false">X</button>
-      <button class="platform-tab" type="button" data-video-platform="xiaohongshu" data-child-capability-id="download-xiaohongshu-video-once" aria-pressed="false">Xiaohongshu</button>
+      <button class="platform-tab" type="button" data-video-platform="telegram" aria-pressed="true">Telegram Web</button>
+      <button class="platform-tab" type="button" data-video-platform="youtube" aria-pressed="false">YouTube</button>
+      <button class="platform-tab" type="button" data-video-platform="universal" aria-pressed="false">Universal</button>
+      <button class="platform-tab" type="button" data-video-platform="facebook" aria-pressed="false">Facebook</button>
+      <button class="platform-tab" type="button" data-video-platform="tiktok" aria-pressed="false">TikTok</button>
+      <button class="platform-tab" type="button" data-video-platform="instagram" aria-pressed="false">Instagram</button>
+      <button class="platform-tab" type="button" data-video-platform="bilibili" aria-pressed="false">Bilibili</button>
+      <button class="platform-tab" type="button" data-video-platform="douyin" aria-pressed="false">Douyin</button>
+      <button class="platform-tab" type="button" data-video-platform="x" aria-pressed="false">X</button>
+      <button class="platform-tab" type="button" data-video-platform="xiaohongshu" aria-pressed="false">Xiaohongshu</button>
     </div>
     <div class="notice wide" data-video-platform-note="telegram" data-video-download-telegram-boundary style="display:flex;flex-direction:column;gap:8px;padding:12px 14px">
       <b style="font-size:13px">如何下载 Telegram 指定视频：</b>

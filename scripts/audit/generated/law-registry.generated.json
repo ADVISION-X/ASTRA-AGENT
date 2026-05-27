@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T19:30:25.953Z",
+  "generatedAt": "2026-05-27T21:04:04.824Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -1294,6 +1294,50 @@
       "summary": "Every public export, registry entry, report field, schema field, wrapper, and abstraction layer in active source must prove active value or be deleted, inlined, merged, or moved out of production source.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 23
+    },
+    {
+      "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "constitutional-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+symbol",
+      "summary": "External consumers may use a capability group only through its public facade and may not import private owner internals.",
+      "filePath": ".github/instructions/agent-rules/modules/module-constitutional-boundary.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "constitutional-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+symbol",
+      "summary": "Capability facades must not leak private implementation symbols through re-export or declaration escape.",
+      "filePath": ".github/instructions/agent-rules/modules/module-constitutional-boundary.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "constitutional-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "External consumers must not construct private capability execution protocol objects.",
+      "filePath": ".github/instructions/agent-rules/modules/module-constitutional-boundary.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "constitutional-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+symbol",
+      "summary": "Business plugins may not scatter low-level DOM primitive imports; only an allowlisted bridge may import DOM primitives directly.",
+      "filePath": ".github/instructions/agent-rules/modules/module-constitutional-boundary.instructions.md",
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",

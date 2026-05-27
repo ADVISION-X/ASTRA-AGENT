@@ -31,14 +31,30 @@ export const inspectPackageScript = (
       message: "acceptance:amazon-product-mining must include amazon-product-mining-app-ui.acceptance.ts.",
     }));
   }
-  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-package-zip.acceptance.ts")) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/package-acceptance-script-package-zip",
-      lawId,
-      filePath: packagePath,
-      message: "acceptance:amazon-product-mining must include amazon-product-mining-package-zip.acceptance.ts.",
-    }));
-  }
+	  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-package-zip.acceptance.ts")) {
+	    findings.push(createFinding({
+	      checkId: "amazon-mining/package-acceptance-script-package-zip",
+	      lawId,
+	      filePath: packagePath,
+	      message: "acceptance:amazon-product-mining must include amazon-product-mining-package-zip.acceptance.ts.",
+	    }));
+	  }
+	  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-package-final-gate.acceptance.ts")) {
+	    findings.push(createFinding({
+	      checkId: "amazon-mining/package-acceptance-script-final-gate",
+	      lawId,
+	      filePath: packagePath,
+	      message: "acceptance:amazon-product-mining must include the final package gate acceptance.",
+	    }));
+	  }
+	  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-production-attacks.acceptance.ts")) {
+	    findings.push(createFinding({
+	      checkId: "amazon-mining/package-acceptance-script-production-attacks",
+	      lawId,
+	      filePath: packagePath,
+	      message: "acceptance:amazon-product-mining must include production extraction attack acceptance.",
+	    }));
+	  }
   if (scripts["audit:amazon-product-mining"] !== "node --import tsx scripts/audit/domains/amazon-product-mining/inspector.ts") {
     findings.push(createFinding({
       checkId: "amazon-mining/package-audit-script",

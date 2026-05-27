@@ -2,12 +2,10 @@ import { createHash } from "node:crypto";
 
 import {
   createVideoDownloadAbilityGroup,
+  type BrowserMediaSourcePort,
+  type VideoArtifactStoragePort,
+  type WriteVideoArtifactInput,
 } from "../../src/capabilities/video-download/index.js";
-import type { BrowserMediaSourcePort } from "../../src/capabilities/video-download/ports/browser-media-source-port.js";
-import type {
-  VideoArtifactStoragePort,
-  WriteVideoArtifactInput,
-} from "../../src/capabilities/video-download/ports/video-artifact-storage-port.js";
 
 const mp4Bytes = new Uint8Array([
   0x00, 0x00, 0x00, 0x18,
@@ -21,12 +19,10 @@ const mp4Bytes = new Uint8Array([
 const toBase64 = (bytes: Uint8Array): string => Buffer.from(bytes).toString("base64");
 
 const baseInput = {
-  abilityGroupId: "video-download" as const,
-  childCapabilityId: "download-telegram-web-video-once" as const,
   missionId: "mission-telegram",
   runId: "run-telegram",
-  capabilityCallId: "call-telegram",
   sourcePageUrl: "https://web.telegram.org/a/#-1000000000000",
+  platform: "telegram-web" as const,
 };
 
 const createStorage = (): VideoArtifactStoragePort => ({
@@ -72,7 +68,7 @@ const successGroup = createVideoDownloadAbilityGroup({
   browserMediaSourcePort: successBrowser,
   artifactStoragePort: createStorage(),
 });
-const successResult = await successGroup.execute(baseInput);
+const successResult = await successGroup.downloadVideo(baseInput);
 assert(successResult.status === "success", "Telegram Web complete cache should produce success.");
 assert(successResult.output.status === "success", "Telegram Web output should be success.");
 if (successResult.output.status !== "success") {
@@ -92,11 +88,11 @@ const reviewGroup = createVideoDownloadAbilityGroup({
   }),
   artifactStoragePort: createStorage(),
 });
-const reviewResult = await reviewGroup.execute(baseInput);
+const reviewResult = await reviewGroup.downloadVideo(baseInput);
 assert(reviewResult.status === "review_required", "Incomplete Telegram Web cache should request review.");
 assert(reviewResult.failureReason === "candidate_not_found", "Incomplete cache should report candidate_not_found.");
 
-const invalidHostResult = await successGroup.execute({
+const invalidHostResult = await successGroup.downloadVideo({
   ...baseInput,
   sourcePageUrl: "https://telegram.org/",
 });

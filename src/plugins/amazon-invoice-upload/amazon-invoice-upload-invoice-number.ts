@@ -1,16 +1,14 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import {
-  fillDomElementOnce,
-  readDomSnapshotOnce,
-} from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
 import {
   evidenceField,
+  fillElement,
   locateFailureResult,
   locateOrStatus,
+  readSnapshot,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
@@ -35,7 +33,7 @@ export async function fillInvoiceNumber(
   });
   if (!invoiceNumber.ok) return invoiceNumberFailure(runtimeLogger, mission, invoiceNumber);
   traceInvoiceNumberLocated(runtimeLogger, mission, invoiceNumber.element);
-  const filled = await fillDomElementOnce(browser, {
+  const filled = await fillElement(browser, {
     elementRef: invoiceNumber.element,
     approvedText: mission.invoiceNo,
     clearBeforeType: true,
@@ -48,8 +46,8 @@ async function readAndTraceInvoiceNumberSnapshot(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-): Promise<Awaited<ReturnType<typeof readDomSnapshotOnce>>> {
-  const snapshot = await readDomSnapshotOnce(browser);
+): Promise<Awaited<ReturnType<typeof readSnapshot>>> {
+  const snapshot = await readSnapshot(browser);
   recordAmazonDomStepTrace({ runtimeLogger, mission, stepName: "locate invoice number input", status: "snapshot", snapshot });
   return snapshot;
 }
@@ -82,7 +80,7 @@ function buildInvoiceNumberFillResult(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   element: DomElementRef,
-  filled: Awaited<ReturnType<typeof fillDomElementOnce>>,
+  filled: Awaited<ReturnType<typeof fillElement>>,
 ): StepResult<void> {
   recordAmazonDomStepTrace({
     runtimeLogger,

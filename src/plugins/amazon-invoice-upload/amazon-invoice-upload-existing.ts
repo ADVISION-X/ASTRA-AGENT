@@ -1,4 +1,3 @@
-import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef } from "../../types/dom-automation.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
@@ -6,6 +5,7 @@ import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow
 import {
   clickLocated,
   evidenceField,
+  readSnapshot,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -28,7 +28,7 @@ export async function verifyAlreadyUploadedInvoice(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
-  const snapshot = await readDomSnapshotOnce(browser);
+  const snapshot = await readSnapshot(browser);
   if (hasExistingInvoiceEvidence(snapshot, mission)) {
     traceAlreadyUploaded(runtimeLogger, mission, snapshot);
     return closeAlreadyUploadedTab({
@@ -58,7 +58,7 @@ export async function verifyAlreadyUploadedInvoice(
 function traceAlreadyUploaded(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
 ): void {
   recordAmazonDomStepTrace({
     runtimeLogger,
@@ -74,7 +74,7 @@ async function openManageInvoiceList(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
 ): Promise<AmazonInvoiceUploadTaskResult | "not-found" | null> {
   const manageEntry = locateManageInvoiceEntry(snapshot);
   if (!manageEntry.ok) return "not-found";
@@ -95,7 +95,7 @@ async function openManageInvoiceList(
 function traceManageInvoiceEntry(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
   element: DomElementRef,
 ): void {
   recordAmazonDomStepTrace({
@@ -141,7 +141,7 @@ async function waitForExistingInvoiceEvidence(
 ): Promise<string | undefined> {
   const startedAt = Date.now();
   while (Date.now() - startedAt < 2500) {
-    const snapshot = await readDomSnapshotOnce(browser);
+    const snapshot = await readSnapshot(browser);
     if (hasExistingInvoiceEvidence(snapshot, mission)) {
       const evidenceRef = `amazon-existing-invoice:${mission.amazonOrderId}:${Date.now()}`;
       recordAmazonDomStepTrace({

@@ -1,7 +1,11 @@
 import {
   clickDomElementOnce,
+  fillDomElementOnce,
   locateDomElementOnce,
+  readDomSnapshotOnce,
+  uploadApprovedFileOnce,
   verifyDomStateOnce,
+  waitForDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
@@ -12,6 +16,23 @@ import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow
 import { amazonDomTraceRefFromIds, recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 const DOM_CLICK_SETTLE_MS = 50;
+
+export const readSnapshot = (browser: BrowserController) => readDomSnapshotOnce(browser);
+
+export const fillElement = (
+  browser: BrowserController,
+  input: Parameters<typeof fillDomElementOnce>[1],
+) => fillDomElementOnce(browser, input);
+
+export const uploadFile = (
+  browser: BrowserController,
+  input: Parameters<typeof uploadApprovedFileOnce>[1],
+) => uploadApprovedFileOnce(browser, input);
+
+export const waitForState = (
+  browser: BrowserController,
+  input: Parameters<typeof waitForDomStateOnce>[1],
+) => waitForDomStateOnce(browser, input);
 
 export function evidenceField(evidenceRef: string | undefined): { evidenceRef: string } | Record<string, never> {
   return evidenceRef ? { evidenceRef } : {};

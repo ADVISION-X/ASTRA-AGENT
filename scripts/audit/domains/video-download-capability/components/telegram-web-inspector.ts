@@ -82,7 +82,7 @@ const inspectTelegramAppJobEntry = (findings: Finding[], lawId: string): void =>
       lawId,
       filePath,
       text,
-      marker: "download-telegram-web-video-once",
+      marker: "telegram-web",
       checkId: "video-download/telegram-app-job-entry",
     });
   }

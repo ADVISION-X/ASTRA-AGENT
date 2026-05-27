@@ -1,4 +1,3 @@
-import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef } from "../../types/dom-automation.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
@@ -7,6 +6,7 @@ import {
   clickLocated,
   locateFailureResult,
   locateOrStatus,
+  readSnapshot,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -43,7 +43,7 @@ export async function openUploadInvoiceEntry(
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
   await browser.wait(50);
-  const snapshot = await readDomSnapshotOnce(browser);
+  const snapshot = await readSnapshot(browser);
   traceUploadInvoiceEntrySnapshot(runtimeLogger, mission, snapshot);
   const uploadEntry = locateUploadInvoiceButton(snapshot);
   if (!uploadEntry.ok) return uploadInvoiceEntryFailure(runtimeLogger, mission, snapshot, uploadEntry);
@@ -57,7 +57,7 @@ export async function openUploadInvoiceEntry(
 function traceUploadInvoiceEntrySnapshot(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
 ): void {
   recordAmazonDomStepTrace({
     runtimeLogger,
@@ -71,7 +71,7 @@ function traceUploadInvoiceEntrySnapshot(
 function uploadInvoiceEntryFailure(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
   uploadEntry: LocateFailure,
 ): StepResult<void> {
   recordAmazonDomStepTrace({
@@ -88,7 +88,7 @@ function uploadInvoiceEntryFailure(
 function traceUploadInvoiceEntryLocated(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
   element: DomElementRef,
 ): void {
   recordAmazonDomStepTrace({
@@ -138,7 +138,7 @@ function uploadDialogNotReady(mission: AmazonInvoiceUploadMissionInput): StepRes
   }));
 }
 
-function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>): ReturnType<typeof locateOrStatus> {
+function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readSnapshot>>): ReturnType<typeof locateOrStatus> {
   const zhButton = locateOrStatus({
     snapshot,
     targetKind: "button",
@@ -169,9 +169,9 @@ async function waitForUploadDialog(
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<boolean> {
   const startedAt = Date.now();
-  let lastSnapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>> | null = null;
+  let lastSnapshot: Awaited<ReturnType<typeof readSnapshot>> | null = null;
   while (Date.now() - startedAt < UPLOAD_DIALOG_READY_TIMEOUT_MS) {
-    const snapshot = await readDomSnapshotOnce(browser);
+    const snapshot = await readSnapshot(browser);
     lastSnapshot = snapshot;
     if (snapshot.fileInputs.length > 0 || snapshotHasUploadDialogCopy(snapshot)) {
       recordAmazonDomStepTrace({
@@ -199,7 +199,7 @@ async function waitForUploadDialog(
   return false;
 }
 
-function snapshotHasUploadDialogCopy(snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>): boolean {
+function snapshotHasUploadDialogCopy(snapshot: Awaited<ReturnType<typeof readSnapshot>>): boolean {
   const dialogText = [
     ...snapshot.dialogs,
     ...snapshot.textBlocks,

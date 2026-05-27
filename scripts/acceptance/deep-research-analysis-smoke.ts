@@ -3,12 +3,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import type {
-    AiProviderAdapter,
-    AiProviderAdapterContext,
-    AiProviderRawResponse,
-} from "../../src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.js";
-import type {
     AiFeedInput,
+  AiProviderAdapter,
+  AiProviderAdapterContext,
+  AiProviderRawResponse,
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";

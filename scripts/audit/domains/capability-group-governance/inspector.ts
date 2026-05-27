@@ -1,7 +1,15 @@
-import type { ExportDeclaration } from "ts-morph";
+import type { ImportDeclaration, Node as MorphNode, Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import {
+  buildCapabilityRoot,
+  classifyRepoPath,
+  isCapabilityFacade,
+  isCapabilityNonFacade,
+  isCapabilityPrivateImplementationSection,
+  isExternalCapabilityConsumer,
+} from "../../shared/repo-path-classifier.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -10,9 +18,7 @@ import {
   buildCapabilityGovernanceReportJson,
   pushCapabilitySourceOfTruthFindings,
 } from "./components/capability-governance-report.js";
-
-const privateCapabilityPathPattern = /^src\/capabilities\/[^/]+\/(runtime|children)\//u;
-const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
+import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 
 type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
 
@@ -29,101 +35,15 @@ const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]
 };
 
 const registerCapabilityRoot = (capabilityRoots: Set<string>, repoPath: string): void => {
-  const segments = repoPath.split("/");
-  const capabilityRoot = segments.length >= 3 ? `${segments[0]}/${segments[1]}/${segments[2]}` : undefined;
-  if (capabilityRoot) {
-    capabilityRoots.add(capabilityRoot);
+  const pathInfo = classifyRepoPath(repoPath);
+  if (pathInfo.kind === "capability") {
+    capabilityRoots.add(buildCapabilityRoot(pathInfo.owner));
   }
 };
 
 const resolveCapabilityRoot = (repoPath: string): string | undefined => {
-  const segments = repoPath.split("/");
-  return segments.length >= 3 ? `${segments[0]}/${segments[1]}/${segments[2]}` : undefined;
-};
-
-const isFactoryContractValueExportAllowed = (capabilityRoot: string, targetPath: string): boolean =>
-  targetPath === `${capabilityRoot}/ability-group.ts`;
-
-const isRuntimeValueExportDeclaration = (
-  exportDeclaration: ExportDeclaration,
-): boolean => {
-  if (exportDeclaration.isTypeOnly()) {
-    return false;
-  }
-  const namedExports = exportDeclaration.getNamedExports();
-  if (namedExports.length === 0) {
-    return true;
-  }
-  return namedExports.some((namedExport) => !namedExport.isTypeOnly());
-};
-
-const pushFacadePurityFindings = (
-  sourceFile: Parameters<typeof getRepoSourcePath>[0],
-  repoPath: string,
-  capabilityRoot: string,
-  facadeLawId: string,
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
-): void => {
-  const policy = resolveCapabilityFacadePolicy(capabilityRoot);
-  for (const exportDeclaration of sourceFile.getExportDeclarations()) {
-    const moduleSpecifierValue = exportDeclaration.getModuleSpecifierValue();
-    if (!moduleSpecifierValue) {
-      continue;
-    }
-    const targetSourceFile = exportDeclaration.getModuleSpecifierSourceFile();
-    if (!targetSourceFile) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(targetSourceFile);
-    const exportedNames = exportDeclaration.getNamedExports().map((namedExport) => namedExport.getName());
-    const hasRuntimeValueExport = isRuntimeValueExportDeclaration(exportDeclaration);
-
-    if (
-      targetPath.startsWith(`${capabilityRoot}/runtime/`)
-      || targetPath.startsWith(`${capabilityRoot}/children/`)
-    ) {
-      const domPublicChildExportAllowed = policy.mode === "public-child-functions"
-        && hasRuntimeValueExport
-        && exportedNames.length > 0
-        && exportedNames.every((name) => policy.allowedPublicChildFunctionExports?.has(name) ?? false);
-      if (domPublicChildExportAllowed) {
-        continue;
-      }
-      pushFinding({
-        checkId: "capability-group/facade-private-runtime-export",
-        lawId: facadeLawId,
-        filePath: repoPath,
-        evidence: targetPath,
-        message: `${repoPath} re-exports private capability implementation ${targetPath}.`,
-      });
-      continue;
-    }
-
-    if (targetPath === `${capabilityRoot}/registry.ts`) {
-      pushFinding({
-        checkId: "capability-group/facade-registry-export",
-        lawId: facadeLawId,
-        filePath: repoPath,
-        evidence: targetPath,
-        message: `${repoPath} re-exports private registry surface ${targetPath}.`,
-      });
-      continue;
-    }
-
-    if (
-      hasRuntimeValueExport
-      && policy.mode === "factory-contract"
-      && !isFactoryContractValueExportAllowed(capabilityRoot, targetPath)
-    ) {
-      pushFinding({
-        checkId: "capability-group/facade-noncontract-value-export",
-        lawId: facadeLawId,
-        filePath: repoPath,
-        evidence: targetPath,
-        message: `${repoPath} exports runtime value surface ${targetPath} instead of a factory-only public facade.`,
-      });
-    }
-  }
+  const pathInfo = classifyRepoPath(repoPath);
+  return pathInfo.kind === "capability" ? buildCapabilityRoot(pathInfo.owner) : undefined;
 };
 
 const pushCapabilityPluginImportFindings = (
@@ -168,11 +88,12 @@ const pushCapabilityCrossOwnerImportFindings = (
       continue;
     }
     const targetPath = getRepoSourcePath(targetSourceFile);
-    if (!targetPath.startsWith("src/capabilities/")) {
+    const targetPathInfo = classifyRepoPath(targetPath);
+    if (targetPathInfo.kind !== "capability") {
       continue;
     }
-    const targetCapabilityRoot = resolveCapabilityRoot(targetPath);
-    if (!targetCapabilityRoot || targetCapabilityRoot === sourceCapabilityRoot) {
+    const targetCapabilityRoot = buildCapabilityRoot(targetPathInfo.owner);
+    if (targetCapabilityRoot === sourceCapabilityRoot) {
       continue;
     }
     pushFinding({
@@ -192,6 +113,53 @@ const hasExportStarFacade = (sourceFile: Parameters<typeof getRepoSourcePath>[0]
       .find((declaration) => declaration.getModuleSpecifierValue() !== undefined && declaration.getNamedExports().length === 0),
   );
 
+const pushFacadeSymbolEscapeImportFindings = (
+  importDeclaration: ImportDeclaration,
+  repoPath: string,
+  facadeLawId: string,
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
+): void => {
+  const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
+  if (!targetSourceFile) {
+    return;
+  }
+  const targetPath = getRepoSourcePath(targetSourceFile);
+  const targetPathInfo = classifyRepoPath(targetPath);
+  if (!isCapabilityFacade(targetPathInfo)) {
+    return;
+  }
+
+  const policy = resolveCapabilityFacadePolicy(buildCapabilityRoot(targetPathInfo.owner));
+  const exportSymbols = targetSourceFile.getExportSymbols();
+
+  for (const namedImport of importDeclaration.getNamedImports()) {
+    const importedName = namedImport.getNameNode().getText();
+    if (policy.mode === "public-child-functions" && (policy.allowedPublicChildFunctionExports?.has(importedName) ?? false)) {
+      continue;
+    }
+    const declarationPath = exportSymbols
+      .filter((exportSymbol: MorphSymbol) => exportSymbol.getName() === importedName)
+      .flatMap((exportSymbol: MorphSymbol) => exportSymbol.getDeclarations())
+      .map((declaration: MorphNode) => getRepoSourcePath(declaration.getSourceFile()))
+      .find((candidatePath: string) => {
+        const candidateInfo = classifyRepoPath(candidatePath);
+        return candidateInfo.kind === "capability"
+          && candidateInfo.owner === targetPathInfo.owner
+          && isCapabilityPrivateImplementationSection(candidateInfo);
+      });
+    if (!declarationPath) {
+      continue;
+    }
+    pushFinding({
+      checkId: "capability-group/external-facade-private-symbol",
+      lawId: facadeLawId,
+      filePath: repoPath,
+      evidence: `${targetPath}:${importedName}:${declarationPath}`,
+      message: `${repoPath} imports facade symbol ${importedName} from ${targetPath}, but the symbol is declared in private capability implementation ${declarationPath}.`,
+    });
+  }
+};
+
 const inspectCapabilityFile = (
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   repoPath: string,
@@ -199,13 +167,14 @@ const inspectCapabilityFile = (
   facadeLawId: string,
   pushFinding: ReturnType<typeof createDedupedFindingPusher>,
 ): void => {
-  if (!repoPath.startsWith("src/capabilities/")) {
+  const pathInfo = classifyRepoPath(repoPath);
+  if (pathInfo.kind !== "capability") {
     return;
   }
   registerCapabilityRoot(capabilityRoots, repoPath);
   pushCapabilityPluginImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
   pushCapabilityCrossOwnerImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
-  if (!/^src\/capabilities\/[^/]+\/index\.ts$/u.test(repoPath)) {
+  if (!isCapabilityFacade(pathInfo)) {
     return;
   }
   const capabilityRoot = resolveCapabilityRoot(repoPath);
@@ -223,13 +192,14 @@ const inspectCapabilityFile = (
   });
 };
 
-const inspectPluginFile = (
+const inspectExternalConsumerFile = (
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   repoPath: string,
   facadeLawId: string,
   pushFinding: ReturnType<typeof createDedupedFindingPusher>,
 ): void => {
-  if (!repoPath.startsWith("src/plugins/")) {
+  const consumerInfo = classifyRepoPath(repoPath);
+  if (!isExternalCapabilityConsumer(consumerInfo)) {
     return;
   }
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
@@ -238,21 +208,23 @@ const inspectPluginFile = (
       continue;
     }
     const targetPath = getRepoSourcePath(targetSourceFile);
-    if (!targetPath.startsWith("src/capabilities/")) {
+    const targetInfo = classifyRepoPath(targetPath);
+    if (targetInfo.kind !== "capability") {
       continue;
     }
-    if (publicCapabilityFacadePathPattern.test(targetPath)) {
+    if (isCapabilityFacade(targetInfo)) {
+      pushFacadeSymbolEscapeImportFindings(importDeclaration, repoPath, facadeLawId, pushFinding);
       continue;
     }
     pushFinding({
-      checkId: privateCapabilityPathPattern.test(targetPath)
-        ? "capability-group/plugin-private-import"
-        : "capability-group/plugin-non-facade-import",
+      checkId: isCapabilityPrivateImplementationSection(targetInfo)
+        ? "capability-group/external-private-import"
+        : "capability-group/external-non-facade-import",
       lawId: facadeLawId,
       filePath: repoPath,
       evidence: targetPath,
-      message: privateCapabilityPathPattern.test(targetPath)
-        ? `${repoPath} imports private capability runtime ${targetPath}.`
+      message: isCapabilityPrivateImplementationSection(targetInfo)
+        ? `${repoPath} imports private capability implementation ${targetPath}.`
         : `${repoPath} imports non-facade capability code ${targetPath}.`,
     });
   }
@@ -269,7 +241,7 @@ const collectCapabilityGovernanceScan = (input: {
 
   for (const sourceFile of listActiveSourceFiles(input.project)) {
     const repoPath = getRepoSourcePath(sourceFile);
-    if (publicCapabilityFacadePathPattern.test(repoPath)) {
+    if (isCapabilityFacade(classifyRepoPath(repoPath))) {
       capabilityFacades.add(repoPath);
     }
     inspectSourceFile(sourceFile, inspectedFiles, capabilityRoots, input.facadeLawId, input.pushFinding);
@@ -311,7 +283,7 @@ const inspectSourceFile = (
   const repoPath = getRepoSourcePath(sourceFile);
   inspectedFiles.add(repoPath);
   inspectCapabilityFile(sourceFile, repoPath, capabilityRoots, facadeLawId, pushFinding);
-  inspectPluginFile(sourceFile, repoPath, facadeLawId, pushFinding);
+  inspectExternalConsumerFile(sourceFile, repoPath, facadeLawId, pushFinding);
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {

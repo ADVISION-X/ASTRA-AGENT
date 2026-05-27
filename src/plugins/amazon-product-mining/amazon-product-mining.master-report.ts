@@ -129,6 +129,19 @@ const buildEvidenceIndexLines = (products: readonly EvidenceIndexProduct[] | und
   ...(products?.map((product) => `${product.detailId ?? "unknown"} -> ${(product.sourceKeywordIds ?? []).join(", ")} -> ${(product.sourceSearchItemRefs ?? []).join(", ")}`) ?? ["No evidence index entries."]),
 ];
 
+const buildKeywordEvidenceLines = (keywords: readonly EvidenceIndexKeyword[] | undefined) => [
+  "Chapter 6. Keyword Search Evidence",
+  ...(keywords?.map((keyword) => [
+    `${keyword.keywordId ?? "unknown"} | ${keyword.keyword ?? "unknown"}`,
+    `Search Evidence: ${keyword.searchEvidenceRef ?? ""}`,
+    `Search Items: ${(keyword.searchResultRefs ?? []).join(", ") || "none"}`,
+    `Product Details: ${(keyword.productDetailRefs ?? []).join(", ") || "none"}`,
+    `Reviews: ${(keyword.reviewRefs ?? []).join(", ") || "none"}`,
+    `Images: ${(keyword.imageRefs ?? []).join(", ") || "none"}`,
+    `Exceptions: ${(keyword.exceptionRefs ?? []).join(", ") || "none"}`,
+  ].join(" | ")) ?? ["No keyword evidence."]),
+];
+
 const renderTaskSummaryGrid = (input: {
   task: ReportTask;
   generatedAt: string;
@@ -152,6 +165,8 @@ const renderKeywordEvidenceCards = (keywords: readonly EvidenceIndexKeyword[] | 
           <p><strong>Raw Visible Text:</strong> ${escapeHtml(keyword.rawVisibleTextRef ?? "")}</p>
           <p><strong>Search Items:</strong> ${escapeHtml((keyword.searchResultRefs ?? []).join(", ") || "none")}</p>
           <p><strong>Product Details:</strong> ${escapeHtml((keyword.productDetailRefs ?? []).join(", ") || "none")}</p>
+          <p><strong>Reviews:</strong> ${escapeHtml((keyword.reviewRefs ?? []).join(", ") || "none")}</p>
+          <p><strong>Images:</strong> ${escapeHtml((keyword.imageRefs ?? []).join(", ") || "none")}</p>
         </div>`).join("") || "<p>No keyword evidence.</p>";
 
 const formatSourceKeywords = (keywords: readonly ReportSourceKeyword[] | undefined): string =>
@@ -353,25 +368,30 @@ const buildMasterReportBodyInput = (input: AmazonMasterReportInput) => ({
   products: input.packageData?.products ?? [],
   reviewsIndex: input.packageData?.reviewsIndex ?? [],
   exceptions: input.exceptionSummary?.exceptions ?? [],
+  evidenceKeywords: input.evidenceIndex?.keywords ?? [],
   evidenceArtifacts: input.evidenceIndex?.artifacts ?? [],
   integrityChecks: input.integrityReport?.checks ?? [],
 });
 
-const renderMasterReportBody = (input: {
-  task: ReportTask;
-  generatedAt: string;
-  reportVersion: string;
-  summary: Record<string, unknown>;
-  contractBullets: readonly string[];
-  boundaryBullets: readonly string[];
-  runs: readonly NonNullable<NonNullable<AmazonMasterReportInput["packageData"]>["aiKeywordRuns"]>[number][];
-  keywords: readonly ReportKeyword[];
-  products: readonly ReportProduct[];
-  reviewsIndex: readonly ReportReviewIndex[];
-  exceptions: readonly ReportException[];
-  evidenceArtifacts: readonly EvidenceArtifact[];
-  integrityChecks: readonly IntegrityCheck[];
-}): string => [
+type MasterReportBodyInput = ReturnType<typeof buildMasterReportBodyInput>;
+
+const buildMasterReportCompletenessProducts = (products: readonly ReportProduct[]): readonly CompletenessProduct[] =>
+  products.map((product) => ({
+    detailId: product.detailId,
+    reviewStatus: product.completeness?.reviewStatus ?? product.reviews?.summaryRef ?? null,
+    reviewPagesVisited: product.reviews?.pagesVisited ?? 0,
+    reviewRestriction: null,
+    missingFields: product.completeness?.missingFields ?? [],
+    notPresentFields: product.completeness?.notPresentFields ?? [],
+    blockedFields: product.completeness?.blockedFields ?? [],
+    unsupportedFields: product.completeness?.unsupportedFields ?? [],
+    manualRequiredFields: product.completeness?.manualRequiredFields ?? [],
+    failedFields: product.completeness?.failedFields ?? [],
+    extractorMissingFields: product.completeness?.extractorMissingFields ?? [],
+    dataCompletenessScore: product.completeness?.score ?? 0,
+  })) as readonly CompletenessProduct[];
+
+const renderMasterReportIntroSections = (input: MasterReportBodyInput): string[] => [
   `
     <section class="hero">
       <h1>Amazon Product Mining Master Evidence Report</h1>
@@ -394,30 +414,26 @@ const renderMasterReportBody = (input: {
   `
     <section class="panel section-stack">
       <h2>Chapter 6. Keyword Search Evidence</h2>
-      ${renderKeywordEvidenceCards(input.keywords)}
+      ${renderKeywordEvidenceCards(input.evidenceKeywords)}
     </section>`,
   renderProductOverviewSection(input.products),
+];
+
+const renderMasterReportEvidenceSections = (input: MasterReportBodyInput): string[] => [
   `
     <section class="panel section-stack">
       <h2>Chapter 8. Product Evidence Cards</h2>
       ${renderProductEvidenceCards(input.products)}
     </section>`,
   renderReviewSummarySection(input.reviewsIndex),
-  renderCompletenessSection({ exceptions: input.exceptions, products: input.products.map((product) => ({
-    detailId: product.detailId,
-    reviewStatus: product.completeness?.reviewStatus ?? product.reviews?.summaryRef ?? null,
-    reviewPagesVisited: product.reviews?.pagesVisited ?? 0,
-    reviewRestriction: null,
-    missingFields: product.completeness?.missingFields ?? [],
-    notPresentFields: product.completeness?.notPresentFields ?? [],
-    blockedFields: product.completeness?.blockedFields ?? [],
-    unsupportedFields: product.completeness?.unsupportedFields ?? [],
-    manualRequiredFields: product.completeness?.manualRequiredFields ?? [],
-    failedFields: product.completeness?.failedFields ?? [],
-    extractorMissingFields: product.completeness?.extractorMissingFields ?? [],
-    dataCompletenessScore: product.completeness?.score ?? 0,
-  })) as readonly CompletenessProduct[] }),
+  renderCompletenessSection({
+    exceptions: input.exceptions,
+    products: buildMasterReportCompletenessProducts(input.products),
+  }),
   renderEvidenceIndexSection({ artifacts: input.evidenceArtifacts, checks: input.integrityChecks }),
+];
+
+const renderMasterReportClosingSections = (input: MasterReportBodyInput): string[] => [
   `
     <section class="panel section-stack">
       <h2>Chapter 12. Advanced AI Usage Guidance</h2>
@@ -431,6 +447,12 @@ const renderMasterReportBody = (input: {
       <h2>Business Boundary Notice</h2>
       ${renderBulletList(input.boundaryBullets)}
     </section>`,
+];
+
+const renderMasterReportBody = (input: MasterReportBodyInput): string => [
+  ...renderMasterReportIntroSections(input),
+  ...renderMasterReportEvidenceSections(input),
+  ...renderMasterReportClosingSections(input),
 ].join("\n");
 
 export const buildAmazonMasterReportLines = (input: AmazonMasterReportInput): string[] => {
@@ -450,6 +472,7 @@ export const buildAmazonMasterReportLines = (input: AmazonMasterReportInput): st
     ...buildTaskCompletenessLines(summary),
     ...buildAiKeywordRunLines(input.packageData?.aiKeywordRuns),
     ...buildKeywordOverviewLines(input.packageData?.keywords),
+    ...buildKeywordEvidenceLines(input.evidenceIndex?.keywords),
     ...buildProductOverviewLines(input.packageData?.products),
     ...buildReviewSummaryLines(input.packageData?.reviewsIndex),
     ...buildExceptionLines(input.exceptionSummary?.exceptions),

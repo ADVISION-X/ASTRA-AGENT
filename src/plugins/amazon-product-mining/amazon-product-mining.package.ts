@@ -354,15 +354,16 @@ const writeManifestAndIntegrityArtifacts = (input: {
     productArtifacts: input.evidence.productArtifacts,
     reviewArtifacts: input.evidence.reviewArtifacts,
     reviewsByDetailId: input.runtime.reviewsByDetailId,
+    imageEvidenceIndex: input.evidence.imageEvidenceIndex,
     artifactRefs: input.artifactRefs,
   }));
-  writeJsonFile(input.layout.packageFileHashesPath, buildPackageFileHashes({ taskId: input.taskId, layout: input.layout }));
   const integrityReport = buildPackageIntegrityReport({
     taskId: input.taskId,
     layout: input.layout,
-    taskScope: input.taskScope,
-    packageType: input.packageJson.packageType,
-    productArtifacts: input.evidence.productArtifacts,
+	    taskScope: input.taskScope,
+	    packageType: input.packageJson.packageType,
+	    keywordArtifacts: input.evidence.keywordArtifacts,
+	    productArtifacts: input.evidence.productArtifacts,
     reviewArtifacts: input.evidence.reviewArtifacts,
     reviewsByDetailId: input.runtime.reviewsByDetailId,
     exceptions: input.runtime.exceptions,
@@ -372,6 +373,7 @@ const writeManifestAndIntegrityArtifacts = (input: {
     artifactRefs: input.artifactRefs,
   });
   writeJsonFile(input.layout.packageIntegrityReportPath, integrityReport);
+  writeJsonFile(input.layout.packageFileHashesPath, buildPackageFileHashes({ taskId: input.taskId, layout: input.layout }));
   return integrityReport;
 };
 

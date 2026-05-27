@@ -123,9 +123,10 @@ export const inspectWorkbenchHomeSurface = (
 };
 
 type ArtifactSourceFiles = {
-  packageFile: SourceFile | undefined;
-  packageLayoutFile: SourceFile | undefined;
-  packageArtifactBuildersFile: SourceFile | undefined;
+	  packageFile: SourceFile | undefined;
+	  packageLayoutFile: SourceFile | undefined;
+	  packageManifestFile: SourceFile | undefined;
+	  packageArtifactBuildersFile: SourceFile | undefined;
   packageEvidenceSectionsFile: SourceFile | undefined;
   pdfFile: SourceFile | undefined;
   handoffFile: SourceFile | undefined;
@@ -135,9 +136,11 @@ type ArtifactSourceFiles = {
 type ArtifactInspectionText = {
   packageText: string;
   evidenceText: string;
-  pdfText: string;
-  pdfIdentifiers: string;
-  handoffText: string;
+	  pdfText: string;
+	  pdfIdentifiers: string;
+	  masterReportIdentifiers: string;
+	  packageManifestIdentifiers: string;
+	  handoffText: string;
   handoffIdentifiers: string;
 };
 
@@ -146,9 +149,10 @@ const collectArtifactSourceFiles = (
   inspectedFiles: Set<string>,
 ): ArtifactSourceFiles => {
   const files: ArtifactSourceFiles = {
-    packageFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package.ts"),
-    packageLayoutFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts"),
-    packageArtifactBuildersFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts"),
+	    packageFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package.ts"),
+	    packageLayoutFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts"),
+	    packageManifestFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts"),
+	    packageArtifactBuildersFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts"),
     packageEvidenceSectionsFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts"),
     pdfFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts"),
     handoffFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"),
@@ -167,18 +171,21 @@ const joinLiteralText = (sourceFiles: Array<SourceFile | undefined>): string =>
     .join("\n");
 
 const buildArtifactInspectionText = (files: ArtifactSourceFiles): ArtifactInspectionText => ({
-  packageText: joinLiteralText([files.packageFile, files.packageLayoutFile, files.packageArtifactBuildersFile]),
-  evidenceText: joinLiteralText([
-    files.packageFile,
-    files.packageLayoutFile,
-    files.packageArtifactBuildersFile,
-    files.packageEvidenceSectionsFile,
-  ]),
-  pdfText: joinLiteralText([files.pdfFile, files.masterReportFile, files.handoffFile]),
-  pdfIdentifiers: files.pdfFile ? identifierText(files.pdfFile) : "",
-  handoffText: joinLiteralText([files.handoffFile, files.packageLayoutFile]),
-  handoffIdentifiers: files.handoffFile ? identifierText(files.handoffFile) : "",
-});
+	  packageText: joinLiteralText([files.packageFile, files.packageLayoutFile, files.packageArtifactBuildersFile]),
+	  evidenceText: joinLiteralText([
+	    files.packageFile,
+	    files.packageLayoutFile,
+	    files.packageManifestFile,
+	    files.packageArtifactBuildersFile,
+	    files.packageEvidenceSectionsFile,
+	  ]),
+	  pdfText: joinLiteralText([files.pdfFile, files.masterReportFile, files.handoffFile]),
+	  pdfIdentifiers: files.pdfFile ? identifierText(files.pdfFile) : "",
+	  masterReportIdentifiers: files.masterReportFile ? identifierText(files.masterReportFile) : "",
+	  packageManifestIdentifiers: files.packageManifestFile ? identifierText(files.packageManifestFile) : "",
+	  handoffText: joinLiteralText([files.handoffFile, files.packageLayoutFile]),
+	  handoffIdentifiers: files.handoffFile ? identifierText(files.handoffFile) : "",
+	});
 
 const inspectPackageArtifactNames = (
   text: ArtifactInspectionText,
@@ -238,7 +245,7 @@ const inspectAdvancedPackageStructure = (
   }));
 };
 
-const inspectReportArtifacts = (
+const inspectEvidenceIndexArtifacts = (
   text: ArtifactInspectionText,
   findings: InspectorFinding[],
   lawId: string,
@@ -259,6 +266,13 @@ const inspectReportArtifacts = (
       message: "Amazon evidence index must catalog image evidence, completeness, integrity, and per-product review JSONL artifacts.",
     }));
   }
+};
+
+const inspectPdfArtifacts = (
+  text: ArtifactInspectionText,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
   if (!text.packageText.includes("Amazon-Product-Mining-Master-Evidence-Report.pdf") || !text.pdfIdentifiers.includes("pdfReportPath")) {
     findings.push(createFinding({
       checkId: "amazon-mining/fixed-pdf-artifact-name",
@@ -283,14 +297,71 @@ const inspectReportArtifacts = (
       message: "pdf.ts must generate the companion master-report.html alongside the fixed PDF artifact.",
     }));
   }
+};
+
+const inspectMasterReportContracts = (
+  text: ArtifactInspectionText,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
   if (!text.pdfText.includes("Front Boundary Notice") || !text.pdfText.includes("This report does not prove profitability.") || !text.pdfText.includes("This package is evidence, not a final business decision.")) {
     findings.push(createFinding({
       checkId: "amazon-mining/master-report-boundary-contract",
       lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
       message: "master-report.ts must surface front boundary notice and explicit non-profit / non-final-decision constraints in the report source.",
+      }));
+  }
+  if (!text.masterReportIdentifiers.includes("evidenceKeywords") || !text.masterReportIdentifiers.includes("buildKeywordEvidenceLines")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/master-report-evidence-keyword-binding",
+      lawId,
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+      message: "master-report.ts must render keyword chain evidence from evidenceIndex.keywords, not summary-only keyword rows.",
     }));
   }
+};
+
+const inspectPackageIntegrityContracts = (
+  text: ArtifactInspectionText,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  if (
+    !text.packageManifestIdentifiers.includes("collectMasterReportChainFailures")
+    || !text.packageManifestIdentifiers.includes("collectExtractorMissingProductFields")
+    || !text.packageManifestIdentifiers.includes("collectBrokenKeywordEvidenceChains")
+    || !text.packageManifestIdentifiers.includes("collectKeywordReviewRefs")
+    || !text.packageManifestIdentifiers.includes("collectKeywordImageRefs")
+    || !text.packageManifestIdentifiers.includes("buildMasterReportChainCheck")
+    || !text.packageManifestIdentifiers.includes("buildExtractorCoverageCheck")
+  ) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/package-integrity-final-zero-tolerance",
+      lawId,
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
+      message: "package-manifest.ts must enforce master report chain readability, keyword chain closure, and extractor_missing zero tolerance in package integrity.",
+    }));
+  }
+  if (!text.packageManifestIdentifiers.includes("reviewRefs") || !text.packageManifestIdentifiers.includes("imageRefs")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/evidence-index-keyword-chain-refs",
+      lawId,
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
+      message: "evidence-index keywords must carry reviewRefs and imageRefs so task -> keyword -> search -> detail -> reviews -> images remains closed.",
+    }));
+  }
+};
+
+const inspectReportArtifacts = (
+  text: ArtifactInspectionText,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  inspectEvidenceIndexArtifacts(text, findings, lawId);
+  inspectPdfArtifacts(text, findings, lawId);
+  inspectMasterReportContracts(text, findings, lawId);
+  inspectPackageIntegrityContracts(text, findings, lawId);
 };
 
 const inspectHandoffArtifacts = (

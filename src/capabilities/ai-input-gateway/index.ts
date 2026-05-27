@@ -3,4 +3,9 @@ export {
   type AiFeedInput,
   type AiFeedResult,
 } from "./schema.js";
+export type {
+  AiProviderAdapter,
+  AiProviderAdapterContext,
+  AiProviderRawResponse,
+} from "./contracts/ai-provider-adapter.contract.js";
 export type { AiInputGatewayAbilityGroup } from "./contract.js";

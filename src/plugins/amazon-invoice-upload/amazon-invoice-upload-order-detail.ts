@@ -1,12 +1,11 @@
-import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { taskResult } from "./amazon-invoice-upload-flow-support.js";
+import { readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
-type DomSnapshot = Awaited<ReturnType<typeof readDomSnapshotOnce>>;
+type DomSnapshot = Awaited<ReturnType<typeof readSnapshot>>;
 
 export async function openApprovedOrderDetail(
   browser: BrowserController,
@@ -73,7 +72,7 @@ const waitForApprovedOrderDetail = async (
 ): Promise<boolean> => {
   const startedAt = Date.now();
   while (Date.now() - startedAt < 7000) {
-    const snapshot = await readDomSnapshotOnce(browser);
+    const snapshot = await readSnapshot(browser);
     if (
       snapshotContainsApprovedOrder(snapshot, mission.amazonOrderId)
       && snapshotHasInvoiceActionState(snapshot)

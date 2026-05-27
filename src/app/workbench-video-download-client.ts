@@ -1,21 +1,21 @@
 const WORKBENCH_VIDEO_DOWNLOAD_CLIENT = `
 const VIDEO_PLATFORM_DEFAULTS = {
-  telegram: { childCapabilityId: "download-telegram-web-video-once", maxMegabytes: 5000, quality: false, subtitles: false, detect: true },
-  youtube: { childCapabilityId: "download-youtube-video-once", maxMegabytes: 500, quality: true, subtitles: true, detect: false },
-  universal: { childCapabilityId: "download-web-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  facebook: { childCapabilityId: "download-facebook-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  tiktok: { childCapabilityId: "download-tiktok-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  instagram: { childCapabilityId: "download-instagram-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  bilibili: { childCapabilityId: "download-bilibili-video-once", maxMegabytes: 500, quality: true, subtitles: false, detect: false },
-  douyin: { childCapabilityId: "download-douyin-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  x: { childCapabilityId: "download-x-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  xiaohongshu: { childCapabilityId: "download-xiaohongshu-video-once", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  telegram: { platform: "telegram-web", maxMegabytes: 5000, quality: false, subtitles: false, detect: true },
+  youtube: { platform: "youtube", maxMegabytes: 500, quality: true, subtitles: true, detect: false },
+  universal: { platform: "universal", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  facebook: { platform: "facebook", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  tiktok: { platform: "tiktok", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  instagram: { platform: "instagram", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  bilibili: { platform: "bilibili", maxMegabytes: 500, quality: true, subtitles: false, detect: false },
+  douyin: { platform: "douyin", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  x: { platform: "x", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  xiaohongshu: { platform: "xiaohongshu", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
 };
 const setVideoPlatform = (platform) => {
   const form = qs("[data-video-download-form]");
   const config = VIDEO_PLATFORM_DEFAULTS[platform] || VIDEO_PLATFORM_DEFAULTS.universal;
   if (!form) return;
-  form.childCapabilityId.value = config.childCapabilityId;
+  form.platform.value = config.platform;
   form.maxMegabytes.value = String(config.maxMegabytes);
   document.querySelectorAll("[data-video-platform]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.videoPlatform === platform));
@@ -121,14 +121,14 @@ const startVideoDownload = async (event) => {
   const maxMegabytes = Number(form.maxMegabytes.value);
   const request = {
     sourcePageUrl: form.sourcePageUrl.value,
-    childCapabilityId: form.childCapabilityId.value,
+    platform: form.platform.value,
     preferredQuality: form.preferredQuality.value,
     maxBytes: Math.max(1, maxMegabytes) * 1000000,
     downloadSubtitles: form.downloadSubtitles.checked,
     saveToDownloads: form.saveToDownloads?.checked === true,
     telegramDocumentIdHash: form.telegramDocumentIdHash?.value || undefined,
   };
-  writeActivity("video download submitted: " + request.childCapabilityId);
+  writeActivity("video download submitted: " + request.platform);
   updateVideoDownloadProgress({ state: "running", label: "下载中：正在通过授权页面组装媒体分片" });
   const payload = await readJson("/api/video-download/start", {
     method: "POST",

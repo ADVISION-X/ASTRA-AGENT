@@ -34,6 +34,7 @@ export const typecheckStep: CommandStep = [
 ];
 
 export const acceptanceSteps: readonly CommandStep[] = [
+  createAcceptanceStep("constitutional-boundary-anti-escape", ["npm", "run", "acceptance:constitutional-boundary-anti-escape"], "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts", "Run npm run acceptance:constitutional-boundary-anti-escape directly and repair the first failing boundary anti-escape assertion."),
   createAcceptanceStep("code-purity-zombie-deep", ["npm", "run", "acceptance:code-purity-zombie-deep"], "package.json", "Run npm run acceptance:code-purity-zombie-deep directly and fix its first failing assertion."),
   createAcceptanceStep("audit-truth-coverage", ["npm", "run", "acceptance:audit-truth-coverage"], "package.json", "Run npm run acceptance:audit-truth-coverage directly and fix the first failing meta-quality assertion."),
   createAcceptanceStep("ci-summary-truth", ["npm", "run", "acceptance:ci-summary-truth"], "scripts/acceptance/ci-summary-truth.acceptance.ts", "Repair the ci-full summary contract and rerun npm run acceptance:ci-summary-truth."),

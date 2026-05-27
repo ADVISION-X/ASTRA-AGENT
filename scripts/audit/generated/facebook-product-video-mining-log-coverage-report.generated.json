@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T19:30:48.366Z",
+  "generatedAt": "2026-05-27T20:49:37.767Z",
   "status": "PASS",
   "summary": {
     "totalFindings": 0,
@@ -263,19 +263,19 @@
       "startSites": [
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 103,
+          "line": 101,
           "method": "start"
         }
       ],
       "terminalSites": [
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 111,
+          "line": 109,
           "method": "complete"
         },
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 114,
+          "line": 112,
           "method": "fail"
         }
       ],
@@ -405,24 +405,24 @@
       "startSites": [
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 124,
+          "line": 122,
           "method": "start"
         },
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 166,
+          "line": 164,
           "method": "start"
         }
       ],
       "terminalSites": [
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 142,
+          "line": 140,
           "method": "complete"
         },
         {
           "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-          "line": 176,
+          "line": 174,
           "method": "complete"
         }
       ],

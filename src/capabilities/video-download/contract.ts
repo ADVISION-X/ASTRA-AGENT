@@ -3,6 +3,7 @@ import type {
   VideoDownloadAbilityInput,
   VideoDownloadArtifact,
   VideoDownloadChildCapabilityId,
+  VideoDownloadPublicRequest,
   VideoDownloadResult,
 } from "./schema.js";
 import type { BrowserMediaSourcePort } from "./ports/browser-media-source-port.js";
@@ -18,6 +19,7 @@ export type VideoDownloadExecutionContext = {
 export interface VideoDownloadAbilityGroup {
   readonly abilityGroupId: VideoDownloadAbilityGroupId;
   listChildCapabilityIds(): VideoDownloadChildCapabilityId[];
+  downloadVideo(input: VideoDownloadPublicRequest): Promise<VideoDownloadResult>;
   execute(input: VideoDownloadAbilityInput): Promise<VideoDownloadResult>;
   promoteArtifact(input: {
     artifact: VideoDownloadArtifact;

@@ -55,7 +55,7 @@ export function buildAmazonDomTraceBaseEvent(input: AmazonDomStepTraceContext) {
     stepId: stepId(input.stepName),
     missionId: `${input.mission.amazonOrderId}:${input.mission.invoiceNo}`,
     owner: "amazon-invoice-upload" as const,
-    abilityGroupId: "dom-automation",
+    component: "dom-automation-step-trace" as const,
     platformId: "amazon-seller-central",
     refs: buildRefs(input, traceRef),
     payload: buildPayload(input),
