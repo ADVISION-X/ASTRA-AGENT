@@ -83,6 +83,15 @@ const renderAmazonProductMiningPanel = (): string => `
     <div class="field wide"><label>Product direction</label><input name="productDirection" required /></div>
     <div class="field"><label>Requested keyword count</label><input name="requestedKeywordCount" type="number" min="1" value="10" required /></div>
     <div class="field">
+      <label>Provider</label>
+      <select name="amazonKeywordProviderKind" required>
+        <option value="">Select provider</option>
+        <option value="gemini-api">Gemini API</option>
+        <option value="gemini-web-chat">Gemini web chat</option>
+        <option value="gpt-web-chat">GPT web chat</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Language preference</label>
       <select name="languagePreference">
         <option value="en">en</option>

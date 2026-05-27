@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -140,12 +140,13 @@ const browser = {
 
 const aiInputGateway: AiInputGatewayAbilityGroup = {
   abilityGroupId: "ai-input-gateway",
-  listChildCapabilityIds: () => ["feed-gemini-api-once"],
-  async execute() {
+  listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+  async execute(input) {
+    assert.equal((input as { providerKind?: unknown }).providerKind, "gpt-web-chat", "Full cycle must use the selected GPT web chat provider");
     return {
       abilityGroupId: "ai-input-gateway",
-      childCapabilityId: "feed-gemini-api-once",
-      providerKind: "gemini-api",
+      childCapabilityId: "feed-gpt-web-chat-once",
+      providerKind: "gpt-web-chat",
       status: "success",
       normalizedText: JSON.stringify({ keywords: [{ keyword: "foldable storage box uae", reason: "portable China supply item" }] }),
       rawOutputRef: null,
@@ -154,7 +155,7 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
       parsedJson: null,
       schemaValidationStatus: "not_applicable",
       providerProof: {
-        providerKind: "gemini-api",
+        providerKind: "gpt-web-chat",
         modelName: null,
         inputHash: "input-hash",
         outputHash: "output-hash",
@@ -163,7 +164,7 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
         startedAt: new Date().toISOString(),
         endedAt: new Date().toISOString(),
         durationMs: 0,
-        transport: "api",
+        transport: "web-chat",
         webChatUrl: null,
         sourcePageUrlBeforeFeed: null,
         restoredSourcePage: null,
@@ -186,12 +187,14 @@ try {
     browser,
     aiInputGateway,
     runtimeLogger: createRuntimeLogger({ terminalEnabled: false }),
+    providerKind: "gpt-web-chat",
     miningInput: {
       amazonMarketplace: "amazon.ae",
       targetMarket: "United Arab Emirates / 阿联酋",
       productDirection: "适合以中国为供应产地，拿到阿联酋销售的产品",
       requestedKeywordCount: 1,
       languagePreference: "zh-CN",
+      providerKind: "gpt-web-chat",
     },
     reviewMaxPages: 2,
   });
@@ -201,6 +204,8 @@ try {
   assert.equal(path.basename(result.pdfReportPath ?? ""), "amazon-product-mining-report.pdf");
   assert.equal(path.basename(result.evidenceIndexPath ?? ""), "amazon-product-mining-evidence-index.json");
   assert.equal(path.basename(result.exceptionSummaryPath ?? ""), "amazon-product-mining-exception-summary.json");
+  const handoffRecordPath = path.join(path.dirname(result.packageJsonPath ?? ""), "amazon-product-mining-handoff-record.json");
+  assert.ok(existsSync(handoffRecordPath), "Success flow must persist a handoff record file");
   assert.ok(openedUrls.some((url) => url.startsWith("https://www.amazon.ae/s?k=")), "Search must open amazon.ae");
   assert.ok(openedUrls.includes("https://www.amazon.ae/dp/B0AEACCEPT1"), "Detail page must open the ASIN URL");
   assert.ok(openedUrls.includes("https://www.amazon.ae/product-reviews/B0AEACCEPT1"), "Review page must open for the ASIN");
@@ -208,9 +213,61 @@ try {
   const dataPackage = JSON.parse(readFileSync(result.packageJsonPath!, "utf8")) as {
     products: Array<{ asin: string | null; reviews: unknown[] }>;
   };
+  const evidenceIndex = JSON.parse(readFileSync(result.evidenceIndexPath!, "utf8")) as {
+    artifacts: Array<{ kind: string; path: string }>;
+  };
   assert.equal(dataPackage.products[0]?.asin, "B0AEACCEPT1");
   assert.equal(dataPackage.products[0]?.reviews.length, 1);
+  assert.ok(evidenceIndex.artifacts.some((artifact) => artifact.kind === "handoff_record_json" && artifact.path === handoffRecordPath));
   assert.equal(readFileSync(result.pdfReportPath!).subarray(0, 5).toString("utf8"), "%PDF-");
+
+  const failureDataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-all-failed-"));
+  const searchFailureBrowser = {
+    ...browser,
+    evaluateActiveTab: async <T,>({ description }: Parameters<BrowserController["evaluateActiveTab"]>[0]): Promise<T> => {
+      if (description.includes("search results")) return null as T;
+      return browser.evaluateActiveTab<T>({ script: "", description });
+    },
+  } satisfies BrowserController;
+  try {
+    const failureResult = await runAmazonProductMiningFlow({
+      taskId: "amazon-all-keywords-failed-acceptance",
+      dataDir: failureDataDir,
+      browser: searchFailureBrowser,
+      aiInputGateway,
+      runtimeLogger: createRuntimeLogger({ terminalEnabled: false }),
+      providerKind: "gpt-web-chat",
+      miningInput: {
+        amazonMarketplace: "amazon.ae",
+        targetMarket: "United Arab Emirates / 阿联酋",
+        productDirection: "适合以中国为供应产地，拿到阿联酋销售的产品",
+        requestedKeywordCount: 1,
+        languagePreference: "zh-CN",
+        providerKind: "gpt-web-chat",
+      },
+      reviewMaxPages: 1,
+    });
+    assert.equal(failureResult.status, "failed");
+    assert.match(failureResult.failureReason ?? "", /all_keywords_failed/);
+    assert.equal(failureResult.handoffStatus, "failed");
+    assert.ok(failureResult.packageJsonPath, "Failure data package must still be written");
+    const failureHandoffRecordPath = path.join(path.dirname(failureResult.packageJsonPath!), "amazon-product-mining-handoff-record.json");
+    assert.ok(existsSync(failureHandoffRecordPath), "Failure flow must still persist a handoff record file");
+    const failurePackage = JSON.parse(readFileSync(failureResult.packageJsonPath!, "utf8")) as {
+      task: { status: string };
+      exceptions: unknown[];
+      data_completeness_statistics: { exceptionCount: number };
+    };
+    const failureEvidenceIndex = JSON.parse(readFileSync(failureResult.evidenceIndexPath!, "utf8")) as {
+      artifacts: Array<{ kind: string; path: string }>;
+    };
+    assert.equal(failurePackage.task.status, "failed");
+    assert.equal(failurePackage.exceptions.length, 1);
+    assert.equal(failurePackage.data_completeness_statistics.exceptionCount, 1);
+    assert.ok(failureEvidenceIndex.artifacts.some((artifact) => artifact.kind === "handoff_record_json" && artifact.path === failureHandoffRecordPath));
+  } finally {
+    rmSync(failureDataDir, { recursive: true, force: true });
+  }
 
   process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-full-cycle\n");
 } finally {

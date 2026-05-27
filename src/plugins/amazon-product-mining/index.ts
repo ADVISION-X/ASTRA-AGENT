@@ -32,6 +32,7 @@ export const startAmazonProductMiningMission = (input: {
     browser: input.browser,
     aiInputGateway: input.aiInputGateway,
     runtimeLogger: input.runtimeLogger,
+    providerKind: miningInput.providerKind,
   }).finally(() => {
     ACTIVE_AMAZON_MINING_TASKS.delete(taskId);
   });

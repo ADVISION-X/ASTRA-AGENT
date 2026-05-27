@@ -52,17 +52,17 @@ assert.equal(records[0]!.status, "pending");
 assert.ok(records[0]!.keywordId.length > 0, "keywordId should be non-empty UUID");
 assert.notEqual(records[0]!.keywordId, records[1]!.keywordId, "keywordIds should be unique");
 
-// --- Test 9: keyword AI request obeys gateway input schema with no file payload ---
-let capturedAiInput: { maxFileCount?: unknown; maxFileBytes?: unknown } = {};
+// --- Test 9: keyword AI request obeys selected gateway provider and no file payload ---
+let capturedAiInput: { providerKind?: unknown; maxFileCount?: unknown; maxFileBytes?: unknown } = {};
 const aiInputGateway = {
   abilityGroupId: "ai-input-gateway" as const,
-  listChildCapabilityIds: () => ["feed-gemini-api-once" as const],
+  listChildCapabilityIds: () => ["feed-gpt-web-chat-once" as const],
   async execute(input: unknown) {
     capturedAiInput = input as Record<string, unknown>;
     return {
       abilityGroupId: "ai-input-gateway" as const,
-      childCapabilityId: "feed-gemini-api-once" as const,
-      providerKind: "gemini-api" as const,
+      childCapabilityId: "feed-gpt-web-chat-once" as const,
+      providerKind: "gpt-web-chat" as const,
       status: "success" as const,
       normalizedText: JSON.stringify({ keywords: [{ keyword: "foldable storage box", reason: "lightweight" }] }),
       rawOutputRef: null,
@@ -71,7 +71,7 @@ const aiInputGateway = {
       parsedJson: null,
       schemaValidationStatus: "not_applicable" as const,
       providerProof: {
-        providerKind: "gemini-api" as const,
+        providerKind: "gpt-web-chat" as const,
         modelName: null,
         inputHash: "hash-in",
         outputHash: "hash-out",
@@ -80,7 +80,7 @@ const aiInputGateway = {
         startedAt: new Date().toISOString(),
         endedAt: new Date().toISOString(),
         durationMs: 0,
-        transport: "api" as const,
+        transport: "web-chat" as const,
         webChatUrl: null,
         sourcePageUrlBeforeFeed: null,
         restoredSourcePage: null,
@@ -105,8 +105,11 @@ await runKeywordGeneration({
     productDirection: "China supply products",
     requestedKeywordCount: 1,
     languagePreference: "en",
+    providerKind: "gpt-web-chat",
   },
+  providerKind: "gpt-web-chat",
 });
+assert.equal(capturedAiInput?.providerKind, "gpt-web-chat", "Keyword generation must use the provider selected by the user");
 assert.equal(capturedAiInput?.maxFileCount, 0, "Keyword generation must not attach files");
 assert.equal(capturedAiInput?.maxFileBytes, 1, "Keyword generation must pass a positive file-byte budget");
 

@@ -9,7 +9,7 @@ type ChromeWindowState = {
   currentTitle: string;
 };
 
-type ChromeOpenReusePolicy = "reuse-exact-url" | "open-new-tab";
+type ChromeOpenReusePolicy = "reuse-exact-url" | "open-new-tab" | "reuse-active-tab";
 
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
@@ -70,11 +70,19 @@ tell application "Google Chrome"
         return "opened_new_window"
     end if
   ${reuseExistingTabScript}
+  ${reusePolicy === "reuse-active-tab"
+    ? `
+    set URL of active tab of front window to "${escapedUrl}"
+    return "reused_active_tab"`
+    : ""}
+  ${reusePolicy === "open-new-tab"
+    ? `
     tell front window
         make new tab with properties {URL:"${escapedUrl}"}
         set active tab index to (count of tabs)
     end tell
-    return "opened_new_tab"
+    return "opened_new_tab"`
+    : ""}
 end tell
 `;
 };

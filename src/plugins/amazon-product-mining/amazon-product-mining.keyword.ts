@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { AmazonKeywordRecord, AmazonMiningInput } from "./amazon-product-mining.schema.js";
-
-export type KeywordProviderKind = "gemini-api" | "gemini-web-chat" | "gpt-web-chat";
+import type { AmazonKeywordProviderKind, AmazonKeywordRecord, AmazonMiningInput } from "./amazon-product-mining.schema.js";
 
 type KeywordGenerationResult = {
   runId: string;
@@ -97,10 +95,9 @@ export const runKeywordGeneration = async (input: {
   taskId: string;
   existingMinedKeywords: string[];
   aiInputGateway: AiInputGatewayAbilityGroup;
-  providerKind?: KeywordProviderKind;
+  providerKind: AmazonKeywordProviderKind;
 }): Promise<KeywordGenerationResult> => {
   const runId = randomUUID();
-  const providerKind = input.providerKind ?? "gemini-api";
   const promptText = buildKeywordPrompt({
     amazonMarketplace: input.miningInput.amazonMarketplace,
     targetMarket: input.miningInput.targetMarket,
@@ -113,7 +110,7 @@ export const runKeywordGeneration = async (input: {
   let rawResponse = "";
   try {
     const result = await input.aiInputGateway.execute({
-      providerKind,
+      providerKind: input.providerKind,
       promptPackageId: `amazon-mining-keyword-${input.taskId}`,
       promptContractId: "amazon-product-mining-keyword-generation-v1",
       expectedOutputSchemaRef: null,

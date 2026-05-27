@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
+import { writeAmazonHandoffRecord } from "../../src/plugins/amazon-product-mining/amazon-product-mining.handoff.js";
 import { createAmazonMiningStorage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.storage.js";
 import { buildAmazonProductMiningPackage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.package.js";
 import { buildAmazonProductMiningReport } from "../../src/plugins/amazon-product-mining/amazon-product-mining.pdf.js";
@@ -174,6 +175,10 @@ try {
   assert.ok(packageJson.task_id, "Package JSON must have task_id");
   assert.ok(Array.isArray(packageJson.keywords), "Package JSON must have keywords array");
   assert.ok(Array.isArray(packageJson.products), "Package JSON must have products array");
+  assert.ok(Array.isArray(packageJson.exceptions), "Package JSON must carry exception details");
+  assert.equal(packageJson.exceptions.length, 1, "Package JSON must preserve exception records");
+  assert.equal(packageJson.exceptions[0].exceptionKind, "rate_limited");
+  assert.equal(packageJson.data_completeness_statistics.exceptionCount, 1);
   assert.equal(packageJson.products.length, 2, "Should have 2 products in JSON");
   assert.equal(packageJson.keywords.length, 2, "Should have 2 keywords in JSON");
 
@@ -209,6 +214,41 @@ try {
   if (!reportResult.ok) assert.fail("PDF report should be built");
   assert.equal(path.basename(reportResult.pdfReportPath), "amazon-product-mining-report.pdf");
   assert.equal(readFileSync(reportResult.pdfReportPath).subarray(0, 5).toString("utf8"), "%PDF-");
+
+  storage.updateTaskStatus({
+    taskId,
+    status: "package_completed",
+    packageJsonPath: packageResult.packageJsonPath,
+    pdfReportPath: reportResult.pdfReportPath,
+    evidenceIndexPath: packageResult.evidenceIndexPath,
+    exceptionSummaryPath: packageResult.exceptionSummaryPath,
+    handoffStatus: "ready",
+  });
+  const handoffRecord = writeAmazonHandoffRecord({
+    dataDir,
+    taskId,
+    packageJsonPath: packageResult.packageJsonPath,
+    reportPath: reportResult.pdfReportPath,
+    evidenceIndexPath: packageResult.evidenceIndexPath,
+    exceptionSummaryPath: packageResult.exceptionSummaryPath,
+    productCount: packageResult.productCount,
+    reviewCount: packageResult.reviewCount,
+    keywordCount: packageResult.keywordCount,
+    manualRequiredReasons: [],
+  });
+  assert.ok(existsSync(handoffRecord.handoffRecordPath), "handoff record must exist on disk");
+  assert.equal(path.basename(handoffRecord.handoffRecordPath), "amazon-product-mining-handoff-record.json");
+
+  const packagedWithArtifacts = await buildAmazonProductMiningPackage({ taskId, dataDir, storage });
+  const evidenceIndex = JSON.parse(readFileSync(packagedWithArtifacts.evidenceIndexPath, "utf8")) as {
+    artifacts: Array<{ kind: string; path: string }>;
+  };
+  const artifactKinds = evidenceIndex.artifacts.map((artifact) => artifact.kind);
+  assert.ok(artifactKinds.includes("data_package_json"), "Evidence index must include the package JSON");
+  assert.ok(artifactKinds.includes("pdf_report_pdf"), "Evidence index must include the PDF report");
+  assert.ok(artifactKinds.includes("exception_summary_json"), "Evidence index must include the exception summary");
+  assert.ok(artifactKinds.includes("handoff_record_json"), "Evidence index must include the handoff record");
+  assert.ok(evidenceIndex.artifacts.some((artifact) => artifact.path === handoffRecord.handoffRecordPath));
 
   storage.close();
   process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-package\n");

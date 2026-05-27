@@ -12,7 +12,22 @@ export type DetailPageAdapter = {
 };
 
 const AMAZON_DETAIL_EXTRACT_SCRIPT = `
-(function() {
+return (function() {
+  var normalizeText = function(text) {
+    if (!text) return null;
+    return text
+      .replace(/[\u200e\u200f\u202a-\u202e]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+  var pickText = function(selectors) {
+    for (var i = 0; i < selectors.length; i++) {
+      var element = document.querySelector(selectors[i]);
+      var text = element && element.textContent ? normalizeText(element.textContent) : null;
+      if (text) return text;
+    }
+    return null;
+  };
   var asin = null;
   var asinEl = document.querySelector('[name="ASIN"]');
   if (asinEl) asin = asinEl.value;
@@ -24,8 +39,13 @@ const AMAZON_DETAIL_EXTRACT_SCRIPT = `
   var title = titleEl ? titleEl.textContent.trim() : null;
   var brandEl = document.getElementById('bylineInfo');
   var brand = brandEl ? brandEl.textContent.replace(/Visit the|Brand:|Store/g, '').trim() : null;
-  var priceEl = document.querySelector('.priceToPay .a-offscreen') || document.querySelector('#priceblock_ourprice');
-  var currentPrice = priceEl ? priceEl.textContent.trim() : null;
+  var currentPrice = pickText([
+    '.priceToPay .a-offscreen',
+    '#corePrice_feature_div .a-price .a-offscreen',
+    '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen',
+    '#corePrice_desktop .a-price .a-offscreen',
+    '.a-price .a-offscreen'
+  ]);
   var origEl = document.querySelector('.basisPrice .a-offscreen') || document.querySelector('#priceblock_listprice');
   var couponEl = document.querySelector('#couponBadgeRegularVpc');
   var origOrCoupon = null;
@@ -53,10 +73,35 @@ const AMAZON_DETAIL_EXTRACT_SCRIPT = `
   if (bsrEl && bsrEl.textContent.toLowerCase().includes('rank')) {
     bestSellersRankIfVisible = bsrEl.textContent.substring(0, 500);
   }
-  var ratingEl = document.querySelector('#acrPopover .a-size-base.a-color-base');
-  var rating = ratingEl ? ratingEl.textContent.trim() : null;
-  var reviewCountEl = document.querySelector('#acrCustomerReviewText');
-  var reviewCount = reviewCountEl ? reviewCountEl.textContent.trim() : null;
+  var ratingLabel = pickText([
+    '#acrPopover .a-size-base.a-color-base',
+    '#acrPopover .a-icon-alt',
+    '[data-hook="rating-out-of-text"]',
+    '[data-hook="average-star-rating"] .a-icon-alt'
+  ]);
+  if (!ratingLabel) {
+    var ariaRatingEl = document.querySelector('[aria-label*="out of 5 stars"]');
+    ratingLabel = ariaRatingEl ? normalizeText(ariaRatingEl.getAttribute('aria-label')) : null;
+  }
+  var ratingMatch = ratingLabel ? ratingLabel.match(/([0-9]+(?:[\.,][0-9]+)?)\s*out of 5 stars/i) : null;
+  var rating = ratingMatch ? ratingMatch[1] + ' out of 5 stars' : ratingLabel;
+  var reviewCount = pickText([
+    '#acrCustomerReviewText',
+    '[data-hook="total-review-count"]',
+    'a[data-hook="see-all-reviews-link-foot"]'
+  ]);
+  if (!reviewCount && ratingLabel) {
+    var trailingRatingText = ratingMatch
+      ? normalizeText(ratingLabel.slice(ratingLabel.indexOf(ratingMatch[0]) + ratingMatch[0].length))
+      : ratingLabel;
+    var reviewCountMatch = trailingRatingText
+      ? trailingRatingText.match(/([0-9][0-9,\.]*)\s+ratings?/i)
+      : null;
+    if (!reviewCountMatch) {
+      reviewCountMatch = ratingLabel.match(/([0-9][0-9,\.]*)\s+ratings?/i);
+    }
+    reviewCount = reviewCountMatch ? '(' + reviewCountMatch[1] + ')' : null;
+  }
   var sellerEl = document.getElementById('merchant-info') || document.getElementById('tabular-buybox-seller-name');
   var sellerOrStore = sellerEl ? sellerEl.textContent.trim().substring(0, 200) : null;
   var stockEl = document.getElementById('availability');
@@ -87,7 +132,7 @@ const AMAZON_DETAIL_EXTRACT_SCRIPT = `
     colorOpts: colorOpts,
     rawText: rawText,
   };
-})()
+})();
 `;
 
 type ExtractedDetail = {
@@ -179,7 +224,11 @@ const buildProductDetailRecord = (input: {
 
 const buildBrowserDetailAdapter = (browser: BrowserController): DetailPageAdapter => ({
   async extractProductDetail({ productUrl, asin, taskId }) {
-    await browser.open({ url: productUrl, title: `Amazon product: ${asin}` });
+    await browser.open({
+      url: productUrl,
+      title: `Amazon product: ${asin}`,
+      reusePolicy: "reuse-active-tab",
+    });
     await browser.wait(2500);
 
     const raw = await browser.evaluateActiveTab<ExtractedDetail>({

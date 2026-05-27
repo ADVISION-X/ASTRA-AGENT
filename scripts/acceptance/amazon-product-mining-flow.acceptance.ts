@@ -82,6 +82,9 @@ for (const exported of requiredExports) {
 
 // --- Test 7: flow.ts uses correct AI interface (execute, not sendTextPromptAndCaptureResponse) ---
 assert.ok(keywordSrc.includes(".execute("), "keyword.ts must call AI gateway .execute()");
+assert.ok(keywordSrc.includes("providerKind: input.providerKind"), "keyword.ts must forward the selected providerKind");
+assert.ok(!keywordSrc.includes('?? "gemini-api"'), "keyword.ts must not default keyword AI to Gemini API");
+assert.ok(!keywordSrc.includes('?? "gpt-web-chat"'), "keyword.ts must not hardcode GPT web chat as a hidden default");
 
 // --- Test 8: pdf.ts and package.ts do not contain final product selection conclusions ---
 const prohibitedPhrases = ["recommendedProduct", "bestProduct", "finalSelection"];

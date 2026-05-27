@@ -39,6 +39,10 @@ const inspectHomePage = (
     'name="targetMarket"',
     'name="productDirection"',
     'name="requestedKeywordCount"',
+    'name="amazonKeywordProviderKind"',
+    'value="gemini-api"',
+    'value="gemini-web-chat"',
+    'value="gpt-web-chat"',
     'name="languagePreference"',
     'data-amazon-product-mining-status',
   ];
@@ -72,6 +76,7 @@ const inspectHomeClient = (
     "startAmazonProductMining",
     "refreshAmazonProductMiningLatest",
     "exportAmazonProductMining",
+    "amazonKeywordProviderKind",
     "/api/amazon-product-mining/mission",
     "/api/amazon-product-mining/latest",
     "/api/amazon-product-mining/export?taskId=",
@@ -122,10 +127,13 @@ export const inspectArtifactOutputs = (
 ): void => {
   const packageFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package.ts");
   const pdfFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts");
+  const handoffFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts");
   trackSourceFile(inspectedFiles, packageFile);
   trackSourceFile(inspectedFiles, pdfFile);
+  trackSourceFile(inspectedFiles, handoffFile);
   const packageText = packageFile ? literalText(packageFile) : "";
   const pdfText = pdfFile ? literalText(pdfFile) : "";
+  const handoffText = handoffFile ? literalText(handoffFile) : "";
   const requiredNames = [
     "amazon-product-mining-package.json",
     "amazon-product-mining-evidence-index.json",
@@ -137,6 +145,14 @@ export const inspectArtifactOutputs = (
       lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
       message: "package.ts must write the fixed Amazon mining package, evidence index, and exception summary artifact names.",
+    }));
+  }
+  if (!packageText.includes("pdf_report_pdf") || !packageText.includes("exception_summary_json") || !packageText.includes("handoff_record_json")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/evidence-index-artifact-coverage",
+      lawId,
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      message: "package.ts must include PDF, exception summary, and handoff record entries in the evidence index.",
     }));
   }
   if (!pdfText.includes("amazon-product-mining-report.pdf") || pdfText.includes("report.html")) {
@@ -153,6 +169,14 @@ export const inspectArtifactOutputs = (
       lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
       message: "pdf.ts must produce a PDF artifact, not a non-PDF file behind a PDF path.",
+    }));
+  }
+  if (!handoffText.includes("amazon-product-mining-handoff-record.json")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/fixed-handoff-artifact-name",
+      lawId,
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+      message: "handoff.ts must persist amazon-product-mining-handoff-record.json as a real artifact.",
     }));
   }
 };

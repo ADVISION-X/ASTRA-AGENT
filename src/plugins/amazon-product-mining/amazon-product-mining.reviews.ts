@@ -18,7 +18,7 @@ export type ReviewPageAdapter = {
 };
 
 const AMAZON_REVIEWS_EXTRACT_SCRIPT = `
-(function() {
+return (function() {
   var loginEl = document.querySelector('#ap_email') || document.querySelector('input[name="email"]');
   if (loginEl) return { blocker: 'login_required' };
   var captchaEl = document.querySelector('#captchacharacters');
@@ -63,7 +63,7 @@ const AMAZON_REVIEWS_EXTRACT_SCRIPT = `
   var nextPageEl = document.querySelector('li.a-last:not(.a-disabled) a') || document.querySelector('[data-hook="pagination-bar"] .a-last:not(.a-disabled) a');
   var hasNextPage = !!nextPageEl;
   return { reviews: reviews, hasNextPage: hasNextPage };
-})()
+})();
 `;
 
 type ExtractedReview = {
@@ -86,7 +86,11 @@ type ExtractResult =
 const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapter => ({
   async extractReviewsFromPage({ reviewsUrl, pageIndex, detailId, taskId, asin }) {
     const url = pageIndex === 0 ? reviewsUrl : `${reviewsUrl}?pageNumber=${pageIndex + 1}`;
-    await browser.open({ url, title: `Amazon reviews page ${pageIndex + 1}` });
+    await browser.open({
+      url,
+      title: `Amazon reviews page ${pageIndex + 1}`,
+      reusePolicy: "reuse-active-tab",
+    });
     await browser.wait(2500);
 
     const result = await browser.evaluateActiveTab<ExtractResult>({

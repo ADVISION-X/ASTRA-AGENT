@@ -137,4 +137,22 @@ if (result6.ok) throw new Error("Expected ok=false for missing browser/adapter")
 assert.equal(result6.blockerKind, "page_structure_unsupported");
 assert.match(result6.reason, /No browser or adapter provided/u);
 
+// --- Test 7: Null/invalid extraction output must not surface as a low-level JS error ---
+const invalidAdapter = {
+  async extractSearchResults() {
+    throw new Error("amazon_search_extract_invalid_items");
+  },
+} satisfies SearchPageAdapter;
+const result7 = await runAmazonSearch({
+  marketplace: "amazon.ae",
+  keyword: "magnetic screen door",
+  keywordId: randomUUID(),
+  taskId,
+  adapter: invalidAdapter,
+});
+assert.equal(result7.ok, false, "Invalid extraction output must be a structured failure");
+if (result7.ok) throw new Error("Expected ok=false for invalid extraction output");
+assert.equal(result7.blockerKind, "page_structure_unsupported");
+assert.match(result7.reason, /amazon_search_extract_invalid_items/u);
+
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-search-page\n");

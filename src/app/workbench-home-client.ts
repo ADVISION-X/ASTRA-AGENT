@@ -171,12 +171,14 @@ const resumeAmazon = async () => {
 const startAmazonProductMining = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  const amazonKeywordProviderKind = form.amazonKeywordProviderKind.value;
   const mission = {
     amazonMarketplace: form.amazonMarketplace.value,
     targetMarket: form.targetMarket.value.trim(),
     productDirection: form.productDirection.value.trim(),
     requestedKeywordCount: Number(form.requestedKeywordCount.value),
     languagePreference: form.languagePreference.value,
+    providerKind: amazonKeywordProviderKind,
   };
   writeActivity("amazon product mining submitted");
   const task = await readJson("/api/amazon-product-mining/mission", {

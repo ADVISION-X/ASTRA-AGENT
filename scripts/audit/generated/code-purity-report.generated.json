@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-26T19:40:26.664Z",
+  "generatedAt": "2026-05-27T10:07:04.787Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -70,6 +70,7 @@
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-mediator-shared-ai-scope.ts",
@@ -954,9 +955,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1307,
+  "liveExportCount": 1315,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 499,
+  "reachableFileCount": 500,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -964,9 +965,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1307,
+    "liveExportCount": 1315,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 499,
+    "reachableFileCount": 500,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

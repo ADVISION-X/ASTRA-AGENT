@@ -1,6 +1,7 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { resolveAmazonHandoffRecordPath } from "./amazon-product-mining.handoff.js";
 import type { AmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { AMAZON_PRODUCT_MINING_ARTIFACTS_DIR } from "./amazon-product-mining.storage-schema.js";
 
@@ -65,7 +66,7 @@ const buildDataPackage = (input: {
   products: ReturnType<AmazonMiningStorage["getProductDetailsForTask"]>;
   productPackages: ReturnType<typeof buildProductPackages>;
   totalReviews: number;
-  exceptionCount: number;
+  exceptions: ReturnType<AmazonMiningStorage["getExceptionsForTask"]>;
 }) => ({
   schema_version: "1.0.0",
   task_id: input.taskId,
@@ -90,12 +91,31 @@ const buildDataPackage = (input: {
     status: keyword.status,
   })),
   products: input.productPackages,
-  exception_count: input.exceptionCount,
+  exception_count: input.exceptions.length,
+  exceptions: input.exceptions.map((exception) => ({
+    scope: exception.scope,
+    scopeId: exception.scopeId,
+    exceptionKind: exception.exceptionKind,
+    message: exception.message,
+    createdAt: exception.createdAt,
+  })),
+  data_completeness_statistics: {
+    keywordCount: input.keywords.length,
+    completedKeywordCount: input.keywords.filter((keyword) => keyword.status === "completed").length,
+    failedKeywordCount: input.keywords.filter((keyword) => keyword.status === "failed").length,
+    manualRequiredKeywordCount: input.keywords.filter((keyword) => keyword.status === "manual_required").length,
+    productCount: input.products.length,
+    reviewCount: input.totalReviews,
+    exceptionCount: input.exceptions.length,
+  },
 });
 
 const buildEvidenceIndex = (input: {
   taskId: string;
   packageJsonPath: string;
+  pdfReportPath: string | null;
+  exceptionSummaryPath: string;
+  handoffRecordPath: string;
   productCount: number;
   keywordCount: number;
   reviewCount: number;
@@ -108,6 +128,29 @@ const buildEvidenceIndex = (input: {
       path: input.packageJsonPath,
       description: "Full structured data package with products and reviews",
     },
+    ...(input.pdfReportPath
+      ? [
+          {
+            kind: "pdf_report_pdf",
+            path: input.pdfReportPath,
+            description: "PDF report for advanced AI or operator review",
+          },
+        ]
+      : []),
+    {
+      kind: "exception_summary_json",
+      path: input.exceptionSummaryPath,
+      description: "Structured exception summary for blocked or incomplete stages",
+    },
+    ...(existsSync(input.handoffRecordPath)
+      ? [
+          {
+            kind: "handoff_record_json",
+            path: input.handoffRecordPath,
+            description: "Advanced AI handoff record with package, PDF, and exception refs",
+          },
+        ]
+      : []),
   ],
   product_count: input.productCount,
   keyword_count: input.keywordCount,
@@ -150,22 +193,11 @@ export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildI
     products,
     productPackages,
     totalReviews,
-    exceptionCount: exceptions.length,
+    exceptions,
   });
 
   const packageJsonPath = join(artifactsDir, "amazon-product-mining-package.json");
   writeFileSync(packageJsonPath, JSON.stringify(dataPackage, null, 2), "utf8");
-
-  const evidenceIndex = buildEvidenceIndex({
-    taskId: input.taskId,
-    packageJsonPath,
-    productCount: products.length,
-    keywordCount: keywords.length,
-    reviewCount: totalReviews,
-  });
-
-  const evidenceIndexPath = join(artifactsDir, "amazon-product-mining-evidence-index.json");
-  writeFileSync(evidenceIndexPath, JSON.stringify(evidenceIndex, null, 2), "utf8");
 
   const exceptionSummary = buildExceptionSummary({
     taskId: input.taskId,
@@ -174,6 +206,20 @@ export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildI
 
   const exceptionSummaryPath = join(artifactsDir, "amazon-product-mining-exception-summary.json");
   writeFileSync(exceptionSummaryPath, JSON.stringify(exceptionSummary, null, 2), "utf8");
+
+  const evidenceIndex = buildEvidenceIndex({
+    taskId: input.taskId,
+    packageJsonPath,
+    pdfReportPath: task?.pdfReportPath ?? null,
+    exceptionSummaryPath,
+    handoffRecordPath: resolveAmazonHandoffRecordPath({ dataDir: input.dataDir, taskId: input.taskId }),
+    productCount: products.length,
+    keywordCount: keywords.length,
+    reviewCount: totalReviews,
+  });
+
+  const evidenceIndexPath = join(artifactsDir, "amazon-product-mining-evidence-index.json");
+  writeFileSync(evidenceIndexPath, JSON.stringify(evidenceIndex, null, 2), "utf8");
 
   return {
     packageJsonPath,

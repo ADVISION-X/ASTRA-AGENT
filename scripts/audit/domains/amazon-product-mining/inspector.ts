@@ -11,6 +11,8 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { inspectProductDetailDomContract } from "./inspector-product-detail-dom-contract.js";
+import { buildAmazonMiningInspectorReport, inspectBrowserTabLifecycle } from "./inspector-tab-lifecycle.js";
 import { inspectArtifactOutputs, inspectWorkbenchHomeSurface } from "./inspector-app-surface.js";
 
 const REQUIRED_PLUGIN_FILES = [
@@ -105,6 +107,22 @@ const inspectGovernanceStatus = (
       lawId,
       filePath: BLUEPRINT_PATH,
       message: "Amazon mining blueprint must be frozen-production and taskId-only with no phase residue.",
+    }));
+  }
+
+  const missingTabLifecycleTokens = [
+    "专用工作标签",
+    "复用当前活动标签",
+    "不得按页面持续新开标签",
+  ].filter((token) => !blueprintText.includes(token));
+
+  if (missingTabLifecycleTokens.length > 0) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/blueprint-tab-lifecycle",
+      lawId,
+      filePath: BLUEPRINT_PATH,
+      message: "Amazon mining blueprint must freeze the browser tab lifecycle contract for a single dedicated workspace tab.",
+      evidence: `missing=${missingTabLifecycleTokens.join(",")}`,
     }));
   }
 };
@@ -321,6 +339,23 @@ const inspectReviewsPerPagePersistence = (
   }
 };
 
+const inspectProductDetailDomFallbacks = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const repoPath = "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts";
+  const detailFile = getRequiredSourceFile(context, repoPath);
+  trackSourceFile(inspectedFiles, detailFile);
+  inspectProductDetailDomContract({
+    sourceFile: detailFile,
+    findings,
+    lawId,
+    filePath: repoPath,
+  });
+};
+
 const inspectForbiddenAiIdentifiers = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -421,16 +456,19 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectArtifactOutputs(context, findings, inspectedFiles, surfaceLawId);
   inspectPackageScript(findings, inspectedFiles, surfaceLawId);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, searchLawId);
+  inspectProductDetailDomFallbacks(context, findings, inspectedFiles, searchLawId);
   inspectReviewsPerPagePersistence(context, findings, inspectedFiles, reviewLawId);
   inspectForbiddenAiIdentifiers(context, findings, inspectedFiles, keywordLawId);
   inspectForbiddenPluginTerms(context, findings, inspectedFiles, surfaceLawId);
   inspectNoAbilityGroupBoundary(context, findings, inspectedFiles, surfaceLawId);
+  const tabLifecycleDebug = inspectBrowserTabLifecycle(context, findings, inspectedFiles, surfaceLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
+    reportJson: buildAmazonMiningInspectorReport({ findings, tabLifecycleDebug }),
   };
 };
 

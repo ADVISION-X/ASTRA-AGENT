@@ -19,7 +19,7 @@ export type SearchResult =
   | { ok: false; blockerKind: SearchBlockerKind; reason: string };
 
 const AMAZON_SEARCH_EXTRACT_SCRIPT = `
-(function() {
+return (function() {
   var body = document.body.innerText || "";
   // Detect blocker conditions
   if (document.querySelector('input[name="email"]') || document.querySelector('#ap_email')) {
@@ -77,7 +77,7 @@ const AMAZON_SEARCH_EXTRACT_SCRIPT = `
     });
   });
   return { items: items, rawText: document.body.innerText.substring(0, 8000) };
-})()
+})();
 `;
 
 type ExtractedItem = {
@@ -101,7 +101,11 @@ type ExtractResult =
 const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: string): SearchPageAdapter => ({
   async extractSearchResults({ keyword, keywordId, taskId }) {
     const searchUrl = `https://www.${marketplace}/s?k=${encodeURIComponent(keyword)}`;
-    await browser.open({ url: searchUrl, title: `Amazon search: ${keyword}` });
+    await browser.open({
+      url: searchUrl,
+      title: `Amazon search: ${keyword}`,
+      reusePolicy: "reuse-active-tab",
+    });
     await browser.wait(3000);
 
     const result = await browser.evaluateActiveTab<ExtractResult>({
@@ -109,8 +113,14 @@ const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: stri
       description: `Extract Amazon search results for keyword: ${keyword}`,
     });
 
+    if (!result || typeof result !== "object") {
+      throw new Error("amazon_search_extract_invalid_result");
+    }
     if ("blocker" in result) {
       throw new Error(`amazon_search_blocked:${result.blocker}`);
+    }
+    if (!Array.isArray(result.items)) {
+      throw new Error("amazon_search_extract_invalid_items");
     }
 
     const now = new Date().toISOString();
@@ -160,6 +170,9 @@ export const runAmazonSearch = async (input: {
       taskId: input.taskId,
       searchUrl,
     });
+    if (!Array.isArray(items)) {
+      throw new Error("amazon_search_extract_invalid_items");
+    }
     return { ok: true, items, searchUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

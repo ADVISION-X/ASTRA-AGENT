@@ -67,6 +67,21 @@ INTAKE
 -> COMPLETE
 ```
 
+## 1.1 浏览器标签生命周期
+
+```txt
+MINING_BROWSER_TAB_PREPARE
+  -> 打开一个 Amazon 挖掘专用工作标签
+  -> 后续 SEARCH / DETAIL / REVIEW / REVIEW_PAGINATION 全部复用当前活动标签
+```
+
+冻结细则：
+
+- 挖掘阶段开始时，只允许创建一个专用工作标签。
+- search.ts、product-detail.ts、reviews.ts 的页面跳转必须复用当前活动标签。
+- 评论翻页必须继续复用当前活动标签，不得按页面持续新开标签。
+- 禁止 one-page-one-tab、one-product-one-tab、review-page-one-tab 造成 Chrome 标签膨胀。
+
 ---
 
 ## 2. 推荐文件布局

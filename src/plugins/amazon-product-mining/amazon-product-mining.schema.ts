@@ -58,6 +58,12 @@ export const AmazonHandoffStatusSchema = z.enum([
   "failed",
 ]);
 
+export const AmazonKeywordProviderKindSchema = z.enum([
+  "gemini-api",
+  "gemini-web-chat",
+  "gpt-web-chat",
+]);
+
 export const AmazonMiningInputSchema = z.object({
   taskId: z.string().min(1).optional(),
   amazonMarketplace: AmazonMarketplaceSchema,
@@ -65,6 +71,7 @@ export const AmazonMiningInputSchema = z.object({
   productDirection: z.string().min(1),
   requestedKeywordCount: z.number().int().positive().default(10),
   languagePreference: z.string().min(1).default("en"),
+  providerKind: AmazonKeywordProviderKindSchema,
 }).strict();
 
 export const AmazonKeywordRecordSchema = z.object({
@@ -207,6 +214,7 @@ export const AmazonMiningSchemas = {
   AmazonKeywordStatusSchema,
   AmazonProductStatusSchema,
   AmazonHandoffStatusSchema,
+  AmazonKeywordProviderKindSchema,
   AmazonKeywordRecordSchema,
   AmazonSearchResultItemSchema,
   AmazonProductDetailSchema,
@@ -224,3 +232,4 @@ export type AmazonTaskStatus = z.infer<typeof AmazonTaskStatusSchema>;
 export type AmazonKeywordStatus = z.infer<typeof AmazonKeywordStatusSchema>;
 export type AmazonProductStatus = z.infer<typeof AmazonProductStatusSchema>;
 export type AmazonHandoffStatus = z.infer<typeof AmazonHandoffStatusSchema>;
+export type AmazonKeywordProviderKind = z.infer<typeof AmazonKeywordProviderKindSchema>;

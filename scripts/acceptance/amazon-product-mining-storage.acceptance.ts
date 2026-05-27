@@ -17,6 +17,7 @@ try {
     productDirection: "lightweight camping gear",
     requestedKeywordCount: 5,
     languagePreference: "en",
+    providerKind: "gpt-web-chat",
   });
   assert.equal(input.amazonMarketplace, "amazon.com");
   assert.equal(input.requestedKeywordCount, 5);
