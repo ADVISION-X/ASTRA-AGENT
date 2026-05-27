@@ -20,7 +20,7 @@ import {
 } from "./inspector-governance-surface.js";
 import { inspectPackageScript } from "./inspector-package-scripts.js";
 import {
-  inspectChromeJxaExtractionContract,
+  inspectBrowserTabExtractionContract,
   inspectFlowSearchBeforeDetail,
   inspectProductDetailDomFallbacks,
   inspectReviewsPerPagePersistence,
@@ -51,23 +51,29 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectPackageScript(findings, inspectedFiles, deliveryLawId);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, searchLawId);
   inspectSearchExtractionProductionPath(context, findings, inspectedFiles, searchLawId);
-  inspectChromeJxaExtractionContract(
+  inspectBrowserTabExtractionContract(
     context,
     findings,
     inspectedFiles,
     searchLawId,
-    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-    "detail",
-    "Amazon product detail",
+    {
+      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
+      checkPrefix: "detail",
+      subject: "Amazon product detail",
+      scriptVariableName: "AMAZON_DETAIL_EXTRACT_SCRIPT",
+    },
   );
-  inspectChromeJxaExtractionContract(
+  inspectBrowserTabExtractionContract(
     context,
     findings,
     inspectedFiles,
     reviewLawId,
-    "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
-    "reviews",
-    "Amazon review page",
+    {
+      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+      checkPrefix: "reviews",
+      subject: "Amazon review page",
+      scriptVariableName: "AMAZON_REVIEWS_EXTRACT_SCRIPT",
+    },
   );
   inspectProductDetailDomFallbacks(context, findings, inspectedFiles, searchLawId);
   inspectReviewsPerPagePersistence(context, findings, inspectedFiles, reviewLawId);

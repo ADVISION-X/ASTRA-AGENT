@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { runJxa } from "../../lib/browser/current-chrome-window-control.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -44,36 +43,19 @@ type ExtractResult =
   | { blocker: string }
   | { items: ExtractedItem[]; rawText: string | null; totalCards?: number };
 
-const buildChromeFrontTabJsonEvaluation = (script: string): string => `
-const chrome = Application("Google Chrome");
-chrome.activate();
-const windows = chrome.windows();
-if (windows.length === 0) {
-  throw new Error("chrome_window_missing");
-}
-const frontWindow = windows[0];
-const tab = frontWindow.activeTab();
-const value = tab.execute({ javascript: ${JSON.stringify(`JSON.stringify((function() { ${script} })())`)} });
-if (value === undefined || value === null || value === "" || value === "missing value") {
-  throw new Error("amazon_search_extract_empty_result");
-}
-String(value);
-`;
-
 const evaluateSearchResultSlice = async (input: {
+  browser: BrowserController;
   keyword: string;
   startIndex: number;
 }): Promise<{ items: ExtractedItem[]; rawText: string | null; totalCards: number }> => {
-  const rawResult = await runJxa(
-    buildChromeFrontTabJsonEvaluation(
-      buildAmazonSearchExtractScript({
-        includeRawText: input.startIndex === 0,
-        limit: 10,
-        startIndex: input.startIndex,
-      }),
-    ),
-  );
-  const result = JSON.parse(rawResult) as ExtractResult;
+  const result = await input.browser.evaluateActiveTab<ExtractResult>({
+    script: buildAmazonSearchExtractScript({
+      includeRawText: input.startIndex === 0,
+      limit: 10,
+      startIndex: input.startIndex,
+    }),
+    description: `Amazon search results extraction for ${input.keyword}`,
+  });
 
   if (!result || typeof result !== "object") {
     throw new Error("amazon_search_extract_invalid_result");
@@ -93,6 +75,7 @@ const evaluateSearchResultSlice = async (input: {
 };
 
 const collectBrowserSearchItems = async (input: {
+  browser: BrowserController;
   keyword: string;
 }): Promise<{ extractedItems: ExtractedItem[]; rawVisibleTextSnapshot: string }> => {
   const extractedItems: ExtractedItem[] = [];
@@ -101,6 +84,7 @@ const collectBrowserSearchItems = async (input: {
 
   for (let startIndex = 0; totalCards === null || startIndex < totalCards; startIndex += 10) {
     const result = await evaluateSearchResultSlice({
+      browser: input.browser,
       keyword: input.keyword,
       startIndex,
     });
@@ -176,7 +160,10 @@ const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: stri
     });
     await browser.wait(3000);
 
-    const { extractedItems, rawVisibleTextSnapshot } = await collectBrowserSearchItems({ keyword });
+    const { extractedItems, rawVisibleTextSnapshot } = await collectBrowserSearchItems({
+      browser,
+      keyword,
+    });
     return mapExtractedSearchItems({
       extractedItems,
       keyword,

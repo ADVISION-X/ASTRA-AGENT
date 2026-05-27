@@ -99,6 +99,19 @@ export const hasCallToLocalIdentifier = (sourceFile: SourceFile, identifierName:
     Node.isIdentifier(callExpression.getExpression()) && callExpression.getExpression().getText() === identifierName,
   );
 
+export const hasStringRawTemplateInitializer = (sourceFile: SourceFile, variableName: string): boolean => {
+  const declaration = sourceFile.getVariableDeclaration(variableName);
+  const initializer = declaration?.getInitializer();
+  if (!Node.isTaggedTemplateExpression(initializer)) {
+    return false;
+  }
+  const tag = initializer.getTag();
+  return Node.isPropertyAccessExpression(tag)
+    && Node.isIdentifier(tag.getExpression())
+    && tag.getExpression().getText() === "String"
+    && tag.getName() === "raw";
+};
+
 const isStartIndexDeclaration = (declaration: VariableDeclaration): boolean => {
   const declarationInitializer = declaration.getInitializer();
   return declaration.getName() === "startIndex"

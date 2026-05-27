@@ -10,9 +10,144 @@ import {
   hasChunkedStartIndexLoop,
   hasIdentifier,
   hasPropertyAccessNamed,
+  hasStringRawTemplateInitializer,
   trackSourceFile,
 } from "./inspector-ast-shared.js";
 import { inspectProductDetailDomContract } from "./inspector-product-detail-dom-contract.js";
+
+const pushSearchBrowserContractFindings = (input: {
+  findings: InspectorFinding[];
+  lawId: string;
+  searchFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>;
+  searchRepoPath: string;
+  usesRunJxa: boolean;
+}): void => {
+  if (!hasPropertyAccessNamed(input.searchFile, "evaluateActiveTab")) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/search-browser-controller-contract",
+      lawId: input.lawId,
+      filePath: input.searchRepoPath,
+      message: "Amazon search extraction must use BrowserController.evaluateActiveTab so audited production code matches the acceptance browser contract.",
+    }));
+  }
+
+  if (input.usesRunJxa) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/search-no-direct-jxa",
+      lawId: input.lawId,
+      filePath: input.searchRepoPath,
+      message: "Amazon search extraction must not bypass BrowserController with direct runJxa calls.",
+    }));
+  }
+
+  if (hasPropertyAccessNamed(input.searchFile, "whose")) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/search-no-jxa-whose-window-selector",
+      lawId: input.lawId,
+      filePath: input.searchRepoPath,
+      message: "Amazon search extraction must not use JXA windows.whose selectors; production Chrome runs rejected them with invalid-index errors.",
+    }));
+  }
+};
+
+const pushSearchScriptContractFindings = (input: {
+  extractScriptFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>;
+  extractScriptRepoPath: string;
+  findings: InspectorFinding[];
+  lawId: string;
+  searchFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>;
+  searchRepoPath: string;
+}): void => {
+  const searchScriptImport = findNamedImportContract(
+    input.searchFile,
+    "./amazon-product-mining.search-extract-script.js",
+    "buildAmazonSearchExtractScript",
+  );
+  const exportedSearchScriptBuilder = input.extractScriptFile.getExportedDeclarations().get("buildAmazonSearchExtractScript") ?? [];
+
+  if (!searchScriptImport || !hasCallToImportedFunction(input.searchFile, searchScriptImport) || exportedSearchScriptBuilder.length === 0) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/search-extract-script-builder-contract",
+      lawId: input.lawId,
+      filePath: input.searchRepoPath,
+      message: "Amazon search extraction must import and call the dedicated buildAmazonSearchExtractScript builder exported by the search extract script module.",
+    }));
+  }
+
+  if (!hasChunkedStartIndexLoop(input.searchFile)) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/search-chunked-first-page-extraction",
+      lawId: input.lawId,
+      filePath: input.searchRepoPath,
+      message: "Amazon search extraction must keep the chunked startIndex loop so large first-page DOM payloads are collected without dropping products.",
+    }));
+  }
+
+  if (!hasStringRawTemplateInitializer(input.extractScriptFile, "AMAZON_SEARCH_EXTRACT_SCRIPT_TEMPLATE")) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/search-script-string-raw",
+      lawId: input.lawId,
+      filePath: input.extractScriptRepoPath,
+      message: "Amazon search DOM script must use String.raw so browser-side regex and escape sequences survive Node-side construction.",
+    }));
+  }
+};
+
+const pushBrowserTabExtractionFindings = (input: {
+  checkPrefix: string;
+  filePath: string;
+  findings: InspectorFinding[];
+  lawId: string;
+  sourceFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>;
+  subject: string;
+  usesRunJxa: boolean;
+}): void => {
+  if (!hasPropertyAccessNamed(input.sourceFile, "evaluateActiveTab")) {
+    input.findings.push(createFinding({
+      checkId: `amazon-mining/${input.checkPrefix}-browser-controller-contract`,
+      lawId: input.lawId,
+      filePath: input.filePath,
+      message: `${input.subject} extraction must use BrowserController.evaluateActiveTab so audited production code matches the acceptance browser contract.`,
+    }));
+  }
+
+  if (input.usesRunJxa) {
+    input.findings.push(createFinding({
+      checkId: `amazon-mining/${input.checkPrefix}-no-direct-jxa`,
+      lawId: input.lawId,
+      filePath: input.filePath,
+      message: `${input.subject} extraction must not bypass BrowserController with direct runJxa calls.`,
+    }));
+  }
+
+  if (hasCallToLocalIdentifier(input.sourceFile, "buildChromeFrontTabJsonEvaluation")) {
+    input.findings.push(createFinding({
+      checkId: `amazon-mining/${input.checkPrefix}-no-front-tab-json-wrapper`,
+      lawId: input.lawId,
+      filePath: input.filePath,
+      message: `${input.subject} extraction must not keep the direct JXA front-tab JSON wrapper once BrowserController.evaluateActiveTab is the governed path.`,
+    }));
+  }
+};
+
+const pushBrowserTabScriptTemplateFinding = (input: {
+  checkPrefix: string;
+  filePath: string;
+  findings: InspectorFinding[];
+  lawId: string;
+  scriptVariableName: string;
+  sourceFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>;
+  subject: string;
+}): void => {
+  if (!hasStringRawTemplateInitializer(input.sourceFile, input.scriptVariableName)) {
+    input.findings.push(createFinding({
+      checkId: `amazon-mining/${input.checkPrefix}-script-string-raw`,
+      lawId: input.lawId,
+      filePath: input.filePath,
+      message: `${input.subject} DOM script must use String.raw so browser-side regex and escape sequences survive Node-side construction.`,
+    }));
+  }
+};
 
 export const inspectFlowSearchBeforeDetail = (
   context: InspectorContext,
@@ -75,60 +210,38 @@ export const inspectSearchExtractionProductionPath = (
     "../../lib/browser/current-chrome-window-control.js",
     "runJxa",
   );
-  const searchScriptImport = findNamedImportContract(
+  const usesRunJxa = !!runJxaImport && hasCallToImportedFunction(searchFile, runJxaImport);
+
+  pushSearchBrowserContractFindings({
+    findings,
+    lawId,
     searchFile,
-    "./amazon-product-mining.search-extract-script.js",
-    "buildAmazonSearchExtractScript",
-  );
-  const exportedSearchScriptBuilder = extractScriptFile.getExportedDeclarations().get("buildAmazonSearchExtractScript") ?? [];
-
-  if (!runJxaImport || !hasCallToImportedFunction(searchFile, runJxaImport)) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/search-production-jxa-call",
-      lawId,
-      filePath: searchRepoPath,
-      message: "Amazon search extraction must call the production Chrome JXA runner that was validated against the real Amazon UAE page.",
-    }));
-  }
-
-  if (hasPropertyAccessNamed(searchFile, "evaluateActiveTab")) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/search-no-generic-evaluate-active-tab",
-      lawId,
-      filePath: searchRepoPath,
-      message: "Amazon search extraction must not use BrowserController.evaluateActiveTab for search cards; that path was empirically rejected by production runs.",
-    }));
-  }
-
-  if (!searchScriptImport || !hasCallToImportedFunction(searchFile, searchScriptImport) || exportedSearchScriptBuilder.length === 0) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/search-extract-script-builder-contract",
-      lawId,
-      filePath: searchRepoPath,
-      message: "Amazon search extraction must import and call the dedicated buildAmazonSearchExtractScript builder exported by the search extract script module.",
-    }));
-  }
-
-  if (!hasChunkedStartIndexLoop(searchFile)) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/search-chunked-first-page-extraction",
-      lawId,
-      filePath: searchRepoPath,
-      message: "Amazon search extraction must keep the chunked startIndex loop so large first-page DOM payloads are collected without dropping products.",
-    }));
-  }
+    searchRepoPath,
+    usesRunJxa,
+  });
+  pushSearchScriptContractFindings({
+    extractScriptFile,
+    extractScriptRepoPath,
+    findings,
+    lawId,
+    searchFile,
+    searchRepoPath,
+  });
 };
 
-export const inspectChromeJxaExtractionContract = (
+export const inspectBrowserTabExtractionContract = (
   context: InspectorContext,
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
   lawId: string,
-  repoPath: string,
-  checkPrefix: string,
-  subject: string,
+  input: {
+    repoPath: string;
+    checkPrefix: string;
+    subject: string;
+    scriptVariableName: string;
+  },
 ): void => {
-  const sourceFile = getRequiredSourceFile(context, repoPath);
+  const sourceFile = getRequiredSourceFile(context, input.repoPath);
   trackSourceFile(inspectedFiles, sourceFile);
   if (!sourceFile) {
     return;
@@ -139,33 +252,26 @@ export const inspectChromeJxaExtractionContract = (
     "../../lib/browser/current-chrome-window-control.js",
     "runJxa",
   );
+  const usesRunJxa = !!runJxaImport && hasCallToImportedFunction(sourceFile, runJxaImport);
 
-  if (!runJxaImport || !hasCallToImportedFunction(sourceFile, runJxaImport)) {
-    findings.push(createFinding({
-      checkId: `amazon-mining/${checkPrefix}-production-jxa-call`,
-      lawId,
-      filePath: repoPath,
-      message: `${subject} extraction must call the production Chrome JXA runner that was validated against the real Amazon UAE flow.`,
-    }));
-  }
-
-  if (hasPropertyAccessNamed(sourceFile, "evaluateActiveTab")) {
-    findings.push(createFinding({
-      checkId: `amazon-mining/${checkPrefix}-no-generic-evaluate-active-tab`,
-      lawId,
-      filePath: repoPath,
-      message: `${subject} extraction must not use BrowserController.evaluateActiveTab; production runs rejected that path with missing-value results.`,
-    }));
-  }
-
-  if (!hasCallToLocalIdentifier(sourceFile, "buildChromeFrontTabJsonEvaluation")) {
-    findings.push(createFinding({
-      checkId: `amazon-mining/${checkPrefix}-front-tab-json-evaluation`,
-      lawId,
-      filePath: repoPath,
-      message: `${subject} extraction must keep the Chrome front-tab JSON evaluation wrapper so returned DOM data is parseable.`,
-    }));
-  }
+  pushBrowserTabExtractionFindings({
+    checkPrefix: input.checkPrefix,
+    filePath: input.repoPath,
+    findings,
+    lawId,
+    sourceFile,
+    subject: input.subject,
+    usesRunJxa,
+  });
+  pushBrowserTabScriptTemplateFinding({
+    checkPrefix: input.checkPrefix,
+    filePath: input.repoPath,
+    findings,
+    lawId,
+    scriptVariableName: input.scriptVariableName,
+    sourceFile,
+    subject: input.subject,
+  });
 };
 
 export const inspectReviewsPerPagePersistence = (

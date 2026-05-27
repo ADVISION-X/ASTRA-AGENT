@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-27T19:17:57.663Z",
+  "generatedAt": "2026-05-27T19:30:44.708Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -1014,7 +1014,7 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1478,
+  "liveExportCount": 1479,
   "orphanDeclarationCount": 0,
   "reachableFileCount": 540,
   "status": "PASS",
@@ -1028,7 +1028,7 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1478,
+    "liveExportCount": 1479,
     "orphanDeclarationCount": 0,
     "reachableFileCount": 540,
     "unreachableFileCount": 0,

@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { runJxa } from "../../lib/browser/current-chrome-window-control.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -105,62 +104,19 @@ type ExtractedReview = {
 type ExtractResult =
   | { blocker: string }
   | { reviews: ExtractedReview[]; hasNextPage: boolean };
-
-const buildChromeFrontTabJsonEvaluation = (script: string): string => `
-const chrome = Application("Google Chrome");
-chrome.activate();
-const windows = chrome.windows();
-if (windows.length === 0) {
-  throw new Error("chrome_window_missing");
-}
-const frontWindow = windows[0];
-const tab = frontWindow.activeTab();
-const value = tab.execute({ javascript: ${JSON.stringify(`JSON.stringify((function() { ${script} })())`)} });
-if (value === undefined || value === null || value === "" || value === "missing value") {
-  throw new Error("amazon_review_extract_empty_result");
-}
-String(value);
-`;
-
-const readChromeFrontTabState = async (): Promise<{ readyState: string; bodyLength: number }> => {
-  const raw = await runJxa(`
-const chrome = Application("Google Chrome");
-const windows = chrome.windows();
-if (windows.length === 0) {
-  throw new Error("chrome_window_missing");
-}
-const frontWindow = windows[0];
-const tab = frontWindow.activeTab();
-const readyState = tab.execute({ javascript: "document.readyState" });
-const bodyLength = tab.execute({ javascript: "document.body ? document.body.innerText.length : 0" });
-JSON.stringify({ readyState: String(readyState), bodyLength: Number(bodyLength || 0) });
-`);
-  return JSON.parse(raw) as { readyState: string; bodyLength: number };
-};
-
-const waitForReviewPageReady = async (): Promise<void> => {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    try {
-      const state = await readChromeFrontTabState();
-      const documentReady = state.readyState === "complete" || state.readyState === "interactive";
-      if (documentReady && state.bodyLength > 200) return;
-    } catch {
-      // Chrome can reject script execution while the reviews page is still navigating.
-    }
-    await new Promise((resolveWait) => setTimeout(resolveWait, 750));
-  }
-  throw new Error("amazon_review_page_not_ready");
-};
-
-const extractFrontTabJson = async <T>(script: string, errorCode: string): Promise<T> => {
+const extractActiveTabJson = async <T>(
+  browser: BrowserController,
+  script: string,
+  description: string,
+  errorCode: string,
+): Promise<T> => {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 8; attempt++) {
     try {
-      const raw = await runJxa(buildChromeFrontTabJsonEvaluation(script));
-      return JSON.parse(raw) as T;
+      return await browser.evaluateActiveTab<T>({ script, description });
     } catch (error) {
       lastError = error;
-      await new Promise((resolveWait) => setTimeout(resolveWait, 750));
+      await browser.wait(750);
     }
   }
   const message = lastError instanceof Error ? lastError.message : String(lastError);
@@ -176,9 +132,13 @@ const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapte
       reusePolicy: "reuse-active-tab",
     });
     await browser.wait(1500);
-    await waitForReviewPageReady();
 
-    const result = await extractFrontTabJson<ExtractResult>(AMAZON_REVIEWS_EXTRACT_SCRIPT, "amazon_review_extract_failed");
+    const result = await extractActiveTabJson<ExtractResult>(
+      browser,
+      AMAZON_REVIEWS_EXTRACT_SCRIPT,
+      `Amazon review page extraction for page ${pageIndex + 1}`,
+      "amazon_review_extract_failed",
+    );
 
     if ("blocker" in result) {
       return { reviews: [], hasNextPage: false, restriction: "manual_required" };
