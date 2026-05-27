@@ -36,7 +36,7 @@ export const collectFacebookMiningAiLogCoverage = (): {
       checkId: "facebook-log-coverage/ai-contract",
       lawId: FacebookLogCoverageLaw.AI_CONTRACT,
       file: aiFiles[0],
-      line: findLine(text, /judgeFacebookProductVideo|buildAiFeedRequest/u),
+      line: findLine(text, ["judgeFacebookProductVideo", "buildAiFeedRequest"]),
       severity: "fatal",
       message: "Facebook AI judgment path lacks upload/response/parse trace logs",
       hint: `Add AI upload, response wait and parse stage logs with provider proof, rawOutputRef/hash and schema validation status. Missing: ${missing.join(", ")}.`,

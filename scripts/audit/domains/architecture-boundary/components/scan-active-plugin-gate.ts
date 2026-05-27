@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { pathSegments } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
@@ -38,7 +39,10 @@ type PluginExposureSummary = {
   statusEntries: PluginStatusEntry[];
 };
 
-const routeExposurePattern = /^src\/app\/.*-routes\.ts$/u;
+const isRouteExposurePath = (repoPath: string): boolean => {
+  const segments = pathSegments(repoPath);
+  return segments[0] === "src" && segments[1] === "app" && (segments.at(-1)?.endsWith("-routes.ts") ?? false);
+};
 const defaultSurfacePaths = new Set([
   "src/app/workbench-home-page.ts",
   "src/app/workbench-home-client.ts",
@@ -106,7 +110,7 @@ const collectExposureFilesByPluginId = (
         exposures.get(pluginId)?.add(repoPath);
       }
     }
-    if (!routeExposurePattern.test(repoPath)) {
+    if (!isRouteExposurePath(repoPath)) {
       continue;
     }
     const literalValues = [

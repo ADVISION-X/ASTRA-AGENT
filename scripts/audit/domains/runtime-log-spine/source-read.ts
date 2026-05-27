@@ -27,8 +27,11 @@ export const readRepoFile = (repoPath: string): RuntimeSourceFile | null => {
 
 const lineOfIndex = (text: string, index: number): number => text.slice(0, Math.max(0, index)).split("\n").length;
 
-export const findLine = (text: string, pattern: RegExp | string): number => {
-  const index = typeof pattern === "string" ? text.indexOf(pattern) : text.search(pattern);
+export const findLine = (text: string, pattern: string | readonly string[]): number => {
+  const tokens = typeof pattern === "string" ? [pattern] : pattern;
+  const index = tokens
+    .map((token) => text.indexOf(token))
+    .filter((tokenIndex) => tokenIndex >= 0)
+    .sort((left, right) => left - right)[0] ?? -1;
   return index >= 0 ? lineOfIndex(text, index) : 1;
 };
-

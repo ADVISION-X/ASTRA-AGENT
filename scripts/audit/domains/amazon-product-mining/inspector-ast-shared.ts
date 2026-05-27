@@ -23,6 +23,9 @@ export const hasStringLiteral = (sourceFile: SourceFile, literalValue: string): 
 export const literalText = (sourceFile: SourceFile): string => [
   ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
 ].join("\n");
 
 export const identifierText = (sourceFile: SourceFile): string =>

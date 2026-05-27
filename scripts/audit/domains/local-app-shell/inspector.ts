@@ -4,6 +4,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { containsAnyCaseInsensitive, isPublicCapabilityFacadePath, isPublicPluginFacadePath } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectDeepResearchCaseReaderUi } from "./components/scan-deep-research-case-reader-ui.js";
@@ -24,8 +25,6 @@ const videoDownloadRoutePath = "src/app/workbench-video-download-routes.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
-const publicPluginFacadePathPattern = /^src\/plugins\/[^/]+\/(?:index|[^/]+\.public)\.ts$/u;
-const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
 
 const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
 
@@ -142,7 +141,7 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "routeVideoDownloadArtifactJob", checkId: "local-app-shell/video-download-route" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "/api/video-download/source-page", checkId: "local-app-shell/video-download-source-page" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "missing_source_page_url", checkId: "local-app-shell/video-download-route" });
-  if (/getVideoDownloadAbilityGroup\(\)\.execute/u.test(videoRouteText)) {
+  if (videoRouteText.includes("getVideoDownloadAbilityGroup().execute")) {
     pushFinding(findings, {
       checkId: "local-app-shell/video-download-direct-ability-call",
       lawId,
@@ -219,7 +218,7 @@ const inspectDeepResearchAppBoundary = (
     .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
   const promptLikeNode = appSources.flatMap((sourceFile) =>
     sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).filter((literal) =>
-      /output contract|return json|positiveAnalysisPrompt|falsificationPrompt/iu.test(literal.getLiteralValue()),
+      containsAnyCaseInsensitive(literal.getLiteralValue(), ["output contract", "return json", "positiveAnalysisPrompt", "falsificationPrompt"]),
     ).map((literal) => ({ sourceFile, literal })),
   )[0];
   if (promptLikeNode) {
@@ -243,15 +242,18 @@ const inspectStatusWindow = (findings: Finding[], lawId: string): void => {
 
 const inspectForbiddenPageTerms = (findings: Finding[], lawId: string): void => {
   const pageText = `${readRepoFile(pagePath)}\n${readRepoFile(clientPath)}\n${readRepoFile(videoDownloadClientPath)}\n${readRepoFile(stylesPath)}`;
-  const forbiddenPatterns = [
-    /universal mission dashboard/iu,
-    /commander console/iu,
-    /visual runtime control/iu,
-    /next[- ]action|action plan/iu,
-    /data-browser-control|data-dom-control/iu,
+  const forbiddenMarkers = [
+    "universal mission dashboard",
+    "commander console",
+    "visual runtime control",
+    "next-action",
+    "next action",
+    "action plan",
+    "data-browser-control",
+    "data-dom-control",
   ] as const;
-  const matchedPattern = forbiddenPatterns.find((pattern) => pattern.test(pageText));
-  if (!matchedPattern) {
+  const matchedMarker = forbiddenMarkers.find((marker) => pageText.toLowerCase().includes(marker));
+  if (!matchedMarker) {
     return;
   }
   pushFinding(findings, {
@@ -259,7 +261,7 @@ const inspectForbiddenPageTerms = (findings: Finding[], lawId: string): void => 
     lawId,
     filePath: pagePath,
     message: "Local app shell contains forbidden dashboard, planner, or control surface.",
-    evidence: String(matchedPattern),
+    evidence: matchedMarker,
   });
 };
 
@@ -301,7 +303,7 @@ const inspectLocalRuntimeImports = (context: InspectorContext, findings: Finding
         continue;
       }
       const targetPath = getRepoSourcePath(target);
-      if (targetPath.startsWith("src/plugins/") && !publicPluginFacadePathPattern.test(targetPath)) {
+      if (targetPath.startsWith("src/plugins/") && !isPublicPluginFacadePath(targetPath)) {
         pushFinding(findings, {
           checkId: "local-app-shell/private-plugin-import",
           lawId,
@@ -310,7 +312,7 @@ const inspectLocalRuntimeImports = (context: InspectorContext, findings: Finding
           evidence: targetPath,
         });
       }
-      if (targetPath.startsWith("src/capabilities/") && !publicCapabilityFacadePathPattern.test(targetPath)) {
+      if (targetPath.startsWith("src/capabilities/") && !isPublicCapabilityFacadePath(targetPath)) {
         pushFinding(findings, {
           checkId: "local-app-shell/private-capability-import",
           lawId,

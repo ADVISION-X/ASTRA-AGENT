@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-27T21:26:38.656Z",
+  "generatedAt": "2026-05-27T22:22:23.706Z",
   "status": "PASS",
-  "scannedFiles": 305,
+  "scannedFiles": 307,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -209,6 +209,8 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.master-report-shell.ts",
@@ -327,7 +329,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 305,
+    "scannedFiles": 307,
     "emitCallCount": 18,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -338,7 +340,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 300,
+      "scannedFiles": 302,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -347,13 +349,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 245
+      "scannedFiles": 247
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 241,
+      "scannedFiles": 243,
       "metrics": {
         "emitCallCount": 7
       }
@@ -362,13 +364,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 241
+      "scannedFiles": 243
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 246,
+      "scannedFiles": 248,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -383,7 +385,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 246,
+      "scannedFiles": 248,
       "metrics": {
         "failureWithoutClassCount": 0
       }

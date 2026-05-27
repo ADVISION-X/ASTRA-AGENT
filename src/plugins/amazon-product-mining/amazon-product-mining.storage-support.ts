@@ -4,6 +4,11 @@ import { z } from "zod";
 import {
   AmazonHandoffStatusSchema,
   AmazonKeywordRecordSchema,
+  AmazonKeywordOpportunityDecisionSchema,
+  AmazonKeywordOpportunityHumanNextStepSchema,
+  AmazonKeywordOpportunityReviewRecordSchema,
+  AmazonKeywordOpportunityReviewStatusSchema,
+  AmazonKeywordOpportunityStrengthSchema,
   AmazonKeywordStatusSchema,
   AmazonProductDetailSchema,
   AmazonProductStatusSchema,
@@ -17,6 +22,11 @@ import { AmazonFieldDisclosureMapSchema } from "./amazon-product-mining.field-di
 type AmazonFieldDisclosureMap = z.infer<typeof AmazonFieldDisclosureMapSchema>;
 type AmazonHandoffStatus = z.infer<typeof AmazonHandoffStatusSchema>;
 type AmazonKeywordRecord = z.infer<typeof AmazonKeywordRecordSchema>;
+type AmazonKeywordOpportunityDecision = z.infer<typeof AmazonKeywordOpportunityDecisionSchema>;
+type AmazonKeywordOpportunityHumanNextStep = z.infer<typeof AmazonKeywordOpportunityHumanNextStepSchema>;
+type AmazonKeywordOpportunityReviewRecord = z.infer<typeof AmazonKeywordOpportunityReviewRecordSchema>;
+type AmazonKeywordOpportunityReviewStatus = z.infer<typeof AmazonKeywordOpportunityReviewStatusSchema>;
+type AmazonKeywordOpportunityStrength = z.infer<typeof AmazonKeywordOpportunityStrengthSchema>;
 type AmazonKeywordStatus = z.infer<typeof AmazonKeywordStatusSchema>;
 type AmazonProductDetail = z.infer<typeof AmazonProductDetailSchema>;
 type AmazonProductStatus = z.infer<typeof AmazonProductStatusSchema>;
@@ -59,6 +69,27 @@ export const ensureAmazonMiningStorageColumns = (db: Database.Database): void =>
   ]);
   ensureTableColumns(db, "amazon_mining_reviews", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
+  ]);
+  ensureTableColumns(db, "amazon_mining_keyword_opportunity_reviews", [
+    { columnName: "status", definition: "TEXT NOT NULL DEFAULT 'failed'" },
+    { columnName: "decision", definition: "TEXT" },
+    { columnName: "demand_signal", definition: "TEXT" },
+    { columnName: "review_health", definition: "TEXT" },
+    { columnName: "price_ceiling", definition: "TEXT" },
+    { columnName: "competition_openness", definition: "TEXT" },
+    { columnName: "improvement_opportunity", definition: "TEXT" },
+    { columnName: "data_confidence", definition: "TEXT" },
+    { columnName: "human_next_step", definition: "TEXT" },
+    { columnName: "evidence_refs_json", definition: "TEXT NOT NULL DEFAULT '[]'" },
+    { columnName: "missing_evidence_json", definition: "TEXT NOT NULL DEFAULT '[]'" },
+    { columnName: "risk_points_json", definition: "TEXT NOT NULL DEFAULT '[]'" },
+    { columnName: "ai_prompt_text", definition: "TEXT NOT NULL DEFAULT ''" },
+    { columnName: "ai_raw_response", definition: "TEXT NOT NULL DEFAULT ''" },
+    { columnName: "ai_response_ref", definition: "TEXT" },
+    { columnName: "package_ref", definition: "TEXT" },
+    { columnName: "keyword_package_slice_ref", definition: "TEXT" },
+    { columnName: "failure_reason", definition: "TEXT" },
+    { columnName: "updated_at", definition: "TEXT" },
   ]);
 };
 
@@ -209,4 +240,31 @@ export const rowToAiKeywordRun = (row: StorageRow) => ({
   status: row["status"] as string,
   failureReason: (row["failure_reason"] as string | null) ?? null,
   createdAt: row["created_at"] as string,
+});
+
+export const rowToKeywordOpportunityReview = (row: StorageRow): AmazonKeywordOpportunityReviewRecord => ({
+  reviewId: row["review_id"] as string,
+  taskId: row["task_id"] as string,
+  keywordId: row["keyword_id"] as string,
+  keyword: row["keyword"] as string,
+  status: row["status"] as AmazonKeywordOpportunityReviewStatus,
+  decision: (row["decision"] as AmazonKeywordOpportunityDecision | null) ?? null,
+  demandSignal: (row["demand_signal"] as AmazonKeywordOpportunityStrength | null) ?? null,
+  reviewHealth: (row["review_health"] as AmazonKeywordOpportunityStrength | null) ?? null,
+  priceCeiling: (row["price_ceiling"] as AmazonKeywordOpportunityStrength | null) ?? null,
+  competitionOpenness: (row["competition_openness"] as AmazonKeywordOpportunityStrength | null) ?? null,
+  improvementOpportunity: (row["improvement_opportunity"] as AmazonKeywordOpportunityStrength | null) ?? null,
+  dataConfidence: (row["data_confidence"] as AmazonKeywordOpportunityStrength | null) ?? null,
+  evidenceRefs: parseStringArray(row["evidence_refs_json"]),
+  missingEvidence: parseStringArray(row["missing_evidence_json"]),
+  riskPoints: parseStringArray(row["risk_points_json"]),
+  humanNextStep: (row["human_next_step"] as AmazonKeywordOpportunityHumanNextStep | null) ?? null,
+  aiPromptText: (row["ai_prompt_text"] as string | null) ?? "",
+  aiRawResponse: (row["ai_raw_response"] as string | null) ?? "",
+  aiResponseRef: (row["ai_response_ref"] as string | null) ?? null,
+  packageRef: (row["package_ref"] as string | null) ?? null,
+  keywordPackageSliceRef: (row["keyword_package_slice_ref"] as string | null) ?? null,
+  failureReason: (row["failure_reason"] as string | null) ?? null,
+  createdAt: row["created_at"] as string,
+  updatedAt: (row["updated_at"] as string | null) ?? null,
 });

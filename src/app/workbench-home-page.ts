@@ -52,6 +52,86 @@ const renderAmazonPanel = (): string => `
   </form>
 </section>`;
 
+const AMAZON_MARKETPLACES = [
+  "amazon.com",
+  "amazon.co.uk",
+  "amazon.de",
+  "amazon.co.jp",
+  "amazon.fr",
+  "amazon.it",
+  "amazon.es",
+  "amazon.ca",
+  "amazon.com.au",
+  "amazon.com.br",
+  "amazon.com.mx",
+  "amazon.nl",
+  "amazon.se",
+  "amazon.pl",
+  "amazon.ae",
+  "amazon.sg",
+  "amazon.com.tr",
+] as const;
+
+const renderAmazonMarketplaceOptions = (): string => AMAZON_MARKETPLACES
+  .map((marketplace) => `<option value="${marketplace}">${marketplace}</option>`)
+  .join("\n");
+
+const renderAmazonKeywordReviewHistory = (): string => `
+  <section class="panel review-history" data-amazon-product-mining-review-history>
+    <div class="section-head">
+      <div>
+        <h2>Keyword Opportunity Review History</h2>
+        <p class="muted">keyword pool screening only</p>
+      </div>
+      <div class="history-actions">
+        <div class="field">
+          <label>Review task ID</label>
+          <input data-amazon-product-mining-review-task-filter placeholder="Task ID optional" />
+        </div>
+        <div class="field">
+          <label>Decision filter</label>
+          <select data-amazon-product-mining-review-filter>
+            <option value="ALL">All</option>
+            <option value="PASS">PASS</option>
+            <option value="WATCH">WATCH</option>
+            <option value="REJECT">REJECT</option>
+            <option value="INSUFFICIENT_DATA">INSUFFICIENT_DATA</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" type="button" data-amazon-product-mining-refresh-reviews>Refresh Reviews</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Task ID</th>
+            <th>Keyword</th>
+            <th>Decision</th>
+            <th>Demand Signal</th>
+            <th>Review Health</th>
+            <th>Price Ceiling</th>
+            <th>Competition Openness</th>
+            <th>Improvement Opportunity</th>
+            <th>Data Confidence</th>
+            <th>Human Next Step</th>
+            <th>Package Ref</th>
+            <th>AI Review Ref</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody data-amazon-product-mining-review-rows>
+          <tr>
+            <td class="muted" colspan="14">No keyword reviews yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+
 const renderAmazonProductMiningPanel = (): string => `
 <section class="hidden" data-job-panel="amazon-product-mining">
   <h1>Amazon product mining</h1>
@@ -60,23 +140,7 @@ const renderAmazonProductMiningPanel = (): string => `
     <div class="field">
       <label>Amazon marketplace</label>
       <select name="amazonMarketplace">
-        <option value="amazon.com">amazon.com</option>
-        <option value="amazon.co.uk">amazon.co.uk</option>
-        <option value="amazon.de">amazon.de</option>
-        <option value="amazon.co.jp">amazon.co.jp</option>
-        <option value="amazon.fr">amazon.fr</option>
-        <option value="amazon.it">amazon.it</option>
-        <option value="amazon.es">amazon.es</option>
-        <option value="amazon.ca">amazon.ca</option>
-        <option value="amazon.com.au">amazon.com.au</option>
-        <option value="amazon.com.br">amazon.com.br</option>
-        <option value="amazon.com.mx">amazon.com.mx</option>
-        <option value="amazon.nl">amazon.nl</option>
-        <option value="amazon.se">amazon.se</option>
-        <option value="amazon.pl">amazon.pl</option>
-        <option value="amazon.ae">amazon.ae</option>
-        <option value="amazon.sg">amazon.sg</option>
-        <option value="amazon.com.tr">amazon.com.tr</option>
+        ${renderAmazonMarketplaceOptions()}
       </select>
     </div>
     <div class="field"><label>Target market</label><input name="targetMarket" required /></div>
@@ -121,6 +185,7 @@ const renderAmazonProductMiningPanel = (): string => `
       <span class="muted">package/pdf ref</span>
     </div>
   </section>
+  ${renderAmazonKeywordReviewHistory()}
 </section>`;
 
 const renderFacebookPanel = (): string => `

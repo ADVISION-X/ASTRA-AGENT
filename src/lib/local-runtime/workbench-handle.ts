@@ -31,6 +31,9 @@ type ListFacebookProductVideoMiningSavedRecords = typeof import("../../plugins/f
 type ExportFacebookProductVideoMiningSelectionRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").exportFacebookProductVideoMiningSelectionRecords;
 type StartAmazonProductMiningMission = typeof import("../../plugins/amazon-product-mining/index.js").startAmazonProductMiningMission;
 type GetAmazonProductMiningTaskStatus = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningTaskStatus;
+type ListAmazonProductMiningKeywordReviews = typeof import("../../plugins/amazon-product-mining/index.js").listAmazonProductMiningKeywordReviews;
+type GetAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningKeywordReview;
+type IngestAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-product-mining/index.js").ingestAmazonProductMiningKeywordReview;
 type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
@@ -47,6 +50,10 @@ type FacebookProductVideoMiningSelectionExport = Awaited<ReturnType<ExportFacebo
 type AmazonProductMiningMissionInput = Parameters<StartAmazonProductMiningMission>[0]["rawInput"];
 type AmazonProductMiningStartResult = ReturnType<StartAmazonProductMiningMission>;
 type AmazonProductMiningTaskResult = ReturnType<GetAmazonProductMiningTaskStatus>;
+type AmazonProductMiningKeywordReviewsResult = ReturnType<ListAmazonProductMiningKeywordReviews>;
+type AmazonProductMiningKeywordReviewResult = ReturnType<GetAmazonProductMiningKeywordReview>;
+type AmazonProductMiningKeywordReviewIngestInput = Parameters<IngestAmazonProductMiningKeywordReview>[0]["rawInput"];
+type AmazonProductMiningKeywordReviewIngestResult = ReturnType<IngestAmazonProductMiningKeywordReview>;
 type AmazonProductMiningExportResult = ReturnType<ExportAmazonProductMiningResult>;
 
 export type GrassEyeWorkbenchHandle = {
@@ -136,6 +143,15 @@ export type GrassEyeWorkbenchHandle = {
     taskId: string,
   ) => AmazonProductMiningTaskResult;
   getLatestAmazonProductMiningTask: () => AmazonProductMiningTaskResult;
+  listAmazonProductMiningKeywordReviews: (
+    taskId?: string,
+  ) => AmazonProductMiningKeywordReviewsResult;
+  getAmazonProductMiningKeywordReview: (
+    reviewId: string,
+  ) => AmazonProductMiningKeywordReviewResult;
+  ingestAmazonProductMiningKeywordReview: (
+    input: AmazonProductMiningKeywordReviewIngestInput,
+  ) => AmazonProductMiningKeywordReviewIngestResult;
   exportAmazonProductMiningResult: (
     taskId: string,
   ) => AmazonProductMiningExportResult;

@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import {
+  AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT,
+  selectSearchItemsForDetailMining,
+} from "../../src/plugins/amazon-product-mining/amazon-product-mining.flow.js";
+
 const repoRoot = resolve(import.meta.dirname, "../..");
 const pluginDir = resolve(repoRoot, "src/plugins/amazon-product-mining");
 
@@ -112,5 +117,16 @@ const keywordStatusCheckIdx = flowSrc.indexOf('keywordResult.status === "success
 const keywordCaptureLogIdx = flowSrc.indexOf("logger.logKeywordAiCapture");
 assert.ok(keywordStatusCheckIdx >= 0, "flow.ts must check keywordResult success before capture-success logging");
 assert.ok(keywordCaptureLogIdx > keywordStatusCheckIdx, "AI capture success log must be guarded by success status");
+
+// --- Test 12: only top 30 ranked search results enter detail/review mining ---
+const rankedItems = Array.from({ length: 60 }, (_, index) => ({
+  rankPosition: index + 1,
+  itemId: `item-${index + 1}`,
+}));
+const selectedRankedItems = selectSearchItemsForDetailMining(rankedItems);
+assert.equal(AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT, 30);
+assert.equal(selectedRankedItems.length, 30);
+assert.deepEqual(selectedRankedItems.map((item) => item.rankPosition), Array.from({ length: 30 }, (_, index) => index + 1));
+assert.ok(flowSrc.includes("selectSearchItemsForDetailMining(searchResult.items)"), "flow.ts must apply top-30 detail mining selector after persisting all search results");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-flow\n");

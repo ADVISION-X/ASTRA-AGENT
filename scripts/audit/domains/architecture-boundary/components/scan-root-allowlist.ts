@@ -2,11 +2,11 @@ import { readdirSync } from "node:fs";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { hasSourceExtension } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 
 const allowedSrcRoots = new Set(["app", "mediator", "plugins", "capabilities", "lib", "types"]);
 const allowedScriptRoots = new Set(["acceptance", "audit", "startup"]);
-const activeRootFilePattern = /\.(?:ts|tsx|js|jsx|mjs)$/u;
 
 const collectUnexpectedRoots = (rootPath: string, allowedRoots: ReadonlySet<string>): string[] =>
   readdirSync(resolveFromRepo(rootPath), { withFileTypes: true })
@@ -16,7 +16,7 @@ const collectUnexpectedRoots = (rootPath: string, allowedRoots: ReadonlySet<stri
 
 const collectUnexpectedRootFiles = (rootPath: string): string[] =>
   readdirSync(resolveFromRepo(rootPath), { withFileTypes: true })
-    .filter((entry) => entry.isFile() && activeRootFilePattern.test(entry.name))
+    .filter((entry) => entry.isFile() && hasSourceExtension(entry.name))
     .map((entry) => `${rootPath}/${entry.name}`)
     .sort();
 

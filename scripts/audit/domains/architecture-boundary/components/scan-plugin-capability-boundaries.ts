@@ -1,13 +1,14 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { isTopLevelPluginFile } from "../../../shared/no-regex.js";
 import {
   collectResolvedModuleTargets,
   type SourceModuleTarget,
 } from "../../../shared/source-module-targets.js";
 import {
-  jobPluginPathPattern,
-  privateCapabilityPathPattern,
-  publicCapabilityFacadePathPattern,
+  isJobPluginPath,
+  isPrivateCapabilityPath,
+  isPublicCapabilityFacadePath,
   resolveOwnerRoot,
   type ArchitectureSourceFile,
 } from "./architecture-boundary-shared.js";
@@ -134,7 +135,7 @@ const inspectNonFacadeCapabilityImports = (
 ): void => {
   for (const target of collectResolvedModuleTargets(sourceFile)) {
     const targetPath = target.targetPath;
-    if (!targetPath.startsWith("src/capabilities/") || publicCapabilityFacadePathPattern.test(targetPath)) {
+    if (!targetPath.startsWith("src/capabilities/") || isPublicCapabilityFacadePath(targetPath)) {
       continue;
     }
     pushBoundaryFinding(findings, {
@@ -153,8 +154,8 @@ export const inspectPluginBoundaries = (
   repoPath: string,
   sourceFile: ArchitectureSourceFile,
 ): void => {
-  if (!jobPluginPathPattern.test(repoPath)) {
-    if (/^src\/plugins\/[^/]+\.tsx?$/u.test(repoPath)) {
+  if (!isJobPluginPath(repoPath)) {
+    if (isTopLevelPluginFile(repoPath)) {
       pushBoundaryFinding(findings, {
         checkId: "architecture/plugin-root-file",
         lawId: jobFlowLawId,
@@ -174,7 +175,7 @@ export const inspectChildAbilityImports = (
   repoPath: string,
   sourceFile: ArchitectureSourceFile,
 ): void => {
-  if (!privateCapabilityPathPattern.test(repoPath)) {
+  if (!isPrivateCapabilityPath(repoPath)) {
     return;
   }
   const sourceCapabilityRoot = resolveOwnerRoot(repoPath, 2);

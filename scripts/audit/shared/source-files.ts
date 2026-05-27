@@ -1,9 +1,10 @@
 import type { Project, SourceFile } from "ts-morph";
 
+import { hasSourceExtension } from "./no-regex.js";
 import { toRepoPath } from "./paths.js";
 
 const isActiveRepoPath = (repoPath: string): boolean => {
-  if (!/\.(?:ts|tsx|js|jsx|mjs)$/u.test(repoPath)) {
+  if (!hasSourceExtension(repoPath)) {
     return false;
   }
   if (repoPath.startsWith("scripts/audit/generated/")) {

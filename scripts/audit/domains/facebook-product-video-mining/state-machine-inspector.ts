@@ -78,7 +78,7 @@ const pushForbiddenNavigationControlFindings = (
   navigationText: string,
   scriptText: string,
 ): void => {
-  if (/clicked_next|next_video_did_not_change/u.test(navigationText + scriptText)) {
+  if ([navigationText, scriptText].some((text) => text.includes("clicked_next") || text.includes("next_video_did_not_change"))) {
     findings.push(createFinding({
       checkId: "facebook-mining/no-dom-next-primary-controller",
       lawId,

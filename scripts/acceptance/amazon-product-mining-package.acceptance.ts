@@ -37,14 +37,18 @@ const packageJson = JSON.parse(readFileSync(finalPackage.packageJsonPath, "utf8"
   keywords: Array<{ keywordId: string; searchEvidenceRef: string; searchResultsCsvRef: string }>;
   searchResults: Array<{ itemId: string; detailRefs: string[] }>;
   searchResultProductLinks: Array<{ itemId: string; detailId: string }>;
+  task: { productDetailRankLimit: number | null };
 	  products: Array<{
 	    detailId: string;
+      images: { aPlusImageUrls: string[] };
+      commerce: { starDistribution: string | null };
 	    sourceKeywords: Array<{ keywordId: string }>;
 	    reviews: { jsonlRef: string | null; summaryRef: string | null };
 	    completeness: {
 	      score: number;
 	      notPresentFields?: string[];
 	      extractorMissingFields?: string[];
+        fieldDisclosures?: Record<string, { reason: string; detail: string | null }>;
 	    };
 	  }>;
   reviewsIndex: Array<{ detailId: string; reviewsJsonlRef: string; reviewsSummaryRef: string }>;
@@ -59,6 +63,7 @@ assert.equal(packageJson.aiKeywordRuns.length, 1);
 assert.equal(packageJson.keywords.length, 2);
 assert.equal(packageJson.searchResults.length, 2);
 assert.equal(packageJson.searchResultProductLinks.length, 2);
+assert.equal(packageJson.task.productDetailRankLimit, null);
 assert.equal(packageJson.products.length, 2);
 assert.equal(packageJson.reviewsIndex.length, 2);
 assert.equal(packageJson.completeness.summary.reviewMaxPagesConfigured, 2);
@@ -70,7 +75,11 @@ assert.equal(firstPackageProduct.sourceKeywords.length > 0, true);
 assert.equal(Boolean(firstPackageProduct.reviews.jsonlRef), true);
 assert.equal(Boolean(firstPackageProduct.reviews.summaryRef), true);
 assert.equal(firstPackageProduct.completeness.score > 0, true);
+assert.equal(firstPackageProduct.images.aPlusImageUrls.includes("https://images.example.com/product-1-aplus.jpg"), true);
+assert.equal(firstPackageProduct.commerce.starDistribution, "5 star 78%");
+assert.equal(Boolean(firstPackageProduct.completeness.fieldDisclosures?.title), true);
 assert.equal(secondPackageProduct.completeness.notPresentFields?.includes("aPlusContentIfVisible"), true);
+assert.equal(secondPackageProduct.completeness.notPresentFields?.includes("aPlusImageUrls"), true);
 assert.deepEqual(secondPackageProduct.completeness.extractorMissingFields ?? [], []);
 assert.equal(packageJson.handoff.status, "ready");
 assert.equal(packageJson.handoff.analysisBoundary, "external_advanced_ai_only");
@@ -101,11 +110,12 @@ assert.equal(evidenceIndex.artifacts.some((artifact) => artifact.artifactId === 
 
 const imageEvidenceIndex = JSON.parse(readFileSync(finalPackage.imageEvidenceIndexPath, "utf8")) as {
   mode: string;
-  images: Array<{ url: string }>;
+  images: Array<{ url: string; imageType: string }>;
 };
 
 assert.equal(imageEvidenceIndex.mode, "url_only");
 assert.equal(imageEvidenceIndex.images.some((image) => image.url === "https://images.example.com/review-1.jpg"), true);
+assert.equal(imageEvidenceIndex.images.some((image) => image.imageType === "a_plus_image" && image.url === "https://images.example.com/product-1-aplus.jpg"), true);
 
 const completenessReport = JSON.parse(readFileSync(finalPackage.dataCompletenessReportPath, "utf8")) as {
   summary: { packageCompletenessStatus: string; reviewMaxPagesConfigured: number | null; failedCount: number };

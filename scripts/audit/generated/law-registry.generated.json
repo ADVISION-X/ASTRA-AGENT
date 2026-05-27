@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T21:26:16.501Z",
+  "generatedAt": "2026-05-27T22:23:05.030Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -351,6 +351,80 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 15
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "flow+prompt+persisted-record",
+      "summary": "Keyword opportunity review is a keywordId-scoped screening stage that judges whether a keyword product pool deserves more human research; it is not final product adjudication, procurement, profit, or launch guidance.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts"
+      ],
+      "forbidden": [
+        "Keyword review deciding final product selection.",
+        "Keyword review outputting procurement, sampling, place-order, inventory, launch-listing, or ad-budget advice.",
+        "Automatically entering procurement, sampling, listing, or launch stages from keyword verdict.",
+        "Treating one keyword review as task-global product adjudication."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 16
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+storage+response-validation",
+      "summary": "Keyword opportunity review must persist one structured verdict contract with fixed decision enums, fixed dimension enums, fixed human next-step enums, and raw AI proof.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+        "src/app/workbench-amazon-product-mining-routes.ts"
+      ],
+      "forbidden": [
+        "Decision enum outside PASS / WATCH / REJECT / INSUFFICIENT_DATA.",
+        "humanNextStep outside enter_next_validation / mine_related_keywords / reject / rerun_or_collect_more_data.",
+        "Natural-language-only review without structured verdict persistence.",
+        "Review existing only in PDF or handoff docs without database persistence."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 17
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "app-surface+route+acceptance",
+      "summary": "The workbench must expose a keyword opportunity review history surface with task-scoped reading, decision filtering, package ref opening, AI review ref opening, and manual ingest entry for structured verdicts.",
+      "appliesTo": [
+        "src/app/workbench-home-page.ts",
+        "src/app/workbench-home-client.ts",
+        "src/app/workbench-amazon-product-mining-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts",
+        "src/plugins/amazon-product-mining/index.ts"
+      ],
+      "forbidden": [
+        "App showing only taskId/status/package ref without keyword verdict history.",
+        "App exposing procurement, sampling, place-order, run-ads, or final-selection buttons for keyword review.",
+        "App surfacing only natural-language review text without structured verdict fields.",
+        "Route-level auto-progression into downstream business stages based on verdict."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 18
     },
     {
       "lawId": "APEX-ARCH-001-V1",

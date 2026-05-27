@@ -206,6 +206,7 @@ export const buildTaskScopeArtifact = (input: {
   taskId: string;
   task: AmazonTaskRecord | null;
   keywords: readonly AmazonKeywordRecord[];
+  detailRankLimit?: number;
   reviewMaxPages?: number;
   generatedAt: string;
 }) => ({
@@ -218,6 +219,7 @@ export const buildTaskScopeArtifact = (input: {
   status: input.task?.status ?? "unknown",
   failureReason: input.task?.failureReason ?? null,
   handoffStatus: input.task?.handoffStatus ?? "not_started",
+  productDetailRankLimit: input.detailRankLimit ?? null,
   reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
   createdAt: input.task?.createdAt ?? input.generatedAt,
   updatedAt: input.task?.updatedAt ?? null,

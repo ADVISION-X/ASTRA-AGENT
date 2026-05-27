@@ -140,6 +140,7 @@ try {
     aboutThisItem: null,
     productDescription: "A lightweight 2-person tent for backpacking.",
     aPlusContentIfVisible: null,
+    aPlusImageUrls: [],
     variationOptions: null,
     colorSizeStyleOptions: null,
   };
@@ -176,6 +177,7 @@ try {
   const products = storage.getProductDetailsForTask(taskId);
   assert.equal(products.length, 1);
   assert.equal(products[0]!.asin, "B001TEST01");
+  assert.deepEqual(products[0]!.aPlusImageUrls, []);
 
   // --- Storage: persist reviews ---
   const reviewId = randomUUID();

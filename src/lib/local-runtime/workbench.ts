@@ -40,6 +40,9 @@ import {
   startAmazonProductMiningMission,
   getAmazonProductMiningTaskStatus,
   getLatestAmazonProductMiningTask,
+  listAmazonProductMiningKeywordReviews,
+  getAmazonProductMiningKeywordReview,
+  ingestAmazonProductMiningKeywordReview,
   exportAmazonProductMiningResult,
 } from "../../plugins/amazon-product-mining/index.js";
 import {
@@ -255,6 +258,17 @@ const buildAmazonMiningHandle = (
   },
   getLatestAmazonProductMiningTask() {
     return getLatestAmazonProductMiningTask({ dataDir });
+  },
+  listAmazonProductMiningKeywordReviews(taskId?: string) {
+    return listAmazonProductMiningKeywordReviews(
+      taskId ? { dataDir, taskId } : { dataDir },
+    );
+  },
+  getAmazonProductMiningKeywordReview(reviewId: string) {
+    return getAmazonProductMiningKeywordReview({ dataDir, reviewId });
+  },
+  ingestAmazonProductMiningKeywordReview(rawInput: unknown) {
+    return ingestAmazonProductMiningKeywordReview({ dataDir, rawInput });
   },
   exportAmazonProductMiningResult(taskId: string) {
     return exportAmazonProductMiningResult({ dataDir, taskId });

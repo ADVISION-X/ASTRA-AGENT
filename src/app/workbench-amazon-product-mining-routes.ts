@@ -41,6 +41,45 @@ const handleAmazonLatestRequest = async (
   return true;
 };
 
+const handleAmazonKeywordReviewsRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const taskId = url.searchParams.get("taskId") ?? undefined;
+  writeJson(response, 200, { reviews: workbench.listAmazonProductMiningKeywordReviews(taskId) });
+  return true;
+};
+
+const handleAmazonKeywordReviewRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const reviewId = url.searchParams.get("reviewId");
+  if (!reviewId) {
+    writeJson(response, 400, { error: "missing_review_id" });
+    return true;
+  }
+  const review = workbench.getAmazonProductMiningKeywordReview(reviewId);
+  if (!review) {
+    writeJson(response, 404, { error: "review_not_found" });
+    return true;
+  }
+  writeJson(response, 200, { review });
+  return true;
+};
+
+const handleAmazonKeywordReviewManualIngestRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  const input = await readJsonBody(request);
+  writeJson(response, 200, { review: workbench.ingestAmazonProductMiningKeywordReview(input) });
+  return true;
+};
+
 const handleAmazonExportRequest = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -73,6 +112,9 @@ export const handleAmazonProductMiningRequest = async (
     "POST:/api/amazon-product-mining/mission": () => handleAmazonMissionRequest(request, response, workbench),
     "GET:/api/amazon-product-mining/run": () => handleAmazonRunRequest(response, workbench, url),
     "GET:/api/amazon-product-mining/latest": () => handleAmazonLatestRequest(response, workbench),
+    "GET:/api/amazon-product-mining/keyword-reviews": () => handleAmazonKeywordReviewsRequest(response, workbench, url),
+    "GET:/api/amazon-product-mining/keyword-review": () => handleAmazonKeywordReviewRequest(response, workbench, url),
+    "POST:/api/amazon-product-mining/keyword-review/manual-ingest": () => handleAmazonKeywordReviewManualIngestRequest(request, response, workbench),
     "GET:/api/amazon-product-mining/export": () => handleAmazonExportRequest(response, workbench, url),
   };
   const routeHandler = routeHandlers[`${request.method}:${url.pathname}`];

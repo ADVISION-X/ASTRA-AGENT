@@ -4,11 +4,12 @@ import { createFinding, selectLawId } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { toRepoPath } from "../../../shared/paths.js";
 
-const forbiddenRegexMethodNames = new Set(["match", "matchAll", "search"]);
+const forbiddenRegexMethodNames = new Set(["exec", "match", "matchAll", "replace", "replaceAll", "search", "split", "test"]);
 
 const isNoRegexScopePath = (repoPath: string): boolean =>
-  repoPath.startsWith("scripts/audit/domains/code-purity/")
-  || repoPath === "scripts/audit/shared/source-module-targets.ts";
+  repoPath.startsWith("scripts/audit/")
+  && !repoPath.startsWith("scripts/audit/generated/")
+  && (repoPath.endsWith(".ts") || repoPath.endsWith(".js") || repoPath.endsWith(".mjs"));
 
 const looksLikeRegExpType = (node: MorphNode): boolean => {
   const nodeType = node.getType();
@@ -74,11 +75,8 @@ export const scanCodePurityNoRegex = (project: Project, lawIds: readonly string[
         continue;
       }
       const firstArgument = callExpression.getArguments()[0];
-      if (
-        forbiddenRegexMethodNames.has(expression.getName())
-        && firstArgument
-        && (Node.isRegularExpressionLiteral(firstArgument) || looksLikeRegExpType(firstArgument))
-      ) {
+      const hasRegexArgument = firstArgument && (Node.isRegularExpressionLiteral(firstArgument) || looksLikeRegExpType(firstArgument));
+      if (forbiddenRegexMethodNames.has(expression.getName()) && hasRegexArgument) {
         findings.push(
           buildNoRegexFinding({
             evidence: callExpression.getText(),

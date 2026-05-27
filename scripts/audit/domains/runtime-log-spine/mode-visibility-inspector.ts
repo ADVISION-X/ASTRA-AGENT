@@ -1,13 +1,14 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
+import { containsAny } from "../../shared/no-regex.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
 import { getArrayLiteralPropertyValues, getNestedObject, getPropertyInitializer, hasProperty } from "./ast/ast-object-literal-reader.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { isAuthorizedRuntimeLogHelperPath, isRuntimeLogLawSourcePath } from "./runtime-log-scope.js";
 
-const heavyPayloadKeys = /\b(raw|rawOutput|prompt|fullPrompt|html|bodyText|dom|selectorCandidates|comments|signature|before|after|videoFacts|uploadState|browserState|candidateValidation)\b/u;
+const heavyPayloadKeys = ["raw", "rawOutput", "prompt", "fullPrompt", "html", "bodyText", "dom", "selectorCandidates", "comments", "signature", "before", "after", "videoFacts", "uploadState", "browserState", "candidateValidation"] as const;
 
 const hasInvalidModeVisibility = (input: {
   objectLiteral: Parameters<typeof hasProperty>[0];
@@ -22,8 +23,8 @@ const shouldFlagHeavyPayloadFlow = (input: {
   payloadText: string;
   nearbyText: string;
 }): boolean => (input.values ?? []).includes("FLOW")
-  && heavyPayloadKeys.test(input.payloadText)
-  && !/isDebugEnabled\(|isTraceEnabled\(/u.test(input.nearbyText);
+  && containsAny(input.payloadText, heavyPayloadKeys)
+  && !containsAny(input.nearbyText, ["isDebugEnabled(", "isTraceEnabled("]);
 
 const appendModeVisibilityFindingsForCall = (input: {
   call: ReturnType<typeof resolveCallsInSourceFile>[number];

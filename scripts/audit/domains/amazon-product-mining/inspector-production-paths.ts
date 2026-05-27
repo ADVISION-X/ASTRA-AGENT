@@ -4,6 +4,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
   findNamedImportContract,
+  fileIncludesText,
   getRequiredSourceFile,
   hasCallToImportedFunction,
   hasCallToLocalIdentifier,
@@ -186,6 +187,21 @@ export const inspectFlowSearchBeforeDetail = (
       message: "persistSearchResults must appear before runProductDetailExtraction in flow.ts (law 005).",
     }));
   }
+
+  const requiredTopRankIdentifiers = [
+    "AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT",
+    "selectSearchItemsForDetailMining",
+  ] as const;
+  const missingTopRankIdentifiers = requiredTopRankIdentifiers.filter((identifier) => !hasIdentifier(flowFile, identifier));
+  if (missingTopRankIdentifiers.length > 0) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/detail-mining-top-30-rank-limit",
+      lawId,
+      filePath: repoPath,
+      message: "flow.ts must keep the governed top-30 search-rank limit for product detail and review mining while preserving all search results.",
+      evidence: `missingIdentifiers=${missingTopRankIdentifiers.join(",")}`,
+    }));
+  }
 };
 
 export const inspectSearchExtractionProductionPath = (
@@ -331,6 +347,24 @@ export const inspectReviewsPerPagePersistence = (
   const hasOnPageExtracted = hasIdentifier(reviewsFile, "onPageExtracted");
   const hasWhileLoop = reviewsFile.getDescendantsOfKind(SyntaxKind.WhileStatement).length > 0;
   if (hasOnPageExtracted && hasWhileLoop) {
+    const requiredIdentifiers = [
+      "buildReviewPageUrl",
+      "detectReviewLanguage",
+      "isEvidenceMediaUrl",
+      "extractReviewRegion",
+    ] as const;
+    const missingIdentifiers = requiredIdentifiers
+      .filter((identifier) => !fileIncludesText(reviewsFile, identifier));
+    if (missingIdentifiers.length === 0) {
+      return;
+    }
+    findings.push(createFinding({
+      checkId: "amazon-mining/reviews-visible-evidence-contract",
+      lawId,
+      filePath: repoPath,
+      message: "reviews.ts must keep governed review URL pagination, per-review language detection, region parsing, and media URL filtering.",
+      evidence: `missingIdentifiers=${missingIdentifiers.join(",")}`,
+    }));
     return;
   }
 
@@ -357,4 +391,49 @@ export const inspectProductDetailDomFallbacks = (
     lawId,
     filePath: repoPath,
   });
+};
+
+export const inspectPackageEvidenceDepthContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const contracts = [
+    {
+      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      requiredTexts: ["aPlusImageUrls", "starDistribution", "fieldDisclosures"],
+    },
+    {
+      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",
+      requiredTexts: ["aPlusImageUrls", "a_plus_image", "fieldDisclosures"],
+    },
+    {
+      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.package-review-evidence.ts",
+      requiredTexts: ["fieldDisclosureMap", "reviewLanguage", "reviewRegionIfVisible"],
+    },
+    {
+      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
+      requiredTexts: ["aPlusImageUrls", "a_plus_image"],
+    },
+  ] as const;
+
+  for (const contract of contracts) {
+    const sourceFile = getRequiredSourceFile(context, contract.repoPath);
+    trackSourceFile(inspectedFiles, sourceFile);
+    if (!sourceFile) {
+      continue;
+    }
+    const missingTexts = contract.requiredTexts.filter((text) => !fileIncludesText(sourceFile, text));
+    if (missingTexts.length === 0) {
+      continue;
+    }
+    findings.push(createFinding({
+      checkId: "amazon-mining/package-evidence-depth-contract",
+      lawId,
+      filePath: contract.repoPath,
+      message: "Amazon package artifacts must carry deep detail, A+ image, review disclosure, and field-reason evidence into the advanced-AI readable package.",
+      evidence: `missingTexts=${missingTexts.join(",")}`,
+    }));
+  }
 };

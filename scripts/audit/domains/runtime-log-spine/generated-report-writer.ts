@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 import { generatedDir } from "../../shared/paths.js";
+import { escapeMarkdownCell } from "../../shared/no-regex.js";
 import {
   type RuntimeLogSpineFinding,
   type RuntimeLogSpinePhase,
@@ -52,7 +53,7 @@ export const toInspectorFinding = (finding: RuntimeLogSpineFinding): InspectorFi
   filePath: finding.file,
 });
 
-const escapeCell = (value: string): string => value.replace(/\|/gu, "\\|").replace(/\n/gu, " ");
+const escapeCell = escapeMarkdownCell;
 
 export const renderRuntimeLogSpineMarkdown = (report: RuntimeLogSpineReport): string => [
   "# Runtime Log Spine Quality Report",
@@ -98,4 +99,3 @@ export const writeRuntimeLogSpineReport = (report: RuntimeLogSpineReport): void 
   writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
   writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.md"), renderRuntimeLogSpineMarkdown(report), "utf8");
 };
-

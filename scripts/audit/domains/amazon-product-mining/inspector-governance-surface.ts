@@ -22,6 +22,8 @@ const REQUIRED_PLUGIN_FILES = [
   "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+  "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+  "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
@@ -42,8 +44,11 @@ const REQUIRED_ACCEPTANCE_FILES = [
 	  "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
 	  "scripts/acceptance/amazon-product-mining-production-attacks.acceptance.ts",
 	  "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-keyword-review-boundary.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-keyword-review-app-ui.acceptance.ts",
 ] as const;
 
 const GOVERNANCE_LAW_PATH = ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md";
@@ -103,6 +108,18 @@ export const inspectGovernanceStatus = (
     "不得按页面持续新开标签",
   ].filter((token) => !blueprintText.includes(token));
 
+  const missingKeywordReviewTokens = [
+    "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
+    "KEYWORD_PACKAGE_SLICE_BUILD",
+    "KEYWORD_ADVANCED_AI_HANDOFF",
+    "KEYWORD_OPPORTUNITY_REVIEW",
+    "KEYWORD_REVIEW_PERSIST",
+    "APP_HISTORY_UPDATE",
+    "Keyword Opportunity Review History",
+  ].filter((token) => !lawText.includes(token) && !blueprintText.includes(token));
+
   if (missingTabLifecycleTokens.length > 0) {
     findings.push(createFinding({
       checkId: "amazon-mining/blueprint-tab-lifecycle",
@@ -110,6 +127,16 @@ export const inspectGovernanceStatus = (
       filePath: BLUEPRINT_PATH,
       message: "Amazon mining blueprint must freeze the browser tab lifecycle contract for a single dedicated workspace tab.",
       evidence: `missing=${missingTabLifecycleTokens.join(",")}`,
+    }));
+  }
+
+  if (missingKeywordReviewTokens.length > 0) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/keyword-review-governance-tokens",
+      lawId,
+      filePath: GOVERNANCE_LAW_PATH,
+      message: "Amazon mining governance must declare keyword opportunity review laws and blueprint stages.",
+      evidence: `missing=${missingKeywordReviewTokens.join(",")}`,
     }));
   }
 };
@@ -166,6 +193,9 @@ export const inspectPluginPublicSurface = (
     "startAmazonProductMiningMission",
     "getAmazonProductMiningTaskStatus",
     "getLatestAmazonProductMiningTask",
+    "listAmazonProductMiningKeywordReviews",
+    "getAmazonProductMiningKeywordReview",
+    "ingestAmazonProductMiningKeywordReview",
     "exportAmazonProductMiningResult",
     "AmazonMiningSchemas",
   ];
@@ -193,6 +223,9 @@ export const inspectWorkbenchHandle = (
     "startAmazonProductMiningMission",
     "getAmazonProductMiningTaskStatus",
     "getLatestAmazonProductMiningTask",
+    "listAmazonProductMiningKeywordReviews",
+    "getAmazonProductMiningKeywordReview",
+    "ingestAmazonProductMiningKeywordReview",
     "exportAmazonProductMiningResult",
   ];
   if (workbench && requiredNames.every((name) => hasIdentifier(workbench, name))) {
@@ -219,6 +252,9 @@ export const inspectAppShellRoutes = (
     "POST:/api/amazon-product-mining/mission",
     "GET:/api/amazon-product-mining/run",
     "GET:/api/amazon-product-mining/latest",
+    "GET:/api/amazon-product-mining/keyword-reviews",
+    "GET:/api/amazon-product-mining/keyword-review",
+    "POST:/api/amazon-product-mining/keyword-review/manual-ingest",
     "GET:/api/amazon-product-mining/export",
   ];
   if (!routesFile || !requiredRoutes.every((route) => hasStringLiteral(routesFile, route))) {

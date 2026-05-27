@@ -65,6 +65,33 @@ export const AmazonHandoffStatusSchema = z.enum([
   "failed",
 ]);
 
+export const AmazonKeywordOpportunityDecisionSchema = z.enum([
+  "PASS",
+  "WATCH",
+  "REJECT",
+  "INSUFFICIENT_DATA",
+]);
+
+export const AmazonKeywordOpportunityStrengthSchema = z.enum([
+  "strong",
+  "medium",
+  "weak",
+  "insufficient",
+]);
+
+export const AmazonKeywordOpportunityHumanNextStepSchema = z.enum([
+  "enter_next_validation",
+  "mine_related_keywords",
+  "reject",
+  "rerun_or_collect_more_data",
+]);
+
+export const AmazonKeywordOpportunityReviewStatusSchema = z.enum([
+  "completed",
+  "manual_required",
+  "failed",
+]);
+
 export const AmazonKeywordProviderKindSchema = z.enum([
   "gemini-api",
   "gemini-web-chat",
@@ -218,6 +245,52 @@ export const AmazonTaskRecordSchema = z.object({
   updatedAt: z.string().min(1).nullable().default(null),
 }).strict();
 
+export const AmazonKeywordOpportunityVerdictSchema = z.object({
+  decision: AmazonKeywordOpportunityDecisionSchema,
+  demandSignal: AmazonKeywordOpportunityStrengthSchema,
+  reviewHealth: AmazonKeywordOpportunityStrengthSchema,
+  priceCeiling: AmazonKeywordOpportunityStrengthSchema,
+  competitionOpenness: AmazonKeywordOpportunityStrengthSchema,
+  improvementOpportunity: AmazonKeywordOpportunityStrengthSchema,
+  dataConfidence: AmazonKeywordOpportunityStrengthSchema,
+  evidenceRefs: z.array(z.string().min(1)).default([]),
+  missingEvidence: z.array(z.string().min(1)).default([]),
+  riskPoints: z.array(z.string().min(1)).default([]),
+  humanNextStep: AmazonKeywordOpportunityHumanNextStepSchema,
+}).strict();
+
+export const AmazonKeywordOpportunityReviewRecordSchema = z.object({
+  reviewId: z.string().min(1),
+  taskId: z.string().min(1),
+  keywordId: z.string().min(1),
+  keyword: z.string().min(1),
+  status: AmazonKeywordOpportunityReviewStatusSchema,
+  decision: AmazonKeywordOpportunityDecisionSchema.nullable().default(null),
+  demandSignal: AmazonKeywordOpportunityStrengthSchema.nullable().default(null),
+  reviewHealth: AmazonKeywordOpportunityStrengthSchema.nullable().default(null),
+  priceCeiling: AmazonKeywordOpportunityStrengthSchema.nullable().default(null),
+  competitionOpenness: AmazonKeywordOpportunityStrengthSchema.nullable().default(null),
+  improvementOpportunity: AmazonKeywordOpportunityStrengthSchema.nullable().default(null),
+  dataConfidence: AmazonKeywordOpportunityStrengthSchema.nullable().default(null),
+  evidenceRefs: z.array(z.string().min(1)).default([]),
+  missingEvidence: z.array(z.string().min(1)).default([]),
+  riskPoints: z.array(z.string().min(1)).default([]),
+  humanNextStep: AmazonKeywordOpportunityHumanNextStepSchema.nullable().default(null),
+  aiPromptText: z.string().default(""),
+  aiRawResponse: z.string().default(""),
+  aiResponseRef: z.string().nullable().default(null),
+  packageRef: z.string().nullable().default(null),
+  keywordPackageSliceRef: z.string().nullable().default(null),
+  failureReason: z.string().nullable().default(null),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1).nullable().default(null),
+}).strict();
+
+export const AmazonKeywordOpportunityManualIngestSchema = AmazonKeywordOpportunityVerdictSchema.extend({
+  reviewId: z.string().min(1),
+  aiRawResponse: z.string().min(1).optional(),
+}).strict();
+
 export const AmazonMiningSchemas = {
   AmazonMiningInputSchema,
   AmazonMarketplaceSchema,
@@ -228,12 +301,19 @@ export const AmazonMiningSchemas = {
   AmazonFieldDisclosureSchema,
   AmazonFieldDisclosureMapSchema,
   AmazonHandoffStatusSchema,
+  AmazonKeywordOpportunityDecisionSchema,
+  AmazonKeywordOpportunityStrengthSchema,
+  AmazonKeywordOpportunityHumanNextStepSchema,
+  AmazonKeywordOpportunityReviewStatusSchema,
   AmazonKeywordProviderKindSchema,
   AmazonKeywordRecordSchema,
   AmazonSearchResultItemSchema,
   AmazonProductDetailSchema,
   AmazonReviewRecordSchema,
   AmazonTaskRecordSchema,
+  AmazonKeywordOpportunityVerdictSchema,
+  AmazonKeywordOpportunityReviewRecordSchema,
+  AmazonKeywordOpportunityManualIngestSchema,
 } as const;
 
 export type AmazonMiningInput = z.infer<typeof AmazonMiningInputSchema>;
@@ -246,4 +326,11 @@ export type AmazonTaskStatus = z.infer<typeof AmazonTaskStatusSchema>;
 export type AmazonKeywordStatus = z.infer<typeof AmazonKeywordStatusSchema>;
 export type AmazonProductStatus = z.infer<typeof AmazonProductStatusSchema>;
 export type AmazonHandoffStatus = z.infer<typeof AmazonHandoffStatusSchema>;
+export type AmazonKeywordOpportunityDecision = z.infer<typeof AmazonKeywordOpportunityDecisionSchema>;
+export type AmazonKeywordOpportunityStrength = z.infer<typeof AmazonKeywordOpportunityStrengthSchema>;
+export type AmazonKeywordOpportunityHumanNextStep = z.infer<typeof AmazonKeywordOpportunityHumanNextStepSchema>;
+export type AmazonKeywordOpportunityReviewStatus = z.infer<typeof AmazonKeywordOpportunityReviewStatusSchema>;
+export type AmazonKeywordOpportunityVerdict = z.infer<typeof AmazonKeywordOpportunityVerdictSchema>;
+export type AmazonKeywordOpportunityReviewRecord = z.infer<typeof AmazonKeywordOpportunityReviewRecordSchema>;
+export type AmazonKeywordOpportunityManualIngestInput = z.infer<typeof AmazonKeywordOpportunityManualIngestSchema>;
 export type AmazonKeywordProviderKind = z.infer<typeof AmazonKeywordProviderKindSchema>;

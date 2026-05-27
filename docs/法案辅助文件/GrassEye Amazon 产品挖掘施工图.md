@@ -59,11 +59,16 @@ INTAKE
   -> PRODUCT_LOOP_END
 
   -> KEYWORD_COMPLETE
+  -> KEYWORD_PACKAGE_SLICE_BUILD
+  -> KEYWORD_ADVANCED_AI_HANDOFF
+  -> KEYWORD_OPPORTUNITY_REVIEW
+  -> KEYWORD_REVIEW_PERSIST
+  -> APP_HISTORY_UPDATE
 -> KEYWORD_LOOP_END
 
--> DATA_PACKAGE_BUILD
--> PDF_REPORT_BUILD
--> ADVANCED_AI_HANDOFF
+-> TASK_PACKAGE_BUILD
+-> TASK_MASTER_REPORT_BUILD
+-> TASK_HANDOFF_SUMMARY
 -> COMPLETE
 ```
 
@@ -118,6 +123,9 @@ src/app/workbench-amazon-product-mining-routes.ts
 POST /api/amazon-product-mining/mission       # 创建任务
 GET  /api/amazon-product-mining/run?taskId=   # 查询任务
 GET  /api/amazon-product-mining/latest        # 读取最新任务
+GET  /api/amazon-product-mining/keyword-reviews?taskId=
+GET  /api/amazon-product-mining/keyword-review?reviewId=
+POST /api/amazon-product-mining/keyword-review/manual-ingest
 GET  /api/amazon-product-mining/export?taskId=# 下载导出
 ```
 
@@ -211,6 +219,14 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 | owner | search.ts |
 | 禁止 | 只提取看起来好的产品 / 丢失 rankPosition / 丢失 isSponsored / ASIN 不可见就丢弃 / 跳过 rawVisibleTextSnapshot |
 
+搜索结果页与详情页范围切分：
+
+- 搜索结果首页仍必须保存所有可见产品，保持完整曝光结构。
+- 产品详情页和评论页只处理当前关键词搜索排名前 30 名。
+- 排名 31 及之后的搜索结果不得静默删除；必须保留 search result、rankPosition、ASIN/URL、图片和原始可见文本证据。
+- 排名 31 及之后不得打开详情页，不得抓评论页，不得在数据包中伪装成详情已挖掘产品。
+- top30 限制必须在 flow.ts 生产循环中实现，并由 acceptance + AST audit 固化；不得通过 UI、导出脚本或人工筛包实现。
+
 ## 7.1 最大化可见信息提取矩阵
 
 > 这是本施工图下的字段级 owner 契约。
@@ -223,7 +239,7 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 | mainImage, allVisibleImages, visibleVideoInfo | product detail hero/gallery | hero image attrs + gallery thumbs + visible media modules | yes | not_present when module absent | blocked, unsupported_structure | fieldPresent/detail-media | amazon-product-mining-detail-page.acceptance.ts |
 | bulletPoints, aboutThisItem, productDescription | product detail main content | heading section + bullet list + description block + visible text snapshot | yes | not_present when section absent | blocked, unsupported_structure | fieldPresent/detail-copy | amazon-product-mining-detail-page.acceptance.ts |
 | aPlusContentIfVisible, qaContentIfVisible | product detail modules | module heading detection + text blocks + image urls + links | yes | not_present when module absent | blocked, unsupported_structure, manual_required | notPresent/detail-module | amazon-product-mining-package.acceptance.ts |
-| variationOptions, colorSizeStyleOptions | product detail variation area | twister modules + selected state + option labels + swatch text | yes | not_present when no variation module | blocked, unsupported_structure | fieldPresent/detail-variation | amazon-product-mining-detail-page.acceptance.ts |
+| variationOptions, colorSizeStyleOptions | product detail variation area | `#twister_feature_div` a-state JSON (`sortedDimValuesForAllDims`) + visible inline twister labels + option labels + swatch text | yes | not_present when no variation/twister module | blocked, unsupported_structure | fieldPresent/detail-variation | amazon-product-mining-detail-page.acceptance.ts |
 | productInformation, technicalDetails, additionalInformation, allOtherVisibleProductParameters | product detail tables/lists | section heading + table rows + detail bullets + definition lists | yes | not_present when section absent | blocked, unsupported_structure | fieldPresent/detail-parameters | amazon-product-mining-detail-page.acceptance.ts |
 | bestSellersRankIfVisible, categoryPathIfVisible, starDistribution | product detail meta modules | detail bullets + breadcrumb + rating histogram module | yes | not_present when module absent | blocked, unsupported_structure | fieldPresent/detail-meta | amazon-product-mining-package.acceptance.ts |
 | frequentlyBoughtTogetherIfVisible, customersAlsoBoughtIfVisible, compareWithSimilarItemsIfVisible | product detail related modules | section heading + visible product cards + compare tables + links | yes | not_present when module absent | blocked, unsupported_structure | fieldPresent/detail-related | amazon-product-mining-package.acceptance.ts |
@@ -355,16 +371,51 @@ reviews_not_present
 
 ---
 
-## 14. 阶段 12：关键词完成与下一关键词
+## 14. 阶段 12：关键词完成、研判与下一关键词
 
 | 项 | 内容 |
 | -- | -- |
-| 动作 | 统计当前关键词下产品状态 / 标记 completed 或 completed_with_errors / 生成 keyword execution summary / 进入下一 pending keyword |
-| 终态 | 全部关键词完成 → task.status = packaging |
+| 动作 | 统计当前关键词下产品状态 / 标记 completed 或 completed_with_errors / 生成 keyword execution summary / 构建 keyword evidence slice / 生成高级 AI prompt / 接收或等待 structured verdict / 入库 keyword review / 更新 App 历史表 / 进入下一 pending keyword |
+| 关键产物 | `keyword-{keywordId}-opportunity-review-input.json` / `keyword-{keywordId}-opportunity-review-prompt.md` / `keyword-{keywordId}-opportunity-review-response.json` |
+| 终态 | 全部关键词完成且所有 keyword review 已进入 completed/manual_required/failed 之一 → task.status = packaging |
+
+### Keyword Opportunity Review 固定维度
+
+```txt
+Demand Signal
+Review Health
+Price Ceiling
+Competition Openness
+Improvement Opportunity
+Data Confidence
+```
+
+每个维度只允许：
+
+```txt
+strong | medium | weak | insufficient
+```
+
+### Keyword Opportunity Review 决策规则
+
+```txt
+PASS = 值得进入下一阶段人工研究
+WATCH = 有信号但证据不足，继续挖相关关键词或补数据
+REJECT = 产品池明显弱，不进入人工候选池
+INSUFFICIENT_DATA = 当前资料不足，不能判断
+```
+
+异常：
+
+```txt
+AI 不可用 -> review.status = manual_required
+AI 输出越权或非结构化 -> review.status = failed
+资料包或 evidence slice 不完整 -> decision = INSUFFICIENT_DATA 或 review.status = manual_required
+```
 
 ---
 
-## 15. 阶段 13：结构化数据包生成
+## 15. 阶段 13：任务级结构化数据包生成
 
 固定产物：见法案 [010] Section。
 
@@ -446,11 +497,11 @@ amazon-product-mining-package-{taskId}/
 
 | owner | package.ts |
 | 必须可追溯 | keyword -> product -> review |
-| 禁止 | 给出选品结论 / 跳过失败披露 / PDF 替代结构化数据包 |
+| 禁止 | 给出选品结论 / 跳过失败披露 / PDF 替代结构化数据包 / 用 task package 替代 keyword review 数据库沉淀 |
 
 ---
 
-## 16. 阶段 14：PDF 报告生成
+## 16. 阶段 14：任务级 PDF 报告生成
 
 固定产物：`Amazon-Product-Mining-Master-Evidence-Report.pdf`。
 
@@ -484,7 +535,7 @@ amazon-product-mining-package-{taskId}/
 
 ---
 
-## 17. 阶段 15：交接高级 AI
+## 17. 阶段 15：任务级交接摘要
 
 ```txt
 handoff record:
@@ -514,7 +565,54 @@ handoff record:
 
 ---
 
-## 18. 状态机汇总
+## 18. App 历史表面
+
+App 必须新增：
+
+```txt
+Keyword Opportunity Review History
+```
+
+表格至少显示：
+
+```txt
+Task ID
+Keyword
+Decision
+Demand Signal
+Review Health
+Price Ceiling
+Competition Openness
+Improvement Opportunity
+Data Confidence
+Human Next Step
+Package Ref
+AI Review Ref
+Created At
+```
+
+交互：
+
+```txt
+Refresh Reviews
+Filter by PASS / WATCH / REJECT / INSUFFICIENT_DATA
+Open Package
+Open AI Review
+```
+
+禁止：
+
+```txt
+自动下一阶段
+自动采购
+自动打样
+自动选品
+自动广告投放
+```
+
+---
+
+## 19. 状态机汇总
 
 ### task status
 
@@ -544,9 +642,17 @@ handoff record:
 
 `failed` 终态分支。
 
+### keyword review status
+
+`completed | manual_required | failed`
+
+### keyword review decision
+
+`PASS | WATCH | REJECT | INSUFFICIENT_DATA`
+
 ---
 
-## 19. 失败策略
+## 20. 失败策略
 
 ### 非终止失败（continue）
 
@@ -582,12 +688,14 @@ schema 有字段但无 extractor = extractor_missing = FAIL
 - 任务没有任何有效关键词
 - 数据包生成失败
 - PDF 生成失败
+- keyword review 非结构化或越权
+- 外部高级 AI 不可用
 
 处理：`failed` 或 `manual_required`，不得伪装完成，不得绕过限制。
 
 ---
 
-## 20. 质检规划
+## 21. 质检规划
 
 ### Owner inspector 必查
 
@@ -607,6 +715,9 @@ schema 有字段但无 extractor = extractor_missing = FAIL
 13. 固定最终产物 (package.json / report.pdf / evidence-index.json / exception-summary.json) 存在路径声明
 14. failed / manual_required / completed_with_errors 状态存在
 15. exception summary 在 package.ts 中被构建
+16. keyword review 表、schema、prompt、manual-ingest route、app history table 存在并受控
+17. keyword review decision 与 humanNextStep enum 固定且无越权值
+18. keyword 完成后先 review 再进入下一 keyword
 16. 不读取 cookie / token / localStorage / sessionStorage（AST 字符串扫描 + property access 扫描）
 17. 不存在 fallback / shadow / bridge / legacy / compatibility 字样（AST identifier 扫描）
 18. Agent 不输出 final product selection / purchase decision / profit conclusion（AST result type 字段扫描）

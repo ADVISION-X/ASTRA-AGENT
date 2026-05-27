@@ -1,8 +1,17 @@
 import { z } from "zod";
 
-const LAW_ID_PATTERN = /^(APEX|GRASSEYE)-[A-Z0-9-]+$/u;
+const isLawIdCharacter = (character: string): boolean =>
+  (character >= "A" && character <= "Z") || (character >= "0" && character <= "9") || character === "-";
 
-export const lawIdSchema = z.string().regex(LAW_ID_PATTERN);
+const hasLawIdPrefix = (value: string): boolean =>
+  value.startsWith("APEX-") || value.startsWith("GRASSEYE-");
+
+const isLawId = (value: string): boolean =>
+  hasLawIdPrefix(value)
+  && value.slice(value.indexOf("-") + 1).length > 0
+  && [...value.slice(value.indexOf("-") + 1)].every(isLawIdCharacter);
+
+export const lawIdSchema = z.string().refine(isLawId, "Law id must start with APEX- or GRASSEYE- and use uppercase letters, numbers, or dashes.");
 
 export const lawMetadataSchema = z
   .object({

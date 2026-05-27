@@ -4,6 +4,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { containsAnyCaseInsensitive } from "../../shared/no-regex.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
 type Finding = ReturnType<typeof createFinding>;
@@ -62,21 +63,26 @@ const inspectSingleGate = (findings: Finding[], lawId: string): void => {
 };
 
 const inspectForbiddenStartupSurface = (findings: Finding[], lawId: string, startupFiles: readonly string[]): void => {
-  const forbiddenPatterns = [
-    /startup-registry-readiness/iu,
-    /registry_readiness/iu,
-    /GRASSEYE_STARTUP_(?:ONLINE|LOCAL)_AI_READINESS_JSON/u,
-    /MISSION_READINESS/iu,
-    /mission_runtime/iu,
-    /ci:full|codex:entry-gate|typecheck|acceptance:/u,
-    /amazon-invoice-upload\.flow|facebook-product-video-mining\.flow/u,
-    /dom-automation/u,
+  const forbiddenMarkers = [
+    "startup-registry-readiness",
+    "registry_readiness",
+    "GRASSEYE_STARTUP_ONLINE_AI_READINESS_JSON",
+    "GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON",
+    "MISSION_READINESS",
+    "mission_runtime",
+    "ci:full",
+    "codex:entry-gate",
+    "typecheck",
+    "acceptance:",
+    "amazon-invoice-upload.flow",
+    "facebook-product-video-mining.flow",
+    "dom-automation",
   ] as const;
 
   for (const filePath of startupFiles) {
     const fileText = readRepoFile(filePath);
-    const matchedPattern = forbiddenPatterns.find((pattern) => pattern.test(fileText));
-    if (!matchedPattern) {
+    const matchedMarker = forbiddenMarkers.find((marker) => containsAnyCaseInsensitive(fileText, [marker]));
+    if (!matchedMarker) {
       continue;
     }
     pushFinding(findings, {
@@ -84,7 +90,7 @@ const inspectForbiddenStartupSurface = (findings: Finding[], lawId: string, star
       checkId: "startup/forbidden-surface",
       filePath,
       message: "Startup contains forbidden job, AI, CI, registry, DOM, or ability surface.",
-      evidence: String(matchedPattern),
+      evidence: matchedMarker,
     });
   }
 };
@@ -99,7 +105,7 @@ const inspectReadinessProbe = (findings: Finding[], lawId: string): void => {
       message: "Startup must probe /api/health for readiness.",
     });
   }
-  if (/fetch\(baseUrl\)/u.test(launchText)) {
+  if (launchText.includes("fetch(baseUrl)")) {
     pushFinding(findings, {
       lawId,
       checkId: "startup/homepage-probe",

@@ -1,4 +1,5 @@
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
+import { hasTypeScriptExtension } from "../../shared/no-regex.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
 import { ALLOWED_CONSOLE_SURFACES } from "./allowed-console-surfaces.js";
@@ -20,7 +21,7 @@ export const collectForbiddenConsoleFindings = (context: InspectorContext): {
     .getSourceFiles()
     .filter((sourceFile) => {
       const repoPath = getRepoSourcePath(sourceFile);
-      return repoPath.startsWith("src/") && /\.(?:ts|tsx)$/u.test(repoPath) && !isExcluded(repoPath);
+      return repoPath.startsWith("src/") && hasTypeScriptExtension(repoPath) && !isExcluded(repoPath);
     })
     .sort((left, right) => getRepoSourcePath(left).localeCompare(getRepoSourcePath(right)));
 

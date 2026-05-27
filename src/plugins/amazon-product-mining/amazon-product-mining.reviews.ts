@@ -62,12 +62,12 @@ return (function() {
     }
     return false;
   };
-  var detectReviewLanguage = function(root, fallbackLanguage, title, body) {
+  var detectReviewLanguage = function(root, pageLocale, title, body) {
     var explicit = root.querySelector('[lang]');
     var lang = explicit ? explicit.getAttribute('lang') : null;
     if (lang) return lang;
     if (hasArabicText((title || '') + ' ' + (body || ''))) return 'ar';
-    return fallbackLanguage;
+    return pageLocale;
   };
   var extractReviewRegion = function(dateText) {
     if (!dateText) return null;
@@ -224,8 +224,8 @@ const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapte
       verifiedPurchase: r.verifiedPurchase,
       variant: r.variant,
       helpfulCountIfVisible: r.helpfulCount,
-      reviewImagesIfVisible: r.reviewImages,
-      reviewVideosIfVisible: r.reviewVideos,
+      reviewImagesIfVisible: r.reviewImages ?? [],
+      reviewVideosIfVisible: r.reviewVideos ?? [],
       reviewLanguage: r.reviewLanguage,
       reviewRegionIfVisible: r.reviewRegion,
       rawReviewTextSnapshot: r.rawSnap,
@@ -239,8 +239,8 @@ const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapte
         verifiedPurchase: fieldDisclosureFromValue(r.verifiedPurchase, "not_present", "Verified purchase badge is not visible."),
         variant: fieldDisclosureFromValue(r.variant, "not_present", "Review variant text is not visible."),
         helpfulCountIfVisible: fieldDisclosureFromValue(r.helpfulCount, "not_present", "Helpful count is not visible."),
-        reviewImagesIfVisible: fieldDisclosureFromValue(r.reviewImages, "not_present", "No review images are visible for this review."),
-        reviewVideosIfVisible: fieldDisclosureFromValue(r.reviewVideos, "not_present", "No review videos are visible for this review."),
+        reviewImagesIfVisible: fieldDisclosureFromValue(r.reviewImages ?? [], "not_present", "No review images are visible for this review."),
+        reviewVideosIfVisible: fieldDisclosureFromValue(r.reviewVideos ?? [], "not_present", "No review videos are visible for this review."),
         reviewLanguage: fieldDisclosureFromValue(r.reviewLanguage, "not_present", "Review language is not visible from page locale or review metadata."),
         reviewRegionIfVisible: fieldDisclosureFromValue(r.reviewRegion, "not_present", "Review region is not visible in review metadata."),
         rawReviewTextSnapshot: fieldDisclosureFromValue(r.rawSnap, "failed", "Review raw text snapshot is empty."),

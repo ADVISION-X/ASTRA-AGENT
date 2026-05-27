@@ -15,6 +15,7 @@ import { runAmazonSearch } from "./amazon-product-mining.search.js";
 import { buildFailedTaskRecord, resolveFinalTaskState, type FinalTaskResolution } from "./amazon-product-mining.flow-state.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { buildKeywordRecords, runKeywordGeneration } from "./amazon-product-mining.keyword.js";
+import { runKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
 import type { AmazonKeywordProviderKind } from "./amazon-product-mining.schema.js";
 
 export type AmazonFlowContext = {
@@ -49,6 +50,7 @@ type AmazonFlowRuntime = {
   miningInput: AmazonMiningInput;
   dataDir: string;
   manualRequiredReasons: string[];
+  failureReasons: string[];
 };
 
 type KeywordPhaseResult =
@@ -62,6 +64,8 @@ type PackagingArtifacts = {
   pdfPath: string | null;
 };
 
+export const AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT = 30;
+
 const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => ({
   ctx,
   storage: createAmazonMiningStorage(ctx.dataDir),
@@ -70,12 +74,14 @@ const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => (
   miningInput: ctx.miningInput,
   dataDir: ctx.dataDir,
   manualRequiredReasons: [],
+  failureReasons: [],
 });
 
 const buildPackageInput = (runtime: AmazonFlowRuntime) => ({
   taskId: runtime.taskId,
   dataDir: runtime.dataDir,
   storage: runtime.storage,
+  detailRankLimit: AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT,
   ...(runtime.ctx.reviewMaxPages !== undefined ? { reviewMaxPages: runtime.ctx.reviewMaxPages } : {}),
 });
 
@@ -225,6 +231,12 @@ const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: str
   await extractAndPersistReviews(runtime, productDetail.detailId, productDetail.asin);
 };
 
+export const selectSearchItemsForDetailMining = <T extends { rankPosition: number }>(
+  items: readonly T[],
+): T[] => [...items]
+  .sort((left, right) => left.rankPosition - right.rankPosition)
+  .filter((item) => item.rankPosition <= AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT);
+
 const processKeywordRecord = async (
   runtime: AmazonFlowRuntime,
   keywordRecord: ReturnType<typeof buildKeywordRecords>[number],
@@ -243,19 +255,33 @@ const processKeywordRecord = async (
 
   if (!searchResult.ok) {
     recordSearchFailure(runtime, keywordRecord.keywordId, searchResult.blockerKind, searchResult.reason);
-    return;
+  } else {
+    logger.logSearchExtracted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
+    storage.persistSearchResults(searchResult.items);
+    logger.logSearchPersisted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
+    storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "search_completed" });
+
+    for (const item of selectSearchItemsForDetailMining(searchResult.items)) {
+      await processSearchItem(runtime, item);
+    }
+
+    storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "completed" });
   }
 
-  logger.logSearchExtracted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
-  storage.persistSearchResults(searchResult.items);
-  logger.logSearchPersisted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
-  storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "search_completed" });
-
-  for (const item of searchResult.items) {
-    await processSearchItem(runtime, item);
+  const keywordReview = await runKeywordOpportunityReview({
+    dataDir: runtime.dataDir,
+    taskId,
+    keyword: storage.getKeywordsForTask(taskId).find((record) => record.keywordId === keywordRecord.keywordId) ?? keywordRecord,
+    storage,
+    aiInputGateway: ctx.aiInputGateway,
+    providerKind: ctx.providerKind,
+  });
+  if (keywordReview.status === "manual_required") {
+    runtime.manualRequiredReasons.push(`keyword_review_manual_required:${keywordRecord.keywordId}`);
   }
-
-  storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "completed" });
+  if (keywordReview.status === "failed") {
+    runtime.failureReasons.push(`keyword_review_failed:${keywordRecord.keywordId}`);
+  }
 };
 
 const extractAndPersistProductDetail = async (
@@ -443,6 +469,7 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
     allKeywordsFailed,
     handoffStatus: handoff.handoffStatus,
     manualRequiredReasons,
+    failureReasons: runtime.failureReasons,
   });
   await persistFinalPackagingState(runtime, artifacts, resolution);
   return taskRecordToResult(storage.getTask(taskId)!);

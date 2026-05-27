@@ -2,6 +2,7 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import { splitIdentifierTokens } from "../../../shared/no-regex.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 type TokenPattern = {
@@ -24,12 +25,7 @@ const tokenPatterns: readonly TokenPattern[] = [
   { label: decode("bGl0ZQ=="), tokens: [decode("bGl0ZQ==")] },
 ] as const;
 
-const tokenize = (value: string): string[] =>
-  value
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean);
+const tokenize = splitIdentifierTokens;
 
 const hasTokenSequence = (tokens: readonly string[], sequence: readonly string[]): boolean => {
   if (sequence.length === 0 || sequence.length > tokens.length) {

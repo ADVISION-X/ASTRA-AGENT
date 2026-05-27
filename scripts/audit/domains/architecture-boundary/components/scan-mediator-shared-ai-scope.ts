@@ -6,8 +6,8 @@ import {
 } from "../../../shared/source-module-targets.js";
 import {
   findPlannerToken,
+  isPrivateCapabilityPath,
   isPlannerScope,
-  privateCapabilityPathPattern,
   type ArchitectureSourceFile,
 } from "./architecture-boundary-shared.js";
 
@@ -49,7 +49,7 @@ export const inspectMediatorImports = (
     if (
       !targetPath.startsWith("src/lib/browser/") &&
       !targetPath.startsWith("src/capabilities/") &&
-      !privateCapabilityPathPattern.test(targetPath)
+      !isPrivateCapabilityPath(targetPath)
     ) {
       continue;
     }

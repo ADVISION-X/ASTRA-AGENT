@@ -143,12 +143,28 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
   async execute(input) {
     assert.equal((input as { providerKind?: unknown }).providerKind, "gpt-web-chat", "Full cycle must use the selected GPT web chat provider");
+    const promptContractId = (input as { promptContractId?: string }).promptContractId;
+    const normalizedText = promptContractId === "amazon-product-mining-keyword-opportunity-review-v1"
+      ? JSON.stringify({
+          decision: "PASS",
+          demandSignal: "strong",
+          reviewHealth: "medium",
+          priceCeiling: "medium",
+          competitionOpenness: "medium",
+          improvementOpportunity: "strong",
+          dataConfidence: "medium",
+          evidenceRefs: ["keyword-search-evidence"],
+          missingEvidence: [],
+          riskPoints: ["single keyword acceptance fixture"],
+          humanNextStep: "enter_next_validation",
+        })
+      : JSON.stringify({ keywords: [{ keyword: "foldable storage box uae", reason: "portable China supply item" }] });
     return {
       abilityGroupId: "ai-input-gateway",
       childCapabilityId: "feed-gpt-web-chat-once",
       providerKind: "gpt-web-chat",
       status: "success",
-      normalizedText: JSON.stringify({ keywords: [{ keyword: "foldable storage box uae", reason: "portable China supply item" }] }),
+      normalizedText,
       rawOutputRef: null,
       rawOutputHash: null,
       parseStatus: "json_valid",
@@ -211,12 +227,14 @@ try {
   assert.ok(openedUrls.includes("https://www.amazon.ae/product-reviews/B0AEACCEPT1"), "Review page must open for the ASIN");
 
   const dataPackage = JSON.parse(readFileSync(result.packageJsonPath!, "utf8")) as {
+    task: { productDetailRankLimit: number | null };
     products: Array<{ asin: string | null; reviews: { jsonlRef: string | null; summaryRef: string | null } }>;
     reviewsIndex: Array<{ detailId: string }>;
   };
   const evidenceIndex = JSON.parse(readFileSync(result.evidenceIndexPath!, "utf8")) as {
     artifacts: Array<{ artifactId: string; fileRef: string }>;
   };
+  assert.equal(dataPackage.task.productDetailRankLimit, 30);
   assert.equal(dataPackage.products[0]?.asin, "B0AEACCEPT1");
   assert.equal(Boolean(dataPackage.products[0]?.reviews.jsonlRef), true);
   assert.equal(Boolean(dataPackage.products[0]?.reviews.summaryRef), true);

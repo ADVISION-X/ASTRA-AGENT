@@ -5,7 +5,10 @@ import { getRepoSourcePath } from "../../shared/source-files.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import type { RuntimeLogSemanticMetrics } from "./semantic-metrics-inspector.js";
 
-const governedInspectorPattern = /^scripts\/audit\/domains\/(?:runtime-log-spine|facebook-product-video-mining-log-coverage)\/inspector\.ts$/u;
+const governedInspectorPaths = new Set([
+  "scripts/audit/domains/runtime-log-spine/inspector.ts",
+  "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+]);
 
 type AntiFakeSnapshot = {
   semanticMetrics: RuntimeLogSemanticMetrics;
@@ -113,7 +116,7 @@ const collectAntiFakeInspectorFindings = (context: InspectorContext): {
 
   for (const sourceFile of context.project.getSourceFiles()) {
     const repoPath = getRepoSourcePath(sourceFile);
-    if (!governedInspectorPattern.test(repoPath)) continue;
+    if (!governedInspectorPaths.has(repoPath)) continue;
     inspectedFiles.push(repoPath);
     const hasEmptyFindingsLiteral = hasEmptyArrayProperty(sourceFile, "findings");
     const hasEmptyInspectedFilesLiteral = hasEmptyArrayProperty(sourceFile, "inspectedFiles");

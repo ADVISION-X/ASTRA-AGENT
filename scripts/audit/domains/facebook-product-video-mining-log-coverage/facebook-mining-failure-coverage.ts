@@ -4,7 +4,18 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { findLine } from "../runtime-log-spine/source-read.js";
 import { FacebookLogCoverageLaw, FACEBOOK_MINING_OWNER_FILES, type FacebookLogCoverageFinding } from "./constants.js";
 
-const failureKeywords = /(?:failed|review_required|skipped|terminal:\s*true|handleProbeFailure|handleDownloadFailure|handleJudgmentFailure|next_video_did_not_change|source_tab_not_found)/u;
+const failureKeywords = [
+  "failed",
+  "review_required",
+  "skipped",
+  "terminal",
+  "true",
+  "handleProbeFailure",
+  "handleDownloadFailure",
+  "handleJudgmentFailure",
+  "next_video_did_not_change",
+  "source_tab_not_found",
+] as const;
 const requiredTokens = ["failureClass", "reason", "recoveryPolicy", "terminal"] as const;
 
 export const collectFacebookMiningFailureCoverage = (): {
@@ -15,7 +26,7 @@ export const collectFacebookMiningFailureCoverage = (): {
   for (const file of FACEBOOK_MINING_OWNER_FILES) {
     if (!existsSync(resolveFromRepo(file))) continue;
     const text = readFileSync(resolveFromRepo(file), "utf8");
-    if (!failureKeywords.test(text)) continue;
+    if (!failureKeywords.some((keyword) => text.includes(keyword))) continue;
     const missing = requiredTokens.filter((token) => !text.includes(token));
     if (missing.length === 0) continue;
     findings.push({

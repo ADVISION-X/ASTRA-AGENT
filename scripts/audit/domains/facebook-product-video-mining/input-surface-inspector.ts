@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
+import { containsAny } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const facebookPagePath = "src/app/workbench-home-page.ts";
@@ -31,14 +32,15 @@ const inspectForbiddenVisibleInputs = (
   lawId: string,
   pageText: string,
 ): void => {
-  const forbiddenVisibleFields = /name="(?:feedEntryUrl|providerKind|modelName|maxRounds|maxMinutes)"/u;
-  if (forbiddenVisibleFields.test(pageText)) {
+  const forbiddenVisibleFields = ["feedEntryUrl", "providerKind", "modelName", "maxRounds", "maxMinutes"] as const;
+  const visibleField = forbiddenVisibleFields.find((fieldName) => pageText.includes(`name="${fieldName}"`));
+  if (visibleField) {
     findings.push(createFinding({
       checkId: "facebook-mining/forbidden-visible-advanced-input",
       lawId,
       filePath: facebookPagePath,
       message: "Facebook workbench must not expose feed URL, provider, model, max rounds, or max minutes inputs.",
-      evidence: String(forbiddenVisibleFields),
+      evidence: visibleField,
     }));
   }
 };
@@ -48,14 +50,20 @@ const inspectForbiddenClientPayload = (
   lawId: string,
   clientText: string,
 ): void => {
-  const forbiddenClientPayload = /feedEntryUrl:\s*form\.|providerKind:\s*form\.|modelName:\s*form\.|maxRounds:\s*Number|maxMinutes:\s*Number/u;
-  if (forbiddenClientPayload.test(clientText)) {
+  const forbiddenPayloadMarkers = [
+    "feedEntryUrl: form.",
+    "providerKind: form.",
+    "modelName: form.",
+    "maxRounds: Number",
+    "maxMinutes: Number",
+  ] as const;
+  if (containsAny(clientText, forbiddenPayloadMarkers)) {
     findings.push(createFinding({
       checkId: "facebook-mining/forbidden-client-payload-advanced-input",
       lawId,
       filePath: facebookClientPath,
       message: "Facebook client mission payload must submit only targetProductCount from the visible form.",
-      evidence: String(forbiddenClientPayload),
+      evidence: forbiddenPayloadMarkers.find((marker) => clientText.includes(marker)),
     }));
   }
 };

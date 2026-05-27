@@ -59,11 +59,16 @@ INTAKE
   -> PRODUCT_LOOP_END
 
   -> KEYWORD_COMPLETE
+  -> KEYWORD_PACKAGE_SLICE_BUILD
+  -> KEYWORD_ADVANCED_AI_HANDOFF
+  -> KEYWORD_OPPORTUNITY_REVIEW
+  -> KEYWORD_REVIEW_PERSIST
+  -> APP_HISTORY_UPDATE
 -> KEYWORD_LOOP_END
 
--> DATA_PACKAGE_BUILD
--> PDF_REPORT_BUILD
--> ADVANCED_AI_HANDOFF
+-> TASK_PACKAGE_BUILD
+-> TASK_MASTER_REPORT_BUILD
+-> TASK_HANDOFF_SUMMARY
 -> COMPLETE
 ```
 
@@ -73,11 +78,13 @@ INTAKE
 
 ```txt
 Agent 负责挖掘、提取、保存、打包、交接。
+Agent 负责关键词级机会筛选研判的 prompt、raw response、结构化 verdict 校验、入库与历史展示。
+关键词级研判只判断 keyword product pool 是否值得继续研究。
 高级 AI 负责基于完整数据包做最终选品决策。
 Agent 不做最终产品价值裁决。
 ```
 
-App shell 只允许：创建任务 / 查询任务 / 读取结果 / 下载导出。
+App shell 只允许：创建任务 / 查询任务 / 读取结果 / 下载导出 / 读取关键词级研判历史。
 
 ## 2. Architecture Binding
 
@@ -688,6 +695,153 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
 - 打包同一固定资料包，而不是另一套简化产物
 - 可被 acceptance 与 audit surface 发现
 
+## [GRASSEYE-AMAZON-PRODUCT-MINING-016-V1] Keyword Opportunity Review Boundary
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "flow+prompt+persisted-record",
+  "summary": "Keyword opportunity review is a keywordId-scoped screening stage that judges whether a keyword product pool deserves more human research; it is not final product adjudication, procurement, profit, or launch guidance.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts"
+  ],
+  "forbidden": [
+    "Keyword review deciding final product selection.",
+    "Keyword review outputting procurement, sampling, place-order, inventory, launch-listing, or ad-budget advice.",
+    "Automatically entering procurement, sampling, listing, or launch stages from keyword verdict.",
+    "Treating one keyword review as task-global product adjudication."
+  ]
+}
+```
+
+### 法条
+
+- 研判单位是 `keywordId`，不是单个产品最终裁决。
+- 一个 task 可包含多个 keyword，每个 keyword 必须独立生成一条 keyword opportunity review 记录。
+- 研判输入必须来自该 keyword 对应的 search results、linked product details、linked reviews、image refs、completeness、exceptions。
+- 外部高级 AI 不可用时，review 只能进入 `manual_required` 或 `failed`，不得伪装完成。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-017-V1] Keyword Opportunity Verdict Schema
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+storage+response-validation",
+  "summary": "Keyword opportunity review must persist one structured verdict contract with fixed decision enums, fixed dimension enums, fixed human next-step enums, and raw AI proof.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+    "src/app/workbench-amazon-product-mining-routes.ts"
+  ],
+  "forbidden": [
+    "Decision enum outside PASS / WATCH / REJECT / INSUFFICIENT_DATA.",
+    "humanNextStep outside enter_next_validation / mine_related_keywords / reject / rerun_or_collect_more_data.",
+    "Natural-language-only review without structured verdict persistence.",
+    "Review existing only in PDF or handoff docs without database persistence."
+  ]
+}
+```
+
+### 法条
+
+关键词研判结构化 verdict 必须固定为：
+
+```txt
+decision = PASS | WATCH | REJECT | INSUFFICIENT_DATA
+demandSignal = strong | medium | weak | insufficient
+reviewHealth = strong | medium | weak | insufficient
+priceCeiling = strong | medium | weak | insufficient
+competitionOpenness = strong | medium | weak | insufficient
+improvementOpportunity = strong | medium | weak | insufficient
+dataConfidence = strong | medium | weak | insufficient
+humanNextStep = enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data
+```
+
+每条 review 记录至少必须持有：
+
+```txt
+reviewId
+taskId
+keywordId
+keyword
+status
+decision
+demandSignal
+reviewHealth
+priceCeiling
+competitionOpenness
+improvementOpportunity
+dataConfidence
+evidenceRefs
+missingEvidence
+riskPoints
+humanNextStep
+aiPromptText
+aiRawResponse
+aiResponseRef
+packageRef
+keywordPackageSliceRef
+failureReason
+createdAt
+updatedAt
+```
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-018-V1] Keyword Review History App Surface
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "app-surface+route+acceptance",
+  "summary": "The workbench must expose a keyword opportunity review history surface with task-scoped reading, decision filtering, package ref opening, AI review ref opening, and manual ingest entry for structured verdicts.",
+  "appliesTo": [
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-client.ts",
+    "src/app/workbench-amazon-product-mining-routes.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
+    "src/plugins/amazon-product-mining/index.ts"
+  ],
+  "forbidden": [
+    "App showing only taskId/status/package ref without keyword verdict history.",
+    "App exposing procurement, sampling, place-order, run-ads, or final-selection buttons for keyword review.",
+    "App surfacing only natural-language review text without structured verdict fields.",
+    "Route-level auto-progression into downstream business stages based on verdict."
+  ]
+}
+```
+
+### 法条
+
+App 必须提供：
+
+```txt
+Keyword Opportunity Review History
+按 task 读取 keyword review
+按 decision 过滤 PASS / WATCH / REJECT / INSUFFICIENT_DATA
+打开 package ref
+打开 AI review ref
+POST /api/amazon-product-mining/keyword-review/manual-ingest
+```
+
 ## 4. State Contracts
 
 ### task status
@@ -706,6 +860,18 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
 
 `not_started | ready | handoff_completed | failed`
 
+### keyword review status
+
+`completed | manual_required | failed`
+
+### keyword review decision
+
+`PASS | WATCH | REJECT | INSUFFICIENT_DATA`
+
+### keyword review humanNextStep
+
+`enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data`
+
 ## 5. Allowed / Forbidden Summary
 
 ### 允许
@@ -718,14 +884,16 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
 - Agent 打开产品详情页
 - Agent 提取当前可见完整产品信息
 - Agent 分页提取当前可访问评论
+- Agent 为每个 keyword 构建 evidence slice、生成研判 prompt、保存 raw response、校验 structured verdict、入库 keyword review
 - Agent 保存原始证据和结构化记录
-- Agent 生成结构化数据包和 PDF
-- Agent 交接给高级 AI
+- Agent 生成任务级结构化数据包和 PDF
+- Agent 生成任务级 handoff summary
 
 ### 禁止
 
 - Agent 做最终选品裁决
 - Agent 做利润测算 / 采购建议 / 库存管理
+- Agent 在 keyword review 中输出采购 / 打样 / 压货 / 广告 / 最终选品结论
 - Agent 绕过 Amazon 平台限制
 - Agent 用 AI 生成浏览器下一步动作
 - Agent 读取 cookie / token / localStorage / sessionStorage
@@ -759,6 +927,8 @@ Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程�
      amazon-product-mining.search.ts
      amazon-product-mining.product-detail.ts
      amazon-product-mining.reviews.ts
+    amazon-product-mining.keyword-review.ts
+    amazon-product-mining.keyword-review-support.ts
      amazon-product-mining.package.ts
      amazon-product-mining.pdf.ts
      amazon-product-mining.handoff.ts
@@ -768,9 +938,9 @@ Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程�
      amazon-product-mining.result.ts
      index.ts
 2. src/app/workbench-amazon-product-mining-routes.ts （最小 surface）
-  3. src/app/workbench-home-page.ts 与 src/app/workbench-home-client.ts 提供 job card / panel / start / latest / export
+  3. src/app/workbench-home-page.ts 与 src/app/workbench-home-client.ts 提供 job card / panel / start / latest / export / keyword review history
 3. scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}
-  4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,search-page,detail-page,review-pagination,package,app-ui}.acceptance.ts
+  4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,search-page,detail-page,review-pagination,package,app-ui,keyword-opportunity-review,keyword-review-boundary,keyword-review-app-ui}.acceptance.ts
   5. package.json 暴露 acceptance:amazon-product-mining 与 audit:amazon-product-mining
   6. taskId 是 Amazon 产品挖掘唯一任务标识，不允许 runId 兼容别名
   7. inspector 必须真使用 context.project，不得仅靠正则/字符串匹配

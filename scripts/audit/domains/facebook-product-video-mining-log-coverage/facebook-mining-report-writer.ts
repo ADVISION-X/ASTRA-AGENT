@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 import { generatedDir } from "../../shared/paths.js";
+import { escapeMarkdownCell } from "../../shared/no-regex.js";
 import type { FacebookMiningStageContract } from "./facebook-mining-stage-matrix.js";
 import type { FacebookLogCoverageFinding, FacebookLogCoverageSection } from "./constants.js";
 
@@ -55,7 +56,7 @@ export const toInspectorFinding = (finding: FacebookLogCoverageFinding): Inspect
   filePath: finding.file,
 });
 
-const escapeCell = (value: string): string => value.replace(/\|/gu, "\\|").replace(/\n/gu, " ");
+const escapeCell = escapeMarkdownCell;
 
 const renderFindingsTable = (findings: readonly FacebookLogCoverageFinding[]): string =>
   findings.length === 0

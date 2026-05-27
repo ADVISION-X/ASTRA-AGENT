@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import {
+  buildReviewPageUrl,
   runReviewPagination,
   type ReviewPageAdapter,
 } from "../../src/plugins/amazon-product-mining/amazon-product-mining.reviews.js";
@@ -148,5 +149,11 @@ const result4 = await runReviewPagination({
 
 assert.equal(callCount4, 1, "Even empty first page should call onPageExtracted once");
 assert.equal(result4.totalReviewsCollected, 0);
+
+// --- Test 5: pageNumber is appended without corrupting existing review URL query ---
+assert.equal(
+  buildReviewPageUrl("https://www.amazon.ae/product-reviews/B001TEST01?reviewerType=all_reviews", 1),
+  "https://www.amazon.ae/product-reviews/B001TEST01?reviewerType=all_reviews&pageNumber=2",
+);
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-review-pagination\n");

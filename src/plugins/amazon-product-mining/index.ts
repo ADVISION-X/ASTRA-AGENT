@@ -9,6 +9,7 @@ import { taskRecordToResult } from "./amazon-product-mining.result.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
 import type { AmazonMiningInput } from "./amazon-product-mining.schema.js";
 import { createAmazonProductMiningPackageZip } from "./amazon-product-mining.package-zip.js";
+import { ingestManualKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 
 export type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
@@ -63,6 +64,48 @@ export const getLatestAmazonProductMiningTask = (input: {
   try {
     const task = storage.getLatestTask();
     return task ? taskRecordToResult(task) : null;
+  } finally {
+    storage.close();
+  }
+};
+
+export const listAmazonProductMiningKeywordReviews = (input: {
+  dataDir: string;
+  taskId?: string;
+}) => {
+  const storage = createAmazonMiningStorage(input.dataDir);
+  try {
+    return storage.listKeywordOpportunityReviews(
+      input.taskId ? { taskId: input.taskId } : {},
+    );
+  } finally {
+    storage.close();
+  }
+};
+
+export const getAmazonProductMiningKeywordReview = (input: {
+  dataDir: string;
+  reviewId: string;
+}) => {
+  const storage = createAmazonMiningStorage(input.dataDir);
+  try {
+    return storage.getKeywordOpportunityReview(input.reviewId);
+  } finally {
+    storage.close();
+  }
+};
+
+export const ingestAmazonProductMiningKeywordReview = (input: {
+  dataDir: string;
+  rawInput: unknown;
+}) => {
+  const storage = createAmazonMiningStorage(input.dataDir);
+  try {
+    return ingestManualKeywordOpportunityReview({
+      dataDir: input.dataDir,
+      storage,
+      rawInput: input.rawInput,
+    });
   } finally {
     storage.close();
   }

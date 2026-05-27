@@ -12,12 +12,15 @@ import {
   rowToAiKeywordRun,
   rowToDetail,
   rowToKeyword,
+  rowToKeywordOpportunityReview,
   rowToReview,
   rowToSearchItem,
   rowToTask,
 } from "./amazon-product-mining.storage-support.js";
 import type {
   AmazonKeywordRecord,
+  AmazonKeywordOpportunityDecision,
+  AmazonKeywordOpportunityReviewRecord,
   AmazonKeywordStatus,
   AmazonProductDetail,
   AmazonProductStatus,
@@ -68,6 +71,9 @@ export type AmazonMiningStorage = {
     failureReason: string | null;
     createdAt: string;
   }>;
+  saveKeywordOpportunityReview(review: AmazonKeywordOpportunityReviewRecord): AmazonKeywordOpportunityReviewRecord;
+  getKeywordOpportunityReview(reviewId: string): AmazonKeywordOpportunityReviewRecord | null;
+  listKeywordOpportunityReviews(input?: { taskId?: string; decision?: AmazonKeywordOpportunityDecision; }): AmazonKeywordOpportunityReviewRecord[];
   persistSearchResults(items: readonly AmazonSearchResultItem[]): void;
   getSearchResultsForKeyword(keywordId: string): AmazonSearchResultItem[];
   persistProductDetail(detail: AmazonProductDetail, linkedItemIds: readonly string[]): void;
@@ -211,6 +217,91 @@ const createSearchOperations = (
   },
 });
 
+const createKeywordReviewOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "saveKeywordOpportunityReview" | "getKeywordOpportunityReview" | "listKeywordOpportunityReviews"> => ({
+  saveKeywordOpportunityReview(review) {
+    db.prepare(`INSERT INTO amazon_mining_keyword_opportunity_reviews (
+      review_id, task_id, keyword_id, keyword, status, decision, demand_signal,
+      review_health, price_ceiling, competition_openness, improvement_opportunity,
+      data_confidence, human_next_step, evidence_refs_json, missing_evidence_json,
+      risk_points_json, ai_prompt_text, ai_raw_response, ai_response_ref, package_ref,
+      keyword_package_slice_ref, failure_reason, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(review_id) DO UPDATE SET
+      status=excluded.status,
+      decision=excluded.decision,
+      demand_signal=excluded.demand_signal,
+      review_health=excluded.review_health,
+      price_ceiling=excluded.price_ceiling,
+      competition_openness=excluded.competition_openness,
+      improvement_opportunity=excluded.improvement_opportunity,
+      data_confidence=excluded.data_confidence,
+      human_next_step=excluded.human_next_step,
+      evidence_refs_json=excluded.evidence_refs_json,
+      missing_evidence_json=excluded.missing_evidence_json,
+      risk_points_json=excluded.risk_points_json,
+      ai_prompt_text=excluded.ai_prompt_text,
+      ai_raw_response=excluded.ai_raw_response,
+      ai_response_ref=excluded.ai_response_ref,
+      package_ref=excluded.package_ref,
+      keyword_package_slice_ref=excluded.keyword_package_slice_ref,
+      failure_reason=excluded.failure_reason,
+      updated_at=excluded.updated_at`).run(
+      review.reviewId,
+      review.taskId,
+      review.keywordId,
+      review.keyword,
+      review.status,
+      review.decision,
+      review.demandSignal,
+      review.reviewHealth,
+      review.priceCeiling,
+      review.competitionOpenness,
+      review.improvementOpportunity,
+      review.dataConfidence,
+      review.humanNextStep,
+      JSON.stringify(review.evidenceRefs),
+      JSON.stringify(review.missingEvidence),
+      JSON.stringify(review.riskPoints),
+      review.aiPromptText,
+      review.aiRawResponse,
+      review.aiResponseRef,
+      review.packageRef,
+      review.keywordPackageSliceRef,
+      review.failureReason,
+      review.createdAt,
+      review.updatedAt,
+    );
+    return this.getKeywordOpportunityReview(review.reviewId)!;
+  },
+
+  getKeywordOpportunityReview(reviewId) {
+    const row = db.prepare("SELECT * FROM amazon_mining_keyword_opportunity_reviews WHERE review_id=?").get(reviewId);
+    return row ? rowToKeywordOpportunityReview(row as Record<string, unknown>) : null;
+  },
+
+  listKeywordOpportunityReviews(input) {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    if (input?.taskId) {
+      conditions.push("task_id=?");
+      values.push(input.taskId);
+    }
+    if (input?.decision) {
+      conditions.push("decision=?");
+      values.push(input.decision);
+    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const rows = db.prepare(`
+      SELECT * FROM amazon_mining_keyword_opportunity_reviews
+      ${whereClause}
+      ORDER BY created_at DESC, review_id DESC
+    `).all(...values) as Array<Record<string, unknown>>;
+    return rows.map((row) => rowToKeywordOpportunityReview(row));
+  },
+});
+
 const createProductOperations = (
   db: Database.Database,
 ): Pick<AmazonMiningStorage, "persistProductDetail" | "updateProductStatus" | "getProductDetailsForTask" | "getProductDetail"> => ({
@@ -348,6 +439,7 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
     dbPath,
     ...createTaskOperations(db),
     ...createKeywordOperations(db),
+    ...createKeywordReviewOperations(db),
     ...createSearchOperations(db),
     ...createProductOperations(db),
     ...createTraceabilityOperations(db),

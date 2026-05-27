@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
+import { containsAnyCaseInsensitive } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { findLine, readRepoFile } from "./source-read.js";
@@ -40,7 +41,7 @@ const appendMissingRedactionPatternFindings = (
   redaction: NonNullable<ReturnType<typeof readRepoFile>>,
 ): void => {
   for (const pattern of redactionPatterns) {
-    if (new RegExp(pattern, "iu").test(redaction.text)) continue;
+    if (containsAnyCaseInsensitive(redaction.text, [pattern])) continue;
     findings.push({
       checkId: "runtime-log-spine/redaction-pattern",
       lawId: RuntimeLogSpineLaw.REDACTION,
@@ -57,7 +58,7 @@ const appendSinkRedactionFindingIfNeeded = (
   findings: RuntimeLogSpineFinding[],
   sinks: ReturnType<typeof readRepoFile>,
 ): void => {
-  if (sinks && /redactRuntimeLogEvent/u.test(sinks.text)) {
+  if (sinks && sinks.text.includes("redactRuntimeLogEvent")) {
     return;
   }
   findings.push({

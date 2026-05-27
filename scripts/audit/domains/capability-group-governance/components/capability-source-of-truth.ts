@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 
+import { splitLines } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 
 export const capabilityGovernanceLawPath = ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md";
@@ -45,7 +46,7 @@ const nextFenceIndex = (lines: readonly string[], startIndex: number): number =>
   lines.findIndex((line, index) => index > startIndex && line.trim().startsWith("```"));
 
 const extractCodeBlockItemsAfterMarker = (documentText: string, marker: string): string[] => {
-  const lines = documentText.split(/\r?\n/u);
+  const lines = splitLines(documentText);
   const markerIndex = firstHeadingIndex(lines, marker);
   if (markerIndex < 0) {
     return [];
@@ -66,7 +67,7 @@ const extractCodeBlockItemsAfterMarker = (documentText: string, marker: string):
 };
 
 const extractBulletLabelsUnderHeading = (documentText: string, heading: string): string[] => {
-  const lines = documentText.split(/\r?\n/u);
+  const lines = splitLines(documentText);
   const headingIndex = firstHeadingIndex(lines, heading);
   if (headingIndex < 0) {
     return [];

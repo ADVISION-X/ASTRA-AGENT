@@ -10,15 +10,17 @@ export const resolveFinalTaskState = (input: {
   allKeywordsFailed: boolean;
   handoffStatus: string;
   manualRequiredReasons: readonly string[];
+  failureReasons?: readonly string[];
 }): FinalTaskResolution => {
-  const finalTaskStatus = input.allKeywordsFailed
+  const failureReasons = input.failureReasons ?? [];
+  const finalTaskStatus = input.allKeywordsFailed || failureReasons.length > 0
     ? "failed"
     : input.manualRequiredReasons.length > 0 ? "manual_required" : "package_completed";
   const finalHandoffStatus = finalTaskStatus === "package_completed" && input.handoffStatus !== "manual_required"
     ? "ready"
     : "failed";
   const finalFailureReason = finalTaskStatus === "failed" || finalTaskStatus === "manual_required"
-    ? input.manualRequiredReasons.join("; ")
+    ? [...failureReasons, ...input.manualRequiredReasons].join("; ")
     : null;
 
   return {

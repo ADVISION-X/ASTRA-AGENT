@@ -134,10 +134,93 @@ return (function() {
       if (text) items.push(text);
     });
     if (items.length === 0) {
-      var fallback = pickSectionText(['[data-hook="cr-summarization-attributes"]', '#cr-summarization-attributes', '#reviewsMedley'], 1500);
-      if (fallback && fallback.toLowerCase().indexOf('star') >= 0) items.push(fallback);
+      var alternateSummary = pickSectionText(['[data-hook="cr-summarization-attributes"]', '#cr-summarization-attributes', '#reviewsMedley'], 1500);
+      if (alternateSummary && alternateSummary.toLowerCase().indexOf('star') >= 0) items.push(alternateSummary);
     }
     return items.length > 0 ? JSON.stringify(items) : null;
+  };
+  var safeParseJson = function(text) {
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (_error) {
+      return null;
+    }
+  };
+  var normalizeVariationDimensionName = function(dimensionKey) {
+    var names = {
+      color_name: 'Color',
+      size_name: 'Size',
+      style_name: 'Style',
+      pattern_name: 'Pattern',
+      configuration: 'Configuration',
+      capacity: 'Capacity'
+    };
+    return names[dimensionKey] || dimensionKey;
+  };
+  var serializeTwisterVariationOptions = function() {
+    var stateScripts = Array.from(document.querySelectorAll('#twister_feature_div script[type="a-state"], script[type="a-state"]'));
+    for (var i = 0; i < stateScripts.length; i++) {
+      var scriptText = stateScripts[i].textContent || '';
+      if (scriptText.indexOf('sortedDimValuesForAllDims') < 0) continue;
+      var parsed = safeParseJson(scriptText);
+      if (!parsed || !parsed.sortedDimValuesForAllDims) continue;
+      var dimensions = [];
+      Object.keys(parsed.sortedDimValuesForAllDims).forEach(function(dimensionKey) {
+        var rawOptions = parsed.sortedDimValuesForAllDims[dimensionKey];
+        if (!Array.isArray(rawOptions)) return;
+        var options = rawOptions.map(function(option) {
+          return {
+            label: option.dimensionValueDisplayText || null,
+            state: option.dimensionValueState || null,
+            asin: option.defaultAsin || null,
+            pageLoadUrl: option.pageLoadURL || null,
+            imageUrl: option.imageAttribute && option.imageAttribute.url ? option.imageAttribute.url : null,
+            displaySubType: option.dimensionDisplaySubType || null
+          };
+        });
+        var selected = options.filter(function(option) { return option.state === 'SELECTED'; }).map(function(option) { return option.label; });
+        dimensions.push({
+          dimensionKey: dimensionKey,
+          dimensionName: normalizeVariationDimensionName(dimensionKey),
+          selectedValues: selected,
+          optionCount: options.length,
+          options: options
+        });
+      });
+      if (dimensions.length > 0) {
+        return JSON.stringify({
+          source: 'desktop-twister-sort-filter-data',
+          dimensions: dimensions
+        });
+      }
+    }
+    return null;
+  };
+  var serializeVisibleVariationOptions = function() {
+    var selectedLabels = collectTexts([
+      '#inline-twister-expanded-dimension-text-color_name',
+      '#inline-twister-expanded-dimension-text-size_name',
+      '#inline-twister-expanded-dimension-text-style_name',
+      '#inline-twister-expanded-dimension-text-pattern_name',
+      '#inline-twister-expanded-dimension-text-configuration',
+      '[id*="variation"] .selection'
+    ], 20);
+    var optionTexts = collectTexts([
+      '#twister_feature_div li',
+      '#variation_color_name li',
+      '#variation_size_name li',
+      '#variation_style_name li',
+      '.inline-twister-swatch',
+      '.dimension-value-list-item',
+      '.swatch-list-container .swatchElement'
+    ], 80);
+    if (selectedLabels.length === 0 && optionTexts.length === 0) return null;
+    return JSON.stringify({
+      source: 'visible-twister-dom',
+      selectedValues: selectedLabels,
+      options: optionTexts
+    });
   };
 
   var asin = null;
@@ -181,12 +264,17 @@ return (function() {
   var aPlusContent = pickSectionText(['#aplus', '#aplus_feature_div', '[data-cel-widget*="aplus"]'], 4000);
   var aPlusImageUrls = collectImageUrls(['#aplus img, #aplus_feature_div img, [data-cel-widget*="aplus"] img'], 80);
 
-  var variationOptions = null;
-  var swatchOptions = document.querySelectorAll('.swatch-list-container .swatchElement');
-  if (swatchOptions.length > 0) variationOptions = String(swatchOptions.length) + ' variants detected';
+  var variationOptions = serializeTwisterVariationOptions() || serializeVisibleVariationOptions();
   var colorOpts = null;
-  var colorOptionNodes = document.querySelectorAll('.inline-twister-swatch');
-  if (colorOptionNodes.length > 0) colorOpts = String(colorOptionNodes.length) + ' color/size options';
+  if (variationOptions) {
+    var variationRecord = safeParseJson(variationOptions);
+    var colorSizeDimensions = variationRecord && Array.isArray(variationRecord.dimensions)
+      ? variationRecord.dimensions.filter(function(dimension) {
+        return ['color_name', 'size_name', 'style_name', 'pattern_name', 'configuration', 'capacity'].indexOf(dimension.dimensionKey) >= 0;
+      })
+      : [];
+    colorOpts = colorSizeDimensions.length > 0 ? JSON.stringify(colorSizeDimensions) : variationOptions;
+  }
 
   var productInformation = serializeKeyValueRows(['#productOverview_feature_div tr', '#poExpander tr', '#productDetails_feature_div tr', '#prodDetails tr']);
   var technicalDetails = serializeKeyValueRows(['#productDetails_techSpec_section_1 tr', '#productDetails_detailBullets_sections1 tr', '#prodDetails tr']);
@@ -346,7 +434,7 @@ const buildContentDisclosure = (raw: ExtractedDetail) => ({
   aboutThisItem: fieldDisclosureFromValue(raw.aboutThisItem, "not_present", "About this item section is not visible."),
   productDescription: fieldDisclosureFromValue(raw.productDescription, "not_present", "Product description section is not visible."),
   aPlusContentIfVisible: fieldDisclosureFromValue(raw.aPlusContent, "not_present", "A+ content module is not visible."),
-  aPlusImageUrls: fieldDisclosureFromValue(raw.aPlusImageUrls, "not_present", "A+ image URLs are not visible."),
+  aPlusImageUrls: fieldDisclosureFromValue(raw.aPlusImageUrls ?? [], "not_present", "A+ image URLs are not visible."),
   variationOptions: fieldDisclosureFromValue(raw.variationOptions, "not_present", "Variation module is not visible."),
   colorSizeStyleOptions: fieldDisclosureFromValue(raw.colorOpts, "not_present", "Color/size/style module is not visible."),
 });
@@ -394,7 +482,7 @@ const buildProductContent = (raw: ExtractedDetail) => ({
   aboutThisItem: raw.aboutThisItem,
   productDescription: raw.productDescription,
   aPlusContentIfVisible: raw.aPlusContent,
-  aPlusImageUrls: raw.aPlusImageUrls,
+  aPlusImageUrls: raw.aPlusImageUrls ?? [],
   variationOptions: raw.variationOptions,
   colorSizeStyleOptions: raw.colorOpts,
 });

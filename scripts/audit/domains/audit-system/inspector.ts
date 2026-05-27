@@ -4,6 +4,7 @@ import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { extractMarkdownHeadings, normalizeMarkdownHeading } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { pushStaleCodePurityTextReportFindings } from "./stale-code-purity-text-report.js";
 
@@ -26,13 +27,6 @@ const fileHasContent = (repoPath: string): boolean => {
   const absolutePath = resolveFromRepo(repoPath);
   return existsSync(absolutePath) && statSync(absolutePath).size > 2;
 };
-
-const normalizeAnchor = (value: string): string => value.replace(/^#+\s*/u, "").replace(/\s+/gu, " ").trim();
-
-const extractMarkdownHeadings = (text: string): ReadonlySet<string> =>
-  new Set(
-    [...text.matchAll(/^#{1,6}\s+(.+)$/gmu)].map((match) => normalizeAnchor(match[0] ?? match[1] ?? "")),
-  );
 
 const pushRequiredArtifactFindings = (
   findings: ReturnType<typeof createFinding>[],
@@ -99,7 +93,7 @@ const pushBlueprintAnchorFindings = (
     const blueprintText = readFileSync(resolveFromRepo(blueprintRef.filePath), "utf8");
     const headings = extractMarkdownHeadings(blueprintText);
     for (const anchor of blueprintRef.requiredAnchors) {
-      if (headings.has(normalizeAnchor(anchor))) {
+      if (headings.has(normalizeMarkdownHeading(anchor))) {
         continue;
       }
       findings.push(

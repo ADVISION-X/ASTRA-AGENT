@@ -64,6 +64,7 @@ type AmazonPackageBuildInput = {
   taskId: string;
   dataDir: string;
   storage: AmazonMiningStorage;
+  detailRankLimit?: number;
   reviewMaxPages?: number;
 };
 
@@ -163,6 +164,7 @@ const buildPackageProductCommerce = (product: AmazonProductDetail) => ({
   originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
   rating: product.rating,
   reviewCount: product.reviewCount,
+  starDistribution: product.starDistribution,
   bestSellersRankIfVisible: product.bestSellersRankIfVisible,
   categoryPathIfVisible: product.categoryPathIfVisible,
   deliveryInformation: product.deliveryInformation,
@@ -413,6 +415,7 @@ export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildI
     taskId: input.taskId,
     task: runtime.task,
     keywords: runtime.keywords,
+    ...(input.detailRankLimit !== undefined ? { detailRankLimit: input.detailRankLimit } : {}),
     ...(input.reviewMaxPages !== undefined ? { reviewMaxPages: input.reviewMaxPages } : {}),
     generatedAt: runtime.generatedAt,
   });

@@ -215,7 +215,7 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
       checkId: "video-download/api-surface",
     });
   }
-  if (/getVideoDownloadAbilityGroup\(\)\.execute/u.test(routeText)) {
+  if (routeText.includes("getVideoDownloadAbilityGroup().execute")) {
     pushFinding(
       findings,
       lawId,
@@ -256,13 +256,15 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
 
 const inspectForbiddenDownloadSurfaces = (findings: Finding[], lawId: string): void => {
   const scanned = sourceFiles.map((filePath) => [filePath, readRepoFile(filePath)] as const);
-  const forbiddenPatterns = [
-    /downloader\s*website/iu,
-    /localStorage|sessionStorage|document\.cookie/iu,
-    /puppeteer/iu,
+  const forbiddenMarkers = [
+    "downloader website",
+    "localStorage",
+    "sessionStorage",
+    "document.cookie",
+    "puppeteer",
   ] as const;
   for (const [filePath, text] of scanned) {
-    const matched = forbiddenPatterns.find((pattern) => pattern.test(text));
+    const matched = forbiddenMarkers.find((marker) => text.toLowerCase().includes(marker.toLowerCase()));
     if (!matched) {
       continue;
     }
@@ -272,7 +274,7 @@ const inspectForbiddenDownloadSurfaces = (findings: Finding[], lawId: string): v
       filePath,
       "video-download/forbidden-surface",
       `${filePath} contains a forbidden downloader, credential, or browser-bypass surface.`,
-      String(matched),
+      matched,
     );
   }
 };

@@ -154,6 +154,7 @@ const buildProductBusinessInfoSection = (product: AmazonProductDetail) => ({
   originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
   rating: product.rating,
   reviewCount: product.reviewCount,
+  starDistribution: product.starDistribution,
   bestSellersRankIfVisible: product.bestSellersRankIfVisible,
   categoryPathIfVisible: product.categoryPathIfVisible,
   deliveryInformation: product.deliveryInformation,

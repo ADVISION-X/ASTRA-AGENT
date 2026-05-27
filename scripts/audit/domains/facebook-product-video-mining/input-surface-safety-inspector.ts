@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
+import { containsAll, containsAny } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const facebookSchemaPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts";
@@ -31,28 +32,28 @@ const inspectWorkspaceGuards = (findings: InspectorFinding[], lawId: string, sou
   if (!sources.shared.includes("ensureProviderWorkspaceFocused")) {
     findings.push(createFinding({ checkId: "facebook-mining/provider-tab-focus-guard", lawId, filePath: webChatSharedPath, message: "Facebook web-chat feed must refocus provider workspace before upload, submit, and answer extraction." }));
   }
-  if (/chooseFileInNativeDialog/u.test(sources.upload)) {
+  if (sources.upload.includes("chooseFileInNativeDialog")) {
     findings.push(createFinding({ checkId: "facebook-mining/no-blind-native-file-path-entry", lawId, filePath: webChatUploadPath, message: "Facebook web-chat upload must not type file paths unless a provider file input is located." }));
   }
-  if (!/allowAnyProviderTab:\s*false/u.test(sources.open) || !/allowAnyProviderTab:\s*false/u.test(sources.workspace)) {
+  if (!containsAll(sources.open, ["allowAnyProviderTab", "false"]) || !containsAll(sources.workspace, ["allowAnyProviderTab", "false"])) {
     findings.push(createFinding({ checkId: "facebook-mining/no-arbitrary-provider-tab", lawId, filePath: webChatOpenPath, message: "Facebook web-chat feed must not reuse arbitrary provider tabs." }));
   }
-  if (!sources.open.includes("saveWorkspaceUrl") || /lowerTitle contains/u.test(sources.workspace)) {
+  if (!sources.open.includes("saveWorkspaceUrl") || sources.workspace.includes("lowerTitle contains")) {
     findings.push(createFinding({ checkId: "facebook-mining/workspace-url-pinning", lawId, filePath: webChatOpenPath, message: "Facebook web-chat feed must pin the opened workspace URL instead of matching old provider tabs by title." }));
   }
 };
 
 const inspectWaitBudgetGuards = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
-  if (!/MAX_ATTACHMENT_COUNT_WAIT_MS\s*=\s*15_000/u.test(sources.pageActions) || !/CLIPBOARD_UPLOAD_TIMEOUT_MS\s*=\s*20_000/u.test(sources.upload)) {
+  if (!containsAll(sources.pageActions, ["MAX_ATTACHMENT_COUNT_WAIT_MS", "15_000"]) || !containsAll(sources.upload, ["CLIPBOARD_UPLOAD_TIMEOUT_MS", "20_000"])) {
     findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatPageActionsPath, message: "Facebook web-chat clipboard paste and attachment verification waits must not consume the whole judgment timeout." }));
   }
-  if (!/MAX_SUBMIT_BUTTON_WAIT_MS\s*=\s*45_000/u.test(sources.submit)) {
+  if (!containsAll(sources.submit, ["MAX_SUBMIT_BUTTON_WAIT_MS", "45_000"])) {
     findings.push(createFinding({ checkId: "facebook-mining/submit-wait-short-cap", lawId, filePath: webChatSubmitPath, message: "Facebook web-chat submit button wait must not consume the whole judgment timeout." }));
   }
 };
 
 const inspectTerminalOutcomeGuard = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
-  if (!/terminal:\s*true,\s*reason:\s*input\.judgment\.reason/u.test(sources.roundOutcomes)) {
+  if (!containsAll(sources.roundOutcomes, ["terminal", "true", "reason", "input.judgment.reason"])) {
     findings.push(createFinding({ checkId: "facebook-mining/ai-judgment-failure-terminal", lawId, filePath: facebookRoundOutcomesPath, message: "Facebook AI judgment failure must save evidence and terminate the mission for review." }));
   }
 };
@@ -86,10 +87,10 @@ export const inspectFacebookSafetyDefaults = (
   ];
   for (const repoPath of paths) inspectedFiles.add(repoPath);
   const schemaText = readRepoText(facebookSchemaPath);
-  if (!/notInterestedEnabled:\s*z\.boolean\(\)\.default\(false\)/u.test(schemaText)) {
+  if (!containsAll(schemaText, ["notInterestedEnabled", "z.boolean()", ".default(false)"])) {
     findings.push(createFinding({ checkId: "facebook-mining/not-interested-default-off", lawId, filePath: facebookSchemaPath, message: "Facebook mining must keep notInterestedEnabled off by default." }));
   }
-  if (!/executeFacebookAiFeedWithHardTimeout/u.test(readRepoText(facebookAiJudgePath)) || !/AbortController/u.test(readRepoText(facebookAiTimeoutPath))) {
+  if (!containsAny(readRepoText(facebookAiJudgePath), ["executeFacebookAiFeedWithHardTimeout"]) || !containsAny(readRepoText(facebookAiTimeoutPath), ["AbortController"])) {
     findings.push(createFinding({ checkId: "facebook-mining/ai-hard-timeout", lawId, filePath: facebookAiTimeoutPath, message: "Facebook AI judgment must have a hard timeout and abort signal." }));
   }
   inspectWebChatSafetyGuards(findings, lawId, {

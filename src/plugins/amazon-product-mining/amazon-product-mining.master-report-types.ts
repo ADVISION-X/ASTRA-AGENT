@@ -48,11 +48,13 @@ type ReportProduct = {
   images?: {
     mainImageUrl?: string | null;
     galleryImageUrls?: string[];
+    aPlusImageUrls?: string[];
   };
   commerce?: {
     currentPrice?: string | null;
     rating?: string | null;
     reviewCount?: string | null;
+    starDistribution?: string | null;
     bestSellersRankIfVisible?: string | null;
     categoryPathIfVisible?: string | null;
   };
@@ -61,6 +63,7 @@ type ReportProduct = {
     aboutThisItem?: string | null;
     productDescription?: string | null;
     aPlusContentIfVisible?: string | null;
+    aPlusImageUrls?: string[];
   };
   parameters?: {
     variationOptions?: string | null;
@@ -98,6 +101,7 @@ type ReportProduct = {
     failedFields?: string[];
     extractorMissingFields?: string[];
     warnings?: string[];
+    fieldDisclosures?: Record<string, unknown>;
     detailStatus?: string;
     reviewStatus?: string;
   };

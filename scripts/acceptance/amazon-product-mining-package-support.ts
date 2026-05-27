@@ -25,6 +25,7 @@ type ProductIdentityFixture = Pick<AmazonProductDetail,
 type ProductMediaFixture = Pick<AmazonProductDetail,
   | "mainImage"
   | "allVisibleImages"
+  | "aPlusImageUrls"
   | "visibleVideoInfo"
 >;
 
@@ -96,6 +97,7 @@ const buildSummitLiteProductDetail = (): AmazonProductDetail => createProductDet
       "https://images.example.com/product-1-main.jpg",
       "https://images.example.com/product-1-side.jpg",
     ],
+    aPlusImageUrls: ["https://images.example.com/product-1-aplus.jpg"],
     visibleVideoInfo: "360 product video",
   },
   listing: {
@@ -154,6 +156,7 @@ const buildTrailBurnProductDetail = (): AmazonProductDetail => createProductDeta
   media: {
     mainImage: "https://images.example.com/product-2-main.jpg",
     allVisibleImages: ["https://images.example.com/product-2-main.jpg"],
+    aPlusImageUrls: [],
     visibleVideoInfo: null,
   },
   listing: {
@@ -192,6 +195,7 @@ const buildTrailBurnProductDetail = (): AmazonProductDetail => createProductDeta
       rawVisibleTextSnapshot: { reason: "extracted", detail: null },
       visibleVideoInfo: { reason: "not_present", detail: "No visible product video module is shown on the detail page." },
       aPlusContentIfVisible: { reason: "not_present", detail: "A+ content module is not visible on this product page." },
+      aPlusImageUrls: { reason: "not_present", detail: "A+ image URLs are not visible on this product page." },
       variationOptions: { reason: "not_present", detail: "Variation module is not visible on this product page." },
       colorSizeStyleOptions: { reason: "not_present", detail: "Color/size/style picker is not visible on this product page." },
       starDistribution: { reason: "not_present", detail: "Star distribution is not visible on this product page." },

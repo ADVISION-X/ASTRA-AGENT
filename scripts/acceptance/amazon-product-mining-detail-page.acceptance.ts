@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   runProductDetailExtraction,
@@ -33,6 +35,7 @@ const fixtureDetailMedia = {
   aboutThisItem: "Perfect for backpacking trips.",
   productDescription: "A lightweight 2-person tent for backpacking adventures.",
   aPlusContentIfVisible: null,
+  aPlusImageUrls: [],
   variationOptions: null,
   colorSizeStyleOptions: null,
 };
@@ -93,6 +96,7 @@ assert.equal(detail1.currentPrice, "$89.99");
 assert.equal(detail1.originalPriceDiscountCouponIfVisible, "$10 coupon available");
 assert.equal(detail1.mainImage, "https://images.amazon.com/test-main.jpg");
 assert.equal(detail1.allVisibleImages.length, 2);
+assert.deepEqual(detail1.aPlusImageUrls, []);
 assert.equal(detail1.bulletPoints.length, 3);
 assert.ok(detail1.bulletPoints[0]!.includes("Lightweight"), "First bullet should mention Lightweight");
 assert.equal(detail1.technicalDetails, "Weight: 2.4 lbs, Size: 84x48x40 inches");
@@ -145,6 +149,18 @@ const detail3 = await runProductDetailExtraction({
 assert.equal(detail3.brand, null);
 assert.equal(detail3.allVisibleImages.length, 0);
 assert.equal(detail3.bulletPoints.length, 0);
+
+// --- Test 4: production extractor keeps real Amazon twister variation parser ---
+const productDetailSource = readFileSync(
+  resolve(import.meta.dirname, "../../src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts"),
+  "utf8",
+);
+assert.ok(productDetailSource.includes("sortedDimValuesForAllDims"), "Detail extractor must parse real Amazon twister a-state variation data.");
+assert.ok(productDetailSource.includes("desktop-twister-sort-filter-data"), "Detail extractor must identify the current Amazon desktop twister state payload.");
+assert.ok(productDetailSource.includes("dimensionValueDisplayText"), "Variation options must keep visible option labels.");
+assert.ok(productDetailSource.includes("dimensionValueState"), "Variation options must keep selected/available/unavailable state.");
+assert.ok(productDetailSource.includes("defaultAsin"), "Variation options must keep option ASIN trace.");
+assert.ok(productDetailSource.includes("pageLoadURL"), "Variation options must keep option page URL trace.");
 
 // --- Test 4: No adapter or browser throws ---
 try {

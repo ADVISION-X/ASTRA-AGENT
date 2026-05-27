@@ -146,4 +146,32 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     message TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS amazon_mining_keyword_opportunity_reviews (
+    review_id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL,
+    keyword_id TEXT NOT NULL,
+    keyword TEXT NOT NULL,
+    status TEXT NOT NULL,
+    decision TEXT,
+    demand_signal TEXT,
+    review_health TEXT,
+    price_ceiling TEXT,
+    competition_openness TEXT,
+    improvement_opportunity TEXT,
+    data_confidence TEXT,
+    human_next_step TEXT,
+    evidence_refs_json TEXT NOT NULL,
+    missing_evidence_json TEXT NOT NULL,
+    risk_points_json TEXT NOT NULL,
+    ai_prompt_text TEXT NOT NULL,
+    ai_raw_response TEXT NOT NULL,
+    ai_response_ref TEXT,
+    package_ref TEXT,
+    keyword_package_slice_ref TEXT,
+    failure_reason TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS amazon_mining_keyword_opportunity_reviews_task_created_idx
+    ON amazon_mining_keyword_opportunity_reviews (task_id, created_at DESC)`,
 ] as const;

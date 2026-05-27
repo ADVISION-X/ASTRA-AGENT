@@ -2,6 +2,11 @@ import { Node } from "ts-morph";
 
 import { selectLawId } from "../../../shared/finding-utils.js";
 import type { InspectorContext } from "../../../shared/inspector-contracts.js";
+import {
+  isPluginOwnerPath,
+  isPrivateCapabilityRuntimePath,
+  isPublicCapabilityFacadePath as isSharedPublicCapabilityFacadePath,
+} from "../../../shared/no-regex.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 export type ArchitectureSourceFile = Parameters<typeof getRepoSourcePath>[0];
@@ -17,9 +22,9 @@ export type ArchitectureLawIds = {
   pluginStageLawId: string;
 };
 
-export const privateCapabilityPathPattern = /^src\/capabilities\/[^/]+\/(runtime|children)\//u;
-export const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
-export const jobPluginPathPattern = /^src\/plugins\/[^/]+\//u;
+export const isPrivateCapabilityPath = isPrivateCapabilityRuntimePath;
+export const isPublicCapabilityFacadePath = isSharedPublicCapabilityFacadePath;
+export const isJobPluginPath = isPluginOwnerPath;
 
 const plannerNames = new Set(["nextAction", "actionPlan"]);
 

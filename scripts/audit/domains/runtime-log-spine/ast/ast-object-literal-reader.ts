@@ -6,6 +6,7 @@ import {
   type ObjectLiteralExpression,
 } from "ts-morph";
 
+import { containsAny } from "../../../shared/no-regex.js";
 import { resolveObjectLiteralExpression } from "./ast-object-literal-resolver.js";
 import { traceDestructuredBinding, traceImportedBinding, traceVariableInitializer, unwrapExpression } from "./ast-symbol-utils.js";
 
@@ -56,7 +57,7 @@ const matchesRuntimeLogEventTypeImport = (identifier: Identifier): boolean => {
     return false;
   }
   const moduleSpecifier = imported.getModuleSpecifierValue();
-  return /runtime-logs(?:\/index|\/event-types)?/u.test(moduleSpecifier)
+  return containsAny(moduleSpecifier, ["runtime-logs"])
     && imported.getNamedImports().some((item) => {
       const importName = item.getNameNode().getText();
       const aliasName = item.getAliasNode()?.getText() ?? importName;
@@ -147,7 +148,13 @@ export const getArrayLiteralPropertyValues = (objectLiteral: ObjectLiteralExpres
   if (!target || !Node.isArrayLiteralExpression(target)) return null;
   return target
     .getElements()
-    .map((element) => Node.isStringLiteral(element) ? element.getLiteralValue() : element.getText().replace(/^RuntimeLogMode\./u, ""))
+    .map((element) => {
+      if (Node.isStringLiteral(element)) {
+        return element.getLiteralValue();
+      }
+      const text = element.getText();
+      return text.startsWith("RuntimeLogMode.") ? text.slice("RuntimeLogMode.".length) : text;
+    })
     .filter((value) => value.length > 0);
 };
 
