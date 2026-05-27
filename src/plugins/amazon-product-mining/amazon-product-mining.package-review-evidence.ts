@@ -43,7 +43,7 @@ export type AmazonPackageReviewEvidence = {
 const buildReviewWarnings = (input: {
   reviews: readonly AmazonReviewRecord[];
   pagesVisited: number;
-  reviewMaxPages?: number;
+  reviewMaxPages: number | undefined;
   productStatus: AmazonProductDetail["status"];
 }): string[] => [
   ...(input.reviews.length === 0 ? ["No accessible reviews were captured for this product."] : []),
@@ -63,7 +63,7 @@ const writeReviewArtifacts = (input: {
   pagesVisited: number;
   representativeSamples: AmazonPackageReviewEvidence["representativeSamples"];
   warnings: readonly string[];
-  reviewMaxPages?: number;
+  reviewMaxPages: number | undefined;
 }) => {
   writeJsonlFile(input.reviewsJsonlPath, input.reviews.map((review) => ({
     reviewId: review.reviewId,
@@ -123,7 +123,7 @@ const createReviewEvidenceArtifact = (input: {
   layout: AmazonPackageLayout;
   product: AmazonProductDetail;
   reviews: readonly AmazonReviewRecord[];
-  reviewMaxPages?: number;
+  reviewMaxPages: number | undefined;
 }): AmazonPackageReviewEvidence => {
   const reviewDir = join(input.layout.reviewEvidenceDir, `product-${input.product.detailId}`);
   mkdirSync(reviewDir, { recursive: true });

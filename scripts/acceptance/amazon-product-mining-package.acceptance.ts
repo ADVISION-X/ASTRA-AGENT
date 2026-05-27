@@ -7,6 +7,7 @@ import { writeAmazonHandoffRecord } from "../../src/plugins/amazon-product-minin
 import { buildAmazonProductMiningPackage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.package.js";
 import { createAmazonPackageLayout } from "../../src/plugins/amazon-product-mining/amazon-product-mining.package-layout.js";
 import { buildAmazonProductMiningReport } from "../../src/plugins/amazon-product-mining/amazon-product-mining.pdf.js";
+import type { AmazonProductDetail } from "../../src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.js";
 import { createAmazonMiningStorage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.storage.js";
 
 const dataDir = mkdtempSync(join(tmpdir(), "amazon-mining-package-"));
@@ -14,13 +15,66 @@ const storage = createAmazonMiningStorage(dataDir);
 const taskId = "task-acceptance";
 const keywordRunId = "ai-run-1";
 
+type ProductIdentityFixture = Pick<AmazonProductDetail,
+  | "detailId"
+  | "taskId"
+  | "asin"
+  | "productUrl"
+  | "title"
+  | "brand"
+  | "sellerOrStoreIfVisible"
+>;
+
+type ProductMediaFixture = Pick<AmazonProductDetail,
+  | "mainImage"
+  | "allVisibleImages"
+  | "visibleVideoInfo"
+>;
+
+type ProductListingFixture = Pick<AmazonProductDetail,
+  | "bulletPoints"
+  | "aboutThisItem"
+  | "productDescription"
+  | "aPlusContentIfVisible"
+  | "variationOptions"
+  | "colorSizeStyleOptions"
+>;
+
+type ProductCommerceFixture = Pick<AmazonProductDetail,
+  | "currentPrice"
+  | "originalPriceDiscountCouponIfVisible"
+  | "rating"
+  | "reviewCount"
+  | "starDistribution"
+  | "productInformation"
+  | "technicalDetails"
+  | "additionalInformation"
+  | "bestSellersRankIfVisible"
+  | "categoryPathIfVisible"
+  | "deliveryInformation"
+  | "returnInformation"
+  | "qaContentIfVisible"
+  | "frequentlyBoughtTogetherIfVisible"
+  | "customersAlsoBoughtIfVisible"
+  | "compareWithSimilarItemsIfVisible"
+  | "allOtherVisibleProductParameters"
+>;
+
+type ProductStatusFixture = Pick<AmazonProductDetail,
+  | "rawVisibleTextSnapshot"
+  | "status"
+  | "failureReason"
+  | "createdAt"
+  | "updatedAt"
+>;
+
 const createProductDetailFixture = (input: {
-  identity: Record<string, unknown>;
-  media: Record<string, unknown>;
-  listing: Record<string, unknown>;
-  commerce: Record<string, unknown>;
-  status: Record<string, unknown>;
-}) => ({
+  identity: ProductIdentityFixture;
+  media: ProductMediaFixture;
+  listing: ProductListingFixture;
+  commerce: ProductCommerceFixture;
+  status: ProductStatusFixture;
+}): AmazonProductDetail => ({
   ...input.identity,
   ...input.media,
   ...input.listing,

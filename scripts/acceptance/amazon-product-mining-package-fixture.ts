@@ -21,7 +21,7 @@ const selectNewestDir = (paths: readonly string[]): string | null => {
 
 const runAcceptanceFixture = async (): Promise<string> => {
   const before = new Set(listFixtureDirs());
-  await import("./amazon-product-mining-package.acceptance.ts");
+  await import("./amazon-product-mining-package.acceptance.js");
   const after = listFixtureDirs();
   const created = after.filter((dirPath) => !before.has(dirPath));
   const dataDir = selectNewestDir(created) ?? selectNewestDir(after);

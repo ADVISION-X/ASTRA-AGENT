@@ -2,6 +2,18 @@ import type { AmazonMasterReportInput } from "./amazon-product-mining.master-rep
 
 export type { AmazonMasterReportInput } from "./amazon-product-mining.master-report-types.js";
 
+type ReportTask = Partial<NonNullable<NonNullable<AmazonMasterReportInput["packageData"]>["task"]>>;
+type ReportKeyword = NonNullable<NonNullable<AmazonMasterReportInput["packageData"]>["keywords"]>[number];
+type ReportProduct = NonNullable<NonNullable<AmazonMasterReportInput["packageData"]>["products"]>[number];
+type ReportSourceKeyword = NonNullable<ReportProduct["sourceKeywords"]>[number];
+type ReportReviewIndex = NonNullable<NonNullable<AmazonMasterReportInput["packageData"]>["reviewsIndex"]>[number];
+type ReportException = NonNullable<NonNullable<AmazonMasterReportInput["exceptionSummary"]>["exceptions"]>[number];
+type EvidenceIndexKeyword = NonNullable<NonNullable<AmazonMasterReportInput["evidenceIndex"]>["keywords"]>[number];
+type EvidenceIndexProduct = NonNullable<NonNullable<AmazonMasterReportInput["evidenceIndex"]>["products"]>[number];
+type EvidenceArtifact = NonNullable<NonNullable<AmazonMasterReportInput["evidenceIndex"]>["artifacts"]>[number];
+type IntegrityCheck = NonNullable<NonNullable<AmazonMasterReportInput["integrityReport"]>["checks"]>[number];
+type CompletenessProduct = NonNullable<NonNullable<AmazonMasterReportInput["completenessReport"]>["products"]>[number];
+
 const escapeHtml = (value: string): string =>
   value
     .replace(/&/g, "&amp;")
@@ -37,7 +49,7 @@ const renderTable = (headers: readonly string[], rows: readonly string[][]): str
   </table>`;
 
 const buildCoverLines = (input: {
-  task: NonNullable<AmazonMasterReportInput["packageData"]>["task"] | Record<string, never>;
+  task: ReportTask;
   generatedAt: string;
   packageVersion: string;
   boundaryBullets: readonly string[];
@@ -68,38 +80,38 @@ const buildTaskCompletenessLines = (summary: Record<string, unknown>) => [
   `Package Completeness Status: ${String(summary["packageCompletenessStatus"] ?? "unknown")}`,
 ];
 
-const buildAiKeywordRunLines = (runs: NonNullable<AmazonMasterReportInput["packageData"]>["aiKeywordRuns"] | undefined) => [
+const buildAiKeywordRunLines = (runs: readonly NonNullable<NonNullable<AmazonMasterReportInput["packageData"]>["aiKeywordRuns"]>[number][] | undefined) => [
   "Chapter 4. AI Keyword Runs",
   ...(runs?.map((run) => `Run ${run.runId ?? "unknown"} | status=${run.status ?? "unknown"} | keywords=${(run.dedupedKeywords ?? []).join(", ") || "none"}`) ?? ["No AI keyword runs."]),
 ];
 
-const buildKeywordOverviewLines = (keywords: NonNullable<AmazonMasterReportInput["packageData"]>["keywords"] | undefined) => [
+const buildKeywordOverviewLines = (keywords: readonly ReportKeyword[] | undefined) => [
   "Chapter 5. Keyword Overview",
   ...(keywords?.map((keyword) => `${keyword.keyword ?? "unknown"} | status=${keyword.status ?? "unknown"} | results=${String(keyword.searchResultCount ?? 0)} | sponsored=${String(keyword.sponsoredCount ?? 0)} | organic=${String(keyword.organicCount ?? 0)}`) ?? ["No keywords."]),
 ];
 
-const buildProductOverviewLines = (products: NonNullable<AmazonMasterReportInput["packageData"]>["products"] | undefined) => [
+const buildProductOverviewLines = (products: readonly ReportProduct[] | undefined) => [
   "Chapter 7. Product Overview",
   ...(products?.map((product) => `${product.detailId ?? "unknown"} | ${truncateText(product.identity?.title ?? product.asin ?? "unknown product", 72)} | completeness=${String(product.completeness?.score ?? 0)} | reviews=${String(product.reviews?.capturedReviewCount ?? 0)}`) ?? ["No products."]),
 ];
 
-const buildReviewSummaryLines = (reviewsIndex: NonNullable<AmazonMasterReportInput["packageData"]>["reviewsIndex"] | undefined) => [
+const buildReviewSummaryLines = (reviewsIndex: readonly ReportReviewIndex[] | undefined) => [
   "Chapter 9. Review Summary",
   ...(reviewsIndex?.map((review) => `${review.detailId ?? "unknown"} | reviews=${String(review.capturedReviewCount ?? 0)} | pages=${String(review.pagesVisited ?? 0)} | images=${String(Boolean(review.hasImages))}`) ?? ["No review evidence."]),
 ];
 
-const buildExceptionLines = (exceptions: NonNullable<AmazonMasterReportInput["exceptionSummary"]>["exceptions"] | undefined) => [
+const buildExceptionLines = (exceptions: readonly ReportException[] | undefined) => [
   "Chapter 10. Exceptions and Completeness",
   ...(exceptions?.map((exception) => `${exception.scope ?? "unknown"}/${exception.exceptionKind ?? "unknown"}: ${truncateText(exception.message, 100)}`) ?? ["No exceptions."]),
 ];
 
-const buildEvidenceIndexLines = (products: NonNullable<AmazonMasterReportInput["evidenceIndex"]>["products"] | undefined) => [
+const buildEvidenceIndexLines = (products: readonly EvidenceIndexProduct[] | undefined) => [
   "Chapter 11. Evidence Index",
   ...(products?.map((product) => `${product.detailId ?? "unknown"} -> ${(product.sourceKeywordIds ?? []).join(", ")} -> ${(product.sourceSearchItemRefs ?? []).join(", ")}`) ?? ["No evidence index entries."]),
 ];
 
 const renderTaskSummaryGrid = (input: {
-  task: NonNullable<AmazonMasterReportInput["packageData"]>["task"] | Record<string, never>;
+  task: ReportTask;
   generatedAt: string;
   reportVersion: string;
 }) => `
@@ -113,7 +125,7 @@ const renderTaskSummaryGrid = (input: {
       <div class="card"><strong>Package Version</strong><br />${escapeHtml(input.reportVersion)}</div>
     </section>`;
 
-const renderKeywordEvidenceCards = (keywords: NonNullable<AmazonMasterReportInput["evidenceIndex"]>["keywords"] | undefined) =>
+const renderKeywordEvidenceCards = (keywords: readonly EvidenceIndexKeyword[] | undefined) =>
   keywords?.map((keyword) => `
         <div class="card">
           <h3>${escapeHtml(keyword.keyword ?? "unknown")}</h3>
@@ -123,12 +135,12 @@ const renderKeywordEvidenceCards = (keywords: NonNullable<AmazonMasterReportInpu
           <p><strong>Product Details:</strong> ${escapeHtml((keyword.productDetailRefs ?? []).join(", ") || "none")}</p>
         </div>`).join("") || "<p>No keyword evidence.</p>";
 
-const renderProductEvidenceCard = (product: NonNullable<AmazonMasterReportInput["packageData"]>["products"][number]) => `
+const renderProductEvidenceCard = (product: ReportProduct) => `
         <div class="card">
           <h3>${escapeHtml(product.identity?.title ?? product.asin ?? product.detailId ?? "unknown product")}</h3>
           <p><strong>A. Product Identity:</strong> ${escapeHtml(product.detailId ?? "unknown")} / ${escapeHtml(product.asin ?? "n/a")} / ${escapeHtml(product.identity?.brand ?? "n/a")}</p>
           <p><strong>B. Image Evidence:</strong> main=${escapeHtml(product.images?.mainImageUrl ?? "n/a")} | gallery=${String(product.images?.galleryImageUrls?.length ?? 0)}</p>
-          <p><strong>C. Source Keywords:</strong> ${escapeHtml((product.sourceKeywords ?? []).map((keyword) => `${keyword.keyword ?? "unknown"}@${String(keyword.rankPosition ?? 0)}`).join(", ") || "none")}</p>
+          <p><strong>C. Source Keywords:</strong> ${escapeHtml((product.sourceKeywords ?? []).map((keyword: ReportSourceKeyword) => `${keyword.keyword ?? "unknown"}@${String(keyword.rankPosition ?? 0)}`).join(", ") || "none")}</p>
           <p><strong>D. Commerce:</strong> price=${escapeHtml(product.commerce?.currentPrice ?? "n/a")} | rating=${escapeHtml(product.commerce?.rating ?? "n/a")} | reviewCount=${escapeHtml(product.commerce?.reviewCount ?? "n/a")}</p>
           <p><strong>E. Listing:</strong> ${escapeHtml(((product.listing?.bulletPoints ?? []).join(" | ")) || product.listing?.productDescription || product.listing?.aboutThisItem || "n/a")}</p>
           <p><strong>F. Parameters:</strong> ${escapeHtml(product.parameters?.technicalDetails ?? product.parameters?.productInformation ?? product.parameters?.additionalInformation ?? "n/a")}</p>
@@ -139,12 +151,12 @@ const renderProductEvidenceCard = (product: NonNullable<AmazonMasterReportInput[
           <p><strong>K. Evidence Refs:</strong> raw=${escapeHtml(product.rawVisibleTextRef ?? "")} | reviewSummary=${escapeHtml(product.reviews?.summaryRef ?? "")} | exceptions=${escapeHtml((product.exceptions ?? []).join(", ") || "none")}</p>
         </div>`;
 
-const renderProductEvidenceCards = (products: NonNullable<AmazonMasterReportInput["packageData"]>["products"] | undefined) =>
+const renderProductEvidenceCards = (products: readonly ReportProduct[] | undefined) =>
   products?.map((product) => renderProductEvidenceCard(product)).join("") || "<p>No products.</p>";
 
 const renderCompletenessSection = (input: {
-  exceptions: NonNullable<AmazonMasterReportInput["exceptionSummary"]>["exceptions"];
-  products: NonNullable<AmazonMasterReportInput["completenessReport"]>["products"];
+  exceptions: readonly ReportException[];
+  products: readonly CompletenessProduct[];
 }) => `
     <section class="panel section-stack">
       <h2>Chapter 10. Exceptions & Completeness</h2>
@@ -171,8 +183,8 @@ const renderCompletenessSection = (input: {
     </section>`;
 
 const renderEvidenceIndexSection = (input: {
-  artifacts: NonNullable<AmazonMasterReportInput["evidenceIndex"]>["artifacts"];
-  checks: NonNullable<AmazonMasterReportInput["integrityReport"]>["checks"];
+  artifacts: readonly EvidenceArtifact[];
+  checks: readonly IntegrityCheck[];
 }) => `
     <section class="panel section-stack">
       <h2>Chapter 11. Evidence Index</h2>
@@ -187,7 +199,7 @@ const renderEvidenceIndexSection = (input: {
     </section>`;
 
 export const buildAmazonMasterReportLines = (input: AmazonMasterReportInput): string[] => {
-  const task = input.packageData?.task ?? {};
+  const task: ReportTask = input.packageData?.task ?? {};
   const summary = input.completenessReport?.summary ?? {};
   const boundaryBullets = markdownTextToBulletList(input.businessBoundaryNoticeText);
   return [
@@ -216,7 +228,7 @@ export const buildAmazonMasterReportLines = (input: AmazonMasterReportInput): st
 };
 
 export const buildAmazonMasterReportHtml = (input: AmazonMasterReportInput): string => {
-  const task = input.packageData?.task ?? {};
+  const task: ReportTask = input.packageData?.task ?? {};
   const summary = input.completenessReport?.summary ?? {};
   const reportVersion = input.packageData?.schemaVersion ?? "2.0.0";
   const contractBullets = markdownTextToBulletList(input.aiReadingContractText);
