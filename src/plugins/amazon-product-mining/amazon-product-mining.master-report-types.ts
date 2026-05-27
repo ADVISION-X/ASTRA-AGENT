@@ -91,6 +91,12 @@ type ReportProduct = {
   completeness?: {
     score?: number;
     missingFields?: string[];
+    notPresentFields?: string[];
+    blockedFields?: string[];
+    unsupportedFields?: string[];
+    manualRequiredFields?: string[];
+    failedFields?: string[];
+    extractorMissingFields?: string[];
     warnings?: string[];
     detailStatus?: string;
     reviewStatus?: string;
@@ -181,6 +187,12 @@ type ReportCompleteness = {
     reviewMaxPagesConfigured?: number | null;
     reviewRestriction?: string | null;
     missingFields?: string[];
+    notPresentFields?: string[];
+    blockedFields?: string[];
+    unsupportedFields?: string[];
+    manualRequiredFields?: string[];
+    failedFields?: string[];
+    extractorMissingFields?: string[];
     dataCompletenessScore?: number;
     warnings?: string[];
   }>;

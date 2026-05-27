@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T14:16:36.233Z",
+  "generatedAt": "2026-05-27T15:55:54.950Z",
   "rows": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -20,7 +20,8 @@
         "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1"
+        "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
       ]
     },
     {
@@ -63,7 +64,8 @@
       "ownerInspectorPath": "scripts/audit/domains/audit-truth/inspector.ts",
       "lawIds": [
         "APEX-AUDIT-TRUTH-001-V1",
-        "APEX-AUDIT-TRUTH-002-V1"
+        "APEX-AUDIT-TRUTH-002-V1",
+        "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1"
       ]
     },
     {

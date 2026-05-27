@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+  AmazonFieldDisclosureMapSchema,
+  AmazonFieldDisclosureReasonSchema,
+  AmazonFieldDisclosureSchema,
+} from "./amazon-product-mining.field-disclosure-schema.js";
+
 export const AmazonMarketplaceSchema = z.enum([
   "amazon.com",
   "amazon.co.uk",
@@ -47,6 +53,7 @@ export const AmazonProductStatusSchema = z.enum([
   "detail_completed",
   "review_extracting",
   "completed",
+  "completed_with_errors",
   "failed",
   "manual_required",
 ]);
@@ -106,6 +113,7 @@ export const AmazonSearchResultItemSchema = z.object({
   couponTextIfVisible: z.string().nullable().default(null),
   deliveryTextIfVisible: z.string().nullable().default(null),
   rawVisibleTextSnapshot: z.string().nullable().default(null),
+  fieldDisclosureMap: AmazonFieldDisclosureMapSchema,
   createdAt: z.string().min(1),
 }).strict();
 
@@ -153,6 +161,7 @@ const amazonProductDetailCommerceShape = {
 
 const amazonProductDetailStatusShape = {
   rawVisibleTextSnapshot: z.string().nullable().default(null),
+  fieldDisclosureMap: AmazonFieldDisclosureMapSchema,
   status: AmazonProductStatusSchema,
   failureReason: z.string().nullable().default(null),
   createdAt: z.string().min(1),
@@ -186,6 +195,7 @@ export const AmazonReviewRecordSchema = z.object({
   reviewLanguage: z.string().nullable().default(null),
   reviewRegionIfVisible: z.string().nullable().default(null),
   rawReviewTextSnapshot: z.string().nullable().default(null),
+  fieldDisclosureMap: AmazonFieldDisclosureMapSchema,
   createdAt: z.string().min(1),
 }).strict();
 
@@ -213,6 +223,9 @@ export const AmazonMiningSchemas = {
   AmazonTaskStatusSchema,
   AmazonKeywordStatusSchema,
   AmazonProductStatusSchema,
+  AmazonFieldDisclosureReasonSchema,
+  AmazonFieldDisclosureSchema,
+  AmazonFieldDisclosureMapSchema,
   AmazonHandoffStatusSchema,
   AmazonKeywordProviderKindSchema,
   AmazonKeywordRecordSchema,

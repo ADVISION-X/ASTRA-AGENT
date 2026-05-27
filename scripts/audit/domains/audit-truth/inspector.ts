@@ -1,5 +1,6 @@
 import { selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { scanAuditMetaQualityNoRegex } from "./components/scan-audit-meta-quality-no-regex.js";
 import { scanAuditNoRegex } from "./components/scan-audit-no-regex.js";
 import { scanAuditNoSourceTextSearch } from "./components/scan-audit-no-source-text-search.js";
 import { scanGeneratedPlanCoverage } from "./components/scan-generated-plan-coverage.js";
@@ -22,12 +23,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const project = context.project;
   const inspectedFiles = new Set<string>();
   const astTruthLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-TRUTH-001-V1");
+  const metaQualityLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1");
   const coverageLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-TRUTH-002-V1");
 
   const sourceTextScan = scanAuditNoSourceTextSearch({
     context: { ...context, project },
     inspectedFiles,
-    lawId: astTruthLawId,
+    lawId: metaQualityLawId,
   });
   const coverageScan = scanGeneratedPlanCoverage({
     context: { ...context, project },
@@ -37,10 +39,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const regexScan = scanAuditNoRegex({
     context: { ...context, project },
     inspectedFiles,
-    lawId: astTruthLawId,
+    lawId: metaQualityLawId,
+  });
+  const metaQualityScan = scanAuditMetaQualityNoRegex({
+    context: { ...context, project },
+    inspectedFiles,
+    lawId: metaQualityLawId,
   });
 
   const findings = [
+    ...metaQualityScan.findings,
     ...sourceTextScan.findings,
     ...coverageScan.findings,
     ...regexScan.findings,

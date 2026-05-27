@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-27T14:16:36.233Z",
+  "generatedAt": "2026-05-27T15:55:54.950Z",
   "summary": {
-    "activeLawCount": 150,
-    "coveredLawCount": 150,
+    "activeLawCount": 152,
+    "coveredLawCount": 152,
     "coveragePercent": 100
   },
   "coverage": [
@@ -68,6 +68,16 @@
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
       "capabilityDomain": "amazon-product-mining",
       "clauses": [
         {
@@ -368,6 +378,16 @@
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "capabilityDomain": "audit-truth",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-truth/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "capabilityDomain": "audit-truth",
       "clauses": [
         {

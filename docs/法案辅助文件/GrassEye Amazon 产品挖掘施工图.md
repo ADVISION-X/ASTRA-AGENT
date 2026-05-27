@@ -211,6 +211,47 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 | owner | search.ts |
 | 禁止 | 只提取看起来好的产品 / 丢失 rankPosition / 丢失 isSponsored / ASIN 不可见就丢弃 / 跳过 rawVisibleTextSnapshot |
 
+## 7.1 最大化可见信息提取矩阵
+
+> 这是本施工图下的字段级 owner 契约。
+> 结论只有两类：真实提取，或真实说明为何没有提取结果。
+
+| Field | Source Page | Extraction Strategy | Required When Visible | Null Allowed When | Exception Required When | Completeness Flag | Acceptance Fixture |
+| -- | -- | -- | -- | -- | -- | -- | -- |
+| rankPosition, isSponsored, title, productUrl, asinIfAvailable, mainImageUrl, price, rating, reviewCount | search results card | card-root + anchor + image + rating badge + visible text snapshot | yes | not_present only for asinIfAvailable when URL still exists | blocked, unsupported_structure | fieldPresent/search-visible | amazon-product-mining-search-page.acceptance.ts |
+| originalPriceOrDiscountIfVisible, primeOrFbaFlagIfVisible, couponTextIfVisible, deliveryTextIfVisible | search results card | candidateSelectors + nearby commercial badges + card visible text | yes | not_present when badge/line truly absent | blocked, unsupported_structure, extractor_missing | fieldPresent/search-commercial | amazon-product-mining-search-page.acceptance.ts |
+| mainImage, allVisibleImages, visibleVideoInfo | product detail hero/gallery | hero image attrs + gallery thumbs + visible media modules | yes | not_present when module absent | blocked, unsupported_structure | fieldPresent/detail-media | amazon-product-mining-detail-page.acceptance.ts |
+| bulletPoints, aboutThisItem, productDescription | product detail main content | heading section + bullet list + description block + visible text snapshot | yes | not_present when section absent | blocked, unsupported_structure | fieldPresent/detail-copy | amazon-product-mining-detail-page.acceptance.ts |
+| aPlusContentIfVisible, qaContentIfVisible | product detail modules | module heading detection + text blocks + image urls + links | yes | not_present when module absent | blocked, unsupported_structure, manual_required | notPresent/detail-module | amazon-product-mining-package.acceptance.ts |
+| variationOptions, colorSizeStyleOptions | product detail variation area | twister modules + selected state + option labels + swatch text | yes | not_present when no variation module | blocked, unsupported_structure | fieldPresent/detail-variation | amazon-product-mining-detail-page.acceptance.ts |
+| productInformation, technicalDetails, additionalInformation, allOtherVisibleProductParameters | product detail tables/lists | section heading + table rows + detail bullets + definition lists | yes | not_present when section absent | blocked, unsupported_structure | fieldPresent/detail-parameters | amazon-product-mining-detail-page.acceptance.ts |
+| bestSellersRankIfVisible, categoryPathIfVisible, starDistribution | product detail meta modules | detail bullets + breadcrumb + rating histogram module | yes | not_present when module absent | blocked, unsupported_structure | fieldPresent/detail-meta | amazon-product-mining-package.acceptance.ts |
+| frequentlyBoughtTogetherIfVisible, customersAlsoBoughtIfVisible, compareWithSimilarItemsIfVisible | product detail related modules | section heading + visible product cards + compare tables + links | yes | not_present when module absent | blocked, unsupported_structure | fieldPresent/detail-related | amazon-product-mining-package.acceptance.ts |
+| deliveryInformation, returnInformation | product detail purchase area | delivery promise block + availability + return policy modules + nearby visible text | yes | not_present when line absent | blocked, unsupported_structure | fieldPresent/detail-fulfillment | amazon-product-mining-package.acceptance.ts |
+| reviewIdIfAvailable, reviewerName, rating, reviewTitle, reviewBody, reviewDate, verifiedPurchase, variant, helpfulCountIfVisible, rawReviewTextSnapshot | review page | review-root + review subblocks + visible text snapshot | yes | not_present for optional subfields only | blocked, unsupported_structure | fieldPresent/review-core | amazon-product-mining-review-pagination.acceptance.ts |
+| reviewImagesIfVisible, reviewVideosIfVisible | review page media | review media thumbs + modal/link targets + media badges | yes | not_present when review has no media | blocked, unsupported_structure | fieldPresent/review-media | amazon-product-mining-package.acceptance.ts |
+| reviewLanguage, reviewRegionIfVisible | review page header/meta | review date/meta text parsing + locale tokens + visible label extraction | yes | not_present when locale token absent | blocked, unsupported_structure | fieldPresent/review-locale | amazon-product-mining-package.acceptance.ts |
+| search card image urls, product image urls, A+ image urls, review image urls, review video urls | search/detail/review | every extracted url must be indexed into image-evidence-index | yes | not_present when no media url exists | blocked, unsupported_structure | imageEvidenceIndexed | amazon-product-mining-package.acceptance.ts |
+
+字段级 reason taxonomy：
+
+```txt
+not_present
+blocked
+unsupported_structure
+manual_required
+failed
+extractor_missing
+```
+
+冻结规则：
+
+- `extractor_missing` = CI FAIL
+- `not_present` 只允许用于页面真实不存在
+- `blocked` / `manual_required` 必须进入 exception-summary
+- `unsupported_structure` 必须进入 completeness warning
+- plain null / [] 不是 reason，不能单独作为结论
+
 ---
 
 ## 8. 阶段 6：搜索结果入库
@@ -244,6 +285,14 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 | 必存 | rawVisibleTextSnapshot |
 | 完成后 | 进入 review_extracting |
 
+详情字段空值治理：
+
+```txt
+允许为空，不允许静默为空。
+每个空字段都必须能追溯到 not_present / blocked / unsupported_structure / manual_required / failed。
+extractor_missing 不是允许结果。
+```
+
 ---
 
 ## 11. 阶段 9：进入评论页
@@ -276,6 +325,24 @@ while page accessible:
 | owner | reviews.ts + storage.ts |
 | 必存 | 每页保存（避免中途失败全丢） / completedPages / failedPage 标记 |
 | 禁止 | 跳页 / 只存 AI 摘要 / 绕过限制 |
+
+分页停止规则：
+
+```txt
+默认持续翻页，直到没有 next page。
+只有平台限制、显式 hardLimit、显式安全运行上限，才允许提前停止。
+任何提前停止都必须记录 stoppedReason。
+```
+
+评论结果状态：
+
+```txt
+reviews_completed
+reviews_completed_with_limit
+reviews_manual_required
+reviews_failed
+reviews_not_present
+```
 
 ---
 
@@ -465,7 +532,11 @@ handoff record:
 
 `pending_detail → detail_extracting → detail_completed → review_extracting → completed`
 
-`failed` / `manual_required` 终态分支。
+`completed_with_errors` / `failed` / `manual_required` 终态分支。
+
+### review extraction result
+
+`reviews_completed | reviews_completed_with_limit | reviews_manual_required | reviews_failed | reviews_not_present`
 
 ### handoff status
 
@@ -488,6 +559,16 @@ handoff record:
 - 页面结构部分变化
 
 处理：记录失败原因 → 保存已有证据 → 继续下一项 → 最终 `completed_with_errors`。
+
+字段失败裁决：
+
+```txt
+页面有但未提取 = FAIL
+页面无该字段 = not_present
+页面受限 = manual_required / blocked
+结构变化无法可靠识别 = unsupported_structure
+schema 有字段但无 extractor = extractor_missing = FAIL
+```
 
 ### 终止 / 待人工处理
 

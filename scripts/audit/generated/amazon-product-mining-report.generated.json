@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T14:16:54.779Z",
+  "generatedAt": "2026-05-27T15:56:15.479Z",
   "capabilityDomain": "amazon-product-mining",
   "status": "PASS",
   "findingCount": 0,
@@ -14,17 +14,17 @@
     "pageNavigationCalls": [
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
-        "line": 104,
+        "line": 157,
         "reusePolicy": "reuse-active-tab"
       },
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-        "line": 227,
+        "line": 373,
         "reusePolicy": "reuse-active-tab"
       },
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
-        "line": 89,
+        "line": 111,
         "reusePolicy": "reuse-active-tab"
       }
     ]

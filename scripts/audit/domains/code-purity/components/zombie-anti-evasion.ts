@@ -217,6 +217,7 @@ export const scanZombieInspectorSelfProof = (input: {
   const phaseRunnerSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts"));
   const zombieSurfaceSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts"));
   const ciFullSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-full.ts"));
+  const ciFullPhasePlanSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-full-phase-plan.ts"));
   const scripts = readPackageScripts();
 
   if (!zombieSurfaceSource?.getImportDeclarations().some((declaration) => declaration.getModuleSpecifierValue() === "./zombie-symbol-graph.js")) {
@@ -231,8 +232,11 @@ export const scanZombieInspectorSelfProof = (input: {
   if (scripts["acceptance:code-purity-zombie-deep"] === undefined) {
     selfProofProblems.push("package.json is missing acceptance:code-purity-zombie-deep.");
   }
-  if (!ciFullSource?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === "acceptance:code-purity-zombie-deep")) {
-    selfProofProblems.push("ci-full.ts does not execute acceptance:code-purity-zombie-deep.");
+  const ciFullExecutesZombieAcceptance = [ciFullSource, ciFullPhasePlanSource].some((sourceFile) =>
+    sourceFile?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === "acceptance:code-purity-zombie-deep"),
+  );
+  if (!ciFullExecutesZombieAcceptance) {
+    selfProofProblems.push("ci-full runner does not execute acceptance:code-purity-zombie-deep.");
   }
   if (!input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-017-V1") || !input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-018-V1")) {
     selfProofProblems.push("code-purity planEntry lawIds do not include both APEX-CODE-PURITY-017-V1 and APEX-CODE-PURITY-018-V1.");

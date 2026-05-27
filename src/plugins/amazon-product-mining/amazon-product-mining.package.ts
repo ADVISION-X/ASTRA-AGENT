@@ -146,6 +146,98 @@ const buildPackageSearchResultEntries = (input: {
   }));
 };
 
+const buildPackageProductImages = (
+  product: AmazonProductDetail,
+  productArtifact: AmazonPackageProductEvidence | undefined,
+) => ({
+  mode: "url_only",
+  mainImageUrl: product.mainImage,
+  galleryImageUrls: product.allVisibleImages,
+  visibleVideoInfo: product.visibleVideoInfo,
+  productImagesIndexRef: productArtifact?.imagesIndexRef ?? null,
+});
+
+const buildPackageProductCommerce = (product: AmazonProductDetail) => ({
+  currentPrice: product.currentPrice,
+  originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
+  rating: product.rating,
+  reviewCount: product.reviewCount,
+  bestSellersRankIfVisible: product.bestSellersRankIfVisible,
+  categoryPathIfVisible: product.categoryPathIfVisible,
+  deliveryInformation: product.deliveryInformation,
+  returnInformation: product.returnInformation,
+});
+
+const buildPackageProductReviews = (reviewArtifact: AmazonPackageReviewEvidence | undefined) => ({
+  summaryRef: reviewArtifact?.reviewsSummaryRef ?? null,
+  jsonlRef: reviewArtifact?.reviewsJsonlRef ?? null,
+  reviewPagesIndexRef: reviewArtifact?.reviewPagesIndexRef ?? null,
+  capturedReviewCount: reviewArtifact?.capturedReviewCount ?? 0,
+  pagesVisited: reviewArtifact?.pagesVisited ?? 0,
+  hasImages: reviewArtifact?.hasImages ?? false,
+  hasVideos: reviewArtifact?.hasVideos ?? false,
+});
+
+const buildPackageProductCompleteness = (input: {
+  product: AmazonProductDetail;
+  productArtifact: AmazonPackageProductEvidence | undefined;
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+}) => ({
+  score: input.productArtifact?.completenessScore ?? 0,
+  missingFields: input.productArtifact?.missingFields ?? [],
+  notPresentFields: input.productArtifact?.notPresentFields ?? [],
+  blockedFields: input.productArtifact?.blockedFields ?? [],
+  unsupportedFields: input.productArtifact?.unsupportedFields ?? [],
+  manualRequiredFields: input.productArtifact?.manualRequiredFields ?? [],
+  failedFields: input.productArtifact?.failedFields ?? [],
+  extractorMissingFields: input.productArtifact?.extractorMissingFields ?? [],
+  warnings: input.productArtifact?.warnings ?? [],
+  detailStatus: input.product.status,
+  reviewStatus: input.reviewArtifact?.reviewStatus ?? input.product.status,
+});
+
+const buildPackageProductEntry = (input: {
+  product: AmazonProductDetail;
+  productArtifact: AmazonPackageProductEvidence | undefined;
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+}) => ({
+  detailId: input.product.detailId,
+  asin: input.product.asin,
+  productUrl: input.product.productUrl,
+  identity: {
+    title: input.product.title,
+    brand: input.product.brand,
+    sellerOrStoreIfVisible: input.product.sellerOrStoreIfVisible,
+  },
+  images: buildPackageProductImages(input.product, input.productArtifact),
+  commerce: buildPackageProductCommerce(input.product),
+  listing: {
+    bulletPoints: input.product.bulletPoints,
+    aboutThisItem: input.product.aboutThisItem,
+    productDescription: input.product.productDescription,
+    aPlusContentIfVisible: input.product.aPlusContentIfVisible,
+  },
+  parameters: {
+    variationOptions: input.product.variationOptions,
+    colorSizeStyleOptions: input.product.colorSizeStyleOptions,
+    productInformation: input.product.productInformation,
+    technicalDetails: input.product.technicalDetails,
+    additionalInformation: input.product.additionalInformation,
+    allOtherVisibleProductParameters: input.product.allOtherVisibleProductParameters,
+  },
+  relatedModules: {
+    qaContentIfVisible: input.product.qaContentIfVisible,
+    frequentlyBoughtTogetherIfVisible: input.product.frequentlyBoughtTogetherIfVisible,
+    customersAlsoBoughtIfVisible: input.product.customersAlsoBoughtIfVisible,
+    compareWithSimilarItemsIfVisible: input.product.compareWithSimilarItemsIfVisible,
+  },
+  sourceKeywords: input.productArtifact?.sourceKeywords ?? [],
+  reviews: buildPackageProductReviews(input.reviewArtifact),
+  rawVisibleTextRef: input.productArtifact?.rawVisibleTextRef ?? null,
+  completeness: buildPackageProductCompleteness(input),
+  exceptions: input.productArtifact?.exceptionIds ?? [],
+});
+
 const buildPackageProductEntries = (input: {
   products: readonly AmazonProductDetail[];
   productArtifacts: readonly AmazonPackageProductEvidence[];
@@ -156,63 +248,7 @@ const buildPackageProductEntries = (input: {
   return input.products.map((product) => {
     const productArtifact = productArtifactsByDetailId.get(product.detailId);
     const reviewArtifact = reviewArtifactsByDetailId.get(product.detailId);
-    return {
-      detailId: product.detailId,
-      asin: product.asin,
-      productUrl: product.productUrl,
-      identity: { title: product.title, brand: product.brand, sellerOrStoreIfVisible: product.sellerOrStoreIfVisible },
-      images: {
-        mode: "url_only",
-        mainImageUrl: product.mainImage,
-        galleryImageUrls: product.allVisibleImages,
-        visibleVideoInfo: product.visibleVideoInfo,
-        productImagesIndexRef: productArtifact?.imagesIndexRef ?? null,
-      },
-      commerce: {
-        currentPrice: product.currentPrice,
-        originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        bestSellersRankIfVisible: product.bestSellersRankIfVisible,
-        categoryPathIfVisible: product.categoryPathIfVisible,
-        deliveryInformation: product.deliveryInformation,
-        returnInformation: product.returnInformation,
-      },
-      listing: { bulletPoints: product.bulletPoints, aboutThisItem: product.aboutThisItem, productDescription: product.productDescription, aPlusContentIfVisible: product.aPlusContentIfVisible },
-      parameters: {
-        variationOptions: product.variationOptions,
-        colorSizeStyleOptions: product.colorSizeStyleOptions,
-        productInformation: product.productInformation,
-        technicalDetails: product.technicalDetails,
-        additionalInformation: product.additionalInformation,
-        allOtherVisibleProductParameters: product.allOtherVisibleProductParameters,
-      },
-      relatedModules: {
-        qaContentIfVisible: product.qaContentIfVisible,
-        frequentlyBoughtTogetherIfVisible: product.frequentlyBoughtTogetherIfVisible,
-        customersAlsoBoughtIfVisible: product.customersAlsoBoughtIfVisible,
-        compareWithSimilarItemsIfVisible: product.compareWithSimilarItemsIfVisible,
-      },
-      sourceKeywords: productArtifact?.sourceKeywords ?? [],
-      reviews: {
-        summaryRef: reviewArtifact?.reviewsSummaryRef ?? null,
-        jsonlRef: reviewArtifact?.reviewsJsonlRef ?? null,
-        reviewPagesIndexRef: reviewArtifact?.reviewPagesIndexRef ?? null,
-        capturedReviewCount: reviewArtifact?.capturedReviewCount ?? 0,
-        pagesVisited: reviewArtifact?.pagesVisited ?? 0,
-        hasImages: reviewArtifact?.hasImages ?? false,
-        hasVideos: reviewArtifact?.hasVideos ?? false,
-      },
-      rawVisibleTextRef: productArtifact?.rawVisibleTextRef ?? null,
-      completeness: {
-        score: productArtifact?.completenessScore ?? 0,
-        missingFields: productArtifact?.missingFields ?? [],
-        warnings: productArtifact?.warnings ?? [],
-        detailStatus: product.status,
-        reviewStatus: reviewArtifact?.reviewStatus ?? product.status,
-      },
-      exceptions: productArtifact?.exceptionIds ?? [],
-    };
+    return buildPackageProductEntry({ product, productArtifact, reviewArtifact });
   });
 };
 

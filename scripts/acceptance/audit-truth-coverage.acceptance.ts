@@ -9,7 +9,11 @@ import type { InspectorContext, InspectorFinding } from "../audit/shared/inspect
 import { resolveFromRepo, toRepoPath } from "../audit/shared/paths.js";
 
 const RUNTIME_ROOT = resolveFromRepo("tmp/audit-truth-acceptance-runtime");
-const LAW_IDS = ["APEX-AUDIT-TRUTH-001-V1", "APEX-AUDIT-TRUTH-002-V1"];
+const LAW_IDS = [
+  "APEX-AUDIT-TRUTH-001-V1",
+  "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+  "APEX-AUDIT-TRUTH-002-V1",
+];
 
 const createRuntimeProject = (caseName: string, files: Record<string, string>): { project: Project; runtimeRepoPath: string } => {
   const runtimeDir = path.join(RUNTIME_ROOT, caseName);
@@ -108,6 +112,31 @@ export const hasAlphaText = (sourceFile: { getFullText(): string }) => {
   return fullText.includes("alpha");
 };
 `,
+  "scripts/audit/domains/audit-truth/meta-quality-regexp.ts": `
+const ConstructorAlias = RegExp;
+const pattern = new ConstructorAlias("alpha");
+void pattern;
+`,
+  "scripts/acceptance/meta-quality-proof.acceptance.ts": `
+import { createAuditProject } from "../audit/shared/project.js";
+
+const method = "match";
+const text = "alpha";
+const result = text[method]("alpha");
+
+void createAuditProject;
+void result;
+`,
+  "scripts/acceptance/meta-quality-source-text.acceptance.ts": `
+import { createAuditProject } from "../audit/shared/project.js";
+
+const project = createAuditProject();
+const sourceFile = project.getSourceFiles()[0];
+const fullText = sourceFile.getFullText();
+const hasAlpha = fullText.includes("alpha");
+
+void hasAlpha;
+`,
 });
 
 const projectUsageOutput = await inspectDomain(
@@ -123,6 +152,12 @@ const projectUsageOutput = await inspectDomain(
       ownerInspectorPath: `${projectUsageCase.runtimeRepoPath}/scripts/audit/domains/alpha/inspector.ts`,
     },
   ]),
+);
+
+assert.equal(
+  projectUsageOutput.reportedLawIds.includes("GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1"),
+  true,
+  "audit-truth should report the active meta-quality law in its owner output.",
 );
 
 assert.equal(
@@ -156,6 +191,30 @@ assert.equal(
   }),
   true,
   "audit-truth should fail tracked source-text judgment in shared audit helpers.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/meta-quality-regex-constructor",
+    fileIncludes: "/scripts/audit/domains/audit-truth/meta-quality-regexp.ts",
+  }),
+  true,
+  "audit-truth should fail RegExp constructor use inside the audit meta-quality owner scope.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/meta-quality-dynamic-method-escape",
+    fileIncludes: "/scripts/acceptance/meta-quality-proof.acceptance.ts",
+  }),
+  true,
+  "audit-truth should fail dynamic banned-method escapes inside audit meta-quality proof scripts.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/source-text-judgment",
+    fileIncludes: "/scripts/acceptance/meta-quality-source-text.acceptance.ts",
+  }),
+  true,
+  "audit-truth should fail tracked source-text judgment inside audit meta-quality proof scripts.",
 );
 assert.equal(
   hasFinding(projectUsageOutput.findings, {

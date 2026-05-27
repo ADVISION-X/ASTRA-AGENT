@@ -180,20 +180,31 @@ const pushCiFullEntryGateFindings = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
   chainLawId: string,
+  context: InspectorContext,
 ): void => {
   inspectedFiles.add(packageJsonPath);
+  const ciFullSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-full.ts"));
+  if (ciFullSource) {
+    inspectedFiles.add("scripts/audit/ci-full.ts");
+  }
   try {
     const parsed = JSON.parse(readFileSync(resolveFromRepo(packageJsonPath), "utf8")) as {
       scripts?: Record<string, string>;
     };
     const ciFullScript = parsed.scripts?.["ci:full"];
-    if (typeof ciFullScript !== "string" || !ciFullScript.startsWith("npm run codex:entry-gate &&")) {
+    const hasCiFullRunner = ciFullScript === "node --import tsx scripts/audit/ci-full.ts";
+    const hasInternalEntryGate = Boolean(
+      ciFullSource?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) =>
+        literal.getLiteralValue() === "codex-entry-gate" || literal.getLiteralValue() === "codex:entry-gate"
+      ),
+    );
+    if (!hasCiFullRunner || !hasInternalEntryGate) {
       findings.push(
         createFinding({
           checkId: "audit-system/ci-full-entry-gate",
           lawId: chainLawId,
           filePath: packageJsonPath,
-          message: "package.json must route ci:full through codex:entry-gate before the audit runner.",
+          message: "package.json must route ci:full through the ci-full runner, and ci-full must execute codex-entry-gate as its first fail-fast phase.",
           evidence: ciFullScript,
         }),
       );
@@ -307,7 +318,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   pushCodePurityPrerequisiteFinding(findings, metaLawId, context.completedReports);
   pushStaleCodePurityTextReportFindings(findings, inspectedFiles, chainLawId);
   pushStaticCoverageFindings(findings, inspectedFiles, metaLawId);
-  pushCiFullEntryGateFindings(findings, inspectedFiles, chainLawId);
+  pushCiFullEntryGateFindings(findings, inspectedFiles, chainLawId, context);
   pushRunnerTruthFindings(findings, inspectedFiles, chainLawId, runnerLawId, context);
 
   return {

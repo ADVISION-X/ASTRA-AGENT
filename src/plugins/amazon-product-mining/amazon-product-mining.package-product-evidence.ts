@@ -3,9 +3,11 @@ import { join } from "node:path";
 
 import { AMAZON_PACKAGE_FILE_NAMES, type AmazonPackageLayout } from "./amazon-product-mining.package-layout.js";
 import {
+  buildProductFieldDisclosureBuckets,
   buildProductMissingFields,
   writeJsonFile,
   type AmazonProductDetail,
+  type ProductFieldDisclosureBuckets,
   type AmazonReviewRecord,
   type AmazonSearchResultItem,
 } from "./amazon-product-mining.package-artifact-builders.js";
@@ -37,6 +39,12 @@ export type AmazonPackageProductEvidence = {
   sourceKeywords: LinkedSearchItem[];
   sourceItemIds: string[];
   missingFields: string[];
+  notPresentFields: string[];
+  blockedFields: string[];
+  unsupportedFields: string[];
+  manualRequiredFields: string[];
+  failedFields: string[];
+  extractorMissingFields: string[];
   completenessScore: number;
   warnings: string[];
   exceptionIds: string[];
@@ -182,10 +190,22 @@ const buildProductReviewSummarySection = (input: {
 const buildProductCompletenessSection = (input: {
   completenessScore: number;
   missingFields: readonly string[];
+  notPresentFields: readonly string[];
+  blockedFields: readonly string[];
+  unsupportedFields: readonly string[];
+  manualRequiredFields: readonly string[];
+  failedFields: readonly string[];
+  extractorMissingFields: readonly string[];
   warnings: readonly string[];
 }) => ({
   score: input.completenessScore,
   missingFields: input.missingFields,
+  notPresentFields: input.notPresentFields,
+  blockedFields: input.blockedFields,
+  unsupportedFields: input.unsupportedFields,
+  manualRequiredFields: input.manualRequiredFields,
+  failedFields: input.failedFields,
+  extractorMissingFields: input.extractorMissingFields,
   warnings: input.warnings,
 });
 
@@ -215,6 +235,7 @@ const buildProductSummaryArtifact = (input: {
   reviews: readonly AmazonReviewRecord[];
   warnings: readonly string[];
   missingFields: readonly string[];
+  fieldDisclosureBuckets: ProductFieldDisclosureBuckets;
   completenessScore: number;
   exceptionIds: readonly string[];
 }) => ({
@@ -234,7 +255,17 @@ const buildProductSummaryArtifact = (input: {
   parameters: buildProductParametersSection(input.product),
   relatedModules: buildProductRelatedModulesSection(input.product),
   reviewSummary: buildProductReviewSummarySection(input),
-  completeness: buildProductCompletenessSection(input),
+  completeness: buildProductCompletenessSection({
+    completenessScore: input.completenessScore,
+    missingFields: input.missingFields,
+    notPresentFields: input.fieldDisclosureBuckets.notPresentFields,
+    blockedFields: input.fieldDisclosureBuckets.blockedFields,
+    unsupportedFields: input.fieldDisclosureBuckets.unsupportedFields,
+    manualRequiredFields: input.fieldDisclosureBuckets.manualRequiredFields,
+    failedFields: input.fieldDisclosureBuckets.failedFields,
+    extractorMissingFields: input.fieldDisclosureBuckets.extractorMissingFields,
+    warnings: input.warnings,
+  }),
   exceptionRefs: input.exceptionIds,
   evidenceRefs: buildProductEvidenceRefsSection(input),
 });
@@ -252,6 +283,7 @@ const writeProductArtifacts = (input: {
   reviews: readonly AmazonReviewRecord[];
   warnings: readonly string[];
   missingFields: readonly string[];
+  fieldDisclosureBuckets: ProductFieldDisclosureBuckets;
   completenessScore: number;
   exceptionIds: readonly string[];
 }) => {
@@ -270,29 +302,38 @@ const writeProductArtifacts = (input: {
     reviews: input.reviews,
     warnings: input.warnings,
     missingFields: input.missingFields,
+    fieldDisclosureBuckets: input.fieldDisclosureBuckets,
     completenessScore: input.completenessScore,
     exceptionIds: input.exceptionIds,
   }));
 };
 
-const createProductEvidenceArtifact = (input: {
+const createProductEvidencePaths = (input: {
   layout: AmazonPackageLayout;
+  detailId: string;
+}) => {
+  const productDir = join(input.layout.productDetailEvidenceDir, `product-${input.detailId}`);
+  return {
+    productDir,
+    summaryPath: join(productDir, AMAZON_PACKAGE_FILE_NAMES.productSummary),
+    detailPath: join(productDir, AMAZON_PACKAGE_FILE_NAMES.productDetail),
+    rawVisibleTextPath: join(productDir, AMAZON_PACKAGE_FILE_NAMES.productDetailRawVisibleText),
+    imagesIndexPath: join(productDir, AMAZON_PACKAGE_FILE_NAMES.productImagesIndex),
+    sourceKeywordsPath: join(productDir, AMAZON_PACKAGE_FILE_NAMES.productSourceKeywords),
+  };
+};
+
+const buildProductEvidenceRuntime = (input: {
   product: AmazonProductDetail;
   linkedSearchItemsByDetailId: Map<string, AmazonSearchResultItem[]>;
   reviewArtifactsByDetailId: Map<string, AmazonPackageReviewEvidence>;
   reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
   exceptionIdsByScopeId: Map<string, string[]>;
-}): AmazonPackageProductEvidence => {
-  const productDir = join(input.layout.productDetailEvidenceDir, `product-${input.product.detailId}`);
-  mkdirSync(productDir, { recursive: true });
-  const summaryPath = join(productDir, AMAZON_PACKAGE_FILE_NAMES.productSummary);
-  const detailPath = join(productDir, AMAZON_PACKAGE_FILE_NAMES.productDetail);
-  const rawVisibleTextPath = join(productDir, AMAZON_PACKAGE_FILE_NAMES.productDetailRawVisibleText);
-  const imagesIndexPath = join(productDir, AMAZON_PACKAGE_FILE_NAMES.productImagesIndex);
-  const sourceKeywordsPath = join(productDir, AMAZON_PACKAGE_FILE_NAMES.productSourceKeywords);
+}) => {
   const linkedSearchItems = mapLinkedSearchItems(input.linkedSearchItemsByDetailId.get(input.product.detailId) ?? []);
   const reviews = input.reviewsByDetailId.get(input.product.detailId) ?? [];
   const reviewArtifact = input.reviewArtifactsByDetailId.get(input.product.detailId);
+  const fieldDisclosureBuckets = buildProductFieldDisclosureBuckets(input.product);
   const missingFields = buildProductMissingFields(input.product);
   const completenessScore = calculateCompletenessScore(input.product, reviews);
   const exceptionIds = [...new Set([
@@ -305,45 +346,108 @@ const createProductEvidenceArtifact = (input: {
     productStatus: input.product.status,
     exceptionIds,
   });
+  return {
+    linkedSearchItems,
+    reviews,
+    reviewArtifact,
+    fieldDisclosureBuckets,
+    missingFields,
+    completenessScore,
+    exceptionIds,
+    warnings,
+  };
+};
+
+const buildProductEvidenceArtifactRecord = (input: {
+  layout: AmazonPackageLayout;
+  product: AmazonProductDetail;
+  productDir: string;
+  summaryPath: string;
+  detailPath: string;
+  rawVisibleTextPath: string;
+  imagesIndexPath: string;
+  sourceKeywordsPath: string;
+  linkedSearchItems: LinkedSearchItem[];
+  fieldDisclosureBuckets: ProductFieldDisclosureBuckets;
+  missingFields: string[];
+  completenessScore: number;
+  warnings: string[];
+  exceptionIds: string[];
+}): AmazonPackageProductEvidence => ({
+  detailId: input.product.detailId,
+  asin: input.product.asin,
+  title: input.product.title,
+  dirPath: input.productDir,
+  dirRef: toPackageRelativePath(input.layout.packageRootPath, input.productDir),
+  summaryPath: input.summaryPath,
+  summaryRef: toPackageRelativePath(input.layout.packageRootPath, input.summaryPath),
+  detailPath: input.detailPath,
+  detailRef: toPackageRelativePath(input.layout.packageRootPath, input.detailPath),
+  rawVisibleTextPath: input.rawVisibleTextPath,
+  rawVisibleTextRef: toPackageRelativePath(input.layout.packageRootPath, input.rawVisibleTextPath),
+  imagesIndexPath: input.imagesIndexPath,
+  imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, input.imagesIndexPath),
+  sourceKeywordsPath: input.sourceKeywordsPath,
+  sourceKeywordsRef: toPackageRelativePath(input.layout.packageRootPath, input.sourceKeywordsPath),
+  sourceKeywords: input.linkedSearchItems,
+  sourceItemIds: input.linkedSearchItems.map((item) => item.itemId),
+  missingFields: input.missingFields,
+  notPresentFields: input.fieldDisclosureBuckets.notPresentFields,
+  blockedFields: input.fieldDisclosureBuckets.blockedFields,
+  unsupportedFields: input.fieldDisclosureBuckets.unsupportedFields,
+  manualRequiredFields: input.fieldDisclosureBuckets.manualRequiredFields,
+  failedFields: input.fieldDisclosureBuckets.failedFields,
+  extractorMissingFields: input.fieldDisclosureBuckets.extractorMissingFields,
+  completenessScore: input.completenessScore,
+  warnings: input.warnings,
+  exceptionIds: input.exceptionIds,
+});
+
+const createProductEvidenceArtifact = (input: {
+  layout: AmazonPackageLayout;
+  product: AmazonProductDetail;
+  linkedSearchItemsByDetailId: Map<string, AmazonSearchResultItem[]>;
+  reviewArtifactsByDetailId: Map<string, AmazonPackageReviewEvidence>;
+  reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
+  exceptionIdsByScopeId: Map<string, string[]>;
+}): AmazonPackageProductEvidence => {
+  const paths = createProductEvidencePaths({ layout: input.layout, detailId: input.product.detailId });
+  const runtime = buildProductEvidenceRuntime(input);
+  const productDir = paths.productDir;
+  mkdirSync(productDir, { recursive: true });
   writeProductArtifacts({
     layout: input.layout,
     product: input.product,
-    detailPath,
-    rawVisibleTextPath,
-    imagesIndexPath,
-    sourceKeywordsPath,
-    summaryPath,
-    linkedSearchItems,
-    reviewArtifact,
-    reviews,
-    warnings,
-    missingFields,
-    completenessScore,
-    exceptionIds,
+    detailPath: paths.detailPath,
+    rawVisibleTextPath: paths.rawVisibleTextPath,
+    imagesIndexPath: paths.imagesIndexPath,
+    sourceKeywordsPath: paths.sourceKeywordsPath,
+    summaryPath: paths.summaryPath,
+    linkedSearchItems: runtime.linkedSearchItems,
+    reviewArtifact: runtime.reviewArtifact,
+    reviews: runtime.reviews,
+    warnings: runtime.warnings,
+    missingFields: runtime.missingFields,
+    fieldDisclosureBuckets: runtime.fieldDisclosureBuckets,
+    completenessScore: runtime.completenessScore,
+    exceptionIds: runtime.exceptionIds,
   });
-  return {
-    detailId: input.product.detailId,
-    asin: input.product.asin,
-    title: input.product.title,
-    dirPath: productDir,
-    dirRef: toPackageRelativePath(input.layout.packageRootPath, productDir),
-    summaryPath,
-    summaryRef: toPackageRelativePath(input.layout.packageRootPath, summaryPath),
-    detailPath,
-    detailRef: toPackageRelativePath(input.layout.packageRootPath, detailPath),
-    rawVisibleTextPath,
-    rawVisibleTextRef: toPackageRelativePath(input.layout.packageRootPath, rawVisibleTextPath),
-    imagesIndexPath,
-    imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, imagesIndexPath),
-    sourceKeywordsPath,
-    sourceKeywordsRef: toPackageRelativePath(input.layout.packageRootPath, sourceKeywordsPath),
-    sourceKeywords: linkedSearchItems,
-    sourceItemIds: linkedSearchItems.map((item) => item.itemId),
-    missingFields,
-    completenessScore,
-    warnings,
-    exceptionIds,
-  };
+  return buildProductEvidenceArtifactRecord({
+    layout: input.layout,
+    product: input.product,
+    productDir,
+    summaryPath: paths.summaryPath,
+    detailPath: paths.detailPath,
+    rawVisibleTextPath: paths.rawVisibleTextPath,
+    imagesIndexPath: paths.imagesIndexPath,
+    sourceKeywordsPath: paths.sourceKeywordsPath,
+    linkedSearchItems: runtime.linkedSearchItems,
+    fieldDisclosureBuckets: runtime.fieldDisclosureBuckets,
+    missingFields: runtime.missingFields,
+    completenessScore: runtime.completenessScore,
+    warnings: runtime.warnings,
+    exceptionIds: runtime.exceptionIds,
+  });
 };
 
 export const writeProductEvidenceArtifacts = (input: {

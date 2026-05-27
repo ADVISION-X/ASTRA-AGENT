@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T14:16:36.233Z",
+  "generatedAt": "2026-05-27T15:55:54.950Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -147,6 +147,36 @@
       "blockIndex": 6
     },
     {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+persisted-record+completeness+acceptance",
+      "summary": "Every visible and accessible Amazon search/detail/review field that exists on the current page must be maximally extracted, while every missing or blocked field must be disclosed with an honest reason in completeness and exception artifacts.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-*.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.master-report*.ts",
+        "scripts/audit/domains/amazon-product-mining/**/*.ts",
+        "scripts/acceptance/amazon-product-mining-*.acceptance.ts",
+        "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md"
+      ],
+      "forbidden": [
+        "Schema fields left as constant null or [] without field-level reason disclosure.",
+        "Treating extractor_missing as a valid null outcome.",
+        "Returning completed while review pagination stopped because of a hidden default page cap.",
+        "Marking page-visible fields as not_present without executing the owner extraction strategies for that field.",
+        "Package completeness or master report hiding missing-field reasons behind plain null or empty-array output."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 7
+    },
+    {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
       "status": "active",
       "tier": "P0",
@@ -164,7 +194,7 @@
         "Discarding URLs / timestamps / failure reasons."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 8
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
@@ -184,7 +214,7 @@
         "Treating partial pass / warning as completed."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 9
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
@@ -205,7 +235,7 @@
         "Manually editing generated artifacts as source of truth."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
@@ -224,7 +254,7 @@
         "Handoff carrying final product selection produced by Agent."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
@@ -249,7 +279,7 @@
         "Treating partial pass / soft pass as complete."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 11
+      "blockIndex": 12
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
@@ -273,7 +303,7 @@
         "PDF or handoff docs stored outside the fixed package root."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 12
+      "blockIndex": 13
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
@@ -296,7 +326,7 @@
         "Hiding missing artifacts, missing fields, or partial review coverage."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 13
+      "blockIndex": 14
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
@@ -320,7 +350,7 @@
         "A second export chain with different files than the fixed package root."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-      "blockIndex": 14
+      "blockIndex": 15
     },
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -738,6 +768,28 @@
       "blockIndex": 9
     },
     {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-truth",
+      "enforcementMode": "meta",
+      "evidenceMode": "ast+symbol+project+acceptance",
+      "summary": "The audit-truth owner and its proof scripts must stay AST-first, symbol-backed, anti-evasion, and free of regex-driven governance logic.",
+      "appliesTo": [
+        "scripts/audit/domains/audit-truth/**/*.{ts,js,mjs}",
+        "scripts/acceptance/audit-truth-coverage.acceptance.ts"
+      ],
+      "forbidden": [
+        "RegularExpressionLiteral inside audit meta-quality owner or proof scope.",
+        "new RegExp or aliased RegExp construction inside audit meta-quality owner or proof scope.",
+        "match/matchAll/search/test/replace/replaceAll/split/exec based governance logic inside audit meta-quality owner or proof scope.",
+        "Dynamic property or prototype-call escape that cannot be disproven with AST and symbol evidence.",
+        "Raw source-text laundering inside audit meta-quality proof scripts."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 10
+    },
+    {
       "lawId": "APEX-AUDIT-009-V1",
       "status": "active",
       "tier": "P0",
@@ -754,7 +806,7 @@
         "Generated and source files with overlapping authority."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
@@ -765,7 +817,7 @@
       "evidenceMode": "hybrid",
       "summary": "Executable audit outputs must be binary PASS/FAIL results only and must not introduce warning-grade verdict tiers.",
       "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
-      "blockIndex": 11
+      "blockIndex": 12
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-001-V1",

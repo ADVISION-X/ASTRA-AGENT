@@ -333,6 +333,89 @@ Agent 禁止输出：最终选品结论 / 这个产品一定赚钱 / 是否采�
 
 `reviewIdIfAvailable, reviewerName, rating, reviewTitle, reviewBody, reviewDate, verifiedPurchase, variant, helpfulCountIfVisible, reviewImagesIfVisible, reviewVideosIfVisible, reviewLanguage, reviewRegionIfVisible, rawReviewTextSnapshot`
 
+## [GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1] Maximum Visible Extraction And Honest Field Disclosure
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "dom+persisted-record+completeness+acceptance",
+  "summary": "Every visible and accessible Amazon search/detail/review field that exists on the current page must be maximally extracted, while every missing or blocked field must be disclosed with an honest reason in completeness and exception artifacts.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-*.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report*.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts",
+    "scripts/acceptance/amazon-product-mining-*.acceptance.ts",
+    "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md"
+  ],
+  "forbidden": [
+    "Schema fields left as constant null or [] without field-level reason disclosure.",
+    "Treating extractor_missing as a valid null outcome.",
+    "Returning completed while review pagination stopped because of a hidden default page cap.",
+    "Marking page-visible fields as not_present without executing the owner extraction strategies for that field.",
+    "Package completeness or master report hiding missing-field reasons behind plain null or empty-array output."
+  ]
+}
+```
+
+### 法条
+
+最大化提取是当前 Amazon 挖掘 owner 的硬约束：
+
+```txt
+页面有，就必须抓。
+页面没有，必须诚实为空。
+抓不到，必须说明为什么。
+```
+
+#### 字段主权
+
+- schema 字段不是装饰。
+- schema 中存在的字段，必须满足二选一：
+  - 真实 DOM 提取成功并落库
+  - 真实证明 `not_present | blocked | unsupported_structure | manual_required | failed`
+- `extractor_missing` 不是允许结果；它是 P0 失败，必须进入 completeness，并由 audit/acceptance 阻断。
+
+#### 静默空值禁令
+
+禁止：
+
+- 页面有值但代码直接写 `null`
+- 页面有值但代码直接写 `[]`
+- selector / section / table / list / aria / visible-text 策略未尝试就宣告缺失
+- package / master report 仅输出 `null`、`[]` 而不披露原因
+
+#### 评论分页真相
+
+- 评论分页默认必须持续到 `没有 next page`。
+- 只有以下情况允许停止：`platform blocked`、`manual_required`、显式 `hardLimit`、显式安全运行上限。
+- 停止原因必须进入 `review-pages-index`、`data-completeness-report`、`exception-summary`。
+- 因 `hardLimit` 或安全上限停止时，产品或关键词不得伪装成全量 `completed`。
+
+#### 完整度披露
+
+每个产品与关键词必须至少披露：
+
+```txt
+missingFields
+notPresentFields
+blockedFields
+unsupportedFields
+extractorMissingFields
+warnings
+dataCompletenessScore
+```
+
+Master Report 必须显示字段缺失原因，不能只显示空值。
+
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-008-V1] Raw Evidence Sovereignty
 
 ```apex-law

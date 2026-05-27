@@ -12,6 +12,7 @@ const promptShell = readFileSync("src/plugins/deep-research-analysis/deep-resear
 const htmlStage = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
+const ciFullPhasePlan = readFileSync("scripts/audit/ci-full-phase-plan.ts", "utf8");
 
 for (const sectionId of DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS) {
   assert(promptShell.includes(sectionId), `HTML prompt shell must require ${sectionId}.`);
@@ -29,7 +30,8 @@ for (const marker of [
 
 assert(htmlStage.includes("hasRequiredBusinessHtmlReviewSections"), "HTML parser must enforce full-process review sections.");
 assert(packageJson.includes("acceptance:deep-research-html-full-process-report"), "package.json must wire full-process HTML acceptance.");
-assert(ciFull.includes("acceptance:deep-research-html-full-process-report"), "ci:full must execute full-process HTML acceptance.");
+assert(ciFull.includes("acceptanceSteps"), "ci:full must source acceptance execution from the phase plan.");
+assert(ciFullPhasePlan.includes("acceptance:deep-research-html-full-process-report"), "ci:full phase plan must execute full-process HTML acceptance.");
 
 const buildHtml = (body: string): string => [
   "<!DOCTYPE html>",

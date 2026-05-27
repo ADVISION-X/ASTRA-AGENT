@@ -53,6 +53,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     coupon_text_if_visible TEXT,
     delivery_text_if_visible TEXT,
     raw_visible_text_snapshot TEXT,
+    field_disclosure_json TEXT,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS amazon_mining_product_details (
@@ -90,6 +91,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     return_information TEXT,
     all_other_visible_product_parameters TEXT,
     raw_visible_text_snapshot TEXT,
+    field_disclosure_json TEXT,
     status TEXT NOT NULL,
     failure_reason TEXT,
     created_at TEXT NOT NULL,
@@ -120,6 +122,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     review_language TEXT,
     review_region_if_visible TEXT,
     raw_review_text_snapshot TEXT,
+    field_disclosure_json TEXT,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS amazon_mining_ai_keyword_runs (

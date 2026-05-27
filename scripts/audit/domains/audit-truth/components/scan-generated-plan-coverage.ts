@@ -1,24 +1,14 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-
-const normalizeAuditTruthPath = (repoPath: string): string => {
-  if (repoPath.startsWith("scripts/")) {
-    return repoPath;
-  }
-  const markerIndex = repoPath.indexOf("/scripts/");
-  return markerIndex >= 0 ? repoPath.slice(markerIndex + 1) : repoPath;
-};
-
-const isOwnerInspectorPath = (repoPath: string): boolean =>
-  /^scripts\/audit\/domains\/[^/]+\/inspector\.ts$/u.test(normalizeAuditTruthPath(repoPath));
+import { isOwnerInspectorRepoPath } from "./audit-truth-scope.js";
 
 const listOwnerInspectorPaths = (context: InspectorContext): string[] =>
   context.project
     .getSourceFiles()
     .filter((sourceFile) => !sourceFile.isDeclarationFile())
     .map((sourceFile) => getRepoSourcePath(sourceFile))
-    .filter((repoPath) => isOwnerInspectorPath(repoPath))
+    .filter((repoPath) => isOwnerInspectorRepoPath(repoPath))
     .sort((left, right) => left.localeCompare(right));
 
 export const scanGeneratedPlanCoverage = (input: {

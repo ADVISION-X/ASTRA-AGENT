@@ -58,6 +58,7 @@ type ProductCommerceFixture = Pick<AmazonProductDetail,
 >;
 
 type ProductStatusFixture = Pick<AmazonProductDetail,
+  | "fieldDisclosureMap"
   | "rawVisibleTextSnapshot"
   | "status"
   | "failureReason"
@@ -125,6 +126,13 @@ const buildSummitLiteProductDetail = (): AmazonProductDetail => createProductDet
     allOtherVisibleProductParameters: "Ignition: manual",
   },
   status: {
+    fieldDisclosureMap: {
+      title: { reason: "extracted", detail: null },
+      currentPrice: { reason: "extracted", detail: null },
+      rating: { reason: "extracted", detail: null },
+      reviewCount: { reason: "extracted", detail: null },
+      rawVisibleTextSnapshot: { reason: "extracted", detail: null },
+    },
     rawVisibleTextSnapshot: "Full raw detail snapshot for SummitLite Backpacking Stove",
     status: "completed",
     failureReason: null,
@@ -176,6 +184,26 @@ const buildTrailBurnProductDetail = (): AmazonProductDetail => createProductDeta
     allOtherVisibleProductParameters: null,
   },
   status: {
+    fieldDisclosureMap: {
+      title: { reason: "extracted", detail: null },
+      currentPrice: { reason: "extracted", detail: null },
+      rating: { reason: "extracted", detail: null },
+      reviewCount: { reason: "extracted", detail: null },
+      rawVisibleTextSnapshot: { reason: "extracted", detail: null },
+      visibleVideoInfo: { reason: "not_present", detail: "No visible product video module is shown on the detail page." },
+      aPlusContentIfVisible: { reason: "not_present", detail: "A+ content module is not visible on this product page." },
+      variationOptions: { reason: "not_present", detail: "Variation module is not visible on this product page." },
+      colorSizeStyleOptions: { reason: "not_present", detail: "Color/size/style picker is not visible on this product page." },
+      starDistribution: { reason: "extractor_missing", detail: "Star distribution extraction is not implemented in the package acceptance fixture." },
+      additionalInformation: { reason: "extractor_missing", detail: "Additional information extraction is not implemented in the package acceptance fixture." },
+      bestSellersRankIfVisible: { reason: "not_present", detail: "Best sellers rank is not visible on this product page." },
+      categoryPathIfVisible: { reason: "extractor_missing", detail: "Category breadcrumb extraction is not implemented in the package acceptance fixture." },
+      qaContentIfVisible: { reason: "not_present", detail: "Q&A module is not visible on this product page." },
+      frequentlyBoughtTogetherIfVisible: { reason: "not_present", detail: "Frequently bought together module is not visible on this product page." },
+      customersAlsoBoughtIfVisible: { reason: "not_present", detail: "Customers also bought module is not visible on this product page." },
+      compareWithSimilarItemsIfVisible: { reason: "not_present", detail: "Compare with similar items module is not visible on this product page." },
+      allOtherVisibleProductParameters: { reason: "extractor_missing", detail: "Catch-all visible parameter extraction is not implemented in the package acceptance fixture." },
+    },
     rawVisibleTextSnapshot: "Full raw detail snapshot for TrailBurn Ultralight Stove",
     status: "completed",
     failureReason: null,

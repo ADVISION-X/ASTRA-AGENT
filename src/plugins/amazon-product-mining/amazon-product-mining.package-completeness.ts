@@ -286,6 +286,47 @@ const buildCompletenessSummary = (input: {
   reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
 });
 
+const resolveReviewRestriction = (input: {
+  product: AmazonProductDetail;
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+}): "max_pages_limit" | "manual_required" | null => input.reviewArtifact?.warnings.some((warning) => warning.includes("maxPages"))
+  ? "max_pages_limit"
+  : input.product.status === "manual_required" ? "manual_required" : null;
+
+const buildCompletenessSignalFlags = (input: {
+  product: AmazonProductDetail;
+  reviewRows: readonly AmazonReviewRecord[];
+  reviewMaxPages: number | undefined;
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+}) => ({
+  reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
+  reviewRestriction: resolveReviewRestriction({ product: input.product, reviewArtifact: input.reviewArtifact }),
+  manualRequired: input.product.status === "manual_required",
+  hasRawDetailText: Boolean(input.product.rawVisibleTextSnapshot),
+  hasMainImage: Boolean(input.product.mainImage),
+  hasGalleryImages: input.product.allVisibleImages.length > 0,
+  hasBulletPoints: input.product.bulletPoints.length > 0,
+  hasDescription: Boolean(input.product.productDescription || input.product.aboutThisItem),
+  hasTechnicalDetails: Boolean(input.product.technicalDetails || input.product.productInformation),
+  hasReviews: input.reviewRows.length > 0,
+  hasReviewRawText: input.reviewRows.some((review) => Boolean(review.rawReviewTextSnapshot)),
+});
+
+const buildCompletenessDisclosureFields = (input: {
+  productArtifact: AmazonPackageProductEvidence | undefined;
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+}) => ({
+  missingFields: input.productArtifact?.missingFields ?? [],
+  notPresentFields: input.productArtifact?.notPresentFields ?? [],
+  blockedFields: input.productArtifact?.blockedFields ?? [],
+  unsupportedFields: input.productArtifact?.unsupportedFields ?? [],
+  manualRequiredFields: input.productArtifact?.manualRequiredFields ?? [],
+  failedFields: input.productArtifact?.failedFields ?? [],
+  extractorMissingFields: input.productArtifact?.extractorMissingFields ?? [],
+  dataCompletenessScore: input.productArtifact?.completenessScore ?? 0,
+  warnings: [...(input.productArtifact?.warnings ?? []), ...(input.reviewArtifact?.warnings ?? [])],
+});
+
 const buildCompletenessProductRow = (input: {
   product: AmazonProductDetail;
   reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
@@ -296,30 +337,19 @@ const buildCompletenessProductRow = (input: {
   const reviewRows = input.reviewsByDetailId.get(input.product.detailId) ?? [];
   const productArtifact = input.productArtifactsByDetailId.get(input.product.detailId);
   const reviewArtifact = input.reviewArtifactsByDetailId.get(input.product.detailId);
-  const hasReviewRawText = reviewRows.some((review) => Boolean(review.rawReviewTextSnapshot));
-  const reviewRestriction = reviewArtifact?.warnings.some((warning) => warning.includes("maxPages"))
-    ? "max_pages_limit"
-    : input.product.status === "manual_required" ? "manual_required" : null;
   return {
     detailId: input.product.detailId,
     asin: input.product.asin,
     detailStatus: input.product.status,
     reviewStatus: reviewArtifact?.reviewStatus ?? input.product.status,
     reviewPagesVisited: reviewArtifact?.pagesVisited ?? 0,
-    reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
-    reviewRestriction,
-    manualRequired: input.product.status === "manual_required",
-    hasRawDetailText: Boolean(input.product.rawVisibleTextSnapshot),
-    hasMainImage: Boolean(input.product.mainImage),
-    hasGalleryImages: input.product.allVisibleImages.length > 0,
-    hasBulletPoints: input.product.bulletPoints.length > 0,
-    hasDescription: Boolean(input.product.productDescription || input.product.aboutThisItem),
-    hasTechnicalDetails: Boolean(input.product.technicalDetails || input.product.productInformation),
-    hasReviews: reviewRows.length > 0,
-    hasReviewRawText,
-    missingFields: productArtifact?.missingFields ?? [],
-    dataCompletenessScore: productArtifact?.completenessScore ?? 0,
-    warnings: [...(productArtifact?.warnings ?? []), ...(reviewArtifact?.warnings ?? [])],
+    ...buildCompletenessSignalFlags({
+      product: input.product,
+      reviewRows,
+      reviewMaxPages: input.reviewMaxPages,
+      reviewArtifact,
+    }),
+    ...buildCompletenessDisclosureFields({ productArtifact, reviewArtifact }),
   };
 };
 

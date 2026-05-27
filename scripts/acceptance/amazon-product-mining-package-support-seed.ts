@@ -54,6 +54,7 @@ const buildAcceptanceSearchResults = (taskId: string): AmazonSearchResultItem[] 
     couponTextIfVisible: "Save 10%",
     deliveryTextIfVisible: "Free delivery",
     rawVisibleTextSnapshot: "SummitLite Backpacking Stove Prime Save 10%",
+    fieldDisclosureMap: {},
     createdAt: new Date().toISOString(),
   },
   {
@@ -76,6 +77,7 @@ const buildAcceptanceSearchResults = (taskId: string): AmazonSearchResultItem[] 
     couponTextIfVisible: null,
     deliveryTextIfVisible: "Overnight delivery",
     rawVisibleTextSnapshot: "TrailBurn Ultralight Stove Prime",
+    fieldDisclosureMap: {},
     createdAt: new Date().toISOString(),
   },
 ];
@@ -101,6 +103,7 @@ const buildAcceptanceReviews = (taskId: string): AmazonReviewRecord[] => [
     reviewLanguage: "en",
     reviewRegionIfVisible: "US",
     rawReviewTextSnapshot: "Raw review snapshot page 1",
+    fieldDisclosureMap: {},
     createdAt: new Date().toISOString(),
   },
   {
@@ -123,6 +126,7 @@ const buildAcceptanceReviews = (taskId: string): AmazonReviewRecord[] => [
     reviewLanguage: "en",
     reviewRegionIfVisible: "US",
     rawReviewTextSnapshot: "Raw review snapshot page 2",
+    fieldDisclosureMap: {},
     createdAt: new Date().toISOString(),
   },
 ];

@@ -9,6 +9,7 @@ const delivery = readFileSync("src/app/workbench-deep-research-client-delivery-s
 const routes = readFileSync("src/app/workbench-deep-research-routes.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
+const ciFullPhasePlan = readFileSync("scripts/audit/ci-full-phase-plan.ts", "utf8");
 
 assert(exportFile.includes("business-report.html"), "business-report.html export is required.");
 assert(contracts.includes("business-report.html"), "business-report.html must be an export kind.");
@@ -20,6 +21,7 @@ assert(!delivery.includes("data-deep-research-regenerate-html"), "UI must not ex
 assert(!routes.includes("/api/deep-research-analysis/regenerate-html-report"), "Routes must not expose HTML regenerate endpoints.");
 assert(!existsSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-reentry.ts"), "HTML re-entry owner must be deleted.");
 assert(packageJson.includes("acceptance:deep-research-html-report-only"), "package.json must wire the HTML-report-only acceptance.");
-assert(ciFull.includes("acceptance:deep-research-html-report-only"), "ci:full must execute the HTML-report-only acceptance.");
+assert(ciFull.includes("acceptanceSteps"), "ci:full must source acceptance execution from the phase plan.");
+assert(ciFullPhasePlan.includes("acceptance:deep-research-html-report-only"), "ci:full phase plan must execute the HTML-report-only acceptance.");
 
 process.stdout.write("[ACCEPTANCE][deep-research-html-report-only] PASS\n");

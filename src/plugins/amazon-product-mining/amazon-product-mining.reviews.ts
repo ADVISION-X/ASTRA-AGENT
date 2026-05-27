@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import {
+  buildFieldDisclosureMap,
+  fieldDisclosureFromValue,
+} from "./amazon-product-mining.field-disclosure.js";
 import type { AmazonReviewRecord } from "./amazon-product-mining.schema.js";
 
 export type ReviewPageAdapter = {
@@ -28,6 +32,7 @@ return (function() {
   }
   var reviewEls = document.querySelectorAll('[data-hook="review"]');
   var reviews = [];
+  var pageLanguage = document.documentElement.getAttribute('lang') || null;
   reviewEls.forEach(function(el) {
     var reviewIdNative = el.getAttribute('id') || null;
     var titleEl = el.querySelector('[data-hook="review-title"] span:last-child') || el.querySelector('[data-hook="review-title"]');
@@ -46,6 +51,15 @@ return (function() {
     var reviewerName = authorEl ? authorEl.textContent.trim() : null;
     var variantEl = el.querySelector('[data-hook="format-strip-linkless"]') || el.querySelector('[data-hook="review-variant"]');
     var variant = variantEl ? variantEl.textContent.trim() : null;
+    var dateText = dateEl ? dateEl.textContent.trim() : '';
+    var regionMatch = dateText.match(/Reviewed in\s+(.*?)\s+on/i);
+    var reviewRegion = regionMatch ? regionMatch[1].trim() : null;
+    var reviewImages = Array.from(el.querySelectorAll('[data-hook="review-image-tile"] img, .review-image-tile-section img'))
+      .map(function(imageEl) { return imageEl.getAttribute('src'); })
+      .filter(Boolean);
+    var reviewVideos = Array.from(el.querySelectorAll('[data-hook="video-block"] a, [data-hook="review-video-thumbnail"] a, a[href*="media_gallery"]'))
+      .map(function(videoEl) { return videoEl.getAttribute('href') || videoEl.getAttribute('data-video-url') || videoEl.getAttribute('src'); })
+      .filter(Boolean);
     var rawSnap = el.textContent ? el.textContent.substring(0, 2000) : null;
     reviews.push({
       reviewIdNative: reviewIdNative,
@@ -57,6 +71,10 @@ return (function() {
       helpfulCount: helpfulCount,
       reviewerName: reviewerName,
       variant: variant,
+      reviewImages: reviewImages,
+      reviewVideos: reviewVideos,
+      reviewLanguage: pageLanguage,
+      reviewRegion: reviewRegion,
       rawSnap: rawSnap,
     });
   });
@@ -77,6 +95,10 @@ type ExtractedReview = {
   reviewerName: string | null;
   variant: string | null;
   rawSnap: string | null;
+  reviewImages: string[];
+  reviewVideos: string[];
+  reviewLanguage: string | null;
+  reviewRegion: string | null;
 };
 
 type ExtractResult =
@@ -118,11 +140,27 @@ const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapte
       verifiedPurchase: r.verifiedPurchase,
       variant: r.variant,
       helpfulCountIfVisible: r.helpfulCount,
-      reviewImagesIfVisible: [],
-      reviewVideosIfVisible: [],
-      reviewLanguage: null,
-      reviewRegionIfVisible: null,
+      reviewImagesIfVisible: r.reviewImages,
+      reviewVideosIfVisible: r.reviewVideos,
+      reviewLanguage: r.reviewLanguage,
+      reviewRegionIfVisible: r.reviewRegion,
       rawReviewTextSnapshot: r.rawSnap,
+      fieldDisclosureMap: buildFieldDisclosureMap({
+        reviewIdIfAvailable: fieldDisclosureFromValue(r.reviewIdNative, "not_present", "Amazon review id is not visible on this review card."),
+        reviewerName: fieldDisclosureFromValue(r.reviewerName, "failed", "Reviewer name is not visible."),
+        rating: fieldDisclosureFromValue(r.rating, "failed", "Review rating is not visible."),
+        reviewTitle: fieldDisclosureFromValue(r.title, "not_present", "Review title is not visible."),
+        reviewBody: fieldDisclosureFromValue(r.body, "not_present", "Review body is not visible."),
+        reviewDate: fieldDisclosureFromValue(r.reviewDate, "failed", "Review date is not visible."),
+        verifiedPurchase: fieldDisclosureFromValue(r.verifiedPurchase, "not_present", "Verified purchase badge is not visible."),
+        variant: fieldDisclosureFromValue(r.variant, "not_present", "Review variant text is not visible."),
+        helpfulCountIfVisible: fieldDisclosureFromValue(r.helpfulCount, "not_present", "Helpful count is not visible."),
+        reviewImagesIfVisible: fieldDisclosureFromValue(r.reviewImages, "not_present", "No review images are visible for this review."),
+        reviewVideosIfVisible: fieldDisclosureFromValue(r.reviewVideos, "not_present", "No review videos are visible for this review."),
+        reviewLanguage: fieldDisclosureFromValue(r.reviewLanguage, "not_present", "Review language is not visible from page locale or review metadata."),
+        reviewRegionIfVisible: fieldDisclosureFromValue(r.reviewRegion, "not_present", "Review region is not visible in review metadata."),
+        rawReviewTextSnapshot: fieldDisclosureFromValue(r.rawSnap, "failed", "Review raw text snapshot is empty."),
+      }),
       createdAt: now,
     }));
 
@@ -146,7 +184,8 @@ export const runReviewPagination = async (input: {
   adapter?: ReviewPageAdapter;
   onPageExtracted: (reviews: AmazonReviewRecord[], pageIndex: number) => Promise<void>;
 }): Promise<ReviewPaginationResult> => {
-  const maxPages = input.maxPages ?? 5;
+  const hardLimitPages = input.maxPages;
+  const safetyLimitPages = 50;
   const adapter: ReviewPageAdapter = input.adapter ?? (input.browser
     ? buildBrowserReviewAdapter(input.browser)
     : (() => { throw new Error("No browser or adapter provided for review pagination"); })());
@@ -156,7 +195,7 @@ export const runReviewPagination = async (input: {
   let totalReviewsCollected = 0;
   let finalRestriction: "manual_required" | null = null;
 
-  while (pageIndex < maxPages) {
+  while (pageIndex < safetyLimitPages && (hardLimitPages === undefined || pageIndex < hardLimitPages)) {
     const { reviews, hasNextPage, restriction } = await adapter.extractReviewsFromPage({
       reviewsUrl: input.reviewsUrl,
       pageIndex,

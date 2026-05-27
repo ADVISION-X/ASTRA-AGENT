@@ -13,7 +13,25 @@ export const writeJsonFile = (filePath: string, value: unknown): void => {
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };
 
-export const buildProductMissingFields = (product: AmazonProductDetail): string[] => {
+export type ProductFieldDisclosureBuckets = {
+  missingFields: string[];
+  notPresentFields: string[];
+  blockedFields: string[];
+  unsupportedFields: string[];
+  manualRequiredFields: string[];
+  failedFields: string[];
+  extractorMissingFields: string[];
+};
+
+const getFieldNamesByReason = (
+  product: AmazonProductDetail,
+  reason: AmazonProductDetail["fieldDisclosureMap"][string]["reason"],
+): string[] => Object.entries(product.fieldDisclosureMap)
+  .filter(([, disclosure]) => disclosure.reason === reason)
+  .map(([fieldName]) => fieldName)
+  .sort((left, right) => left.localeCompare(right));
+
+const buildNullSignalMissingFields = (product: AmazonProductDetail): string[] => {
   const missingFields: string[] = [];
   if (!product.currentPrice) missingFields.push("currentPrice");
   if (!product.rating) missingFields.push("rating");
@@ -21,3 +39,35 @@ export const buildProductMissingFields = (product: AmazonProductDetail): string[
   if (!product.rawVisibleTextSnapshot) missingFields.push("rawVisibleTextSnapshot");
   return missingFields;
 };
+
+export const buildProductFieldDisclosureBuckets = (product: AmazonProductDetail): ProductFieldDisclosureBuckets => {
+  const notPresentFields = getFieldNamesByReason(product, "not_present");
+  const blockedFields = getFieldNamesByReason(product, "blocked");
+  const unsupportedFields = getFieldNamesByReason(product, "unsupported_structure");
+  const manualRequiredFields = getFieldNamesByReason(product, "manual_required");
+  const failedFields = getFieldNamesByReason(product, "failed");
+  const extractorMissingFields = getFieldNamesByReason(product, "extractor_missing");
+  const reasonBuckets = [
+    notPresentFields,
+    blockedFields,
+    unsupportedFields,
+    manualRequiredFields,
+    failedFields,
+    extractorMissingFields,
+  ];
+  const missingFields = Object.keys(product.fieldDisclosureMap).length > 0
+    ? [...new Set(reasonBuckets.flat())]
+    : buildNullSignalMissingFields(product);
+  return {
+    missingFields,
+    notPresentFields,
+    blockedFields,
+    unsupportedFields,
+    manualRequiredFields,
+    failedFields,
+    extractorMissingFields,
+  };
+};
+
+export const buildProductMissingFields = (product: AmazonProductDetail): string[] =>
+  buildProductFieldDisclosureBuckets(product).missingFields;

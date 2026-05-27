@@ -3,22 +3,10 @@ import { Node, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-mo
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
+import { isAuditTruthScanScopeFile } from "./audit-truth-scope.js";
 
 const trackedTextRegexMethodNames = new Set(["match", "matchAll", "search", "split"]);
 const trackedArgumentRegexMethodNames = new Set(["exec", "test"]);
-
-const normalizeAuditTruthPath = (repoPath: string): string => {
-  if (repoPath.startsWith("scripts/")) {
-    return repoPath;
-  }
-  const markerIndex = repoPath.indexOf("/scripts/");
-  return markerIndex >= 0 ? repoPath.slice(markerIndex + 1) : repoPath;
-};
-
-const isAuditTruthScopeFile = (sourceFile: SourceFile): boolean => {
-  const repoPath = normalizeAuditTruthPath(getRepoSourcePath(sourceFile));
-  return repoPath.startsWith("scripts/audit/domains/") || repoPath.startsWith("scripts/audit/shared/");
-};
 
 const looksLikeRegExpType = (node: MorphNode): boolean => {
   const nodeType = node.getType();
@@ -156,7 +144,7 @@ export const scanAuditNoRegex = (input: {
   const findings: InspectorFinding[] = [];
   const scopeFiles = input.context.project
     .getSourceFiles()
-    .filter((sourceFile) => !sourceFile.isDeclarationFile() && isAuditTruthScopeFile(sourceFile));
+    .filter((sourceFile) => !sourceFile.isDeclarationFile() && isAuditTruthScanScopeFile(sourceFile));
 
   for (const sourceFile of scopeFiles) {
     scanAuditTruthScopeFile({

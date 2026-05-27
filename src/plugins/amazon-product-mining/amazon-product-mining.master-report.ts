@@ -49,6 +49,19 @@ const renderTable = (headers: readonly string[], rows: readonly string[][]): str
     </tbody>
   </table>`;
 
+const formatFieldList = (fields: readonly string[] | null | undefined): string =>
+  (fields ?? []).join(", ") || "none";
+
+const formatCompletenessBuckets = (completeness: ReportProduct["completeness"] | undefined): string => [
+  `missing=${formatFieldList(completeness?.missingFields)}`,
+  `notPresent=${formatFieldList(completeness?.notPresentFields)}`,
+  `blocked=${formatFieldList(completeness?.blockedFields)}`,
+  `unsupported=${formatFieldList(completeness?.unsupportedFields)}`,
+  `extractorMissing=${formatFieldList(completeness?.extractorMissingFields)}`,
+  `manualRequired=${formatFieldList(completeness?.manualRequiredFields)}`,
+  `failed=${formatFieldList(completeness?.failedFields)}`,
+].join(" | ");
+
 const readSummaryValue = (summary: Record<string, unknown>, key: string, defaultValue: string): string => {
   const value = summary[key];
   return typeof value === "string" ? value : value == null ? defaultValue : String(value);
@@ -169,7 +182,7 @@ const buildProductListingParagraphs = (product: ReportProduct): string[] => [
 const buildProductReviewParagraphs = (product: ReportProduct): string[] => [
   `<strong>H. Review Summary:</strong> captured=${String(product.reviews?.capturedReviewCount ?? 0)} | pages=${String(product.reviews?.pagesVisited ?? 0)} | summaryRef=${escapeHtml(product.reviews?.summaryRef ?? "")}`,
   `<strong>I. Representative Review Evidence:</strong> JSONL=${escapeHtml(product.reviews?.jsonlRef ?? "")} | pagesIndex=${escapeHtml(product.reviews?.reviewPagesIndexRef ?? "")}`,
-  `<strong>J. Completeness & Exceptions:</strong> score=${String(product.completeness?.score ?? 0)} | missing=${escapeHtml((product.completeness?.missingFields ?? []).join(", ") || "none")} | warnings=${escapeHtml((product.completeness?.warnings ?? []).join(" | ") || "none")}`,
+  `<strong>J. Completeness & Exceptions:</strong> score=${String(product.completeness?.score ?? 0)} | ${escapeHtml(formatCompletenessBuckets(product.completeness))} | warnings=${escapeHtml((product.completeness?.warnings ?? []).join(" | ") || "none")}`,
   `<strong>K. Evidence Refs:</strong> raw=${escapeHtml(product.rawVisibleTextRef ?? "")} | reviewSummary=${escapeHtml(product.reviews?.summaryRef ?? "")} | exceptions=${escapeHtml((product.exceptions ?? []).join(", ") || "none")}`,
 ];
 
@@ -204,13 +217,18 @@ const renderCompletenessSection = (input: {
         ]),
       )}
       ${renderTable(
-        ["Detail ID", "Review Status", "Pages Visited", "Restriction", "Missing Fields", "Completeness Score"],
+        ["Detail ID", "Review Status", "Pages Visited", "Restriction", "Missing Fields", "Not Present Fields", "Blocked Fields", "Unsupported Fields", "Extractor Missing Fields", "Manual/Failed Fields", "Completeness Score"],
         input.products.map((product) => [
           product.detailId ?? "unknown",
           product.reviewStatus ?? "unknown",
           String(product.reviewPagesVisited ?? 0),
           product.reviewRestriction ?? "none",
-          (product.missingFields ?? []).join(", ") || "none",
+          formatFieldList(product.missingFields),
+          formatFieldList(product.notPresentFields),
+          formatFieldList(product.blockedFields),
+          formatFieldList(product.unsupportedFields),
+          formatFieldList(product.extractorMissingFields),
+          formatFieldList([...(product.manualRequiredFields ?? []), ...(product.failedFields ?? [])]),
           String(product.dataCompletenessScore ?? 0),
         ]),
       )}
@@ -391,6 +409,12 @@ const renderMasterReportBody = (input: {
     reviewPagesVisited: product.reviews?.pagesVisited ?? 0,
     reviewRestriction: null,
     missingFields: product.completeness?.missingFields ?? [],
+    notPresentFields: product.completeness?.notPresentFields ?? [],
+    blockedFields: product.completeness?.blockedFields ?? [],
+    unsupportedFields: product.completeness?.unsupportedFields ?? [],
+    manualRequiredFields: product.completeness?.manualRequiredFields ?? [],
+    failedFields: product.completeness?.failedFields ?? [],
+    extractorMissingFields: product.completeness?.extractorMissingFields ?? [],
     dataCompletenessScore: product.completeness?.score ?? 0,
   })) as readonly CompletenessProduct[] }),
   renderEvidenceIndexSection({ artifacts: input.evidenceArtifacts, checks: input.integrityChecks }),

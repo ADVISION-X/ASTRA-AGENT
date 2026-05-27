@@ -513,6 +513,52 @@ generated plan 必须与真实 owner inspector 面一一对应。
 质检系统的文字法条是最低边界，不是最高边界。
 只要 owner inspector 能用同一条 AST / project / generated-plan 主裁链证明更强的漂移、假覆盖、假执行、或明显腐烂面，就必须直接 FAIL，不能用“法条还没细写到这句”作为放过理由。
 
+## [GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1] Audit Meta Quality AST / Symbol / No Regex
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "audit-truth",
+  "enforcementMode": "meta",
+  "evidenceMode": "ast+symbol+project+acceptance",
+  "summary": "The audit-truth owner and its proof scripts must stay AST-first, symbol-backed, anti-evasion, and free of regex-driven governance logic.",
+  "appliesTo": [
+    "scripts/audit/domains/audit-truth/**/*.{ts,js,mjs}",
+    "scripts/acceptance/audit-truth-coverage.acceptance.ts"
+  ],
+  "forbidden": [
+    "RegularExpressionLiteral inside audit meta-quality owner or proof scope.",
+    "new RegExp or aliased RegExp construction inside audit meta-quality owner or proof scope.",
+    "match/matchAll/search/test/replace/replaceAll/split/exec based governance logic inside audit meta-quality owner or proof scope.",
+    "Dynamic property or prototype-call escape that cannot be disproven with AST and symbol evidence.",
+    "Raw source-text laundering inside audit meta-quality proof scripts."
+  ]
+}
+```
+
+### 主题
+Audit 元质检 AST / Symbol / No Regex
+
+### 法条
+`audit-truth` owner 与它的 acceptance proof 只能用 `ts-morph Project + SourceFile + SyntaxKind + Symbol` 做治理执法。
+
+至少要求：
+
+- 不得在 owner 或 proof 内保留 regex literal
+- 不得保留 `new RegExp()` 或构造器别名逃逸
+- 不得保留 `match`、`matchAll`、`search`、`test`、`replace`、`replaceAll`、`split`、`exec` 作为治理判断
+- 动态属性调用若可能指向上述 regex/string judgment 方法，且 AST + symbol 不能排除，必须直接 FAIL
+- proof 若对 `context.project` / `SourceFile` / `getFullText` / `getText` 做原文扫描并据此裁决，必须直接 FAIL
+
+### 禁止
+
+- 正则字面量伪装 anti-evasion
+- `RegExp` 构造器或构造器别名伪装 anti-evasion
+- `String.prototype.match.call(...)`、`text[method](...)` 等动态逃逸
+- audit-truth acceptance proof 退化成 raw string scanning
+
 ## [APEX-AUDIT-009-V1] 删除优先级
 
 ```apex-law

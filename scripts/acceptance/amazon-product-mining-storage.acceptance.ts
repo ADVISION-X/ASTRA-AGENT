@@ -111,6 +111,7 @@ try {
     couponTextIfVisible: null,
     deliveryTextIfVisible: null,
     rawVisibleTextSnapshot: "Test search page snapshot",
+    fieldDisclosureMap: {},
     createdAt: now,
   }]);
   const searchResults = storage.getSearchResultsForKeyword(keywordId1);
@@ -160,6 +161,7 @@ try {
     returnInformation: null,
     allOtherVisibleProductParameters: null,
     rawVisibleTextSnapshot: "Test detail page snapshot",
+    fieldDisclosureMap: {},
     status: "pending_detail" as const,
     failureReason: null,
     createdAt: now,
@@ -197,6 +199,7 @@ try {
     reviewLanguage: null,
     reviewRegionIfVisible: null,
     rawReviewTextSnapshot: "Great tent! Very lightweight and easy to set up.",
+    fieldDisclosureMap: {},
     createdAt: now,
   }]);
   const reviews = storage.getReviewsForProduct(detailId);

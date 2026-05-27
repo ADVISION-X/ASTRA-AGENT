@@ -32,6 +32,7 @@ const buildFixtureReview = (pageIndex: number, idx: number): AmazonReviewRecord 
   reviewLanguage: null,
   reviewRegionIfVisible: null,
   rawReviewTextSnapshot: `Great product. Review ${idx} page ${pageIndex}.`,
+  fieldDisclosureMap: {},
   createdAt: new Date().toISOString(),
 });
 

@@ -7,6 +7,15 @@ import {
   AMAZON_PRODUCT_MINING_DB_RELATIVE_PATH,
   AMAZON_PRODUCT_MINING_SCHEMA_SQL,
 } from "./amazon-product-mining.storage-schema.js";
+import {
+  ensureAmazonMiningStorageColumns,
+  rowToAiKeywordRun,
+  rowToDetail,
+  rowToKeyword,
+  rowToReview,
+  rowToSearchItem,
+  rowToTask,
+} from "./amazon-product-mining.storage-support.js";
 import type {
   AmazonKeywordRecord,
   AmazonKeywordStatus,
@@ -84,156 +93,9 @@ export const createAmazonMiningDatabase = (dataDir: string): Database.Database =
   for (const sql of AMAZON_PRODUCT_MINING_SCHEMA_SQL) {
     db.exec(sql);
   }
+  ensureAmazonMiningStorageColumns(db);
   return db;
 };
-
-const rowToTask = (row: Record<string, unknown>): AmazonTaskRecord => ({
-  taskId: row["task_id"] as string,
-  amazonMarketplace: row["amazon_marketplace"] as AmazonTaskRecord["amazonMarketplace"],
-  targetMarket: row["target_market"] as string,
-  productDirection: row["product_direction"] as string,
-  requestedKeywordCount: row["requested_keyword_count"] as number,
-  languagePreference: row["language_preference"] as string,
-  status: row["status"] as AmazonTaskStatus,
-  failureReason: (row["failure_reason"] as string | null) ?? null,
-  packageJsonPath: (row["package_json_path"] as string | null) ?? null,
-  pdfReportPath: (row["pdf_report_path"] as string | null) ?? null,
-  evidenceIndexPath: (row["evidence_index_path"] as string | null) ?? null,
-  exceptionSummaryPath: (row["exception_summary_path"] as string | null) ?? null,
-  handoffStatus: (row["handoff_status"] as AmazonHandoffStatus) ?? "not_started",
-  createdAt: row["created_at"] as string,
-  updatedAt: (row["updated_at"] as string | null) ?? null,
-});
-
-const rowToKeyword = (row: Record<string, unknown>): AmazonKeywordRecord => ({
-  keywordId: row["keyword_id"] as string,
-  taskId: row["task_id"] as string,
-  keyword: row["keyword"] as string,
-  source: "ai_generated",
-  aiRunId: (row["ai_run_id"] as string | null) ?? null,
-  reason: (row["reason"] as string | null) ?? null,
-  status: row["status"] as AmazonKeywordStatus,
-  createdAt: row["created_at"] as string,
-  updatedAt: (row["updated_at"] as string | null) ?? null,
-});
-
-const rowToSearchItem = (row: Record<string, unknown>): AmazonSearchResultItem => ({
-  itemId: row["item_id"] as string,
-  keywordId: row["keyword_id"] as string,
-  taskId: row["task_id"] as string,
-  keyword: row["keyword"] as string,
-  searchUrl: row["search_url"] as string,
-  rankPosition: row["rank_position"] as number,
-  isSponsored: (row["is_sponsored"] as number) === 1,
-  title: (row["title"] as string | null) ?? null,
-  productUrl: row["product_url"] as string,
-  asinIfAvailable: (row["asin_if_available"] as string | null) ?? null,
-  mainImageUrl: (row["main_image_url"] as string | null) ?? null,
-  price: (row["price"] as string | null) ?? null,
-  originalPriceOrDiscountIfVisible: (row["original_price_or_discount_if_visible"] as string | null) ?? null,
-  rating: (row["rating"] as string | null) ?? null,
-  reviewCount: (row["review_count"] as string | null) ?? null,
-  primeOrFbaFlagIfVisible: (row["prime_or_fba_flag_if_visible"] as string | null) ?? null,
-  couponTextIfVisible: (row["coupon_text_if_visible"] as string | null) ?? null,
-  deliveryTextIfVisible: (row["delivery_text_if_visible"] as string | null) ?? null,
-  rawVisibleTextSnapshot: (row["raw_visible_text_snapshot"] as string | null) ?? null,
-  createdAt: row["created_at"] as string,
-});
-
-const parseStringArray = (value: unknown): string[] =>
-  value ? (JSON.parse(value as string) as string[]) : [];
-
-const buildDetailIdentity = (row: Record<string, unknown>) => ({
-  detailId: row["detail_id"] as string,
-  taskId: row["task_id"] as string,
-  asin: (row["asin"] as string | null) ?? null,
-  productUrl: row["product_url"] as string,
-  title: (row["title"] as string | null) ?? null,
-  brand: (row["brand"] as string | null) ?? null,
-  sellerOrStoreIfVisible: (row["seller_or_store_if_visible"] as string | null) ?? null,
-  currentPrice: (row["current_price"] as string | null) ?? null,
-  originalPriceDiscountCouponIfVisible: (row["original_price_discount_coupon_if_visible"] as string | null) ?? null,
-});
-
-const buildDetailContent = (row: Record<string, unknown>) => ({
-  mainImage: (row["main_image"] as string | null) ?? null,
-  allVisibleImages: parseStringArray(row["all_visible_images_json"]),
-  visibleVideoInfo: (row["visible_video_info"] as string | null) ?? null,
-  bulletPoints: parseStringArray(row["bullet_points_json"]),
-  aboutThisItem: (row["about_this_item"] as string | null) ?? null,
-  productDescription: (row["product_description"] as string | null) ?? null,
-  aPlusContentIfVisible: (row["a_plus_content_if_visible"] as string | null) ?? null,
-  variationOptions: (row["variation_options"] as string | null) ?? null,
-  colorSizeStyleOptions: (row["color_size_style_options"] as string | null) ?? null,
-});
-
-const buildDetailCommerce = (row: Record<string, unknown>) => ({
-  productInformation: (row["product_information"] as string | null) ?? null,
-  technicalDetails: (row["technical_details"] as string | null) ?? null,
-  additionalInformation: (row["additional_information"] as string | null) ?? null,
-  bestSellersRankIfVisible: (row["best_sellers_rank_if_visible"] as string | null) ?? null,
-  categoryPathIfVisible: (row["category_path_if_visible"] as string | null) ?? null,
-  rating: (row["rating"] as string | null) ?? null,
-  reviewCount: (row["review_count"] as string | null) ?? null,
-  starDistribution: (row["star_distribution"] as string | null) ?? null,
-  qaContentIfVisible: (row["qa_content_if_visible"] as string | null) ?? null,
-  frequentlyBoughtTogetherIfVisible: (row["frequently_bought_together_if_visible"] as string | null) ?? null,
-  customersAlsoBoughtIfVisible: (row["customers_also_bought_if_visible"] as string | null) ?? null,
-  compareWithSimilarItemsIfVisible: (row["compare_with_similar_items_if_visible"] as string | null) ?? null,
-  deliveryInformation: (row["delivery_information"] as string | null) ?? null,
-  returnInformation: (row["return_information"] as string | null) ?? null,
-  allOtherVisibleProductParameters: (row["all_other_visible_product_parameters"] as string | null) ?? null,
-});
-
-const buildDetailStatus = (row: Record<string, unknown>) => ({
-  rawVisibleTextSnapshot: (row["raw_visible_text_snapshot"] as string | null) ?? null,
-  status: row["status"] as AmazonProductStatus,
-  failureReason: (row["failure_reason"] as string | null) ?? null,
-  createdAt: row["created_at"] as string,
-  updatedAt: (row["updated_at"] as string | null) ?? null,
-});
-
-const rowToDetail = (row: Record<string, unknown>): AmazonProductDetail => ({
-  ...buildDetailIdentity(row),
-  ...buildDetailContent(row),
-  ...buildDetailCommerce(row),
-  ...buildDetailStatus(row),
-});
-
-const rowToReview = (row: Record<string, unknown>): AmazonReviewRecord => ({
-  reviewId: row["review_id"] as string,
-  detailId: row["detail_id"] as string,
-  taskId: row["task_id"] as string,
-  asin: (row["asin"] as string | null) ?? null,
-  pageIndex: row["page_index"] as number,
-  reviewIdIfAvailable: (row["review_id_if_available"] as string | null) ?? null,
-  reviewerName: (row["reviewer_name"] as string | null) ?? null,
-  rating: (row["rating"] as string | null) ?? null,
-  reviewTitle: (row["review_title"] as string | null) ?? null,
-  reviewBody: (row["review_body"] as string | null) ?? null,
-  reviewDate: (row["review_date"] as string | null) ?? null,
-  verifiedPurchase: row["verified_purchase"] === null ? null : (row["verified_purchase"] as number) === 1,
-  variant: (row["variant"] as string | null) ?? null,
-  helpfulCountIfVisible: (row["helpful_count_if_visible"] as string | null) ?? null,
-  reviewImagesIfVisible: row["review_images_if_visible_json"] ? (JSON.parse(row["review_images_if_visible_json"] as string) as string[]) : [],
-  reviewVideosIfVisible: row["review_videos_if_visible_json"] ? (JSON.parse(row["review_videos_if_visible_json"] as string) as string[]) : [],
-  reviewLanguage: (row["review_language"] as string | null) ?? null,
-  reviewRegionIfVisible: (row["review_region_if_visible"] as string | null) ?? null,
-  rawReviewTextSnapshot: (row["raw_review_text_snapshot"] as string | null) ?? null,
-  createdAt: row["created_at"] as string,
-});
-
-const rowToAiKeywordRun = (row: Record<string, unknown>) => ({
-  runId: row["run_id"] as string,
-  taskId: row["task_id"] as string,
-  promptText: row["prompt_text"] as string,
-  rawResponse: row["raw_response"] as string,
-  parsedKeywords: parseStringArray(row["parsed_keywords_json"]),
-  dedupedKeywords: parseStringArray(row["deduped_keywords_json"]),
-  status: row["status"] as string,
-  failureReason: (row["failure_reason"] as string | null) ?? null,
-  createdAt: row["created_at"] as string,
-});
 
 const createTaskOperations = (
   db: Database.Database,
@@ -329,8 +191,8 @@ const createSearchOperations = (
       title, product_url, asin_if_available, main_image_url, price,
       original_price_or_discount_if_visible, rating, review_count,
       prime_or_fba_flag_if_visible, coupon_text_if_visible, delivery_text_if_visible,
-      raw_visible_text_snapshot, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+      raw_visible_text_snapshot, field_disclosure_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const item of items) {
       stmt.run(
         item.itemId, item.keywordId, item.taskId, item.keyword, item.searchUrl,
@@ -338,7 +200,7 @@ const createSearchOperations = (
         item.asinIfAvailable, item.mainImageUrl, item.price,
         item.originalPriceOrDiscountIfVisible, item.rating, item.reviewCount,
         item.primeOrFbaFlagIfVisible, item.couponTextIfVisible, item.deliveryTextIfVisible,
-        item.rawVisibleTextSnapshot, item.createdAt,
+        item.rawVisibleTextSnapshot, JSON.stringify(item.fieldDisclosureMap), item.createdAt,
       );
     }
   },
@@ -363,9 +225,9 @@ const createProductOperations = (
       rating, review_count, star_distribution, qa_content_if_visible,
       frequently_bought_together_if_visible, customers_also_bought_if_visible,
       compare_with_similar_items_if_visible, delivery_information, return_information,
-      all_other_visible_product_parameters, raw_visible_text_snapshot, status,
+      all_other_visible_product_parameters, raw_visible_text_snapshot, field_disclosure_json, status,
       failure_reason, created_at, updated_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       detail.detailId, detail.taskId, detail.asin, detail.productUrl, detail.title,
       detail.brand, detail.sellerOrStoreIfVisible, detail.currentPrice,
       detail.originalPriceDiscountCouponIfVisible, detail.mainImage,
@@ -378,7 +240,7 @@ const createProductOperations = (
       detail.frequentlyBoughtTogetherIfVisible, detail.customersAlsoBoughtIfVisible,
       detail.compareWithSimilarItemsIfVisible, detail.deliveryInformation,
       detail.returnInformation, detail.allOtherVisibleProductParameters,
-      detail.rawVisibleTextSnapshot, detail.status, detail.failureReason,
+      detail.rawVisibleTextSnapshot, JSON.stringify(detail.fieldDisclosureMap), detail.status, detail.failureReason,
       detail.createdAt, detail.updatedAt,
     );
     const linkStmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_search_result_product_link (item_id, detail_id) VALUES (?, ?)`);
@@ -412,8 +274,8 @@ const createReviewOperations = (
       reviewer_name, rating, review_title, review_body, review_date, verified_purchase,
       variant, helpful_count_if_visible, review_images_if_visible_json,
       review_videos_if_visible_json, review_language, review_region_if_visible,
-      raw_review_text_snapshot, created_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      raw_review_text_snapshot, field_disclosure_json, created_at
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     for (const review of reviews) {
       stmt.run(
         review.reviewId, review.detailId, review.taskId, review.asin, review.pageIndex,
@@ -422,7 +284,8 @@ const createReviewOperations = (
         review.verifiedPurchase === null ? null : (review.verifiedPurchase ? 1 : 0),
         review.variant, review.helpfulCountIfVisible,
         JSON.stringify(review.reviewImagesIfVisible), JSON.stringify(review.reviewVideosIfVisible),
-        review.reviewLanguage, review.reviewRegionIfVisible, review.rawReviewTextSnapshot, review.createdAt,
+        review.reviewLanguage, review.reviewRegionIfVisible, review.rawReviewTextSnapshot,
+        JSON.stringify(review.fieldDisclosureMap), review.createdAt,
       );
     }
   },

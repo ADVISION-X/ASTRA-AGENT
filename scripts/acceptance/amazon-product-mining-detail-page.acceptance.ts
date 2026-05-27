@@ -57,6 +57,7 @@ const fixtureDetailCatalog = {
 
 const fixtureDetailStatus = {
   rawVisibleTextSnapshot: "Ultra Light Tent 2P by TrailBlazer $89.99 4.5 stars...",
+  fieldDisclosureMap: {},
   status: "pending_detail" as const,
   failureReason: null,
   createdAt: new Date().toISOString(),

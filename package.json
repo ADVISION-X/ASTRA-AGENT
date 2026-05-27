@@ -54,7 +54,7 @@
     "acceptance:video-download-telegram-web": "node --import tsx scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "dev:facebook-live-dom-probe": "node --import tsx scripts/acceptance/facebook-live-dom-probe.ts",
     "codex:entry-gate": "node --import tsx scripts/audit/codex-entry-gate.ts",
-    "ci:full": "npm run codex:entry-gate && node --import tsx scripts/audit/ci-full.ts",
+    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
     "lint": "npm run typecheck"
   },
   "dependencies": {

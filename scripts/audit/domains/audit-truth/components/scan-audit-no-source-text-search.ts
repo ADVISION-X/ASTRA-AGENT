@@ -3,22 +3,9 @@ import { Node, SyntaxKind, type Node as MorphNode, type PropertyAccessExpression
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
+import { isAuditTruthScanScopeFile, isOwnerInspectorRepoPath } from "./audit-truth-scope.js";
 
-const normalizeAuditTruthPath = (repoPath: string): string => {
-  if (repoPath.startsWith("scripts/")) {
-    return repoPath;
-  }
-  const markerIndex = repoPath.indexOf("/scripts/");
-  return markerIndex >= 0 ? repoPath.slice(markerIndex + 1) : repoPath;
-};
-
-const isOwnerInspectorFile = (sourceFile: SourceFile): boolean =>
-  /^scripts\/audit\/domains\/[^/]+\/inspector\.ts$/u.test(normalizeAuditTruthPath(getRepoSourcePath(sourceFile)));
-
-const isAuditTruthScopeFile = (sourceFile: SourceFile): boolean => {
-  const repoPath = normalizeAuditTruthPath(getRepoSourcePath(sourceFile));
-  return repoPath.startsWith("scripts/audit/domains/") || repoPath.startsWith("scripts/audit/shared/");
-};
+const isOwnerInspectorFile = (sourceFile: SourceFile): boolean => isOwnerInspectorRepoPath(getRepoSourcePath(sourceFile));
 
 const isTrackedSourceTextAccess = (expression: PropertyAccessExpression): boolean => {
   if (expression.getName() !== "getText" && expression.getName() !== "getFullText") {
@@ -45,7 +32,7 @@ const findForbiddenTextVariableNames = (sourceFile: SourceFile): Set<string> => 
 const hasProjectUsage = (sourceFile: SourceFile): boolean =>
   sourceFile
     .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === "context.project");
+    .some((expression) => expression.getName() === "project" && Node.isIdentifier(expression.getExpression()) && expression.getExpression().getText() === "context");
 
 const isSearchMethod = (name: string): boolean => ["includes", "match", "search", "test"].includes(name);
 
@@ -84,7 +71,7 @@ export const scanAuditNoSourceTextSearch = (input: {
   const findings: InspectorFinding[] = [];
   const scopeFiles = input.context.project
     .getSourceFiles()
-    .filter((sourceFile) => !sourceFile.isDeclarationFile() && isAuditTruthScopeFile(sourceFile));
+    .filter((sourceFile) => !sourceFile.isDeclarationFile() && isAuditTruthScanScopeFile(sourceFile));
   const inspectorFiles = scopeFiles.filter((sourceFile) => isOwnerInspectorFile(sourceFile));
 
   for (const sourceFile of scopeFiles) {

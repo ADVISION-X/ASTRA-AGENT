@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T14:16:55.522Z",
+  "generatedAt": "2026-05-27T15:56:16.152Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -54,6 +54,7 @@
     "scripts/acceptance/deep-research-single-chain.acceptance.ts",
     "scripts/acceptance/deep-research-single-format-path.acceptance.ts",
     "scripts/acceptance/deep-research-subquestion-failure-stop.acceptance.ts",
+    "scripts/audit/ci-full-phase-plan.ts",
     "scripts/audit/ci-full.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",

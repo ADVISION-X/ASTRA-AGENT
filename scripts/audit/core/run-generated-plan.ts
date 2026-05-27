@@ -15,6 +15,13 @@ type DomainExecutionReport = CompletedReport & {
   executionGroup: AuditPlanEntry["executionGroup"];
 };
 
+type RunGeneratedPlanOptions = {
+  capabilityDomains?: readonly string[];
+  excludeCapabilityDomains?: readonly string[];
+  executionGroups?: readonly AuditPlanEntry["executionGroup"][];
+  initialCompletedReports?: Record<string, CompletedReport>;
+};
+
 const executionOrder = {
   foundation: 0,
   domain: 1,
@@ -135,17 +142,34 @@ const buildDomainExecutionReport = (
   };
 };
 
-export const runGeneratedPlan = async (): Promise<{
+const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promise<{
   domainReports: DomainExecutionReport[];
   hasFailures: boolean;
 }> => {
   const project = createAuditProject();
-  const generatedPlan = sortPlanEntries(loadGeneratedAuditPlan());
-  const completedReports: Record<string, CompletedReport> = {};
+  const fullGeneratedPlan = sortPlanEntries(loadGeneratedAuditPlan());
+  const allowedGroups = options.executionGroups ? new Set(options.executionGroups) : null;
+  const allowedDomains = options.capabilityDomains ? new Set(options.capabilityDomains) : null;
+  const excludedDomains = options.excludeCapabilityDomains ? new Set(options.excludeCapabilityDomains) : null;
+  const generatedPlan = fullGeneratedPlan.filter((entry) => {
+    if (allowedGroups && !allowedGroups.has(entry.executionGroup)) {
+      return false;
+    }
+    if (allowedDomains && !allowedDomains.has(entry.capabilityDomain)) {
+      return false;
+    }
+    if (excludedDomains && excludedDomains.has(entry.capabilityDomain)) {
+      return false;
+    }
+    return true;
+  });
+  const completedReports: Record<string, CompletedReport> = {
+    ...(options.initialCompletedReports ?? {}),
+  };
   const domainReports: DomainExecutionReport[] = [];
 
   for (const planEntry of generatedPlan) {
-    const output = await executePlanEntry(project, planEntry, generatedPlan, completedReports);
+    const output = await executePlanEntry(project, planEntry, fullGeneratedPlan, completedReports);
     const report = buildDomainExecutionReport(planEntry, output);
     completedReports[planEntry.capabilityDomain] = {
       status: report.status,
@@ -160,3 +184,8 @@ export const runGeneratedPlan = async (): Promise<{
     hasFailures: domainReports.some((report) => report.status === "FAIL"),
   };
 };
+
+export const runGeneratedPlanFiltered = async (options: RunGeneratedPlanOptions): Promise<{
+  domainReports: DomainExecutionReport[];
+  hasFailures: boolean;
+}> => runGeneratedPlanInternal(options);

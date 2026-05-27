@@ -196,6 +196,7 @@ const inspectHtmlArtifactValidation = (input: {
 const inspectAcceptanceAndCiWiring = (input: {
   acceptanceFile: SourceFile | undefined;
   ciFullFile: SourceFile | undefined;
+  ciFullPhasePlanFile: SourceFile | undefined;
   findings: InspectorFinding[];
   lawId: string;
 }): void => {
@@ -215,11 +216,14 @@ const inspectAcceptanceAndCiWiring = (input: {
     });
   }
 
-  if (!hasLiteralContaining(input.ciFullFile, "acceptance:deep-research-html-full-process-report")) {
+  if (
+    !hasLiteralContaining(input.ciFullFile, "acceptance:deep-research-html-full-process-report")
+    && !hasLiteralContaining(input.ciFullPhasePlanFile, "acceptance:deep-research-html-full-process-report")
+  ) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
-      filePath: "scripts/audit/ci-full.ts",
+      filePath: "scripts/audit/ci-full-phase-plan.ts",
       checkId: "deep-research/business-html-full-process/ci-wiring-ast",
       message: "ci:full must execute the full-process HTML acceptance.",
     });
@@ -248,6 +252,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
   htmlReportStageFile: SourceFile | undefined;
   acceptanceFile: SourceFile | undefined;
   ciFullFile: SourceFile | undefined;
+  ciFullPhasePlanFile: SourceFile | undefined;
   ownerComponentFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
@@ -258,6 +263,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
     input.htmlReportStageFile,
     input.acceptanceFile,
     input.ciFullFile,
+    input.ciFullPhasePlanFile,
     input.ownerComponentFile,
   ]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
@@ -276,6 +282,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
   inspectAcceptanceAndCiWiring({
     acceptanceFile: input.acceptanceFile,
     ciFullFile: input.ciFullFile,
+    ciFullPhasePlanFile: input.ciFullPhasePlanFile,
     findings: input.findings,
     lawId: input.lawId,
   });

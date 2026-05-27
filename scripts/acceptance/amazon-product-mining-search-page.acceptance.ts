@@ -31,6 +31,7 @@ const fixtureBuildItem = (rank: number) => ({
   couponTextIfVisible: null,
   deliveryTextIfVisible: null,
   rawVisibleTextSnapshot: "test snapshot",
+  fieldDisclosureMap: {},
   createdAt: new Date().toISOString(),
 });
 
