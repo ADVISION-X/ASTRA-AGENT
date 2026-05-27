@@ -30,6 +30,8 @@ export type PackageIntegrityReport = {
   failures: Array<{ checkId: string; detail: string }>;
 };
 
+type IntegrityCheckItem = PackageIntegrityReport["checks"][number];
+
 export const buildPackageSchemaArtifact = () => ({
   schemaVersion: "2.0.0",
   packageType: "amazon-product-mining-master-evidence-package",
@@ -220,6 +222,152 @@ export const buildEvidenceIndex = (input: {
   artifacts: input.artifactRefs,
 });
 
+const collectMissingImageUrls = (input: {
+  searchResults: readonly AmazonSearchResultItem[];
+  products: readonly AmazonProductDetail[];
+  reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
+  imageEvidenceIndex: PackageImageEvidenceIndex;
+}): string[] => {
+  const indexedImageUrls = new Set(input.imageEvidenceIndex.images.map((image) => image.url));
+  const expectedImageUrls = [
+    ...input.searchResults.map((item) => item.mainImageUrl).filter((url): url is string => Boolean(url)),
+    ...input.products.flatMap((product) => [product.mainImage, ...product.allVisibleImages]).filter((url): url is string => Boolean(url)),
+    ...[...input.reviewsByDetailId.values()].flatMap((reviews) => reviews.flatMap((review) => review.reviewImagesIfVisible)),
+  ];
+  return [...new Set(expectedImageUrls.filter((url) => !indexedImageUrls.has(url)))];
+};
+
+const buildIntegrityReportRefs = (layout: AmazonPackageLayout): string[] => [
+  layout.manifestPath,
+  layout.taskScopePath,
+  layout.packageSchemaPath,
+  layout.evidenceIndexPath,
+  layout.imageEvidenceIndexPath,
+  layout.packageFileHashesPath,
+  layout.businessBoundaryNoticePath,
+  layout.masterReportHtmlPath,
+  layout.pdfReportPath,
+  layout.exceptionSummaryPath,
+  layout.manualRequiredPath,
+  layout.failedItemsPath,
+  layout.dataCompletenessReportPath,
+  layout.aiReadingContractPath,
+  layout.aiHandoffPromptPath,
+].map((filePath) => toPackageRelativePath(layout.packageRootPath, filePath));
+
+const collectMissingProductTrace = (input: {
+  productArtifacts: readonly AmazonPackageProductEvidence[];
+  reviewArtifacts: readonly AmazonPackageReviewEvidence[];
+}): string[] =>
+  input.productArtifacts
+    .filter((product) => product.sourceKeywords.length === 0 || product.sourceItemIds.length === 0 || !input.reviewArtifacts.some((review) => review.detailId === product.detailId))
+    .map((product) => product.detailId);
+
+const collectOrphanReviewIds = (input: {
+  reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
+  products: readonly AmazonProductDetail[];
+}): string[] => {
+  const detailIds = new Set(input.products.map((product) => product.detailId));
+  return [...input.reviewsByDetailId.entries()]
+    .filter(([detailId]) => !detailIds.has(detailId))
+    .flatMap(([, reviews]) => reviews.map((review) => review.reviewId));
+};
+
+const collectInvalidExceptionIds = (input: {
+  taskId: string;
+  exceptions: readonly AmazonExceptionRecord[];
+  searchResults: readonly AmazonSearchResultItem[];
+  products: readonly AmazonProductDetail[];
+  reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
+}): string[] => {
+  const itemIds = new Set(input.searchResults.map((item) => item.itemId));
+  const detailIds = new Set(input.products.map((product) => product.detailId));
+  const reviewIds = new Set([...input.reviewsByDetailId.values()].flatMap((reviews) => reviews.map((review) => review.reviewId)));
+  return input.exceptions
+    .filter((exception) => exception.scopeId && !itemIds.has(exception.scopeId) && !detailIds.has(exception.scopeId) && !reviewIds.has(exception.scopeId) && exception.scopeId !== input.taskId)
+    .map((exception) => exception.exceptionId);
+};
+
+const buildManifestRefsCheck = (missingManifestRefs: readonly string[]): IntegrityCheckItem => ({
+  checkId: "manifest_refs_exist",
+  status: missingManifestRefs.length === 0 ? "pass" : "failed",
+  detail: missingManifestRefs.length === 0
+    ? "All manifest, report, exception, completeness, and boundary refs exist."
+    : `Missing: ${missingManifestRefs.join(", ")}`,
+});
+
+const buildEvidenceRefsCheck = (missingArtifactRefs: readonly string[]): IntegrityCheckItem => ({
+  checkId: "evidence_index_refs_exist",
+  status: missingArtifactRefs.length === 0 ? "pass" : "failed",
+  detail: missingArtifactRefs.length === 0
+    ? "All evidence-index refs resolve to files."
+    : `Missing: ${missingArtifactRefs.join(", ")}`,
+});
+
+const buildProductTraceCheck = (missingProductTrace: readonly string[]): IntegrityCheckItem => ({
+  checkId: "product_traceability",
+  status: missingProductTrace.length === 0 ? "pass" : "failed",
+  detail: missingProductTrace.length === 0
+    ? "Every product traces to keyword, search result item, detail, and review evidence."
+    : `Missing trace: ${missingProductTrace.join(", ")}`,
+});
+
+const buildReviewTraceCheck = (orphanReviews: readonly string[]): IntegrityCheckItem => ({
+  checkId: "review_traceability",
+  status: orphanReviews.length === 0 ? "pass" : "failed",
+  detail: orphanReviews.length === 0
+    ? "Every review traces to a product detail."
+    : `Orphan reviews: ${orphanReviews.join(", ")}`,
+});
+
+const buildExceptionTraceCheck = (invalidExceptions: readonly string[]): IntegrityCheckItem => ({
+  checkId: "exception_traceability",
+  status: invalidExceptions.length === 0 ? "pass" : "failed",
+  detail: invalidExceptions.length === 0
+    ? "Every exception scope resolves to task, search item, detail, or review."
+    : `Unresolved exceptions: ${invalidExceptions.join(", ")}`,
+});
+
+const buildImageCoverageCheck = (missingImageUrls: readonly string[]): IntegrityCheckItem => ({
+  checkId: "image_evidence_coverage",
+  status: missingImageUrls.length === 0 ? "pass" : "failed",
+  detail: missingImageUrls.length === 0
+    ? "All image URLs are registered in image-evidence-index."
+    : `Missing image URLs: ${missingImageUrls.join(", ")}`,
+});
+
+const buildStructuredPackageCheck = (input: {
+  layout: AmazonPackageLayout;
+  packageType: string;
+  taskScope: Record<string, unknown>;
+}): IntegrityCheckItem => ({
+  checkId: "structured_package_primary",
+  status: existsSync(input.layout.packageJsonPath) && input.packageType === "amazon-product-mining-master-evidence-package" ? "pass" : "failed",
+  detail: existsSync(input.layout.packageJsonPath)
+    ? `Structured package exists with taskStatus=${String(input.taskScope["status"] ?? "unknown")}.`
+    : "Structured package is missing.",
+});
+
+const buildIntegrityChecks = (input: {
+  layout: AmazonPackageLayout;
+  packageType: string;
+  taskScope: Record<string, unknown>;
+  missingManifestRefs: readonly string[];
+  missingArtifactRefs: readonly string[];
+  missingProductTrace: readonly string[];
+  orphanReviews: readonly string[];
+  invalidExceptions: readonly string[];
+  missingImageUrls: readonly string[];
+}): PackageIntegrityReport["checks"] => [
+  buildManifestRefsCheck(input.missingManifestRefs),
+  buildEvidenceRefsCheck(input.missingArtifactRefs),
+  buildProductTraceCheck(input.missingProductTrace),
+  buildReviewTraceCheck(input.orphanReviews),
+  buildExceptionTraceCheck(input.invalidExceptions),
+  buildImageCoverageCheck(input.missingImageUrls),
+  buildStructuredPackageCheck(input),
+];
+
 export const buildPackageIntegrityReport = (input: {
   taskId: string;
   layout: AmazonPackageLayout;
@@ -235,58 +383,25 @@ export const buildPackageIntegrityReport = (input: {
   artifactRefs: readonly PackageArtifactRef[];
 }): PackageIntegrityReport => {
   const fileExists = (fileRef: string): boolean => existsSync(join(input.layout.packageRootPath, fileRef));
-  const itemIds = new Set(input.searchResults.map((item) => item.itemId));
-  const detailIds = new Set(input.products.map((product) => product.detailId));
-  const reviewIds = new Set([...input.reviewsByDetailId.values()].flatMap((reviews) => reviews.map((review) => review.reviewId)));
-  const indexedImageUrls = new Set(input.imageEvidenceIndex.images.map((image) => image.url));
-  const allExpectedImageUrls = [
-    ...input.searchResults.map((item) => item.mainImageUrl).filter((url): url is string => Boolean(url)),
-    ...input.products.flatMap((product) => [product.mainImage, ...product.allVisibleImages]).filter((url): url is string => Boolean(url)),
-    ...[...input.reviewsByDetailId.values()].flatMap((reviews) => reviews.flatMap((review) => review.reviewImagesIfVisible)),
-  ];
-  const missingImageUrls = [...new Set(allExpectedImageUrls.filter((url) => !indexedImageUrls.has(url)))];
-  const reportRefs = [
-    input.layout.manifestPath,
-    input.layout.taskScopePath,
-    input.layout.packageSchemaPath,
-    input.layout.evidenceIndexPath,
-    input.layout.imageEvidenceIndexPath,
-    input.layout.packageFileHashesPath,
-    input.layout.businessBoundaryNoticePath,
-    input.layout.masterReportHtmlPath,
-    input.layout.pdfReportPath,
-    input.layout.exceptionSummaryPath,
-    input.layout.manualRequiredPath,
-    input.layout.failedItemsPath,
-    input.layout.dataCompletenessReportPath,
-    input.layout.aiReadingContractPath,
-    input.layout.aiHandoffPromptPath,
-  ].map((filePath) => toPackageRelativePath(input.layout.packageRootPath, filePath));
+  const missingImageUrls = collectMissingImageUrls(input);
+  const reportRefs = buildIntegrityReportRefs(input.layout);
   const missingManifestRefs = reportRefs.filter((fileRef) => !fileExists(fileRef));
   const integritySelfRef = toPackageRelativePath(input.layout.packageRootPath, input.layout.packageIntegrityReportPath);
   const missingArtifactRefs = input.artifactRefs.map((artifact) => artifact.fileRef).filter((fileRef) => fileRef !== integritySelfRef).filter((fileRef) => !fileExists(fileRef));
-  const missingProductTrace = input.productArtifacts
-    .filter((product) => product.sourceKeywords.length === 0 || product.sourceItemIds.length === 0 || !input.reviewArtifacts.some((review) => review.detailId === product.detailId))
-    .map((product) => product.detailId);
-  const orphanReviews = [...input.reviewsByDetailId.entries()].filter(([detailId]) => !detailIds.has(detailId)).flatMap(([, reviews]) => reviews.map((review) => review.reviewId));
-  const invalidExceptions = input.exceptions
-    .filter((exception) => exception.scopeId && !itemIds.has(exception.scopeId) && !detailIds.has(exception.scopeId) && !reviewIds.has(exception.scopeId) && exception.scopeId !== input.taskId)
-    .map((exception) => exception.exceptionId);
-  const checks: PackageIntegrityReport["checks"] = [
-    { checkId: "manifest_refs_exist", status: missingManifestRefs.length === 0 ? "pass" : "failed", detail: missingManifestRefs.length === 0 ? "All manifest, report, exception, completeness, and boundary refs exist." : `Missing: ${missingManifestRefs.join(", ")}` },
-    { checkId: "evidence_index_refs_exist", status: missingArtifactRefs.length === 0 ? "pass" : "failed", detail: missingArtifactRefs.length === 0 ? "All evidence-index refs resolve to files." : `Missing: ${missingArtifactRefs.join(", ")}` },
-    { checkId: "product_traceability", status: missingProductTrace.length === 0 ? "pass" : "failed", detail: missingProductTrace.length === 0 ? "Every product traces to keyword, search result item, detail, and review evidence." : `Missing trace: ${missingProductTrace.join(", ")}` },
-    { checkId: "review_traceability", status: orphanReviews.length === 0 ? "pass" : "failed", detail: orphanReviews.length === 0 ? "Every review traces to a product detail." : `Orphan reviews: ${orphanReviews.join(", ")}` },
-    { checkId: "exception_traceability", status: invalidExceptions.length === 0 ? "pass" : "failed", detail: invalidExceptions.length === 0 ? "Every exception scope resolves to task, search item, detail, or review." : `Unresolved exceptions: ${invalidExceptions.join(", ")}` },
-    { checkId: "image_evidence_coverage", status: missingImageUrls.length === 0 ? "pass" : "failed", detail: missingImageUrls.length === 0 ? "All image URLs are registered in image-evidence-index." : `Missing image URLs: ${missingImageUrls.join(", ")}` },
-    {
-      checkId: "structured_package_primary",
-      status: existsSync(input.layout.packageJsonPath) && input.packageType === "amazon-product-mining-master-evidence-package" ? "pass" : "failed",
-      detail: existsSync(input.layout.packageJsonPath)
-        ? `Structured package exists with taskStatus=${String(input.taskScope["status"] ?? "unknown")}.`
-        : "Structured package is missing.",
-    },
-  ];
+  const missingProductTrace = collectMissingProductTrace(input);
+  const orphanReviews = collectOrphanReviewIds(input);
+  const invalidExceptions = collectInvalidExceptionIds(input);
+  const checks = buildIntegrityChecks({
+    layout: input.layout,
+    packageType: input.packageType,
+    taskScope: input.taskScope,
+    missingManifestRefs,
+    missingArtifactRefs,
+    missingProductTrace,
+    orphanReviews,
+    invalidExceptions,
+    missingImageUrls,
+  });
   const failures = checks.filter((check) => check.status === "failed").map((check) => ({ checkId: check.checkId, detail: check.detail }));
   return {
     taskId: input.taskId,

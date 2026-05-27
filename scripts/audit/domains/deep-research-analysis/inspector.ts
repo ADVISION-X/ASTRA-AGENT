@@ -7,13 +7,13 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import {
+  inspectBusinessHtmlFullProcessReviewability,
     inspectHtmlArtifactCaptureChain,
     inspectHtmlReportPromptBundleInput,
     inspectHtmlUsesRawFinalAnswer,
     inspectWebChatPromptSubmitVerification,
 } from "./components/html-owner-inspectors.js";
 import { inspectAnalysisOutputCleanliness } from "./components/scan-analysis-output-cleanliness.js";
-import { inspectBusinessHtmlFullProcessReviewability } from "./components/scan-business-html-full-process-reviewability.js";
 import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
 import { inspectFinalAdjudicationPromptBundleInput } from "./components/scan-final-adjudication-promptbundle-input.js";
 import { inspectFinalAdjudicationRawSovereignty } from "./components/scan-final-adjudication-raw-sovereignty.js";
@@ -38,7 +38,7 @@ const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-  "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
 ] as const;
 
 const requiredAuditComponentFiles = [
@@ -181,7 +181,7 @@ const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
   });
 };
 
-const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
+const inspectPromptBoundaryInputs = (state: DeepResearchInspectionState): void => {
   const { context, findings, inspectedFiles, sourceFiles, surfaceFiles, acceptanceFiles, auditComponentFiles } = state;
   inspectFinalAdjudicationPromptBundleInput({
     finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
@@ -211,6 +211,10 @@ const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
   });
+};
+
+const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => {
+  const { context, findings, inspectedFiles, sourceFiles, surfaceFiles, acceptanceFiles, auditComponentFiles } = state;
   inspectBusinessHtmlFullProcessReviewability({
     promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
     htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
@@ -316,7 +320,8 @@ const inspectRuntimeShellPolicies = (state: DeepResearchInspectionState): void =
 };
 
 const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): void => {
-  inspectBoundaryInputs(state);
+  inspectPromptBoundaryInputs(state);
+  inspectHtmlBoundaryInputs(state);
   inspectPromptBundlePolicies(state);
   inspectRuntimeShellPolicies(state);
 };

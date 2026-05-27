@@ -90,6 +90,155 @@ const buildProductImageEntries = (product: AmazonProductDetail) => [
   })),
 ];
 
+const writeProductEvidenceFiles = (input: {
+  product: AmazonProductDetail;
+  detailPath: string;
+  rawVisibleTextPath: string;
+  imagesIndexPath: string;
+  sourceKeywordsPath: string;
+  linkedSearchItems: readonly LinkedSearchItem[];
+}): void => {
+  writeJsonFile(input.detailPath, input.product);
+  writeTextFile(input.rawVisibleTextPath, input.product.rawVisibleTextSnapshot ?? "");
+  writeJsonFile(input.imagesIndexPath, {
+    detailId: input.product.detailId,
+    asin: input.product.asin,
+    mode: "url_only",
+    warning: "Images are URL evidence unless localFileRef is present.",
+    images: buildProductImageEntries(input.product),
+  });
+  writeJsonFile(input.sourceKeywordsPath, {
+    detailId: input.product.detailId,
+    asin: input.product.asin,
+    sourceKeywords: input.linkedSearchItems,
+  });
+};
+
+const buildProductIdentitySection = (product: AmazonProductDetail) => ({
+  title: product.title,
+  brand: product.brand,
+  sellerOrStoreIfVisible: product.sellerOrStoreIfVisible,
+});
+
+const buildProductImageEvidenceSection = (input: {
+  layout: AmazonPackageLayout;
+  product: AmazonProductDetail;
+  imagesIndexPath: string;
+}) => ({
+  mode: "url_only",
+  imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, input.imagesIndexPath),
+  mainImageUrl: input.product.mainImage,
+  galleryCount: input.product.allVisibleImages.length,
+});
+
+const buildProductBusinessInfoSection = (product: AmazonProductDetail) => ({
+  currentPrice: product.currentPrice,
+  originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
+  rating: product.rating,
+  reviewCount: product.reviewCount,
+  bestSellersRankIfVisible: product.bestSellersRankIfVisible,
+  categoryPathIfVisible: product.categoryPathIfVisible,
+  deliveryInformation: product.deliveryInformation,
+  returnInformation: product.returnInformation,
+});
+
+const buildProductListingSection = (product: AmazonProductDetail) => ({
+  bulletPoints: product.bulletPoints,
+  aboutThisItem: product.aboutThisItem,
+  productDescription: product.productDescription,
+  aPlusContentIfVisible: product.aPlusContentIfVisible,
+});
+
+const buildProductParametersSection = (product: AmazonProductDetail) => ({
+  variationOptions: product.variationOptions,
+  colorSizeStyleOptions: product.colorSizeStyleOptions,
+  productInformation: product.productInformation,
+  technicalDetails: product.technicalDetails,
+  additionalInformation: product.additionalInformation,
+  allOtherVisibleProductParameters: product.allOtherVisibleProductParameters,
+});
+
+const buildProductRelatedModulesSection = (product: AmazonProductDetail) => ({
+  qaContentIfVisible: product.qaContentIfVisible,
+  frequentlyBoughtTogetherIfVisible: product.frequentlyBoughtTogetherIfVisible,
+  customersAlsoBoughtIfVisible: product.customersAlsoBoughtIfVisible,
+  compareWithSimilarItemsIfVisible: product.compareWithSimilarItemsIfVisible,
+});
+
+const buildProductReviewSummarySection = (input: {
+  product: AmazonProductDetail;
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+  representativeSamples: ReturnType<typeof buildRepresentativeSamples>;
+  reviews: readonly AmazonReviewRecord[];
+}) => ({
+  reviewStatus: input.reviewArtifact?.reviewStatus ?? input.product.status,
+  capturedReviewCount: input.reviewArtifact?.capturedReviewCount ?? input.reviews.length,
+  reviewsSummaryRef: input.reviewArtifact?.reviewsSummaryRef ?? null,
+  reviewsJsonlRef: input.reviewArtifact?.reviewsJsonlRef ?? null,
+  reviewPagesIndexRef: input.reviewArtifact?.reviewPagesIndexRef ?? null,
+  representativeSamples: input.representativeSamples,
+});
+
+const buildProductCompletenessSection = (input: {
+  completenessScore: number;
+  missingFields: readonly string[];
+  warnings: readonly string[];
+}) => ({
+  score: input.completenessScore,
+  missingFields: input.missingFields,
+  warnings: input.warnings,
+});
+
+const buildProductEvidenceRefsSection = (input: {
+  layout: AmazonPackageLayout;
+  detailPath: string;
+  rawVisibleTextPath: string;
+  imagesIndexPath: string;
+  sourceKeywordsPath: string;
+}) => ({
+  detailRef: toPackageRelativePath(input.layout.packageRootPath, input.detailPath),
+  rawVisibleTextRef: toPackageRelativePath(input.layout.packageRootPath, input.rawVisibleTextPath),
+  imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, input.imagesIndexPath),
+  sourceKeywordsRef: toPackageRelativePath(input.layout.packageRootPath, input.sourceKeywordsPath),
+});
+
+const buildProductSummaryArtifact = (input: {
+  layout: AmazonPackageLayout;
+  product: AmazonProductDetail;
+  imagesIndexPath: string;
+  sourceKeywordsPath: string;
+  detailPath: string;
+  rawVisibleTextPath: string;
+  linkedSearchItems: readonly LinkedSearchItem[];
+  reviewArtifact: AmazonPackageReviewEvidence | undefined;
+  representativeSamples: ReturnType<typeof buildRepresentativeSamples>;
+  reviews: readonly AmazonReviewRecord[];
+  warnings: readonly string[];
+  missingFields: readonly string[];
+  completenessScore: number;
+  exceptionIds: readonly string[];
+}) => ({
+  detailId: input.product.detailId,
+  asin: input.product.asin,
+  status: input.product.status,
+  failureReason: input.product.failureReason,
+  identity: buildProductIdentitySection(input.product),
+  imageEvidence: buildProductImageEvidenceSection(input),
+  sourceKeywords: {
+    count: input.linkedSearchItems.length,
+    fileRef: toPackageRelativePath(input.layout.packageRootPath, input.sourceKeywordsPath),
+    keywords: input.linkedSearchItems,
+  },
+  pageBusinessInfo: buildProductBusinessInfoSection(input.product),
+  listing: buildProductListingSection(input.product),
+  parameters: buildProductParametersSection(input.product),
+  relatedModules: buildProductRelatedModulesSection(input.product),
+  reviewSummary: buildProductReviewSummarySection(input),
+  completeness: buildProductCompletenessSection(input),
+  exceptionRefs: input.exceptionIds,
+  evidenceRefs: buildProductEvidenceRefsSection(input),
+});
+
 const writeProductArtifacts = (input: {
   layout: AmazonPackageLayout;
   product: AmazonProductDetail;
@@ -107,92 +256,23 @@ const writeProductArtifacts = (input: {
   exceptionIds: readonly string[];
 }) => {
   const representativeSamples = buildRepresentativeSamples(input.reviews);
-  writeJsonFile(input.detailPath, input.product);
-  writeTextFile(input.rawVisibleTextPath, input.product.rawVisibleTextSnapshot ?? "");
-  writeJsonFile(input.imagesIndexPath, {
-    detailId: input.product.detailId,
-    asin: input.product.asin,
-    mode: "url_only",
-    warning: "Images are URL evidence unless localFileRef is present.",
-    images: buildProductImageEntries(input.product),
-  });
-  writeJsonFile(input.sourceKeywordsPath, {
-    detailId: input.product.detailId,
-    asin: input.product.asin,
-    sourceKeywords: input.linkedSearchItems,
-  });
-  writeJsonFile(input.summaryPath, {
-    detailId: input.product.detailId,
-    asin: input.product.asin,
-    status: input.product.status,
-    failureReason: input.product.failureReason,
-    identity: {
-      title: input.product.title,
-      brand: input.product.brand,
-      sellerOrStoreIfVisible: input.product.sellerOrStoreIfVisible,
-    },
-    imageEvidence: {
-      mode: "url_only",
-      imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, input.imagesIndexPath),
-      mainImageUrl: input.product.mainImage,
-      galleryCount: input.product.allVisibleImages.length,
-    },
-    sourceKeywords: {
-      count: input.linkedSearchItems.length,
-      fileRef: toPackageRelativePath(input.layout.packageRootPath, input.sourceKeywordsPath),
-      keywords: input.linkedSearchItems,
-    },
-    pageBusinessInfo: {
-      currentPrice: input.product.currentPrice,
-      originalPriceDiscountCouponIfVisible: input.product.originalPriceDiscountCouponIfVisible,
-      rating: input.product.rating,
-      reviewCount: input.product.reviewCount,
-      bestSellersRankIfVisible: input.product.bestSellersRankIfVisible,
-      categoryPathIfVisible: input.product.categoryPathIfVisible,
-      deliveryInformation: input.product.deliveryInformation,
-      returnInformation: input.product.returnInformation,
-    },
-    listing: {
-      bulletPoints: input.product.bulletPoints,
-      aboutThisItem: input.product.aboutThisItem,
-      productDescription: input.product.productDescription,
-      aPlusContentIfVisible: input.product.aPlusContentIfVisible,
-    },
-    parameters: {
-      variationOptions: input.product.variationOptions,
-      colorSizeStyleOptions: input.product.colorSizeStyleOptions,
-      productInformation: input.product.productInformation,
-      technicalDetails: input.product.technicalDetails,
-      additionalInformation: input.product.additionalInformation,
-      allOtherVisibleProductParameters: input.product.allOtherVisibleProductParameters,
-    },
-    relatedModules: {
-      qaContentIfVisible: input.product.qaContentIfVisible,
-      frequentlyBoughtTogetherIfVisible: input.product.frequentlyBoughtTogetherIfVisible,
-      customersAlsoBoughtIfVisible: input.product.customersAlsoBoughtIfVisible,
-      compareWithSimilarItemsIfVisible: input.product.compareWithSimilarItemsIfVisible,
-    },
-    reviewSummary: {
-      reviewStatus: input.reviewArtifact?.reviewStatus ?? input.product.status,
-      capturedReviewCount: input.reviewArtifact?.capturedReviewCount ?? input.reviews.length,
-      reviewsSummaryRef: input.reviewArtifact?.reviewsSummaryRef ?? null,
-      reviewsJsonlRef: input.reviewArtifact?.reviewsJsonlRef ?? null,
-      reviewPagesIndexRef: input.reviewArtifact?.reviewPagesIndexRef ?? null,
-      representativeSamples,
-    },
-    completeness: {
-      score: input.completenessScore,
-      missingFields: input.missingFields,
-      warnings: input.warnings,
-    },
-    exceptionRefs: input.exceptionIds,
-    evidenceRefs: {
-      detailRef: toPackageRelativePath(input.layout.packageRootPath, input.detailPath),
-      rawVisibleTextRef: toPackageRelativePath(input.layout.packageRootPath, input.rawVisibleTextPath),
-      imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, input.imagesIndexPath),
-      sourceKeywordsRef: toPackageRelativePath(input.layout.packageRootPath, input.sourceKeywordsPath),
-    },
-  });
+  writeProductEvidenceFiles(input);
+  writeJsonFile(input.summaryPath, buildProductSummaryArtifact({
+    layout: input.layout,
+    product: input.product,
+    imagesIndexPath: input.imagesIndexPath,
+    sourceKeywordsPath: input.sourceKeywordsPath,
+    detailPath: input.detailPath,
+    rawVisibleTextPath: input.rawVisibleTextPath,
+    linkedSearchItems: input.linkedSearchItems,
+    reviewArtifact: input.reviewArtifact,
+    representativeSamples,
+    reviews: input.reviews,
+    warnings: input.warnings,
+    missingFields: input.missingFields,
+    completenessScore: input.completenessScore,
+    exceptionIds: input.exceptionIds,
+  }));
 };
 
 const createProductEvidenceArtifact = (input: {

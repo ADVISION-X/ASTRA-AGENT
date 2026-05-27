@@ -21,6 +21,47 @@ const {
 
 declare const writeActivity: (message: string, tone?: string) => void;
 
+type DeepResearchFieldHelpKey =
+  | "userQuestion"
+  | "analysisGoal"
+  | "language"
+  | "providerKind"
+  | "maxSubQuestions";
+
+function getFieldHelpContent(): Record<DeepResearchFieldHelpKey, {
+  title: string;
+  body: string;
+  effect: string;
+}> {
+  return {
+    userQuestion: {
+      title: "User Question",
+      body: "这里填写你真正要研究的大问题。写得越具体，AI 第一轮拆解 ResearchPlan 时越容易拆出有用的子问题。",
+      effect: "作用：这是整个 Deep Research 的主问题，会进入第一轮拆解、每个子问题分析、Full Case File、最终裁决和 HTML 报告。",
+    },
+    analysisGoal: {
+      title: "Analysis Goal",
+      body: "这一项可以不填。它不是第二个问题，而是告诉 AI 本次研究希望偏向什么交付目标、判断口径或使用场景。",
+      effect: "作用：填写后会附加进第一轮拆解 prompt，并作为后续子问题分析上下文保存进案卷。比如：只要民间确认案例，不判断真假；输出可执行清单；优先找反例和风险。",
+    },
+    language: {
+      title: "Language",
+      body: "选择 AI 回复和最终报告使用的语言。中文任务一般选 zh-CN；英文商业报告或英文材料优先时选 en。",
+      effect: "作用：影响 ResearchPlan、N 阶段回答、最终裁决和 HTML 报告的输出语言。",
+    },
+    providerKind: {
+      title: "Provider",
+      body: "选择把 prompt 投喂给哪个 AI 通道。GPT web chat 会走已授权的 ChatGPT 网页会话；Gemini web chat 走 Gemini 网页会话；Gemini API 走 API 通道。",
+      effect: "作用：只决定外部 AI 传输通道，不改变 Deep Research 的 1+N+1+1 主流程和案卷保存规则。",
+    },
+    maxSubQuestions: {
+      title: "Max sub questions",
+      body: "限制第一轮 AI 最多拆出多少个子问题。数字越大，覆盖面更广，但运行时间和 AI 调用次数也更多。",
+      effect: "作用：当前允许 2 到 12。一般问题用 4-6；复杂商业/技术判断可用 6-10；特别宽的问题才考虑 12。",
+    },
+  };
+}
+
 function setSelectedJobId(state: DeepResearchClientState, jobId: string): void {
   state.selectedJobId = jobId;
   if (jobId) {
@@ -136,6 +177,27 @@ async function startDeepResearch(state: DeepResearchClientState, event: Event): 
   await loadSelectedReport(state, payload.jobId, { skipHistoryRefresh: true });
 }
 
+function setHelpModalHidden(hidden: boolean): void {
+  const modal = researchQuery("[data-deep-research-help-modal]");
+  if (modal instanceof HTMLElement) {
+    modal.classList.toggle("hidden", hidden);
+  }
+}
+
+function openFieldHelp(fieldKey: string): void {
+  const content = getFieldHelpContent()[fieldKey as DeepResearchFieldHelpKey];
+  if (!content) {
+    return;
+  }
+  const title = researchQuery("[data-deep-research-help-title]");
+  const body = researchQuery("[data-deep-research-help-body]");
+  const effect = researchQuery("[data-deep-research-help-effect]");
+  if (title) title.textContent = content.title;
+  if (body) body.textContent = content.body;
+  if (effect) effect.textContent = content.effect;
+  setHelpModalHidden(false);
+}
+
 async function downloadDeepResearchExport(state: DeepResearchClientState, kind: string): Promise<void> {
   if (!state.selectedJobId) {
     writeActivity("deep research job id is required", "warn");
@@ -203,40 +265,60 @@ async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: stri
   }
 }
 
-function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEvent): void {
-  const target = event.target instanceof Element ? event.target : null;
+function tryHandleDeepResearchHelpClick(target: Element | null): boolean {
+  const helpButton = target?.closest("[data-deep-research-field-help]");
+  if (helpButton) {
+    openFieldHelp(helpButton.getAttribute("data-deep-research-field-help") || "");
+    return true;
+  }
+  if (target?.closest("[data-deep-research-help-close]")) {
+    setHelpModalHidden(true);
+    return true;
+  }
+  return false;
+}
+
+function tryHandleDeepResearchExportClick(state: DeepResearchClientState, target: Element | null): boolean {
   const openExportButton = target?.closest("[data-deep-research-open-export]");
   if (openExportButton) {
     openDeepResearchExport(state, openExportButton.getAttribute("data-deep-research-open-export") || "").catch((error) => {
       writeActivity(`deep research export open failed: ${error.message}`, "bad");
     });
-    return;
-  }
-  const deleteJob = target?.closest("[data-deep-research-delete-job]");
-  if (deleteJob) {
-    deleteDeepResearchJob(state, deleteJob.getAttribute("data-deep-research-delete-job") || "").catch((error) => {
-      writeActivity(`deep research delete failed: ${error.message}`, "bad");
-    });
-    return;
-  }
-  const selectedJob = target?.closest("[data-deep-research-select-job]");
-  if (selectedJob) {
-    loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "", { closeForm: true }).catch((error) => {
-      writeActivity(`deep research selection failed: ${error.message}`, "bad");
-    });
-    return;
+    return true;
   }
   const exportButton = target?.closest("[data-deep-research-export]");
   if (exportButton) {
     downloadDeepResearchExport(state, exportButton.getAttribute("data-deep-research-export") || "").catch((error) => {
       writeActivity(`deep research export failed: ${error.message}`, "bad");
     });
-    return;
+    return true;
   }
+  return false;
+}
+
+function tryHandleDeepResearchJobClick(state: DeepResearchClientState, target: Element | null): boolean {
+  const deleteJob = target?.closest("[data-deep-research-delete-job]");
+  if (deleteJob) {
+    deleteDeepResearchJob(state, deleteJob.getAttribute("data-deep-research-delete-job") || "").catch((error) => {
+      writeActivity(`deep research delete failed: ${error.message}`, "bad");
+    });
+    return true;
+  }
+  const selectedJob = target?.closest("[data-deep-research-select-job]");
+  if (selectedJob) {
+    loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "", { closeForm: true }).catch((error) => {
+      writeActivity(`deep research selection failed: ${error.message}`, "bad");
+    });
+    return true;
+  }
+  return false;
+}
+
+function tryHandleDeepResearchToolbarClick(state: DeepResearchClientState, target: Element | null): boolean {
   if (target?.closest("[data-deep-research-new-toggle]")) {
     state.formOpen = !state.formOpen;
     syncFormVisibility(state, Boolean(state.selectedJobId));
-    return;
+    return true;
   }
   if (target?.closest("[data-deep-research-refresh]")) {
     refreshHistory(state)
@@ -247,11 +329,27 @@ function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEve
         return undefined;
       })
       .catch((error) => writeActivity(`deep research history refresh failed: ${error.message}`, "bad"));
-    return;
+    return true;
   }
   if (target?.closest("[data-deep-research-latest]")) {
     loadLatestReport(state).catch((error) => writeActivity(`deep research latest failed: ${error.message}`, "bad"));
+    return true;
   }
+  return false;
+}
+
+function handleDeepResearchClick(state: DeepResearchClientState, event: MouseEvent): void {
+  const target = event.target instanceof Element ? event.target : null;
+  if (tryHandleDeepResearchHelpClick(target)) {
+    return;
+  }
+  if (tryHandleDeepResearchExportClick(state, target)) {
+    return;
+  }
+  if (tryHandleDeepResearchJobClick(state, target)) {
+    return;
+  }
+  tryHandleDeepResearchToolbarClick(state, target);
 }
 
 function handleDeepResearchInput(state: DeepResearchClientState, event: Event): void {
@@ -304,6 +402,9 @@ export const deepResearchClientBootFunctions = [
   loadSelectedReport,
   loadLatestReport,
   startDeepResearch,
+  getFieldHelpContent,
+  setHelpModalHidden,
+  openFieldHelp,
   downloadDeepResearchExport,
   openDeepResearchExport,
   deleteDeepResearchJob,

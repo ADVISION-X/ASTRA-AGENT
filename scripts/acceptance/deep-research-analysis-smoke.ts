@@ -13,7 +13,7 @@ import type {
 import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runDeepResearchAnalysis } from "../../src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.js";
-import { exportDeepResearchArtifacts } from "../../src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.js";
+import { exportDeepResearchArtifacts } from "../../src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.js";
 import {
     parseDeepResearchFinalAdjudicationResponse,
     parseDeepResearchSubQuestionAnalysisResponse,

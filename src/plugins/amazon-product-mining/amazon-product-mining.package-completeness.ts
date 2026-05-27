@@ -143,6 +143,104 @@ export const buildImageEvidenceIndex = (input: {
   };
 };
 
+  const createStatusItemPusher = (items: PackageStatusItem[]): ((item: PackageStatusItem) => void) => {
+    const seen = new Set<string>();
+    return (item: PackageStatusItem) => {
+      const key = `${item.scope}:${item.scopeId ?? "task"}:${item.status}`;
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      items.push(item);
+    };
+  };
+
+  const appendTaskStatusItem = (input: {
+    task: AmazonTaskRecord | null;
+    status: "manual_required" | "failed";
+    pushItem: (item: PackageStatusItem) => void;
+  }): void => {
+    if (input.task && input.task.status === input.status) {
+      input.pushItem({
+        scope: "task",
+        scopeId: input.task.taskId,
+        status: input.task.status,
+        reason: input.task.failureReason,
+        exceptionRefs: [],
+      });
+    }
+  };
+
+  const appendKeywordStatusItems = (input: {
+    keywords: readonly AmazonKeywordRecord[];
+    status: "manual_required" | "failed";
+    exceptionScopeMap: Map<string, string[]>;
+    pushItem: (item: PackageStatusItem) => void;
+  }): void => {
+    for (const keyword of input.keywords) {
+      if (keyword.status !== input.status) {
+        continue;
+      }
+      input.pushItem({
+        scope: "keyword",
+        scopeId: keyword.keywordId,
+        status: keyword.status,
+        reason: keyword.reason,
+        exceptionRefs: input.exceptionScopeMap.get(keyword.keywordId) ?? [],
+      });
+    }
+  };
+
+  const appendProductStatusItems = (input: {
+    products: readonly AmazonProductDetail[];
+    status: "manual_required" | "failed";
+    exceptionScopeMap: Map<string, string[]>;
+    pushItem: (item: PackageStatusItem) => void;
+  }): void => {
+    for (const product of input.products) {
+      if (product.status !== input.status) {
+        continue;
+      }
+      input.pushItem({
+        scope: "product",
+        scopeId: product.detailId,
+        status: product.status,
+        reason: product.failureReason,
+        exceptionRefs: input.exceptionScopeMap.get(product.detailId) ?? [],
+      });
+    }
+  };
+
+  const isManualException = (exception: AmazonExceptionRecord): boolean =>
+    /(manual|required|captcha|login|blocked|restricted)/i.test(exception.exceptionKind)
+    || /(manual|required|captcha|login|blocked|restricted)/i.test(exception.message);
+
+  const appendExceptionStatusItems = (input: {
+    exceptions: readonly AmazonExceptionRecord[];
+    status: "manual_required" | "failed";
+    pushItem: (item: PackageStatusItem) => void;
+  }): void => {
+    for (const exception of input.exceptions) {
+      const manual = isManualException(exception);
+      if ((input.status === "manual_required" && !manual) || (input.status === "failed" && manual)) {
+        continue;
+      }
+      input.pushItem({
+        scope: exception.scope,
+        scopeId: exception.scopeId,
+        status: input.status,
+        reason: exception.message,
+        exceptionRefs: [exception.exceptionId],
+      });
+    }
+  };
+
+  const resolveStatusTaskId = (input: {
+    task: AmazonTaskRecord | null;
+    keywords: readonly AmazonKeywordRecord[];
+    products: readonly AmazonProductDetail[];
+  }): string => input.task?.taskId ?? input.keywords[0]?.taskId ?? input.products[0]?.taskId ?? "unknown";
+
 export const buildStatusItems = (input: {
   task: AmazonTaskRecord | null;
   keywords: readonly AmazonKeywordRecord[];
@@ -151,53 +249,77 @@ export const buildStatusItems = (input: {
   status: "manual_required" | "failed";
 }): { taskId: string; count: number; items: PackageStatusItem[] } => {
   const items: PackageStatusItem[] = [];
-  const seen = new Set<string>();
   const exceptionScopeMap = buildExceptionScopeMap(input.exceptions);
-  const manualRegex = /(manual|required|captcha|login|blocked|restricted)/i;
-  const pushItem = (item: PackageStatusItem) => {
-    const key = `${item.scope}:${item.scopeId ?? "task"}:${item.status}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    items.push(item);
-  };
-  if (input.task && input.task.status === input.status) {
-    pushItem({ scope: "task", scopeId: input.task.taskId, status: input.task.status, reason: input.task.failureReason, exceptionRefs: [] });
-  }
-  for (const keyword of input.keywords) {
-    if (keyword.status !== input.status) continue;
-    pushItem({
-      scope: "keyword",
-      scopeId: keyword.keywordId,
-      status: keyword.status,
-      reason: keyword.reason,
-      exceptionRefs: exceptionScopeMap.get(keyword.keywordId) ?? [],
-    });
-  }
-  for (const product of input.products) {
-    if (product.status !== input.status) continue;
-    pushItem({
-      scope: "product",
-      scopeId: product.detailId,
-      status: product.status,
-      reason: product.failureReason,
-      exceptionRefs: exceptionScopeMap.get(product.detailId) ?? [],
-    });
-  }
-  for (const exception of input.exceptions) {
-    const isManualException = manualRegex.test(exception.exceptionKind) || manualRegex.test(exception.message);
-    if ((input.status === "manual_required" && !isManualException) || (input.status === "failed" && isManualException)) continue;
-    pushItem({
-      scope: exception.scope,
-      scopeId: exception.scopeId,
-      status: input.status,
-      reason: exception.message,
-      exceptionRefs: [exception.exceptionId],
-    });
-  }
+  const pushItem = createStatusItemPusher(items);
+  appendTaskStatusItem({ task: input.task, status: input.status, pushItem });
+  appendKeywordStatusItems({ keywords: input.keywords, status: input.status, exceptionScopeMap, pushItem });
+  appendProductStatusItems({ products: input.products, status: input.status, exceptionScopeMap, pushItem });
+  appendExceptionStatusItems({ exceptions: input.exceptions, status: input.status, pushItem });
   return {
-    taskId: input.task?.taskId ?? input.keywords[0]?.taskId ?? input.products[0]?.taskId ?? "unknown",
+    taskId: resolveStatusTaskId(input),
     count: items.length,
     items,
+  };
+};
+
+const buildCompletenessSummary = (input: {
+  task: AmazonTaskRecord | null;
+  keywords: readonly AmazonKeywordRecord[];
+  searchResults: readonly AmazonSearchResultItem[];
+  products: readonly AmazonProductDetail[];
+  reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
+  exceptions: readonly AmazonExceptionRecord[];
+  manualRequiredItems: { count: number };
+  failedItems: { count: number };
+  reviewMaxPages?: number;
+}) => ({
+  keywordCountRequested: input.task?.requestedKeywordCount ?? input.keywords.length,
+  keywordCountGenerated: input.keywords.length,
+  keywordCountCompleted: input.keywords.filter((keyword) => keyword.status === "completed" || keyword.status === "completed_with_errors").length,
+  searchResultCount: input.searchResults.length,
+  uniqueProductDetailCount: input.products.length,
+  reviewCount: [...input.reviewsByDetailId.values()].reduce((sum, reviews) => sum + reviews.length, 0),
+  exceptionCount: input.exceptions.length,
+  manualRequiredCount: input.manualRequiredItems.count,
+  failedCount: input.failedItems.count,
+  packageCompletenessStatus: input.manualRequiredItems.count === 0 && input.failedItems.count === 0 ? "complete" : "incomplete",
+  reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
+});
+
+const buildCompletenessProductRow = (input: {
+  product: AmazonProductDetail;
+  reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
+  productArtifactsByDetailId: Map<string, AmazonPackageProductEvidence>;
+  reviewArtifactsByDetailId: Map<string, AmazonPackageReviewEvidence>;
+  reviewMaxPages?: number;
+}) => {
+  const reviewRows = input.reviewsByDetailId.get(input.product.detailId) ?? [];
+  const productArtifact = input.productArtifactsByDetailId.get(input.product.detailId);
+  const reviewArtifact = input.reviewArtifactsByDetailId.get(input.product.detailId);
+  const hasReviewRawText = reviewRows.some((review) => Boolean(review.rawReviewTextSnapshot));
+  const reviewRestriction = reviewArtifact?.warnings.some((warning) => warning.includes("maxPages"))
+    ? "max_pages_limit"
+    : input.product.status === "manual_required" ? "manual_required" : null;
+  return {
+    detailId: input.product.detailId,
+    asin: input.product.asin,
+    detailStatus: input.product.status,
+    reviewStatus: reviewArtifact?.reviewStatus ?? input.product.status,
+    reviewPagesVisited: reviewArtifact?.pagesVisited ?? 0,
+    reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
+    reviewRestriction,
+    manualRequired: input.product.status === "manual_required",
+    hasRawDetailText: Boolean(input.product.rawVisibleTextSnapshot),
+    hasMainImage: Boolean(input.product.mainImage),
+    hasGalleryImages: input.product.allVisibleImages.length > 0,
+    hasBulletPoints: input.product.bulletPoints.length > 0,
+    hasDescription: Boolean(input.product.productDescription || input.product.aboutThisItem),
+    hasTechnicalDetails: Boolean(input.product.technicalDetails || input.product.productInformation),
+    hasReviews: reviewRows.length > 0,
+    hasReviewRawText,
+    missingFields: productArtifact?.missingFields ?? [],
+    dataCompletenessScore: productArtifact?.completenessScore ?? 0,
+    warnings: [...(productArtifact?.warnings ?? []), ...(reviewArtifact?.warnings ?? [])],
   };
 };
 
@@ -219,48 +341,13 @@ export const buildCompletenessReport = (input: {
   const productArtifactsByDetailId = new Map(input.productArtifacts.map((artifact) => [artifact.detailId, artifact]));
   return {
     taskId: input.taskId,
-    summary: {
-      keywordCountRequested: input.task?.requestedKeywordCount ?? input.keywords.length,
-      keywordCountGenerated: input.keywords.length,
-      keywordCountCompleted: input.keywords.filter((keyword) => keyword.status === "completed" || keyword.status === "completed_with_errors").length,
-      searchResultCount: input.searchResults.length,
-      uniqueProductDetailCount: input.products.length,
-      reviewCount: [...input.reviewsByDetailId.values()].reduce((sum, reviews) => sum + reviews.length, 0),
-      exceptionCount: input.exceptions.length,
-      manualRequiredCount: input.manualRequiredItems.count,
-      failedCount: input.failedItems.count,
-      packageCompletenessStatus: input.manualRequiredItems.count === 0 && input.failedItems.count === 0 ? "complete" : "incomplete",
-      reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
-    },
-    products: input.products.map((product) => {
-      const reviewRows = input.reviewsByDetailId.get(product.detailId) ?? [];
-      const productArtifact = productArtifactsByDetailId.get(product.detailId);
-      const reviewArtifact = reviewArtifactsByDetailId.get(product.detailId);
-      const hasReviewRawText = reviewRows.some((review) => Boolean(review.rawReviewTextSnapshot));
-      const reviewRestriction = reviewArtifact?.warnings.some((warning) => warning.includes("maxPages"))
-        ? "max_pages_limit"
-        : product.status === "manual_required" ? "manual_required" : null;
-      return {
-        detailId: product.detailId,
-        asin: product.asin,
-        detailStatus: product.status,
-        reviewStatus: reviewArtifact?.reviewStatus ?? product.status,
-        reviewPagesVisited: reviewArtifact?.pagesVisited ?? 0,
-        reviewMaxPagesConfigured: input.reviewMaxPages ?? null,
-        reviewRestriction,
-        manualRequired: product.status === "manual_required",
-        hasRawDetailText: Boolean(product.rawVisibleTextSnapshot),
-        hasMainImage: Boolean(product.mainImage),
-        hasGalleryImages: product.allVisibleImages.length > 0,
-        hasBulletPoints: product.bulletPoints.length > 0,
-        hasDescription: Boolean(product.productDescription || product.aboutThisItem),
-        hasTechnicalDetails: Boolean(product.technicalDetails || product.productInformation),
-        hasReviews: reviewRows.length > 0,
-        hasReviewRawText,
-        missingFields: productArtifact?.missingFields ?? [],
-        dataCompletenessScore: productArtifact?.completenessScore ?? 0,
-        warnings: [...(productArtifact?.warnings ?? []), ...(reviewArtifact?.warnings ?? [])],
-      };
-    }),
+    summary: buildCompletenessSummary(input),
+    products: input.products.map((product) => buildCompletenessProductRow({
+      product,
+      reviewsByDetailId: input.reviewsByDetailId,
+      productArtifactsByDetailId,
+      reviewArtifactsByDetailId,
+      ...(input.reviewMaxPages !== undefined ? { reviewMaxPages: input.reviewMaxPages } : {}),
+    })),
   };
 };

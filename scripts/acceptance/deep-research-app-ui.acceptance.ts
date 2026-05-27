@@ -4,7 +4,9 @@ import { readFileSync } from "node:fs";
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 
 const reportView = readFileSync("src/app/workbench-deep-research-report-view.ts", "utf8");
+const panelView = readFileSync("src/app/workbench-deep-research-panel.ts", "utf8");
 const contracts = readFileSync("src/app/workbench-deep-research-client-contracts.ts", "utf8");
+const bootClient = readFileSync("src/app/workbench-deep-research-client-boot.ts", "utf8");
 const clientShared = readFileSync("src/app/workbench-deep-research-client-shared.ts", "utf8");
 const deliverySections = readFileSync("src/app/workbench-deep-research-client-delivery-sections.ts", "utf8");
 
@@ -27,6 +29,14 @@ assert(deliverySections.includes("sourceKind"), "Delivery sections must expose s
 assert(deliverySections.includes("fileHash"), "Delivery sections must expose fileHash.");
 assert(deliverySections.includes("fileSizeBytes"), "Delivery sections must expose fileSizeBytes.");
 assert(deliverySections.includes("failureReason") || deliverySections.includes("reviewReason"), "Delivery sections must expose failureReason or reviewReason.");
+
+for (const fieldName of ["userQuestion", "analysisGoal", "language", "providerKind", "maxSubQuestions"]) {
+  assert(panelView.includes(`data-deep-research-field-help="${fieldName}"`), `${fieldName} must have field help.`);
+}
+assert(panelView.includes("data-deep-research-help-modal"), "Deep Research form must include a field-help modal.");
+assert(bootClient.includes("getFieldHelpContent"), "Deep Research client must define field help content.");
+assert(bootClient.includes("openFieldHelp"), "Deep Research client must open field help.");
+assert(bootClient.includes("data-deep-research-help-close"), "Deep Research client must close field help.");
 
 for (const forbidden of [
   decode("cHB0"),

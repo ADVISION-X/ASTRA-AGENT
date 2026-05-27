@@ -9,7 +9,7 @@ import {
     type FlowStageHandle,
 } from "./deep-research-analysis.analysis-runner.js";
 import { buildDeepResearchFullCaseFile, renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file.js";
-import { exportDeepResearchArtifacts } from "./deep-research-analysis.html-report-stage.js";
+import { exportDeepResearchArtifacts } from "./deep-research-analysis.export-artifacts.js";
 import {
     logDeepResearchExportCompleted,
     logDeepResearchJobCompleted,
