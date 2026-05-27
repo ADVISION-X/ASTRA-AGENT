@@ -25,74 +25,65 @@ const createReportArtifactsDir = (input: AmazonPdfBuildInput): string => {
   return artifactsDir;
 };
 
-const renderMissionParameterRows = (input: AmazonPdfBuildInput): string => `
-<tr><td>Task ID</td><td>${escapeHtml(input.taskId)}</td></tr>
-<tr><td>Amazon Marketplace</td><td>${escapeHtml(input.amazonMarketplace)}</td></tr>
-<tr><td>Target Market</td><td>${escapeHtml(input.targetMarket)}</td></tr>
-<tr><td>Product Direction</td><td>${escapeHtml(input.productDirection)}</td></tr>
-<tr><td>Generated At</td><td>${new Date().toISOString()}</td></tr>`;
+const escapePdfText = (value: string): string =>
+  value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 
-const renderStatsCards = (input: AmazonPdfBuildInput): string => `
-  <div class="stat-card">
-    <div class="stat-value">${input.keywordCount}</div>
-    <div class="stat-label">Keywords Mined</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value">${input.productCount}</div>
-    <div class="stat-label">Products Detailed</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-value">${input.reviewCount}</div>
-    <div class="stat-label">Reviews Collected</div>
-  </div>`;
+const buildReportLines = (input: AmazonPdfBuildInput): string[] => [
+  "Amazon Product Mining Report",
+  `Task ID: ${input.taskId}`,
+  `Amazon Marketplace: ${input.amazonMarketplace}`,
+  `Target Market: ${input.targetMarket}`,
+  `Product Direction: ${input.productDirection}`,
+  `Generated At: ${new Date().toISOString()}`,
+  `Keywords Mined: ${input.keywordCount}`,
+  `Products Detailed: ${input.productCount}`,
+  `Reviews Collected: ${input.reviewCount}`,
+  "This report is a surface summary.",
+  "The complete structured data package is the source for keyword to product to review traceability.",
+  "This report provides mining evidence only. Advanced AI analysis receives the package for adjudication.",
+  `Data Package: ${input.packageJsonPath}`,
+];
 
-const renderAmazonProductMiningReportHtml = (input: AmazonPdfBuildInput): string => `<!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amazon Product Mining Report — Task ${input.taskId}</title>
-<style>
-body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 24px; color: #333; }
-h1 { color: #146eb4; border-bottom: 2px solid #146eb4; padding-bottom: 8px; }
-h2 { color: #232f3e; }
-.meta-table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
-.meta-table th, .meta-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-.meta-table th { background: #232f3e; color: white; }
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px; text-align: center; }
-.stat-value { font-size: 2em; font-weight: bold; color: #146eb4; }
-.stat-label { color: #666; font-size: 0.9em; }
-.note { background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 4px; margin-bottom: 24px; }
-</style>
-</head>
-<body>
-<h1>Amazon Product Mining Report</h1>
-<div class="note">
-  This report is a surface summary. The complete structured data is available in the data package JSON file.
-  This report provides mining evidence only. AI analysis is required for adjudication.
-</div>
-<h2>Mission Parameters</h2>
-<table class="meta-table">
-<tr><th>Field</th><th>Value</th></tr>${renderMissionParameterRows(input)}
-</table>
-<h2>Collection Statistics</h2>
-<div class="stats-grid">${renderStatsCards(input)}
-</div>
-<h2>Data Package Reference</h2>
-<p>Complete structured data is stored at:</p>
-<pre>${escapeHtml(input.packageJsonPath)}</pre>
-<p>Load this JSON file for full keyword→product→review traceability.</p>
-</body>
-</html>`;
+const buildPdfStream = (lines: readonly string[]): string => {
+  const textLines = lines
+    .map((line, index) => {
+      const prefix = index === 0 ? "BT /F1 18 Tf 22 TL 50 760 Td " : "T* ";
+      const fontSize = index === 0 ? "" : "/F1 10 Tf 14 TL ";
+      return `${prefix}${fontSize}(${escapePdfText(line)}) Tj`;
+    })
+    .join("\n");
+  return `${textLines}\nET`;
+};
+
+const buildMinimalPdf = (lines: readonly string[]): Buffer => {
+  const stream = buildPdfStream(lines);
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    `5 0 obj\n<< /Length ${Buffer.byteLength(stream, "utf8")} >>\nstream\n${stream}\nendstream\nendobj\n`,
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets = [0];
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(body, "utf8"));
+    body += object;
+  }
+  const xrefOffset = Buffer.byteLength(body, "utf8");
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  body += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(body, "utf8");
+};
 
 export const buildAmazonProductMiningReport = (input: AmazonPdfBuildInput): AmazonPdfResult => {
   const artifactsDir = createReportArtifactsDir(input);
-  const htmlContent = renderAmazonProductMiningReportHtml(input);
+  const pdfContent = buildMinimalPdf(buildReportLines(input));
 
-  const reportPath = join(artifactsDir, "report.html");
+  const reportPath = join(artifactsDir, "amazon-product-mining-report.pdf");
   try {
-    writeFileSync(reportPath, htmlContent, "utf8");
+    writeFileSync(reportPath, pdfContent);
     return { ok: true, pdfReportPath: reportPath };
   } catch (error) {
     return {
@@ -102,11 +93,3 @@ export const buildAmazonProductMiningReport = (input: AmazonPdfBuildInput): Amaz
     };
   }
 };
-
-const escapeHtml = (str: string): string =>
-  str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");

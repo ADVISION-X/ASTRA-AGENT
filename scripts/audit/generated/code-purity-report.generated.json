@@ -5,11 +5,13 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-26T18:31:48.140Z",
+  "generatedAt": "2026-05-26T19:40:26.664Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-keyword-dedup.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
@@ -67,6 +69,7 @@
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-mediator-shared-ai-scope.ts",
@@ -538,6 +541,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
+      "reason": "package.json script acceptance:amazon-product-mining",
+      "scriptName": "acceptance:amazon-product-mining"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
       "reason": "package.json script acceptance:amazon-product-mining",
       "scriptName": "acceptance:amazon-product-mining"
@@ -545,6 +554,12 @@
     {
       "entryKind": "package-script",
       "filePath": "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+      "reason": "package.json script acceptance:amazon-product-mining",
+      "scriptName": "acceptance:amazon-product-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
       "reason": "package.json script acceptance:amazon-product-mining",
       "scriptName": "acceptance:amazon-product-mining"
     },
@@ -825,10 +840,10 @@
       "scriptName": "codex:entry-gate"
     },
     {
-      "entryKind": "owner-inspector",
+      "entryKind": "package-script",
       "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-      "reason": "generated-plan owner inspector dynamic load",
-      "scriptName": null
+      "reason": "package.json script audit:amazon-product-mining",
+      "scriptName": "audit:amazon-product-mining"
     },
     {
       "entryKind": "owner-inspector",
@@ -939,9 +954,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1305,
+  "liveExportCount": 1307,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 496,
+  "reachableFileCount": 499,
   "status": "PASS",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
@@ -949,9 +964,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1305,
+    "liveExportCount": 1307,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 496,
+    "reachableFileCount": 499,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

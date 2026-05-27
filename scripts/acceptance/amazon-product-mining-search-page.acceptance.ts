@@ -125,4 +125,16 @@ const result5 = await runAmazonSearch({
 });
 assert.equal(result5.ok, true);
 
+// --- Test 6: No adapter or browser must not silently succeed ---
+const result6 = await runAmazonSearch({
+  marketplace: "amazon.ae",
+  keyword: "storage organizer",
+  keywordId: randomUUID(),
+  taskId,
+});
+assert.equal(result6.ok, false, "Missing browser/adapter must be an honest extraction failure");
+if (result6.ok) throw new Error("Expected ok=false for missing browser/adapter");
+assert.equal(result6.blockerKind, "page_structure_unsupported");
+assert.match(result6.reason, /No browser or adapter provided/u);
+
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-search-page\n");

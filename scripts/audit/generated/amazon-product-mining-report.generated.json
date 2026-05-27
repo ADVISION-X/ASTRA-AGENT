@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-26T18:31:50.512Z",
+  "generatedAt": "2026-05-26T19:40:28.963Z",
   "capabilityDomain": "amazon-product-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -19,15 +19,21 @@
   "status": "PASS",
   "findings": [],
   "inspectedFiles": [
+    ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+    "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
     "package.json",
+    "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-keyword-dedup.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
+    "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-page.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",

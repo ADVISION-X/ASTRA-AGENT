@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 
 import { createAmazonMiningStorage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.storage.js";
 import { buildAmazonProductMiningPackage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.package.js";
+import { buildAmazonProductMiningReport } from "../../src/plugins/amazon-product-mining/amazon-product-mining.pdf.js";
 
 const dataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-package-test-"));
 
@@ -160,6 +161,9 @@ try {
   assert.ok(packageResult.packageJsonPath, "packageJsonPath should be non-empty");
   assert.ok(packageResult.evidenceIndexPath, "evidenceIndexPath should be non-empty");
   assert.ok(packageResult.exceptionSummaryPath, "exceptionSummaryPath should be non-empty");
+  assert.equal(path.basename(packageResult.packageJsonPath), "amazon-product-mining-package.json");
+  assert.equal(path.basename(packageResult.evidenceIndexPath), "amazon-product-mining-evidence-index.json");
+  assert.equal(path.basename(packageResult.exceptionSummaryPath), "amazon-product-mining-exception-summary.json");
   assert.equal(packageResult.productCount, 2, "Should have 2 products");
   assert.equal(packageResult.reviewCount, 3, "Should have 3 reviews total");
   assert.equal(packageResult.keywordCount, 2, "Should have 2 keywords");
@@ -189,6 +193,22 @@ try {
   assert.ok(Array.isArray(exceptionSummary.exceptions), "Exception summary must have exceptions array");
   assert.equal(exceptionSummary.exceptions.length, 1);
   assert.equal(exceptionSummary.exceptions[0].exceptionKind, "rate_limited");
+
+  const reportResult = buildAmazonProductMiningReport({
+    taskId,
+    dataDir,
+    packageJsonPath: packageResult.packageJsonPath,
+    productCount: packageResult.productCount,
+    reviewCount: packageResult.reviewCount,
+    keywordCount: packageResult.keywordCount,
+    productDirection: "camping gear",
+    amazonMarketplace: "amazon.com",
+    targetMarket: "outdoor enthusiasts",
+  });
+  assert.equal(reportResult.ok, true, "PDF report should be built");
+  if (!reportResult.ok) assert.fail("PDF report should be built");
+  assert.equal(path.basename(reportResult.pdfReportPath), "amazon-product-mining-report.pdf");
+  assert.equal(readFileSync(reportResult.pdfReportPath).subarray(0, 5).toString("utf8"), "%PDF-");
 
   storage.close();
   process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-package\n");

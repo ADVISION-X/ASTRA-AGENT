@@ -99,7 +99,9 @@ const runKeywordPhase = async (runtime: AmazonFlowRuntime): Promise<KeywordPhase
     aiInputGateway: ctx.aiInputGateway,
     ...(ctx.providerKind !== undefined ? { providerKind: ctx.providerKind } : {}),
   });
-  logger.logKeywordAiCapture({ taskId, runId: keywordResult.runId, rawLength: keywordResult.rawResponse.length });
+  if (keywordResult.status === "success") {
+    logger.logKeywordAiCapture({ taskId, runId: keywordResult.runId, rawLength: keywordResult.rawResponse.length });
+  }
 
   storage.saveAiKeywordRun({
     runId: keywordResult.runId,
@@ -353,7 +355,7 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
   return taskRecordToResult(storage.getTask(taskId)!);
 };
 
-const buildFailedTaskFallback = (runtime: AmazonFlowRuntime, message: string) => ({
+const buildFailedTaskRecord = (runtime: AmazonFlowRuntime, message: string) => ({
   taskId: runtime.taskId,
   amazonMarketplace: runtime.miningInput.amazonMarketplace as "amazon.com",
   targetMarket: runtime.miningInput.targetMarket,
@@ -376,7 +378,7 @@ const buildFailureResult = (runtime: AmazonFlowRuntime, error: unknown): AmazonF
   runtime.storage.updateTaskStatus({ taskId: runtime.taskId, status: "failed", failureReason: message });
   runtime.logger.logFailure({ taskId: runtime.taskId, scope: "flow", reason: message });
   const failedTask = runtime.storage.getTask(runtime.taskId);
-  return taskRecordToResult(failedTask ?? buildFailedTaskFallback(runtime, message));
+  return taskRecordToResult(failedTask ?? buildFailedTaskRecord(runtime, message));
 };
 
 export const runAmazonProductMiningFlow = async (ctx: AmazonFlowContext): Promise<AmazonFlowResult> => {

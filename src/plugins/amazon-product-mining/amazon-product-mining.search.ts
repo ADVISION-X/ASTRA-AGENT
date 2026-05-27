@@ -147,13 +147,13 @@ export const runAmazonSearch = async (input: {
   taskId: string;
   adapter?: SearchPageAdapter;
 }): Promise<SearchResult> => {
-  const adapter: SearchPageAdapter = input.adapter ?? (input.browser
-    ? buildBrowserSearchAdapter(input.browser, input.marketplace)
-    : { extractSearchResults: async () => [] });
-
   const searchUrl = `https://www.${input.marketplace}/s?k=${encodeURIComponent(input.keyword)}`;
 
   try {
+    if (!input.adapter && !input.browser) {
+      throw new Error("No browser or adapter provided for Amazon search extraction");
+    }
+    const adapter: SearchPageAdapter = input.adapter ?? buildBrowserSearchAdapter(input.browser!, input.marketplace);
     const items = await adapter.extractSearchResults({
       keyword: input.keyword,
       keywordId: input.keywordId,

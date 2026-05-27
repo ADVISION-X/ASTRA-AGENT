@@ -153,7 +153,7 @@ export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildI
     exceptionCount: exceptions.length,
   });
 
-  const packageJsonPath = join(artifactsDir, "data-package.json");
+  const packageJsonPath = join(artifactsDir, "amazon-product-mining-package.json");
   writeFileSync(packageJsonPath, JSON.stringify(dataPackage, null, 2), "utf8");
 
   const evidenceIndex = buildEvidenceIndex({
@@ -164,7 +164,7 @@ export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildI
     reviewCount: totalReviews,
   });
 
-  const evidenceIndexPath = join(artifactsDir, "evidence-index.json");
+  const evidenceIndexPath = join(artifactsDir, "amazon-product-mining-evidence-index.json");
   writeFileSync(evidenceIndexPath, JSON.stringify(evidenceIndex, null, 2), "utf8");
 
   const exceptionSummary = buildExceptionSummary({
@@ -172,7 +172,7 @@ export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildI
     exceptions,
   });
 
-  const exceptionSummaryPath = join(artifactsDir, "exception-summary.json");
+  const exceptionSummaryPath = join(artifactsDir, "amazon-product-mining-exception-summary.json");
   writeFileSync(exceptionSummaryPath, JSON.stringify(exceptionSummary, null, 2), "utf8");
 
   return {

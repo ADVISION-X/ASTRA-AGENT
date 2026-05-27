@@ -123,7 +123,7 @@ export const runKeywordGeneration = async (input: {
       timeoutMs: 60_000,
       maxInputChars: 30_000,
       maxFileCount: 0,
-      maxFileBytes: 0,
+      maxFileBytes: 1,
       requestedBy: "ai-capability",
       missionId: input.taskId,
       runId,

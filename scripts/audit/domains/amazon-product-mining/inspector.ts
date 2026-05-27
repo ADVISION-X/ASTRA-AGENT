@@ -1,11 +1,17 @@
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
+import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { inspectArtifactOutputs, inspectWorkbenchHomeSurface } from "./inspector-app-surface.js";
 
 const REQUIRED_PLUGIN_FILES = [
   "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
@@ -32,17 +38,23 @@ const REQUIRED_ACCEPTANCE_FILES = [
   "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
 ] as const;
 
-const FORBIDDEN_IDENTIFIERS = [
+const GOVERNANCE_LAW_PATH = ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md";
+const BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md";
+
+const FORBIDDEN_AI_IDENTIFIERS = [
   "nextAction",
   "actionPlan",
+  "selector",
+  "coordinate",
+  "browserCommand",
   "cookieJar",
-  "fallback",
-  "shadow",
-  "bridge",
-  "legacy",
 ] as const;
+
+const FORBIDDEN_PLUGIN_TERMS = ["fallback", "shadow", "bridge", "legacy", "compatibility"] as const;
 
 const hasIdentifier = (sourceFile: SourceFile, identifierName: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((id) => id.getText() === identifierName);
@@ -50,11 +62,51 @@ const hasIdentifier = (sourceFile: SourceFile, identifierName: string): boolean 
 const hasStringLiteral = (sourceFile: SourceFile, literalValue: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((lit) => lit.getLiteralValue() === literalValue);
 
+const literalText = (sourceFile: SourceFile): string => [
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
+].join("\n");
+
+const identifierText = (sourceFile: SourceFile): string =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()).join("\n");
+
+const fileIncludesText = (sourceFile: SourceFile, text: string): boolean =>
+  literalText(sourceFile).includes(text) || identifierText(sourceFile).includes(text);
+
 const getRequiredSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
 
 const trackSourceFile = (inspectedFiles: Set<string>, sourceFile: SourceFile | undefined): void => {
   if (sourceFile) inspectedFiles.add(getRepoSourcePath(sourceFile));
+};
+
+const inspectGovernanceStatus = (
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  inspectedFiles.add(GOVERNANCE_LAW_PATH);
+  inspectedFiles.add(BLUEPRINT_PATH);
+  const lawText = readFileSync(resolveFromRepo(GOVERNANCE_LAW_PATH), "utf8");
+  const blueprintText = readFileSync(resolveFromRepo(BLUEPRINT_PATH), "utf8");
+
+  if (!lawText.includes("status: active") || lawText.includes("status: draft") || /Phase 1|Phase 2|Activation Checklist/.test(lawText)) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/governance-law-status",
+      lawId,
+      filePath: GOVERNANCE_LAW_PATH,
+      message: "Amazon mining law file must be active production governance with no draft/Phase residue.",
+    }));
+  }
+
+  if (!blueprintText.includes("status: frozen-production") || blueprintText.includes("status: frozen-phase-1") || /Phase 1|Phase 2|draft -> active|runId/.test(blueprintText)) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/blueprint-status",
+      lawId,
+      filePath: BLUEPRINT_PATH,
+      message: "Amazon mining blueprint must be frozen-production and taskId-only with no phase residue.",
+    }));
+  }
 };
 
 const inspectRequiredPluginFiles = (
@@ -156,13 +208,23 @@ const inspectAppShellRoutes = (
     "GET:/api/amazon-product-mining/latest",
     "GET:/api/amazon-product-mining/export",
   ];
-  if (routesFile && requiredRoutes.every((route) => hasStringLiteral(routesFile, route))) return;
-  findings.push(createFinding({
-    checkId: "amazon-mining/app-shell-routes",
-    lawId,
-    filePath: repoPath,
-    message: "Amazon mining routes file must expose mission, run, latest, and export routes.",
-  }));
+  if (!routesFile || !requiredRoutes.every((route) => hasStringLiteral(routesFile, route))) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/app-shell-routes",
+      lawId,
+      filePath: repoPath,
+      message: "Amazon mining routes file must expose mission, run, latest, and export routes.",
+    }));
+    return;
+  }
+  if (fileIncludesText(routesFile, "runId") || fileIncludesText(routesFile, "taskId || runId")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/app-shell-routes-taskid-only",
+      lawId,
+      filePath: repoPath,
+      message: "Amazon mining routes file must remain taskId-only with no runId compatibility.",
+    }));
+  }
 };
 
 const inspectPackageScript = (
@@ -173,12 +235,29 @@ const inspectPackageScript = (
   const packagePath = "package.json";
   inspectedFiles.add(packagePath);
   const scripts = (JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> }).scripts ?? {};
-  if (!scripts["acceptance:amazon-product-mining"]) {
+  const acceptanceScript = scripts["acceptance:amazon-product-mining"];
+  if (!acceptanceScript) {
     findings.push(createFinding({
       checkId: "amazon-mining/package-acceptance-script",
       lawId,
       filePath: packagePath,
       message: "package.json must expose acceptance:amazon-product-mining script.",
+    }));
+  }
+  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-app-ui.acceptance.ts")) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/package-acceptance-script-app-ui",
+      lawId,
+      filePath: packagePath,
+      message: "acceptance:amazon-product-mining must include amazon-product-mining-app-ui.acceptance.ts.",
+    }));
+  }
+  if (scripts["audit:amazon-product-mining"] !== "node --import tsx scripts/audit/domains/amazon-product-mining/inspector.ts") {
+    findings.push(createFinding({
+      checkId: "amazon-mining/package-audit-script",
+      lawId,
+      filePath: packagePath,
+      message: "package.json must expose audit:amazon-product-mining using the amazon inspector entrypoint.",
     }));
   }
 };
@@ -242,7 +321,7 @@ const inspectReviewsPerPagePersistence = (
   }
 };
 
-const inspectForbiddenIdentifiers = (
+const inspectForbiddenAiIdentifiers = (
   context: InspectorContext,
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
@@ -256,13 +335,37 @@ const inspectForbiddenIdentifiers = (
     const sourceFile = getRequiredSourceFile(context, repoPath);
     trackSourceFile(inspectedFiles, sourceFile);
     if (!sourceFile) continue;
-    for (const forbiddenId of FORBIDDEN_IDENTIFIERS) {
-      if (!hasIdentifier(sourceFile, forbiddenId)) continue;
+    const sourceText = `${literalText(sourceFile)}\n${identifierText(sourceFile)}`;
+    for (const forbiddenId of FORBIDDEN_AI_IDENTIFIERS) {
+      if (!sourceText.includes(forbiddenId) && !hasIdentifier(sourceFile, forbiddenId)) continue;
       findings.push(createFinding({
         checkId: `amazon-mining/forbidden-identifier-${forbiddenId}`,
         lawId,
         filePath: repoPath,
         message: `Forbidden identifier '${forbiddenId}' found in ${repoPath}. AI must not use planning/navigation/bridging patterns.`,
+      }));
+    }
+  }
+};
+
+const inspectForbiddenPluginTerms = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  for (const repoPath of REQUIRED_PLUGIN_FILES) {
+    const sourceFile = getRequiredSourceFile(context, repoPath);
+    trackSourceFile(inspectedFiles, sourceFile);
+    if (!sourceFile) continue;
+    const sourceText = `${literalText(sourceFile)}\n${identifierText(sourceFile)}`.toLowerCase();
+    for (const forbiddenTerm of FORBIDDEN_PLUGIN_TERMS) {
+      if (!sourceText.includes(forbiddenTerm)) continue;
+      findings.push(createFinding({
+        checkId: `amazon-mining/forbidden-plugin-term-${forbiddenTerm}`,
+        lawId,
+        filePath: repoPath,
+        message: `Active Amazon plugin code must not contain forbidden term '${forbiddenTerm}' in any case form.`,
       }));
     }
   }
@@ -308,15 +411,19 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
 
+  inspectGovernanceStatus(findings, inspectedFiles, flowLawId);
   inspectRequiredPluginFiles(context, findings, inspectedFiles, flowLawId);
   inspectRequiredAcceptanceFiles(findings, inspectedFiles, flowLawId);
   inspectPluginPublicSurface(context, findings, inspectedFiles, surfaceLawId);
   inspectWorkbenchHandle(context, findings, inspectedFiles, surfaceLawId);
   inspectAppShellRoutes(context, findings, inspectedFiles, surfaceLawId);
+  inspectWorkbenchHomeSurface(context, findings, inspectedFiles, surfaceLawId);
+  inspectArtifactOutputs(context, findings, inspectedFiles, surfaceLawId);
   inspectPackageScript(findings, inspectedFiles, surfaceLawId);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, searchLawId);
   inspectReviewsPerPagePersistence(context, findings, inspectedFiles, reviewLawId);
-  inspectForbiddenIdentifiers(context, findings, inspectedFiles, keywordLawId);
+  inspectForbiddenAiIdentifiers(context, findings, inspectedFiles, keywordLawId);
+  inspectForbiddenPluginTerms(context, findings, inspectedFiles, surfaceLawId);
   inspectNoAbilityGroupBoundary(context, findings, inspectedFiles, surfaceLawId);
 
   return {
@@ -326,3 +433,30 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     inspectedFiles: [...inspectedFiles].sort(),
   };
 };
+
+const runInspectorFromCli = async (): Promise<void> => {
+  buildAuditArtifacts();
+  const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === "amazon-product-mining");
+  if (!planEntry) {
+    throw new Error("amazon-product-mining audit plan entry is missing.");
+  }
+  const output = await inspectDomain({
+    project: createAuditProject(),
+    planEntry,
+    generatedPlan: [planEntry],
+    completedReports: {},
+  });
+  if (output.findings.length > 0) {
+    throw new Error(`amazon-product-mining failed with ${output.findings.length} finding(s).`);
+  }
+  process.stdout.write("[AUDIT] amazon-product-mining PASS\n");
+};
+
+const isEntrypoint = (): boolean => {
+  const invokedPath = process.argv[1];
+  return invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url);
+};
+
+if (isEntrypoint()) {
+  await runInspectorFromCli();
+}

@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
+const pluginDir = resolve(repoRoot, "src/plugins/amazon-product-mining");
 
 const readPlugin = (name: string): string =>
-  readFileSync(resolve(repoRoot, `src/plugins/amazon-product-mining/${name}`), "utf8");
+  readFileSync(resolve(pluginDir, name), "utf8");
+
+const pluginSources = readdirSync(pluginDir)
+  .filter((name) => name.endsWith(".ts"))
+  .map((name) => ({ name, src: readPlugin(name) }));
 
 const flowSrc = readPlugin("amazon-product-mining.flow.ts");
 const reviewsSrc = readPlugin("amazon-product-mining.reviews.ts");
@@ -39,12 +44,13 @@ const whileIdx = reviewsSrc.indexOf("while");
 const onPageIdx = reviewsSrc.indexOf("await input.onPageExtracted");
 assert.ok(onPageIdx > whileIdx, "onPageExtracted must be inside while loop");
 
-// --- Test 3: No forbidden bridge/fallback/shadow identifiers in plugin files ---
-const forbiddenIdentifiers = ["fallback", "shadow", "bridge", "legacy"];
-for (const src of [flowSrc, keywordSrc, reviewsSrc]) {
+// --- Test 3: No forbidden bridge/fallback/shadow/legacy/compatibility terms in active plugin files ---
+const forbiddenIdentifiers = ["fallback", "shadow", "bridge", "legacy", "compatibility"];
+for (const { name, src } of pluginSources) {
+  const normalizedSrc = src.toLowerCase();
   for (const forbidden of forbiddenIdentifiers) {
-    const found = src.includes(forbidden);
-    assert.ok(!found, `Forbidden identifier '${forbidden}' must not appear in plugin files`);
+    const found = normalizedSrc.includes(forbidden);
+    assert.ok(!found, `Forbidden identifier '${forbidden}' must not appear in active plugin file ${name}`);
   }
 }
 
@@ -55,8 +61,7 @@ for (const id of aiPlanningIdentifiers) {
 }
 
 // --- Test 5: No sendTextPromptAndCaptureResponse anywhere in plugin ---
-const pluginFiles = [flowSrc, keywordSrc, reviewsSrc, packageSrc, pdfSrc, indexSrc];
-for (const src of pluginFiles) {
+for (const { src } of pluginSources) {
   assert.ok(
     !src.includes("sendTextPromptAndCaptureResponse"),
     "sendTextPromptAndCaptureResponse is forbidden in amazon plugin (old AI interface)"
@@ -98,5 +103,11 @@ for (const pattern of abilityGroupCreationPatterns) {
 
 // --- Test 10: reviews.ts has per-page review data structure ---
 assert.ok(reviewsSrc.includes("pageIndex"), "reviews.ts must use pageIndex field for per-page tracking");
+
+// --- Test 11: keyword AI capture success log must not fire for failed keyword generation ---
+const keywordStatusCheckIdx = flowSrc.indexOf('keywordResult.status === "success"');
+const keywordCaptureLogIdx = flowSrc.indexOf("logger.logKeywordAiCapture");
+assert.ok(keywordStatusCheckIdx >= 0, "flow.ts must check keywordResult success before capture-success logging");
+assert.ok(keywordCaptureLogIdx > keywordStatusCheckIdx, "AI capture success log must be guarded by success status");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-flow\n");

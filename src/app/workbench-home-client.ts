@@ -2,6 +2,7 @@ const WORKBENCH_HOME_CLIENT = `
 const state = {
   job: "amazon",
   taskId: localStorage.getItem("grasseye:lastTaskId") || "",
+  amazonProductMiningTaskId: localStorage.getItem("grasseye:lastAmazonProductMiningTaskId") || "",
   facebookRunId: localStorage.getItem("grasseye:lastFacebookRunId") || "",
   facebookPoll: null,
 };
@@ -40,13 +41,44 @@ const refreshShell = async () => {
     writeActivity("shell refresh failed: " + error.message, "bad");
   }
 };
-const renderLedger = (payload) => {
+const renderAmazonProductMiningSummary = (record) => {
+  const taskId = typeof record.taskId === "string" && record.taskId
+    ? record.taskId
+    : state.amazonProductMiningTaskId || "-";
+  const packageRef = record.packageJsonPath || record.pdfReportPath || record.evidenceIndexPath || "-";
+  setText("[data-amazon-product-mining-task-id]", taskId);
+  setText("[data-amazon-product-mining-status]", record.status || "-");
+  setText("[data-amazon-product-mining-package]", packageRef);
+};
+const renderLedger = (payload, options = {}) => {
   const record = payload?.record || payload?.task || payload;
   if (!record || typeof record !== "object") return;
-  const taskId = record.taskId || record.runId || state.taskId || "-";
-  state.taskId = taskId === "-" ? state.taskId : taskId;
-  if (state.taskId) localStorage.setItem("grasseye:lastTaskId", state.taskId);
-  setText("[data-task-id]", taskId);
+  const job = options.job || state.job;
+  let recordId = "-";
+  if (job === "facebook") {
+    const nextRunId = typeof record.runId === "string" && record.runId ? record.runId : state.facebookRunId;
+    recordId = nextRunId || "-";
+    if (nextRunId) {
+      state.facebookRunId = nextRunId;
+      localStorage.setItem("grasseye:lastFacebookRunId", nextRunId);
+    }
+  } else if (job === "amazon-product-mining") {
+    const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.amazonProductMiningTaskId;
+    recordId = nextTaskId || "-";
+    if (nextTaskId) {
+      state.amazonProductMiningTaskId = nextTaskId;
+      localStorage.setItem("grasseye:lastAmazonProductMiningTaskId", nextTaskId);
+    }
+    renderAmazonProductMiningSummary(record);
+  } else {
+    const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.taskId;
+    recordId = nextTaskId || "-";
+    if (nextTaskId) {
+      state.taskId = nextTaskId;
+      localStorage.setItem("grasseye:lastTaskId", nextTaskId);
+    }
+  }
+  setText("[data-task-id]", recordId);
   setText("[data-task-status]", record.status || "-");
   setText("[data-task-step]", record.reachedStep || record.currentRoundId || "-");
   setText("[data-task-reason]", record.failureReason || record.reason || "-");
@@ -134,7 +166,52 @@ const resumeAmazon = async () => {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ taskId: state.taskId }),
-  }));
+  }), { job: "amazon" });
+};
+const startAmazonProductMining = async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const mission = {
+    amazonMarketplace: form.amazonMarketplace.value,
+    targetMarket: form.targetMarket.value.trim(),
+    productDirection: form.productDirection.value.trim(),
+    requestedKeywordCount: Number(form.requestedKeywordCount.value),
+    languagePreference: form.languagePreference.value,
+  };
+  writeActivity("amazon product mining submitted");
+  const task = await readJson("/api/amazon-product-mining/mission", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(mission),
+  });
+  state.amazonProductMiningTaskId = task.taskId || "";
+  if (state.amazonProductMiningTaskId) {
+    localStorage.setItem("grasseye:lastAmazonProductMiningTaskId", state.amazonProductMiningTaskId);
+    const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(state.amazonProductMiningTaskId));
+    renderLedger(current, { job: "amazon-product-mining" });
+    return;
+  }
+  renderLedger(task, { job: "amazon-product-mining" });
+};
+const refreshAmazonProductMiningLatest = async () => {
+  const latestTask = await readJson("/api/amazon-product-mining/latest");
+  if (!latestTask) {
+    writeActivity("amazon product mining latest task not found", "warn");
+    return;
+  }
+  renderLedger(latestTask, { job: "amazon-product-mining" });
+};
+const exportAmazonProductMining = async () => {
+  const taskId = state.amazonProductMiningTaskId;
+  if (!taskId) return writeActivity("amazon product mining task id is required", "warn");
+  const exported = await readJson("/api/amazon-product-mining/export?taskId=" + encodeURIComponent(taskId));
+  const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "amazon-product-mining-" + taskId + ".json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+  writeActivity("amazon product mining export ready", "ok");
 };
 const startFacebook = async (event) => {
   event.preventDefault();
@@ -148,12 +225,12 @@ const startFacebook = async (event) => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(mission),
   });
-  renderLedger(run);
+  renderLedger(run, { job: "facebook" });
   startFacebookPolling(run.runId);
 };
 const refreshFacebookLatest = async () => {
   const run = await readJson("/api/facebook-product-video-mining/latest");
-  renderLedger(run);
+  renderLedger(run, { job: "facebook" });
   if (run?.runId) {
     state.facebookRunId = run.runId;
     localStorage.setItem("grasseye:lastFacebookRunId", run.runId);
@@ -178,13 +255,17 @@ document.addEventListener("DOMContentLoaded", () => {
     card.addEventListener("click", () => showJob(card.dataset.jobCard));
   });
   qs("[data-amazon-form]").addEventListener("submit", startAmazon);
+  qs("[data-amazon-product-mining-form]").addEventListener("submit", startAmazonProductMining);
   qs("[data-facebook-form]").addEventListener("submit", startFacebook);
   qs("[data-refresh-shell]").addEventListener("click", refreshShell);
   qs("[data-amazon-latest]").addEventListener("click", refreshAmazonLatest);
   qs("[data-amazon-resume]").addEventListener("click", resumeAmazon);
+  qs("[data-amazon-product-mining-latest]").addEventListener("click", refreshAmazonProductMiningLatest);
+  qs("[data-amazon-product-mining-export]").addEventListener("click", exportAmazonProductMining);
   qs("[data-facebook-latest]").addEventListener("click", refreshFacebookLatest);
   qs("[data-facebook-export]").addEventListener("click", exportFacebookSelection);
   refreshShell();
+  if (state.amazonProductMiningTaskId) setText("[data-amazon-product-mining-task-id]", state.amazonProductMiningTaskId);
   if (state.facebookRunId) renderFacebookResults(state.facebookRunId).catch(() => undefined);
 });
 `;

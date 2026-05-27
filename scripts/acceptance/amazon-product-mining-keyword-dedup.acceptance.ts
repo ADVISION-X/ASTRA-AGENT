@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { deduplicateKeywords, buildKeywordRecords } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword.js";
+import { deduplicateKeywords, buildKeywordRecords, runKeywordGeneration } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword.js";
 
 const taskId = "test-task-dedup";
 
@@ -51,5 +51,63 @@ assert.equal(records[0]!.aiRunId, "run-abc");
 assert.equal(records[0]!.status, "pending");
 assert.ok(records[0]!.keywordId.length > 0, "keywordId should be non-empty UUID");
 assert.notEqual(records[0]!.keywordId, records[1]!.keywordId, "keywordIds should be unique");
+
+// --- Test 9: keyword AI request obeys gateway input schema with no file payload ---
+let capturedAiInput: { maxFileCount?: unknown; maxFileBytes?: unknown } = {};
+const aiInputGateway = {
+  abilityGroupId: "ai-input-gateway" as const,
+  listChildCapabilityIds: () => ["feed-gemini-api-once" as const],
+  async execute(input: unknown) {
+    capturedAiInput = input as Record<string, unknown>;
+    return {
+      abilityGroupId: "ai-input-gateway" as const,
+      childCapabilityId: "feed-gemini-api-once" as const,
+      providerKind: "gemini-api" as const,
+      status: "success" as const,
+      normalizedText: JSON.stringify({ keywords: [{ keyword: "foldable storage box", reason: "lightweight" }] }),
+      rawOutputRef: null,
+      rawOutputHash: null,
+      parseStatus: "json_valid" as const,
+      parsedJson: null,
+      schemaValidationStatus: "not_applicable" as const,
+      providerProof: {
+        providerKind: "gemini-api" as const,
+        modelName: null,
+        inputHash: "hash-in",
+        outputHash: "hash-out",
+        inputRefs: [],
+        outputRefs: [],
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMs: 0,
+        transport: "api" as const,
+        webChatUrl: null,
+        sourcePageUrlBeforeFeed: null,
+        restoredSourcePage: null,
+        retryCount: 0,
+        cooldownMs: 0,
+        estimatedInputTokens: null,
+        estimatedOutputTokens: null,
+        tokenEstimateUnavailableReason: null,
+      },
+      failureReason: null,
+      reviewRequiredReason: null,
+    };
+  },
+};
+await runKeywordGeneration({
+  taskId,
+  aiInputGateway,
+  existingMinedKeywords: [],
+  miningInput: {
+    amazonMarketplace: "amazon.ae",
+    targetMarket: "United Arab Emirates",
+    productDirection: "China supply products",
+    requestedKeywordCount: 1,
+    languagePreference: "en",
+  },
+});
+assert.equal(capturedAiInput?.maxFileCount, 0, "Keyword generation must not attach files");
+assert.equal(capturedAiInput?.maxFileBytes, 1, "Keyword generation must pass a positive file-byte budget");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-keyword-dedup\n");
