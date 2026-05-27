@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-05-27T10:07:08.375Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-27T11:36:17.749Z",
+  "status": "FAIL",
   "inspectorFileCount": 15,
   "generatedPlanEntryCount": 15,
   "inspectedFiles": [
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/manifest.json",
@@ -62,6 +63,7 @@
     "scripts/audit/domains/code-purity/manifest.json",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",
@@ -166,5 +168,14 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": []
+  "findings": [
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts uses source-text judgment sourceText.includes(token) on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts"
+    }
+  ]
 }

@@ -319,6 +319,45 @@ dataCompletenessStatistics
 advancedAiReadableIndex
 ```
 
+### 包内目录结构
+
+固定最终产物名仍受法案 [010] 约束；当前生产实现把这四个固定文件放入 package 根目录的分层子目录中：
+
+```txt
+amazon-product-mining-package-{taskId}/
+  00-master-report/
+    master-report.html
+    amazon-product-mining-report.pdf
+  01-manifest/
+    amazon-product-mining-package.json
+    amazon-product-mining-evidence-index.json
+    image-evidence-index.json              # mode = url_only
+  02-keyword-search-evidence/
+    keyword-search-evidence.json
+  03-product-detail-evidence/
+    product-detail-evidence.json
+  04-review-evidence/
+    <asin-or-detail-id>/
+      reviews.jsonl
+  05-ai-handoff/
+    ai-reading-contract.md
+    ai-handoff-prompt.md
+    business-boundary-notice.md
+    amazon-product-mining-handoff-record.json
+  06-exception-and-completeness/
+    amazon-product-mining-exception-summary.json
+    data-completeness-report.json
+    package-integrity-report.json
+```
+
+冻结细则：
+
+- `amazon-product-mining-package.json` 是高级 AI 可读 manifest，不得退回成只内联 products/reviews 的单大 JSON。
+- `amazon-product-mining-evidence-index.json` 必须索引 fixed artifacts、section files、review JSONL、AI handoff 文档。
+- `image-evidence-index.json` 只允许 `mode = url_only`，不得伪装成本地图片二进制仓。
+- `reviews.jsonl` 必须按产品落地，保证 review 证据可逐产品流式读取。
+- `data-completeness-report.json` 与 `package-integrity-report.json` 必须诚实披露缺口与缺失产物。
+
 | owner | package.ts |
 | 必须可追溯 | keyword -> product -> review |
 | 禁止 | 给出选品结论 / 跳过失败披露 / PDF 替代结构化数据包 |
@@ -328,6 +367,8 @@ advancedAiReadableIndex
 ## 16. 阶段 14：PDF 报告生成
 
 固定产物：`amazon-product-mining-report.pdf`。
+
+配套主报告面：`00-master-report/master-report.html`。
 
 ### PDF 内容
 
@@ -345,6 +386,11 @@ advancedAiReadableIndex
 原始证据索引
 ```
 
+当前生产实现要求：
+
+- HTML master report 与 PDF 必须引用同一套 package manifest / completeness / integrity / exception 数据。
+- HTML 用于高级 AI 与人工快速通读；PDF 是固定最终产物，不得替代 package manifest。
+
 | owner | pdf.ts |
 | 优先 | 使用仓库已有 PDF 能力；不允许为 PDF 引入复杂重依赖 |
 | 退化 | 无法生成 PDF 时必须 task.status=failed/manual_required，不得伪装成功 |
@@ -357,9 +403,16 @@ advancedAiReadableIndex
 ```txt
 handoff record:
   pdfReportRef
+  masterReportHtmlRef
   structuredPackageRef
   evidenceIndexRef
+  imageEvidenceIndexRef
   exceptionSummaryRef
+  dataCompletenessReportRef
+  packageIntegrityReportRef
+  aiReadingContractRef
+  aiHandoffPromptRef
+  businessBoundaryNoticeRef
   taskScope
   dataCompletenessStatistics
   handoffStatus

@@ -39,6 +39,11 @@ for (const marker of [
   "Use inline CSS only.",
   "Do not include scripts.",
   "Do not depend on external CSS, fonts, images, or network resources.",
+  "summary-answer",
+  "forensics-process",
+  "business-conclusion",
+  "n-stage-questions-and-answers",
+  "full-process case report",
 ]) {
   assert(promptBundleShell.includes(marker), `HTML runtime shell must contain ${marker}.`);
 }

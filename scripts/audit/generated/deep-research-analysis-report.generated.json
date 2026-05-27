@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T10:07:07.941Z",
+  "generatedAt": "2026-05-27T11:36:17.268Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -22,11 +22,13 @@
     "GRASSEYE-DEEP-RESEARCH-053-V1",
     "GRASSEYE-DEEP-RESEARCH-054-V1",
     "GRASSEYE-DEEP-RESEARCH-055-V1",
-    "GRASSEYE-DEEP-RESEARCH-056-V1"
+    "GRASSEYE-DEEP-RESEARCH-056-V1",
+    "GRASSEYE-DEEP-RESEARCH-057-V1"
   ],
   "status": "PASS",
   "findings": [],
   "inspectedFiles": [
+    "package.json",
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
@@ -38,6 +40,7 @@
     "scripts/acceptance/deep-research-full-case-file-support.ts",
     "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
     "scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
+    "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts",
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
@@ -55,6 +58,7 @@
     "scripts/audit/ci-full.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-27T10:07:07.233Z",
+  "generatedAt": "2026-05-27T11:36:16.522Z",
   "capabilityDomain": "amazon-product-mining",
-  "status": "PASS",
-  "findingCount": 0,
+  "status": "FAIL",
+  "findingCount": 1,
   "tabLifecycleDebug": {
     "dedicatedWorkspaceTabCalls": [
       {
@@ -19,7 +19,7 @@
       },
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-        "line": 182,
+        "line": 227,
         "reusePolicy": "reuse-active-tab"
       },
       {

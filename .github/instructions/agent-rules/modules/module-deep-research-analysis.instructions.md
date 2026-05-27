@@ -461,3 +461,46 @@ The UI must not merge raw response and parsed index into one business-looking an
 The App UI must show primary business HTML report delivery status, `sourceKind`, `fileHash`, `fileSize`, and failure/review reason when missing.
 
 HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message.
+
+### [GRASSEYE-DEEP-RESEARCH-057-V1] Business HTML Full-Process Reviewability
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+ast+acceptance+export",
+  "summary": "The primary business-report.html must be a human-reviewable full-process case report: after the summary answer it must expose the forensics process, place the final conclusion near the end of the report body, and include the N-stage questions and answers after the conclusion. This is a presentation trace contract, not a runtime-owned business conclusion schema."
+}
+```
+
+`business-report.html` must not collapse the Deep Research output into a one-voice final answer.
+
+The HTML report must expose the process so a human can inspect the AI path:
+
+```txt
+summary answer
+-> forensics process
+-> business report body
+-> final conclusion
+-> N-stage questions and answers
+```
+
+Required HTML sections:
+
+```txt
+summary-answer
+forensics-process
+business-conclusion
+n-stage-questions-and-answers
+```
+
+The `forensics-process` section must make the evidence chain visible from the full case file: decomposition, N-stage analysis count, raw prompt/response availability, parse status, final adjudication, and export/evidence refs when available.
+
+The `business-conclusion` section must preserve the final adjudication meaning and must appear before the N-stage appendix.
+
+The `n-stage-questions-and-answers` section must list each persisted sub-question with its question text and answer material from the full case file. If a structured answer is missing but raw response exists, the raw-preserved state must be shown rather than hidden.
+
+This law does not authorize runtime-owned domain conclusions, confidence fields, verdict schemas, rankings, investment theses, or question-specific business section logic. It only authorizes mandatory presentation transparency and trace ordering for the single `business-report.html` artifact.

@@ -1,5 +1,106 @@
 {
-  "generatedAt": "2026-05-27T10:07:04.787Z",
-  "itemCount": 0,
-  "items": []
+  "generatedAt": "2026-05-27T11:36:13.896Z",
+  "itemCount": 10,
+  "items": [
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "audit:amazon-product-mining",
+      "reason": "active executable source file has 501 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Function near line 25 breaks function budget: physical line count 92 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-phase",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/import-source-budget",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "audit:deep-research-analysis",
+      "reason": "Import source count 25 exceeds red line 24.",
+      "remediation": "Split the file by runtime role and keep only the owner-local dependencies in each slice.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:amazon-product-mining",
+      "reason": "active executable source file has 795 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:amazon-product-mining",
+      "reason": "Function near line 149 breaks function budget: physical line count 101 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:amazon-product-mining",
+      "reason": "Function near line 268 breaks function budget: physical line count 77 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:amazon-product-mining",
+      "reason": "Function near line 346 breaks function budget: physical line count 115 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:amazon-product-mining",
+      "reason": "Function near line 508 breaks function budget: physical line count 287 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/object-budget",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:amazon-product-mining",
+      "reason": "Object literal near line 579 has member count 41 and exceeds red line 30.",
+      "remediation": "Split the object into smaller owner-local contract or configuration objects.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "active executable source file has 522 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    }
+  ]
 }

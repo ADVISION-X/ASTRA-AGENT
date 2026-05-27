@@ -52,6 +52,10 @@ HTML REPORT
    - fullCaseFile
    - fullCaseFileMarkdown
    - runtime HTML format shell
+   - visible summary answer
+   - visible forensics process
+   - final conclusion before N-stage appendix
+   - N-stage questions and answers after the conclusion
    - persist business-report.html
    ↓
 EXPORT
@@ -192,6 +196,38 @@ structured-index.json
 ```
 
 `structured-index.json` 只是导航索引，不是 full case file，也不是最终裁决真相源。
+
+## Business HTML Full-Process Reviewability
+
+`business-report.html` 不是只给最终裁决改写一个漂亮网页。
+
+它必须是一个人类可复核的全过程案卷页：
+
+```txt
+Summary Answer
+-> Forensics Process
+-> Business Report Body
+-> Final Conclusion
+-> N-stage Questions and Answers
+```
+
+固定 HTML section id：
+
+```txt
+summary-answer
+forensics-process
+business-conclusion
+n-stage-questions-and-answers
+```
+
+达标标准：
+
+1. `summary-answer` 可以放在顶部，给快速阅读者看结论摘要。
+2. `forensics-process` 必须紧跟总结区下方，说明拆解、N 阶段、原始回答、解析状态、最终裁决、导出/证据引用等取证链。
+3. `business-conclusion` 必须保留最终裁决含义，位于正文靠后位置，并出现在 N 阶段问答附录之前。
+4. `n-stage-questions-and-answers` 必须逐条展示已持久化的子问题、问题文本、清洁答案或 raw-preserved 状态、解析状态与可用原文摘要。
+5. 如果 structured answer 缺失但 raw response 存在，HTML 必须显示 raw-preserved / parse status，不得把该问题隐藏。
+6. 这些是展示与追溯结构，不是业务判断 schema；不得引入 runtime-owned `confidence`、`finalVerdict`、`rankedConclusions`、`directAnswer` 等业务字段。
 
 ## App 页面：Deep Research Case Reader
 

@@ -180,7 +180,14 @@ class RawParseFailureAnalysisAdapter implements AiProviderAdapter {
         "INDEX_JSON_END",
       ].join("\n"),
       "Final adjudication considered Q1 raw-only analysis and Q2 structured analysis.",
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Report</title></head><body><main><h1>Report</h1></main></body></html>",
+      [
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Report</title></head><body><main><h1>Report</h1>",
+        "<section id=\"summary-answer\"><h2>Summary Answer</h2><p>Raw-available analysis reached final delivery.</p></section>",
+        "<section id=\"forensics-process\"><h2>Forensics Process</h2><p>Q1 raw response was preserved after parser rejection and Q2 parsed successfully.</p></section>",
+        "<section id=\"business-conclusion\"><h2>Final Conclusion</h2><p>Continue with raw-preserved evidence visible.</p></section>",
+        "<section id=\"n-stage-questions-and-answers\"><h2>N-stage Questions and Answers</h2><p>Q1 raw-only and Q2 structured materials are available.</p></section>",
+        "</main></body></html>",
+      ].join(""),
     ];
     const rawText = responses[this.callCount - 1];
     if (rawText === undefined) {

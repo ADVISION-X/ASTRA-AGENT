@@ -56,6 +56,59 @@ const buildHtmlTextHash = (value: string): string =>
 
 const CHATGPT_SHELL_HTML_MARKERS = ['property="og:title" content="chatgpt"', "window.__reactroutercontext", "/cdn/assets/", "data-message-author-role", "prompt-textarea", "composer-submit-button", "chatgpt 是一款", "历史聊天记录"];
 
+export const DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS = [
+  "summary-answer",
+  "forensics-process",
+  "business-conclusion",
+  "n-stage-questions-and-answers",
+] as const;
+
+const isHtmlAttributeWhitespace = (value: string): boolean =>
+  value === " " || value === "\n" || value === "\r" || value === "\t" || value === "\f";
+
+const findHtmlSectionIdIndex = (htmlDocument: string, sectionId: string): number => {
+  const lower = htmlDocument.toLowerCase();
+  const quotedForms = [`"${sectionId}"`, `'${sectionId}'`];
+  let searchFrom = 0;
+  while (searchFrom < lower.length) {
+    const idIndex = lower.indexOf("id", searchFrom);
+    if (idIndex < 0) {
+      return -1;
+    }
+    let cursor = idIndex + 2;
+    while (cursor < lower.length && isHtmlAttributeWhitespace(lower[cursor] ?? "")) {
+      cursor += 1;
+    }
+    if (lower[cursor] !== "=") {
+      searchFrom = idIndex + 2;
+      continue;
+    }
+    cursor += 1;
+    while (cursor < lower.length && isHtmlAttributeWhitespace(lower[cursor] ?? "")) {
+      cursor += 1;
+    }
+    for (const quotedForm of quotedForms) {
+      if (lower.startsWith(quotedForm, cursor)) {
+        return idIndex;
+      }
+    }
+    searchFrom = idIndex + 2;
+  }
+  return -1;
+};
+
+const hasRequiredBusinessHtmlReviewSections = (htmlDocument: string): boolean => {
+  let previousIndex = -1;
+  for (const sectionId of DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS) {
+    const currentIndex = findHtmlSectionIdIndex(htmlDocument, sectionId);
+    if (currentIndex <= previousIndex) {
+      return false;
+    }
+    previousIndex = currentIndex;
+  }
+  return true;
+};
+
 const isBusinessHtmlArtifactText = (value: string): boolean => {
   const trimmed = value.trim();
   const lower = trimmed.toLowerCase();
@@ -64,6 +117,7 @@ const isBusinessHtmlArtifactText = (value: string): boolean => {
     && (lower.includes("<!doctype html") || lower.includes("<html"))
     && lower.includes("<body")
     && (lower.includes("</html>") || lower.includes("</body>"))
+    && hasRequiredBusinessHtmlReviewSections(trimmed)
     && !isChatGptShellHtmlDocument;
 };
 

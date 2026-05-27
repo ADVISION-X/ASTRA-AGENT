@@ -15,5 +15,7 @@ assert(htmlPrompt.includes("rawFinalAnswerText: input.finalAdjudication.rawFinal
 assert(promptRender.includes("FULL CASE FILE MARKDOWN"), "HTML report rendering must include fullCaseFileMarkdown.");
 assert(promptRender.includes("FINAL ADJUDICATION RAW"), "HTML report rendering must include the raw final adjudication body.");
 assert(promptRender.includes("Organize the HTML as a professional report according to the promptBundle."), "HTML report rendering must follow the AI-generated promptBundle.");
+assert(promptRender.includes("forensics-process"), "HTML report rendering must require the forensics process section.");
+assert(promptRender.includes("n-stage-questions-and-answers"), "HTML report rendering must require the N-stage questions and answers section.");
 
 process.stdout.write("[ACCEPTANCE][deep-research-html-promptbundle-input] PASS\n");

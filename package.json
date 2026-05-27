@@ -39,6 +39,7 @@
     "acceptance:deep-research-final-adjudication-promptbundle-input": "node --import tsx scripts/acceptance/deep-research-final-adjudication-promptbundle-input.acceptance.ts",
     "acceptance:deep-research-html-promptbundle-input": "node --import tsx scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "acceptance:deep-research-html-report-only": "node --import tsx scripts/acceptance/deep-research-html-report-only.acceptance.ts",
+    "acceptance:deep-research-html-full-process-report": "node --import tsx scripts/acceptance/deep-research-html-full-process-report.acceptance.ts",
     "acceptance:deep-research-subquestion-failure-stop": "node --import tsx scripts/acceptance/deep-research-subquestion-failure-stop.acceptance.ts",
     "acceptance:deep-research-report-export": "node --import tsx scripts/acceptance/deep-research-report-export.acceptance.ts",
     "acceptance:deep-research-no-compatibility-formats": "node --import tsx scripts/acceptance/deep-research-single-format-path.acceptance.ts",

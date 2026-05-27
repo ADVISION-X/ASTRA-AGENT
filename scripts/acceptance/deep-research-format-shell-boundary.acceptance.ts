@@ -15,6 +15,10 @@ for (const required of [
   "indexNotes",
   "rawFinalAnswerText",
   "<!DOCTYPE html>",
+  "summary-answer",
+  "forensics-process",
+  "business-conclusion",
+  "n-stage-questions-and-answers",
   "Even if the AI-generated promptBundle mentions json_object, write the answer body as structured text",
   "Even if the AI-generated promptBundle mentions json_object, the final adjudication must still be written as structured text",
 ]) {

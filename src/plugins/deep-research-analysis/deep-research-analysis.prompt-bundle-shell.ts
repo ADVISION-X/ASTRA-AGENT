@@ -143,6 +143,13 @@ export const buildHtmlReportFormatShell = (): string => [
   "Do not depend on external CSS, fonts, images, or network resources.",
   "Do not wrap the HTML in markdown fences.",
   "The artifact delivery name is business-report.html.",
+  "The HTML must be a full-process case report, not only a final answer page.",
+  "Use these exact section ids in this order: summary-answer, forensics-process, business-conclusion, n-stage-questions-and-answers.",
+  "Immediately after the summary-answer section, include the forensics-process section that explains the evidence chain from the full case file.",
+  "Place the business-conclusion section near the end of the main report body and before the N-stage appendix.",
+  "After business-conclusion, include n-stage-questions-and-answers with every persisted sub-question, its question text, answer material, parse status, and raw-preserved state when structured answer is missing.",
+  "Use fullCaseFileMarkdown as the source for decomposition, prompt/response availability, parse status, final adjudication, evidence refs, and N-stage question-answer material.",
+  "Do not hide raw-preserved parse failures; show that raw response exists and structured parsing failed.",
   renderForbiddenControlFieldNotice(),
 ].join("\n");
 

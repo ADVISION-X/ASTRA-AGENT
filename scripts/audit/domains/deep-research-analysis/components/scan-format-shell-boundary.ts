@@ -71,6 +71,10 @@ export const inspectFormatShellBoundary = (input: {
     "indexNotes",
     "rawFinalAnswerText",
     "<!DOCTYPE html>",
+    "summary-answer",
+    "forensics-process",
+    "business-conclusion",
+    "n-stage-questions-and-answers",
   ]) {
     if (tokens.includes(required)) continue;
     input.findings.push(createFinding({

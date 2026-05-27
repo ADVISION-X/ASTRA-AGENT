@@ -188,7 +188,12 @@ const buildInlineHtmlFixture = (input: {
     "<!DOCTYPE html>",
     "<html>",
     `<head><meta charset="utf-8"><title>${input.title}</title><style>body{font-family:sans-serif;}</style></head>`,
-    `<body><main><h1>${input.title}</h1><p>${input.body}</p></main></body>`,
+    `<body><main><h1>${input.title}</h1>`,
+    `<section id="summary-answer"><h2>Summary Answer</h2><p>${input.body}</p></section>`,
+    `<section id="forensics-process"><h2>Forensics Process</h2><p>Decomposition, N-stage analysis, final adjudication, and export evidence were preserved.</p></section>`,
+    `<section id="business-conclusion"><h2>Final Conclusion</h2><p>${input.body}</p></section>`,
+    `<section id="n-stage-questions-and-answers"><h2>N-stage Questions and Answers</h2><p>Q1 demand analysis and Q2 execution analysis are available in the full case file.</p></section>`,
+    "</main></body>",
     "</html>",
   ].join("");
 };

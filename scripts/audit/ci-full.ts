@@ -48,6 +48,7 @@ const ciCommands: readonly CommandSpec[] = [
   { name: "deep-research-final-adjudication-promptbundle-input", command: ["npm", "run", "acceptance:deep-research-final-adjudication-promptbundle-input"] },
   { name: "deep-research-html-promptbundle-input", command: ["npm", "run", "acceptance:deep-research-html-promptbundle-input"] },
   { name: "deep-research-html-report-only", command: ["npm", "run", "acceptance:deep-research-html-report-only"] },
+  { name: "deep-research-html-full-process-report", command: ["npm", "run", "acceptance:deep-research-html-full-process-report"] },
   { name: "deep-research-subquestion-failure-stop", command: ["npm", "run", "acceptance:deep-research-subquestion-failure-stop"] },
   { name: "deep-research-report-export", command: ["npm", "run", "acceptance:deep-research-report-export"] },
   { name: "deep-research-no-compatibility-formats", command: ["npm", "run", "acceptance:deep-research-no-compatibility-formats"] },
@@ -203,7 +204,7 @@ const main = async (): Promise<void> => {
   if (hasFailures) {
     throw new Error("ci:full failed");
   }
-  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/format-shell/no-confidence/promptbundle/raw-html/no-compatibility/export/UI acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
+  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/format-shell/no-confidence/promptbundle/raw-html/full-process-html/no-compatibility/export/UI acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
 };
 
 const isEntrypoint = (): boolean => {

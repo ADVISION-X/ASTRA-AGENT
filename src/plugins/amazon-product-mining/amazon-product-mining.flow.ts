@@ -416,6 +416,11 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
     productCount: artifacts.packageResult.productCount,
     reviewCount: artifacts.packageResult.reviewCount,
     keywordCount: artifacts.packageResult.keywordCount,
+    amazonMarketplace: runtime.miningInput.amazonMarketplace,
+    targetMarket: runtime.miningInput.targetMarket,
+    productDirection: runtime.miningInput.productDirection,
+    requestedKeywordCount: runtime.miningInput.requestedKeywordCount,
+    languagePreference: runtime.miningInput.languagePreference ?? "en",
     manualRequiredReasons,
   });
 

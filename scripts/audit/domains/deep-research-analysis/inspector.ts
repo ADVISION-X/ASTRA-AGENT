@@ -13,6 +13,7 @@ import {
     inspectWebChatPromptSubmitVerification,
 } from "./components/html-owner-inspectors.js";
 import { inspectAnalysisOutputCleanliness } from "./components/scan-analysis-output-cleanliness.js";
+import { inspectBusinessHtmlFullProcessReviewability } from "./components/scan-business-html-full-process-reviewability.js";
 import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
 import { inspectFinalAdjudicationPromptBundleInput } from "./components/scan-final-adjudication-promptbundle-input.js";
 import { inspectFinalAdjudicationRawSovereignty } from "./components/scan-final-adjudication-raw-sovereignty.js";
@@ -45,6 +46,7 @@ const requiredAuditComponentFiles = [
   "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
   "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
   "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
+  "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
 ] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -208,6 +210,15 @@ const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
+  });
+  inspectBusinessHtmlFullProcessReviewability({
+    promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
+    htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
+    ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-057-V1"),
   });
   inspectHtmlArtifactCaptureChain({
     captureFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts"),

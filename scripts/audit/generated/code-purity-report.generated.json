@@ -4,8 +4,99 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-05-27T10:07:04.787Z",
+  "findings": [
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/amazon-product-mining/inspector.ts has 501 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
+      "evidence": "{\"owner\":\"audit:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts has an over-line function near line 25.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/import-source-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts imports 25 unique sources and exceeds the red line 24.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Split the file by runtime role and keep only the owner-local dependencies in each slice.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has 795 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 149.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 268.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 346.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 508.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an object literal that exceeds the object red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts has 522 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-05-27T11:36:13.897Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -31,6 +122,7 @@
     "scripts/acceptance/deep-research-full-case-file-support.ts",
     "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
     "scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
+    "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts",
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
@@ -70,6 +162,7 @@
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
@@ -121,6 +214,7 @@
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",
@@ -428,6 +522,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
@@ -665,6 +760,12 @@
       "filePath": "scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
       "reason": "package.json script acceptance:deep-research-html-delivery-status-ui",
       "scriptName": "acceptance:deep-research-html-delivery-status-ui"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts",
+      "reason": "package.json script acceptance:deep-research-html-full-process-report",
+      "scriptName": "acceptance:deep-research-html-full-process-report"
     },
     {
       "entryKind": "package-script",
@@ -955,19 +1056,19 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1315,
+  "liveExportCount": 1323,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 500,
-  "status": "PASS",
+  "reachableFileCount": 504,
+  "status": "FAIL",
   "unreachableFileCount": 0,
   "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1315,
+    "liveExportCount": 1323,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 500,
+    "reachableFileCount": 504,
     "unreachableFileCount": 0,
     "zombieExportCount": 0
   }

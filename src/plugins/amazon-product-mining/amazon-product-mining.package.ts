@@ -1,17 +1,40 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-
-import { resolveAmazonHandoffRecordPath } from "./amazon-product-mining.handoff.js";
+import {
+  createAmazonPackageLayout,
+} from "./amazon-product-mining.package-layout.js";
+import {
+  buildArtifactCatalog,
+  buildCompletenessReport,
+  buildEvidenceIndex,
+  buildExceptionSummary,
+  buildImageEvidenceIndex,
+  buildPackageIntegrityReport,
+  buildProductMissingFields,
+  buildReviewEvidenceFiles,
+  createSearchItemMatcher,
+  writeJsonFile,
+  type AmazonExceptionRecord,
+  type AmazonKeywordRecord,
+  type AmazonProductDetail,
+  type AmazonReviewRecord,
+  type AmazonSearchResultItem,
+  type AmazonTaskRecord,
+} from "./amazon-product-mining.package-artifact-builders.js";
 import type { AmazonMiningStorage } from "./amazon-product-mining.storage.js";
-import { AMAZON_PRODUCT_MINING_ARTIFACTS_DIR } from "./amazon-product-mining.storage-schema.js";
 
 export type AmazonPackageResult = {
+  packageRootPath: string;
   packageJsonPath: string;
   evidenceIndexPath: string;
   exceptionSummaryPath: string;
+  imageEvidenceIndexPath: string;
+  dataCompletenessReportPath: string;
+  packageIntegrityReportPath: string;
+  masterReportHtmlPath: string;
+  handoffRecordPath: string;
   productCount: number;
   reviewCount: number;
   keywordCount: number;
+  searchResultCount: number;
 };
 
 type AmazonPackageBuildInput = {
@@ -20,213 +43,290 @@ type AmazonPackageBuildInput = {
   storage: AmazonMiningStorage;
 };
 
-const createArtifactsDir = (input: AmazonPackageBuildInput): string => {
-  const artifactsDir = resolve(input.dataDir, AMAZON_PRODUCT_MINING_ARTIFACTS_DIR, input.taskId);
-  mkdirSync(artifactsDir, { recursive: true });
-  return artifactsDir;
-};
-
-const buildProductPackages = (
-  input: AmazonPackageBuildInput,
-  products: ReturnType<AmazonMiningStorage["getProductDetailsForTask"]>,
-) => products.map((product) => {
-  const reviews = input.storage.getReviewsForProduct(product.detailId);
-  return {
-    detailId: product.detailId,
-    asin: product.asin,
-    title: product.title,
-    brand: product.brand,
-    currentPrice: product.currentPrice,
-    rating: product.rating,
-    reviewCount: product.reviewCount,
-    sellerOrStoreIfVisible: product.sellerOrStoreIfVisible,
-    bulletPoints: product.bulletPoints,
-    productDescription: product.productDescription,
-    technicalDetails: product.technicalDetails,
-    bestSellersRankIfVisible: product.bestSellersRankIfVisible,
-    deliveryInformation: product.deliveryInformation,
-    status: product.status,
-    reviews: reviews.map((review) => ({
-      rating: review.rating,
-      reviewTitle: review.reviewTitle,
-      reviewBody: review.reviewBody,
-      reviewDate: review.reviewDate,
-      verifiedPurchase: review.verifiedPurchase,
-      helpfulCountIfVisible: review.helpfulCountIfVisible,
-      reviewerName: review.reviewerName,
-      pageIndex: review.pageIndex,
-    })),
-  };
-});
-
-const buildDataPackage = (input: {
-  taskId: string;
-  task: ReturnType<AmazonMiningStorage["getTask"]>;
-  keywords: ReturnType<AmazonMiningStorage["getKeywordsForTask"]>;
-  products: ReturnType<AmazonMiningStorage["getProductDetailsForTask"]>;
-  productPackages: ReturnType<typeof buildProductPackages>;
-  totalReviews: number;
-  exceptions: ReturnType<AmazonMiningStorage["getExceptionsForTask"]>;
-}) => ({
-  schema_version: "1.0.0",
-  task_id: input.taskId,
-  generated_at: new Date().toISOString(),
-  task: input.task
-    ? {
-        amazonMarketplace: input.task.amazonMarketplace,
-        targetMarket: input.task.targetMarket,
-        productDirection: input.task.productDirection,
-        requestedKeywordCount: input.task.requestedKeywordCount,
-        languagePreference: input.task.languagePreference,
-        status: input.task.status,
-        createdAt: input.task.createdAt,
-      }
-    : null,
-  keyword_count: input.keywords.length,
-  product_count: input.products.length,
-  review_count: input.totalReviews,
-  keywords: input.keywords.map((keyword) => ({
-    keyword: keyword.keyword,
-    source: keyword.source,
-    status: keyword.status,
-  })),
-  products: input.productPackages,
-  exception_count: input.exceptions.length,
-  exceptions: input.exceptions.map((exception) => ({
-    scope: exception.scope,
-    scopeId: exception.scopeId,
-    exceptionKind: exception.exceptionKind,
-    message: exception.message,
-    createdAt: exception.createdAt,
-  })),
-  data_completeness_statistics: {
-    keywordCount: input.keywords.length,
-    completedKeywordCount: input.keywords.filter((keyword) => keyword.status === "completed").length,
-    failedKeywordCount: input.keywords.filter((keyword) => keyword.status === "failed").length,
-    manualRequiredKeywordCount: input.keywords.filter((keyword) => keyword.status === "manual_required").length,
-    productCount: input.products.length,
-    reviewCount: input.totalReviews,
-    exceptionCount: input.exceptions.length,
-  },
-});
-
-const buildEvidenceIndex = (input: {
-  taskId: string;
-  packageJsonPath: string;
-  pdfReportPath: string | null;
-  exceptionSummaryPath: string;
-  handoffRecordPath: string;
-  productCount: number;
-  keywordCount: number;
-  reviewCount: number;
-}) => ({
-  generated_at: new Date().toISOString(),
-  task_id: input.taskId,
-  artifacts: [
-    {
-      kind: "data_package_json",
-      path: input.packageJsonPath,
-      description: "Full structured data package with products and reviews",
-    },
-    ...(input.pdfReportPath
-      ? [
-          {
-            kind: "pdf_report_pdf",
-            path: input.pdfReportPath,
-            description: "PDF report for advanced AI or operator review",
-          },
-        ]
-      : []),
-    {
-      kind: "exception_summary_json",
-      path: input.exceptionSummaryPath,
-      description: "Structured exception summary for blocked or incomplete stages",
-    },
-    ...(existsSync(input.handoffRecordPath)
-      ? [
-          {
-            kind: "handoff_record_json",
-            path: input.handoffRecordPath,
-            description: "Advanced AI handoff record with package, PDF, and exception refs",
-          },
-        ]
-      : []),
-  ],
-  product_count: input.productCount,
-  keyword_count: input.keywordCount,
-  review_count: input.reviewCount,
-});
-
-const buildExceptionSummary = (input: {
-  taskId: string;
-  exceptions: ReturnType<AmazonMiningStorage["getExceptionsForTask"]>;
-}) => ({
-  generated_at: new Date().toISOString(),
-  task_id: input.taskId,
-  total_exceptions: input.exceptions.length,
-  exceptions: input.exceptions.map((exception) => ({
-    exceptionId: exception.exceptionId,
-    scope: exception.scope,
-    scopeId: exception.scopeId,
-    exceptionKind: exception.exceptionKind,
-    message: exception.message,
-    createdAt: exception.createdAt,
-  })),
-});
-
 export const buildAmazonProductMiningPackage = async (input: AmazonPackageBuildInput): Promise<AmazonPackageResult> => {
-  const artifactsDir = createArtifactsDir(input);
-
+  const layout = createAmazonPackageLayout({ dataDir: input.dataDir, taskId: input.taskId });
   const task = input.storage.getTask(input.taskId);
   const keywords = input.storage.getKeywordsForTask(input.taskId);
-  const products = input.storage.getProductDetailsForTask(input.taskId);
   const exceptions = input.storage.getExceptionsForTask(input.taskId);
+  const searchResultsByKeyword = new Map<string, AmazonSearchResultItem[]>();
+  for (const keyword of keywords) {
+    searchResultsByKeyword.set(keyword.keywordId, input.storage.getSearchResultsForKeyword(keyword.keywordId));
+  }
+  const allSearchResults = [...searchResultsByKeyword.values()].flat();
+  const products = input.storage.getProductDetailsForTask(input.taskId);
+  const reviewsByDetailId = new Map<string, AmazonReviewRecord[]>();
+  for (const product of products) {
+    reviewsByDetailId.set(product.detailId, input.storage.getReviewsForProduct(product.detailId));
+  }
+  const reviewEvidenceFiles = buildReviewEvidenceFiles({
+    reviewEvidenceDir: layout.reviewEvidenceDir,
+    products,
+    reviewsByDetailId,
+  });
+  const totalReviews = [...reviewsByDetailId.values()].reduce((sum, reviews) => sum + reviews.length, 0);
+  const matchSearchItemsForProduct = createSearchItemMatcher(allSearchResults);
 
-  const productPackages = buildProductPackages(input, products);
+  const keywordSearchEvidence = {
+    generated_at: new Date().toISOString(),
+    task_id: input.taskId,
+    keywords: keywords.map((keyword) => {
+      const searchResults = searchResultsByKeyword.get(keyword.keywordId) ?? [];
+      return {
+        keywordId: keyword.keywordId,
+        keyword: keyword.keyword,
+        source: keyword.source,
+        aiRunId: keyword.aiRunId,
+        status: keyword.status,
+        createdAt: keyword.createdAt,
+        searchUrl: searchResults[0]?.searchUrl ?? null,
+        searchResultCount: searchResults.length,
+        items: searchResults.map((item) => ({
+          itemId: item.itemId,
+          rankPosition: item.rankPosition,
+          isSponsored: item.isSponsored,
+          title: item.title,
+          productUrl: item.productUrl,
+          asinIfAvailable: item.asinIfAvailable,
+          mainImageUrl: item.mainImageUrl,
+          price: item.price,
+          originalPriceOrDiscountIfVisible: item.originalPriceOrDiscountIfVisible,
+          rating: item.rating,
+          reviewCount: item.reviewCount,
+          primeOrFbaFlagIfVisible: item.primeOrFbaFlagIfVisible,
+          couponTextIfVisible: item.couponTextIfVisible,
+          deliveryTextIfVisible: item.deliveryTextIfVisible,
+          rawVisibleTextSnapshot: item.rawVisibleTextSnapshot,
+          createdAt: item.createdAt,
+        })),
+      };
+    }),
+  };
+  writeJsonFile(layout.keywordSearchEvidencePath, keywordSearchEvidence);
 
-  const totalReviews = productPackages.reduce((sum, productPackage) => sum + productPackage.reviews.length, 0);
+  const productDetailEvidence = {
+    generated_at: new Date().toISOString(),
+    task_id: input.taskId,
+    products: products.map((product) => {
+      const linkedSearchItems = matchSearchItemsForProduct(product);
+      const linkedKeywords = linkedSearchItems.map((item) => ({
+        keywordId: item.keywordId,
+        keyword: item.keyword,
+        rankPosition: item.rankPosition,
+      }));
+      const reviewEvidence = reviewEvidenceFiles.get(product.detailId);
+      return {
+        detailId: product.detailId,
+        asin: product.asin,
+        productUrl: product.productUrl,
+        title: product.title,
+        brand: product.brand,
+        sellerOrStoreIfVisible: product.sellerOrStoreIfVisible,
+        currentPrice: product.currentPrice,
+        originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
+        mainImage: product.mainImage,
+        allVisibleImages: product.allVisibleImages,
+        visibleVideoInfo: product.visibleVideoInfo,
+        bulletPoints: product.bulletPoints,
+        aboutThisItem: product.aboutThisItem,
+        productDescription: product.productDescription,
+        aPlusContentIfVisible: product.aPlusContentIfVisible,
+        variationOptions: product.variationOptions,
+        colorSizeStyleOptions: product.colorSizeStyleOptions,
+        productInformation: product.productInformation,
+        technicalDetails: product.technicalDetails,
+        additionalInformation: product.additionalInformation,
+        bestSellersRankIfVisible: product.bestSellersRankIfVisible,
+        categoryPathIfVisible: product.categoryPathIfVisible,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
+        starDistribution: product.starDistribution,
+        qaContentIfVisible: product.qaContentIfVisible,
+        frequentlyBoughtTogetherIfVisible: product.frequentlyBoughtTogetherIfVisible,
+        customersAlsoBoughtIfVisible: product.customersAlsoBoughtIfVisible,
+        compareWithSimilarItemsIfVisible: product.compareWithSimilarItemsIfVisible,
+        deliveryInformation: product.deliveryInformation,
+        returnInformation: product.returnInformation,
+        allOtherVisibleProductParameters: product.allOtherVisibleProductParameters,
+        rawVisibleTextSnapshot: product.rawVisibleTextSnapshot,
+        status: product.status,
+        failureReason: product.failureReason,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+        linkedKeywords,
+        missingFields: buildProductMissingFields(product),
+        reviewEvidencePath: reviewEvidence?.path ?? null,
+        reviewRecordCount: reviewEvidence?.reviewCount ?? 0,
+      };
+    }),
+  };
+  writeJsonFile(layout.productDetailEvidencePath, productDetailEvidence);
 
-  const dataPackage = buildDataPackage({
+  const imageEvidenceIndex = buildImageEvidenceIndex({
+    taskId: input.taskId,
+    searchResults: allSearchResults,
+    products,
+    reviewsByDetailId,
+  });
+  writeJsonFile(layout.imageEvidenceIndexPath, imageEvidenceIndex);
+
+  const exceptionSummary = buildExceptionSummary({ taskId: input.taskId, exceptions });
+  writeJsonFile(layout.exceptionSummaryPath, exceptionSummary);
+
+  const completenessReport = buildCompletenessReport({
     taskId: input.taskId,
     task,
     keywords,
+    searchResults: allSearchResults,
     products,
-    productPackages,
-    totalReviews,
+    reviewsByDetailId,
     exceptions,
   });
+  writeJsonFile(layout.dataCompletenessReportPath, completenessReport);
 
-  const packageJsonPath = join(artifactsDir, "amazon-product-mining-package.json");
-  writeFileSync(packageJsonPath, JSON.stringify(dataPackage, null, 2), "utf8");
+  const packageManifest = {
+    schema_version: "2.0.0",
+    package_kind: "amazon-product-mining-advanced-ai-package",
+    generated_at: new Date().toISOString(),
+    task_id: input.taskId,
+    package_root_path: layout.packageRootPath,
+    task_scope: task
+      ? {
+          amazonMarketplace: task.amazonMarketplace,
+          targetMarket: task.targetMarket,
+          productDirection: task.productDirection,
+          requestedKeywordCount: task.requestedKeywordCount,
+          languagePreference: task.languagePreference,
+          status: task.status,
+          handoffStatus: task.handoffStatus,
+          createdAt: task.createdAt,
+          completedAt: task.updatedAt,
+          failureReason: task.failureReason,
+        }
+      : null,
+    counts: {
+      keywords: keywords.length,
+      searchResults: allSearchResults.length,
+      products: products.length,
+      reviews: totalReviews,
+      exceptions: exceptions.length,
+    },
+    sections: {
+      masterReportHtmlPath: layout.masterReportHtmlPath,
+      pdfReportPath: layout.pdfReportPath,
+      evidenceIndexPath: layout.evidenceIndexPath,
+      imageEvidenceIndexPath: layout.imageEvidenceIndexPath,
+      keywordSearchEvidencePath: layout.keywordSearchEvidencePath,
+      productDetailEvidencePath: layout.productDetailEvidencePath,
+      reviewEvidenceDir: layout.reviewEvidenceDir,
+      aiHandoffDir: layout.aiHandoffDir,
+      exceptionSummaryPath: layout.exceptionSummaryPath,
+      dataCompletenessReportPath: layout.dataCompletenessReportPath,
+      packageIntegrityReportPath: layout.packageIntegrityReportPath,
+    },
+    keywords: keywords.map((keyword) => {
+      const searchResults = searchResultsByKeyword.get(keyword.keywordId) ?? [];
+      const linkedProducts = searchResults
+        .map((item) => products.find((product) => product.detailId === item.itemId))
+        .filter((product): product is AmazonProductDetail => product !== undefined);
+      return {
+        keywordId: keyword.keywordId,
+        keyword: keyword.keyword,
+        status: keyword.status,
+        source: keyword.source,
+        aiRunId: keyword.aiRunId,
+        searchResultCount: searchResults.length,
+        completedProductCount: linkedProducts.filter((product) => product.status === "completed").length,
+        failedProductCount: linkedProducts.filter((product) => product.status === "failed").length,
+        manualRequiredProductCount: linkedProducts.filter((product) => product.status === "manual_required").length,
+        searchEvidencePath: layout.keywordSearchEvidencePath,
+      };
+    }),
+    products: products.map((product) => {
+      const linkedSearchItems = matchSearchItemsForProduct(product);
+      const reviewEvidence = reviewEvidenceFiles.get(product.detailId);
+      return {
+        detailId: product.detailId,
+        asin: product.asin,
+        title: product.title,
+        status: product.status,
+        currentPrice: product.currentPrice,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
+        reviewRecordCount: reviewEvidence?.reviewCount ?? 0,
+        missingFields: buildProductMissingFields(product),
+        linkedKeywords: linkedSearchItems.map((item) => ({ keywordId: item.keywordId, keyword: item.keyword })),
+        productEvidencePath: layout.productDetailEvidencePath,
+        reviewEvidencePath: reviewEvidence?.path ?? null,
+      };
+    }),
+  };
+  writeJsonFile(layout.packageJsonPath, packageManifest);
 
-  const exceptionSummary = buildExceptionSummary({
-    taskId: input.taskId,
-    exceptions,
+  const artifactCatalog = buildArtifactCatalog({
+    packageJsonPath: layout.packageJsonPath,
+    evidenceIndexPath: layout.evidenceIndexPath,
+    pdfReportPath: layout.pdfReportPath,
+    exceptionSummaryPath: layout.exceptionSummaryPath,
+    masterReportHtmlPath: layout.masterReportHtmlPath,
+    imageEvidenceIndexPath: layout.imageEvidenceIndexPath,
+    dataCompletenessReportPath: layout.dataCompletenessReportPath,
+    packageIntegrityReportPath: layout.packageIntegrityReportPath,
+    keywordSearchEvidencePath: layout.keywordSearchEvidencePath,
+    productDetailEvidencePath: layout.productDetailEvidencePath,
+    aiReadingContractPath: layout.aiReadingContractPath,
+    aiHandoffPromptPath: layout.aiHandoffPromptPath,
+    businessBoundaryNoticePath: layout.businessBoundaryNoticePath,
+    handoffRecordPath: layout.handoffRecordPath,
+    reviewEvidencePaths: [...reviewEvidenceFiles.values()].map((entry) => entry.path),
   });
-
-  const exceptionSummaryPath = join(artifactsDir, "amazon-product-mining-exception-summary.json");
-  writeFileSync(exceptionSummaryPath, JSON.stringify(exceptionSummary, null, 2), "utf8");
 
   const evidenceIndex = buildEvidenceIndex({
     taskId: input.taskId,
-    packageJsonPath,
-    pdfReportPath: task?.pdfReportPath ?? null,
-    exceptionSummaryPath,
-    handoffRecordPath: resolveAmazonHandoffRecordPath({ dataDir: input.dataDir, taskId: input.taskId }),
-    productCount: products.length,
+    packageRootPath: layout.packageRootPath,
     keywordCount: keywords.length,
+    searchResultCount: allSearchResults.length,
+    productCount: products.length,
     reviewCount: totalReviews,
+    artifactCatalog,
   });
+  writeJsonFile(layout.evidenceIndexPath, evidenceIndex);
 
-  const evidenceIndexPath = join(artifactsDir, "amazon-product-mining-evidence-index.json");
-  writeFileSync(evidenceIndexPath, JSON.stringify(evidenceIndex, null, 2), "utf8");
+  const packageIntegrityReport = buildPackageIntegrityReport({
+    taskId: input.taskId,
+    packageIntegrityReportPath: layout.packageIntegrityReportPath,
+    artifactCatalog: buildArtifactCatalog({
+      packageJsonPath: layout.packageJsonPath,
+      evidenceIndexPath: layout.evidenceIndexPath,
+      pdfReportPath: layout.pdfReportPath,
+      exceptionSummaryPath: layout.exceptionSummaryPath,
+      masterReportHtmlPath: layout.masterReportHtmlPath,
+      imageEvidenceIndexPath: layout.imageEvidenceIndexPath,
+      dataCompletenessReportPath: layout.dataCompletenessReportPath,
+      packageIntegrityReportPath: layout.packageIntegrityReportPath,
+      keywordSearchEvidencePath: layout.keywordSearchEvidencePath,
+      productDetailEvidencePath: layout.productDetailEvidencePath,
+      aiReadingContractPath: layout.aiReadingContractPath,
+      aiHandoffPromptPath: layout.aiHandoffPromptPath,
+      businessBoundaryNoticePath: layout.businessBoundaryNoticePath,
+      handoffRecordPath: layout.handoffRecordPath,
+      reviewEvidencePaths: [...reviewEvidenceFiles.values()].map((entry) => entry.path),
+    }),
+  });
+  writeJsonFile(layout.packageIntegrityReportPath, packageIntegrityReport);
 
   return {
-    packageJsonPath,
-    evidenceIndexPath,
-    exceptionSummaryPath,
+    packageRootPath: layout.packageRootPath,
+    packageJsonPath: layout.packageJsonPath,
+    evidenceIndexPath: layout.evidenceIndexPath,
+    exceptionSummaryPath: layout.exceptionSummaryPath,
+    imageEvidenceIndexPath: layout.imageEvidenceIndexPath,
+    dataCompletenessReportPath: layout.dataCompletenessReportPath,
+    packageIntegrityReportPath: layout.packageIntegrityReportPath,
+    masterReportHtmlPath: layout.masterReportHtmlPath,
+    handoffRecordPath: layout.handoffRecordPath,
     productCount: products.length,
     reviewCount: totalReviews,
     keywordCount: keywords.length,
+    searchResultCount: allSearchResults.length,
   };
 };
