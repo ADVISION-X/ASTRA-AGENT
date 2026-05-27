@@ -38,6 +38,14 @@ const collectStringLiterals = (node: Node | undefined): string[] => {
 const findVariableInitializer = (sourceFile: SourceFile | undefined, variableName: string): Expression | undefined =>
   sourceFile?.getVariableDeclaration(variableName)?.getInitializer();
 
+const unwrapExpression = (expression: Expression | undefined): Expression | undefined => {
+  let current = expression;
+  while (current && (Node.isAsExpression(current) || Node.isParenthesizedExpression(current) || Node.isNonNullExpression(current))) {
+    current = current.getExpression();
+  }
+  return current;
+};
+
 const findFunctionLikeBody = (sourceFile: SourceFile | undefined, functionName: string): Node | undefined => {
   const functionDeclaration = sourceFile?.getFunction(functionName);
   if (functionDeclaration) {
@@ -54,10 +62,11 @@ const hasLiteralContaining = (node: Node | undefined, value: string): boolean =>
   collectStringLiterals(node).some((literal) => literal.includes(value));
 
 const collectArrayLiteralValues = (initializer: Expression | undefined): string[] => {
-  if (!Node.isArrayLiteralExpression(initializer)) {
+  const unwrapped = unwrapExpression(initializer);
+  if (!Node.isArrayLiteralExpression(unwrapped)) {
     return [];
   }
-  return initializer.getElements().map(stringLiteralValue).filter((value): value is string => value !== null);
+  return unwrapped.getElements().map(stringLiteralValue).filter((value): value is string => value !== null);
 };
 
 const getCallExpressionName = (callExpression: CallExpression): string | null => {
@@ -239,6 +248,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
   htmlReportStageFile: SourceFile | undefined;
   acceptanceFile: SourceFile | undefined;
   ciFullFile: SourceFile | undefined;
+  ownerComponentFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
@@ -248,6 +258,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
     input.htmlReportStageFile,
     input.acceptanceFile,
     input.ciFullFile,
+    input.ownerComponentFile,
   ]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
@@ -270,10 +281,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
   });
   inspectAntiEvasion({
     sourceFiles: [
-      input.promptBundleShellFile,
-      input.htmlReportStageFile,
-      input.acceptanceFile,
-      input.ciFullFile,
+      input.ownerComponentFile,
     ],
     findings: input.findings,
     lawId: input.lawId,

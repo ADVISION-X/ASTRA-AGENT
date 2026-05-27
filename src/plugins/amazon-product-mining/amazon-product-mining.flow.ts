@@ -77,6 +77,13 @@ const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => (
   manualRequiredReasons: [],
 });
 
+const buildPackageInput = (runtime: AmazonFlowRuntime) => ({
+  taskId: runtime.taskId,
+  dataDir: runtime.dataDir,
+  storage: runtime.storage,
+  ...(runtime.ctx.reviewMaxPages !== undefined ? { reviewMaxPages: runtime.ctx.reviewMaxPages } : {}),
+});
+
 const createTaskRecord = (runtime: AmazonFlowRuntime): void => {
   const { storage, logger, taskId, miningInput } = runtime;
   storage.createTask({
@@ -314,7 +321,7 @@ const buildPackagingArtifacts = async (runtime: AmazonFlowRuntime): Promise<Pack
   const { storage, logger, taskId, miningInput, dataDir, manualRequiredReasons } = runtime;
   storage.updateTaskStatus({ taskId, status: "packaging" });
 
-  const packageResult = await buildAmazonProductMiningPackage({ taskId, dataDir, storage });
+  const packageResult = await buildAmazonProductMiningPackage(buildPackageInput(runtime));
   logger.logPackageBuilt({
     taskId,
     packageJsonPath: packageResult.packageJsonPath,
@@ -376,7 +383,7 @@ const persistFinalPackagingState = async (
   artifacts: PackagingArtifacts,
   resolution: FinalTaskResolution,
 ): Promise<void> => {
-  const { storage, logger, taskId, dataDir, manualRequiredReasons } = runtime;
+  const { storage, logger, taskId, manualRequiredReasons } = runtime;
   storage.updateTaskStatus({
     taskId,
     status: resolution.finalTaskStatus,
@@ -387,7 +394,7 @@ const persistFinalPackagingState = async (
     exceptionSummaryPath: artifacts.packageResult.exceptionSummaryPath,
     handoffStatus: resolution.finalHandoffStatus,
   });
-  await buildAmazonProductMiningPackage({ taskId, dataDir, storage });
+  await buildAmazonProductMiningPackage(buildPackageInput(runtime));
 
   if (resolution.finalHandoffStatus === "ready") {
     logger.logHandoffReady({ taskId });
@@ -400,13 +407,13 @@ const persistFinalPackagingState = async (
 
 const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlowResult> => {
   const { storage, taskId, dataDir, manualRequiredReasons } = runtime;
-  const artifacts = await buildPackagingArtifacts(runtime);
+  let artifacts = await buildPackagingArtifacts(runtime);
   const allKeywordsFailed = didAllKeywordsFail(runtime);
   if (allKeywordsFailed) {
     manualRequiredReasons.push("all_keywords_failed");
   }
 
-  const handoff = writeAmazonHandoffRecord({
+  let handoff = writeAmazonHandoffRecord({
     dataDir,
     taskId,
     packageJsonPath: artifacts.packageResult.packageJsonPath,
@@ -421,8 +428,43 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
     productDirection: runtime.miningInput.productDirection,
     requestedKeywordCount: runtime.miningInput.requestedKeywordCount,
     languagePreference: runtime.miningInput.languagePreference ?? "en",
+    packageIntegrityStatus: artifacts.packageResult.integrityStatus,
     manualRequiredReasons,
   });
+
+  artifacts = {
+    ...artifacts,
+    packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime)),
+  };
+  if (artifacts.packageResult.integrityStatus === "failed" && !manualRequiredReasons.includes("package_integrity_failed")) {
+    manualRequiredReasons.push("package_integrity_failed");
+  }
+
+  const shouldBeReady = manualRequiredReasons.length === 0 && artifacts.packageResult.integrityStatus === "pass";
+  if ((handoff.handoffStatus === "ready") !== shouldBeReady) {
+    handoff = writeAmazonHandoffRecord({
+      dataDir,
+      taskId,
+      packageJsonPath: artifacts.packageResult.packageJsonPath,
+      reportPath: artifacts.pdfPath ?? "",
+      evidenceIndexPath: artifacts.packageResult.evidenceIndexPath,
+      exceptionSummaryPath: artifacts.packageResult.exceptionSummaryPath,
+      productCount: artifacts.packageResult.productCount,
+      reviewCount: artifacts.packageResult.reviewCount,
+      keywordCount: artifacts.packageResult.keywordCount,
+      amazonMarketplace: runtime.miningInput.amazonMarketplace,
+      targetMarket: runtime.miningInput.targetMarket,
+      productDirection: runtime.miningInput.productDirection,
+      requestedKeywordCount: runtime.miningInput.requestedKeywordCount,
+      languagePreference: runtime.miningInput.languagePreference ?? "en",
+      packageIntegrityStatus: artifacts.packageResult.integrityStatus,
+      manualRequiredReasons,
+    });
+    artifacts = {
+      ...artifacts,
+      packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime)),
+    };
+  }
 
   const resolution = resolveFinalTaskState({
     allKeywordsFailed,

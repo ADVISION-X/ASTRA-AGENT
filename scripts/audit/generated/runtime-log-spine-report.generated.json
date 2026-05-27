@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-27T11:36:16.418Z",
+  "generatedAt": "2026-05-27T12:42:24.892Z",
   "status": "PASS",
-  "scannedFiles": 284,
+  "scannedFiles": 288,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -207,6 +207,10 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report-types.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
@@ -306,7 +310,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 284,
+    "scannedFiles": 288,
     "emitCallCount": 18,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -317,7 +321,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 279,
+      "scannedFiles": 283,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -326,13 +330,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 225
+      "scannedFiles": 229
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 221,
+      "scannedFiles": 225,
       "metrics": {
         "emitCallCount": 7
       }
@@ -341,13 +345,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 221
+      "scannedFiles": 225
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 226,
+      "scannedFiles": 230,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -362,7 +366,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 226,
+      "scannedFiles": 230,
       "metrics": {
         "failureWithoutClassCount": 0
       }

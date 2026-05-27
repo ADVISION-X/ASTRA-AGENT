@@ -6,6 +6,24 @@
   "executionGroup": "foundation",
   "findings": [
     {
+      "checkId": "code-purity/object-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/acceptance/amazon-product-mining-package.acceptance.ts has an object literal that exceeds the object red line.",
+      "severity": "fatal",
+      "filePath": "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts has an over-line function near line 122.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+      "evidence": "{\"owner\":\"audit:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
@@ -13,15 +31,6 @@
       "severity": "fatal",
       "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
       "evidence": "{\"owner\":\"audit:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts has an over-line function near line 25.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
-      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/import-source-budget",
@@ -33,10 +42,127 @@
       "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Split the file by runtime role and keep only the owner-local dependencies in each slice.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/deep-research-analysis/inspector.ts has an over-line function near line 184.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "evidence": "{\"owner\":\"audit:deep-research-analysis\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has 795 lines and exceeds the active executable source file red line.",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts has 521 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts has an over-line function near line 39.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts has an over-line function near line 88.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts has an over-line function near line 272.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts has an over-line function near line 124.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts has an over-line function near line 243.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts has an over-line function near line 321.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts has 638 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts has an over-line function near line 235.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts has an over-line function near line 351.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts has an over-line function near line 459.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/object-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts has an object literal that exceeds the object red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has 1067 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -45,7 +171,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 149.",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 138.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -54,7 +180,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 268.",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 251.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -63,7 +189,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 346.",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 323.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -72,31 +198,166 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 508.",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 585.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/object-budget",
+      "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an object literal that exceeds the object red line.",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts has an over-line function near line 698.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split the object into smaller owner-local contract or configuration objects.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts has 522 lines and exceeds the active executable source file red line.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts has 558 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts exports resolveAmazonHandoffRecordPath without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"resolveAmazonHandoffRecordPath\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports createSearchItemMatcher without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"createSearchItemMatcher\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildReviewEvidenceFiles without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildReviewEvidenceFiles\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildImageEvidenceIndex without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildImageEvidenceIndex\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildExceptionSummary without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildExceptionSummary\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildCompletenessReport without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildCompletenessReport\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildArtifactCatalog without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildArtifactCatalog\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildEvidenceIndex without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildEvidenceIndex\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts exports buildPackageIntegrityReport without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"buildPackageIntegrityReport\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts exports resolveAmazonKeywordEvidenceDir without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"resolveAmazonKeywordEvidenceDir\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts exports resolveAmazonProductEvidenceDir without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"resolveAmazonProductEvidenceDir\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts exports resolveAmazonReviewEvidenceDir without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"symbolName\":\"resolveAmazonReviewEvidenceDir\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts keeps dead helper writeJsonlFile alive only through a dead export subgraph.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"writeJsonlFile\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts keeps dead helper toEvidenceDirName alive only through a dead export subgraph.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"toEvidenceDirName\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts keeps dead helper createArtifactHash alive only through a dead export subgraph.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"createArtifactHash\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-27T11:36:13.897Z",
+  "generatedAt": "2026-05-27T12:42:22.181Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -522,6 +783,10 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report-types.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
@@ -1056,20 +1321,20 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1323,
-  "orphanDeclarationCount": 0,
-  "reachableFileCount": 504,
+  "liveExportCount": 1343,
+  "orphanDeclarationCount": 3,
+  "reachableFileCount": 508,
   "status": "FAIL",
   "unreachableFileCount": 0,
-  "zombieExportCount": 0,
+  "zombieExportCount": 12,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1323,
-    "orphanDeclarationCount": 0,
-    "reachableFileCount": 504,
+    "liveExportCount": 1343,
+    "orphanDeclarationCount": 3,
+    "reachableFileCount": 508,
     "unreachableFileCount": 0,
-    "zombieExportCount": 0
+    "zombieExportCount": 12
   }
 }

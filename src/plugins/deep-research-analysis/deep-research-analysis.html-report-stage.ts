@@ -66,6 +66,9 @@ export const DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS = [
 const isHtmlAttributeWhitespace = (value: string): boolean =>
   value === " " || value === "\n" || value === "\r" || value === "\t" || value === "\f";
 
+const isHtmlAttributeNameBoundary = (value: string): boolean =>
+  value === "" || value === "<" || value === "/" || isHtmlAttributeWhitespace(value);
+
 const findHtmlSectionIdIndex = (htmlDocument: string, sectionId: string): number => {
   const lower = htmlDocument.toLowerCase();
   const quotedForms = [`"${sectionId}"`, `'${sectionId}'`];
@@ -74,6 +77,10 @@ const findHtmlSectionIdIndex = (htmlDocument: string, sectionId: string): number
     const idIndex = lower.indexOf("id", searchFrom);
     if (idIndex < 0) {
       return -1;
+    }
+    if (!isHtmlAttributeNameBoundary(lower[idIndex - 1] ?? "")) {
+      searchFrom = idIndex + 2;
+      continue;
     }
     let cursor = idIndex + 2;
     while (cursor < lower.length && isHtmlAttributeWhitespace(lower[cursor] ?? "")) {

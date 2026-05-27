@@ -48,12 +48,24 @@ export type AmazonMiningStorage = {
     status: string;
     failureReason?: string | null;
   }): void;
+  getAiKeywordRunsForTask(taskId: string): Array<{
+    runId: string;
+    taskId: string;
+    promptText: string;
+    rawResponse: string;
+    parsedKeywords: string[];
+    dedupedKeywords: string[];
+    status: string;
+    failureReason: string | null;
+    createdAt: string;
+  }>;
   persistSearchResults(items: readonly AmazonSearchResultItem[]): void;
   getSearchResultsForKeyword(keywordId: string): AmazonSearchResultItem[];
   persistProductDetail(detail: AmazonProductDetail, linkedItemIds: readonly string[]): void;
   updateProductStatus(input: { detailId: string; status: AmazonProductStatus; failureReason?: string | null; }): void;
   getProductDetailsForTask(taskId: string): AmazonProductDetail[];
   getProductDetail(detailId: string): AmazonProductDetail | null;
+  getSearchResultProductLinksForTask(taskId: string): Array<{ itemId: string; detailId: string }>;
   persistReviews(reviews: readonly AmazonReviewRecord[]): void;
   getReviewsForProduct(detailId: string): AmazonReviewRecord[];
   persistException(input: { exceptionId: string; taskId: string; scope: string; scopeId?: string; exceptionKind: string; message: string; }): void;
@@ -211,6 +223,18 @@ const rowToReview = (row: Record<string, unknown>): AmazonReviewRecord => ({
   createdAt: row["created_at"] as string,
 });
 
+const rowToAiKeywordRun = (row: Record<string, unknown>) => ({
+  runId: row["run_id"] as string,
+  taskId: row["task_id"] as string,
+  promptText: row["prompt_text"] as string,
+  rawResponse: row["raw_response"] as string,
+  parsedKeywords: parseStringArray(row["parsed_keywords_json"]),
+  dedupedKeywords: parseStringArray(row["deduped_keywords_json"]),
+  status: row["status"] as string,
+  failureReason: (row["failure_reason"] as string | null) ?? null,
+  createdAt: row["created_at"] as string,
+});
+
 const createTaskOperations = (
   db: Database.Database,
 ): Pick<AmazonMiningStorage, "createTask" | "updateTaskStatus" | "getTask" | "getLatestTask"> => {
@@ -254,7 +278,7 @@ const createTaskOperations = (
 
 const createKeywordOperations = (
   db: Database.Database,
-): Pick<AmazonMiningStorage, "saveKeywords" | "updateKeywordStatus" | "getKeywordsForTask" | "getAllMinedKeywordsForDedup" | "saveAiKeywordRun"> => ({
+): Pick<AmazonMiningStorage, "saveKeywords" | "updateKeywordStatus" | "getKeywordsForTask" | "getAllMinedKeywordsForDedup" | "saveAiKeywordRun" | "getAiKeywordRunsForTask"> => ({
   saveKeywords(keywords) {
     const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_keywords (
       keyword_id, task_id, keyword, source, ai_run_id, reason, status, created_at
@@ -288,6 +312,11 @@ const createKeywordOperations = (
       JSON.stringify(parsedKeywords), JSON.stringify(dedupedKeywords),
       status, failureReason ?? null, new Date().toISOString(),
     );
+  },
+
+  getAiKeywordRunsForTask(taskId) {
+    const rows = db.prepare("SELECT * FROM amazon_mining_ai_keyword_runs WHERE task_id=? ORDER BY created_at ASC").all(taskId);
+    return rows.map((row) => rowToAiKeywordRun(row as Record<string, unknown>));
   },
 });
 
@@ -404,6 +433,25 @@ const createReviewOperations = (
   },
 });
 
+const createTraceabilityOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "getSearchResultProductLinksForTask"> => ({
+  getSearchResultProductLinksForTask(taskId) {
+    const rows = db.prepare(`
+      SELECT link.item_id, link.detail_id
+      FROM amazon_mining_search_result_product_link AS link
+      INNER JOIN amazon_mining_search_results AS search_result
+        ON search_result.item_id = link.item_id
+      WHERE search_result.task_id = ?
+      ORDER BY link.item_id ASC, link.detail_id ASC
+    `).all(taskId) as Array<Record<string, unknown>>;
+    return rows.map((row) => ({
+      itemId: row["item_id"] as string,
+      detailId: row["detail_id"] as string,
+    }));
+  },
+});
+
 const createExceptionOperations = (
   db: Database.Database,
 ): Pick<AmazonMiningStorage, "persistException" | "getExceptionsForTask"> => ({
@@ -438,6 +486,7 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
     ...createKeywordOperations(db),
     ...createSearchOperations(db),
     ...createProductOperations(db),
+    ...createTraceabilityOperations(db),
     ...createReviewOperations(db),
     ...createExceptionOperations(db),
     close() {

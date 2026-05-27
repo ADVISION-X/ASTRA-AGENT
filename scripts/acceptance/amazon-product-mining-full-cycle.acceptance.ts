@@ -201,24 +201,27 @@ try {
 
   assert.equal(result.status, "package_completed");
   assert.equal(path.basename(result.packageJsonPath ?? ""), "amazon-product-mining-package.json");
-  assert.equal(path.basename(result.pdfReportPath ?? ""), "amazon-product-mining-report.pdf");
-  assert.equal(path.basename(result.evidenceIndexPath ?? ""), "amazon-product-mining-evidence-index.json");
-  assert.equal(path.basename(result.exceptionSummaryPath ?? ""), "amazon-product-mining-exception-summary.json");
-  const handoffRecordPath = path.join(path.dirname(result.packageJsonPath ?? ""), "amazon-product-mining-handoff-record.json");
+  assert.equal(path.basename(result.pdfReportPath ?? ""), "Amazon-Product-Mining-Master-Evidence-Report.pdf");
+  assert.equal(path.basename(result.evidenceIndexPath ?? ""), "evidence-index.json");
+  assert.equal(path.basename(result.exceptionSummaryPath ?? ""), "exception-summary.json");
+  const handoffRecordPath = path.join(path.dirname(result.packageJsonPath ?? ""), "05-ai-handoff", "handoff-record.json");
   assert.ok(existsSync(handoffRecordPath), "Success flow must persist a handoff record file");
   assert.ok(openedUrls.some((url) => url.startsWith("https://www.amazon.ae/s?k=")), "Search must open amazon.ae");
   assert.ok(openedUrls.includes("https://www.amazon.ae/dp/B0AEACCEPT1"), "Detail page must open the ASIN URL");
   assert.ok(openedUrls.includes("https://www.amazon.ae/product-reviews/B0AEACCEPT1"), "Review page must open for the ASIN");
 
   const dataPackage = JSON.parse(readFileSync(result.packageJsonPath!, "utf8")) as {
-    products: Array<{ asin: string | null; reviews: unknown[] }>;
+    products: Array<{ asin: string | null; reviews: { jsonlRef: string | null; summaryRef: string | null } }>;
+    reviewsIndex: Array<{ detailId: string }>;
   };
   const evidenceIndex = JSON.parse(readFileSync(result.evidenceIndexPath!, "utf8")) as {
-    artifacts: Array<{ kind: string; path: string }>;
+    artifacts: Array<{ artifactId: string; fileRef: string }>;
   };
   assert.equal(dataPackage.products[0]?.asin, "B0AEACCEPT1");
-  assert.equal(dataPackage.products[0]?.reviews.length, 1);
-  assert.ok(evidenceIndex.artifacts.some((artifact) => artifact.kind === "handoff_record_json" && artifact.path === handoffRecordPath));
+  assert.equal(Boolean(dataPackage.products[0]?.reviews.jsonlRef), true);
+  assert.equal(Boolean(dataPackage.products[0]?.reviews.summaryRef), true);
+  assert.equal(dataPackage.reviewsIndex.length, 1);
+  assert.ok(evidenceIndex.artifacts.some((artifact) => artifact.artifactId === "handoff-record" && artifact.fileRef === "05-ai-handoff/handoff-record.json"));
   assert.equal(readFileSync(result.pdfReportPath!).subarray(0, 5).toString("utf8"), "%PDF-");
 
   const failureDataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-all-failed-"));
@@ -251,20 +254,20 @@ try {
     assert.match(failureResult.failureReason ?? "", /all_keywords_failed/);
     assert.equal(failureResult.handoffStatus, "failed");
     assert.ok(failureResult.packageJsonPath, "Failure data package must still be written");
-    const failureHandoffRecordPath = path.join(path.dirname(failureResult.packageJsonPath!), "amazon-product-mining-handoff-record.json");
+    const failureHandoffRecordPath = path.join(path.dirname(failureResult.packageJsonPath!), "05-ai-handoff", "handoff-record.json");
     assert.ok(existsSync(failureHandoffRecordPath), "Failure flow must still persist a handoff record file");
     const failurePackage = JSON.parse(readFileSync(failureResult.packageJsonPath!, "utf8")) as {
       task: { status: string };
       exceptions: unknown[];
-      data_completeness_statistics: { exceptionCount: number };
+      completeness: { summary: { failedCount: number } };
     };
     const failureEvidenceIndex = JSON.parse(readFileSync(failureResult.evidenceIndexPath!, "utf8")) as {
-      artifacts: Array<{ kind: string; path: string }>;
+      artifacts: Array<{ artifactId: string; fileRef: string }>;
     };
     assert.equal(failurePackage.task.status, "failed");
     assert.equal(failurePackage.exceptions.length, 1);
-    assert.equal(failurePackage.data_completeness_statistics.exceptionCount, 1);
-    assert.ok(failureEvidenceIndex.artifacts.some((artifact) => artifact.kind === "handoff_record_json" && artifact.path === failureHandoffRecordPath));
+    assert.equal(failurePackage.completeness.summary.failedCount, 3);
+    assert.ok(failureEvidenceIndex.artifacts.some((artifact) => artifact.artifactId === "handoff-record" && artifact.fileRef === "05-ai-handoff/handoff-record.json"));
   } finally {
     rmSync(failureDataDir, { recursive: true, force: true });
   }

@@ -1,4 +1,4 @@
-import type { SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
@@ -18,8 +18,14 @@ export const inspectProductDetailDomContract = (input: {
   if (!input.sourceFile) {
     return;
   }
-  const sourceText = input.sourceFile.getFullText();
-  const missingTokens = REQUIRED_DETAIL_DOM_TOKENS.filter((token) => !sourceText.includes(token));
+  const literalText = [
+    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
+    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
+    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()),
+    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()),
+    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
+  ].join("\n");
+  const missingTokens = REQUIRED_DETAIL_DOM_TOKENS.filter((token) => !literalText.includes(token));
   if (missingTokens.length === 0) {
     return;
   }

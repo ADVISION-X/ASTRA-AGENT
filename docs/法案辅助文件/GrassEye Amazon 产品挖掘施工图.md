@@ -321,31 +321,48 @@ advancedAiReadableIndex
 
 ### 包内目录结构
 
-固定最终产物名仍受法案 [010] 约束；当前生产实现把这四个固定文件放入 package 根目录的分层子目录中：
+固定最终产物名仍受法案 [010] 约束；当前生产实现把 root package 与固定交付物放入 package 根目录，并把可追溯证据按 section 落入分层子目录：
 
 ```txt
 amazon-product-mining-package-{taskId}/
+  amazon-product-mining-package.json
   00-master-report/
     master-report.html
-    amazon-product-mining-report.pdf
+    Amazon-Product-Mining-Master-Evidence-Report.pdf
   01-manifest/
-    amazon-product-mining-package.json
-    amazon-product-mining-evidence-index.json
+    manifest.json
+    task-scope.json
+    package-schema.json
+    evidence-index.json
     image-evidence-index.json              # mode = url_only
+    package-file-hashes.json
+    business-boundary-notice.md
   02-keyword-search-evidence/
-    keyword-search-evidence.json
+    keyword-{keywordId}/
+      keyword-summary.json
+      search-page-results.json
+      search-page-results.csv
+      search-page-raw-visible-text.txt
   03-product-detail-evidence/
-    product-detail-evidence.json
+    product-{detailId}/
+      product-summary.json
+      product-detail.json
+      product-detail-raw-visible-text.txt
+      product-images-index.json
+      product-source-keywords.json
   04-review-evidence/
-    <asin-or-detail-id>/
+    product-{detailId}/
       reviews.jsonl
+      reviews-summary.json
+      review-pages-index.json
   05-ai-handoff/
+    handoff-record.json
     ai-reading-contract.md
     ai-handoff-prompt.md
-    business-boundary-notice.md
-    amazon-product-mining-handoff-record.json
   06-exception-and-completeness/
-    amazon-product-mining-exception-summary.json
+    exception-summary.json
+    manual-required.json
+    failed-items.json
     data-completeness-report.json
     package-integrity-report.json
 ```
@@ -353,10 +370,12 @@ amazon-product-mining-package-{taskId}/
 冻结细则：
 
 - `amazon-product-mining-package.json` 是高级 AI 可读 manifest，不得退回成只内联 products/reviews 的单大 JSON。
-- `amazon-product-mining-evidence-index.json` 必须索引 fixed artifacts、section files、review JSONL、AI handoff 文档。
+- `evidence-index.json` 必须索引 root package、fixed artifacts、section files、review JSONL、AI handoff 文档。
 - `image-evidence-index.json` 只允许 `mode = url_only`，不得伪装成本地图片二进制仓。
 - `reviews.jsonl` 必须按产品落地，保证 review 证据可逐产品流式读取。
+- `package-file-hashes.json` 必须提供包内文件 hash 清单，支持 handoff 前后校验。
 - `data-completeness-report.json` 与 `package-integrity-report.json` 必须诚实披露缺口与缺失产物。
+- `handoff-record.json` 只在 package-integrity 通过且 manual_required 为空时进入 `ready`。
 
 | owner | package.ts |
 | 必须可追溯 | keyword -> product -> review |
@@ -366,7 +385,7 @@ amazon-product-mining-package-{taskId}/
 
 ## 16. 阶段 14：PDF 报告生成
 
-固定产物：`amazon-product-mining-report.pdf`。
+固定产物：`Amazon-Product-Mining-Master-Evidence-Report.pdf`。
 
 配套主报告面：`00-master-report/master-report.html`。
 
@@ -402,12 +421,16 @@ amazon-product-mining-package-{taskId}/
 
 ```txt
 handoff record:
-  pdfReportRef
+  reportRef
   masterReportHtmlRef
-  structuredPackageRef
+  packageJsonRef
+  manifestRef
+  taskScopeRef
   evidenceIndexRef
   imageEvidenceIndexRef
   exceptionSummaryRef
+  manualRequiredRef
+  failedItemsRef
   dataCompletenessReportRef
   packageIntegrityReportRef
   aiReadingContractRef
@@ -420,7 +443,7 @@ handoff record:
 
 | owner | handoff.ts |
 | 禁止 | Agent 在 handoff 中输出最终选品建议 / 编造缺失证据 |
-| 完成 | task.status = package_completed |
+| 完成 | task.status = package_completed 且 handoffStatus = ready |
 
 ---
 
@@ -446,7 +469,7 @@ handoff record:
 
 ### handoff status
 
-`not_started → ready → handoff_completed`
+`not_started → ready`
 
 `failed` 终态分支。
 

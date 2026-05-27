@@ -216,6 +216,7 @@ const inspectBoundaryInputs = (state: DeepResearchInspectionState): void => {
     htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
     acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
     ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
+    ownerComponentFile: getSourceFile(context, "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts"),
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-057-V1"),

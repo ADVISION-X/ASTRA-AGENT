@@ -15,12 +15,18 @@ export const AMAZON_PACKAGE_DIR_NAMES = {
 
 export const AMAZON_PACKAGE_FILE_NAMES = {
   packageJson: "amazon-product-mining-package.json",
-  pdfReport: "amazon-product-mining-report.pdf",
-  evidenceIndex: "amazon-product-mining-evidence-index.json",
-  exceptionSummary: "amazon-product-mining-exception-summary.json",
-  handoffRecord: "amazon-product-mining-handoff-record.json",
-  masterReportHtml: "master-report.html",
+  manifest: "manifest.json",
+  taskScope: "task-scope.json",
+  packageSchema: "package-schema.json",
+  pdfReport: "Amazon-Product-Mining-Master-Evidence-Report.pdf",
+  evidenceIndex: "evidence-index.json",
+  exceptionSummary: "exception-summary.json",
+  manualRequired: "manual-required.json",
+  failedItems: "failed-items.json",
+  handoffRecord: "handoff-record.json",
+  masterReportHtml: "Amazon-Product-Mining-Master-Evidence-Report.html",
   imageEvidenceIndex: "image-evidence-index.json",
+  packageFileHashes: "package-file-hashes.json",
   dataCompletenessReport: "data-completeness-report.json",
   packageIntegrityReport: "package-integrity-report.json",
   keywordSearchEvidence: "keyword-search-evidence.json",
@@ -29,6 +35,17 @@ export const AMAZON_PACKAGE_FILE_NAMES = {
   aiHandoffPrompt: "ai-handoff-prompt.md",
   businessBoundaryNotice: "business-boundary-notice.md",
   reviewEvidenceJsonl: "reviews.jsonl",
+  keywordSummary: "keyword-summary.json",
+  searchPageResults: "search-page-results.json",
+  searchPageResultsCsv: "search-page-results.csv",
+  searchPageRawVisibleText: "search-page-raw-visible-text.txt",
+  productSummary: "product-summary.json",
+  productDetail: "product-detail.json",
+  productDetailRawVisibleText: "product-detail-raw-visible-text.txt",
+  productImagesIndex: "product-images-index.json",
+  productSourceKeywords: "product-source-keywords.json",
+  reviewsSummary: "reviews-summary.json",
+  reviewPagesIndex: "review-pages-index.json",
 } as const;
 
 export type AmazonPackageLayout = {
@@ -36,18 +53,25 @@ export type AmazonPackageLayout = {
   packageRootPath: string;
   masterReportDir: string;
   manifestDir: string;
+  aiKeywordRunsDir: string;
   keywordSearchEvidenceDir: string;
   productDetailEvidenceDir: string;
   reviewEvidenceDir: string;
   aiHandoffDir: string;
   exceptionAndCompletenessDir: string;
   packageJsonPath: string;
+  manifestPath: string;
+  taskScopePath: string;
+  packageSchemaPath: string;
   pdfReportPath: string;
   evidenceIndexPath: string;
   exceptionSummaryPath: string;
+  manualRequiredPath: string;
+  failedItemsPath: string;
   handoffRecordPath: string;
   masterReportHtmlPath: string;
   imageEvidenceIndexPath: string;
+  packageFileHashesPath: string;
   dataCompletenessReportPath: string;
   packageIntegrityReportPath: string;
   keywordSearchEvidencePath: string;
@@ -63,11 +87,21 @@ const resolveTaskArtifactsDir = (input: { dataDir: string; taskId: string }): st
 export const resolveAmazonPackageRootPath = (input: { dataDir: string; taskId: string }): string =>
   join(resolveTaskArtifactsDir(input), `amazon-product-mining-package-${input.taskId}`);
 
+export const resolveAmazonKeywordEvidenceDir = (input: { layout: AmazonPackageLayout; keywordId: string }): string =>
+  join(input.layout.keywordSearchEvidenceDir, `keyword-${input.keywordId}`);
+
+export const resolveAmazonProductEvidenceDir = (input: { layout: AmazonPackageLayout; detailId: string }): string =>
+  join(input.layout.productDetailEvidenceDir, `product-${input.detailId}`);
+
+export const resolveAmazonReviewEvidenceDir = (input: { layout: AmazonPackageLayout; detailId: string }): string =>
+  join(input.layout.reviewEvidenceDir, `product-${input.detailId}`);
+
 export const createAmazonPackageLayout = (input: { dataDir: string; taskId: string }): AmazonPackageLayout => {
   const artifactsDir = resolveTaskArtifactsDir(input);
   const packageRootPath = resolveAmazonPackageRootPath(input);
   const masterReportDir = join(packageRootPath, AMAZON_PACKAGE_DIR_NAMES.masterReport);
   const manifestDir = join(packageRootPath, AMAZON_PACKAGE_DIR_NAMES.manifest);
+  const aiKeywordRunsDir = join(manifestDir, "ai-keyword-runs");
   const keywordSearchEvidenceDir = join(packageRootPath, AMAZON_PACKAGE_DIR_NAMES.keywordSearchEvidence);
   const productDetailEvidenceDir = join(packageRootPath, AMAZON_PACKAGE_DIR_NAMES.productDetailEvidence);
   const reviewEvidenceDir = join(packageRootPath, AMAZON_PACKAGE_DIR_NAMES.reviewEvidence);
@@ -79,25 +113,32 @@ export const createAmazonPackageLayout = (input: { dataDir: string; taskId: stri
     packageRootPath,
     masterReportDir,
     manifestDir,
+    aiKeywordRunsDir,
     keywordSearchEvidenceDir,
     productDetailEvidenceDir,
     reviewEvidenceDir,
     aiHandoffDir,
     exceptionAndCompletenessDir,
-    packageJsonPath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.packageJson),
+    packageJsonPath: join(packageRootPath, AMAZON_PACKAGE_FILE_NAMES.packageJson),
+    manifestPath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.manifest),
+    taskScopePath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.taskScope),
+    packageSchemaPath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.packageSchema),
     pdfReportPath: join(masterReportDir, AMAZON_PACKAGE_FILE_NAMES.pdfReport),
     evidenceIndexPath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.evidenceIndex),
     exceptionSummaryPath: join(exceptionAndCompletenessDir, AMAZON_PACKAGE_FILE_NAMES.exceptionSummary),
+    manualRequiredPath: join(exceptionAndCompletenessDir, AMAZON_PACKAGE_FILE_NAMES.manualRequired),
+    failedItemsPath: join(exceptionAndCompletenessDir, AMAZON_PACKAGE_FILE_NAMES.failedItems),
     handoffRecordPath: join(aiHandoffDir, AMAZON_PACKAGE_FILE_NAMES.handoffRecord),
     masterReportHtmlPath: join(masterReportDir, AMAZON_PACKAGE_FILE_NAMES.masterReportHtml),
     imageEvidenceIndexPath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.imageEvidenceIndex),
+    packageFileHashesPath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.packageFileHashes),
     dataCompletenessReportPath: join(exceptionAndCompletenessDir, AMAZON_PACKAGE_FILE_NAMES.dataCompletenessReport),
     packageIntegrityReportPath: join(exceptionAndCompletenessDir, AMAZON_PACKAGE_FILE_NAMES.packageIntegrityReport),
     keywordSearchEvidencePath: join(keywordSearchEvidenceDir, AMAZON_PACKAGE_FILE_NAMES.keywordSearchEvidence),
     productDetailEvidencePath: join(productDetailEvidenceDir, AMAZON_PACKAGE_FILE_NAMES.productDetailEvidence),
     aiReadingContractPath: join(aiHandoffDir, AMAZON_PACKAGE_FILE_NAMES.aiReadingContract),
     aiHandoffPromptPath: join(aiHandoffDir, AMAZON_PACKAGE_FILE_NAMES.aiHandoffPrompt),
-    businessBoundaryNoticePath: join(aiHandoffDir, AMAZON_PACKAGE_FILE_NAMES.businessBoundaryNotice),
+    businessBoundaryNoticePath: join(manifestDir, AMAZON_PACKAGE_FILE_NAMES.businessBoundaryNotice),
   };
 
   for (const dirPath of [
@@ -105,6 +146,7 @@ export const createAmazonPackageLayout = (input: { dataDir: string; taskId: stri
     packageRootPath,
     masterReportDir,
     manifestDir,
+    aiKeywordRunsDir,
     keywordSearchEvidenceDir,
     productDetailEvidenceDir,
     reviewEvidenceDir,

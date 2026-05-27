@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T11:36:00.857Z",
+  "generatedAt": "2026-05-27T12:42:09.567Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -503,6 +503,10 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report-types.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",

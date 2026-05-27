@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T11:36:17.268Z",
+  "generatedAt": "2026-05-27T12:42:25.762Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -28,7 +28,6 @@
   "status": "PASS",
   "findings": [],
   "inspectedFiles": [
-    "package.json",
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
