@@ -1,15 +1,15 @@
 export {
   createVideoDownloadAbilityGroup,
+  createVideoDownloadAbilityGroupFromFilesystem,
+  probeTelegramWebVisibleMediaSourcePage,
 } from "./ability-group.js";
-export {
-  createFilesystemVideoArtifactStoragePort,
-} from "./runtime/artifact-storage.js";
-export {
-  buildTelegramWebVisibleMediaProbeScript,
-} from "./runtime/telegram-web-visible-media-probe-script.js";
 export type {
   BrowserMediaSourcePort,
 } from "./ports/browser-media-source-port.js";
+export type {
+  TelegramWebVisibleMediaProbeResult,
+  TelegramWebVisibleVideoCandidate,
+} from "./ability-group.js";
 export type {
   VideoDownloadAbilityGroup,
 } from "./contract.js";

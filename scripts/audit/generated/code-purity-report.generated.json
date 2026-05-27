@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-27T15:56:12.626Z",
+  "generatedAt": "2026-05-27T19:17:57.663Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -77,11 +77,15 @@
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-active-plugin-gate.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-mediator-shared-ai-scope.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-project-sources.ts",
@@ -95,6 +99,8 @@
     "scripts/audit/domains/audit-truth/components/scan-audit-no-source-text-search.ts",
     "scripts/audit/domains/audit-truth/components/scan-generated-plan-coverage.ts",
     "scripts/audit/domains/audit-truth/inspector.ts",
+    "scripts/audit/domains/capability-group-governance/components/capability-governance-report.ts",
+    "scripts/audit/domains/capability-group-governance/components/capability-source-of-truth.ts",
     "scripts/audit/domains/capability-group-governance/inspector.ts",
     "scripts/audit/domains/code-purity/components/code-purity-finding-collector.ts",
     "scripts/audit/domains/code-purity/components/code-purity-governed-files.ts",
@@ -113,6 +119,7 @@
     "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
     "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
     "scripts/audit/domains/code-purity/components/structural-metrics.ts",
+    "scripts/audit/domains/code-purity/components/summarize-useless-code.ts",
     "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
     "scripts/audit/domains/code-purity/components/zombie-call-graph.ts",
     "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
@@ -464,6 +471,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.search-extract-script.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
@@ -563,7 +571,8 @@
     "APEX-CODE-PURITY-020-V1",
     "APEX-CODE-PURITY-021-V1",
     "APEX-CODE-PURITY-022-V1",
-    "APEX-CODE-PURITY-023-V1"
+    "APEX-CODE-PURITY-023-V1",
+    "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
   ],
   "liveEntryPoints": [
     {
@@ -1005,20 +1014,25 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1430,
+  "liveExportCount": 1478,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 532,
+  "reachableFileCount": 540,
   "status": "PASS",
   "unreachableFileCount": 0,
+  "uselessCodeInventory": [],
+  "unprovenPublicExports": [],
+  "unprovenRegistryEntries": [],
+  "unprovenSchemaFields": [],
   "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1430,
+    "liveExportCount": 1478,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 532,
+    "reachableFileCount": 540,
     "unreachableFileCount": 0,
+    "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0
   }
 }

@@ -1,4 +1,4 @@
-generatedAt: "2026-05-27T15:55:54.950Z"
+generatedAt: "2026-05-27T19:17:37.557Z"
 rows:
   - capabilityDomain: "amazon-product-mining"
     manifestPath: "scripts/audit/domains/amazon-product-mining/manifest.json"
@@ -34,6 +34,7 @@ rows:
       - "APEX-ARCH-008-V1"
       - "APEX-ARCH-009-V1"
       - "APEX-ARCH-010-V1"
+      - "APEX-ARCH-011-V1"
   - capabilityDomain: "audit-system"
     manifestPath: "scripts/audit/domains/audit-system/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/audit-system/inspector.ts"
@@ -94,6 +95,7 @@ rows:
       - "APEX-CODE-PURITY-021-V1"
       - "APEX-CODE-PURITY-022-V1"
       - "APEX-CODE-PURITY-023-V1"
+      - "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
   - capabilityDomain: "deep-research-analysis"
     manifestPath: "scripts/audit/domains/deep-research-analysis/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/deep-research-analysis/inspector.ts"

@@ -14,6 +14,7 @@ export type ArchitectureLawIds = {
   childAbilityLawId: string;
   sharedLawId: string;
   plannerLawId: string;
+  pluginStageLawId: string;
 };
 
 export const privateCapabilityPathPattern = /^src\/capabilities\/[^/]+\/(runtime|children)\//u;
@@ -56,4 +57,5 @@ export const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry
   childAbilityLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-005-V1"),
   sharedLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-007-V1"),
   plannerLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-009-V1"),
+  pluginStageLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-011-V1"),
 });

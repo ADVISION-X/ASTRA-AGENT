@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 type ChromeWindowState = {
   windowX: number;
@@ -40,7 +43,19 @@ const runSpawn = async (command: string, args: string[], options?: { signal?: Ab
 
 const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-e", script], options);
 
-const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
+const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => {
+  if (script.length < 1_000) {
+    return runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
+  }
+  const tempDir = mkdtempSync(path.join(tmpdir(), "grasseye-jxa-"));
+  const scriptPath = path.join(tempDir, "script.jxa");
+  writeFileSync(scriptPath, script);
+  try {
+    return await runSpawn("osascript", ["-l", "JavaScript", scriptPath], options);
+  } finally {
+    rmSync(tempDir, { force: true, recursive: true });
+  }
+};
 
 const buildOpenUrlScript = (
   url: string,
@@ -76,6 +91,14 @@ tell application "Google Chrome"
     return "reused_active_tab"`
     : ""}
   ${reusePolicy === "open-new-tab"
+    ? `
+    tell front window
+        make new tab with properties {URL:"${escapedUrl}"}
+        set active tab index to (count of tabs)
+    end tell
+    return "opened_new_tab"`
+    : ""}
+  ${reusePolicy === "reuse-exact-url"
     ? `
     tell front window
         make new tab with properties {URL:"${escapedUrl}"}

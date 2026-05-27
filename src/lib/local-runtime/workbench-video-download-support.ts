@@ -1,8 +1,9 @@
 import {
-  createFilesystemVideoArtifactStoragePort,
-  createVideoDownloadAbilityGroup,
-  buildTelegramWebVisibleMediaProbeScript,
+  createVideoDownloadAbilityGroupFromFilesystem,
+  probeTelegramWebVisibleMediaSourcePage,
   type BrowserMediaSourcePort,
+  type TelegramWebVisibleMediaProbeResult,
+  type TelegramWebVisibleVideoCandidate,
 } from "../../capabilities/video-download/index.js";
 import type { BrowserController } from "../browser/browser-controller.js";
 import { runAppleScript } from "../browser/current-chrome-window-control.js";
@@ -14,37 +15,6 @@ export type VideoDownloadSourcePage = {
   sourcePageUrl: string;
   pageTitle: string;
   videoCandidates: TelegramWebVisibleVideoCandidate[];
-};
-
-type TelegramWebVisibleVideoCandidate = {
-  documentIdHash: string;
-  sourceKind: "visible_progressive_video";
-  redactedPathPrefix: string;
-  durationMs: number | null;
-  width: number | null;
-  height: number | null;
-  readyState: number;
-  visible: boolean;
-  viewportRect: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  cacheStorageAvailable: boolean;
-  cacheComplete: boolean;
-  cachedByteSize: number | null;
-  cacheRangeCount: number;
-};
-
-type TelegramWebVisibleMediaProbeResult = {
-  ok: boolean;
-  status: "success" | "failed" | "review_required" | "invalid_input";
-  sourcePageUrl?: string;
-  candidateCount?: number;
-  candidates?: TelegramWebVisibleVideoCandidate[];
-  failureReason?: string;
-  reason?: string;
 };
 
 const forbiddenStorageReads = new RegExp([
@@ -225,50 +195,52 @@ export function createWorkbenchVideoDownload(
   dataDir: string,
   browserController: BrowserController,
 ) {
-  return createVideoDownloadAbilityGroup({
+  return createVideoDownloadAbilityGroupFromFilesystem({
     browserMediaSourcePort: createWorkbenchBrowserMediaSourcePort(browserController),
-    artifactStoragePort: createFilesystemVideoArtifactStoragePort(dataDir),
+    dataDir,
   });
 }
 
-export const findOpenVideoDownloadSourcePage = async (
+const resolveVideoDownloadSourceHost = (
   platformId: VideoDownloadSourcePagePlatform,
+): string | null => platformId === "telegram-web" ? "web.telegram.org" : null;
+
+const validatePreferredVideoDownloadSourceUrl = (
+  host: string,
   preferredSourcePageUrl?: string,
-): Promise<VideoDownloadSourcePage | null> => {
-  const host = platformId === "telegram-web" ? "web.telegram.org" : "";
-  if (!host) {
+): string | null | undefined => {
+  if (!preferredSourcePageUrl) {
+    return undefined;
+  }
+  try {
+    const preferredUrl = new URL(preferredSourcePageUrl);
+    return preferredUrl.hostname.toLowerCase() === host ? preferredSourcePageUrl : null;
+  } catch {
     return null;
   }
-  const preferredUrl = preferredSourcePageUrl ? (() => {
-    try {
-      return new URL(preferredSourcePageUrl);
-    } catch {
-      return null;
-    }
-  })() : null;
-  if (preferredSourcePageUrl && !preferredUrl) {
-    return null;
-  }
-  if (preferredUrl && preferredUrl.hostname.toLowerCase() !== host) {
-    return null;
-  }
+};
+
+const findChromeVideoDownloadSourcePage = async (input: {
+  host: string;
+  preferredSourcePageUrl?: string;
+}): Promise<{ sourcePageUrl: string; pageTitle: string } | null> => {
   const raw = await runAppleScript(
     `tell application "Google Chrome"
-  ${preferredSourcePageUrl ? `repeat with wIndex from 1 to count of windows
+  ${input.preferredSourcePageUrl ? `repeat with wIndex from 1 to count of windows
     set w to window wIndex
     repeat with tIndex from 1 to count of tabs of w
       set u to URL of tab tIndex of w
-      if u is ${JSON.stringify(preferredSourcePageUrl)} then
+      if u is ${JSON.stringify(input.preferredSourcePageUrl)} then
         return u & linefeed & title of tab tIndex of w
       end if
     end repeat
   end repeat` : ""}
-  ${preferredSourcePageUrl ? "return \"\"" : ""}
+  ${input.preferredSourcePageUrl ? "return \"\"" : ""}
   repeat with wIndex from 1 to count of windows
     set w to window wIndex
     repeat with tIndex from 1 to count of tabs of w
       set u to URL of tab tIndex of w
-      if u starts with "https://${host}/" then
+      if u starts with "https://${input.host}/" then
         return u & linefeed & title of tab tIndex of w
       end if
     end repeat
@@ -280,17 +252,65 @@ return ""`,
   if (!sourcePageUrl) {
     return null;
   }
-  const target = await resolveChromeTabSelector(sourcePageUrl);
-  const probeResult = await evaluateChromePage<TelegramWebVisibleMediaProbeResult>({
-    script: buildTelegramWebVisibleMediaProbeScript(),
-    description: "collect Telegram Web visible media list",
-    windowSelector: target.windowSelector,
-    tabSelector: target.tabSelector,
-  });
   return {
-    platformId,
     sourcePageUrl,
     pageTitle: titleParts.join("\n").trim(),
+  };
+};
+
+const createSourcePageProbePort = (): BrowserMediaSourcePort => ({
+  async evaluateActiveTab() {
+    throw new Error("Video download source-page probe requires evaluateSourcePage.");
+  },
+  async evaluateSourcePage<T>(input: {
+    sourcePageUrl: string;
+    script: string;
+    description: string;
+    abortSignal?: AbortSignal;
+  }): Promise<T> {
+    const target = await resolveChromeTabSelector(input.sourcePageUrl, input.abortSignal);
+    return evaluateChromePage<T>({
+      script: input.script,
+      description: input.description,
+      windowSelector: target.windowSelector,
+      tabSelector: target.tabSelector,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+    });
+  },
+});
+
+const probeVideoDownloadSourcePage = (
+  sourcePageUrl: string,
+): Promise<TelegramWebVisibleMediaProbeResult> =>
+  probeTelegramWebVisibleMediaSourcePage({
+    browserMediaSourcePort: createSourcePageProbePort(),
+    sourcePageUrl,
+  });
+
+export const findOpenVideoDownloadSourcePage = async (
+  platformId: VideoDownloadSourcePagePlatform,
+  preferredSourcePageUrl?: string,
+): Promise<VideoDownloadSourcePage | null> => {
+  const host = resolveVideoDownloadSourceHost(platformId);
+  if (!host) {
+    return null;
+  }
+  const validatedPreferredUrl = validatePreferredVideoDownloadSourceUrl(host, preferredSourcePageUrl);
+  if (validatedPreferredUrl === null) {
+    return null;
+  }
+  const page = await findChromeVideoDownloadSourcePage({
+    host,
+    ...(validatedPreferredUrl ? { preferredSourcePageUrl: validatedPreferredUrl } : {}),
+  });
+  if (!page) {
+    return null;
+  }
+  const probeResult = await probeVideoDownloadSourcePage(page.sourcePageUrl);
+  return {
+    platformId,
+    sourcePageUrl: page.sourcePageUrl,
+    pageTitle: page.pageTitle,
     videoCandidates: probeResult.ok ? probeResult.candidates ?? [] : [],
   };
 };

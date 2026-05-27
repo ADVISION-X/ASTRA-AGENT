@@ -46,6 +46,8 @@ src/lib/local-runtime/**
 src/lib/online-ai/**
 ```
 
+Browser and Runtime Logs are infrastructure owners, not ability groups. Active blueprints and audit reports must not declare them as capability roots.
+
 Currently approved validated job flow root:
 
 ```txt
@@ -165,6 +167,8 @@ Required:
 - Job flows import ability public APIs only from `src/capabilities/<group-id>/index.ts`.
 - Private runtime files are internal to their ability group.
 - Public facade exports must be explicit.
+- `src/capabilities/dom-automation/index.ts` may export only its law-approved public child ability functions.
+- Capability facades other than DOM Automation stay factory-and-contract oriented: public types, schemas, port interfaces, and the ability-group factory only.
 
 Forbidden:
 
@@ -173,6 +177,7 @@ Forbidden:
 - Consumer imports from any non-facade ability file.
 - Ability group imports from unrelated `src/capabilities/<other-group-id>/**` owners.
 - Ability group imports from `src/plugins/**`.
+- Facades laundering `runtime/**`, `children/**`, `registry.ts`, concrete storage adapters, or platform probe scripts as public runtime values.
 
 ## 5. Law APEX-CAPABILITY-GROUP-004-V1 — Business Neutrality
 

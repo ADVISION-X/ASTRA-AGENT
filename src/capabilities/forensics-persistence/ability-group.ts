@@ -2,6 +2,7 @@ import { executeAppendArtifact } from "./children/append-artifact.js";
 import { executeAppendRecord } from "./children/append-record.js";
 import { executeReadRecordRef } from "./children/read-record-ref.js";
 import type { ForensicsPersistenceAbilityGroup } from "./contract.js";
+import { createForensicsStorageAdapter } from "./storage-adapter.js";
 import type {
   ForensicsAbilityInput,
   ForensicsAppendArtifactInput,
@@ -11,6 +12,7 @@ import type {
 } from "./schema.js";
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
 import type { ForensicsStoragePort } from "./storage-port.js";
+import type { GrassEyeStoragePort } from "../../lib/storage/index.js";
 import { RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type AppendableForensicsInput =
@@ -114,4 +116,11 @@ export function createForensicsPersistenceAbilityGroup(
       return executeReadRecordRef(input, storage);
     },
   };
+}
+
+export function createForensicsPersistenceAbilityGroupFromStorage(
+  storage: GrassEyeStoragePort,
+  runtimeLogger?: RuntimeLogger,
+): ForensicsPersistenceAbilityGroup {
+  return createForensicsPersistenceAbilityGroup(createForensicsStorageAdapter(storage), runtimeLogger);
 }

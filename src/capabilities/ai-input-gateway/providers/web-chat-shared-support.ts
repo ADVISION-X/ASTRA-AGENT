@@ -20,14 +20,29 @@ export const restoreSourcePage = async (
   const focused = await focusExistingSourceTab({ sourceUrl, ...(abortSignal ? { abortSignal } : {}) });
   if (!focused) return false;
   try {
-    const restoredState = await browser.evaluateActiveTab<{ pageUrl: string; hostMatches: boolean }>({
+    const parsed = new URL(sourceUrl);
+    const parsedSource = parsed.protocol === "blob:"
+      ? (() => {
+          try {
+            return new URL(parsed.pathname);
+          } catch {
+            return parsed;
+          }
+        })()
+      : parsed;
+    const restoredState = await browser.evaluateActiveTab<{ pageUrl: string; sourceMatches: boolean }>({
       description: "verify source page restored after AI feed",
       script: `
-const expectedHost = ${JSON.stringify(new URL(sourceUrl).host)};
-return {pageUrl: location.href, hostMatches: location.host === expectedHost};
+const expectedUrl = ${JSON.stringify(sourceUrl)};
+const expectedHost = ${JSON.stringify(parsedSource.host)};
+const expectedOrigin = ${JSON.stringify(parsedSource.origin)};
+return {
+  pageUrl: location.href,
+  sourceMatches: location.href === expectedUrl || location.host === expectedHost || location.origin === expectedOrigin,
+};
 `,
     });
-    return restoredState.hostMatches;
+    return restoredState.sourceMatches;
   } catch {
     return false;
   }

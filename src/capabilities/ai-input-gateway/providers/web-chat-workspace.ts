@@ -110,6 +110,20 @@ export const focusExistingSourceTab = async (input: {
   abortSignal?: AbortSignal;
 }): Promise<boolean> => {
   const parsed = new URL(input.sourceUrl);
+  const parsedSource = parsed.protocol === "blob:"
+    ? (() => {
+        try {
+          return new URL(parsed.pathname);
+        } catch {
+          return parsed;
+        }
+      })()
+    : parsed;
+  const sourceHostPath = `${parsedSource.host}${parsedSource.pathname}`;
+  const sourceOrigin = parsedSource.origin;
+  const mayUseSameOriginWorkbenchTab =
+    parsedSource.protocol === "http:"
+    && (parsedSource.hostname === "127.0.0.1" || parsedSource.hostname === "localhost");
   const result = await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "Google Chrome"
@@ -118,7 +132,12 @@ tell application "Google Chrome"
     set tIndex to 1
     repeat with t in tabs of w
       set tabUrl to URL of t
-      if tabUrl is "${escapeAppleScriptText(input.sourceUrl)}" or tabUrl contains "${escapeAppleScriptText(parsed.host)}${escapeAppleScriptText(parsed.pathname)}" then
+      if tabUrl is "${escapeAppleScriptText(input.sourceUrl)}" or tabUrl contains "${escapeAppleScriptText(sourceHostPath)}" then
+        set active tab index of w to tIndex
+        set index of w to 1
+        return "focused"
+      end if
+      if ${mayUseSameOriginWorkbenchTab ? "true" : "false"} and tabUrl starts with "${escapeAppleScriptText(sourceOrigin)}" then
         set active tab index of w to tIndex
         set index of w to 1
         return "focused"

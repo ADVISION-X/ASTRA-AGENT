@@ -12,7 +12,7 @@ import {
   clickAt,
   escapeAppleScriptText,
 } from "./current-chrome-browser-controller-primitives.js";
-import { runAppleScript, runJxa } from "./current-chrome-window-control.js";
+import { runAppleScript } from "./current-chrome-window-control.js";
 import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
 import { executeCurrentChromeFieldInput } from "./current-chrome-browser-field-input.js";
 import { setFileInputFilesWithCurrentChromeCdp } from "./current-chrome-cdp-file-input.js";
@@ -39,6 +39,7 @@ ${script}
   return JSON.stringify(result ?? null);
 })()
 `;
+
 
 type CloseActiveTabSnapshot = {
   activeUrl: string | null;

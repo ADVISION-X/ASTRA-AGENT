@@ -1,2 +1,4 @@
-export { createForensicsPersistenceAbilityGroup } from "./ability-group.js";
-export { createForensicsStorageAdapter } from "./storage-adapter.js";
+export {
+	createForensicsPersistenceAbilityGroup,
+	createForensicsPersistenceAbilityGroupFromStorage,
+} from "./ability-group.js";

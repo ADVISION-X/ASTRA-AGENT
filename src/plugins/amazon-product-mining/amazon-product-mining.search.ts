@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import { runJxa } from "../../lib/browser/current-chrome-window-control.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
 } from "./amazon-product-mining.field-disclosure.js";
+import { buildAmazonSearchExtractScript } from "./amazon-product-mining.search-extract-script.js";
 import type { AmazonSearchResultItem } from "./amazon-product-mining.schema.js";
 
 export type SearchPageAdapter = {
@@ -21,115 +23,6 @@ type SearchBlockerKind =
 export type SearchResult =
   | { ok: true; items: AmazonSearchResultItem[]; searchUrl: string }
   | { ok: false; blockerKind: SearchBlockerKind; reason: string };
-
-const AMAZON_SEARCH_EXTRACT_SCRIPT = `
-return (function() {
-  var normalizeText = function(text) {
-    if (!text) return null;
-    return text.replace(/\s+/g, ' ').trim();
-  };
-  var pickText = function(root, selectors) {
-    for (var i = 0; i < selectors.length; i++) {
-      var element = root.querySelector(selectors[i]);
-      var text = normalizeText(element && element.textContent ? element.textContent : null);
-      if (text) return text;
-    }
-    return null;
-  };
-  var matchCommercialLine = function(text, patterns) {
-    for (var i = 0; i < patterns.length; i++) {
-      var match = text.match(patterns[i]);
-      if (match && match[0]) return normalizeText(match[0]);
-    }
-    return null;
-  };
-  var body = document.body.innerText || "";
-  // Detect blocker conditions
-  if (document.querySelector('input[name="email"]') || document.querySelector('#ap_email')) {
-    return { blocker: "login_required" };
-  }
-  if (document.querySelector('form[action*="captcha"]') || document.querySelector('#captchacharacters')) {
-    return { blocker: "captcha" };
-  }
-  var items = [];
-  // Try s-result-item approach (standard Amazon search)
-  var cards = document.querySelectorAll('[data-component-type="s-search-result"]');
-  if (cards.length === 0) {
-    cards = document.querySelectorAll('[data-asin]');
-  }
-  var rank = 0;
-  cards.forEach(function(card) {
-    var asin = card.getAttribute('data-asin') || null;
-    var cardText = normalizeText(card.innerText || '') || '';
-    var titleEl = card.querySelector('h2 a span') || card.querySelector('.a-size-medium') || card.querySelector('.a-size-base-plus');
-    var title = titleEl ? titleEl.textContent.trim() : null;
-    var linkEl = card.querySelector('h2 a') || card.querySelector('a.a-link-normal');
-    var href = linkEl ? linkEl.getAttribute('href') : null;
-    if (!href) return;
-    var productUrl = href.startsWith('http') ? href : ('https://' + window.location.host + href);
-    var priceEl = card.querySelector('.a-price .a-offscreen') || card.querySelector('.a-price');
-    var price = priceEl ? priceEl.textContent.trim() : null;
-    var ratingEl = card.querySelector('.a-icon-star-small .a-icon-alt') || card.querySelector('[aria-label*="out of 5"]');
-    var rating = ratingEl ? (ratingEl.textContent || ratingEl.getAttribute('aria-label') || null) : null;
-    var reviewCountEl = card.querySelector('.a-size-base.s-underline-text') || card.querySelector('[aria-label*="ratings"]');
-    var reviewCount = reviewCountEl ? reviewCountEl.textContent.trim() : null;
-    var imgEl = card.querySelector('img.s-image') || card.querySelector('img[src*="images/I/"]');
-    var mainImageUrl = imgEl ? imgEl.getAttribute('src') : null;
-    var badgeText = card.querySelector('.s-sponsored-label-text');
-    var isSponsored = badgeText ? badgeText.textContent.toLowerCase().includes('sponsored') : false;
-    if (!isSponsored) {
-      var sponsorDiv = card.querySelector('.s-label-popover-hover');
-      if (sponsorDiv) isSponsored = true;
-    }
-    var primeEl = card.querySelector('[aria-label="Amazon Prime"]')
-      || card.querySelector('.s-prime')
-      || card.querySelector('[data-cy="prime-badge"]');
-    var primeOrFba = primeEl ? 'Prime' : null;
-    if (!primeOrFba && /fulfilled by amazon|fba/i.test(cardText)) {
-      primeOrFba = 'Fulfilled by Amazon';
-    }
-    var couponEl = card.querySelector('.s-coupon-unclipped span')
-      || card.querySelector('.couponBadge')
-      || card.querySelector('[aria-label*="coupon"]');
-    var couponText = couponEl ? normalizeText(couponEl.textContent) : matchCommercialLine(cardText, [/(?:Save|Coupon|Apply)\s+[^\n]+/i]);
-    var originalPrice = pickText(card, [
-      '.a-price.a-text-price .a-offscreen',
-      '.a-price[data-a-strike="true"] .a-offscreen',
-      '.a-price.a-text-price span[aria-hidden="true"]',
-      '.basisPrice .a-offscreen',
-      '.a-price[data-a-color="secondary"] .a-offscreen'
-    ]);
-    var discountText = matchCommercialLine(cardText, [/(?:Save\s+[^\n]+|\d+%\s+off|Limited time deal[^\n]*)/i]);
-    var originalPriceOrDiscount = originalPrice || discountText;
-    var deliveryText = pickText(card, [
-      '[data-cy="delivery-recipe"]',
-      '.a-color-base.a-text-bold',
-      '.a-color-secondary .a-text-bold',
-      '.a-row.a-size-base.a-color-secondary'
-    ]);
-    if (!deliveryText) {
-      deliveryText = matchCommercialLine(cardText, [/(?:FREE delivery[^\n]*|Delivery[^\n]*|Get it by[^\n]*|Arrives[^\n]*|Overnight delivery[^\n]*)/i]);
-    }
-    rank++;
-    items.push({
-      asin: asin,
-      title: title,
-      productUrl: productUrl,
-      price: price,
-      rating: rating,
-      reviewCount: reviewCount,
-      mainImageUrl: mainImageUrl,
-      isSponsored: isSponsored,
-      rankPosition: rank,
-      primeOrFba: primeOrFba,
-      couponText: couponText,
-      originalPriceOrDiscount: originalPriceOrDiscount,
-      deliveryText: deliveryText,
-    });
-  });
-  return { items: items, rawText: document.body.innerText.substring(0, 8000) };
-})();
-`;
 
 type ExtractedItem = {
   asin: string | null;
@@ -149,7 +42,129 @@ type ExtractedItem = {
 
 type ExtractResult =
   | { blocker: string }
-  | { items: ExtractedItem[]; rawText: string };
+  | { items: ExtractedItem[]; rawText: string | null; totalCards?: number };
+
+const buildChromeFrontTabJsonEvaluation = (script: string): string => `
+const chrome = Application("Google Chrome");
+chrome.activate();
+const windows = chrome.windows();
+if (windows.length === 0) {
+  throw new Error("chrome_window_missing");
+}
+const frontWindow = windows[0];
+const tab = frontWindow.activeTab();
+const value = tab.execute({ javascript: ${JSON.stringify(`JSON.stringify((function() { ${script} })())`)} });
+if (value === undefined || value === null || value === "" || value === "missing value") {
+  throw new Error("amazon_search_extract_empty_result");
+}
+String(value);
+`;
+
+const evaluateSearchResultSlice = async (input: {
+  keyword: string;
+  startIndex: number;
+}): Promise<{ items: ExtractedItem[]; rawText: string | null; totalCards: number }> => {
+  const rawResult = await runJxa(
+    buildChromeFrontTabJsonEvaluation(
+      buildAmazonSearchExtractScript({
+        includeRawText: input.startIndex === 0,
+        limit: 10,
+        startIndex: input.startIndex,
+      }),
+    ),
+  );
+  const result = JSON.parse(rawResult) as ExtractResult;
+
+  if (!result || typeof result !== "object") {
+    throw new Error("amazon_search_extract_invalid_result");
+  }
+  if ("blocker" in result) {
+    throw new Error(`amazon_search_blocked:${result.blocker}`);
+  }
+  if (!Array.isArray(result.items)) {
+    throw new Error("amazon_search_extract_invalid_items");
+  }
+
+  return {
+    items: result.items,
+    rawText: result.rawText ?? null,
+    totalCards: typeof result.totalCards === "number" ? result.totalCards : input.startIndex + result.items.length,
+  };
+};
+
+const collectBrowserSearchItems = async (input: {
+  keyword: string;
+}): Promise<{ extractedItems: ExtractedItem[]; rawVisibleTextSnapshot: string }> => {
+  const extractedItems: ExtractedItem[] = [];
+  let rawVisibleTextSnapshot = "";
+  let totalCards: number | null = null;
+
+  for (let startIndex = 0; totalCards === null || startIndex < totalCards; startIndex += 10) {
+    const result = await evaluateSearchResultSlice({
+      keyword: input.keyword,
+      startIndex,
+    });
+    if (startIndex === 0) {
+      rawVisibleTextSnapshot = result.rawText ?? "";
+    }
+    totalCards = result.totalCards;
+    extractedItems.push(...result.items);
+    if (result.items.length === 0) {
+      break;
+    }
+  }
+
+  return { extractedItems, rawVisibleTextSnapshot };
+};
+
+const mapExtractedSearchItems = (input: {
+  extractedItems: readonly ExtractedItem[];
+  keyword: string;
+  keywordId: string;
+  rawVisibleTextSnapshot: string;
+  searchUrl: string;
+  taskId: string;
+}): AmazonSearchResultItem[] => {
+  const now = new Date().toISOString();
+  return input.extractedItems.map((item) => ({
+    itemId: randomUUID(),
+    keywordId: input.keywordId,
+    taskId: input.taskId,
+    keyword: input.keyword,
+    searchUrl: input.searchUrl,
+    rankPosition: item.rankPosition,
+    isSponsored: item.isSponsored,
+    title: item.title,
+    productUrl: item.productUrl,
+    asinIfAvailable: item.asin,
+    mainImageUrl: item.mainImageUrl,
+    price: item.price,
+    originalPriceOrDiscountIfVisible: item.originalPriceOrDiscount,
+    rating: item.rating,
+    reviewCount: item.reviewCount,
+    primeOrFbaFlagIfVisible: item.primeOrFba,
+    couponTextIfVisible: item.couponText,
+    deliveryTextIfVisible: item.deliveryText,
+    rawVisibleTextSnapshot: input.rawVisibleTextSnapshot,
+    fieldDisclosureMap: buildFieldDisclosureMap({
+      rankPosition: fieldDisclosureFromValue(item.rankPosition, "failed", "Search result rank position was not assigned."),
+      isSponsored: fieldDisclosureFromValue(item.isSponsored, "failed", "Sponsored marker could not be resolved."),
+      title: fieldDisclosureFromValue(item.title, "failed", "Search card title was not readable."),
+      productUrl: fieldDisclosureFromValue(item.productUrl, "failed", "Search card URL was not readable."),
+      asinIfAvailable: fieldDisclosureFromValue(item.asin, "not_present", "ASIN is not visible on this search card."),
+      mainImageUrl: fieldDisclosureFromValue(item.mainImageUrl, "not_present", "Search card main image URL is not visible."),
+      price: fieldDisclosureFromValue(item.price, "not_present", "Search card visible price is not present."),
+      originalPriceOrDiscountIfVisible: fieldDisclosureFromValue(item.originalPriceOrDiscount, "not_present", "Search card original price or discount text is not visible."),
+      rating: fieldDisclosureFromValue(item.rating, "not_present", "Search card rating is not visible."),
+      reviewCount: fieldDisclosureFromValue(item.reviewCount, "not_present", "Search card review count is not visible."),
+      primeOrFbaFlagIfVisible: fieldDisclosureFromValue(item.primeOrFba, "not_present", "Prime or FBA flag is not visible on this card."),
+      couponTextIfVisible: fieldDisclosureFromValue(item.couponText, "not_present", "Coupon text is not visible on this card."),
+      deliveryTextIfVisible: fieldDisclosureFromValue(item.deliveryText, "not_present", "Delivery text is not visible on this card."),
+      rawVisibleTextSnapshot: fieldDisclosureFromValue(input.rawVisibleTextSnapshot, "failed", "Search page raw visible text snapshot is empty."),
+    }),
+    createdAt: now,
+  }));
+};
 
 const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: string): SearchPageAdapter => ({
   async extractSearchResults({ keyword, keywordId, taskId }) {
@@ -161,60 +176,15 @@ const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: stri
     });
     await browser.wait(3000);
 
-    const result = await browser.evaluateActiveTab<ExtractResult>({
-      script: AMAZON_SEARCH_EXTRACT_SCRIPT,
-      description: `Extract Amazon search results for keyword: ${keyword}`,
-    });
-
-    if (!result || typeof result !== "object") {
-      throw new Error("amazon_search_extract_invalid_result");
-    }
-    if ("blocker" in result) {
-      throw new Error(`amazon_search_blocked:${result.blocker}`);
-    }
-    if (!Array.isArray(result.items)) {
-      throw new Error("amazon_search_extract_invalid_items");
-    }
-
-    const now = new Date().toISOString();
-    return result.items.map((item) => ({
-      itemId: randomUUID(),
-      keywordId,
-      taskId,
+    const { extractedItems, rawVisibleTextSnapshot } = await collectBrowserSearchItems({ keyword });
+    return mapExtractedSearchItems({
+      extractedItems,
       keyword,
+      keywordId,
+      rawVisibleTextSnapshot,
       searchUrl,
-      rankPosition: item.rankPosition,
-      isSponsored: item.isSponsored,
-      title: item.title,
-      productUrl: item.productUrl,
-      asinIfAvailable: item.asin,
-      mainImageUrl: item.mainImageUrl,
-      price: item.price,
-      originalPriceOrDiscountIfVisible: item.originalPriceOrDiscount,
-      rating: item.rating,
-      reviewCount: item.reviewCount,
-      primeOrFbaFlagIfVisible: item.primeOrFba,
-      couponTextIfVisible: item.couponText,
-      deliveryTextIfVisible: item.deliveryText,
-      rawVisibleTextSnapshot: result.rawText,
-      fieldDisclosureMap: buildFieldDisclosureMap({
-        rankPosition: fieldDisclosureFromValue(item.rankPosition, "failed", "Search result rank position was not assigned."),
-        isSponsored: fieldDisclosureFromValue(item.isSponsored, "failed", "Sponsored marker could not be resolved."),
-        title: fieldDisclosureFromValue(item.title, "failed", "Search card title was not readable."),
-        productUrl: fieldDisclosureFromValue(item.productUrl, "failed", "Search card URL was not readable."),
-        asinIfAvailable: fieldDisclosureFromValue(item.asin, "not_present", "ASIN is not visible on this search card."),
-        mainImageUrl: fieldDisclosureFromValue(item.mainImageUrl, "not_present", "Search card main image URL is not visible."),
-        price: fieldDisclosureFromValue(item.price, "not_present", "Search card visible price is not present."),
-        originalPriceOrDiscountIfVisible: fieldDisclosureFromValue(item.originalPriceOrDiscount, "not_present", "Search card original price or discount text is not visible."),
-        rating: fieldDisclosureFromValue(item.rating, "not_present", "Search card rating is not visible."),
-        reviewCount: fieldDisclosureFromValue(item.reviewCount, "not_present", "Search card review count is not visible."),
-        primeOrFbaFlagIfVisible: fieldDisclosureFromValue(item.primeOrFba, "not_present", "Prime or FBA flag is not visible on this card."),
-        couponTextIfVisible: fieldDisclosureFromValue(item.couponText, "not_present", "Coupon text is not visible on this card."),
-        deliveryTextIfVisible: fieldDisclosureFromValue(item.deliveryText, "not_present", "Delivery text is not visible on this card."),
-        rawVisibleTextSnapshot: fieldDisclosureFromValue(result.rawText, "failed", "Search page raw visible text snapshot is empty."),
-      }),
-      createdAt: now,
-    }));
+      taskId,
+    });
   },
 });
 

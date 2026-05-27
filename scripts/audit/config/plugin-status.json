@@ -1,0 +1,121 @@
+{
+  "plugins": [
+    {
+      "pluginId": "amazon-invoice-upload",
+      "status": "active",
+      "owner": "plugin:amazon-invoice-upload",
+      "phase": "validated-mainline",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-invoice-upload-smoke"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-invoice-upload-smoke"
+      ],
+      "exposureTokens": [
+        "amazon-invoice-upload"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "amazon-product-mining",
+      "status": "active",
+      "owner": "plugin:amazon-product-mining",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-product-mining-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-product-mining"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-product-mining",
+        "audit:amazon-product-mining",
+        "amazon-product-mining:package:fixture"
+      ],
+      "exposureTokens": [
+        "amazon-product-mining"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "deep-research-analysis",
+      "status": "active",
+      "owner": "plugin:deep-research-analysis",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-deep-research-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:deep-research-analysis-smoke"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:deep-research-analysis-smoke"
+      ],
+      "exposureTokens": [
+        "deep-research-analysis"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "facebook-product-video-mining",
+      "status": "active",
+      "owner": "plugin:facebook-product-video-mining",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-facebook-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:facebook-product-video-mining"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:facebook-product-video-mining",
+        "audit:facebook-product-video-mining"
+      ],
+      "exposureTokens": [
+        "facebook-product-video-mining"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "video-download-artifact",
+      "status": "active",
+      "owner": "plugin:video-download-artifact",
+      "phase": "capability-routed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-video-download-routes.ts",
+        "src/mediator/video-download-artifact-route.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:video-download-telegram-web"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:video-download-telegram-web"
+      ],
+      "exposureTokens": [
+        "video-download"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md"
+      ]
+    }
+  ]
+}

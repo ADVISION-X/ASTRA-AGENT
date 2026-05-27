@@ -1,6 +1,6 @@
 # GrassEye 能力组与子能力总纲施工图
 
-版本：2026-05-22  
+版本：2026-05-27  
 状态：active
 
 ## 1. 系统身份
@@ -45,10 +45,16 @@ Business Flow Script
 ## 3. 当前现役能力组
 
 - DOM Automation：snapshot、locate、fill、click、upload、wait、verify
-- Browser：本地 Chrome 会话、open、wait、screenshot evidence、file input foundation
 - AI Input Gateway / Choice Judge：有限选项问题投递、provider proof、schema 校验
-- Evidence Store：step trace、artifact ref、失败原因、结果记录
+- Evidence Store / Forensics Persistence：step trace、artifact ref、失败原因、结果记录
+- Video Download：媒体候选路由、下载、校验、artifact 生命周期
+
+## 3.1 当前基础设施 owner
+
+- Browser：本地 Chrome 会话、open、wait、screenshot evidence、file input foundation
 - Runtime Logs：FLOW / DEBUG / TRACE 结构化日志
+
+Browser 与 Runtime Logs 是 `src/lib/**` 基础设施 owner，不是能力组，不得在 active 施工图、报告或 allowlist 中冒充 capability root。
 
 ## 4. 当前第一主线
 

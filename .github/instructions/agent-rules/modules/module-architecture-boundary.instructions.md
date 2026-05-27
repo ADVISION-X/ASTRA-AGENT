@@ -98,6 +98,10 @@ Forbidden:
 - creating a new ability group for job-specific business steps;
 - adding a job without mediator route, evidence, acceptance, and audit ownership.
 
+Runtime stage truth for every plugin root lives in `scripts/audit/config/plugin-status.json`.
+Every `src/plugins/<job-id>/**` root must appear exactly once in that table with one lifecycle status: `active`, `experimental`, `parked`, or `archived`.
+Only `active` plugins may enter default runtime surfaces and CI-FULL acceptance smoke.
+
 ## Naming Doctrine
 
 * `src/mediator/**` owns user-demand routing only.
@@ -272,6 +276,62 @@ GrassEye 只允许一条架构主链：
     "Top-level files directly under src/plugins pretending to be shared job routers."
   ]
 }
+````
+
+---
+
+## 4. 插件阶段闸门
+
+```md
+## [APEX-ARCH-011-V1] 插件阶段闸门
+
+```apex-law
+{
+  "lawId": "APEX-ARCH-011-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "architecture-boundary",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast+config",
+  "summary": "Every plugin root must have one explicit lifecycle status, and only active plugins may enter default runtime surfaces and ci-full acceptance smoke.",
+  "appliesTo": [
+    "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
+    "src/app/**/*.{ts,tsx,js,jsx,mjs}",
+    "src/mediator/**/*.{ts,tsx,js,jsx,mjs}",
+    "src/lib/local-runtime/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/audit/**/*.{ts,js,mjs,json}",
+    "package.json"
+  ],
+  "forbidden": [
+    "Plugin root missing from the plugin status table.",
+    "Archived plugin remaining under src/plugins.",
+    "Parked plugin referenced by active runtime code.",
+    "Experimental plugin entering default runtime surfaces.",
+    "Active plugin without ci-full acceptance smoke coverage."
+  ]
+}
+````
+
+### 法条
+
+`scripts/audit/config/plugin-status.json` is the only active source of truth for plugin lifecycle stage.
+
+Required:
+
+* Every plugin root under `src/plugins/<job-id>/**` appears exactly once in the plugin status table.
+* Every entry declares `status`, `phase`, allowed runtime entrypoints, allowed acceptance tests, and allowed npm scripts.
+* Only `active` plugins may appear in default app/runtime surfaces and CI-FULL acceptance smoke.
+* `experimental` plugins may be isolated behind explicit non-default entrypoints only.
+* `parked` plugins may remain in source only when active runtime and CI-FULL do not reference them.
+* `archived` plugins must not remain under `src/plugins/**`.
+
+Forbidden:
+
+* Runtime-exposed plugin with no stage record.
+* Plugin stage truth scattered across docs, app shell, and package scripts.
+* CI-FULL acceptance smoke covering a plugin that is not `active`.
+* Default workbench surfaces exposing `experimental`, `parked`, or `archived` plugins.
+
 ````
 
 ### 法条

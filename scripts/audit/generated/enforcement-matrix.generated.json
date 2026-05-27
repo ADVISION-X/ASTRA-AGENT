@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T15:55:54.950Z",
+  "generatedAt": "2026-05-27T19:17:37.557Z",
   "rows": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -38,7 +38,8 @@
         "APEX-ARCH-007-V1",
         "APEX-ARCH-008-V1",
         "APEX-ARCH-009-V1",
-        "APEX-ARCH-010-V1"
+        "APEX-ARCH-010-V1",
+        "APEX-ARCH-011-V1"
       ]
     },
     {
@@ -110,7 +111,8 @@
         "APEX-CODE-PURITY-020-V1",
         "APEX-CODE-PURITY-021-V1",
         "APEX-CODE-PURITY-022-V1",
-        "APEX-CODE-PURITY-023-V1"
+        "APEX-CODE-PURITY-023-V1",
+        "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
       ]
     },
     {

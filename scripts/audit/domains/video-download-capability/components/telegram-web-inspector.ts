@@ -303,10 +303,10 @@ export const inspectTelegramVisibleListAst = (
   if (!typeHasProperty(localRuntime, "VideoDownloadSourcePage", "videoCandidates")) {
     pushFinding(findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts", "video-download/telegram-source-page-candidates", "Detected Telegram source page must return a visible videoCandidates list.");
   }
-  if (!importedNamesFromPublicFacade(localRuntime).has("buildTelegramWebVisibleMediaProbeScript")) {
+  if (!importedNamesFromPublicFacade(localRuntime).has("probeTelegramWebVisibleMediaSourcePage")) {
     pushFinding(findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts", "video-download/telegram-visible-probe-public-facade", "Local runtime must use the video-download public facade for Telegram visible media probing.");
   }
-  if (!sourceContainsCall(localRuntime, "buildTelegramWebVisibleMediaProbeScript")) {
+  if (!sourceContainsCall(localRuntime, "probeTelegramWebVisibleMediaSourcePage")) {
     pushFinding(findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts", "video-download/telegram-visible-probe-call", "Source page detection must execute the Telegram visible media probe.");
   }
 };

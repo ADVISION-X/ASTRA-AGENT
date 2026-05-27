@@ -1030,3 +1030,38 @@ Therefore: strict owner boundaries first, zombie deletion second, truthful runti
 
 The written law is the minimum contract.
 Code Purity enforcement must be stricter than the text when the same AST / symbol / manifest evidence can prove a stronger corruption surface.
+
+## 33. Law APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1 — Useless Abstraction Purge
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+symbol+reachability+inventory",
+  "summary": "Every public export, registry entry, report field, schema field, wrapper, and abstraction layer in active source must prove active value or be deleted, inlined, merged, or moved out of production source."
+}
+```
+
+Required:
+
+- Every public export, registry entry, adapter, handler, schema field, config knob, proof field, report field, wrapper, and abstraction layer must prove at least one active value path.
+- Accepted value paths are:
+  - active production flow usage;
+  - active inspector usage that can change PASS or FAIL;
+  - active acceptance coverage;
+  - owner-boundary isolation required by current law;
+  - current external contract field required by a live boundary;
+  - current phase authorization in an active capability or plugin status table.
+- Code-purity reports must publish a useless-code inventory, unproven public exports, and unproven registry entries.
+- Any retained abstraction that cannot be proven structurally must fail instead of being excused with future intent.
+
+Forbidden:
+
+- Public export with no final active consumer.
+- Registry or handler entry with no property-level live consumer proof.
+- Wrapper or abstraction layer kept only for future / maybe / planned / nice-to-have reasons.
+- Report-only field that never influences acceptance, inspector verdict, or active runtime contract.
+- Future platform stub left inside active production source with no current phase authorization.

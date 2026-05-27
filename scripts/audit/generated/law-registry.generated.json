@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T15:55:54.950Z",
+  "generatedAt": "2026-05-27T19:17:37.557Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -420,6 +420,32 @@
       "blockIndex": 2
     },
     {
+      "lawId": "APEX-ARCH-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast+config",
+      "summary": "Every plugin root must have one explicit lifecycle status, and only active plugins may enter default runtime surfaces and ci-full acceptance smoke.",
+      "appliesTo": [
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/app/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/mediator/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/lib/local-runtime/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/audit/**/*.{ts,js,mjs,json}",
+        "package.json"
+      ],
+      "forbidden": [
+        "Plugin root missing from the plugin status table.",
+        "Archived plugin remaining under src/plugins.",
+        "Parked plugin referenced by active runtime code.",
+        "Experimental plugin entering default runtime surfaces.",
+        "Active plugin without ci-full acceptance smoke coverage."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 3
+    },
+    {
       "lawId": "APEX-ARCH-004-V1",
       "status": "active",
       "tier": "P0",
@@ -439,7 +465,7 @@
         "Ability group dispatching multiple unrelated action kinds."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "APEX-ARCH-005-V1",
@@ -461,7 +487,7 @@
         "Child ability containing hidden orchestration."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "APEX-ARCH-006-V1",
@@ -482,7 +508,7 @@
         "Temporary architecture roots."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 6
     },
     {
       "lawId": "APEX-ARCH-007-V1",
@@ -502,7 +528,7 @@
         "Shared helper created before two real call sites exist."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 7
     },
     {
       "lawId": "APEX-ARCH-008-V1",
@@ -525,7 +551,7 @@
         "New demand hidden inside existing unrelated flow."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 8
     },
     {
       "lawId": "APEX-ARCH-009-V1",
@@ -549,7 +575,7 @@
         "AI generating workflow steps at runtime."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 9
     },
     {
       "lawId": "APEX-ARCH-010-V1",
@@ -571,7 +597,7 @@
         "Silent architectural expansion."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "APEX-AUDIT-001-V1",
@@ -1257,6 +1283,17 @@
       "summary": "Object bags, registries, and handler maps must prove liveness at property level; whole-bag imports do not keep every entry alive.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 22
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+symbol+reachability+inventory",
+      "summary": "Every public export, registry entry, report field, schema field, wrapper, and abstraction layer in active source must prove active value or be deleted, inlined, merged, or moved out of production source.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 23
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",

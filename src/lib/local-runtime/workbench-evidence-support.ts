@@ -1,6 +1,5 @@
 import {
-  createForensicsPersistenceAbilityGroup,
-  createForensicsStorageAdapter,
+  createForensicsPersistenceAbilityGroupFromStorage,
 } from "../../capabilities/forensics-persistence/index.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../storage/index.js";
@@ -10,6 +9,5 @@ export function createWorkbenchEvidenceStore(
   runtimeLogger: RuntimeLogger,
 ) {
   const genericStorage = createGrassEyeFileStorage(dataDir);
-  const evidenceStoragePort = createForensicsStorageAdapter(genericStorage);
-  return createForensicsPersistenceAbilityGroup(evidenceStoragePort, runtimeLogger);
+  return createForensicsPersistenceAbilityGroupFromStorage(genericStorage, runtimeLogger);
 }

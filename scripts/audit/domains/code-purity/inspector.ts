@@ -1,10 +1,12 @@
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { runCodePurityPhases } from "./components/code-purity-phase-runner.js";
+import { summarizeUselessCodeFindings } from "./components/summarize-useless-code.js";
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const project = context.project;
   const phaseRun = await runCodePurityPhases({ ...context, project });
   const status = phaseRun.findings.length > 0 ? "FAIL" : "PASS";
+  const uselessCodeSummary = summarizeUselessCodeFindings(phaseRun.findings);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
@@ -28,6 +30,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       reachableFileCount: phaseRun.summary.reachableFileCount,
       status,
       unreachableFileCount: phaseRun.summary.unreachableFileCount,
+      uselessCodeInventory: uselessCodeSummary.uselessCodeInventory,
+      unprovenPublicExports: uselessCodeSummary.unprovenPublicExports,
+      unprovenRegistryEntries: uselessCodeSummary.unprovenRegistryEntries,
+      unprovenSchemaFields: uselessCodeSummary.unprovenSchemaFields,
       zombieExportCount: phaseRun.summary.zombieExportCount,
       zombieSummary: {
         antiEvasionFindingCount: phaseRun.summary.antiEvasionFindingCount
@@ -38,6 +44,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
         orphanDeclarationCount: phaseRun.summary.orphanDeclarationCount,
         reachableFileCount: phaseRun.summary.reachableFileCount,
         unreachableFileCount: phaseRun.summary.unreachableFileCount,
+        uselessCodeInventoryCount: uselessCodeSummary.uselessCodeInventory.length,
         zombieExportCount: phaseRun.summary.zombieExportCount,
       },
     },

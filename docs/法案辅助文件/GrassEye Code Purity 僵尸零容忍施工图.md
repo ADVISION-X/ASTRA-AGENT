@@ -102,3 +102,22 @@ code-purity inspector 必须：
 - 没有任何 export 只能解释为“备用 API”。
 - 没有任何 dead branch 只能解释为“未来开关”。
 - 僵尸清理必须优先删除，而不是隐藏。
+
+## 无用抽象清除补充
+
+除了 zombie surface，本施工图把以下面视为 useless-code 主裁对象：
+
+1. dead public export
+2. orphan registry / handler entry
+3. 无法证明活性的 top-level declaration
+4. commented-out executable cargo
+5. 任何只能解释为“理论上也许以后有用”的 active production surface
+
+当前第一阶段由现有 AST reachability / symbol / property-level liveness 图直接给出：
+
+- `uselessCodeInventory`
+- `unprovenPublicExports`
+- `unprovenRegistryEntries`
+- `unprovenSchemaFields`
+
+如果某类 surface 还无法通过现有图证明活性，就不能被静默保留；至少要先进入 useless-code inventory，等待后续更细的专用 detector 收口。
