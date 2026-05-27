@@ -23,6 +23,61 @@ export type ReviewPageAdapter = {
 
 const AMAZON_REVIEWS_EXTRACT_SCRIPT = String.raw`
 return (function() {
+  var normalizeText = function(text) {
+    if (!text) return null;
+    return text.replace(/[\u200e\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
+  };
+  var cleanVisibleText = function(element, maxLength) {
+    if (!element) return null;
+    var clone = element.cloneNode(true);
+    clone.querySelectorAll('script, style, noscript, svg').forEach(function(node) { node.remove(); });
+    var text = normalizeText(clone.textContent || '');
+    return text ? text.substring(0, maxLength) : null;
+  };
+  var isEvidenceMediaUrl = function(url) {
+    if (!url) return false;
+    var lower = String(url).toLowerCase();
+    if (lower.indexOf('grey-pixel') >= 0) return false;
+    if (lower.indexOf('transparent-pixel') >= 0) return false;
+    if (lower.indexOf('amazon-avatars') >= 0) return false;
+    if (lower.indexOf('default.png') >= 0) return false;
+    if (lower.indexOf('base64') >= 0) return false;
+    return true;
+  };
+  var firstText = function(root, selectors) {
+    for (var i = 0; i < selectors.length; i++) {
+      var node = root.querySelector(selectors[i]);
+      var text = cleanVisibleText(node, 2000);
+      if (text) return text;
+    }
+    return null;
+  };
+  var hasArabicText = function(text) {
+    if (!text) return false;
+    for (var i = 0; i < text.length; i++) {
+      var code = text.charCodeAt(i);
+      if ((code >= 1536 && code <= 1791) || (code >= 1872 && code <= 1919) || (code >= 64336 && code <= 65023)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  var detectReviewLanguage = function(root, fallbackLanguage, title, body) {
+    var explicit = root.querySelector('[lang]');
+    var lang = explicit ? explicit.getAttribute('lang') : null;
+    if (lang) return lang;
+    if (hasArabicText((title || '') + ' ' + (body || ''))) return 'ar';
+    return fallbackLanguage;
+  };
+  var extractReviewRegion = function(dateText) {
+    if (!dateText) return null;
+    var marker = 'Reviewed in ';
+    var start = dateText.indexOf(marker);
+    if (start < 0) return null;
+    var afterMarker = dateText.substring(start + marker.length);
+    var onIndex = afterMarker.indexOf(' on ');
+    return onIndex >= 0 ? normalizeText(afterMarker.substring(0, onIndex)) : normalizeText(afterMarker);
+  };
   var loginEl = document.querySelector('#ap_email') || document.querySelector('input[name="email"]');
   if (loginEl) return { blocker: 'login_required' };
   var captchaEl = document.querySelector('#captchacharacters');
@@ -36,31 +91,31 @@ return (function() {
   reviewEls.forEach(function(el) {
     var reviewIdNative = el.getAttribute('id') || null;
     var titleEl = el.querySelector('[data-hook="review-title"] span:last-child') || el.querySelector('[data-hook="review-title"]');
-    var title = titleEl ? titleEl.textContent.trim() : null;
+    var title = cleanVisibleText(titleEl, 1000);
     var bodyEl = el.querySelector('[data-hook="review-body"] span') || el.querySelector('[data-hook="review-body"]');
-    var body = bodyEl ? bodyEl.textContent.trim() : null;
+    var body = cleanVisibleText(bodyEl, 4000);
     var ratingEl = el.querySelector('[data-hook="review-star-rating"] .a-icon-alt') || el.querySelector('[data-hook="cmps-review-star-rating"] .a-icon-alt');
-    var rating = ratingEl ? ratingEl.textContent.trim() : null;
+    var rating = cleanVisibleText(ratingEl, 500);
     var dateEl = el.querySelector('[data-hook="review-date"]');
-    var reviewDate = dateEl ? dateEl.textContent.trim() : null;
+    var reviewDate = cleanVisibleText(dateEl, 500);
     var verifiedEl = el.querySelector('[data-hook="avp-badge"]');
-    var verifiedPurchase = verifiedEl ? verifiedEl.textContent.includes('Verified') : null;
+    var verifiedText = cleanVisibleText(verifiedEl, 500);
+    var verifiedPurchase = verifiedText ? verifiedText.toLowerCase().indexOf('verified') >= 0 : null;
     var helpfulEl = el.querySelector('[data-hook="helpful-vote-statement"]');
-    var helpfulCount = helpfulEl ? helpfulEl.textContent.trim() : null;
+    var helpfulCount = cleanVisibleText(helpfulEl, 500);
     var authorEl = el.querySelector('.a-profile-name');
-    var reviewerName = authorEl ? authorEl.textContent.trim() : null;
+    var reviewerName = cleanVisibleText(authorEl, 500);
     var variantEl = el.querySelector('[data-hook="format-strip-linkless"]') || el.querySelector('[data-hook="review-variant"]');
-    var variant = variantEl ? variantEl.textContent.trim() : null;
-    var dateText = dateEl ? dateEl.textContent.trim() : '';
-    var regionMatch = dateText.match(/Reviewed in\s+(.*?)\s+on/i);
-    var reviewRegion = regionMatch ? regionMatch[1].trim() : null;
+    var variant = cleanVisibleText(variantEl, 500);
+    var reviewRegion = extractReviewRegion(reviewDate || '');
     var reviewImages = Array.from(el.querySelectorAll('[data-hook="review-image-tile"] img, .review-image-tile-section img'))
-      .map(function(imageEl) { return imageEl.getAttribute('src'); })
-      .filter(Boolean);
+      .map(function(imageEl) { return imageEl.getAttribute('data-src') || imageEl.getAttribute('src') || imageEl.currentSrc; })
+      .filter(isEvidenceMediaUrl);
     var reviewVideos = Array.from(el.querySelectorAll('[data-hook="video-block"] a, [data-hook="review-video-thumbnail"] a, a[href*="media_gallery"]'))
       .map(function(videoEl) { return videoEl.getAttribute('href') || videoEl.getAttribute('data-video-url') || videoEl.getAttribute('src'); })
-      .filter(Boolean);
-    var rawSnap = el.textContent ? el.textContent.substring(0, 2000) : null;
+      .filter(isEvidenceMediaUrl);
+    var rawSnap = cleanVisibleText(el, 2000);
+    var reviewLanguage = detectReviewLanguage(el, pageLanguage, title, body);
     reviews.push({
       reviewIdNative: reviewIdNative,
       title: title,
@@ -73,7 +128,7 @@ return (function() {
       variant: variant,
       reviewImages: reviewImages,
       reviewVideos: reviewVideos,
-      reviewLanguage: pageLanguage,
+      reviewLanguage: reviewLanguage,
       reviewRegion: reviewRegion,
       rawSnap: rawSnap,
     });
@@ -123,9 +178,18 @@ const extractActiveTabJson = async <T>(
   throw new Error(`${errorCode}:${message}`);
 };
 
+export const buildReviewPageUrl = (reviewsUrl: string, pageIndex: number): string => {
+  if (pageIndex === 0) {
+    return reviewsUrl;
+  }
+  const url = new URL(reviewsUrl);
+  url.searchParams.set("pageNumber", String(pageIndex + 1));
+  return url.toString();
+};
+
 const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapter => ({
   async extractReviewsFromPage({ reviewsUrl, pageIndex, detailId, taskId, asin }) {
-    const url = pageIndex === 0 ? reviewsUrl : `${reviewsUrl}?pageNumber=${pageIndex + 1}`;
+    const url = buildReviewPageUrl(reviewsUrl, pageIndex);
     await browser.open({
       url,
       title: `Amazon reviews page ${pageIndex + 1}`,

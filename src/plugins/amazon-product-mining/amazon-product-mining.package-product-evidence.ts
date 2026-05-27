@@ -96,6 +96,15 @@ const buildProductImageEntries = (product: AmazonProductDetail) => [
     caption: `${product.title ?? product.asin ?? product.detailId} image ${index + 1}`,
     appearsInMasterReport: true,
   })),
+  ...product.aPlusImageUrls.map((imageUrl, index) => ({
+    imageId: `${product.detailId}-aplus-${index + 1}`,
+    imageType: "a_plus_image",
+    url: imageUrl,
+    localFileRef: null,
+    hash: null,
+    caption: `${product.title ?? product.asin ?? product.detailId} A+ image ${index + 1}`,
+    appearsInMasterReport: true,
+  })),
 ];
 
 const writeProductEvidenceFiles = (input: {
@@ -137,6 +146,7 @@ const buildProductImageEvidenceSection = (input: {
   imagesIndexRef: toPackageRelativePath(input.layout.packageRootPath, input.imagesIndexPath),
   mainImageUrl: input.product.mainImage,
   galleryCount: input.product.allVisibleImages.length,
+  aPlusImageCount: input.product.aPlusImageUrls.length,
 });
 
 const buildProductBusinessInfoSection = (product: AmazonProductDetail) => ({
@@ -155,6 +165,7 @@ const buildProductListingSection = (product: AmazonProductDetail) => ({
   aboutThisItem: product.aboutThisItem,
   productDescription: product.productDescription,
   aPlusContentIfVisible: product.aPlusContentIfVisible,
+  aPlusImageUrls: product.aPlusImageUrls,
 });
 
 const buildProductParametersSection = (product: AmazonProductDetail) => ({
@@ -197,6 +208,7 @@ const buildProductCompletenessSection = (input: {
   failedFields: readonly string[];
   extractorMissingFields: readonly string[];
   warnings: readonly string[];
+  fieldDisclosureMap: AmazonProductDetail["fieldDisclosureMap"];
 }) => ({
   score: input.completenessScore,
   missingFields: input.missingFields,
@@ -207,6 +219,7 @@ const buildProductCompletenessSection = (input: {
   failedFields: input.failedFields,
   extractorMissingFields: input.extractorMissingFields,
   warnings: input.warnings,
+  fieldDisclosures: input.fieldDisclosureMap,
 });
 
 const buildProductEvidenceRefsSection = (input: {
@@ -265,6 +278,7 @@ const buildProductSummaryArtifact = (input: {
     failedFields: input.fieldDisclosureBuckets.failedFields,
     extractorMissingFields: input.fieldDisclosureBuckets.extractorMissingFields,
     warnings: input.warnings,
+    fieldDisclosureMap: input.product.fieldDisclosureMap,
   }),
   exceptionRefs: input.exceptionIds,
   evidenceRefs: buildProductEvidenceRefsSection(input),

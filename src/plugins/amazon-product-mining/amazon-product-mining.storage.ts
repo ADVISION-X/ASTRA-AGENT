@@ -219,7 +219,7 @@ const createProductOperations = (
       detail_id, task_id, asin, product_url, title, brand, seller_or_store_if_visible,
       current_price, original_price_discount_coupon_if_visible, main_image,
       all_visible_images_json, visible_video_info, bullet_points_json, about_this_item,
-      product_description, a_plus_content_if_visible, variation_options,
+      product_description, a_plus_content_if_visible, a_plus_image_urls_json, variation_options,
       color_size_style_options, product_information, technical_details,
       additional_information, best_sellers_rank_if_visible, category_path_if_visible,
       rating, review_count, star_distribution, qa_content_if_visible,
@@ -227,13 +227,14 @@ const createProductOperations = (
       compare_with_similar_items_if_visible, delivery_information, return_information,
       all_other_visible_product_parameters, raw_visible_text_snapshot, field_disclosure_json, status,
       failure_reason, created_at, updated_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       detail.detailId, detail.taskId, detail.asin, detail.productUrl, detail.title,
       detail.brand, detail.sellerOrStoreIfVisible, detail.currentPrice,
       detail.originalPriceDiscountCouponIfVisible, detail.mainImage,
       JSON.stringify(detail.allVisibleImages), detail.visibleVideoInfo,
       JSON.stringify(detail.bulletPoints), detail.aboutThisItem, detail.productDescription,
-      detail.aPlusContentIfVisible, detail.variationOptions, detail.colorSizeStyleOptions,
+      detail.aPlusContentIfVisible, JSON.stringify(detail.aPlusImageUrls),
+      detail.variationOptions, detail.colorSizeStyleOptions,
       detail.productInformation, detail.technicalDetails, detail.additionalInformation,
       detail.bestSellersRankIfVisible, detail.categoryPathIfVisible, detail.rating,
       detail.reviewCount, detail.starDistribution, detail.qaContentIfVisible,

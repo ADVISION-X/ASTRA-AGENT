@@ -21,24 +21,77 @@ return (function() {
     if (!text) return null;
     return text.replace(/[\u200e\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
   };
+  var isVisibleElement = function(element) {
+    if (!element || !element.getBoundingClientRect) return false;
+    var rect = element.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    var style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+    return !style || (style.display !== 'none' && style.visibility !== 'hidden');
+  };
+  var cleanVisibleText = function(element, maxLength) {
+    if (!element || !isVisibleElement(element)) return null;
+    var clone = element.cloneNode(true);
+    clone.querySelectorAll('script, style, noscript, svg').forEach(function(node) { node.remove(); });
+    var text = normalizeText(clone.textContent || '');
+    return text ? text.substring(0, maxLength) : null;
+  };
+  var isUsableEvidenceImageUrl = function(url) {
+    if (!url) return false;
+    var lower = String(url).toLowerCase();
+    if (lower.indexOf('grey-pixel') >= 0) return false;
+    if (lower.indexOf('transparent-pixel') >= 0) return false;
+    if (lower.indexOf('default.png') >= 0) return false;
+    if (lower.indexOf('base64') >= 0) return false;
+    return true;
+  };
+  var imageCandidatesFor = function(imageEl) {
+    var urls = [];
+    ['data-old-hires', 'data-a-hires', 'data-src', 'data-large-image', 'src', 'currentSrc'].forEach(function(attr) {
+      var value = attr === 'currentSrc' ? imageEl.currentSrc : imageEl.getAttribute(attr);
+      if (value) urls.push(value);
+    });
+    var srcset = imageEl.getAttribute('srcset');
+    if (srcset) {
+      srcset.split(',').forEach(function(part) {
+        var value = normalizeText(part);
+        if (value) urls.push(value.split(' ')[0]);
+      });
+    }
+    return urls.filter(isUsableEvidenceImageUrl);
+  };
+  var collectImageUrls = function(selectors, maxItems) {
+    var urls = [];
+    selectors.forEach(function(selector) {
+      document.querySelectorAll(selector).forEach(function(imageEl) {
+        imageCandidatesFor(imageEl).forEach(function(url) {
+          if (urls.indexOf(url) === -1) urls.push(url);
+        });
+      });
+    });
+    return urls.slice(0, maxItems);
+  };
   var pickText = function(selectors) {
     for (var i = 0; i < selectors.length; i++) {
       var element = document.querySelector(selectors[i]);
-      var text = normalizeText(element && element.textContent ? element.textContent : null);
+      var text = cleanVisibleText(element, 5000);
       if (text) return text;
     }
     return null;
   };
   var pickSectionText = function(selectors, maxLength) {
-    var text = pickText(selectors);
-    return text ? text.substring(0, maxLength) : null;
+    for (var i = 0; i < selectors.length; i++) {
+      var element = document.querySelector(selectors[i]);
+      var text = cleanVisibleText(element, maxLength);
+      if (text) return text;
+    }
+    return null;
   };
   var collectTexts = function(selectors, maxItems) {
     var values = [];
     for (var i = 0; i < selectors.length; i++) {
       var nodes = document.querySelectorAll(selectors[i]);
       nodes.forEach(function(node) {
-        var text = normalizeText(node && node.textContent ? node.textContent : null);
+        var text = cleanVisibleText(node, 2000);
         if (text && values.indexOf(text) === -1) values.push(text);
       });
       if (values.length >= maxItems) break;
@@ -74,12 +127,16 @@ return (function() {
     return Object.keys(record).length > 0 ? JSON.stringify(record) : null;
   };
   var serializeStarDistribution = function() {
-    var rows = document.querySelectorAll('#histogramTable tr');
+    var rows = document.querySelectorAll('#histogramTable tr, [data-hook="cr-summarization-attributes"] tr, [data-hook="cr-summarization-attributes"] li, [data-hook="histogram-row-container"]');
     var items = [];
     rows.forEach(function(row) {
-      var text = normalizeText(row && row.textContent ? row.textContent : null);
+      var text = cleanVisibleText(row, 500);
       if (text) items.push(text);
     });
+    if (items.length === 0) {
+      var fallback = pickSectionText(['[data-hook="cr-summarization-attributes"]', '#cr-summarization-attributes', '#reviewsMedley'], 1500);
+      if (fallback && fallback.toLowerCase().indexOf('star') >= 0) items.push(fallback);
+    }
     return items.length > 0 ? JSON.stringify(items) : null;
   };
 
@@ -109,11 +166,9 @@ return (function() {
   var origOrCoupon = originalPrice || couponText;
 
   var mainImageEl = document.getElementById('landingImage') || document.querySelector('#imgTagWrapperId img');
-  var mainImage = mainImageEl ? (mainImageEl.getAttribute('data-old-hires') || mainImageEl.getAttribute('src')) : null;
-  var galleryImageNodes = document.querySelectorAll('#altImages img[src*="images/I/"], #altImages img');
-  var allVisibleImages = uniqueValues(Array.from(galleryImageNodes).map(function(node) {
-    return node.getAttribute('src');
-  }).filter(Boolean));
+  var mainImageCandidates = mainImageEl ? imageCandidatesFor(mainImageEl) : [];
+  var mainImage = mainImageCandidates.length > 0 ? mainImageCandidates[0] : null;
+  var allVisibleImages = collectImageUrls(['#altImages img[src*="images/I/"], #altImages img, #imageBlock img'], 80);
   if (mainImage && allVisibleImages.indexOf(mainImage) === -1) {
     allVisibleImages.unshift(mainImage);
   }
@@ -124,6 +179,7 @@ return (function() {
   var aboutThisItem = pickSectionText(['#feature-bullets'], 3000);
   var productDescription = pickSectionText(['#productDescription p', '#productDescription'], 5000);
   var aPlusContent = pickSectionText(['#aplus', '#aplus_feature_div', '[data-cel-widget*="aplus"]'], 4000);
+  var aPlusImageUrls = collectImageUrls(['#aplus img, #aplus_feature_div img, [data-cel-widget*="aplus"] img'], 80);
 
   var variationOptions = null;
   var swatchOptions = document.querySelectorAll('.swatch-list-container .swatchElement');
@@ -132,9 +188,9 @@ return (function() {
   var colorOptionNodes = document.querySelectorAll('.inline-twister-swatch');
   if (colorOptionNodes.length > 0) colorOpts = String(colorOptionNodes.length) + ' color/size options';
 
-  var productInformation = serializeKeyValueRows(['#productOverview_feature_div tr', '#poExpander tr']);
-  var technicalDetails = serializeKeyValueRows(['#productDetails_techSpec_section_1 tr', '#productDetails_detailBullets_sections1 tr']);
-  var additionalInformation = serializeKeyValueRows(['#detailBullets_feature_div li', '#detailBulletsWrapper_feature_div li']);
+  var productInformation = serializeKeyValueRows(['#productOverview_feature_div tr', '#poExpander tr', '#productDetails_feature_div tr', '#prodDetails tr']);
+  var technicalDetails = serializeKeyValueRows(['#productDetails_techSpec_section_1 tr', '#productDetails_detailBullets_sections1 tr', '#prodDetails tr']);
+  var additionalInformation = serializeKeyValueRows(['#detailBullets_feature_div li', '#detailBulletsWrapper_feature_div li', '#productDetails_detailBullets_sections1 tr']);
   var bestSellersRankIfVisible = pickSectionText(['#SalesRank', '#detailBulletsWrapper_feature_div'], 500);
   if (bestSellersRankIfVisible && bestSellersRankIfVisible.toLowerCase().indexOf('rank') === -1) {
     bestSellersRankIfVisible = null;
@@ -167,7 +223,8 @@ return (function() {
     reviewCount = reviewCountMatch ? '(' + reviewCountMatch[1] + ')' : null;
   }
   var starDistribution = serializeStarDistribution();
-  var qaContent = pickSectionText(['#ask-btf-container', '#ask_lazy_load_div', '#ask_feature_div'], 3000);
+  var qaContentRaw = pickSectionText(['#ask-btf-container', '#ask_lazy_load_div', '#ask_feature_div'], 3000);
+  var qaContent = qaContentRaw && (qaContentRaw.indexOf('?') >= 0 || qaContentRaw.toLowerCase().indexOf('answer') >= 0 || qaContentRaw.toLowerCase().indexOf('question') >= 0) ? qaContentRaw : null;
   var frequentlyBoughtTogether = pickSectionText(['#sims-fbt', '#bundle_feature_div', '#frequently-bought-together_feature_div'], 2000);
   var customersAlsoBought = pickSectionText(['#purchase-sims-feature', '#desktop-dp-sims_purchase-sim-feature'], 2000);
   var compareWithSimilarItems = pickSectionText(['#HLCXComparisonTable', '#similarities_feature_div', '#comparison_table_feature_div'], 2000);
@@ -179,7 +236,7 @@ return (function() {
     '[data-feature-name="returnsPolicy"]'
   ]);
   var otherVisibleParameters = pickSectionText(['#productFactsDesktopExpander', '#prodDetails', '#detailBulletsWrapper_feature_div'], 4000);
-  var rawText = document.body.innerText.substring(0, 15000);
+  var rawText = cleanVisibleText(document.body, 15000) || '';
 
   return {
     asin: asin,
@@ -195,6 +252,7 @@ return (function() {
     aboutThisItem: aboutThisItem,
     productDescription: productDescription,
     aPlusContent: aPlusContent,
+    aPlusImageUrls: aPlusImageUrls,
     variationOptions: variationOptions,
     colorOpts: colorOpts,
     productInformation: productInformation,
@@ -231,6 +289,7 @@ type ExtractedDetail = {
   aboutThisItem: string | null;
   productDescription: string | null;
   aPlusContent: string | null;
+  aPlusImageUrls: string[];
   variationOptions: string | null;
   colorOpts: string | null;
   productInformation: string | null;
@@ -287,6 +346,7 @@ const buildContentDisclosure = (raw: ExtractedDetail) => ({
   aboutThisItem: fieldDisclosureFromValue(raw.aboutThisItem, "not_present", "About this item section is not visible."),
   productDescription: fieldDisclosureFromValue(raw.productDescription, "not_present", "Product description section is not visible."),
   aPlusContentIfVisible: fieldDisclosureFromValue(raw.aPlusContent, "not_present", "A+ content module is not visible."),
+  aPlusImageUrls: fieldDisclosureFromValue(raw.aPlusImageUrls, "not_present", "A+ image URLs are not visible."),
   variationOptions: fieldDisclosureFromValue(raw.variationOptions, "not_present", "Variation module is not visible."),
   colorSizeStyleOptions: fieldDisclosureFromValue(raw.colorOpts, "not_present", "Color/size/style module is not visible."),
 });
@@ -334,6 +394,7 @@ const buildProductContent = (raw: ExtractedDetail) => ({
   aboutThisItem: raw.aboutThisItem,
   productDescription: raw.productDescription,
   aPlusContentIfVisible: raw.aPlusContent,
+  aPlusImageUrls: raw.aPlusImageUrls,
   variationOptions: raw.variationOptions,
   colorSizeStyleOptions: raw.colorOpts,
 });

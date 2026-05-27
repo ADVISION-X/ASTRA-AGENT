@@ -137,6 +137,7 @@ const amazonProductDetailContentShape = {
   aboutThisItem: z.string().nullable().default(null),
   productDescription: z.string().nullable().default(null),
   aPlusContentIfVisible: z.string().nullable().default(null),
+  aPlusImageUrls: z.array(z.string()).default([]),
   variationOptions: z.string().nullable().default(null),
   colorSizeStyleOptions: z.string().nullable().default(null),
 };

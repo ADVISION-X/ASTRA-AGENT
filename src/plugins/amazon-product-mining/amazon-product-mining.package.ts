@@ -153,6 +153,7 @@ const buildPackageProductImages = (
   mode: "url_only",
   mainImageUrl: product.mainImage,
   galleryImageUrls: product.allVisibleImages,
+  aPlusImageUrls: product.aPlusImageUrls,
   visibleVideoInfo: product.visibleVideoInfo,
   productImagesIndexRef: productArtifact?.imagesIndexRef ?? null,
 });
@@ -192,6 +193,7 @@ const buildPackageProductCompleteness = (input: {
   failedFields: input.productArtifact?.failedFields ?? [],
   extractorMissingFields: input.productArtifact?.extractorMissingFields ?? [],
   warnings: input.productArtifact?.warnings ?? [],
+  fieldDisclosures: input.product.fieldDisclosureMap,
   detailStatus: input.product.status,
   reviewStatus: input.reviewArtifact?.reviewStatus ?? input.product.status,
 });
@@ -216,6 +218,7 @@ const buildPackageProductEntry = (input: {
     aboutThisItem: input.product.aboutThisItem,
     productDescription: input.product.productDescription,
     aPlusContentIfVisible: input.product.aPlusContentIfVisible,
+    aPlusImageUrls: input.product.aPlusImageUrls,
   },
   parameters: {
     variationOptions: input.product.variationOptions,

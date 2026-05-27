@@ -55,6 +55,7 @@ export const ensureAmazonMiningStorageColumns = (db: Database.Database): void =>
   ]);
   ensureTableColumns(db, "amazon_mining_product_details", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
+    { columnName: "a_plus_image_urls_json", definition: "TEXT" },
   ]);
   ensureTableColumns(db, "amazon_mining_reviews", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
@@ -135,6 +136,7 @@ const buildDetailContent = (row: StorageRow) => ({
   aboutThisItem: (row["about_this_item"] as string | null) ?? null,
   productDescription: (row["product_description"] as string | null) ?? null,
   aPlusContentIfVisible: (row["a_plus_content_if_visible"] as string | null) ?? null,
+  aPlusImageUrls: parseStringArray(row["a_plus_image_urls_json"]),
   variationOptions: (row["variation_options"] as string | null) ?? null,
   colorSizeStyleOptions: (row["color_size_style_options"] as string | null) ?? null,
 });

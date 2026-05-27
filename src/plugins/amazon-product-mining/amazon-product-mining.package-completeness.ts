@@ -74,11 +74,15 @@ const pushProductImages = (input: {
   products: readonly AmazonProductDetail[];
 }): void => {
   for (const product of input.products) {
-    const urls = [product.mainImage, ...product.allVisibleImages].filter((url): url is string => Boolean(url));
-    for (const [index, url] of urls.entries()) {
+    const urls = [
+      { imageType: "product_main_image", url: product.mainImage },
+      ...product.allVisibleImages.map((url) => ({ imageType: "product_gallery_image", url })),
+      ...product.aPlusImageUrls.map((url) => ({ imageType: "a_plus_image", url })),
+    ].filter((entry): entry is { imageType: string; url: string } => Boolean(entry.url));
+    for (const entry of urls) {
       input.images.push({
         imageId: `image-${input.images.length + 1}`,
-        imageType: index === 0 && product.mainImage === url ? "product_main_image" : "product_gallery_image",
+        imageType: entry.imageType,
         source: "product_detail",
         taskId: input.taskId,
         keywordId: null,
@@ -86,7 +90,7 @@ const pushProductImages = (input: {
         detailId: product.detailId,
         reviewId: null,
         asin: product.asin,
-        url,
+        url: entry.url,
         localFileRef: null,
         hash: null,
         caption: product.title ?? product.asin ?? product.detailId,

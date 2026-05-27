@@ -73,6 +73,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     about_this_item TEXT,
     product_description TEXT,
     a_plus_content_if_visible TEXT,
+    a_plus_image_urls_json TEXT,
     variation_options TEXT,
     color_size_style_options TEXT,
     product_information TEXT,

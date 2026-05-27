@@ -85,6 +85,7 @@ const writeReviewArtifacts = (input: {
     reviewLanguage: review.reviewLanguage,
     reviewRegionIfVisible: review.reviewRegionIfVisible,
     rawReviewTextSnapshot: review.rawReviewTextSnapshot,
+    fieldDisclosureMap: review.fieldDisclosureMap,
     createdAt: review.createdAt,
   })));
   writeJsonFile(input.reviewsSummaryPath, {
