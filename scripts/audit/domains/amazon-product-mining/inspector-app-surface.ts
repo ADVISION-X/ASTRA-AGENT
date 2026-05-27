@@ -126,6 +126,7 @@ type ArtifactSourceFiles = {
 	  packageFile: SourceFile | undefined;
 	  packageLayoutFile: SourceFile | undefined;
 	  packageManifestFile: SourceFile | undefined;
+	  packageIntegrityFile: SourceFile | undefined;
 	  packageArtifactBuildersFile: SourceFile | undefined;
   packageEvidenceSectionsFile: SourceFile | undefined;
   pdfFile: SourceFile | undefined;
@@ -140,6 +141,7 @@ type ArtifactInspectionText = {
 	  pdfIdentifiers: string;
 	  masterReportIdentifiers: string;
 	  packageManifestIdentifiers: string;
+	  packageIntegrityIdentifiers: string;
 	  handoffText: string;
   handoffIdentifiers: string;
 };
@@ -152,6 +154,7 @@ const collectArtifactSourceFiles = (
 	    packageFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package.ts"),
 	    packageLayoutFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts"),
 	    packageManifestFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts"),
+	    packageIntegrityFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts"),
 	    packageArtifactBuildersFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts"),
     packageEvidenceSectionsFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts"),
     pdfFile: getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts"),
@@ -176,6 +179,7 @@ const buildArtifactInspectionText = (files: ArtifactSourceFiles): ArtifactInspec
 	    files.packageFile,
 	    files.packageLayoutFile,
 	    files.packageManifestFile,
+	    files.packageIntegrityFile,
 	    files.packageArtifactBuildersFile,
 	    files.packageEvidenceSectionsFile,
 	  ]),
@@ -183,6 +187,7 @@ const buildArtifactInspectionText = (files: ArtifactSourceFiles): ArtifactInspec
 	  pdfIdentifiers: files.pdfFile ? identifierText(files.pdfFile) : "",
 	  masterReportIdentifiers: files.masterReportFile ? identifierText(files.masterReportFile) : "",
 	  packageManifestIdentifiers: files.packageManifestFile ? identifierText(files.packageManifestFile) : "",
+	  packageIntegrityIdentifiers: files.packageIntegrityFile ? identifierText(files.packageIntegrityFile) : "",
 	  handoffText: joinLiteralText([files.handoffFile, files.packageLayoutFile]),
 	  handoffIdentifiers: files.handoffFile ? identifierText(files.handoffFile) : "",
 	});
@@ -328,19 +333,19 @@ const inspectPackageIntegrityContracts = (
   lawId: string,
 ): void => {
   if (
-    !text.packageManifestIdentifiers.includes("collectMasterReportChainFailures")
-    || !text.packageManifestIdentifiers.includes("collectExtractorMissingProductFields")
-    || !text.packageManifestIdentifiers.includes("collectBrokenKeywordEvidenceChains")
+    !text.packageIntegrityIdentifiers.includes("collectMasterReportChainFailures")
+    || !text.packageIntegrityIdentifiers.includes("collectExtractorMissingProductFields")
+    || !text.packageIntegrityIdentifiers.includes("collectBrokenKeywordEvidenceChains")
     || !text.packageManifestIdentifiers.includes("collectKeywordReviewRefs")
     || !text.packageManifestIdentifiers.includes("collectKeywordImageRefs")
-    || !text.packageManifestIdentifiers.includes("buildMasterReportChainCheck")
-    || !text.packageManifestIdentifiers.includes("buildExtractorCoverageCheck")
+    || !text.packageIntegrityIdentifiers.includes("buildMasterReportChainCheck")
+    || !text.packageIntegrityIdentifiers.includes("buildExtractorCoverageCheck")
   ) {
     findings.push(createFinding({
       checkId: "amazon-mining/package-integrity-final-zero-tolerance",
       lawId,
-      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
-      message: "package-manifest.ts must enforce master report chain readability, keyword chain closure, and extractor_missing zero tolerance in package integrity.",
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
+      message: "Amazon package integrity source must enforce master report chain readability, keyword chain closure, and extractor_missing zero tolerance.",
     }));
   }
   if (!text.packageManifestIdentifiers.includes("reviewRefs") || !text.packageManifestIdentifiers.includes("imageRefs")) {

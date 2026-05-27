@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-27T20:49:33.823Z",
+  "generatedAt": "2026-05-27T21:08:11.218Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -464,6 +464,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.package-build-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-shared.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
@@ -1044,9 +1045,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1504,
+  "liveExportCount": 1508,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 546,
+  "reachableFileCount": 547,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1058,9 +1059,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1504,
+    "liveExportCount": 1508,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 546,
+    "reachableFileCount": 547,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

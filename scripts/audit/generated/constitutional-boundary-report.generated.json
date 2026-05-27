@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T20:49:33.895Z",
+  "generatedAt": "2026-05-27T21:08:11.291Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -523,6 +523,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.package-build-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-shared.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
