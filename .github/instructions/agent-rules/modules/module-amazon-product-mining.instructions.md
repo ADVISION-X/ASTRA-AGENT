@@ -416,11 +416,15 @@ AI keyword raw response / keyword parse result / search page raw visible text / 
 ### 固定最终产物
 
 ```txt
-amazon-product-mining-package.json
-amazon-product-mining-report.pdf
-amazon-product-mining-evidence-index.json
-amazon-product-mining-exception-summary.json
+amazon-product-mining-package-{taskId}/
+  amazon-product-mining-package.json
+  00-master-report/Amazon-Product-Mining-Master-Evidence-Report.html
+  00-master-report/Amazon-Product-Mining-Master-Evidence-Report.pdf
+  01-manifest/evidence-index.json
+  06-exception-and-completeness/exception-summary.json
 ```
+
+固定最终交付名必须与 package root 同步；不得回退成旧的平铺 pdf/json 文件名。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-011-V1] Advanced AI Handoff Boundary
 
@@ -477,6 +481,129 @@ amazon-product-mining-exception-summary.json
 ```bash
 npm run ci:full
 ```
+
+Amazon owner 的 package/export 面还必须保留：
+
+```bash
+npm run acceptance:amazon-product-mining
+npm run audit:amazon-product-mining
+npm run amazon-product-mining:package:fixture
+```
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-013-V1] Fixed Master Evidence Package Topology
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+export+acceptance",
+  "summary": "Amazon Product Mining must emit one fixed master evidence package root with the frozen section tree, fixed report names, fixed manifest names, and fixed handoff document bundle.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+  ],
+  "forbidden": [
+    "Alternative package directory tree for the same task.",
+    "Flattening review evidence, handoff docs, or completeness docs back into one loose JSON blob.",
+    "Changing fixed report / manifest / handoff artifact names without law change.",
+    "PDF or handoff docs stored outside the fixed package root."
+  ]
+}
+```
+
+### 固定目录树
+
+```txt
+amazon-product-mining-package-{taskId}/
+  amazon-product-mining-package.json
+  00-master-report/
+  01-manifest/
+  02-keyword-search-evidence/
+  03-product-detail-evidence/
+  04-review-evidence/
+  05-ai-handoff/
+  06-exception-and-completeness/
+```
+
+package root 是唯一最终资料包根。不得为高级 AI 再造第二套 lite / compact / flattened 目录。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-014-V1] Completeness Integrity And Handoff Readiness Gate
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+handoff-record+acceptance",
+  "summary": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when manual-required reasons are empty and package integrity passes.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+  ],
+  "forbidden": [
+    "image-evidence-index pretending to be downloaded binary proof instead of url_only evidence.",
+    "Mixing all review rows into one task-wide file that loses per-product traceability.",
+    "handoffStatus=ready while manualRequiredReasons is non-empty.",
+    "handoffStatus=ready while packageIntegrityStatus is failed.",
+    "Hiding missing artifacts, missing fields, or partial review coverage."
+  ]
+}
+```
+
+### 冻结细则
+
+- `01-manifest/image-evidence-index.json` 只允许 `mode = url_only`
+- `04-review-evidence/product-{detailId}/reviews.jsonl` 必须逐产品落地
+- `06-exception-and-completeness/data-completeness-report.json` 必须披露缺字段、评论限制、失败与人工接管
+- `06-exception-and-completeness/package-integrity-report.json` 必须先于 handoff readiness 生效
+- `05-ai-handoff/handoff-record.json` 只有在 `manualRequiredReasons=[]` 且 `packageIntegrityStatus=pass` 时才允许 `ready`
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-015-V1] Zip Delivery Wrapper Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+export+acceptance",
+  "summary": "Amazon Product Mining export must be able to emit amazon-product-mining-package-{taskId}.zip as a transport wrapper over the fixed package root; the zip is delivery packaging, not a second source-of-truth chain.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
+    "src/plugins/amazon-product-mining/index.ts",
+    "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-package-fixture.ts",
+    "package.json"
+  ],
+  "forbidden": [
+    "Zip-only delivery without the package root remaining on disk as source truth.",
+    "Flattened zip payload that omits amazon-product-mining-package-{taskId}/ as the archive root.",
+    "Manual repack workflow outside the owner export surface.",
+    "A second export chain with different files than the fixed package root."
+  ]
+}
+```
+
+### 法条
+
+`amazon-product-mining-package-{taskId}.zip` 只是同一 package root 的运输壳。
+
+它必须：
+
+- 由 owner-local export/package command 生成
+- 保留 package root 目录名为 archive 根
+- 打包同一固定资料包，而不是另一套简化产物
+- 可被 acceptance 与 audit surface 发现
 
 ## 4. State Contracts
 

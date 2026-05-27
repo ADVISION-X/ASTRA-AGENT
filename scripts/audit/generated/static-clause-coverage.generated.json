@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-27T12:44:38.971Z",
+  "generatedAt": "2026-05-27T13:26:04.155Z",
   "summary": {
-    "activeLawCount": 147,
-    "coveredLawCount": 147,
+    "activeLawCount": 150,
+    "coveredLawCount": 150,
     "coveragePercent": 100
   },
   "coverage": [
@@ -118,6 +118,36 @@
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
+      "capabilityDomain": "amazon-product-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
       "capabilityDomain": "amazon-product-mining",
       "clauses": [
         {

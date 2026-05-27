@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T12:44:38.971Z",
+  "generatedAt": "2026-05-27T13:26:04.155Z",
   "rows": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -17,7 +17,10 @@
         "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1"
+        "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1"
       ]
     },
     {

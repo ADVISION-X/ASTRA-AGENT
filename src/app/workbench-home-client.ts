@@ -45,7 +45,7 @@ const renderAmazonProductMiningSummary = (record) => {
   const taskId = typeof record.taskId === "string" && record.taskId
     ? record.taskId
     : state.amazonProductMiningTaskId || "-";
-  const packageRef = record.packageJsonPath || record.pdfReportPath || record.evidenceIndexPath || "-";
+  const packageRef = record.packageZipPath || record.packageJsonPath || record.pdfReportPath || record.evidenceIndexPath || "-";
   setText("[data-amazon-product-mining-task-id]", taskId);
   setText("[data-amazon-product-mining-status]", record.status || "-");
   setText("[data-amazon-product-mining-package]", packageRef);

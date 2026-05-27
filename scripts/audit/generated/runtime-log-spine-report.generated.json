@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-27T12:42:24.892Z",
+  "generatedAt": "2026-05-27T13:26:20.503Z",
   "status": "PASS",
-  "scannedFiles": 288,
+  "scannedFiles": 296,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -203,6 +203,7 @@
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
@@ -210,8 +211,15 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.master-report-types.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-build-support.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-shared.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-review-evidence.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
@@ -310,7 +318,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 288,
+    "scannedFiles": 296,
     "emitCallCount": 18,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -321,7 +329,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 283,
+      "scannedFiles": 291,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -330,13 +338,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 229
+      "scannedFiles": 237
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 225,
+      "scannedFiles": 233,
       "metrics": {
         "emitCallCount": 7
       }
@@ -345,13 +353,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 225
+      "scannedFiles": 233
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 230,
+      "scannedFiles": 238,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -366,7 +374,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 230,
+      "scannedFiles": 238,
       "metrics": {
         "failureWithoutClassCount": 0
       }

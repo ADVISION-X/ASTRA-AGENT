@@ -53,9 +53,6 @@ export type PersistedAmazonHandoffRecord = AmazonHandoffRecord & {
   handoffRecordPath: string;
 };
 
-export const resolveAmazonHandoffRecordPath = (input: { dataDir: string; taskId: string }): string =>
-  join(resolveAmazonPackageRootPath(input), "05-ai-handoff", AMAZON_PACKAGE_FILE_NAMES.handoffRecord);
-
 const writeMarkdownFile = (filePath: string, content: string): void => {
   writeFileSync(filePath, `${content.trimEnd()}\n`, "utf8");
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T12:44:38.971Z",
+  "generatedAt": "2026-05-27T13:26:04.155Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -250,6 +250,77 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 11
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+export+acceptance",
+      "summary": "Amazon Product Mining must emit one fixed master evidence package root with the frozen section tree, fixed report names, fixed manifest names, and fixed handoff document bundle.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+      ],
+      "forbidden": [
+        "Alternative package directory tree for the same task.",
+        "Flattening review evidence, handoff docs, or completeness docs back into one loose JSON blob.",
+        "Changing fixed report / manifest / handoff artifact names without law change.",
+        "PDF or handoff docs stored outside the fixed package root."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 12
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+handoff-record+acceptance",
+      "summary": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when manual-required reasons are empty and package integrity passes.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+      ],
+      "forbidden": [
+        "image-evidence-index pretending to be downloaded binary proof instead of url_only evidence.",
+        "Mixing all review rows into one task-wide file that loses per-product traceability.",
+        "handoffStatus=ready while manualRequiredReasons is non-empty.",
+        "handoffStatus=ready while packageIntegrityStatus is failed.",
+        "Hiding missing artifacts, missing fields, or partial review coverage."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 13
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+export+acceptance",
+      "summary": "Amazon Product Mining export must be able to emit amazon-product-mining-package-{taskId}.zip as a transport wrapper over the fixed package root; the zip is delivery packaging, not a second source-of-truth chain.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
+        "src/plugins/amazon-product-mining/index.ts",
+        "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-package-fixture.ts",
+        "package.json"
+      ],
+      "forbidden": [
+        "Zip-only delivery without the package root remaining on disk as source truth.",
+        "Flattened zip payload that omits amazon-product-mining-package-{taskId}/ as the archive root.",
+        "Manual repack workflow outside the owner export surface.",
+        "A second export chain with different files than the fixed package root."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 14
     },
     {
       "lawId": "APEX-ARCH-001-V1",

@@ -13,7 +13,7 @@ export const AMAZON_PACKAGE_DIR_NAMES = {
   exceptionAndCompleteness: "06-exception-and-completeness",
 } as const;
 
-export const AMAZON_PACKAGE_FILE_NAMES = {
+const AMAZON_PACKAGE_CORE_FILE_NAMES = {
   packageJson: "amazon-product-mining-package.json",
   manifest: "manifest.json",
   taskScope: "task-scope.json",
@@ -29,11 +29,11 @@ export const AMAZON_PACKAGE_FILE_NAMES = {
   packageFileHashes: "package-file-hashes.json",
   dataCompletenessReport: "data-completeness-report.json",
   packageIntegrityReport: "package-integrity-report.json",
+} as const;
+
+const AMAZON_PACKAGE_EVIDENCE_FILE_NAMES = {
   keywordSearchEvidence: "keyword-search-evidence.json",
   productDetailEvidence: "product-detail-evidence.json",
-  aiReadingContract: "ai-reading-contract.md",
-  aiHandoffPrompt: "ai-handoff-prompt.md",
-  businessBoundaryNotice: "business-boundary-notice.md",
   reviewEvidenceJsonl: "reviews.jsonl",
   keywordSummary: "keyword-summary.json",
   searchPageResults: "search-page-results.json",
@@ -46,6 +46,18 @@ export const AMAZON_PACKAGE_FILE_NAMES = {
   productSourceKeywords: "product-source-keywords.json",
   reviewsSummary: "reviews-summary.json",
   reviewPagesIndex: "review-pages-index.json",
+} as const;
+
+const AMAZON_PACKAGE_HANDOFF_FILE_NAMES = {
+  aiReadingContract: "ai-reading-contract.md",
+  aiHandoffPrompt: "ai-handoff-prompt.md",
+  businessBoundaryNotice: "business-boundary-notice.md",
+} as const;
+
+export const AMAZON_PACKAGE_FILE_NAMES = {
+  ...AMAZON_PACKAGE_CORE_FILE_NAMES,
+  ...AMAZON_PACKAGE_EVIDENCE_FILE_NAMES,
+  ...AMAZON_PACKAGE_HANDOFF_FILE_NAMES,
 } as const;
 
 export type AmazonPackageLayout = {
@@ -87,14 +99,8 @@ const resolveTaskArtifactsDir = (input: { dataDir: string; taskId: string }): st
 export const resolveAmazonPackageRootPath = (input: { dataDir: string; taskId: string }): string =>
   join(resolveTaskArtifactsDir(input), `amazon-product-mining-package-${input.taskId}`);
 
-export const resolveAmazonKeywordEvidenceDir = (input: { layout: AmazonPackageLayout; keywordId: string }): string =>
-  join(input.layout.keywordSearchEvidenceDir, `keyword-${input.keywordId}`);
-
-export const resolveAmazonProductEvidenceDir = (input: { layout: AmazonPackageLayout; detailId: string }): string =>
-  join(input.layout.productDetailEvidenceDir, `product-${input.detailId}`);
-
-export const resolveAmazonReviewEvidenceDir = (input: { layout: AmazonPackageLayout; detailId: string }): string =>
-  join(input.layout.reviewEvidenceDir, `product-${input.detailId}`);
+export const resolveAmazonPackageZipPath = (input: { dataDir: string; taskId: string }): string =>
+  join(resolveTaskArtifactsDir(input), `amazon-product-mining-package-${input.taskId}.zip`);
 
 export const createAmazonPackageLayout = (input: { dataDir: string; taskId: string }): AmazonPackageLayout => {
   const artifactsDir = resolveTaskArtifactsDir(input);

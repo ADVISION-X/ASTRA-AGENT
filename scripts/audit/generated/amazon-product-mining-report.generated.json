@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-05-27T12:42:25.072Z",
+  "generatedAt": "2026-05-27T13:26:20.638Z",
   "capabilityDomain": "amazon-product-mining",
-  "status": "FAIL",
-  "findingCount": 5,
+  "status": "PASS",
+  "findingCount": 0,
   "tabLifecycleDebug": {
     "dedicatedWorkspaceTabCalls": [
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-        "line": 302,
+        "line": 297,
         "reusePolicy": "open-new-tab"
       }
     ],

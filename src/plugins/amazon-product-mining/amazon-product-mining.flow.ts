@@ -12,6 +12,7 @@ import { runProductDetailExtraction } from "./amazon-product-mining.product-deta
 import { taskRecordToResult } from "./amazon-product-mining.result.js";
 import { runReviewPagination } from "./amazon-product-mining.reviews.js";
 import { runAmazonSearch } from "./amazon-product-mining.search.js";
+import { buildFailedTaskRecord, resolveFinalTaskState, type FinalTaskResolution } from "./amazon-product-mining.flow-state.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { buildKeywordRecords, runKeywordGeneration } from "./amazon-product-mining.keyword.js";
 import type { AmazonKeywordProviderKind } from "./amazon-product-mining.schema.js";
@@ -59,12 +60,6 @@ type PackageBuildResult = Awaited<ReturnType<typeof buildAmazonProductMiningPack
 type PackagingArtifacts = {
   packageResult: PackageBuildResult;
   pdfPath: string | null;
-};
-
-type FinalTaskResolution = {
-  finalTaskStatus: "failed" | "manual_required" | "package_completed";
-  finalHandoffStatus: "ready" | "failed";
-  finalFailureReason: string | null;
 };
 
 const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => ({
@@ -356,28 +351,6 @@ const didAllKeywordsFail = (runtime: AmazonFlowRuntime): boolean => {
     && keywords.every((keyword) => keyword.status === "failed" || keyword.status === "manual_required");
 };
 
-const resolveFinalTaskState = (input: {
-  allKeywordsFailed: boolean;
-  handoffStatus: string;
-  manualRequiredReasons: readonly string[];
-}): FinalTaskResolution => {
-  const finalTaskStatus = input.allKeywordsFailed
-    ? "failed"
-    : input.manualRequiredReasons.length > 0 ? "manual_required" : "package_completed";
-  const finalHandoffStatus = finalTaskStatus === "package_completed" && input.handoffStatus !== "manual_required"
-    ? "ready"
-    : "failed";
-  const finalFailureReason = finalTaskStatus === "failed" || finalTaskStatus === "manual_required"
-    ? input.manualRequiredReasons.join("; ")
-    : null;
-
-  return {
-    finalTaskStatus,
-    finalHandoffStatus,
-    finalFailureReason,
-  };
-};
-
 const persistFinalPackagingState = async (
   runtime: AmazonFlowRuntime,
   artifacts: PackagingArtifacts,
@@ -475,30 +448,16 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
   return taskRecordToResult(storage.getTask(taskId)!);
 };
 
-const buildFailedTaskRecord = (runtime: AmazonFlowRuntime, message: string) => ({
-  taskId: runtime.taskId,
-  amazonMarketplace: runtime.miningInput.amazonMarketplace as "amazon.com",
-  targetMarket: runtime.miningInput.targetMarket,
-  productDirection: runtime.miningInput.productDirection,
-  requestedKeywordCount: runtime.miningInput.requestedKeywordCount,
-  languagePreference: runtime.miningInput.languagePreference ?? "en",
-  status: "failed" as const,
-  failureReason: message,
-  packageJsonPath: null,
-  pdfReportPath: null,
-  evidenceIndexPath: null,
-  exceptionSummaryPath: null,
-  handoffStatus: "not_started" as const,
-  createdAt: new Date().toISOString(),
-  updatedAt: null,
-});
-
 const buildFailureResult = (runtime: AmazonFlowRuntime, error: unknown): AmazonFlowResult => {
   const message = error instanceof Error ? error.message : String(error);
   runtime.storage.updateTaskStatus({ taskId: runtime.taskId, status: "failed", failureReason: message });
   runtime.logger.logFailure({ taskId: runtime.taskId, scope: "flow", reason: message });
   const failedTask = runtime.storage.getTask(runtime.taskId);
-  return taskRecordToResult(failedTask ?? buildFailedTaskRecord(runtime, message));
+  return taskRecordToResult(failedTask ?? buildFailedTaskRecord({
+    taskId: runtime.taskId,
+    miningInput: runtime.miningInput,
+    message,
+  }));
 };
 
 export const runAmazonProductMiningFlow = async (ctx: AmazonFlowContext): Promise<AmazonFlowResult> => {

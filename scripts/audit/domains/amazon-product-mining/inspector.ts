@@ -14,6 +14,7 @@ import { getRepoSourcePath } from "../../shared/source-files.js";
 import { inspectProductDetailDomContract } from "./inspector-product-detail-dom-contract.js";
 import { buildAmazonMiningInspectorReport, inspectBrowserTabLifecycle } from "./inspector-tab-lifecycle.js";
 import { inspectArtifactOutputs, inspectWorkbenchHomeSurface } from "./inspector-app-surface.js";
+import { inspectPackageScript } from "./inspector-package-scripts.js";
 
 const REQUIRED_PLUGIN_FILES = [
   "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
@@ -25,6 +26,7 @@ const REQUIRED_PLUGIN_FILES = [
   "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+  "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
   "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
@@ -39,6 +41,7 @@ const REQUIRED_ACCEPTANCE_FILES = [
   "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -245,41 +248,6 @@ const inspectAppShellRoutes = (
   }
 };
 
-const inspectPackageScript = (
-  findings: InspectorFinding[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-): void => {
-  const packagePath = "package.json";
-  inspectedFiles.add(packagePath);
-  const scripts = (JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> }).scripts ?? {};
-  const acceptanceScript = scripts["acceptance:amazon-product-mining"];
-  if (!acceptanceScript) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/package-acceptance-script",
-      lawId,
-      filePath: packagePath,
-      message: "package.json must expose acceptance:amazon-product-mining script.",
-    }));
-  }
-  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-app-ui.acceptance.ts")) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/package-acceptance-script-app-ui",
-      lawId,
-      filePath: packagePath,
-      message: "acceptance:amazon-product-mining must include amazon-product-mining-app-ui.acceptance.ts.",
-    }));
-  }
-  if (scripts["audit:amazon-product-mining"] !== "node --import tsx scripts/audit/domains/amazon-product-mining/inspector.ts") {
-    findings.push(createFinding({
-      checkId: "amazon-mining/package-audit-script",
-      lawId,
-      filePath: packagePath,
-      message: "package.json must expose audit:amazon-product-mining using the amazon inspector entrypoint.",
-    }));
-  }
-};
-
 const inspectFlowSearchBeforeDetail = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -441,6 +409,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const flowLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1");
   const surfaceLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1");
   const keywordLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1");
+  const artifactLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1");
+  const deliveryLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1");
   const searchLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1");
   const reviewLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1");
   const findings: InspectorFinding[] = [];
@@ -453,8 +423,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectWorkbenchHandle(context, findings, inspectedFiles, surfaceLawId);
   inspectAppShellRoutes(context, findings, inspectedFiles, surfaceLawId);
   inspectWorkbenchHomeSurface(context, findings, inspectedFiles, surfaceLawId);
-  inspectArtifactOutputs(context, findings, inspectedFiles, surfaceLawId);
-  inspectPackageScript(findings, inspectedFiles, surfaceLawId);
+  inspectArtifactOutputs(context, findings, inspectedFiles, artifactLawId);
+  inspectPackageScript(findings, inspectedFiles, deliveryLawId);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, searchLawId);
   inspectProductDetailDomFallbacks(context, findings, inspectedFiles, searchLawId);
   inspectReviewsPerPagePersistence(context, findings, inspectedFiles, reviewLawId);

@@ -8,6 +8,7 @@ import type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
 import { taskRecordToResult } from "./amazon-product-mining.result.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
 import type { AmazonMiningInput } from "./amazon-product-mining.schema.js";
+import { createAmazonProductMiningPackageZip } from "./amazon-product-mining.package-zip.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 
 export type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
@@ -70,15 +71,24 @@ export const getLatestAmazonProductMiningTask = (input: {
 export const exportAmazonProductMiningResult = (input: {
   dataDir: string;
   taskId: string;
-}): { packageJsonPath: string | null; evidenceIndexPath: string | null; pdfReportPath: string | null } | null => {
+}): {
+  packageJsonPath: string | null;
+  evidenceIndexPath: string | null;
+  pdfReportPath: string | null;
+  packageZipPath: string | null;
+} | null => {
   const storage = createAmazonMiningStorage(input.dataDir);
   try {
     const task = storage.getTask(input.taskId);
     if (!task) return null;
+    const packageZipPath = task.packageJsonPath
+      ? createAmazonProductMiningPackageZip({ dataDir: input.dataDir, taskId: input.taskId }).packageZipPath
+      : null;
     return {
       packageJsonPath: task.packageJsonPath,
       evidenceIndexPath: task.evidenceIndexPath,
       pdfReportPath: task.pdfReportPath,
+      packageZipPath,
     };
   } finally {
     storage.close();

@@ -1,4 +1,4 @@
-generatedAt: "2026-05-27T12:44:38.971Z"
+generatedAt: "2026-05-27T13:26:04.155Z"
 rows:
   - capabilityDomain: "amazon-product-mining"
     manifestPath: "scripts/audit/domains/amazon-product-mining/manifest.json"
@@ -16,6 +16,9 @@ rows:
       - "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1"
+      - "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1"
+      - "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1"
+      - "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1"
   - capabilityDomain: "architecture-boundary"
     manifestPath: "scripts/audit/domains/architecture-boundary/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/architecture-boundary/inspector.ts"

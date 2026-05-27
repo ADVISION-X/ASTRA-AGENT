@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-05-27T12:42:26.226Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-27T13:26:21.775Z",
+  "status": "PASS",
   "inspectorFileCount": 15,
   "generatedPlanEntryCount": 15,
   "inspectedFiles": [
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
@@ -168,14 +169,5 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": [
-    {
-      "checkId": "audit-truth/source-text-judgment",
-      "lawId": "APEX-AUDIT-TRUTH-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts uses source-text judgment sourceText.includes(token) on tracked ts-morph text.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts"
-    }
-  ]
+  "findings": []
 }
