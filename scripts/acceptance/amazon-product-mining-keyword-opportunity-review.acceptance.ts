@@ -252,6 +252,16 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
   async execute(input) {
     const promptContractId = (input as { promptContractId?: string }).promptContractId;
     if (promptContractId === "amazon-product-mining-keyword-opportunity-review-v1") {
+      const reviewInput = input as {
+        inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
+        maxInputChars?: number;
+      };
+      assert.equal(reviewInput.maxInputChars, 300_000);
+      assert.equal(Array.isArray(reviewInput.inputRefs), true);
+      assert.equal(reviewInput.inputRefs?.length, 1);
+      assert.equal(reviewInput.inputRefs?.[0]?.kind, "amazon-product-mining-keyword-evidence-slice");
+      assert.equal(typeof reviewInput.inputRefs?.[0]?.summary, "string");
+      assert.equal(reviewInput.inputRefs?.[0]?.filePath, undefined);
       eventLog.push(`review:${String((input as { roundId?: string }).roundId ?? "missing")}`);
       return createKeywordReviewGatewayResponse();
     }

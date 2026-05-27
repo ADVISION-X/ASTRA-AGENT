@@ -567,47 +567,193 @@ handoff record:
 
 ## 18. App 历史表面
 
-App 必须新增：
+### 18.1 APP_UI_KEYWORD_REVIEW_HISTORY
+
+Amazon product mining 页面必须固定为：
 
 ```txt
-Keyword Opportunity Review History
+Amazon Product Mining
+  -> Task Publish Area
+  -> Latest Task Summary
+  -> Keyword Opportunity Review History
 ```
 
-表格至少显示：
+任务发布区已经存在，
+本轮只能保留并轻量优化说明、布局、默认值和提交反馈。
+
+历史表是本轮核心价值区，
+只展示关键词级 AI 研判，不做最终选品、采购、利润、库存或广告动作。
+
+### 18.2 历史表字段
+
+历史表最少必须显示：
 
 ```txt
+Created At
 Task ID
+Marketplace
+Target Market
 Keyword
 Decision
+Human Next Step
 Demand Signal
 Review Health
 Price Ceiling
 Competition Openness
 Improvement Opportunity
 Data Confidence
-Human Next Step
-Package Ref
-AI Review Ref
-Created At
+Product Count
+Review Count
+Package Integrity
+Data Completeness
+Status
+Package
+AI Review
+Reason / Evidence Summary
 ```
 
-交互：
+若当前后端没有某项字段，必须显示 `missing` / `not_available`，不得伪造。
+
+### 18.3 筛选与排序
+
+最低 P0 筛选：
 
 ```txt
-Refresh Reviews
-Filter by PASS / WATCH / REJECT / INSUFFICIENT_DATA
+Decision filter
+Keyword search
+Marketplace filter
+```
+
+允许扩展：
+
+```txt
+Task ID filter
+Target market text filter
+Human next step filter
+Data confidence filter
+Package integrity filter
+```
+
+必须支持排序：
+
+```txt
+Created At desc                # 默认
+Decision priority             # PASS -> WATCH -> INSUFFICIENT_DATA -> REJECT
+Data Confidence
+Review Count
+Product Count
+```
+
+### 18.4 详情展开
+
+每行必须支持 expandable row 或等价展开面。
+
+展开后至少显示：
+
+```txt
+AI Review Summary
+Evidence Refs
+Missing Evidence
+Risk Points
+Package Ref
+AI Raw Response Ref
+Master Evidence Report Ref
+Data Completeness Report Ref
+Package Integrity Report Ref
+Exception Summary Ref
+```
+
+禁止只显示 verdict，不显示理由或证据入口。
+
+### 18.5 允许与禁止按钮
+
+允许：
+
+```txt
 Open Package
 Open AI Review
+Open Evidence Index
+Refresh
 ```
 
 禁止：
 
 ```txt
-自动下一阶段
-自动采购
-自动打样
-自动选品
-自动广告投放
+Buy
+Purchase
+Sample Now
+Launch Listing
+Run Ads
+Final Pick
+Procurement
+Inventory
+Profit
+```
+
+### 18.6 状态与真相源
+
+必须提供：
+
+```txt
+No keyword opportunity reviews yet.
+Run an Amazon product mining task and complete AI keyword review to populate this table.
+
+Loading reviews...
+Failed to load keyword reviews: {reason}
+Retry
+```
+
+真相源规则：
+
+```txt
+优先读取 amazon_mining_keyword_opportunity_reviews
+App 不得使用 localStorage 作为历史表真相源
+App 不得常驻 fixture / demo rows
+App 不得扫描 raw package 生成 verdict
+App 不得在前端计算 PASS / WATCH / REJECT / INSUFFICIENT_DATA
+```
+
+### 18.7 Route / Read Model 契约
+
+App 允许读取：
+
+```txt
+GET /api/amazon-product-mining/keyword-reviews?taskId=
+GET /api/amazon-product-mining/keyword-review?reviewId=
+POST /api/amazon-product-mining/keyword-review/manual-ingest
+```
+
+owner read model 必须从持久化记录组装：
+
+```txt
+task scope
+marketplace / targetMarket
+keyword review verdict
+product count
+review count
+task-level report refs
+```
+
+### 18.8 App UI Flow
+
+```txt
+APP_LOAD
+-> LOAD_LATEST_TASK
+-> LOAD_KEYWORD_REVIEW_HISTORY
+-> RENDER_FILTERS
+-> RENDER_HISTORY_TABLE
+-> USER_FILTERS_DECISION_OR_KEYWORD
+-> USER_OPENS_PACKAGE_OR_AI_REVIEW
+```
+
+禁止出现：
+
+```txt
+USER_BUYS
+USER_SAMPLES
+USER_LAUNCHES_LISTING
+USER_RUNS_ADS
+USER_SELECTS_WINNER
 ```
 
 ---

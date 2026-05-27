@@ -215,13 +215,21 @@ pre {
   align-items: flex-start;
   flex-wrap: wrap;
 }
-.history-actions {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  flex-wrap: wrap;
+.section-head-tight {
+  margin-bottom: 14px;
 }
-.history-actions .field { min-width: 180px; }
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+.history-state {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+}
 .table-wrap {
   margin-top: 14px;
   overflow: auto;
@@ -232,7 +240,7 @@ pre {
   width: 100%;
   border-collapse: collapse;
   background: #fff;
-  min-width: 1320px;
+  min-width: 2440px;
 }
 .history-table th,
 .history-table td {
@@ -250,6 +258,100 @@ pre {
   z-index: 1;
 }
 .history-table td .btn { min-height: 30px; padding: 5px 10px; }
+.history-error-cell {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.review-row td {
+  white-space: nowrap;
+}
+.review-summary-cell {
+  max-width: 420px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.review-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.review-pill-decision.review-pill-pass,
+.review-pill-status.review-pill-completed,
+.review-pill-integrity.review-pill-pass {
+  color: var(--accent-strong);
+  border-color: #b8d8cf;
+  background: #eef8f4;
+}
+.review-pill-decision.review-pill-watch,
+.review-pill-status.review-pill-manual_required {
+  color: var(--warn);
+  border-color: #e8cfb7;
+  background: #fff6eb;
+}
+.review-pill-decision.review-pill-reject,
+.review-pill-status.review-pill-failed,
+.review-pill-integrity.review-pill-failed {
+  color: var(--bad);
+  border-color: #ebc8c8;
+  background: #fff2f2;
+}
+.review-pill-decision.review-pill-insufficient_data,
+.review-pill-integrity.review-pill-not_available {
+  color: var(--muted);
+  border-color: var(--line);
+  background: #f4f6f8;
+}
+.review-detail-row td {
+  background: #fbfcf8;
+}
+.review-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 6px 2px 2px;
+}
+.review-detail-block {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.review-detail-block-wide {
+  grid-column: 1 / -1;
+}
+.review-detail-copy {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.review-detail-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.review-detail-ref-line {
+  display: grid;
+  grid-template-columns: 180px auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.review-detail-ref-value {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 11px;
+}
 .activity {
   border-top: 1px solid var(--line);
   background: #fbfcf8;
@@ -267,8 +369,12 @@ pre {
   .main { grid-template-columns: 1fr; }
   .rail, .ledger { border: 0; border-bottom: 1px solid var(--line); }
   .form-grid { grid-template-columns: 1fr; }
-  .history-actions { width: 100%; }
-  .history-actions .field { min-width: 0; width: 100%; }
+  .filter-grid { grid-template-columns: 1fr; }
+  .review-detail-grid { grid-template-columns: 1fr; }
+  .review-detail-ref-line {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
 }
 `;
 

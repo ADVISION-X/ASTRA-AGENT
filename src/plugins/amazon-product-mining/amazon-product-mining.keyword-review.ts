@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import type { AiFeedInput, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
 import type {
   AmazonKeywordOpportunityManualIngestInput,
@@ -19,6 +19,17 @@ import {
   writeKeywordReviewSourceArtifacts,
   type KeywordReviewArtifacts,
 } from "./amazon-product-mining.keyword-review-support.js";
+
+export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 300_000;
+
+const buildKeywordOpportunityReviewInputRefs = (input: {
+  keyword: AmazonKeywordRecord;
+  artifacts: KeywordReviewArtifacts;
+}): AiFeedInput["inputRefs"] => [{
+  id: `keyword-opportunity-review-input-${input.keyword.keywordId}`,
+  kind: "amazon-product-mining-keyword-evidence-slice",
+  summary: `Keyword opportunity review evidence slice for ${input.keyword.keyword}. Source artifact: ${input.artifacts.inputJsonPath}`,
+}];
 
 const buildReviewRecord = (input: {
   reviewId: string;
@@ -59,10 +70,131 @@ const buildReviewRecord = (input: {
   updatedAt: input.updatedAt,
 });
 
+type KeywordOpportunityReviewRuntimeContext = {
+  artifacts: KeywordReviewArtifacts;
+  aiPromptText: string;
+  createdAt: string;
+  keyword: AmazonKeywordRecord;
+  reviewId: string;
+  taskId: string;
+};
+
+type KeywordOpportunityReviewAiResult = Awaited<ReturnType<AiInputGatewayAbilityGroup["execute"]>>;
+
 export const persistKeywordOpportunityReview = (input: {
   storage: AmazonMiningStorage;
   review: AmazonKeywordOpportunityReviewRecord;
 }): AmazonKeywordOpportunityReviewRecord => input.storage.saveKeywordOpportunityReview(input.review);
+
+const persistKeywordOpportunityReviewOutcome = (input: {
+  storage: AmazonMiningStorage;
+  context: KeywordOpportunityReviewRuntimeContext;
+  status: AmazonKeywordOpportunityReviewRecord["status"];
+  verdict: AmazonKeywordOpportunityVerdict | null;
+  aiRawResponse: string;
+  failureReason: string | null;
+}): AmazonKeywordOpportunityReviewRecord => {
+  writeKeywordReviewResponseArtifact({
+    reviewId: input.context.reviewId,
+    status: input.status,
+    failureReason: input.failureReason,
+    rawResponse: input.aiRawResponse,
+    verdict: input.verdict,
+    responsePath: input.context.artifacts.responsePath,
+  });
+
+  return persistKeywordOpportunityReview({
+    storage: input.storage,
+    review: buildReviewRecord({
+      reviewId: input.context.reviewId,
+      taskId: input.context.taskId,
+      keyword: input.context.keyword,
+      status: input.status,
+      verdict: input.verdict,
+      artifacts: input.context.artifacts,
+      aiPromptText: input.context.aiPromptText,
+      aiRawResponse: input.aiRawResponse,
+      failureReason: input.failureReason,
+      createdAt: input.context.createdAt,
+      updatedAt: null,
+    }),
+  });
+};
+
+const requestKeywordOpportunityReview = (input: {
+  aiInputGateway: AiInputGatewayAbilityGroup;
+  providerKind: AmazonKeywordProviderKind;
+  context: KeywordOpportunityReviewRuntimeContext;
+}) => input.aiInputGateway.execute({
+  providerKind: input.providerKind,
+  promptPackageId: `amazon-mining-keyword-review-${input.context.taskId}-${input.context.keyword.keywordId}`,
+  promptContractId: "amazon-product-mining-keyword-opportunity-review-v1",
+  expectedOutputSchemaRef: null,
+  textPrompt: input.context.aiPromptText,
+  inputRefs: buildKeywordOpportunityReviewInputRefs({
+    keyword: input.context.keyword,
+    artifacts: input.context.artifacts,
+  }),
+  modelName: null,
+  timeoutMs: 120_000,
+  maxInputChars: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS,
+  maxFileCount: 0,
+  maxFileBytes: 1,
+  requestedBy: "ai-capability",
+  missionId: input.context.taskId,
+  runId: input.context.reviewId,
+  roundId: input.context.keyword.keywordId,
+});
+
+const finalizeKeywordOpportunityReview = (input: {
+  storage: AmazonMiningStorage;
+  context: KeywordOpportunityReviewRuntimeContext;
+  aiResult: KeywordOpportunityReviewAiResult;
+}): AmazonKeywordOpportunityReviewRecord => {
+  const aiRawResponse = input.aiResult.normalizedText ?? "";
+  if (input.aiResult.status === "review_required") {
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context: input.context,
+      status: "manual_required",
+      failureReason: input.aiResult.reviewRequiredReason ?? "keyword_review_manual_required",
+      verdict: null,
+      aiRawResponse,
+    });
+  }
+
+  if (input.aiResult.status !== "success") {
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context: input.context,
+      status: "failed",
+      failureReason: input.aiResult.failureReason ?? "keyword_review_ai_failed",
+      verdict: null,
+      aiRawResponse,
+    });
+  }
+
+  const verdict = parseKeywordReviewResponse(aiRawResponse);
+  if (!verdict) {
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context: input.context,
+      status: "failed",
+      failureReason: "keyword_review_invalid_or_non_json_response",
+      verdict: null,
+      aiRawResponse,
+    });
+  }
+
+  return persistKeywordOpportunityReviewOutcome({
+    storage: input.storage,
+    context: input.context,
+    status: "completed",
+    failureReason: null,
+    verdict,
+    aiRawResponse,
+  });
+};
 
 export const runKeywordOpportunityReview = async (input: {
   dataDir: string;
@@ -84,160 +216,35 @@ export const runKeywordOpportunityReview = async (input: {
     evidenceSlice,
   });
 
-  const reviewId = randomUUID();
-  const createdAt = new Date().toISOString();
+  const context: KeywordOpportunityReviewRuntimeContext = {
+    artifacts,
+    aiPromptText,
+    createdAt: new Date().toISOString(),
+    keyword: input.keyword,
+    reviewId: randomUUID(),
+    taskId: input.taskId,
+  };
 
   try {
-    const aiResult = await input.aiInputGateway.execute({
+    const aiResult = await requestKeywordOpportunityReview({
+      aiInputGateway: input.aiInputGateway,
       providerKind: input.providerKind,
-      promptPackageId: `amazon-mining-keyword-review-${input.taskId}-${input.keyword.keywordId}`,
-      promptContractId: "amazon-product-mining-keyword-opportunity-review-v1",
-      expectedOutputSchemaRef: null,
-      textPrompt: aiPromptText,
-      inputRefs: [artifacts.inputJsonPath],
-      modelName: null,
-      timeoutMs: 120_000,
-      maxInputChars: 120_000,
-      maxFileCount: 0,
-      maxFileBytes: 1,
-      requestedBy: "ai-capability",
-      missionId: input.taskId,
-      runId: reviewId,
-      roundId: input.keyword.keywordId,
+      context,
     });
-    const aiRawResponse = aiResult.normalizedText ?? "";
-
-    if (aiResult.status === "review_required") {
-      writeKeywordReviewResponseArtifact({
-        reviewId,
-        status: "manual_required",
-        failureReason: aiResult.reviewRequiredReason ?? "keyword_review_manual_required",
-        rawResponse: aiRawResponse,
-        verdict: null,
-        responsePath: artifacts.responsePath,
-      });
-      return persistKeywordOpportunityReview({
-        storage: input.storage,
-        review: buildReviewRecord({
-          reviewId,
-          taskId: input.taskId,
-          keyword: input.keyword,
-          status: "manual_required",
-          verdict: null,
-          artifacts,
-          aiPromptText,
-          aiRawResponse,
-          failureReason: aiResult.reviewRequiredReason ?? "keyword_review_manual_required",
-          createdAt,
-          updatedAt: null,
-        }),
-      });
-    }
-
-    if (aiResult.status !== "success") {
-      writeKeywordReviewResponseArtifact({
-        reviewId,
-        status: "failed",
-        failureReason: aiResult.failureReason ?? "keyword_review_ai_failed",
-        rawResponse: aiRawResponse,
-        verdict: null,
-        responsePath: artifacts.responsePath,
-      });
-      return persistKeywordOpportunityReview({
-        storage: input.storage,
-        review: buildReviewRecord({
-          reviewId,
-          taskId: input.taskId,
-          keyword: input.keyword,
-          status: "failed",
-          verdict: null,
-          artifacts,
-          aiPromptText,
-          aiRawResponse,
-          failureReason: aiResult.failureReason ?? "keyword_review_ai_failed",
-          createdAt,
-          updatedAt: null,
-        }),
-      });
-    }
-
-    const verdict = parseKeywordReviewResponse(aiRawResponse);
-    if (!verdict) {
-      writeKeywordReviewResponseArtifact({
-        reviewId,
-        status: "failed",
-        failureReason: "keyword_review_invalid_or_non_json_response",
-        rawResponse: aiRawResponse,
-        verdict: null,
-        responsePath: artifacts.responsePath,
-      });
-      return persistKeywordOpportunityReview({
-        storage: input.storage,
-        review: buildReviewRecord({
-          reviewId,
-          taskId: input.taskId,
-          keyword: input.keyword,
-          status: "failed",
-          verdict: null,
-          artifacts,
-          aiPromptText,
-          aiRawResponse,
-          failureReason: "keyword_review_invalid_or_non_json_response",
-          createdAt,
-          updatedAt: null,
-        }),
-      });
-    }
-
-    writeKeywordReviewResponseArtifact({
-      reviewId,
-      status: "completed",
-      failureReason: null,
-      rawResponse: aiRawResponse,
-      verdict,
-      responsePath: artifacts.responsePath,
-    });
-    return persistKeywordOpportunityReview({
+    return finalizeKeywordOpportunityReview({
       storage: input.storage,
-      review: buildReviewRecord({
-        reviewId,
-        taskId: input.taskId,
-        keyword: input.keyword,
-        status: "completed",
-        verdict,
-        artifacts,
-        aiPromptText,
-        aiRawResponse,
-        failureReason: null,
-        createdAt,
-        updatedAt: null,
-      }),
+      context,
+      aiResult,
     });
   } catch (error) {
     const failureReason = error instanceof Error ? error.message : String(error);
-    writeKeywordReviewResponseArtifact({
-      reviewId,
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context,
       status: "failed",
       failureReason,
-      rawResponse: "",
       verdict: null,
-      responsePath: artifacts.responsePath,
-    });
-    return persistKeywordOpportunityReview({
-      storage: input.storage,
-      review: buildReviewRecord({
-        reviewId,
-        taskId: input.taskId,
-        keyword: input.keyword,
-        status: "failed",
-        verdict: null,
-        artifacts,
-        aiPromptText,
-        aiRawResponse: "",
-        failureReason,
-        createdAt,
-        updatedAt: null,
-      }),
+      aiRawResponse: "",
     });
   }
 };

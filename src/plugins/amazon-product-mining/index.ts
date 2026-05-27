@@ -8,6 +8,10 @@ import type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
 import { taskRecordToResult } from "./amazon-product-mining.result.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
 import type { AmazonMiningInput } from "./amazon-product-mining.schema.js";
+import {
+  getAmazonProductMiningKeywordReviewHistoryEntry,
+  listAmazonProductMiningKeywordReviewHistory,
+} from "./amazon-product-mining.keyword-review-history.js";
 import { createAmazonProductMiningPackageZip } from "./amazon-product-mining.package-zip.js";
 import { ingestManualKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
@@ -75,9 +79,7 @@ export const listAmazonProductMiningKeywordReviews = (input: {
 }) => {
   const storage = createAmazonMiningStorage(input.dataDir);
   try {
-    return storage.listKeywordOpportunityReviews(
-      input.taskId ? { taskId: input.taskId } : {},
-    );
+    return listAmazonProductMiningKeywordReviewHistory(storage, input.taskId ? { taskId: input.taskId } : undefined);
   } finally {
     storage.close();
   }
@@ -89,7 +91,7 @@ export const getAmazonProductMiningKeywordReview = (input: {
 }) => {
   const storage = createAmazonMiningStorage(input.dataDir);
   try {
-    return storage.getKeywordOpportunityReview(input.reviewId);
+    return getAmazonProductMiningKeywordReviewHistoryEntry(storage, input.reviewId);
   } finally {
     storage.close();
   }

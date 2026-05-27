@@ -6,42 +6,6 @@
   "executionGroup": "foundation",
   "findings": [
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-home-page.ts has an over-line function near line 55.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-home-page.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts has 506 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts has an over-line function near line 67.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts has 582 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
       "checkId": "code-purity/named-export-budget",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
@@ -58,36 +22,9 @@
       "severity": "fatal",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
       "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityStrength without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"symbolName\":\"AmazonKeywordOpportunityStrength\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityHumanNextStep without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"symbolName\":\"AmazonKeywordOpportunityHumanNextStep\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityReviewStatus without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"symbolName\":\"AmazonKeywordOpportunityReviewStatus\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-05-27T22:22:20.652Z",
+  "generatedAt": "2026-05-27T22:52:25.738Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -362,6 +299,7 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
@@ -542,6 +480,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
@@ -563,6 +502,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
@@ -1152,75 +1092,25 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1561,
+  "liveExportCount": 1571,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 554,
+  "reachableFileCount": 557,
   "status": "FAIL",
   "unreachableFileCount": 0,
-  "uselessCodeInventory": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityStrength without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityHumanNextStep without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityReviewStatus without any provable final consumer."
-    }
-  ],
-  "unprovenPublicExports": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityStrength without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityHumanNextStep without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports AmazonKeywordOpportunityReviewStatus without any provable final consumer."
-    }
-  ],
+  "uselessCodeInventory": [],
+  "unprovenPublicExports": [],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 3,
+  "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1561,
+    "liveExportCount": 1571,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 554,
+    "reachableFileCount": 557,
     "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 3,
-    "zombieExportCount": 3
+    "uselessCodeInventoryCount": 0,
+    "zombieExportCount": 0
   }
 }

@@ -811,20 +811,26 @@ updatedAt
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "app-surface+route+acceptance",
-  "summary": "The workbench must expose a keyword opportunity review history surface with task-scoped reading, decision filtering, package ref opening, AI review ref opening, and manual ingest entry for structured verdicts.",
+  "summary": "The workbench must expose a keyword opportunity review history surface with task publish retention, latest-task summary, keyword-level verdict table, detail expansion, evidence refs, empty/loading/error states, and filtering by decision, keyword, and marketplace.",
   "appliesTo": [
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-styles.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/lib/local-runtime/workbench-handle.ts",
-    "src/plugins/amazon-product-mining/index.ts"
+    "src/plugins/amazon-product-mining/index.ts",
+    "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-keyword-review-app-ui.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts"
   ],
   "forbidden": [
     "App showing only taskId/status/package ref without keyword verdict history.",
     "App exposing procurement, sampling, place-order, run-ads, or final-selection buttons for keyword review.",
     "App surfacing only natural-language review text without structured verdict fields.",
-    "Route-level auto-progression into downstream business stages based on verdict."
+    "Route-level auto-progression into downstream business stages based on verdict.",
+    "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
+    "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts."
   ]
 }
 ```
@@ -834,13 +840,75 @@ updatedAt
 App 必须提供：
 
 ```txt
+Task Publish Area
+Latest Task Summary
 Keyword Opportunity Review History
 按 task 读取 keyword review
 按 decision 过滤 PASS / WATCH / REJECT / INSUFFICIENT_DATA
+按 keyword 搜索
+按 marketplace 过滤
+默认 Created At desc 排序
 打开 package ref
 打开 AI review ref
 POST /api/amazon-product-mining/keyword-review/manual-ingest
 ```
+
+历史表最少必须显示：
+
+```txt
+Created At
+Task ID
+Marketplace
+Target Market
+Keyword
+Decision
+Human Next Step
+Demand Signal
+Review Health
+Price Ceiling
+Competition Openness
+Improvement Opportunity
+Data Confidence
+Product Count
+Review Count
+Package Integrity
+Data Completeness
+Status
+Package
+AI Review
+Reason / Evidence Summary
+```
+
+每行必须可展开并显示：
+
+```txt
+AI Review Summary
+Evidence Refs
+Missing Evidence
+Risk Points
+Package Ref
+AI Raw Response Ref
+Master Evidence Report Ref
+Data Completeness Report Ref
+Package Integrity Report Ref
+Exception Summary Ref
+```
+
+App 必须提供真实状态：
+
+```txt
+No keyword opportunity reviews yet.
+Run an Amazon product mining task and complete AI keyword review to populate this table.
+
+Loading reviews...
+Failed to load keyword reviews: {reason}
+Retry
+```
+
+如果某些字段当前后端不存在，App 只能显示 `missing` / `not_available`，不得伪造。
+
+App 可保存最近 taskId，
+但 keyword review history 真相只能来自持久化记录与只读 route。
 
 ## 4. State Contracts
 

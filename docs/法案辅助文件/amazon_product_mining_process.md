@@ -2,7 +2,7 @@
 
 > 文件用途：本文件只定义 **Amazon 产品挖掘技能** 的流程步骤与每一步注意事项。  
 > 文件边界：本文件不写法案、不写施工图、不写数据库设计、不写代码实现、不写选品决策逻辑。  
-> 核心原则：Agent 负责挖掘、提取、入库、打包；高级 AI 负责基于数据包做最终产品决策。
+> 核心原则：Agent 负责挖掘、提取、入库、打包，以及关键词级机会筛选研判的投喂、校验、入库与展示；高级 AI 只在关键词级判断“这个 keyword product pool 是否值得继续研究”，最终产品决策仍然只能基于完整任务数据包进行。
 
 ---
 
@@ -12,9 +12,32 @@
 
 Amazon 产品挖掘技能的目标是：
 
-> 在用户选择的 Amazon 市场与站点中，通过 AI 生成关键词，逐个关键词搜索 Amazon 首页产品，提取搜索结果页产品信息，再逐个打开产品详情页，提取完整产品信息和当前可访问的全量评论，最终形成一个完整的数据包，供高级 AI 做产品选择决策。
+> 在用户选择的 Amazon 市场与站点中，通过 AI 生成关键词，逐个关键词搜索 Amazon 首页产品，提取搜索结果页产品信息；对首页排名前 30 名的产品逐个打开详情页并提取完整产品信息与当前可访问的全量评论；当单个关键词完成后，先构建该关键词资料切片并交给高级 AI 做关键词级机会筛选，再继续下一个关键词；所有关键词完成后，再形成完整任务数据包，供高级 AI 做最终产品决策。
 
 该技能不负责判断“这个产品一定能赚钱”，也不负责采购、定价、利润核算、库存管理或 ERP 工作。
+
+## 0.1 权威流程图
+
+```mermaid
+flowchart TD
+  A[创建挖掘任务] --> B[AI 生成关键词]
+  B --> C[解析与去重]
+  C --> D[逐个关键词搜索 Amazon 首页]
+  D --> E[提取首页全部可见搜索结果并入库]
+  E --> F[仅处理首页前 30 名详情页]
+  F --> G[提取产品详情]
+  G --> H[进入评论页并分页提取可访问全量评论]
+  H --> I[当前关键词产品处理完成]
+  I --> J[构建该关键词 package slice]
+  J --> K[交给高级 AI 做关键词级机会筛选]
+  K --> L[校验固定 verdict 契约并入库]
+  L --> M[更新 App Keyword Review History]
+  M --> N{还有 pending 关键词?}
+  N -->|是| D
+  N -->|否| O[生成完整任务数据包]
+  O --> P[生成 PDF 报告]
+  P --> Q[交给高级 AI 做最终产品决策]
+```
 
 ---
 
@@ -156,6 +179,8 @@ Agent 从待挖掘关键词队列中取出第一个关键词，进入 Amazon 搜
 4. 如果同一个 ASIN 在同一关键词下重复出现，只保留一条主记录，同时保留重复出现证据。
 5. 如果 ASIN 暂时无法解析，先保存产品 URL 和标题，不得直接丢弃。
 6. 搜索结果页提取完成后，关键词状态不能直接完成，还需要继续进入产品详情页挖掘。
+7. 搜索结果页的完整提取范围是首页全部可见产品；后续详情页和评论页只处理首页排名前 30 名。
+8. 排名 31 及之后的产品不得静默删除，必须保留搜索结果证据，但不继续进入详情页和评论页。
 
 ---
 
@@ -181,22 +206,22 @@ Agent 从待挖掘关键词队列中取出第一个关键词，进入 Amazon 搜
 ### 注意事项
 
 1. 搜索结果必须先入库，再进入详情页挖掘。
-2. 入库时要设置产品详情状态为 `pending_detail`。
+2. 入库时要明确后续处理边界：首页前 30 名进入 `pending_detail`；排名 31 及之后只保留搜索结果证据，不继续进入详情页和评论页。
 3. 入库过程失败时，不得继续打开详情页。
 4. 同一产品可能来自多个关键词，不能简单覆盖旧记录，需要保留“关键词来源关系”。
 5. 搜索结果页数据和产品详情页数据要分开保存，避免混在一起。
 
 ---
 
-## 7. 打开第一个产品详情页
+## 7. 打开当前关键词首页前 30 名中的第一个产品详情页
 
 ### 流程说明
 
-搜索结果页产品入库后，Agent 从该关键词保存的第一个产品开始，逐个打开产品详情页。
+搜索结果页产品入库后，Agent 只从该关键词首页排名前 30 名的产品中，按顺序逐个打开产品详情页。
 
 处理顺序：
 
-1. 找到当前关键词下第一个 `pending_detail` 产品。
+1. 找到当前关键词下首页前 30 名范围内第一个 `pending_detail` 产品。
 2. 打开产品 URL。
 3. 等待详情页加载稳定。
 4. 判断页面是否为正常产品详情页。
@@ -205,11 +230,12 @@ Agent 从待挖掘关键词队列中取出第一个关键词，进入 Amazon 搜
 
 ### 注意事项
 
-1. 必须按搜索结果页顺序处理产品。
+1. 必须按搜索结果页顺序处理产品，且只处理首页前 30 名。
 2. 每个产品都要独立记录打开时间和详情页 URL。
 3. 如果产品页面失效、跳转、缺货或无法访问，要记录异常原因。
 4. 如果页面出现验证码、登录限制或风控，不得绕过，应进入异常状态。
 5. 一个产品失败后，应继续处理下一个产品，不应导致整个任务中断。
+6. 排名 31 及之后的产品不进入详情页流程，只保留搜索结果证据。
 
 ---
 
@@ -345,9 +371,9 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 2. 保存评论信息。
 3. 保存页面快照索引。
 4. 标记产品状态为 `completed`。
-5. 查找当前关键词下下一个 `pending_detail` 产品。
+5. 查找当前关键词下首页前 30 名中的下一个 `pending_detail` 产品。
 6. 重复执行产品详情和评论提取流程。
-7. 直到当前关键词首页所有产品都处理完成。
+7. 直到当前关键词首页前 30 名产品都处理完成。
 
 ### 注意事项
 
@@ -359,36 +385,62 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 
 ---
 
-## 12. 当前关键词完成并进入下一个关键词
+## 12. 当前关键词完成并进入关键词级资料切片阶段
 
 ### 流程说明
 
-当当前关键词下的搜索结果首页产品全部处理完后，Agent 标记该关键词为完成，并进入下一个关键词。
+当当前关键词下允许进入详情页与评论页的产品都处理完后，Agent 不能直接进入下一个关键词，而是先完成该关键词的执行摘要与资料切片，为后续关键词级机会研判准备输入。
 
 处理顺序：
 
-1. 检查当前关键词下所有产品状态。
+1. 检查当前关键词下首页前 30 名产品状态，以及搜索结果页证据是否已经完整保存。
 2. 统计成功、失败、待人工处理的产品数量。
 3. 标记关键词状态为 `completed` 或 `completed_with_errors`。
-4. 进入下一个 `pending` 关键词。
-5. 重复搜索、提取、入库、详情页、评论页流程。
-6. 直到所有关键词处理完成。
+4. 生成该关键词的 package slice，汇总 search results、linked product details、linked reviews、image refs、completeness、exceptions。
+5. 保存该关键词执行摘要与关键词级资料切片引用。
+6. 将该关键词送入关键词级机会研判阶段。
 
 ### 注意事项
 
-1. 关键词完成状态必须基于其下产品处理结果。
+1. 关键词完成状态必须基于其下产品处理结果与搜索结果证据完整度。
 2. 如果部分产品失败，关键词不能简单标记为完全成功。
-3. 每个关键词必须保留执行摘要。
-4. 所有关键词完成后，任务进入数据包生成阶段。
+3. 每个关键词必须保留执行摘要与关键词级资料切片。
+4. 关键词完成后不得直接跳到下一个关键词，必须先完成关键词级机会研判。
 5. 如果所有关键词均失败，应输出失败数据包，而不是静默结束。
 
 ---
 
-## 13. 生成完整数据包
+## 13. 执行关键词级高级 AI 机会筛选并写入历史
 
 ### 流程说明
 
-所有关键词完成后，Agent 生成一个完整的 Amazon 产品挖掘数据包。
+当单个关键词的资料切片生成完成后，Agent 将该关键词资料切片交给高级 AI，执行一次 `keywordId` 级机会筛选。
+
+处理顺序：
+
+1. 将该关键词的 search results、linked product details、linked reviews、image refs、completeness、exceptions 组装为 keyword review 输入。
+2. 将该输入材料交给高级 AI。
+3. 只接受固定结构化 verdict：`PASS / WATCH / REJECT / INSUFFICIENT_DATA`。
+4. 校验六个固定维度与 `humanNextStep` 枚举值。
+5. 保存 prompt、raw response、structured verdict、evidence refs、missing evidence、risk points。
+6. 将 keyword review 记录入库，并更新 App 的 Keyword Opportunity Review History。
+7. 然后才进入下一个 `pending` 关键词；直到所有关键词都处理完成。
+
+### 注意事项
+
+1. 这一步是 `keywordId` 级垃圾过滤，不是最终选品。
+2. 这一步只能判断“该 keyword product pool 是否值得继续研究”，不能输出采购、打样、下单、上架、广告投放或最终产品选择建议。
+3. 每个关键词都必须独立生成一条 keyword opportunity review 记录，不能把某个关键词 verdict 扩大为整个任务的全局结论。
+4. 如果高级 AI 不可用、返回不合规或无法结构化校验，review 只能进入 `manual_required` 或 `failed`，不得伪装为完成。
+5. App 历史表只能读取已持久化的 keyword review 记录，不能用本地缓存、demo row 或扫描资料包代替。
+
+---
+
+## 14. 生成完整数据包
+
+### 流程说明
+
+所有关键词处理完成且关键词级机会研判记录已持久化后，Agent 才生成一个完整的 Amazon 产品挖掘数据包。
 
 数据包应包含：
 
@@ -402,9 +454,10 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 8. 每个产品的完整详情信息。
 9. 每个产品的全量评论数据。
 10. 每个产品的页面快照索引。
-11. 失败、异常、待人工处理记录。
-12. 数据完整性统计。
-13. 可供高级 AI 决策读取的索引结构。
+11. 每个关键词的 keyword opportunity review 记录、结构化 verdict 与引用信息。
+12. 失败、异常、待人工处理记录。
+13. 数据完整性统计。
+14. 可供高级 AI 决策读取的索引结构。
 
 ### 注意事项
 
@@ -413,15 +466,15 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 3. 数据包必须能追溯每条评论属于哪个产品。
 4. 数据包必须明确哪些数据成功、哪些失败、哪些受页面限制。
 5. 数据包必须保留原始证据索引，方便后续复查。
-6. 数据包生成后，任务状态才可以进入 `package_completed`。
+6. 数据包生成后，任务进入任务级打包与交接准备阶段，此时还不等于 `package_completed`。
 
 ---
 
-## 14. 生成 PDF 文件
+## 15. 生成 PDF 文件
 
 ### 流程说明
 
-完整数据包生成后，Agent 将核心内容整理为 PDF 文件，供高级 AI 上传、阅读和决策。
+完整数据包生成后，Agent 将核心内容整理为 PDF 文件，供最终任务级高级 AI 上传、阅读和决策。
 
 PDF 应包含：
 
@@ -436,6 +489,7 @@ PDF 应包含：
 9. 全量评论附录或评论索引。
 10. 异常与失败记录。
 11. 原始证据索引。
+12. 关键词级机会研判摘要或其引用索引。
 
 ### 注意事项
 
@@ -443,15 +497,15 @@ PDF 应包含：
 2. PDF 应以信息完整、结构清晰、可追溯为优先。
 3. 如果评论数量过大，可以在 PDF 中放评论摘要和索引，同时保留完整评论数据文件。
 4. PDF 不能丢失关键词、ASIN、URL、抓取时间等核心追溯字段。
-5. PDF 生成完成后，应与原始结构化数据包一起保存。
+5. PDF 生成完成后，应与原始结构化数据包一起保存，但流程仍未结束。
 
 ---
 
-## 15. 上传给高级 AI 决策
+## 16. 上传完整任务数据给高级 AI 做最终产品决策
 
 ### 流程说明
 
-PDF 和结构化数据包生成完成后，Agent 将其作为输入材料交给高级 AI。
+PDF 和结构化数据包生成完成后，Agent 将其作为完整任务输入材料交给高级 AI，执行最终产品决策阶段。
 
 高级 AI 的输入应包括：
 
@@ -460,13 +514,14 @@ PDF 和结构化数据包生成完成后，Agent 将其作为输入材料交给�
 3. 原始证据索引。
 4. 失败与异常说明。
 5. 本次任务范围说明。
+6. 每个关键词的 keyword opportunity review 记录或摘要引用。
 
 ### 注意事项
 
-1. 高级 AI 只基于数据包做决策，不应凭空补充不存在的数据。
-2. Agent 不在本流程中输出最终选品建议。
+1. 最终高级 AI 只基于完整任务数据包做决策，不应凭空补充不存在的数据。
+2. Agent 不在本流程中输出最终选品建议；关键词级机会筛选也不等于最终选品。
 3. 如果数据包不完整，高级 AI 必须能看到不完整原因。
-4. 上传完成后，Amazon 产品挖掘流程结束。
+4. 上传完成并形成 task handoff summary 后，Amazon 产品挖掘流程结束。
 5. 后续选品评分、打样建议、产品矩阵判断属于下一阶段流程，不属于本文件范围。
 
 ---
@@ -488,13 +543,19 @@ boundaries:
     - "search_result_storage"
     - "product_detail_page_mining"
     - "full_accessible_review_mining"
+    - "keyword_package_slice_build"
+    - "keyword_opportunity_review"
+    - "keyword_review_persistence"
+    - "keyword_review_history_update"
     - "data_package_generation"
     - "pdf_generation"
     - "handoff_to_advanced_ai"
   excludes:
     - "final_product_decision"
+    - "keyword_review_as_final_product_decision"
     - "profit_calculation"
     - "purchase_decision"
+    - "procurement_or_launch_guidance"
     - "pricing_strategy"
     - "inventory_management"
     - "erp_functions"
@@ -503,8 +564,9 @@ boundaries:
     - "code_design"
 
 core_principle:
-  agent_role: "mine_extract_store_package"
-  advanced_ai_role: "decide_based_on_evidence_package"
+  agent_role: "mine_extract_store_package_and_persist_keyword_review"
+  keyword_review_ai_role: "screen_keyword_pool_for_next_research_stage_only"
+  advanced_ai_final_role: "decide_based_on_full_task_evidence_package"
   no_decision_without_evidence: true
   no_bypass_platform_restrictions: true
 
@@ -630,7 +692,7 @@ flow:
   - step_id: "S07"
     name: "open_product_detail_page"
     actor: "agent"
-    loop: "for_each_search_result_item_in_rank_order"
+    loop: "for_each_first_page_top30_item_in_rank_order"
     actions:
       - "select_first_or_next_pending_detail_product"
       - "open_product_url"
@@ -640,6 +702,7 @@ flow:
     output:
       - "product_detail_page_context"
     cautions:
+      - "only_first_page_top30_may_enter_detail_and_review_flows"
       - "process_products_in_search_rank_order"
       - "record_open_time_and_final_url"
       - "if_unavailable_redirected_or_restricted_then_record_failure"
@@ -750,32 +813,56 @@ flow:
       - "save_snapshot_index"
       - "mark_product_completed_or_failed"
       - "select_next_product"
-    loop_condition: "until_all_products_under_current_keyword_processed"
+    loop_condition: "until_all_first_page_top30_products_under_current_keyword_processed"
     output:
       - "product_status_summary"
     cautions:
       - "one_product_should_complete_or_fail_before_next_product"
       - "single_product_failure_must_not_stop_keyword"
       - "reuse_existing_detail_data_for_same_asin_only_when_valid"
+      - "rank_31_and_beyond_must_remain_search_evidence_only"
       - "preserve_current_keyword_source_relation_even_when_reusing_product_data"
 
   - step_id: "S12"
-    name: "complete_current_keyword_and_continue"
+    name: "complete_current_keyword_and_build_package_slice"
     actor: "agent"
     actions:
       - "check_all_products_under_keyword"
       - "count_completed_failed_manual_required"
       - "mark_keyword_completed_or_completed_with_errors"
-      - "select_next_pending_keyword"
-    loop_condition: "until_all_keywords_processed"
+      - "build_keyword_package_slice"
     output:
       - "keyword_execution_summary"
+      - "keyword_package_slice"
     cautions:
       - "keyword_completion_must_reflect_product_results"
       - "partial_failure_should_be_completed_with_errors"
+      - "do_not_skip_keyword_package_slice_before_keyword_review"
       - "every_keyword_must_have_execution_summary"
 
   - step_id: "S13"
+    name: "run_keyword_opportunity_review"
+    actor: "agent_to_ai"
+    inputs:
+      - "keyword_package_slice"
+      - "search_results"
+      - "linked_product_details"
+      - "linked_reviews"
+      - "image_refs"
+      - "completeness"
+      - "exceptions"
+    output:
+      - "keyword_review_record"
+      - "keyword_review_status"
+      - "app_history_updated"
+    cautions:
+      - "keyword_review_is_keywordId_scoped_not_final_product_decision"
+      - "decision_must_be_one_of_pass_watch_reject_insufficient_data"
+      - "human_next_step_must_use_fixed_enum"
+      - "if_ai_unavailable_or_invalid_then_mark_manual_required_or_failed"
+      - "do_not_output_procurement_sampling_listing_ads_or_final_selection_guidance"
+
+  - step_id: "S14"
     name: "generate_complete_data_package"
     actor: "agent"
     package_contents:
@@ -788,20 +875,23 @@ flow:
       - "first_page_product_lists"
       - "complete_product_detail_records"
       - "full_accessible_review_records"
+      - "keyword_opportunity_review_records"
       - "page_snapshot_indexes"
       - "failure_exception_manual_required_records"
       - "data_completeness_statistics"
       - "advanced_ai_readable_index"
     output:
       - "amazon_product_mining_data_package"
+      - "task_status: packaging"
     cautions:
       - "data_package_provides_evidence_not_final_product_decision"
       - "must_trace_product_to_keyword"
       - "must_trace_review_to_product"
+      - "must_trace_keyword_review_to_keywordId"
       - "must_disclose_failed_or_restricted_data"
       - "must_preserve_raw_evidence_index"
 
-  - step_id: "S14"
+  - step_id: "S15"
     name: "generate_pdf_report"
     actor: "agent"
     pdf_contents:
@@ -809,6 +899,7 @@ flow:
       - "task_information"
       - "marketplace_and_site_information"
       - "keyword_list"
+      - "keyword_opportunity_review_summary"
       - "keyword_search_result_summaries"
       - "product_overview_table"
       - "product_detail_sections"
@@ -824,8 +915,8 @@ flow:
       - "if_reviews_too_large_pdf_may_include_summary_and_index_but_full_review_data_must_remain_in_structured_package"
       - "do_not_drop_keyword_asin_url_or_extraction_time"
 
-  - step_id: "S15"
-    name: "handoff_to_advanced_ai"
+  - step_id: "S16"
+    name: "handoff_full_task_package_to_advanced_ai"
     actor: "agent_to_advanced_ai"
     inputs:
       - "pdf_report"
@@ -833,11 +924,12 @@ flow:
       - "raw_evidence_index"
       - "exception_and_failure_summary"
       - "task_scope"
+      - "keyword_review_summary"
     output:
-      - "handoff_completed"
+      - "task_handoff_completed"
       - "task_status: package_completed"
     cautions:
-      - "advanced_ai_must_decide_only_based_on_provided_data_package"
+      - "advanced_ai_must_decide_only_based_on_full_task_data_package"
       - "agent_must_not_output_final_product_selection_in_this_process"
       - "incomplete_data_must_be_visible_to_advanced_ai"
       - "after_handoff_this_process_ends"
@@ -859,6 +951,20 @@ status_values:
     - "completed"
     - "failed"
     - "manual_required"
+  keyword_review_status:
+    - "completed"
+    - "manual_required"
+    - "failed"
+  keyword_review_decision:
+    - "PASS"
+    - "WATCH"
+    - "REJECT"
+    - "INSUFFICIENT_DATA"
+  keyword_review_human_next_step:
+    - "enter_next_validation"
+    - "mine_related_keywords"
+    - "reject"
+    - "rerun_or_collect_more_data"
   task_status:
     - "created"
     - "keyword_generating"
@@ -872,15 +978,18 @@ status_values:
 end_condition:
   success:
     - "all_keywords_processed"
+    - "all_keyword_reviews_persisted"
     - "data_package_generated"
     - "pdf_generated"
-    - "handoff_completed"
+    - "task_handoff_completed"
   partial_success:
     - "some_keywords_or_products_failed"
+    - "some_keyword_reviews_manual_required_or_failed"
     - "package_generated_with_exception_summary"
   failure:
     - "no_marketplace"
     - "no_valid_keywords"
     - "all_keywords_failed"
+    - "keyword_review_stage_failed_without_persisted_reason"
     - "package_generation_failed"
 ```

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:23:05.030Z",
+  "generatedAt": "2026-05-27T22:52:04.892Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -408,20 +408,26 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "app-surface+route+acceptance",
-      "summary": "The workbench must expose a keyword opportunity review history surface with task-scoped reading, decision filtering, package ref opening, AI review ref opening, and manual ingest entry for structured verdicts.",
+      "summary": "The workbench must expose a keyword opportunity review history surface with task publish retention, latest-task summary, keyword-level verdict table, detail expansion, evidence refs, empty/loading/error states, and filtering by decision, keyword, and marketplace.",
       "appliesTo": [
         "src/app/workbench-home-page.ts",
         "src/app/workbench-home-client.ts",
+        "src/app/workbench-home-styles.ts",
         "src/app/workbench-amazon-product-mining-routes.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/lib/local-runtime/workbench-handle.ts",
-        "src/plugins/amazon-product-mining/index.ts"
+        "src/plugins/amazon-product-mining/index.ts",
+        "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-keyword-review-app-ui.acceptance.ts",
+        "scripts/audit/domains/amazon-product-mining/**/*.ts"
       ],
       "forbidden": [
         "App showing only taskId/status/package ref without keyword verdict history.",
         "App exposing procurement, sampling, place-order, run-ads, or final-selection buttons for keyword review.",
         "App surfacing only natural-language review text without structured verdict fields.",
-        "Route-level auto-progression into downstream business stages based on verdict."
+        "Route-level auto-progression into downstream business stages based on verdict.",
+        "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
+        "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 18

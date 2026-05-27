@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:22:24.901Z",
+  "generatedAt": "2026-05-27T22:52:30.043Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -354,6 +354,7 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
@@ -537,6 +538,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
@@ -558,6 +560,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",

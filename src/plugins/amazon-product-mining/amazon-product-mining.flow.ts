@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
@@ -17,7 +16,6 @@ import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { buildKeywordRecords, runKeywordGeneration } from "./amazon-product-mining.keyword.js";
 import { runKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
 import type { AmazonKeywordProviderKind } from "./amazon-product-mining.schema.js";
-
 export type AmazonFlowContext = {
   miningInput: AmazonMiningInput;
   taskId: string;
@@ -28,7 +26,6 @@ export type AmazonFlowContext = {
   providerKind: AmazonKeywordProviderKind;
   reviewMaxPages?: number;
 };
-
 export type AmazonFlowResult = {
   taskId: string;
   status: string;
@@ -41,7 +38,6 @@ export type AmazonFlowResult = {
   runConfig: object;
   completedAt: string | null;
 };
-
 type AmazonFlowRuntime = {
   ctx: AmazonFlowContext;
   storage: ReturnType<typeof createAmazonMiningStorage>;
@@ -52,20 +48,10 @@ type AmazonFlowRuntime = {
   manualRequiredReasons: string[];
   failureReasons: string[];
 };
-
-type KeywordPhaseResult =
-  | { kind: "stop"; result: AmazonFlowResult }
-  | { kind: "continue"; keywordRecords: ReturnType<typeof buildKeywordRecords> };
-
+type KeywordPhaseResult = { kind: "stop"; result: AmazonFlowResult } | { kind: "continue"; keywordRecords: ReturnType<typeof buildKeywordRecords> };
 type PackageBuildResult = Awaited<ReturnType<typeof buildAmazonProductMiningPackage>>;
-
-type PackagingArtifacts = {
-  packageResult: PackageBuildResult;
-  pdfPath: string | null;
-};
-
+type PackagingArtifacts = { packageResult: PackageBuildResult; pdfPath: string | null };
 export const AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT = 30;
-
 const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => ({
   ctx,
   storage: createAmazonMiningStorage(ctx.dataDir),
@@ -76,7 +62,6 @@ const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => (
   manualRequiredReasons: [],
   failureReasons: [],
 });
-
 const buildPackageInput = (runtime: AmazonFlowRuntime) => ({
   taskId: runtime.taskId,
   dataDir: runtime.dataDir,

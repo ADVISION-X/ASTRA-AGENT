@@ -76,114 +76,200 @@ const renderAmazonMarketplaceOptions = (): string => AMAZON_MARKETPLACES
   .map((marketplace) => `<option value="${marketplace}">${marketplace}</option>`)
   .join("\n");
 
-const renderAmazonKeywordReviewHistory = (): string => `
-  <section class="panel review-history" data-amazon-product-mining-review-history>
-    <div class="section-head">
-      <div>
-        <h2>Keyword Opportunity Review History</h2>
-        <p class="muted">keyword pool screening only</p>
+const renderAmazonKeywordReviewFilters = (): string => `
+    <div class="filter-grid" data-amazon-product-mining-review-filters>
+      <div class="field">
+        <label>Task ID</label>
+        <input data-amazon-product-mining-review-task-filter placeholder="Task ID optional" />
       </div>
-      <div class="history-actions">
-        <div class="field">
-          <label>Review task ID</label>
-          <input data-amazon-product-mining-review-task-filter placeholder="Task ID optional" />
-        </div>
-        <div class="field">
-          <label>Decision filter</label>
-          <select data-amazon-product-mining-review-filter>
-            <option value="ALL">All</option>
-            <option value="PASS">PASS</option>
-            <option value="WATCH">WATCH</option>
-            <option value="REJECT">REJECT</option>
-            <option value="INSUFFICIENT_DATA">INSUFFICIENT_DATA</option>
-          </select>
-        </div>
-        <div class="actions">
-          <button class="btn secondary" type="button" data-amazon-product-mining-refresh-reviews>Refresh Reviews</button>
-        </div>
+      <div class="field">
+        <label>Decision</label>
+        <select data-amazon-product-mining-review-filter>
+          <option value="ALL">All</option>
+          <option value="PASS">PASS</option>
+          <option value="WATCH">WATCH</option>
+          <option value="REJECT">REJECT</option>
+          <option value="INSUFFICIENT_DATA">INSUFFICIENT_DATA</option>
+        </select>
       </div>
-    </div>
+      <div class="field">
+        <label>Marketplace</label>
+        <select data-amazon-product-mining-review-marketplace-filter>
+          <option value="ALL">All</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Keyword search</label>
+        <input data-amazon-product-mining-review-keyword-filter placeholder="Search keyword" />
+      </div>
+      <div class="field">
+        <label>Target market</label>
+        <input data-amazon-product-mining-review-target-market-filter placeholder="Filter target market" />
+      </div>
+      <div class="field">
+        <label>Human next step</label>
+        <select data-amazon-product-mining-review-human-next-step-filter>
+          <option value="ALL">All</option>
+          <option value="enter_next_validation">enter_next_validation</option>
+          <option value="mine_related_keywords">mine_related_keywords</option>
+          <option value="reject">reject</option>
+          <option value="rerun_or_collect_more_data">rerun_or_collect_more_data</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Data confidence</label>
+        <select data-amazon-product-mining-review-data-confidence-filter>
+          <option value="ALL">All</option>
+          <option value="strong">strong</option>
+          <option value="medium">medium</option>
+          <option value="weak">weak</option>
+          <option value="insufficient">insufficient</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Package integrity</label>
+        <select data-amazon-product-mining-review-package-integrity-filter>
+          <option value="ALL">All</option>
+          <option value="pass">pass</option>
+          <option value="failed">failed</option>
+          <option value="not_available">not_available</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sort</label>
+        <select data-amazon-product-mining-review-sort>
+          <option value="createdAt_desc">Created At desc</option>
+          <option value="decision_priority">Decision priority</option>
+          <option value="data_confidence">Data Confidence</option>
+          <option value="review_count">Review Count</option>
+          <option value="product_count">Product Count</option>
+        </select>
+      </div>
+    </div>`;
+
+const renderAmazonKeywordReviewTable = (): string => `
     <div class="table-wrap">
       <table class="history-table">
         <thead>
           <tr>
-            <th>Status</th>
+            <th>Created At</th>
             <th>Task ID</th>
+            <th>Marketplace</th>
+            <th>Target Market</th>
             <th>Keyword</th>
             <th>Decision</th>
+            <th>Human Next Step</th>
             <th>Demand Signal</th>
             <th>Review Health</th>
             <th>Price Ceiling</th>
             <th>Competition Openness</th>
             <th>Improvement Opportunity</th>
             <th>Data Confidence</th>
-            <th>Human Next Step</th>
-            <th>Package Ref</th>
-            <th>AI Review Ref</th>
-            <th>Created At</th>
+            <th>Product Count</th>
+            <th>Review Count</th>
+            <th>Package Integrity</th>
+            <th>Data Completeness</th>
+            <th>Status</th>
+            <th>Package</th>
+            <th>AI Review</th>
+            <th>Reason / Evidence Summary</th>
+            <th>Details</th>
           </tr>
         </thead>
         <tbody data-amazon-product-mining-review-rows>
           <tr>
-            <td class="muted" colspan="14">No keyword reviews yet.</td>
+            <td class="muted" colspan="22">No keyword opportunity reviews yet. Run an Amazon product mining task and complete AI keyword review to populate this table.</td>
           </tr>
         </tbody>
       </table>
+    </div>`;
+
+const renderAmazonKeywordReviewHistory = (): string => `
+  <section class="panel review-history" data-amazon-product-mining-review-history>
+    <div class="section-head">
+      <div>
+        <h2>Keyword Opportunity Review History</h2>
+        <p class="muted">Persisted keyword-level AI screening only. No procurement, listing, ads, or final pick actions.</p>
+      </div>
+      <div class="actions">
+        <button class="btn secondary" type="button" data-amazon-product-mining-refresh-reviews>Refresh</button>
+      </div>
     </div>
+    ${renderAmazonKeywordReviewFilters()}
+    <div class="history-state muted" data-amazon-product-mining-review-state>
+      No keyword opportunity reviews yet. Run an Amazon product mining task and complete AI keyword review to populate this table.
+    </div>
+    ${renderAmazonKeywordReviewTable()}
   </section>`;
 
 const renderAmazonProductMiningPanel = (): string => `
 <section class="hidden" data-job-panel="amazon-product-mining">
   <h1>Amazon product mining</h1>
   <p class="muted">amazon-product-mining.flow.ts</p>
-  <form class="form-grid" data-amazon-product-mining-form>
-    <div class="field">
-      <label>Amazon marketplace</label>
-      <select name="amazonMarketplace">
-        ${renderAmazonMarketplaceOptions()}
-      </select>
+  <section class="panel" data-amazon-product-mining-publish-area>
+    <div class="section-head section-head-tight">
+      <div>
+        <h2>Task Publish Area</h2>
+        <p class="muted">Create an Amazon keyword mining mission with governed task input only.</p>
+      </div>
     </div>
-    <div class="field"><label>Target market</label><input name="targetMarket" required /></div>
-    <div class="field wide"><label>Product direction</label><input name="productDirection" required /></div>
-    <div class="field"><label>Requested keyword count</label><input name="requestedKeywordCount" type="number" min="1" value="10" required /></div>
-    <div class="field">
-      <label>Provider</label>
-      <select name="amazonKeywordProviderKind" required>
-        <option value="">Select provider</option>
-        <option value="gemini-api">Gemini API</option>
-        <option value="gemini-web-chat">Gemini web chat</option>
-        <option value="gpt-web-chat">GPT web chat</option>
-      </select>
+    <form class="form-grid" data-amazon-product-mining-form>
+      <div class="field">
+        <label>Amazon marketplace</label>
+        <select name="amazonMarketplace">
+          ${renderAmazonMarketplaceOptions()}
+        </select>
+      </div>
+      <div class="field"><label>Target market</label><input name="targetMarket" required /></div>
+      <div class="field wide"><label>Product direction</label><input name="productDirection" required /></div>
+      <div class="field"><label>Requested keyword count</label><input name="requestedKeywordCount" type="number" min="1" value="10" required /></div>
+      <div class="field">
+        <label>Provider</label>
+        <select name="amazonKeywordProviderKind" required>
+          <option value="">Select provider</option>
+          <option value="gemini-api">Gemini API</option>
+          <option value="gemini-web-chat">Gemini web chat</option>
+          <option value="gpt-web-chat">GPT web chat</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Language preference</label>
+        <select name="languagePreference">
+          <option value="en">en</option>
+          <option value="zh-CN">zh-CN</option>
+          <option value="ja">ja</option>
+          <option value="de">de</option>
+          <option value="fr">fr</option>
+        </select>
+      </div>
+      <div class="actions wide">
+        <button class="btn" type="submit">Start</button>
+        <button class="btn secondary" type="button" data-amazon-product-mining-latest>Latest</button>
+        <button class="btn secondary" type="button" data-amazon-product-mining-export>Export</button>
+      </div>
+    </form>
+  </section>
+  <section class="panel" data-amazon-product-mining-latest-summary>
+    <div class="section-head section-head-tight">
+      <div>
+        <h2>Latest Task Summary</h2>
+        <p class="muted">Most recent task snapshot, status, and durable delivery refs.</p>
+      </div>
     </div>
-    <div class="field">
-      <label>Language preference</label>
-      <select name="languagePreference">
-        <option value="en">en</option>
-        <option value="zh-CN">zh-CN</option>
-        <option value="ja">ja</option>
-        <option value="de">de</option>
-        <option value="fr">fr</option>
-      </select>
-    </div>
-    <div class="actions wide">
-      <button class="btn" type="submit">Start</button>
-      <button class="btn secondary" type="button" data-amazon-product-mining-latest>Latest</button>
-      <button class="btn secondary" type="button" data-amazon-product-mining-export>Export</button>
-    </div>
-  </form>
-  <section class="result-strip" data-amazon-product-mining-results>
-    <div class="result-summary">
-      <span><b data-amazon-product-mining-task-id>-</b></span>
-      <span class="muted">latest task id</span>
-    </div>
-    <div class="result-summary">
-      <span><b data-amazon-product-mining-status>-</b></span>
-      <span class="muted">task status</span>
-    </div>
-    <div class="result-summary">
-      <span><b data-amazon-product-mining-package>-</b></span>
-      <span class="muted">package/pdf ref</span>
-    </div>
+    <section class="result-strip" data-amazon-product-mining-results>
+      <div class="result-summary">
+        <span><b data-amazon-product-mining-task-id>-</b></span>
+        <span class="muted">latest task id</span>
+      </div>
+      <div class="result-summary">
+        <span><b data-amazon-product-mining-status>-</b></span>
+        <span class="muted">task status</span>
+      </div>
+      <div class="result-summary">
+        <span><b data-amazon-product-mining-package>-</b></span>
+        <span class="muted">package/pdf ref</span>
+      </div>
+    </section>
   </section>
   ${renderAmazonKeywordReviewHistory()}
 </section>`;

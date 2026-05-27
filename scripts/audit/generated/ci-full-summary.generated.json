@@ -1,59 +1,59 @@
 {
-  "generatedAt": "2026-05-27T22:22:25.059Z",
+  "generatedAt": "2026-05-27T22:52:30.199Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "domain-audit-runner",
     "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
-    "lawId": "APEX-CODE-PURITY-015-V1",
-    "filePath": "src/app/workbench-home-page.ts",
-    "message": "src/app/workbench-home-page.ts has an over-line function near line 55.",
+    "lawId": "APEX-CODE-PURITY-001-V1",
+    "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+    "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports 38 symbols and exceeds the red line 24.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 238,
-      "endedAt": "2026-05-27T22:21:57.700Z",
+      "durationMs": 218,
+      "endedAt": "2026-05-27T22:52:04.878Z",
       "name": "codex-entry-gate",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-05-27T22:21:57.462Z",
+      "startedAt": "2026-05-27T22:52:04.660Z",
       "status": "PASS"
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 19,
-      "endedAt": "2026-05-27T22:21:57.719Z",
+      "durationMs": 15,
+      "endedAt": "2026-05-27T22:52:04.893Z",
       "name": "build-audit-artifacts",
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-05-27T22:21:57.700Z",
+      "startedAt": "2026-05-27T22:52:04.878Z",
       "status": "PASS"
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 1,
-      "endedAt": "2026-05-27T22:21:57.720Z",
+      "endedAt": "2026-05-27T22:52:04.894Z",
       "name": "active-law-full-coverage",
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-05-27T22:21:57.719Z",
+      "startedAt": "2026-05-27T22:52:04.893Z",
       "status": "PASS"
     },
     {
       "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
-      "durationMs": 1509,
-      "endedAt": "2026-05-27T22:21:59.229Z",
+      "durationMs": 1351,
+      "endedAt": "2026-05-27T22:52:06.245Z",
       "name": "meta-quality",
       "phase": "meta-quality",
-      "startedAt": "2026-05-27T22:21:57.720Z",
+      "startedAt": "2026-05-27T22:52:04.894Z",
       "status": "PASS"
     },
     {
       "command": "npm run typecheck",
-      "durationMs": 2985,
-      "endedAt": "2026-05-27T22:22:02.214Z",
+      "durationMs": 2685,
+      "endedAt": "2026-05-27T22:52:08.930Z",
       "name": "typecheck",
       "phase": "typecheck",
-      "startedAt": "2026-05-27T22:21:59.229Z",
+      "startedAt": "2026-05-27T22:52:06.245Z",
       "status": "PASS"
     }
   ],

@@ -1,9 +1,25 @@
+import { renderAmazonProductMiningReviewClient } from "./workbench-home-amazon-product-mining-review-client.js";
+
 const WORKBENCH_HOME_CLIENT = `
 const state = {
   job: "amazon",
   taskId: localStorage.getItem("grasseye:lastTaskId") || "",
   amazonProductMiningTaskId: localStorage.getItem("grasseye:lastAmazonProductMiningTaskId") || "",
   amazonProductMiningReviews: [],
+  amazonProductMiningReviewFilters: {
+    taskId: "",
+    decision: "ALL",
+    marketplace: "ALL",
+    keyword: "",
+    targetMarket: "",
+    humanNextStep: "ALL",
+    dataConfidence: "ALL",
+    packageIntegrity: "ALL",
+    sort: "createdAt_desc",
+  },
+  amazonProductMiningReviewLoading: false,
+  amazonProductMiningReviewError: "",
+  amazonProductMiningExpandedReviewId: "",
   facebookRunId: localStorage.getItem("grasseye:lastFacebookRunId") || "",
   facebookPoll: null,
 };
@@ -46,79 +62,7 @@ const refreshShell = async () => {
     writeActivity("shell refresh failed: " + error.message, "bad");
   }
 };
-const renderAmazonProductMiningSummary = (record) => {
-  const taskId = typeof record.taskId === "string" && record.taskId
-    ? record.taskId
-    : state.amazonProductMiningTaskId || "-";
-  const packageRef = record.packageZipPath || record.packageJsonPath || record.pdfReportPath || record.evidenceIndexPath || "-";
-  setText("[data-amazon-product-mining-task-id]", taskId);
-  setText("[data-amazon-product-mining-status]", record.status || "-");
-  setText("[data-amazon-product-mining-package]", packageRef);
-  if (taskId && taskId !== "-") setInputValue("[data-amazon-product-mining-review-task-filter]", taskId);
-};
-const appendCell = (row, text) => {
-  const cell = document.createElement("td");
-  cell.textContent = text || "-";
-  row.append(cell);
-};
-const createOpenButton = (label, filePath) => {
-  const button = document.createElement("button");
-  button.className = "btn secondary";
-  button.type = "button";
-  button.textContent = label;
-  button.disabled = !filePath;
-  button.addEventListener("click", () => {
-    if (!filePath) return;
-    window.open("file://" + encodeURI(filePath), "_blank", "noopener");
-  });
-  return button;
-};
-const renderAmazonProductMiningReviews = (reviews) => {
-  const rowsNode = qs("[data-amazon-product-mining-review-rows]");
-  if (!rowsNode) return;
-  const decisionFilter = qs("[data-amazon-product-mining-review-filter]")?.value || "ALL";
-  const filtered = (reviews || []).filter((review) => decisionFilter === "ALL" || review.decision === decisionFilter);
-  rowsNode.innerHTML = "";
-  if (filtered.length === 0) {
-    const emptyRow = document.createElement("tr");
-    const emptyCell = document.createElement("td");
-    emptyCell.className = "muted";
-    emptyCell.colSpan = 14;
-    emptyCell.textContent = "No keyword reviews found for the current filter.";
-    emptyRow.append(emptyCell);
-    rowsNode.append(emptyRow);
-    return;
-  }
-  for (const review of filtered) {
-    const row = document.createElement("tr");
-    appendCell(row, review.status || "-");
-    appendCell(row, review.taskId || "-");
-    appendCell(row, review.keyword || "-");
-    appendCell(row, review.decision || "-");
-    appendCell(row, review.demandSignal || "-");
-    appendCell(row, review.reviewHealth || "-");
-    appendCell(row, review.priceCeiling || "-");
-    appendCell(row, review.competitionOpenness || "-");
-    appendCell(row, review.improvementOpportunity || "-");
-    appendCell(row, review.dataConfidence || "-");
-    appendCell(row, review.humanNextStep || "-");
-    const packageCell = document.createElement("td");
-    packageCell.append(createOpenButton("Open Package", review.packageRef || review.keywordPackageSliceRef || null));
-    row.append(packageCell);
-    const reviewCell = document.createElement("td");
-    reviewCell.append(createOpenButton("Open AI Review", review.aiResponseRef || null));
-    row.append(reviewCell);
-    appendCell(row, review.createdAt || "-");
-    rowsNode.append(row);
-  }
-};
-const refreshAmazonProductMiningReviews = async () => {
-  const taskId = qs("[data-amazon-product-mining-review-task-filter]")?.value.trim() || "";
-  const query = taskId ? "?taskId=" + encodeURIComponent(taskId) : "";
-  const payload = await readJson("/api/amazon-product-mining/keyword-reviews" + query);
-  state.amazonProductMiningReviews = payload.reviews || [];
-  renderAmazonProductMiningReviews(state.amazonProductMiningReviews);
-};
+${renderAmazonProductMiningReviewClient()}
 const renderLedger = (payload, options = {}) => {
   const record = payload?.record || payload?.task || payload;
   if (!record || typeof record !== "object") return;
@@ -336,16 +280,32 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-amazon-product-mining-latest]").addEventListener("click", refreshAmazonProductMiningLatest);
   qs("[data-amazon-product-mining-export]").addEventListener("click", exportAmazonProductMining);
   qs("[data-amazon-product-mining-refresh-reviews]").addEventListener("click", () => {
-    refreshAmazonProductMiningReviews().catch((error) => writeActivity("amazon product mining reviews refresh failed: " + error.message, "bad"));
+    refreshAmazonProductMiningKeywordReviews().catch(() => undefined);
   });
-  qs("[data-amazon-product-mining-review-filter]").addEventListener("change", () => renderAmazonProductMiningReviews(state.amazonProductMiningReviews));
+  [
+    ["[data-amazon-product-mining-review-task-filter]", "input"],
+    ["[data-amazon-product-mining-review-filter]", "change"],
+    ["[data-amazon-product-mining-review-marketplace-filter]", "change"],
+    ["[data-amazon-product-mining-review-keyword-filter]", "input"],
+    ["[data-amazon-product-mining-review-target-market-filter]", "input"],
+    ["[data-amazon-product-mining-review-human-next-step-filter]", "change"],
+    ["[data-amazon-product-mining-review-data-confidence-filter]", "change"],
+    ["[data-amazon-product-mining-review-package-integrity-filter]", "change"],
+    ["[data-amazon-product-mining-review-sort]", "change"],
+  ].forEach(([selector, eventName]) => {
+    qs(selector).addEventListener(eventName, () => {
+      syncAmazonProductMiningReviewFiltersFromDom();
+      renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
+    });
+  });
   qs("[data-facebook-latest]").addEventListener("click", refreshFacebookLatest);
   qs("[data-facebook-export]").addEventListener("click", exportFacebookSelection);
   refreshShell();
+  renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
   if (state.amazonProductMiningTaskId) {
     setText("[data-amazon-product-mining-task-id]", state.amazonProductMiningTaskId);
-    setInputValue("[data-amazon-product-mining-review-task-filter]", state.amazonProductMiningTaskId);
-    refreshAmazonProductMiningReviews().catch(() => undefined);
+    setAmazonProductMiningReviewTaskFilter(state.amazonProductMiningTaskId);
+    refreshAmazonProductMiningKeywordReviews().catch(() => undefined);
   }
   if (state.facebookRunId) renderFacebookResults(state.facebookRunId).catch(() => undefined);
 });

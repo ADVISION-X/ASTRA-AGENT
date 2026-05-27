@@ -1,47 +1,7 @@
 {
-  "generatedAt": "2026-05-27T22:22:20.651Z",
-  "itemCount": 9,
+  "generatedAt": "2026-05-27T22:52:25.737Z",
+  "itemCount": 2,
   "items": [
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/app/workbench-home-page.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "app-shell",
-      "reason": "Function near line 55 breaks function budget: physical line count 124 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "active executable source file has 506 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "job-flow",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Function near line 67 breaks function budget: physical line count 177 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "active executable source file has 582 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
     {
       "checkId": "code-purity/named-export-budget",
       "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
@@ -50,42 +10,6 @@
       "reason": "Named export count 38 exceeds red line 24.",
       "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
       "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "type-alias",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Export AmazonKeywordOpportunityStrength has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "symbolName": "AmazonKeywordOpportunityStrength",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "type-alias",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Export AmazonKeywordOpportunityHumanNextStep has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "symbolName": "AmazonKeywordOpportunityHumanNextStep",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "type-alias",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Export AmazonKeywordOpportunityReviewStatus has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-schema",
-      "symbolName": "AmazonKeywordOpportunityReviewStatus",
       "verificationCommand": "npm run ci:full"
     },
     {

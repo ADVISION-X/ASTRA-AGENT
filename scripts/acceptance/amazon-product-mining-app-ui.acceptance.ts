@@ -10,6 +10,10 @@ const homeClient = readFileSync(resolve(repoRoot, "src/app/workbench-home-client
 for (const requiredToken of [
   'data-job-card="amazon-product-mining"',
   'data-job-panel="amazon-product-mining"',
+  'data-amazon-product-mining-publish-area',
+  'Task Publish Area',
+  'data-amazon-product-mining-latest-summary',
+  'Latest Task Summary',
   'name="amazonMarketplace"',
   'name="targetMarket"',
   'name="productDirection"',
@@ -22,6 +26,7 @@ for (const requiredToken of [
   'data-amazon-product-mining-latest',
   'data-amazon-product-mining-export',
   'data-amazon-product-mining-status',
+  'Keyword Opportunity Review History',
 ]) {
   assert(homePage.includes(requiredToken), `workbench-home-page.ts must include ${requiredToken}`);
 }

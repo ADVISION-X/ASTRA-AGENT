@@ -144,6 +144,17 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
   async execute(input) {
     assert.equal((input as { providerKind?: unknown }).providerKind, "gpt-web-chat", "Full cycle must use the selected GPT web chat provider");
     const promptContractId = (input as { promptContractId?: string }).promptContractId;
+    if (promptContractId === "amazon-product-mining-keyword-opportunity-review-v1") {
+      const reviewInput = input as {
+        inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
+        maxInputChars?: number;
+      };
+      assert.equal(reviewInput.maxInputChars, 300_000);
+      assert.equal(reviewInput.inputRefs?.length, 1);
+      assert.equal(reviewInput.inputRefs?.[0]?.kind, "amazon-product-mining-keyword-evidence-slice");
+      assert.equal(typeof reviewInput.inputRefs?.[0]?.id, "string");
+      assert.equal(reviewInput.inputRefs?.[0]?.filePath, undefined);
+    }
     const normalizedText = promptContractId === "amazon-product-mining-keyword-opportunity-review-v1"
       ? JSON.stringify({
           decision: "PASS",
