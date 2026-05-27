@@ -1,26 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:52:25.737Z",
-  "itemCount": 2,
-  "items": [
-    {
-      "checkId": "code-purity/named-export-budget",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Named export count 38 exceeds red line 24.",
-      "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:amazon-product-mining",
-      "reason": "Function near line 220 breaks function budget: physical line count 84 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-05-27T23:12:38.575Z",
+  "itemCount": 0,
+  "items": []
 }

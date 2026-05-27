@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:52:30.109Z",
+  "generatedAt": "2026-05-27T23:12:42.523Z",
   "status": "PASS",
   "summary": {
     "totalFindings": 0,
@@ -567,5 +567,36 @@
   "recoveryCoverage": [],
   "artifactCoverage": [],
   "missingMandatoryStages": [],
-  "findings": []
+  "findings": [],
+  "capabilityDomain": "facebook-product-video-mining-log-coverage",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-018-V1"
+  ],
+  "inspectedFiles": [
+    "src/capabilities/ai-input-gateway/ability-group.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts"
+  ]
 }

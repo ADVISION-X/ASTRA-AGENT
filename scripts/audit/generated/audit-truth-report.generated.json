@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:52:06.245Z",
+  "generatedAt": "2026-05-27T23:12:19.662Z",
   "status": "PASS",
   "inspectorFileCount": 16,
   "generatedPlanEntryCount": 16,
@@ -191,5 +191,12 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": []
+  "findings": [],
+  "capabilityDomain": "audit-truth",
+  "executionGroup": "meta",
+  "lawIds": [
+    "APEX-AUDIT-TRUTH-001-V1",
+    "APEX-AUDIT-TRUTH-002-V1",
+    "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1"
+  ]
 }

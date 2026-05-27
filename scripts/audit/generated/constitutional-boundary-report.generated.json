@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:52:25.814Z",
+  "generatedAt": "2026-05-27T23:12:38.650Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -634,5 +634,13 @@
     "orphanFiles": 0,
     "passThroughWrappers": 0,
     "protocolEscapes": 0
-  }
+  },
+  "capabilityDomain": "constitutional-boundary",
+  "executionGroup": "foundation",
+  "lawIds": [
+    "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+    "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+    "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
+    "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1"
+  ]
 }

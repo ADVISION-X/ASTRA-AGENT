@@ -74,21 +74,24 @@ const writeDomainReport = (
   mkdirSync(generatedDir, { recursive: true });
   const reportAbsolutePath = resolve(generatedDir, `${planEntry.capabilityDomain}-report.generated.json`);
   const reportMarkdownPath = resolve(generatedDir, `${planEntry.capabilityDomain}-report.generated.md`);
+  const baseReportJson = {
+    generatedAt: new Date().toISOString(),
+    capabilityDomain: planEntry.capabilityDomain,
+    executionGroup: planEntry.executionGroup,
+    lawIds: planEntry.lawIds,
+    status,
+    findings: output.findings,
+    inspectedFiles: output.inspectedFiles,
+  };
+  const mergedReportJson = typeof output.reportJson === "object" && output.reportJson !== null && !Array.isArray(output.reportJson)
+    ? {
+        ...output.reportJson,
+        ...baseReportJson,
+      }
+    : baseReportJson;
   writeFileSync(
     reportAbsolutePath,
-    `${JSON.stringify(
-      output.reportJson ?? {
-        generatedAt: new Date().toISOString(),
-        capabilityDomain: planEntry.capabilityDomain,
-        executionGroup: planEntry.executionGroup,
-        lawIds: planEntry.lawIds,
-        status,
-        findings: output.findings,
-        inspectedFiles: output.inspectedFiles,
-      },
-      null,
-      2,
-    )}\n`,
+    `${JSON.stringify(mergedReportJson, null, 2)}\n`,
   );
   if (output.reportMarkdown) {
     writeFileSync(reportMarkdownPath, `${output.reportMarkdown.trimEnd()}\n`);

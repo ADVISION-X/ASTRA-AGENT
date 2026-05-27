@@ -1,9 +1,14 @@
 {
-  "generatedAt": "2026-05-27T22:52:30.199Z",
+  "generatedAt": "2026-05-27T23:12:42.623Z",
   "status": "PASS",
   "inspectedFiles": [
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts"
   ],
-  "findings": []
+  "findings": [],
+  "capabilityDomain": "runtime-truth",
+  "executionGroup": "meta",
+  "lawIds": [
+    "APEX-RUNTIME-TRUTH-001-V1"
+  ]
 }

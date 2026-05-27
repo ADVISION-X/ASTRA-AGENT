@@ -296,6 +296,8 @@ export const inspectBrowserTabExtractionContract = (
     checkPrefix: string;
     subject: string;
     scriptVariableName: string;
+    extractScriptImportPath?: string;
+    extractScriptRepoPath?: string;
   },
 ): void => {
   const sourceFile = getRequiredSourceFile(context, input.repoPath);
@@ -303,6 +305,10 @@ export const inspectBrowserTabExtractionContract = (
   if (!sourceFile) {
     return;
   }
+  const extractScriptFile = input.extractScriptRepoPath
+    ? getRequiredSourceFile(context, input.extractScriptRepoPath)
+    : sourceFile;
+  trackSourceFile(inspectedFiles, extractScriptFile);
 
   const runJxaImport = findNamedImportContract(
     sourceFile,
@@ -320,13 +326,28 @@ export const inspectBrowserTabExtractionContract = (
     subject: input.subject,
     usesRunJxa,
   });
+  if (input.extractScriptImportPath && input.extractScriptRepoPath) {
+    const scriptImport = findNamedImportContract(sourceFile, input.extractScriptImportPath, input.scriptVariableName);
+    if (!scriptImport || !extractScriptFile) {
+      findings.push(createFinding({
+        checkId: `amazon-mining/${input.checkPrefix}-extract-script-import-contract`,
+        lawId,
+        filePath: input.repoPath,
+        message: `${input.subject} extraction must import ${input.scriptVariableName} from the dedicated owner-local DOM script module.`,
+      }));
+      return;
+    }
+  }
+  if (!extractScriptFile) {
+    return;
+  }
   pushBrowserTabScriptTemplateFinding({
     checkPrefix: input.checkPrefix,
-    filePath: input.repoPath,
+    filePath: input.extractScriptRepoPath ?? input.repoPath,
     findings,
     lawId,
     scriptVariableName: input.scriptVariableName,
-    sourceFile,
+    sourceFile: extractScriptFile,
     subject: input.subject,
   });
 };
@@ -383,13 +404,19 @@ export const inspectProductDetailDomFallbacks = (
   lawId: string,
 ): void => {
   const repoPath = "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts";
+  const detailScriptRepoPath = "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts";
   const detailFile = getRequiredSourceFile(context, repoPath);
+  const detailScriptFile = getRequiredSourceFile(context, detailScriptRepoPath);
   trackSourceFile(inspectedFiles, detailFile);
+  trackSourceFile(inspectedFiles, detailScriptFile);
+  const detailScriptImport = detailFile
+    ? findNamedImportContract(detailFile, "./amazon-product-mining.product-detail-script.js", "AMAZON_DETAIL_EXTRACT_SCRIPT")
+    : undefined;
   inspectProductDetailDomContract({
-    sourceFile: detailFile,
+    sourceFile: detailScriptImport && detailScriptFile ? detailScriptFile : detailFile,
     findings,
     lawId,
-    filePath: repoPath,
+    filePath: detailScriptImport && detailScriptFile ? detailScriptRepoPath : repoPath,
   });
 };
 

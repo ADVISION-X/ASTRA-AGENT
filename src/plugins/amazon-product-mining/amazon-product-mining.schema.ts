@@ -6,7 +6,7 @@ import {
   AmazonFieldDisclosureSchema,
 } from "./amazon-product-mining.field-disclosure-schema.js";
 
-export const AmazonMarketplaceSchema = z.enum([
+const AmazonMarketplaceSchema = z.enum([
   "amazon.com",
   "amazon.co.uk",
   "amazon.de",
@@ -26,7 +26,7 @@ export const AmazonMarketplaceSchema = z.enum([
   "amazon.com.tr",
 ]);
 
-export const AmazonTaskStatusSchema = z.enum([
+const AmazonTaskStatusSchema = z.enum([
   "created",
   "keyword_generating",
   "keyword_ready",
@@ -37,7 +37,7 @@ export const AmazonTaskStatusSchema = z.enum([
   "manual_required",
 ]);
 
-export const AmazonKeywordStatusSchema = z.enum([
+const AmazonKeywordStatusSchema = z.enum([
   "pending",
   "searching",
   "search_completed",
@@ -47,7 +47,7 @@ export const AmazonKeywordStatusSchema = z.enum([
   "manual_required",
 ]);
 
-export const AmazonProductStatusSchema = z.enum([
+const AmazonProductStatusSchema = z.enum([
   "pending_detail",
   "detail_extracting",
   "detail_completed",
@@ -58,47 +58,47 @@ export const AmazonProductStatusSchema = z.enum([
   "manual_required",
 ]);
 
-export const AmazonHandoffStatusSchema = z.enum([
+const AmazonHandoffStatusSchema = z.enum([
   "not_started",
   "ready",
   "handoff_completed",
   "failed",
 ]);
 
-export const AmazonKeywordOpportunityDecisionSchema = z.enum([
+const AmazonKeywordOpportunityDecisionSchema = z.enum([
   "PASS",
   "WATCH",
   "REJECT",
   "INSUFFICIENT_DATA",
 ]);
 
-export const AmazonKeywordOpportunityStrengthSchema = z.enum([
+const AmazonKeywordOpportunityStrengthSchema = z.enum([
   "strong",
   "medium",
   "weak",
   "insufficient",
 ]);
 
-export const AmazonKeywordOpportunityHumanNextStepSchema = z.enum([
+const AmazonKeywordOpportunityHumanNextStepSchema = z.enum([
   "enter_next_validation",
   "mine_related_keywords",
   "reject",
   "rerun_or_collect_more_data",
 ]);
 
-export const AmazonKeywordOpportunityReviewStatusSchema = z.enum([
+const AmazonKeywordOpportunityReviewStatusSchema = z.enum([
   "completed",
   "manual_required",
   "failed",
 ]);
 
-export const AmazonKeywordProviderKindSchema = z.enum([
+const AmazonKeywordProviderKindSchema = z.enum([
   "gemini-api",
   "gemini-web-chat",
   "gpt-web-chat",
 ]);
 
-export const AmazonMiningInputSchema = z.object({
+const AmazonMiningInputSchema = z.object({
   taskId: z.string().min(1).optional(),
   amazonMarketplace: AmazonMarketplaceSchema,
   targetMarket: z.string().min(1),
@@ -108,7 +108,7 @@ export const AmazonMiningInputSchema = z.object({
   providerKind: AmazonKeywordProviderKindSchema,
 }).strict();
 
-export const AmazonKeywordRecordSchema = z.object({
+const AmazonKeywordRecordSchema = z.object({
   keywordId: z.string().min(1),
   taskId: z.string().min(1),
   keyword: z.string().min(1),
@@ -120,7 +120,7 @@ export const AmazonKeywordRecordSchema = z.object({
   updatedAt: z.string().min(1).nullable().default(null),
 }).strict();
 
-export const AmazonSearchResultItemSchema = z.object({
+const AmazonSearchResultItemSchema = z.object({
   itemId: z.string().min(1),
   keywordId: z.string().min(1),
   taskId: z.string().min(1),
@@ -196,14 +196,14 @@ const amazonProductDetailStatusShape = {
   updatedAt: z.string().min(1).nullable().default(null),
 };
 
-export const AmazonProductDetailSchema = z.object({
+const AmazonProductDetailSchema = z.object({
   ...amazonProductDetailIdentityShape,
   ...amazonProductDetailContentShape,
   ...amazonProductDetailCommerceShape,
   ...amazonProductDetailStatusShape,
 }).strict();
 
-export const AmazonReviewRecordSchema = z.object({
+const AmazonReviewRecordSchema = z.object({
   reviewId: z.string().min(1),
   detailId: z.string().min(1),
   taskId: z.string().min(1),
@@ -227,7 +227,7 @@ export const AmazonReviewRecordSchema = z.object({
   createdAt: z.string().min(1),
 }).strict();
 
-export const AmazonTaskRecordSchema = z.object({
+const AmazonTaskRecordSchema = z.object({
   taskId: z.string().min(1),
   amazonMarketplace: AmazonMarketplaceSchema,
   targetMarket: z.string().min(1),
@@ -245,7 +245,7 @@ export const AmazonTaskRecordSchema = z.object({
   updatedAt: z.string().min(1).nullable().default(null),
 }).strict();
 
-export const AmazonKeywordOpportunityVerdictSchema = z.object({
+const AmazonKeywordOpportunityVerdictSchema = z.object({
   decision: AmazonKeywordOpportunityDecisionSchema,
   demandSignal: AmazonKeywordOpportunityStrengthSchema,
   reviewHealth: AmazonKeywordOpportunityStrengthSchema,
@@ -259,7 +259,7 @@ export const AmazonKeywordOpportunityVerdictSchema = z.object({
   humanNextStep: AmazonKeywordOpportunityHumanNextStepSchema,
 }).strict();
 
-export const AmazonKeywordOpportunityReviewRecordSchema = z.object({
+const AmazonKeywordOpportunityReviewRecordSchema = z.object({
   reviewId: z.string().min(1),
   taskId: z.string().min(1),
   keywordId: z.string().min(1),
@@ -286,7 +286,7 @@ export const AmazonKeywordOpportunityReviewRecordSchema = z.object({
   updatedAt: z.string().min(1).nullable().default(null),
 }).strict();
 
-export const AmazonKeywordOpportunityManualIngestSchema = AmazonKeywordOpportunityVerdictSchema.extend({
+const AmazonKeywordOpportunityManualIngestSchema = AmazonKeywordOpportunityVerdictSchema.extend({
   reviewId: z.string().min(1),
   aiRawResponse: z.string().min(1).optional(),
 }).strict();

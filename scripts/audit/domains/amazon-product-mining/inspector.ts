@@ -77,6 +77,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       checkPrefix: "detail",
       subject: "Amazon product detail",
       scriptVariableName: "AMAZON_DETAIL_EXTRACT_SCRIPT",
+      extractScriptImportPath: "./amazon-product-mining.product-detail-script.js",
+      extractScriptRepoPath: "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts",
     },
   );
   inspectBrowserTabExtractionContract(

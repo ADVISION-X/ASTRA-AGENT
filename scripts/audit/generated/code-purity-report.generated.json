@@ -4,27 +4,8 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/named-export-budget",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts exports 38 symbols and exceeds the red line 24.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts has an over-line function near line 220.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-05-27T22:52:25.738Z",
+  "findings": [],
+  "generatedAt": "2026-05-27T23:12:38.576Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
@@ -1092,10 +1073,10 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1571,
+  "liveExportCount": 1552,
   "orphanDeclarationCount": 0,
   "reachableFileCount": 557,
-  "status": "FAIL",
+  "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],
@@ -1106,7 +1087,7 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1571,
+    "liveExportCount": 1552,
     "orphanDeclarationCount": 0,
     "reachableFileCount": 557,
     "unreachableFileCount": 0,

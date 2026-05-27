@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T22:52:10.423Z",
+  "generatedAt": "2026-05-27T23:12:23.700Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -830,5 +830,6 @@
     "src/types/evidence.ts",
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
-  ]
+  ],
+  "executionGroup": "foundation"
 }

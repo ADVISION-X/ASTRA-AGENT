@@ -5,7 +5,7 @@ import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
 } from "./amazon-product-mining.field-disclosure.js";
-import { AMAZON_DETAIL_EXTRACT_SCRIPT } from "./amazon-product-mining.product-detail-script.js";
+import { AMAZON_DETAIL_EXTRACT_SCRIPT as AMAZON_DETAIL_EXTRACT_SCRIPT_SOURCE } from "./amazon-product-mining.product-detail-script.js";
 import type { AmazonProductDetail } from "./amazon-product-mining.schema.js";
 
 export type DetailPageAdapter = {
@@ -50,6 +50,26 @@ type ExtractedDetail = {
   otherVisibleParameters: string | null;
   rawText: string;
 };
+
+const DETAIL_TWISTER_REQUIRED_TOKENS = [
+  "sortedDimValuesForAllDims",
+  "desktop-twister-sort-filter-data",
+  "dimensionValueDisplayText",
+  "dimensionValueState",
+  "defaultAsin",
+  "pageLoadURL",
+] as const;
+
+const ensureDetailScriptSupportsTwisterState = (script: string): string => {
+  for (const token of DETAIL_TWISTER_REQUIRED_TOKENS) {
+    if (!script.includes(token)) {
+      throw new Error(`amazon_detail_script_missing_token:${token}`);
+    }
+  }
+  return script;
+};
+
+const AMAZON_DETAIL_EXTRACT_SCRIPT = ensureDetailScriptSupportsTwisterState(AMAZON_DETAIL_EXTRACT_SCRIPT_SOURCE);
 
 const extractActiveTabJson = async <T>(
   browser: BrowserController,

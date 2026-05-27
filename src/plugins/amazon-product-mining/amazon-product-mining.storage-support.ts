@@ -1,39 +1,25 @@
 import type Database from "better-sqlite3";
 import { z } from "zod";
 
-import {
-  AmazonHandoffStatusSchema,
-  AmazonKeywordRecordSchema,
-  AmazonKeywordOpportunityDecisionSchema,
-  AmazonKeywordOpportunityHumanNextStepSchema,
-  AmazonKeywordOpportunityReviewRecordSchema,
-  AmazonKeywordOpportunityReviewStatusSchema,
-  AmazonKeywordOpportunityStrengthSchema,
-  AmazonKeywordStatusSchema,
-  AmazonProductDetailSchema,
-  AmazonProductStatusSchema,
-  AmazonReviewRecordSchema,
-  AmazonSearchResultItemSchema,
-  AmazonTaskRecordSchema,
-  AmazonTaskStatusSchema,
+import type {
+  AmazonHandoffStatus,
+  AmazonKeywordRecord,
+  AmazonKeywordOpportunityDecision,
+  AmazonKeywordOpportunityHumanNextStep,
+  AmazonKeywordOpportunityReviewRecord,
+  AmazonKeywordOpportunityReviewStatus,
+  AmazonKeywordOpportunityStrength,
+  AmazonKeywordStatus,
+  AmazonProductDetail,
+  AmazonProductStatus,
+  AmazonReviewRecord,
+  AmazonSearchResultItem,
+  AmazonTaskRecord,
+  AmazonTaskStatus,
 } from "./amazon-product-mining.schema.js";
 import { AmazonFieldDisclosureMapSchema } from "./amazon-product-mining.field-disclosure-schema.js";
 
 type AmazonFieldDisclosureMap = z.infer<typeof AmazonFieldDisclosureMapSchema>;
-type AmazonHandoffStatus = z.infer<typeof AmazonHandoffStatusSchema>;
-type AmazonKeywordRecord = z.infer<typeof AmazonKeywordRecordSchema>;
-type AmazonKeywordOpportunityDecision = z.infer<typeof AmazonKeywordOpportunityDecisionSchema>;
-type AmazonKeywordOpportunityHumanNextStep = z.infer<typeof AmazonKeywordOpportunityHumanNextStepSchema>;
-type AmazonKeywordOpportunityReviewRecord = z.infer<typeof AmazonKeywordOpportunityReviewRecordSchema>;
-type AmazonKeywordOpportunityReviewStatus = z.infer<typeof AmazonKeywordOpportunityReviewStatusSchema>;
-type AmazonKeywordOpportunityStrength = z.infer<typeof AmazonKeywordOpportunityStrengthSchema>;
-type AmazonKeywordStatus = z.infer<typeof AmazonKeywordStatusSchema>;
-type AmazonProductDetail = z.infer<typeof AmazonProductDetailSchema>;
-type AmazonProductStatus = z.infer<typeof AmazonProductStatusSchema>;
-type AmazonReviewRecord = z.infer<typeof AmazonReviewRecordSchema>;
-type AmazonSearchResultItem = z.infer<typeof AmazonSearchResultItemSchema>;
-type AmazonTaskRecord = z.infer<typeof AmazonTaskRecordSchema>;
-type AmazonTaskStatus = z.infer<typeof AmazonTaskStatusSchema>;
 
 type StorageRow = Record<string, unknown>;
 
