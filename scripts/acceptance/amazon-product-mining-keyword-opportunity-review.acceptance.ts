@@ -38,12 +38,12 @@ const actionResult = (message: string): BrowserActionResult => ({
   createdAt: new Date().toISOString(),
 });
 
-const createProviderProof = (inputHash: string, outputHash: string) => ({
+const createProviderProof = (input: { inputHash: string; inputRefs?: string[]; outputHash: string }) => ({
   providerKind: "gpt-web-chat" as const,
   modelName: null,
-  inputHash,
-  outputHash,
-  inputRefs: [],
+  inputHash: input.inputHash,
+  outputHash: input.outputHash,
+  inputRefs: input.inputRefs ?? [],
   outputRefs: [],
   startedAt: new Date().toISOString(),
   endedAt: new Date().toISOString(),
@@ -59,7 +59,7 @@ const createProviderProof = (inputHash: string, outputHash: string) => ({
   tokenEstimateUnavailableReason: null,
 });
 
-const createAiGatewaySuccess = (input: { normalizedText: string; inputHash: string; outputHash: string }) => ({
+const createAiGatewaySuccess = (input: { normalizedText: string; inputHash: string; inputRefs?: string[]; outputHash: string }) => ({
   abilityGroupId: "ai-input-gateway" as const,
   childCapabilityId: "feed-gpt-web-chat-once" as const,
   providerKind: "gpt-web-chat" as const,
@@ -70,12 +70,12 @@ const createAiGatewaySuccess = (input: { normalizedText: string; inputHash: stri
   parseStatus: "json_valid" as const,
   parsedJson: null,
   schemaValidationStatus: "not_applicable" as const,
-  providerProof: createProviderProof(input.inputHash, input.outputHash),
+  providerProof: createProviderProof(input),
   failureReason: null,
   reviewRequiredReason: null,
 });
 
-const createKeywordReviewGatewayResponse = () => createAiGatewaySuccess({
+const createKeywordReviewGatewayResponse = (inputRefs: string[]) => createAiGatewaySuccess({
   normalizedText: JSON.stringify({
     decision: "PASS",
     demandSignal: "medium",
@@ -90,6 +90,7 @@ const createKeywordReviewGatewayResponse = () => createAiGatewaySuccess({
     humanNextStep: "enter_next_validation",
   }),
   inputHash: "review-input-hash",
+  inputRefs,
   outputHash: "review-output-hash",
 });
 
@@ -255,15 +256,17 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
       const reviewInput = input as {
         inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
         maxInputChars?: number;
+        maxFileCount?: number;
       };
       assert.equal(reviewInput.maxInputChars, 900_000);
       assert.equal(Array.isArray(reviewInput.inputRefs), true);
       assert.equal(reviewInput.inputRefs?.length, 1);
-      assert.equal(reviewInput.inputRefs?.[0]?.kind, "amazon-product-mining-keyword-evidence-slice");
-      assert.equal(typeof reviewInput.inputRefs?.[0]?.summary, "string");
-      assert.equal(reviewInput.inputRefs?.[0]?.filePath, undefined);
+      assert.equal(reviewInput.maxFileCount, reviewInput.inputRefs?.length);
+      assert.equal(reviewInput.inputRefs?.every((ref) => ref.kind === "keyword-full-package-zip"), true);
+      assert.equal(reviewInput.inputRefs?.[0]?.filePath?.endsWith("-full-evidence-package.zip"), true);
+      assert.equal(reviewInput.inputRefs?.every((ref) => typeof ref.filePath === "string" && existsSync(ref.filePath)), true);
       eventLog.push(`review:${String((input as { roundId?: string }).roundId ?? "missing")}`);
-      return createKeywordReviewGatewayResponse();
+      return createKeywordReviewGatewayResponse(reviewInput.inputRefs?.map((ref) => ref.id ?? "") ?? []);
     }
     return createKeywordMiningGatewayResponse();
   },
@@ -298,8 +301,11 @@ try {
     assert.equal(keywordReviews.every((review) => existsSync(review.packageRef ?? "")), true);
     assert.equal(keywordReviews.every((review) => existsSync(review.aiResponseRef ?? "")), true);
     const firstReviewPackagePath = keywordReviews[0]?.packageRef;
+    const firstNavigationPath = keywordReviews[0]?.keywordPackageSliceRef;
     assert.equal(typeof firstReviewPackagePath, "string");
-    const firstEvidenceSlice = JSON.parse(readFileSync(firstReviewPackagePath ?? "", "utf8")) as {
+    assert.equal(existsSync(path.join(firstReviewPackagePath ?? "", "manifest.json")), true);
+    assert.equal(typeof firstNavigationPath, "string");
+    const firstEvidenceSlice = JSON.parse(readFileSync(firstNavigationPath ?? "", "utf8")) as {
       linkedProducts?: Array<{
         detailEvidence?: Record<string, { status?: string; value?: unknown }>;
         fieldDisclosureMap?: Record<string, unknown>;

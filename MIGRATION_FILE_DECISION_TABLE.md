@@ -39,7 +39,6 @@ Rule: every touched existing file in this migration is classified as `DELETE` or
 | scripts/acceptance/ai-input-gateway-web-chat-fixture-smoke.ts | DELETE | Web-chat fixture smoke is outside the Amazon-first cut. | none |
 | docs/法案辅助文件/GrassEye 法案冻结基线.md | MODIFY | Freeze the new Amazon-first baseline and retire the old universe. | documentation-active-baseline |
 | docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md | MODIFY | Reframe the architecture as job-flow script -> ability groups -> evidence/logs. | documentation-active-baseline |
-| docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md | MODIFY | Repurpose the old path into the Amazon task entry contract. | documentation-amazon-entry |
 | docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md | MODIFY | Restrict AI to bounded choice-judge transport. | documentation-ai-choice-judge |
 | docs/法案辅助文件/GrassEye_DOM自动化能立组施工图_V1.md | MODIFY | Keep DOM automation as the main action ability group. | documentation-dom-automation |
 | docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md | MODIFY | Reduce the doc to simple evidence-store ownership. | documentation-evidence-store |

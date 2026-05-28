@@ -6,6 +6,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectForbiddenAppShellActions } from "./inspector-forbidden-actions.js";
 import { inspectAppShellLayout } from "./inspector-layout.js";
+import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
 
 const lawPath = ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md";
@@ -50,6 +51,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     blueprintPath,
     "scripts/audit/domains/app-shell-ui/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
+    "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
     "scripts/audit/domains/app-shell-ui/inspector-skill-registry.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
   ]);
@@ -58,6 +60,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectSkillRegistry(context, findings, inspectedFiles, lawId);
   inspectAppShellLayout(context, findings, inspectedFiles, lawId);
   inspectForbiddenAppShellActions(context, findings, inspectedFiles, lawId);
+  inspectLegacyAppUserDemandPhysicalAbsence(context, findings, inspectedFiles);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

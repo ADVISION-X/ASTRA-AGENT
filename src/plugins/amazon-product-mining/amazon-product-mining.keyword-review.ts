@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import type { AiFeedInput, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
@@ -11,26 +12,28 @@ import type {
 } from "./amazon-product-mining.schema.js";
 import type { AmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import {
-  buildKeywordEvidenceSlice,
   parseKeywordReviewResponse,
-  resolveKeywordReviewArtifacts,
   validateKeywordReviewVerdict,
   writeKeywordReviewResponseArtifact,
-  writeKeywordReviewSourceArtifacts,
-  type KeywordReviewArtifacts,
 } from "./amazon-product-mining.keyword-review-support.js";
+import {
+  buildKeywordFullEvidencePackage,
+  type KeywordFullPackageArtifacts,
+} from "./amazon-product-mining.keyword-full-package.js";
 
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 900_000;
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND: AmazonKeywordProviderKind = "gpt-web-chat";
 
 const buildKeywordOpportunityReviewInputRefs = (input: {
   keyword: AmazonKeywordRecord;
-  artifacts: KeywordReviewArtifacts;
-}): AiFeedInput["inputRefs"] => [{
-  id: `keyword-opportunity-review-input-${input.keyword.keywordId}`,
-  kind: "amazon-product-mining-keyword-evidence-slice",
-  summary: `Keyword opportunity review evidence slice for ${input.keyword.keyword}. Source artifact: ${input.artifacts.inputJsonPath}`,
-}];
+  artifacts: KeywordFullPackageArtifacts;
+}): AiFeedInput["inputRefs"] => input.artifacts.uploadFileRefs.map((ref) => ({
+  id: `${ref.id}-${input.keyword.keywordId}`,
+  kind: ref.kind,
+  summary: ref.summary,
+  filePath: ref.filePath,
+  mimeType: ref.mimeType,
+}));
 
 const buildReviewRecord = (input: {
   reviewId: string;
@@ -38,7 +41,7 @@ const buildReviewRecord = (input: {
   keyword: AmazonKeywordRecord;
   status: AmazonKeywordOpportunityReviewRecord["status"];
   verdict: AmazonKeywordOpportunityVerdict | null;
-  artifacts: KeywordReviewArtifacts;
+  artifacts: KeywordFullPackageArtifacts;
   aiPromptText: string;
   aiRawResponse: string;
   failureReason: string | null;
@@ -64,15 +67,15 @@ const buildReviewRecord = (input: {
   aiPromptText: input.aiPromptText,
   aiRawResponse: input.aiRawResponse,
   aiResponseRef: input.artifacts.responsePath,
-  packageRef: input.artifacts.inputJsonPath,
-  keywordPackageSliceRef: input.artifacts.inputJsonPath,
+  packageRef: input.artifacts.packageRootPath,
+  keywordPackageSliceRef: input.artifacts.inlineNavigationPath,
   failureReason: input.failureReason,
   createdAt: input.createdAt,
   updatedAt: input.updatedAt,
 });
 
 type KeywordOpportunityReviewRuntimeContext = {
-  artifacts: KeywordReviewArtifacts;
+  artifacts: KeywordFullPackageArtifacts;
   aiPromptText: string;
   createdAt: string;
   keyword: AmazonKeywordRecord;
@@ -138,13 +141,25 @@ const requestKeywordOpportunityReview = (input: {
   modelName: null,
   timeoutMs: 120_000,
   maxInputChars: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS,
-  maxFileCount: 0,
-  maxFileBytes: 1,
+  maxFileCount: input.context.artifacts.uploadFileRefs.length,
+  maxFileBytes: 200_000_000,
   requestedBy: "ai-capability",
   missionId: input.context.taskId,
   runId: input.context.reviewId,
   roundId: input.context.keyword.keywordId,
 });
+
+const providerProofContainsKeywordPackageFiles = (input: {
+  context: KeywordOpportunityReviewRuntimeContext;
+  aiResult: KeywordOpportunityReviewAiResult;
+}): boolean => {
+  const expectedInputRefIds = new Set(buildKeywordOpportunityReviewInputRefs({
+    keyword: input.context.keyword,
+    artifacts: input.context.artifacts,
+  }).map((ref) => ref.id));
+  const actualInputRefIds = new Set(input.aiResult.providerProof.inputRefs);
+  return expectedInputRefIds.size > 0 && [...expectedInputRefIds].every((id) => actualInputRefIds.has(id));
+};
 
 const finalizeKeywordOpportunityReview = (input: {
   storage: AmazonMiningStorage;
@@ -169,6 +184,17 @@ const finalizeKeywordOpportunityReview = (input: {
       context: input.context,
       status: "failed",
       failureReason: input.aiResult.failureReason ?? "keyword_review_ai_failed",
+      verdict: null,
+      aiRawResponse,
+    });
+  }
+
+  if (!providerProofContainsKeywordPackageFiles(input)) {
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context: input.context,
+      status: "manual_required",
+      failureReason: "keyword_full_package_files_not_confirmed_by_provider_proof",
       verdict: null,
       aiRawResponse,
     });
@@ -203,17 +229,13 @@ export const runKeywordOpportunityReview = async (input: {
   storage: AmazonMiningStorage;
   aiInputGateway: AiInputGatewayAbilityGroup;
 }): Promise<AmazonKeywordOpportunityReviewRecord> => {
-  const evidenceSlice = buildKeywordEvidenceSlice({
-    storage: input.storage,
-    taskId: input.taskId,
-    keyword: input.keyword,
-  });
-  const { artifacts, aiPromptText } = writeKeywordReviewSourceArtifacts({
+  const artifacts = buildKeywordFullEvidencePackage({
     dataDir: input.dataDir,
     taskId: input.taskId,
-    keywordId: input.keyword.keywordId,
-    evidenceSlice,
+    keyword: input.keyword,
+    storage: input.storage,
   });
+  const aiPromptText = readFileSync(artifacts.promptPath, "utf8");
 
   const context: KeywordOpportunityReviewRuntimeContext = {
     artifacts,
@@ -223,6 +245,28 @@ export const runKeywordOpportunityReview = async (input: {
     reviewId: randomUUID(),
     taskId: input.taskId,
   };
+
+  if (artifacts.integrityStatus !== "pass") {
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context,
+      status: "manual_required",
+      failureReason: "keyword_full_package_integrity_failed",
+      verdict: null,
+      aiRawResponse: "",
+    });
+  }
+
+  if (artifacts.uploadFileRefs.length === 0) {
+    return persistKeywordOpportunityReviewOutcome({
+      storage: input.storage,
+      context,
+      status: "manual_required",
+      failureReason: "keyword_full_package_upload_unavailable",
+      verdict: null,
+      aiRawResponse: "",
+    });
+  }
 
   try {
     const aiResult = await requestKeywordOpportunityReview({
@@ -259,11 +303,10 @@ export const ingestManualKeywordOpportunityReview = (input: {
   }
   const { reviewId: _reviewId, aiRawResponse: manualRawResponse, ...verdictInput } = manualInput;
   const verdict = validateKeywordReviewVerdict(verdictInput);
-  const artifacts = resolveKeywordReviewArtifacts({
-    dataDir: input.dataDir,
-    taskId: existing.taskId,
-    keywordId: existing.keywordId,
-  });
+  const responsePath = existing.aiResponseRef;
+  if (!responsePath) {
+    throw new Error("manual_keyword_review_response_ref_missing");
+  }
   const aiRawResponse = manualRawResponse ?? JSON.stringify(verdict, null, 2);
   const updatedAt = new Date().toISOString();
   writeKeywordReviewResponseArtifact({
@@ -272,7 +315,7 @@ export const ingestManualKeywordOpportunityReview = (input: {
     failureReason: null,
     rawResponse: aiRawResponse,
     verdict,
-    responsePath: artifacts.responsePath,
+    responsePath,
   });
   return persistKeywordOpportunityReview({
     storage: input.storage,
@@ -291,9 +334,7 @@ export const ingestManualKeywordOpportunityReview = (input: {
       riskPoints: verdict.riskPoints,
       humanNextStep: verdict.humanNextStep,
       aiRawResponse,
-      aiResponseRef: artifacts.responsePath,
-      packageRef: existing.packageRef ?? artifacts.inputJsonPath,
-      keywordPackageSliceRef: existing.keywordPackageSliceRef ?? artifacts.inputJsonPath,
+      aiResponseRef: responsePath,
       failureReason: null,
       updatedAt,
     },

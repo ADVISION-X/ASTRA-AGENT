@@ -75,6 +75,9 @@ type PreparedPromptComposer = {
   wasPromptVerifiedBeforeSubmit: true;
 };
 
+const requestHasUploadableInputRefs = (request: AiFeedInput): boolean =>
+  request.inputRefs.some((ref) => Boolean(ref.filePath));
+
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
     focusComposer(input.browser, input.context));
@@ -113,15 +116,24 @@ const waitForPromptReady = async (input: {
   );
 };
 
-const pastePromptIntoComposer = async (
-  input: SubmitPromptViaClipboardInput & { expectedPrefix: string },
+const clearComposerBeforePromptPaste = async (
+  input: SubmitPromptViaClipboardInput,
 ): Promise<void> => {
+  if (requestHasUploadableInputRefs(input.request)) {
+    return;
+  }
   const cleared = await withWebChatStep("clear_composer_before_prompt_paste", () =>
     clearComposer(input.browser, input.context));
   if (cleared.status !== "success") {
     throw new Error(`${cleared.status}: ${cleared.message}`);
   }
   await input.browser.wait(250);
+};
+
+const pastePromptIntoComposer = async (
+  input: SubmitPromptViaClipboardInput & { expectedPrefix: string },
+): Promise<void> => {
+  await clearComposerBeforePromptPaste(input);
   await withWebChatStep("paste_prompt_text", () =>
     pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
   await waitForPromptReady({

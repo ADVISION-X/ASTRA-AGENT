@@ -8,6 +8,7 @@ import { inspectWorkbenchHomeClientLatestSync } from "./inspector-app-latest-syn
 
 const HOME_PAGE_PATH = "src/app/workbench-home-page.ts";
 const HOME_CLIENT_PATH = "src/app/workbench-home-client.ts";
+const AMAZON_REVIEW_CLIENT_PATH = "src/app/workbench-home-amazon-product-mining-review-client.ts";
 const AMAZON_WORKSPACE_PATH = "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts";
 const AMAZON_PUBLISH_PATH = "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts";
 const APP_SHELL_SIDEBAR_PATH = "src/app/app-shell/sidebar.ts";
@@ -61,6 +62,11 @@ const inspectHomePage = (
     'value="gpt-web-chat"',
     'name="languagePreference"',
     'data-amazon-product-mining-status',
+    'data-amazon-product-mining-keyword-count',
+    'data-amazon-product-mining-search-result-count',
+    'data-amazon-product-mining-product-detail-count',
+    'data-amazon-product-mining-review-count',
+    'data-amazon-product-mining-keyword-review-count',
   ];
   if (!requiredPageTokens.every((token) => sourceFilesIncludeText(pageFiles, token))) {
     findings.push(createFinding({
@@ -83,7 +89,7 @@ const inspectHomePage = (
 };
 
 const inspectHomeClient = (
-  clientFile: SourceFile | undefined,
+  clientFiles: SourceFile[],
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
@@ -96,8 +102,13 @@ const inspectHomeClient = (
     "/api/amazon-product-mining/mission",
     "/api/amazon-product-mining/latest",
     "/api/amazon-product-mining/export?taskId=",
+    "setAmazonProductMiningText",
+    "summary.searchResultCount",
+    "summary.productDetailCount",
+    "summary.reviewCount",
+    "summary.keywordReviewCount",
   ];
-  if (!clientFile || !requiredClientTokens.every((token) => fileIncludesText(clientFile, token))) {
+  if (!requiredClientTokens.every((token) => sourceFilesIncludeText(clientFiles, token))) {
     findings.push(createFinding({
       checkId: "amazon-mining/workbench-home-client-surface",
       lawId,
@@ -105,7 +116,7 @@ const inspectHomeClient = (
       message: "workbench-home-client.ts must expose Amazon mining state and start/latest/export client events.",
     }));
   }
-  const clientText = clientFile ? `${literalText(clientFile)}\n${identifierText(clientFile)}` : "";
+  const clientText = joinedSourceText(clientFiles);
   for (const forbiddenToken of [
     "/api/amazon-product-mining/run?runId=",
     "/api/amazon-product-mining/export?runId=",
@@ -132,17 +143,23 @@ export const inspectWorkbenchHomeSurface = (
   const amazonPublishFile = getRequiredSourceFile(context, AMAZON_PUBLISH_PATH);
   const sidebarFile = getRequiredSourceFile(context, APP_SHELL_SIDEBAR_PATH);
   const clientFile = getRequiredSourceFile(context, HOME_CLIENT_PATH);
+  const amazonReviewClientFile = getRequiredSourceFile(context, AMAZON_REVIEW_CLIENT_PATH);
   trackSourceFile(inspectedFiles, pageFile);
   trackSourceFile(inspectedFiles, amazonWorkspaceFile);
   trackSourceFile(inspectedFiles, amazonPublishFile);
   trackSourceFile(inspectedFiles, sidebarFile);
   trackSourceFile(inspectedFiles, clientFile);
+  trackSourceFile(inspectedFiles, amazonReviewClientFile);
   inspectHomePage(
     [pageFile, amazonWorkspaceFile, amazonPublishFile, sidebarFile].filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile)),
     findings,
     lawId,
   );
-  inspectHomeClient(clientFile, findings, lawId);
+  inspectHomeClient(
+    [clientFile, amazonReviewClientFile].filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile)),
+    findings,
+    lawId,
+  );
   inspectWorkbenchHomeClientLatestSync(context, findings, inspectedFiles, lawId);
 };
 

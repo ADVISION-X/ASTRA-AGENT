@@ -14,6 +14,11 @@ const renderAmazonProductMiningLatestTaskSurface = (): string => `
   <div class="summary-metrics" data-amazon-product-mining-results>
     <div><b data-amazon-product-mining-task-id>-</b><span>latest task id</span></div>
     <div><b data-amazon-product-mining-status>-</b><span>task status</span></div>
+    <div><b data-amazon-product-mining-keyword-count>-</b><span>keywords</span></div>
+    <div><b data-amazon-product-mining-search-result-count>-</b><span>search results</span></div>
+    <div><b data-amazon-product-mining-product-detail-count>-</b><span>product details</span></div>
+    <div><b data-amazon-product-mining-review-count>-</b><span>reviews</span></div>
+    <div><b data-amazon-product-mining-keyword-review-count>-</b><span>keyword reviews</span></div>
     <div><b data-amazon-product-mining-package>-</b><span>package/pdf ref</span></div>
   </div>
   <div class="task-control-row" data-amazon-product-mining-task-controls>
@@ -23,6 +28,7 @@ const renderAmazonProductMiningLatestTaskSurface = (): string => `
   </div>
   <div class="state-stack">
     <div class="empty-state" data-amazon-product-mining-latest-state="empty">No latest task loaded.</div>
+    <div class="loaded-state hidden" data-amazon-product-mining-latest-state="loaded">Live task read model loaded.</div>
     <div class="loading-state hidden" data-amazon-product-mining-latest-state="loading">Loading latest task...</div>
     <div class="error-state hidden" data-amazon-product-mining-latest-state="error">Latest task failed to load. Retry from the command bar or task card.</div>
     <div class="manual-required-state hidden" data-amazon-product-mining-latest-state="manual_required">manual_required task state will appear here.</div>

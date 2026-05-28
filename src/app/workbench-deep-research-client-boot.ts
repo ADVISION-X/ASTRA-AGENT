@@ -444,6 +444,7 @@ export const deepResearchClientBootFunctions = [
   stopPolling,
   showDeepResearchPage,
   openDeepResearchInspector,
+  shouldOpenDeepResearchInspector,
   isDeepResearchFormActive,
   closeDeepResearchFormUnlessActive,
   refreshHistory,

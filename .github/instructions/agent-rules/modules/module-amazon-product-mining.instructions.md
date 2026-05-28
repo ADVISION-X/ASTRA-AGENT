@@ -59,7 +59,8 @@ INTAKE
   -> PRODUCT_LOOP_END
 
   -> KEYWORD_COMPLETE
-  -> KEYWORD_PACKAGE_SLICE_BUILD
+  -> KEYWORD_FULL_PACKAGE_BUILD
+  -> KEYWORD_FULL_PACKAGE_INTEGRITY_GATE
   -> KEYWORD_ADVANCED_AI_HANDOFF
   -> KEYWORD_OPPORTUNITY_REVIEW
   -> KEYWORD_REVIEW_PERSIST
@@ -973,7 +974,7 @@ App 可保存最近 taskId，
 - `PASS` 只表示进入下一阶段人工验证，不表示选品成功。
 - `REJECT` 只表示本次证据下该关键词不保留为候选池，不是全网产品终局裁决。
 
-## [GRASSEYE-AMAZON-PRODUCT-MINING-021-V1] Rejected Keyword Evidence Purge
+## [GRASSEYE-AMAZON-PRODUCT-MINING-021-V1] Rejected Keyword Evidence Retention
 
 ```apex-law
 {
@@ -982,8 +983,8 @@ App 可保存最近 taskId，
   "tier": "P0",
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "storage+flow+acceptance+ast",
-  "summary": "When keyword opportunity review returns REJECT, the system must physically purge bulk evidence under that keyword while retaining only the minimal verdict tombstone needed for deduplication and audit history.",
+  "evidenceMode": "storage+flow+package+acceptance+ast",
+  "summary": "When keyword opportunity review returns REJECT, the system must retain the keyword full package and source evidence as a reviewable chain; REJECT may mark or archive the keyword but must not physically purge evidence from an insufficient or unreviewable handoff.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
@@ -992,8 +993,9 @@ App 可保存最近 taskId，
     "scripts/audit/domains/amazon-product-mining/**/*.ts"
   ],
   "forbidden": [
-    "Keeping search/detail/review bulk rows after a completed keyword review decision=REJECT.",
-    "Keeping full keyword review evidence-slice artifacts after decision=REJECT.",
+    "Physically deleting search/detail/review evidence only because keyword review decision=REJECT.",
+    "Deleting keyword full package files, package integrity proof, AI reading contract, or handoff prompt after decision=REJECT.",
+    "Letting an inline evidence slice or incomplete handoff trigger irreversible evidence cleanup.",
     "Deleting the keyword tombstone so historical deduplication can regenerate the same rejected keyword."
   ]
 }
@@ -1001,10 +1003,10 @@ App 可保存最近 taskId，
 
 ### 法条
 
-- `decision=REJECT` 后必须清理该 keyword 下 search results、keyword-owned product links、exclusive product details、reviews、related exceptions。
-- full evidence slice prompt/input artifacts 必须删除或清成 tombstone；raw AI response 与 structured verdict 必须保留。
+- `decision=REJECT` 后只允许标记该 keyword 不进入候选名单，不允许物理删除该 keyword 下 search results、keyword-owned product links、exclusive product details、reviews、related exceptions。
+- keyword full package、package integrity proof、AI reading contract、handoff prompt、raw AI response 与 structured verdict 必须保留，供人工与高级 AI 复核。
 - keyword record 必须保留，用于历史去重，防止垃圾关键词重生。
-- 若同一 product detail 仍被其他 keyword 关系引用，不得误删其他 keyword 的证据。
+- 若后续需要物理空间治理，只能进入独立归档/清理流程；不得由本关键词研判阶段自动删除证据。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-022-V1] Amazon GPT Web Chat Restore Failure Continuity
 
@@ -1042,7 +1044,7 @@ App 可保存最近 taskId，
 - 该例外不得新增 fallback、第二 provider、第二导出链路或手工 repack。
 - Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`，并以 AST 证明 Amazon GPT provider tab 收口路径存在。
 
-## [GRASSEYE-AMAZON-PRODUCT-MINING-023-V1] Keyword Review Evidence Slice Depth
+## [GRASSEYE-AMAZON-PRODUCT-MINING-023-V1] Keyword Review Navigation Evidence Depth
 
 ```apex-law
 {
@@ -1052,7 +1054,7 @@ App 可保存最近 taskId，
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "keyword-review-input+field-disclosure+acceptance+ast",
-  "summary": "Keyword opportunity review input must be advanced-AI readable: it must carry rich product detail evidence, review media/language/region metadata, and explicit field disclosure instead of silent nulls.",
+  "summary": "Keyword opportunity review navigation input must be advanced-AI readable as a directory: it must carry rich product detail pointers, review media/language/region metadata, and explicit field disclosure instead of silent nulls, while the full package remains the decisive evidence source.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -1072,12 +1074,12 @@ App 可保存最近 taskId，
 
 ### 法条
 
-- keyword opportunity review input 必须包含 `detailEvidence`，覆盖品牌、卖家、价格、图片组、视频、五点、描述、A+、变体、规格参数、BSR、类目、星级分布、Q&A、关联购买、对比表、配送退货、raw visible text 等详情证据。
+- keyword opportunity review navigation input 必须包含 `detailEvidence`，覆盖品牌、卖家、价格、图片组、视频、五点、描述、A+、变体、规格参数、BSR、类目、星级分布、Q&A、关联购买、对比表、配送退货、raw visible text 等详情指针。
 - 每个详情字段必须携带字段级 `status/reason/detail`。页面无该字段应表达为 `not_present`，不得让高级 AI 靠裸 `null` 猜测。
-- review samples 必须携带评论页码、评论人、标题、正文、日期、变体、helpful、图片、视频、语言、地区、raw review text 和 `fieldDisclosureMap`。
-- keyword review input 必须披露 `reviewCoverage`：已入库可访问评论数、投喂样本数、被截断数量和样本策略。
-- keyword opportunity review 的 GPT Web Chat `maxInputChars` 必须不低于 `900_000`，避免深度证据切片被 300k 级旧上限挡住。
-- AST 级执法必须证明上述字段进入生产 evidence slice，并由 acceptance 读取实际生成的 review input 校验。
+- review navigation samples 必须携带评论页码、评论人、标题、正文、日期、变体、helpful、图片、视频、语言、地区、raw review text 和 `fieldDisclosureMap`。
+- keyword review navigation input 必须披露 `reviewCoverage`：已入库可访问评论数、导航样本数、未内联数量和样本策略。
+- keyword opportunity review 的 GPT Web Chat `maxInputChars` 必须不低于 `900_000`，避免导航与 prompt 被旧上限挡住。
+- AST 级执法必须证明上述字段进入生产 navigation input，并由 acceptance 读取实际生成的 review input 校验。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-024-V1] Breakpoint Resume And Operator Controls
 
@@ -1126,6 +1128,63 @@ App 可保存最近 taskId，
 - Workbench 启动必须扫描可自动续跑任务并启动同一生产 flow 继续执行。
 - Acceptance 与 AST audit 必须证明：持久化状态存在、公开 facade 存在、routes 存在、UI 按钮存在、flow 有控制检查、自动续跑不会覆盖已有证据。
 
+## [GRASSEYE-AMAZON-PRODUCT-MINING-025-V1] Keyword Full Package Deep Research Handoff Governance
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "keyword-full-package+provider-file-proof+integrity+acceptance+ast",
+  "summary": "After each keyword completes, Amazon Product Mining must build a keyword-level full evidence package and hand that package to GPT Web Chat for keyword opportunity review; inline evidence slices are navigation only and can never be the sole basis for PASS/WATCH/REJECT.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+    "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
+    "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts",
+    "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
+    "docs/法案辅助文件/amazon_product_mining_process.md"
+  ],
+  "forbidden": [
+    "Completing keyword opportunity review from inline evidence slice alone.",
+    "Using maxFileCount=0 for keyword opportunity review handoff.",
+    "Entering AI keyword review when keyword full package integrity is failed.",
+    "Automatically downgrading to inline-only review when file upload is unavailable.",
+    "Persisting PASS/WATCH/REJECT as completed when provider proof shows only the slice was supplied.",
+    "Physically deleting keyword evidence after REJECT before a reviewable full package chain is retained."
+  ]
+}
+```
+
+### 法条
+
+- 每个 keyword 完成后必须先生成 `keyword-{keywordId}-full-evidence-package/`。
+- keyword full package 必须包含：
+
+```txt
+00-keyword-master-report/
+01-search-results/
+02-product-details/
+03-reviews/
+04-images/
+05-completeness/
+06-exceptions/
+07-ai-handoff/
+```
+
+- inline evidence slice 只能作为 AI 快速目录、摘要、导航和 handoff prompt 概览，不得作为高级 AI 深度研判唯一资料源。
+- GPT Web Chat 文件上传能力可用时，必须上传 keyword full package 的 transport zip；zip 只作为运输壳，目录内 full package 文件仍是唯一证据真相源，`inputRefs` 必须持有真实 `filePath`。
+- GPT Web Chat 文件上传能力不可用时，keyword review 必须进入 `manual_required`，不得自动降级成 inline-only completed verdict。
+- keyword full package integrity 不通过时，不得进入 AI 研判。
+- 如果 AI 只读取了 slice，没有读取 full package，verdict 不得作为最终 keyword review。
+- `REJECT` 只表示该 keyword product pool 不进入候选名单；证据必须保留可复核链。
+
 ## 4. State Contracts
 
 ### task status
@@ -1168,7 +1227,7 @@ App 可保存最近 taskId，
 - Agent 打开产品详情页
 - Agent 提取当前可见完整产品信息
 - Agent 分页提取当前可访问评论
-- Agent 为每个 keyword 构建 evidence slice、生成研判 prompt、保存 raw response、校验 structured verdict、入库 keyword review
+- Agent 为每个 keyword 构建 full evidence package、生成研判 prompt、上传 package 核心文件、保存 raw response、校验 structured verdict、入库 keyword review
 - Agent 保存原始证据和结构化记录
 - Agent 生成任务级结构化数据包和 PDF
 - Agent 生成任务级 handoff summary

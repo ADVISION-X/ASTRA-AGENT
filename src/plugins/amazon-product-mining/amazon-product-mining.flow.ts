@@ -12,7 +12,6 @@ import { buildFailedTaskRecord } from "./amazon-product-mining.flow-state.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { buildKeywordRecords, runKeywordGeneration } from "./amazon-product-mining.keyword.js";
 import { runKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
-import { purgeRejectedKeywordReviewEvidenceArtifacts } from "./amazon-product-mining.keyword-review-support.js";
 import type { AmazonKeywordProviderKind } from "./amazon-product-mining.schema.js";
 import {
   openDedicatedAmazonMiningTab,
@@ -285,32 +284,19 @@ const processKeywordSearchItems = async (
   return "active";
 };
 
-const persistRejectedKeywordTombstone = (
+const persistRejectedKeywordRetentionNote = (
   runtime: AmazonFlowRuntime,
-  keywordRecord: AmazonKeywordRecord,
   keywordReview: Awaited<ReturnType<typeof runKeywordOpportunityReview>>,
 ): void => {
-  const { storage, taskId } = runtime;
+  const { storage } = runtime;
   if (keywordReview.status === "completed" && keywordReview.decision === "REJECT") {
-    const purgeResult = storage.purgeRejectedKeywordEvidence({
-      taskId,
-      keywordId: keywordRecord.keywordId,
-    });
-    purgeRejectedKeywordReviewEvidenceArtifacts({
-      dataDir: runtime.dataDir,
-      taskId,
-      keywordId: keywordRecord.keywordId,
-    });
     storage.saveKeywordOpportunityReview({
       ...keywordReview,
-      evidenceRefs: [...keywordReview.evidenceRefs, "rejected_keyword_evidence_purged"],
+      evidenceRefs: [...keywordReview.evidenceRefs, "rejected_keyword_evidence_retained"],
       riskPoints: [
         ...keywordReview.riskPoints,
-        `Rejected keyword evidence purged: searchResults=${purgeResult.searchResultCount}; products=${purgeResult.productDetailCount}; reviews=${purgeResult.reviewCount}`,
+        "Rejected keyword evidence retained for human and advanced-AI review; REJECT only removes the keyword from candidate screening.",
       ],
-      aiPromptText: "Purged after keyword opportunity review returned REJECT. Raw AI response and structured verdict remain as the tombstone record.",
-      packageRef: null,
-      keywordPackageSliceRef: null,
       updatedAt: new Date().toISOString(),
     });
   }
@@ -331,7 +317,7 @@ const runKeywordReviewIfNeeded = async (
   });
   if (keywordReview.status === "manual_required") runtime.manualRequiredReasons.push(`keyword_review_manual_required:${keywordRecord.keywordId}`);
   if (keywordReview.status === "failed") runtime.failureReasons.push(`keyword_review_failed:${keywordRecord.keywordId}`);
-  persistRejectedKeywordTombstone(runtime, keywordRecord, keywordReview);
+  persistRejectedKeywordRetentionNote(runtime, keywordReview);
 };
 
 const processKeywordRecord = async (

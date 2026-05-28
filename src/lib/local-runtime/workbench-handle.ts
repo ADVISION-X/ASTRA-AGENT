@@ -66,6 +66,18 @@ type AmazonProductMiningAutoContinueResult = ReturnType<ContinueInterruptedAmazo
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
+  recordWorkbenchApiBoundaryEvent: (input: {
+    authenticated: boolean;
+    decision: "allowed" | "blocked";
+    jobOwner?: string | undefined;
+    method: string | undefined;
+    originCategory: "local-ui" | "external-website" | "unknown";
+    path: string;
+    reason: string;
+    requestId?: string | undefined;
+    routePurpose?: string | undefined;
+    sourceSystem?: string | undefined;
+  }) => void;
   getDataDir: () => string;
   getVideoDownloadAbilityGroup: () => VideoDownloadAbilityGroup;
   findOpenVideoDownloadSourcePage: (

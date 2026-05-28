@@ -77,6 +77,34 @@ const requireNamedImport = (input: {
   }));
 };
 
+const requireArrayExportedIdentifier = (input: {
+  checkId: string;
+  findings: InspectorFinding[];
+  lawId: string;
+  repoPath: string;
+  sourceFile: SourceFile | undefined;
+  arrayName: string;
+  symbolName: string;
+}): void => {
+  const initializer = input.sourceFile
+    ?.getVariableDeclaration(input.arrayName)
+    ?.getInitializer();
+  const arrayExpression = initializer?.asKind(SyntaxKind.AsExpression)
+    ?.getExpression()
+    .asKind(SyntaxKind.ArrayLiteralExpression)
+    ?? initializer?.asKind(SyntaxKind.ArrayLiteralExpression);
+  const found = arrayExpression?.getElements().some((element) =>
+    element.asKind(SyntaxKind.Identifier)?.getText() === input.symbolName,
+  );
+  if (found) return;
+  input.findings.push(createFinding({
+    checkId: input.checkId,
+    lawId: input.lawId,
+    filePath: input.repoPath,
+    message: `${input.arrayName} must export ${input.symbolName} into the rendered App Shell client script.`,
+  }));
+};
+
 const paths = {
   amazonHistory: "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
   amazonWorkspace: "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
@@ -231,4 +259,13 @@ export const inspectAppShellLayout = (
   inspectLayoutImports(findings, lawId, sources);
   inspectStyleTokens(findings, lawId, sources.styleFiles);
   inspectStructureTokens(findings, lawId, sources);
+  requireArrayExportedIdentifier({
+    findings,
+    lawId,
+    sourceFile: sources.deepResearchClient,
+    repoPath: paths.deepResearchClient,
+    arrayName: "deepResearchClientBootFunctions",
+    symbolName: "shouldOpenDeepResearchInspector",
+    checkId: "app-shell-ui/deep-research-inspector-gate-exported",
+  });
 };

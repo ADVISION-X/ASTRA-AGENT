@@ -18,6 +18,11 @@ const appendCell = (row, text, className = "") => {
   row.append(cell);
   return cell;
 };
+const setAmazonProductMiningText = (selector, value) => {
+  document.querySelectorAll(selector).forEach((node) => {
+    node.textContent = value ?? "-";
+  });
+};
 const createOpenButton = (label, filePath, kind = "package") => {
   const button = document.createElement("button");
   button.className = "btn secondary compact-button";
@@ -48,9 +53,15 @@ const setAmazonProductMiningLatestSummaryState = (stateName) => {
 const renderAmazonProductMiningSummary = (record) => {
   const taskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.amazonProductMiningTaskId || "-";
   const packageRef = record.packageZipPath || record.packageJsonPath || record.pdfReportPath || record.evidenceIndexPath || "-";
-  setText("[data-amazon-product-mining-task-id]", taskId);
-  setText("[data-amazon-product-mining-status]", record.status || "-");
-  setText("[data-amazon-product-mining-package]", packageRef);
+  const summary = record.summary || {};
+  setAmazonProductMiningText("[data-amazon-product-mining-task-id]", taskId);
+  setAmazonProductMiningText("[data-amazon-product-mining-status]", record.status || "-");
+  setAmazonProductMiningText("[data-amazon-product-mining-keyword-count]", summary.keywordCount ?? "-");
+  setAmazonProductMiningText("[data-amazon-product-mining-search-result-count]", summary.searchResultCount ?? "-");
+  setAmazonProductMiningText("[data-amazon-product-mining-product-detail-count]", summary.productDetailCount ?? "-");
+  setAmazonProductMiningText("[data-amazon-product-mining-review-count]", summary.reviewCount ?? "-");
+  setAmazonProductMiningText("[data-amazon-product-mining-keyword-review-count]", summary.keywordReviewCount ?? "-");
+  setAmazonProductMiningText("[data-amazon-product-mining-package]", packageRef);
   if (taskId && taskId !== "-") setAmazonProductMiningReviewTaskFilter(taskId);
   const status = normalizeAmazonProductMiningReviewValue(record.status);
   setAmazonProductMiningLatestSummaryState(status === "manual_required" || status === "failed" ? status : "loaded");

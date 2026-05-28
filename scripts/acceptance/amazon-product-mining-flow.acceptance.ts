@@ -145,8 +145,9 @@ assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RA
 assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, 0.99999), 20_000);
 assert.ok(flowSrc.includes("waitForProductDetailOpenPacingDelay(runtime)"), "flow.ts must pace every product detail open");
 assert.ok(flowSrc.includes("waitForReviewPageOpenPacingDelay(runtime)"), "flow.ts must pace every review page open");
-assert.ok(flowSrc.includes("purgeRejectedKeywordEvidence"), "flow.ts must purge keyword-owned evidence after REJECT keyword review");
-assert.ok(flowSrc.includes("purgeRejectedKeywordReviewEvidenceArtifacts"), "flow.ts must remove full keyword review input/prompt artifacts after REJECT keyword review");
+assert.ok(flowSrc.includes("persistRejectedKeywordRetentionNote"), "flow.ts must retain reviewable evidence after REJECT keyword review");
+assert.equal(flowSrc.includes("purgeRejectedKeywordEvidence"), false, "flow.ts must not physically purge keyword-owned evidence after REJECT keyword review");
+assert.equal(flowSrc.includes("purgeRejectedKeywordReviewEvidenceArtifacts"), false, "flow.ts must not remove keyword full package artifacts after REJECT keyword review");
 assert.ok(flowSrc.includes("ensureTaskRecord(runtime)"), "flow.ts must continue from an existing task record instead of recreating it.");
 assert.ok(flowSrc.includes("haltIfAmazonOperatorControlled(runtime)"), "flow.ts must check persisted pause/terminate controls at safe points.");
 assert.ok(indexSrc.includes("ACTIVE_AMAZON_MINING_TASKS.has(taskId)"), "public facade must block duplicate active execution for the same taskId.");

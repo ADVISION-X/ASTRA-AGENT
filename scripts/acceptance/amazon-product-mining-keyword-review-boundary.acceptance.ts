@@ -1,114 +1,40 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { ingestManualKeywordOpportunityReview } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.js";
 import {
-  buildKeywordReviewPrompt,
   parseKeywordReviewResponse,
 } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.js";
+import { buildKeywordFullPackagePrompt } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.js";
 import { createAmazonMiningStorage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.storage.js";
 import { AmazonMiningSchemas } from "../../src/plugins/amazon-product-mining/index.js";
 
-const prompt = buildKeywordReviewPrompt({
-  inputJsonPath: "/tmp/keyword-review-input.json",
-  evidenceSlice: {
-    taskId: "task-1",
+const prompt = buildKeywordFullPackagePrompt({
+  keyword: {
     keywordId: "keyword-1",
+    taskId: "task-1",
     keyword: "desk organizer",
-    taskScope: {
-      amazonMarketplace: "amazon.com",
-      targetMarket: "US",
-      productDirection: "workspace accessories",
-      requestedKeywordCount: 2,
-      languagePreference: "en",
-    },
-    keywordStatus: "completed",
-    evidenceSummary: {
-      searchResultCount: 1,
-      linkedProductCount: 1,
-      linkedReviewCount: 1,
-      imageRefCount: 1,
-      exceptionCount: 0,
-    },
-    searchResults: [{
-      itemId: "item-1",
-      rankPosition: 1,
-      isSponsored: false,
-      title: "Desk Organizer",
-      price: "$19.99",
-      rating: "4.5 out of 5 stars",
-      reviewCount: "120 ratings",
-      productUrl: "https://www.amazon.com/dp/B000BOUND1",
-      detailIds: ["detail-1"],
-    }],
-    linkedProducts: [{
-      detailId: "detail-1",
-      asin: "B000BOUND1",
-      title: "Desk Organizer",
-      productUrl: "https://www.amazon.com/dp/B000BOUND1",
-      currentPrice: "$19.99",
-      rating: "4.5 out of 5 stars",
-      reviewCount: "120 ratings",
-      bestSellersRankIfVisible: "#4 in Desk Organizers",
-      categoryPathIfVisible: "Office > Desk Accessories",
-      starDistribution: "5 star 70%",
-      fieldDisclosureMap: {},
-      detailEvidence: {},
-      status: "completed",
-      sourceItemIds: ["item-1"],
-      reviewSampleCount: 1,
-      reviewCoverage: {
-        totalStoredReviews: 1,
-        includedReviewSamples: 1,
-        omittedReviewSamples: 0,
-        samplePolicy: "acceptance-fixture",
-      },
-      reviewSamples: [{
-        reviewId: "review-1",
-        reviewIdIfAvailable: "review-1",
-        reviewerName: { status: "extracted", value: "Reviewer" },
-        pageIndex: 1,
-        rating: "4.0 out of 5 stars",
-        reviewTitle: { status: "extracted", value: "Useful" },
-        reviewBody: { status: "extracted", value: "Solid product" },
-        reviewDate: { status: "not_present", detail: "acceptance fixture" },
-        verifiedPurchase: true,
-        variant: { status: "not_present", detail: "acceptance fixture" },
-        helpfulCountIfVisible: { status: "not_present", detail: "acceptance fixture" },
-        reviewImagesIfVisible: [],
-        reviewVideosIfVisible: [],
-        reviewLanguage: { status: "not_present", detail: "acceptance fixture" },
-        reviewRegionIfVisible: { status: "not_present", detail: "acceptance fixture" },
-        rawReviewTextSnapshot: { status: "extracted", value: "Useful Solid product" },
-        fieldDisclosureMap: {},
-      }],
-      imageRefs: ["https://images.example.com/bound-1.jpg"],
-    }],
-    imageRefs: ["https://images.example.com/bound-1.jpg"],
-    exceptions: [],
-    completeness: {
-      hasSearchResults: true,
-      hasLinkedProducts: true,
-      hasLinkedReviews: true,
-      missingEvidence: [],
-    },
+    source: "ai_generated",
+    status: "completed",
+    aiRunId: "run-1",
+    reason: "acceptance fixture",
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  },
+  artifacts: {
+    packageRootPath: "/tmp/keyword-keyword-1-full-evidence-package",
+    inlineNavigationPath: "/tmp/keyword-keyword-1-full-evidence-package/07-ai-handoff/inline-evidence-navigation.json",
+    packageIntegrityReportPath: "/tmp/keyword-keyword-1-full-evidence-package/05-completeness/package-integrity-report.json",
   },
 });
 
 for (const requiredToken of [
-  "You are not a final procurement decision AI.",
-  "You are not a profit calculation AI.",
-  "Your task is only candidate-list screening",
-  "Even PASS is not a product choice.",
-  "REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task",
-  "Demand Signal",
-  "Review Health",
-  "Price Ceiling",
-  "Competition Openness",
-  "Improvement Opportunity",
-  "Data Confidence",
+  "You must read the uploaded keyword full evidence package archive before deciding.",
+  "The archive is a transport wrapper over the full package directory, not a second truth source.",
+  "The inline navigation file is only a reading map",
+  "keyword product pool candidate screening, not final product selection",
   "PASS | WATCH | REJECT | INSUFFICIENT_DATA",
   "enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data",
 ]) {
@@ -167,6 +93,8 @@ const dataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-keyword-review
 const storage = createAmazonMiningStorage(dataDir);
 
 try {
+  const responsePath = path.join(dataDir, "keyword-opportunity-review-response.json");
+  writeFileSync(responsePath, "{}\n", "utf8");
   const now = new Date().toISOString();
   storage.saveKeywordOpportunityReview({
     reviewId: "review-1",
@@ -187,7 +115,7 @@ try {
     humanNextStep: null,
     aiPromptText: prompt,
     aiRawResponse: "",
-    aiResponseRef: null,
+    aiResponseRef: responsePath,
     packageRef: path.join(dataDir, "package.json"),
     keywordPackageSliceRef: path.join(dataDir, "slice.json"),
     failureReason: "keyword_review_manual_required",

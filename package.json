@@ -59,7 +59,9 @@
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
     "lint": "npm run typecheck",
     "acceptance:app-shell-ui": "node --import tsx scripts/acceptance/app-shell-ui.acceptance.ts && node --import tsx scripts/acceptance/app-shell-skill-registry.acceptance.ts && node --import tsx scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
-    "audit:app-shell-ui": "node --import tsx scripts/audit/domains/app-shell-ui/inspector.ts"
+    "audit:app-shell-ui": "node --import tsx scripts/audit/domains/app-shell-ui/inspector.ts",
+    "audit:workbench-api-boundary": "node --import tsx scripts/audit/domains/workbench-api-boundary/inspector.ts",
+    "acceptance:workbench-api-boundary": "node --import tsx scripts/acceptance/workbench-api-boundary.acceptance.ts"
   },
   "dependencies": {
     "@img/sharp-darwin-arm64": "^0.34.5",

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const read = (path: string): string => readFileSync(path, "utf8");
 
@@ -16,6 +16,10 @@ const styles = [
 ].map(read).join("\n");
 const home = read("src/app/workbench-home-page.ts");
 const client = read("src/app/workbench-home-client.ts");
+const migrationTable = read("MIGRATION_FILE_DECISION_TABLE.md");
+
+assert(!existsSync("docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md"), "Legacy APP user-demand startup blueprint must be physically absent.");
+assert(!migrationTable.includes("docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md"), "Migration table must not keep the deleted legacy APP user-demand startup blueprint path.");
 
 for (const token of [
   "renderAppShell",

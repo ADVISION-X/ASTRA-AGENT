@@ -1,4 +1,4 @@
-import type { AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
+import type { AmazonKeywordRecord, AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
 
 const COMPLETED_TASK_STATUSES = new Set<AmazonTaskStatus>(["package_completed", "failed", "manual_required", "terminated"]);
 
@@ -12,6 +12,28 @@ export type AmazonTaskRunConfig = {
   createdAt: string;
 };
 
+export type AmazonTaskKeywordProgress = {
+  keywordId: string;
+  keyword: string;
+  status: string;
+  searchResultCount: number;
+  productDetailCount: number;
+  reviewCount: number;
+};
+
+export type AmazonTaskRunSummary = {
+  keywordCount: number;
+  searchResultCount: number;
+  productDetailCount: number;
+  reviewCount: number;
+  keywordReviewCount: number;
+};
+
+export type AmazonTaskResultSnapshot = {
+  keywordReviewCount: number;
+  keywords: Array<AmazonTaskKeywordProgress>;
+};
+
 export type AmazonTaskResult = {
   taskId: string;
   status: AmazonTaskStatus;
@@ -22,10 +44,46 @@ export type AmazonTaskResult = {
   exceptionSummaryPath: string | null;
   handoffStatus: string;
   runConfig: AmazonTaskRunConfig;
+  keywords: Array<AmazonTaskKeywordProgress>;
+  summary: AmazonTaskRunSummary;
   completedAt: string | null;
 };
 
-export const taskRecordToResult = (task: AmazonTaskRecord): AmazonTaskResult => ({
+const emptySnapshot = (): AmazonTaskResultSnapshot => ({
+  keywordReviewCount: 0,
+  keywords: [],
+});
+
+const buildSummary = (
+  snapshot: AmazonTaskResultSnapshot,
+): AmazonTaskRunSummary => ({
+  keywordCount: snapshot.keywords.length,
+  searchResultCount: snapshot.keywords.reduce((total, keyword) => total + keyword.searchResultCount, 0),
+  productDetailCount: snapshot.keywords.reduce((total, keyword) => total + keyword.productDetailCount, 0),
+  reviewCount: snapshot.keywords.reduce((total, keyword) => total + keyword.reviewCount, 0),
+  keywordReviewCount: snapshot.keywordReviewCount,
+});
+
+export const createKeywordProgress = (
+  keyword: AmazonKeywordRecord,
+  counts: {
+    productDetailCount: number;
+    reviewCount: number;
+    searchResultCount: number;
+  },
+): AmazonTaskKeywordProgress => ({
+  keywordId: keyword.keywordId,
+  keyword: keyword.keyword,
+  status: keyword.status,
+  searchResultCount: counts.searchResultCount,
+  productDetailCount: counts.productDetailCount,
+  reviewCount: counts.reviewCount,
+});
+
+export const taskRecordToResult = (
+  task: AmazonTaskRecord,
+  snapshot: AmazonTaskResultSnapshot = emptySnapshot(),
+): AmazonTaskResult => ({
   taskId: task.taskId,
   status: task.status,
   failureReason: task.failureReason,
@@ -43,5 +101,7 @@ export const taskRecordToResult = (task: AmazonTaskRecord): AmazonTaskResult => 
     languagePreference: task.languagePreference,
     createdAt: task.createdAt,
   },
+  keywords: snapshot.keywords,
+  summary: buildSummary(snapshot),
   completedAt: COMPLETED_TASK_STATUSES.has(task.status) ? task.updatedAt : null,
 });

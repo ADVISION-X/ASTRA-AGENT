@@ -1,5 +1,7 @@
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
+const GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE = "provider attachments ready by global lower-bound count";
+
 const WEB_CHAT_ATTACHMENT_COUNT_SCRIPT = `
 const countAttachmentCandidates = (root) => {
   if (!root || typeof root.querySelectorAll !== "function") return 0;
@@ -59,8 +61,8 @@ const inputFocused = Boolean(result.input instanceof HTMLElement && (document.ac
 if (result.count >= expectedCount && result.scope === "input") {
   return {status: "success", message: "provider attachments ready", pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
 }
-if (result.count === expectedCount && result.scope === "global") {
-  return {status: "success", message: "provider attachments ready by global exact count", pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
+if (result.count >= expectedCount && result.scope === "global") {
+  return {status: "success", message: ${JSON.stringify(GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE)}, pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
 }
 return {status: "pending", message: "waiting for provider attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
 `;

@@ -59,7 +59,8 @@ INTAKE
   -> PRODUCT_LOOP_END
 
   -> KEYWORD_COMPLETE
-  -> KEYWORD_PACKAGE_SLICE_BUILD
+  -> KEYWORD_FULL_PACKAGE_BUILD
+  -> KEYWORD_FULL_PACKAGE_INTEGRITY_GATE
   -> KEYWORD_ADVANCED_AI_HANDOFF
   -> KEYWORD_OPPORTUNITY_REVIEW
   -> KEYWORD_REVIEW_PERSIST
@@ -427,9 +428,48 @@ reviews_not_present
 
 | 项 | 内容 |
 | -- | -- |
-| 动作 | 统计当前关键词下产品状态 / 标记 completed 或 completed_with_errors / 生成 keyword execution summary / 构建 keyword evidence slice / 生成高级 AI prompt / 接收或等待 structured verdict / 入库 keyword review / 更新 App 历史表 / 进入下一 pending keyword |
-| 关键产物 | `keyword-{keywordId}-opportunity-review-input.json` / `keyword-{keywordId}-opportunity-review-prompt.md` / `keyword-{keywordId}-opportunity-review-response.json` |
+| 动作 | 统计当前关键词下产品状态 / 标记 completed 或 completed_with_errors / 生成 keyword execution summary / 构建 keyword full evidence package / integrity pass 后上传 package 核心文件给 GPT Web Chat / 接收或等待 structured verdict / 入库 keyword review / 更新 App 历史表 / 进入下一 pending keyword |
+| 关键产物 | `keyword-{keywordId}-full-evidence-package/` / `keyword-{keywordId}-opportunity-review-prompt.md` / `keyword-{keywordId}-opportunity-review-response.json` |
 | 终态 | 全部关键词完成且所有 keyword review 已进入 completed/manual_required/failed 之一 → task.status = packaging |
+
+### Keyword Full Evidence Package
+
+每个关键词完成后必须先生成关键词级完整资料包：
+
+```txt
+keyword-{keywordId}-full-evidence-package/
+  manifest.json
+  00-keyword-master-report/
+    keyword-master-report.md
+  01-search-results/
+    search-results.json
+  02-product-details/
+    product-details.json
+  03-reviews/
+    reviews.jsonl
+    reviews-summary.json
+    review-pages-index.json
+  04-images/
+    image-evidence-index.json
+  05-completeness/
+    data-completeness-report.json
+    package-integrity-report.json
+  06-exceptions/
+    exception-summary.json
+  07-ai-handoff/
+    ai-reading-contract.md
+    keyword-opportunity-review-prompt.md
+    inline-evidence-navigation.json
+```
+
+冻结细则：
+
+- inline evidence slice 只能作为快速目录、摘要、导航，不得作为高级 AI 深度研判唯一资料源。
+- keyword opportunity review 必须以 keyword full package 为资料源。
+- 文件上传能力可用时，必须上传 keyword full package 的 transport zip；zip 只作为运输壳，目录内 full package 文件仍是唯一证据真相源；`inputRefs` 必须包含真实 `filePath`。
+- 文件上传能力不可用时，review.status = `manual_required`，不得自动降级为 inline-only verdict。
+- package integrity 不通过时，不允许进入 GPT Web Chat 研判。
+- GPT Web Chat 只读取 slice 或未读取 full package 时，verdict 不得作为最终 keyword review。
 
 ### Keyword Opportunity Review 固定维度
 
@@ -475,9 +515,9 @@ gpt-web-chat
 
 禁止把关键词评审 prompt 写成最终产品裁决 prompt。
 
-### Keyword Evidence Slice 深度
+### Keyword Evidence Navigation 深度
 
-`keyword-{keywordId}-opportunity-review-input.json` 是 GPT Web Chat 做关键词候选池筛选的直接阅读材料，不得只投喂浅层标题、价格、评分和少量评论正文。
+`keyword-{keywordId}-opportunity-review-input.json` / `inline-evidence-navigation.json` 是 GPT Web Chat 的快速阅读目录，不是深度研判唯一资料源。GPT Web Chat 做关键词候选池筛选时，必须读取 keyword full evidence package 的核心文件。
 
 必须投喂：
 
@@ -528,7 +568,7 @@ GPT Web Chat 输入上限：
 AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS >= 900000
 ```
 
-原因：关键词级机会评审需要读取前 30 个产品的深度详情、图片索引和评论样本，300k 级旧上限会把“真实可用材料”挡在投喂前。
+原因：关键词级机会评审需要读取前 30 个产品的深度详情、图片索引和完整可访问评论文件。内联导航可以帮助 GPT 定位文件，但不能代替 full package。
 
 ### GPT Web Chat source restore 连续性
 
@@ -559,10 +599,12 @@ Deep Research / Facebook / invoice upload / other prompt contract 仍 fail close
 ```txt
 AI 不可用 -> review.status = manual_required
 AI 输出越权或非结构化 -> review.status = failed
-资料包或 evidence slice 不完整 -> decision = INSUFFICIENT_DATA 或 review.status = manual_required
+keyword full package integrity failed -> review.status = manual_required
+文件上传不可用 -> review.status = manual_required
+资料包不完整 -> decision = INSUFFICIENT_DATA 或 review.status = manual_required
 ```
 
-### REJECT 后物理清理
+### REJECT 后证据保留
 
 当 keyword opportunity review 返回：
 
@@ -571,15 +613,16 @@ status = completed
 decision = REJECT
 ```
 
-必须立即执行 keyword evidence purge：
+只能标记该关键词不进入候选名单，并保留可复核证据链：
 
 ```txt
-delete search results under keywordId
-delete keyword-owned search-result/product links
-delete product details that are exclusively linked to this keyword
-delete reviews under those exclusive product details
-delete related exception rows
-delete full keyword review input/prompt evidence artifacts
+retain search results under keywordId
+retain keyword-owned search-result/product links
+retain product details and reviews
+retain related exception rows
+retain keyword full package
+retain package integrity proof
+retain AI reading contract and handoff prompt
 retain minimal keyword record for historical deduplication
 retain raw AI response and structured verdict tombstone
 ```
@@ -587,10 +630,12 @@ retain raw AI response and structured verdict tombstone
 禁止：
 
 ```txt
-REJECT 后继续保留完整详情/评论 bulk evidence
+REJECT 后物理删除完整详情/评论 bulk evidence
 REJECT 后删除 keyword record 导致历史去重失效
-误删仍被其他 keyword 共享引用的 product detail / reviews
+inline-only 或不完整资料触发不可逆清理
 ```
+
+后续如需物理空间治理，只能进入独立归档/清理流程，不能由关键词研判阶段自动删除。
 
 ---
 

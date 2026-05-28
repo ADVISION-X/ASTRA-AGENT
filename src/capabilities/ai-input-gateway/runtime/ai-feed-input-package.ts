@@ -35,6 +35,14 @@ const isVideoRef = (mimeType: string | undefined, filePath: string): boolean =>
   || ((mimeType === undefined || mimeType === "application/octet-stream")
     && /\.(mp4|m4v|mov)$/iu.test(filePath));
 
+const isDocumentEvidenceRef = (mimeType: string | undefined, filePath: string): boolean =>
+  mimeType === "application/json"
+  || mimeType === "application/zip"
+  || mimeType === "application/x-ndjson"
+  || mimeType === "text/markdown"
+  || mimeType === "text/plain"
+  || /\.(json|jsonl|md|txt|zip)$/iu.test(filePath);
+
 const hasMp4Header = async (filePath: string): Promise<boolean> => {
   const handle = await open(filePath, "r");
   try {
@@ -53,8 +61,8 @@ const assertUploadableFile = async (filePath: string, mimeType: string | undefin
   if (isVideoRef(mimeType, filePath) && !(await hasMp4Header(filePath))) {
     throw new Error(`AI feed video file is not a valid MP4 container: ${filePath}.`);
   }
-  if (!isVideoRef(mimeType, filePath) && !isImageRef(mimeType, filePath)) {
-    throw new Error(`AI feed file is not an approved image or video input: ${filePath}.`);
+  if (!isVideoRef(mimeType, filePath) && !isImageRef(mimeType, filePath) && !isDocumentEvidenceRef(mimeType, filePath)) {
+    throw new Error(`AI feed file is not an approved image, video, or evidence document input: ${filePath}.`);
   }
 };
 

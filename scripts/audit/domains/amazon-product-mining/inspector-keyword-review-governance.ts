@@ -126,7 +126,7 @@ const inspectKeywordReviewOwnerSurface = (input: {
     && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS")
     && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND")
     && hasIdentifier(input.keywordReviewFile, "buildKeywordOpportunityReviewInputRefs")
-    && hasStringLiteral(input.keywordReviewFile, "amazon-product-mining-keyword-evidence-slice")
+    && hasIdentifier(input.keywordReviewFile, "uploadFileRefs")
     && hasStringLiteral(input.keywordReviewFile, "gpt-web-chat")
     && hasCallToLocalIdentifier(input.keywordReviewFile, "buildKeywordOpportunityReviewInputRefs")
     && hasKeywordReviewInputRefsCall(input.keywordReviewFile);
@@ -135,7 +135,7 @@ const inspectKeywordReviewOwnerSurface = (input: {
       checkId: "amazon-mining/keyword-review-ai-input-contract",
       lawId: input.lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-      message: "Keyword opportunity review must feed GPT Web Chat with structured AI inputRefs and the governed evidence-slice input budget.",
+      message: "Keyword opportunity review must feed GPT Web Chat with a structured keyword full package archive inputRef and the governed input budget.",
     }));
   }
 
@@ -302,7 +302,9 @@ export const inspectKeywordReviewLawAndBlueprint = (
     "USER_OPENS_PACKAGE_OR_AI_REVIEW",
     "PRODUCT_DETAIL_OPEN_PACING",
     "REVIEW_PAGE_OPEN_PACING",
-    "REJECT 后物理清理",
+    "REJECT 后证据保留",
+    "KEYWORD_FULL_PACKAGE_BUILD",
+    "Keyword Full Evidence Package",
   ];
   const missing = requiredTokens.filter((token) => !lawText.includes(token) && !blueprintText.includes(token));
   if (missing.length === 0) {
@@ -345,9 +347,9 @@ export const inspectKeywordReviewPromptAndFlow = (
   lawId: string,
 ): void => {
   const flowFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts");
-  const supportFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts");
+  const packageFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts");
   trackSourceFile(inspectedFiles, flowFile);
-  trackSourceFile(inspectedFiles, supportFile);
+  trackSourceFile(inspectedFiles, packageFile);
 
   const reviewImport = flowFile ? findNamedImportContract(flowFile, "./amazon-product-mining.keyword-review.js", "runKeywordOpportunityReview") : undefined;
   if (!flowFile || !reviewImport || !hasCallToImportedFunction(flowFile, reviewImport)) {
@@ -360,21 +362,19 @@ export const inspectKeywordReviewPromptAndFlow = (
   }
 
   const requiredPromptTokens = [
-    "You are not a final procurement decision AI.",
-    "You are not a profit calculation AI.",
-    "You are not a supply-chain judgment AI.",
-    "Your task is only candidate-list screening",
-    "Even PASS is not a product choice.",
-    "REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task",
+    "You must read the uploaded keyword full evidence package archive before deciding.",
+    "The archive is a transport wrapper over the full package directory, not a second truth source.",
+    "The inline navigation file is only a reading map",
+    "keyword product pool candidate screening, not final product selection",
     "PASS | WATCH | REJECT | INSUFFICIENT_DATA",
     "enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data",
   ];
-  if (!supportFile || !requiredPromptTokens.every((token) => fileIncludesText(supportFile, token))) {
+  if (!packageFile || !requiredPromptTokens.every((token) => fileIncludesText(packageFile, token))) {
     findings.push(createFinding({
       checkId: "amazon-mining/keyword-review-prompt-boundary",
       lawId,
-      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
-      message: "Keyword review prompt must declare the keyword-only screening boundary and the fixed JSON contract.",
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
+      message: "Keyword review prompt must require uploaded full package reading and preserve the fixed JSON contract.",
     }));
   }
 };

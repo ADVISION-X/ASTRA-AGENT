@@ -15,6 +15,7 @@ import {
   loadOnlineAiProviderPublicStatus,
   saveOnlineAiProviderConfig,
 } from "../online-ai/index.js";
+import { buildApiBoundaryLogHandle } from "./workbench-api-boundary-log.js";
 import {
   createWorkbenchAssembly,
   type WorkbenchAssembly,
@@ -433,6 +434,7 @@ const buildWorkbenchHandle = (
   const dataDir = assembly.dataDir;
   return {
     init,
+    ...buildApiBoundaryLogHandle(assembly),
     getHealthReport: async () => getHealthReport(assembly),
     getMissionReadinessReport: async () =>
       getMissionReadinessReport(assembly, assembly.options),

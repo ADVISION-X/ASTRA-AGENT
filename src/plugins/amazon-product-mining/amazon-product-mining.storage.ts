@@ -38,6 +38,7 @@ export type AmazonMiningStorage = {
     taskId: string;
     status: AmazonTaskStatus;
     failureReason?: string | null;
+    operatorOverride?: boolean;
     packageJsonPath?: string | null;
     pdfReportPath?: string | null;
     evidenceIndexPath?: string | null;
@@ -86,16 +87,10 @@ export type AmazonMiningStorage = {
   getReviewsForProduct(detailId: string): AmazonReviewRecord[];
   persistException(input: { exceptionId: string; taskId: string; scope: string; scopeId?: string; exceptionKind: string; message: string; }): void;
   getExceptionsForTask(taskId: string): Array<{ exceptionId: string; scope: string; scopeId: string | null; exceptionKind: string; message: string; createdAt: string; }>;
-  purgeRejectedKeywordEvidence(input: { taskId: string; keywordId: string; }): {
-    keywordId: string;
-    searchResultCount: number;
-    linkCount: number;
-    productDetailCount: number;
-    reviewCount: number;
-    exceptionCount: number;
-  };
   close(): void;
 };
+
+type AmazonTaskStatusUpdateInput = Parameters<AmazonMiningStorage["updateTaskStatus"]>[0];
 
 const resolveDbPath = (dataDir: string): string =>
   path.join(dataDir, AMAZON_PRODUCT_MINING_DB_RELATIVE_PATH);
@@ -112,6 +107,64 @@ export const createAmazonMiningDatabase = (dataDir: string): Database.Database =
   return db;
 };
 
+const shouldKeepOperatorLockedTask = (
+  current: AmazonTaskRecord | null,
+  input: AmazonTaskStatusUpdateInput,
+): boolean => {
+  if (current?.status === "terminated" && input.status !== "terminated") return true;
+  return current?.status === "paused"
+    && !input.operatorOverride
+    && input.status !== "paused"
+    && input.status !== "terminated";
+};
+
+const createTaskRecord = (
+  db: Database.Database,
+  getTask: (taskId: string) => AmazonTaskRecord | null,
+) => (task: AmazonTaskRecord): AmazonTaskRecord => {
+  db.prepare(`INSERT INTO amazon_mining_tasks (
+    task_id, amazon_marketplace, target_market, product_direction, requested_keyword_count,
+    language_preference, provider_kind, status, handoff_status, created_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    task.taskId, task.amazonMarketplace, task.targetMarket, task.productDirection,
+    task.requestedKeywordCount, task.languagePreference, task.providerKind, task.status,
+    task.handoffStatus, task.createdAt,
+  );
+  return getTask(task.taskId)!;
+};
+
+const updateTaskStatusRecord = (
+  db: Database.Database,
+  getTask: (taskId: string) => AmazonTaskRecord | null,
+) => (input: AmazonTaskStatusUpdateInput): AmazonTaskRecord | null => {
+  const current = getTask(input.taskId);
+  if (shouldKeepOperatorLockedTask(current, input)) return current;
+  db.prepare(`UPDATE amazon_mining_tasks SET status=?, failure_reason=?, package_json_path=?,
+    pdf_report_path=?, evidence_index_path=?, exception_summary_path=?,
+    handoff_status=COALESCE(?, handoff_status), updated_at=? WHERE task_id=?`).run(
+    input.status, input.failureReason ?? null, input.packageJsonPath ?? null,
+    input.pdfReportPath ?? null, input.evidenceIndexPath ?? null,
+    input.exceptionSummaryPath ?? null, input.handoffStatus ?? null,
+    new Date().toISOString(), input.taskId,
+  );
+  return getTask(input.taskId);
+};
+
+const getLatestTaskRecord = (db: Database.Database): AmazonTaskRecord | null => {
+  const row = db.prepare("SELECT * FROM amazon_mining_tasks ORDER BY created_at DESC LIMIT 1").get();
+  return row ? rowToTask(row as Record<string, unknown>) : null;
+};
+
+const listTaskRecordsByStatuses = (
+  db: Database.Database,
+  statuses: readonly AmazonTaskStatus[],
+): AmazonTaskRecord[] => {
+  if (statuses.length === 0) return [];
+  const placeholders = statuses.map(() => "?").join(",");
+  const rows = db.prepare(`SELECT * FROM amazon_mining_tasks WHERE status IN (${placeholders}) ORDER BY created_at ASC`).all(...statuses);
+  return rows.map((row) => rowToTask(row as Record<string, unknown>));
+};
+
 const createTaskOperations = (
   db: Database.Database,
 ): Pick<AmazonMiningStorage, "createTask" | "updateTaskStatus" | "getTask" | "getLatestTask" | "listTasksByStatuses"> => {
@@ -121,42 +174,11 @@ const createTaskOperations = (
   };
 
   return {
-    createTask(task) {
-      db.prepare(`INSERT INTO amazon_mining_tasks (
-        task_id, amazon_marketplace, target_market, product_direction, requested_keyword_count,
-        language_preference, provider_kind, status, handoff_status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-        task.taskId, task.amazonMarketplace, task.targetMarket, task.productDirection,
-        task.requestedKeywordCount, task.languagePreference, task.providerKind, task.status,
-        task.handoffStatus, task.createdAt,
-      );
-      return getTask(task.taskId)!;
-    },
-
-    updateTaskStatus({ taskId, status, failureReason, packageJsonPath, pdfReportPath, evidenceIndexPath, exceptionSummaryPath, handoffStatus }) {
-      db.prepare(`UPDATE amazon_mining_tasks SET status=?, failure_reason=?, package_json_path=?,
-        pdf_report_path=?, evidence_index_path=?, exception_summary_path=?,
-        handoff_status=COALESCE(?, handoff_status), updated_at=? WHERE task_id=?`).run(
-        status, failureReason ?? null, packageJsonPath ?? null, pdfReportPath ?? null,
-        evidenceIndexPath ?? null, exceptionSummaryPath ?? null,
-        handoffStatus ?? null, new Date().toISOString(), taskId,
-      );
-      return getTask(taskId);
-    },
-
+    createTask: createTaskRecord(db, getTask),
+    updateTaskStatus: updateTaskStatusRecord(db, getTask),
     getTask,
-
-    getLatestTask() {
-      const row = db.prepare("SELECT * FROM amazon_mining_tasks ORDER BY created_at DESC LIMIT 1").get();
-      return row ? rowToTask(row as Record<string, unknown>) : null;
-    },
-
-    listTasksByStatuses(statuses) {
-      if (statuses.length === 0) return [];
-      const placeholders = statuses.map(() => "?").join(",");
-      const rows = db.prepare(`SELECT * FROM amazon_mining_tasks WHERE status IN (${placeholders}) ORDER BY created_at ASC`).all(...statuses);
-      return rows.map((row) => rowToTask(row as Record<string, unknown>));
-    },
+    getLatestTask: () => getLatestTaskRecord(db),
+    listTasksByStatuses: (statuses) => listTaskRecordsByStatuses(db, statuses),
   };
 };
 
@@ -362,74 +384,6 @@ const createExceptionOperations = (
   },
 });
 
-const createRejectedKeywordPurgeOperations = (
-  db: Database.Database,
-): Pick<AmazonMiningStorage, "purgeRejectedKeywordEvidence"> => ({
-  purgeRejectedKeywordEvidence({ taskId, keywordId }) {
-    const run = db.transaction(() => {
-      const exclusiveDetailRows = db.prepare(`
-        SELECT link.detail_id AS detail_id
-        FROM amazon_mining_search_result_product_link AS link
-        GROUP BY link.detail_id
-        HAVING SUM(CASE WHEN link.item_id IN (
-          SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
-        ) THEN 1 ELSE 0 END) > 0
-        AND SUM(CASE WHEN link.item_id NOT IN (
-          SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
-        ) THEN 1 ELSE 0 END) = 0
-      `).all(taskId, keywordId, taskId, keywordId) as Array<{ detail_id: string }>;
-      const exclusiveDetailIds = exclusiveDetailRows.map((row) => row.detail_id);
-
-      const itemRows = db.prepare(`
-        SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
-      `).all(taskId, keywordId) as Array<{ item_id: string }>;
-      const itemIds = itemRows.map((row) => row.item_id);
-
-      let reviewCount = 0;
-      let productDetailCount = 0;
-      if (exclusiveDetailIds.length > 0) {
-        const placeholders = exclusiveDetailIds.map(() => "?").join(",");
-        reviewCount = db.prepare(`
-          DELETE FROM amazon_mining_reviews
-          WHERE task_id=? AND detail_id IN (${placeholders})
-        `).run(taskId, ...exclusiveDetailIds).changes;
-        productDetailCount = db.prepare(`
-          DELETE FROM amazon_mining_product_details
-          WHERE task_id=? AND detail_id IN (${placeholders})
-        `).run(taskId, ...exclusiveDetailIds).changes;
-      }
-
-      const linkCount = db.prepare(`
-        DELETE FROM amazon_mining_search_result_product_link
-        WHERE item_id IN (
-          SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
-        )
-      `).run(taskId, keywordId).changes;
-
-      const searchResultCount = db.prepare(`
-        DELETE FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
-      `).run(taskId, keywordId).changes;
-
-      const exceptionScopeIds = [keywordId, ...itemIds, ...exclusiveDetailIds];
-      const exceptionPlaceholders = exceptionScopeIds.map(() => "?").join(",");
-      const exceptionCount = db.prepare(`
-        DELETE FROM amazon_mining_exception_records
-        WHERE task_id=? AND scope_id IN (${exceptionPlaceholders})
-      `).run(taskId, ...exceptionScopeIds).changes;
-
-      return {
-        keywordId,
-        searchResultCount,
-        linkCount,
-        productDetailCount,
-        reviewCount,
-        exceptionCount,
-      };
-    });
-    return run();
-  },
-});
-
 export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage => {
   const db = createAmazonMiningDatabase(dataDir);
   const dbPath = resolveDbPath(dataDir);
@@ -444,7 +398,6 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
     ...createTraceabilityOperations(db),
     ...createReviewOperations(db),
     ...createExceptionOperations(db),
-    ...createRejectedKeywordPurgeOperations(db),
     close() {
       db.close();
     },

@@ -795,6 +795,29 @@ ci:full PASS
 
 ---
 
+## 23. Legacy APP User-Demand Authority Physical Absence
+
+当前生产 UI 主权只属于：
+
+- `module-app-shell-ui.instructions.md`
+- `GrassEye App Shell UI 施工图.md`
+
+当首页生产入口已经是 `workbench-home-page.ts -> renderAppShell()` 时，
+旧 APP user-demand authority 文件必须物理缺席：
+
+- `docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md`
+
+禁止：
+
+- `retired` / `archive` / `legacy` / `deprecated` 形式保留旧 authority 文件
+- 通过改名、隐藏目录、`.bak`、`.old` 等形式保留旧 authority 副本
+- 在迁移表、包脚本、非治理文档或生产源码中继续引用该旧路径
+
+本段只治理已经脱离 active owner 的旧 APP user-demand authority；
+它不覆写其他 active owner 的 blueprint 绑定。
+
+---
+
 ## 22. 最终输出报告格式
 
 完成后输出：

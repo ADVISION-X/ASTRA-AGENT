@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T06:08:19.805Z",
+  "generatedAt": "2026-05-28T10:15:00.378Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -481,8 +481,8 @@
       "tier": "P0",
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "storage+flow+acceptance+ast",
-      "summary": "When keyword opportunity review returns REJECT, the system must physically purge bulk evidence under that keyword while retaining only the minimal verdict tombstone needed for deduplication and audit history.",
+      "evidenceMode": "storage+flow+package+acceptance+ast",
+      "summary": "When keyword opportunity review returns REJECT, the system must retain the keyword full package and source evidence as a reviewable chain; REJECT may mark or archive the keyword but must not physically purge evidence from an insufficient or unreviewable handoff.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
@@ -491,8 +491,9 @@
         "scripts/audit/domains/amazon-product-mining/**/*.ts"
       ],
       "forbidden": [
-        "Keeping search/detail/review bulk rows after a completed keyword review decision=REJECT.",
-        "Keeping full keyword review evidence-slice artifacts after decision=REJECT.",
+        "Physically deleting search/detail/review evidence only because keyword review decision=REJECT.",
+        "Deleting keyword full package files, package integrity proof, AI reading contract, or handoff prompt after decision=REJECT.",
+        "Letting an inline evidence slice or incomplete handoff trigger irreversible evidence cleanup.",
         "Deleting the keyword tombstone so historical deduplication can regenerate the same rejected keyword."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -530,7 +531,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "keyword-review-input+field-disclosure+acceptance+ast",
-      "summary": "Keyword opportunity review input must be advanced-AI readable: it must carry rich product detail evidence, review media/language/region metadata, and explicit field disclosure instead of silent nulls.",
+      "summary": "Keyword opportunity review navigation input must be advanced-AI readable as a directory: it must carry rich product detail pointers, review media/language/region metadata, and explicit field disclosure instead of silent nulls, while the full package remains the decisive evidence source.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -582,6 +583,37 @@
       "blockIndex": 24
     },
     {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "keyword-full-package+provider-file-proof+integrity+acceptance+ast",
+      "summary": "After each keyword completes, Amazon Product Mining must build a keyword-level full evidence package and hand that package to GPT Web Chat for keyword opportunity review; inline evidence slices are navigation only and can never be the sole basis for PASS/WATCH/REJECT.",
+      "appliesTo": [
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+        "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
+        "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
+        "scripts/audit/domains/amazon-product-mining/**/*.ts",
+        "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
+        "docs/法案辅助文件/amazon_product_mining_process.md"
+      ],
+      "forbidden": [
+        "Completing keyword opportunity review from inline evidence slice alone.",
+        "Using maxFileCount=0 for keyword opportunity review handoff.",
+        "Entering AI keyword review when keyword full package integrity is failed.",
+        "Automatically downgrading to inline-only review when file upload is unavailable.",
+        "Persisting PASS/WATCH/REJECT as completed when provider proof shows only the slice was supplied.",
+        "Physically deleting keyword evidence after REJECT before a reviewable full package chain is retained."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 25
+    },
+    {
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
       "status": "active",
       "tier": "P0",
@@ -607,6 +639,32 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
       "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "app-shell-ui",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast+acceptance+chrome",
+      "summary": "After App Shell becomes the production UI entry, the orphan legacy APP user-demand startup blueprint must be physically absent. Retired, archived, deprecated, or copied variants of that legacy authority are forbidden.",
+      "appliesTo": [
+        ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
+        "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
+        "docs/法案辅助文件/**/*.md",
+        "src/app/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/audit/domains/app-shell-ui/**",
+        "scripts/acceptance/app-shell-*.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
+        "package.json"
+      ],
+      "forbidden": [
+        "Legacy APP user-demand startup blueprint exists after App Shell production entry.",
+        "Retired, archived, deprecated, hidden, or copied variants of the legacy APP user-demand startup blueprint remain in the repository.",
+        "App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
+      "blockIndex": 1
     },
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -2902,6 +2960,201 @@
       "summary": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.",
       "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
       "blockIndex": 9
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs",
+      "summary": "All Workbench API requests must pass through one API Boundary Guard before reaching known route handlers; no second HTTP server, gateway, bus, dispatcher, or external API chain may exist.",
+      "appliesTo": [
+        "src/app/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/lib/local-runtime/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Second HTTP API server for external website integration.",
+        "External API gateway outside create-workbench-server.ts.",
+        "External job dispatcher bypassing GrassEyeWorkbenchHandle.",
+        "Route bus or central dispatcher replacing explicit route handlers.",
+        "Capability group exposed directly as HTTP API.",
+        "Plugin exposing its own HTTP listener.",
+        "External website calling ability group functions directly."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs",
+      "summary": "Workbench API must not expose wildcard CORS. Allowed origins must be local workbench origin by default and explicit external website origins only when external API mode is enabled.",
+      "appliesTo": [
+        "src/app/workbench-http.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/app/create-workbench-server.ts"
+      ],
+      "forbidden": [
+        "access-control-allow-origin: *",
+        "Reflecting arbitrary Origin header.",
+        "Allowing external website origin without explicit allowlist.",
+        "Allowing credentials with wildcard origin.",
+        "Disabling origin check for external task routes."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance",
+      "summary": "External website API access must require an explicit API key header. Task mutation routes must not be callable by unauthenticated external requests.",
+      "appliesTo": [
+        "src/app/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/acceptance/workbench-api-boundary*.acceptance.ts"
+      ],
+      "forbidden": [
+        "External POST route without API key validation.",
+        "External task creation without authentication.",
+        "External task resume without authentication.",
+        "External callback registration without authentication.",
+        "Using query string apiKey as authentication.",
+        "Logging raw API key."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "API routes must be admitted through a small explicit allowlist. External website access must be disabled by default and enabled per route, per job, and per method.",
+      "appliesTo": [
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-*-routes.ts",
+        "scripts/audit/domains/workbench-api-boundary/**"
+      ],
+      "forbidden": [
+        "External access to every /api/** route by default.",
+        "Method wildcard route admission.",
+        "Path prefix admission without exact method+path rule.",
+        "External access to health, mode, settings, AI provider config, or debug routes unless explicitly authorized.",
+        "External website calling deep research, product mining, video download, or browser-control routes without dedicated law authorization."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+acceptance",
+      "summary": "External website requests may provide only approved job input fields. They must not provide selectors, coordinates, browser commands, next actions, action plans, or capability protocol keys.",
+      "appliesTo": [
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-multipart.ts",
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/acceptance/workbench-api-boundary*.acceptance.ts"
+      ],
+      "forbidden": [
+        "External request contains selector.",
+        "External request contains coordinate.",
+        "External request contains browserCommand.",
+        "External request contains nextAction.",
+        "External request contains actionPlan.",
+        "External request contains abilityGroupId.",
+        "External request contains childCapabilityId.",
+        "External request contains capabilityCallId.",
+        "External request chooses internal flow step.",
+        "External request overrides evidence ref."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs+acceptance",
+      "summary": "If GrassEye sends task results back to an external website, the callback must use an explicit outbound allowlist and must not allow arbitrary URL fetch from plugin or flow code.",
+      "appliesTo": [
+        "src/app/workbench-api-boundary.ts",
+        "src/lib/local-runtime/**",
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Plugin fetches arbitrary callbackUrl directly.",
+        "Flow script posts result to unvalidated URL.",
+        "External request controls callback domain without allowlist.",
+        "Callback includes secrets, raw cookies, browser session data, or API key.",
+        "Callback retries implemented as second task queue."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "persisted-record+runtime-log",
+      "summary": "External API ingress decisions must be observable. The system must record accepted and rejected external task requests without leaking secrets.",
+      "appliesTo": [
+        "src/app/workbench-api-boundary.ts",
+        "src/lib/runtime-logs/**",
+        "src/plugins/amazon-invoice-upload/**"
+      ],
+      "forbidden": [
+        "Silent external request rejection.",
+        "Accepted external task without sourceSystem.",
+        "Accepted external task without requestId.",
+        "Logging raw API key.",
+        "Logging invoice PDF bytes.",
+        "Treating CORS failure as task failure."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "workbench-api-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "hybrid",
+      "summary": "Workbench API Boundary must have AST-level audit and acceptance coverage before external website integration may be called production-ready.",
+      "appliesTo": [
+        "scripts/audit/domains/workbench-api-boundary/**",
+        "scripts/acceptance/workbench-api-boundary*.acceptance.ts",
+        "package.json",
+        "scripts/audit/generated/**"
+      ],
+      "forbidden": [
+        "External API production readiness without API boundary audit.",
+        "Wildcard CORS PASS.",
+        "Unauthenticated external POST PASS.",
+        "Route allowlist not runner-visible.",
+        "Manual generated artifact truth.",
+        "Warning-only P0 API boundary finding."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+      "blockIndex": 7
     }
   ]
 }

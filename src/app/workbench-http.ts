@@ -1,30 +1,41 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-const CORS_HEADERS = {
-  "access-control-allow-headers": "content-type",
-  "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
-  "access-control-allow-origin": "*",
-} as const;
+type BufferedWorkbenchRequest = IncomingMessage & {
+  workbenchRawBody?: Buffer;
+};
 
 export const writeJson = (
   response: ServerResponse,
   statusCode: number,
   body: unknown,
+  headers: Record<string, string> = {},
 ): void => {
-  response.writeHead(statusCode, { ...CORS_HEADERS, "content-type": "application/json; charset=utf-8" });
+  response.writeHead(statusCode, { ...headers, "content-type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(body));
 };
 
-export const writeCorsPreflight = (response: ServerResponse): void => {
-  response.writeHead(204, CORS_HEADERS);
+export const writeCorsPreflight = (
+  response: ServerResponse,
+  headers: Record<string, string>,
+): void => {
+  response.writeHead(204, headers);
   response.end();
 };
 
-export const readJsonBody = async (request: IncomingMessage): Promise<unknown> => {
+export const readRequestBuffer = async (request: IncomingMessage): Promise<Buffer> => {
+  const bufferedRequest = request as BufferedWorkbenchRequest;
+  if (bufferedRequest.workbenchRawBody) {
+    return bufferedRequest.workbenchRawBody;
+  }
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  bufferedRequest.workbenchRawBody = Buffer.concat(chunks);
+  return bufferedRequest.workbenchRawBody;
+};
+
+export const readJsonBody = async (request: IncomingMessage): Promise<unknown> => {
+  const raw = (await readRequestBuffer(request)).toString("utf8").trim();
   return raw ? JSON.parse(raw) : {};
 };

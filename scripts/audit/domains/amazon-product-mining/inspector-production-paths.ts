@@ -129,57 +129,42 @@ export const inspectAmazonHumanPacingDelay = (
   }));
 };
 
-export const inspectRejectedKeywordEvidencePurge = (
+export const inspectRejectedKeywordEvidenceRetention = (
   context: InspectorContext,
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  const contracts = [
-    {
-      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-      requiredIdentifiers: [
-        "purgeRejectedKeywordEvidence",
-        "purgeRejectedKeywordReviewEvidenceArtifacts",
-        "rejected_keyword_evidence_purged",
-      ],
-    },
-    {
-      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-      requiredIdentifiers: [
-        "purgeRejectedKeywordEvidence",
-        "amazon_mining_search_results",
-        "amazon_mining_search_result_product_link",
-        "amazon_mining_product_details",
-        "amazon_mining_reviews",
-        "amazon_mining_exception_records",
-      ],
-    },
-    {
-      repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
-      requiredIdentifiers: [
-        "purgeRejectedKeywordReviewEvidenceArtifacts",
-        "unlinkSync",
-      ],
-    },
-  ] as const;
-
-  for (const contract of contracts) {
-    const sourceFile = getRequiredSourceFile(context, contract.repoPath);
+  const flowPath = "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts";
+  const storagePath = "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts";
+  const supportPath = "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts";
+  const flowFile = getRequiredSourceFile(context, flowPath);
+  const storageFile = getRequiredSourceFile(context, storagePath);
+  const supportFile = getRequiredSourceFile(context, supportPath);
+  for (const sourceFile of [flowFile, storageFile, supportFile]) {
     trackSourceFile(inspectedFiles, sourceFile);
-    if (!sourceFile) {
-      continue;
-    }
-    const missingIdentifiers = contract.requiredIdentifiers.filter((identifier) => !fileIncludesText(sourceFile, identifier));
-    if (missingIdentifiers.length === 0) {
-      continue;
-    }
+  }
+
+  const flowRetainsEvidence = flowFile
+    && hasIdentifier(flowFile, "persistRejectedKeywordRetentionNote")
+    && fileIncludesText(flowFile, "rejected_keyword_evidence_retained")
+    && !sourceHasCallExpression(flowFile, "purgeRejectedKeywordEvidence")
+    && !sourceHasCallExpression(flowFile, "purgeRejectedKeywordReviewEvidenceArtifacts");
+  const storageHasNoPurgeApi = storageFile
+    && !hasIdentifier(storageFile, "purgeRejectedKeywordEvidence")
+    && !fileIncludesText(storageFile, "DELETE FROM amazon_mining_search_results")
+    && !fileIncludesText(storageFile, "DELETE FROM amazon_mining_reviews");
+  const supportHasNoArtifactDeletion = supportFile
+    && !hasIdentifier(supportFile, "purgeRejectedKeywordReviewEvidenceArtifacts")
+    && !hasIdentifier(supportFile, "unlinkSync");
+
+  if (!flowRetainsEvidence || !storageHasNoPurgeApi || !supportHasNoArtifactDeletion) {
     findings.push(createFinding({
-      checkId: "amazon-mining/rejected-keyword-evidence-purge",
+      checkId: "amazon-mining/rejected-keyword-evidence-retention",
       lawId,
-      filePath: contract.repoPath,
-      message: "REJECT keyword reviews must physically purge keyword-owned bulk evidence while preserving only a verdict tombstone.",
-      evidence: `missingIdentifiers=${missingIdentifiers.join(",")}`,
+      filePath: flowPath,
+      message: "REJECT keyword reviews must retain a reviewable keyword evidence chain and must not call storage or artifact deletion paths.",
+      evidence: `flowRetainsEvidence=${Boolean(flowRetainsEvidence)};storageHasNoPurgeApi=${Boolean(storageHasNoPurgeApi)};supportHasNoArtifactDeletion=${Boolean(supportHasNoArtifactDeletion)}`,
     }));
   }
 };

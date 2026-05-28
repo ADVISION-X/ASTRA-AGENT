@@ -1,0 +1,23 @@
+{
+  "capabilityDomain": "workbench-api-boundary",
+  "ownerInspectorPath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md",
+      "requiredAnchors": [
+        "## 3. 单链架构",
+        "## 4. 新增文件",
+        "## 14. 审计规则",
+        "## 15. 验收测试"
+      ]
+    }
+  ],
+  "description": "Workbench API Boundary owner inspector."
+}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T06:08:19.805Z",
+  "generatedAt": "2026-05-28T10:15:00.378Z",
   "entries": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -31,6 +31,7 @@
         "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
       ],
       "clauseIds": [
@@ -51,6 +52,7 @@
         "fs+export+acceptance",
         "fs+export+hash",
         "fs+handoff-record+acceptance",
+        "keyword-full-package+provider-file-proof+integrity+acceptance+ast",
         "keyword-review-input+field-disclosure+acceptance+ast",
         "prompt+acceptance+ast",
         "prompt+ast+export",
@@ -59,8 +61,8 @@
         "runtime-log+failure-record",
         "schema+storage+response-validation",
         "snapshot+persisted-record+hash",
-        "storage+flow+acceptance+ast",
-        "storage+flow+app-surface+ast+acceptance"
+        "storage+flow+app-surface+ast+acceptance",
+        "storage+flow+package+acceptance+ast"
       ],
       "blueprintRefs": []
     },
@@ -70,12 +72,14 @@
       "ownerInspectorPath": "scripts/audit/domains/app-shell-ui/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-APP-SHELL-UI-001-V1"
+        "GRASSEYE-APP-SHELL-UI-001-V1",
+        "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"
       ],
       "clauseIds": [
         "primary"
       ],
       "evidenceModes": [
+        "fs+ast+acceptance+chrome",
         "ts-morph+acceptance+visual"
       ],
       "blueprintRefs": [
@@ -86,7 +90,8 @@
             "## 2. App Shell 总布局",
             "## 5. Skill Registry 设计",
             "## 8. 三级页面 / Inspector 标准",
-            "## 13. 验收测试建议"
+            "## 13. 验收测试建议",
+            "## 23. Legacy APP User-Demand Authority Physical Absence"
           ]
         }
       ]
@@ -619,6 +624,45 @@
             "## 4. 子能力清单",
             "## YouTube 清晰度与字幕验收",
             "## 13. 验收标准"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "workbench-api-boundary",
+      "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
+        "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast+acceptance",
+        "ast+fs",
+        "ast+fs+acceptance",
+        "fs+ast",
+        "hybrid",
+        "persisted-record+runtime-log",
+        "schema+acceptance"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md",
+          "requiredAnchors": [
+            "## 3. 单链架构",
+            "## 4. 新增文件",
+            "## 14. 审计规则",
+            "## 15. 验收测试"
           ]
         }
       ]

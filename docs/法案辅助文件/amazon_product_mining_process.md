@@ -12,7 +12,7 @@
 
 Amazon 产品挖掘技能的目标是：
 
-> 在用户选择的 Amazon 市场与站点中，通过 AI 生成关键词，逐个关键词搜索 Amazon 首页产品，提取搜索结果页产品信息；对首页排名前 30 名的产品逐个打开详情页并提取完整产品信息与当前可访问的全量评论；当单个关键词完成后，先构建该关键词资料切片并交给高级 AI 做关键词级机会筛选，再继续下一个关键词；所有关键词完成后，再形成完整任务数据包，供高级 AI 做最终产品决策。
+> 在用户选择的 Amazon 市场与站点中，通过 AI 生成关键词，逐个关键词搜索 Amazon 首页产品，提取搜索结果页产品信息；对首页排名前 30 名的产品逐个打开详情页并提取完整产品信息与当前可访问的全量评论；当单个关键词完成后，先构建该关键词 full evidence package 并交给高级 AI 做关键词级机会筛选，再继续下一个关键词；所有关键词完成后，再形成完整任务数据包，供高级 AI 做最终产品决策。
 
 该技能不负责判断“这个产品一定能赚钱”，也不负责采购、定价、利润核算、库存管理或 ERP 工作。
 
@@ -28,7 +28,7 @@ flowchart TD
   F --> G[提取产品详情]
   G --> H[进入评论页并分页提取可访问全量评论]
   H --> I[当前关键词产品处理完成]
-  I --> J[构建该关键词 package slice]
+  I --> J[构建该关键词 full evidence package]
   J --> K[交给高级 AI 做关键词级机会筛选]
   K --> L[校验固定 verdict 契约并入库]
   L --> M[更新 App Keyword Review History]
@@ -408,28 +408,29 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 
 ---
 
-## 12. 当前关键词完成并进入关键词级资料切片阶段
+## 12. 当前关键词完成并进入关键词级完整资料包阶段
 
 ### 流程说明
 
-当当前关键词下允许进入详情页与评论页的产品都处理完后，Agent 不能直接进入下一个关键词，而是先完成该关键词的执行摘要与资料切片，为后续关键词级机会研判准备输入。
+当当前关键词下允许进入详情页与评论页的产品都处理完后，Agent 不能直接进入下一个关键词，而是先完成该关键词的执行摘要与关键词级完整资料包，为后续关键词级机会研判准备充分输入。
 
 处理顺序：
 
 1. 检查当前关键词下首页前 30 名产品状态，以及搜索结果页证据是否已经完整保存。
 2. 统计成功、失败、待人工处理的产品数量。
 3. 标记关键词状态为 `completed` 或 `completed_with_errors`。
-4. 生成该关键词的 package slice，汇总 search results、linked product details、linked reviews、image refs、completeness、exceptions。
-5. 保存该关键词执行摘要与关键词级资料切片引用。
+4. 生成该关键词的 full evidence package，汇总 search results、linked product details、full accessible reviews、image refs、completeness、exceptions、AI reading contract 和 handoff prompt。
+5. 生成 package integrity report；未通过时不得进入 AI 研判。
 6. 将该关键词送入关键词级机会研判阶段。
 
 ### 注意事项
 
 1. 关键词完成状态必须基于其下产品处理结果与搜索结果证据完整度。
 2. 如果部分产品失败，关键词不能简单标记为完全成功。
-3. 每个关键词必须保留执行摘要与关键词级资料切片。
+3. 每个关键词必须保留执行摘要与关键词级完整资料包。
 4. 关键词完成后不得直接跳到下一个关键词，必须先完成关键词级机会研判。
 5. 如果所有关键词均失败，应输出失败数据包，而不是静默结束。
+6. inline evidence slice 只能作为快速目录和导航，不得作为高级 AI 深度研判唯一资料源。
 
 ---
 
@@ -437,12 +438,12 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 
 ### 流程说明
 
-当单个关键词的资料切片生成完成后，Agent 将该关键词资料切片交给高级 AI，执行一次 `keywordId` 级机会筛选。
+当单个关键词的 full evidence package 生成并通过 integrity 后，Agent 将该关键词完整资料包交给高级 AI，执行一次 `keywordId` 级机会筛选。
 
 处理顺序：
 
-1. 将该关键词的 search results、linked product details、linked reviews、image refs、completeness、exceptions 组装为 keyword review 输入。
-2. 将该输入材料交给高级 AI。
+1. 将该关键词的 full evidence package、AI reading contract、keyword opportunity review prompt 准备为 GPT Web Chat 输入。
+2. 将完整 package 通过 transport zip 交给高级 AI；zip 只作为运输壳，目录内 full package 文件仍是唯一证据真相源；inline slice 只能作为导航。
 3. 只接受固定结构化 verdict：`PASS / WATCH / REJECT / INSUFFICIENT_DATA`。
 4. 校验六个固定维度与 `humanNextStep` 枚举值。
 5. 保存 prompt、raw response、structured verdict、evidence refs、missing evidence、risk points。
@@ -456,6 +457,9 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 3. 每个关键词都必须独立生成一条 keyword opportunity review 记录，不能把某个关键词 verdict 扩大为整个任务的全局结论。
 4. 如果高级 AI 不可用、返回不合规或无法结构化校验，review 只能进入 `manual_required` 或 `failed`，不得伪装为完成。
 5. App 历史表只能读取已持久化的 keyword review 记录，不能用本地缓存、demo row 或扫描资料包代替。
+6. 如果 package transport zip 上传能力不可用，review 必须进入 `manual_required`，不得自动降级成 inline-only verdict。
+7. 如果 AI 只读取了 slice，没有读取 full package，verdict 不得作为最终 keyword review。
+8. 如果 AI 返回 `REJECT`，只能标记该关键词不进入候选名单，不能物理删除该关键词 evidence。
 
 ---
 
@@ -847,27 +851,33 @@ flow:
       - "preserve_current_keyword_source_relation_even_when_reusing_product_data"
 
   - step_id: "S12"
-    name: "complete_current_keyword_and_build_package_slice"
+    name: "complete_current_keyword_and_build_full_package"
     actor: "agent"
     actions:
       - "check_all_products_under_keyword"
       - "count_completed_failed_manual_required"
       - "mark_keyword_completed_or_completed_with_errors"
-      - "build_keyword_package_slice"
+      - "build_keyword_full_evidence_package"
+      - "verify_keyword_package_integrity"
     output:
       - "keyword_execution_summary"
-      - "keyword_package_slice"
+      - "keyword_full_evidence_package"
+      - "keyword_package_integrity_report"
     cautions:
       - "keyword_completion_must_reflect_product_results"
       - "partial_failure_should_be_completed_with_errors"
-      - "do_not_skip_keyword_package_slice_before_keyword_review"
+      - "do_not_skip_keyword_full_package_before_keyword_review"
+      - "inline_slice_is_navigation_only_not_final_review_evidence"
       - "every_keyword_must_have_execution_summary"
 
   - step_id: "S13"
     name: "run_keyword_opportunity_review"
     actor: "agent_to_ai"
     inputs:
-      - "keyword_package_slice"
+      - "keyword_full_evidence_package"
+      - "ai_reading_contract"
+      - "keyword_opportunity_review_prompt"
+      - "inline_evidence_navigation"
       - "search_results"
       - "linked_product_details"
       - "linked_reviews"
@@ -880,10 +890,15 @@ flow:
       - "app_history_updated"
     cautions:
       - "keyword_review_is_keywordId_scoped_not_final_product_decision"
+      - "full_package_must_be_uploaded_when_file_upload_available"
+      - "if_file_upload_unavailable_then_mark_manual_required"
+      - "if_package_integrity_failed_then_do_not_enter_ai_review"
+      - "if_ai_only_reads_inline_slice_then_verdict_is_not_final_keyword_review"
       - "decision_must_be_one_of_pass_watch_reject_insufficient_data"
       - "human_next_step_must_use_fixed_enum"
       - "if_ai_unavailable_or_invalid_then_mark_manual_required_or_failed"
       - "do_not_output_procurement_sampling_listing_ads_or_final_selection_guidance"
+      - "reject_must_retain_reviewable_evidence_chain_not_physically_purge_keyword_evidence"
 
   - step_id: "S14"
     name: "generate_complete_data_package"

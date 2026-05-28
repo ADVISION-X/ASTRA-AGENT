@@ -5,7 +5,10 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { createAmazonMiningStorage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.storage.js";
-import { AmazonMiningSchemas } from "../../src/plugins/amazon-product-mining/index.js";
+import {
+  AmazonMiningSchemas,
+  getAmazonProductMiningTaskStatus,
+} from "../../src/plugins/amazon-product-mining/index.js";
 
 const dataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-storage-test-"));
 
@@ -66,7 +69,15 @@ try {
   assert.equal(storage.listTasksByStatuses(["keyword_generating"]).some((record) => record.taskId === taskId), true);
   storage.updateTaskStatus({ taskId, status: "paused" });
   assert.equal(storage.getTask(taskId)?.status, "paused");
+  storage.updateTaskStatus({ taskId, status: "mining" });
+  assert.equal(storage.getTask(taskId)?.status, "paused");
+  storage.updateTaskStatus({ taskId, status: "mining", operatorOverride: true });
+  assert.equal(storage.getTask(taskId)?.status, "mining");
   storage.updateTaskStatus({ taskId, status: "terminated" });
+  assert.equal(storage.getTask(taskId)?.status, "terminated");
+  storage.updateTaskStatus({ taskId, status: "mining" });
+  assert.equal(storage.getTask(taskId)?.status, "terminated");
+  storage.updateTaskStatus({ taskId, status: "keyword_generating", operatorOverride: true });
   assert.equal(storage.getTask(taskId)?.status, "terminated");
   storage.updateTaskStatus({ taskId, status: "keyword_generating" });
 
@@ -216,6 +227,29 @@ try {
   assert.equal(reviews.length, 1);
   assert.equal(reviews[0]!.reviewTitle, "Great tent!");
 
+  // --- Public read model: App/API task status must expose live persisted progress, not only the task shell ---
+  const publicStatus = getAmazonProductMiningTaskStatus({ dataDir, taskId }) as {
+    keywords?: Array<{
+      keyword: string;
+      productDetailCount: number;
+      reviewCount: number;
+      searchResultCount: number;
+    }>;
+    summary?: {
+      keywordCount: number;
+      productDetailCount: number;
+      reviewCount: number;
+      searchResultCount: number;
+    };
+  };
+  assert.equal(publicStatus.summary?.keywordCount, 2);
+  assert.equal(publicStatus.summary?.searchResultCount, 1);
+  assert.equal(publicStatus.summary?.productDetailCount, 1);
+  assert.equal(publicStatus.summary?.reviewCount, 1);
+  assert.equal(publicStatus.keywords?.find((keyword) => keyword.keyword === "lightweight tent")?.searchResultCount, 1);
+  assert.equal(publicStatus.keywords?.find((keyword) => keyword.keyword === "lightweight tent")?.productDetailCount, 1);
+  assert.equal(publicStatus.keywords?.find((keyword) => keyword.keyword === "lightweight tent")?.reviewCount, 1);
+
   // --- Storage: persist exception ---
   storage.persistException({
     exceptionId: randomUUID(),
@@ -229,17 +263,11 @@ try {
   assert.equal(exceptions.length, 1);
   assert.equal(exceptions[0]!.exceptionKind, "captcha");
 
-  // --- Storage: rejected keyword evidence purge keeps keyword tombstone but removes keyword-owned bulk evidence ---
-  const purgeResult = storage.purgeRejectedKeywordEvidence({ taskId, keywordId: keywordId1 });
-  assert.equal(purgeResult.keywordId, keywordId1);
-  assert.equal(purgeResult.searchResultCount, 1);
-  assert.equal(purgeResult.linkCount, 1);
-  assert.equal(purgeResult.productDetailCount, 1);
-  assert.equal(purgeResult.reviewCount, 1);
-  assert.equal(purgeResult.exceptionCount, 1);
-  assert.equal(storage.getSearchResultsForKeyword(keywordId1).length, 0);
-  assert.equal(storage.getProductDetail(detailId), null);
-  assert.equal(storage.getReviewsForProduct(detailId).length, 0);
+  // --- Storage: rejected keyword evidence remains reviewable; no storage purge API exists on the production owner ---
+  assert.equal("purgeRejectedKeywordEvidence" in storage, false);
+  assert.equal(storage.getSearchResultsForKeyword(keywordId1).length, 1);
+  assert.equal(storage.getProductDetail(detailId)?.detailId, detailId);
+  assert.equal(storage.getReviewsForProduct(detailId).length, 1);
   assert.equal(storage.getKeywordsForTask(taskId).some((keyword) => keyword.keywordId === keywordId1), true);
 
   storage.close();

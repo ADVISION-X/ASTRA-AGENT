@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-28T06:08:45.982Z",
+  "generatedAt": "2026-05-28T10:15:24.542Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -71,6 +71,7 @@
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+    "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -88,6 +89,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
@@ -98,6 +100,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
+    "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
     "scripts/audit/domains/app-shell-ui/inspector-skill-registry.ts",
     "scripts/audit/domains/app-shell-ui/inspector.ts",
     "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
@@ -243,6 +246,7 @@
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
+    "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
     "scripts/audit/shared/inspector-contracts.ts",
@@ -289,6 +293,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-case-reader.ts",
@@ -427,6 +432,7 @@
     "src/lib/local-runtime/structured-log-bus.ts",
     "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
@@ -489,6 +495,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -984,6 +991,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+      "reason": "package.json script acceptance:workbench-api-boundary",
+      "scriptName": "acceptance:workbench-api-boundary"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/audit/ci-full.ts",
       "reason": "package.json script ci:full",
       "scriptName": "ci:full"
@@ -1110,6 +1123,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+      "reason": "package.json script audit:workbench-api-boundary",
+      "scriptName": "audit:workbench-api-boundary"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/startup/launch-grasseye.mjs",
       "reason": "package.json script grasseye:start",
       "scriptName": "grasseye:start"
@@ -1121,9 +1140,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1624,
+  "liveExportCount": 1635,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 587,
+  "reachableFileCount": 594,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1135,9 +1154,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1624,
+    "liveExportCount": 1635,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 587,
+    "reachableFileCount": 594,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

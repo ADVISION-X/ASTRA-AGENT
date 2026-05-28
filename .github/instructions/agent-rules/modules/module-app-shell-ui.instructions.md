@@ -618,6 +618,55 @@ Amazon Product Mining 不再一页到底
 UI 不做业务裁决
 UI 不使用假数据
 UI 不使用 localStorage 作为真相源
+
+---
+
+## [GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1] Legacy APP User-Demand Authority Physical Absence
+
+```apex-law
+{
+  "lawId": "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "app-shell-ui",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast+acceptance+chrome",
+  "summary": "After App Shell becomes the production UI entry, the orphan legacy APP user-demand startup blueprint must be physically absent. Retired, archived, deprecated, or copied variants of that legacy authority are forbidden.",
+  "appliesTo": [
+    ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
+    "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
+    "docs/法案辅助文件/**/*.md",
+    "src/app/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/audit/domains/app-shell-ui/**",
+    "scripts/acceptance/app-shell-*.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
+    "package.json"
+  ],
+  "forbidden": [
+    "Legacy APP user-demand startup blueprint exists after App Shell production entry.",
+    "Retired, archived, deprecated, hidden, or copied variants of the legacy APP user-demand startup blueprint remain in the repository.",
+    "App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
+  ]
+}
+```
+
+当 `src/app/workbench-home-page.ts` 的生产入口已经固定为 `renderAppShell()` 后，
+以下旧主权文件必须物理缺席：
+
+```txt
+docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md
+```
+
+禁止：
+
+```txt
+retired 保留
+archive 保留
+deprecated 保留
+legacy 改名保留
+.bak / .old / 历史副本保留
+MIGRATION / package / source 持续引用旧路径
+```
 UI 不出现采购/打样/压货/广告/最终选择按钮
 旧 UI 无生产入口
 Inspector 覆盖

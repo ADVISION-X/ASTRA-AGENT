@@ -144,7 +144,10 @@ const inspectKeywordReviewGovernanceTokens = (
     "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-    "KEYWORD_PACKAGE_SLICE_BUILD",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
+    "KEYWORD_FULL_PACKAGE_BUILD",
+    "KEYWORD_FULL_PACKAGE_INTEGRITY_GATE",
     "KEYWORD_ADVANCED_AI_HANDOFF",
     "KEYWORD_OPPORTUNITY_REVIEW",
     "KEYWORD_REVIEW_PERSIST",
@@ -225,7 +228,10 @@ export const inspectPluginPublicSurface = (
 ): void => {
   const repoPath = "src/plugins/amazon-product-mining/index.ts";
   const pluginIndex = getRequiredSourceFile(context, repoPath);
+  const resultRepoPath = "src/plugins/amazon-product-mining/amazon-product-mining.result.ts";
+  const resultFile = getRequiredSourceFile(context, resultRepoPath);
   trackSourceFile(inspectedFiles, pluginIndex);
+  trackSourceFile(inspectedFiles, resultFile);
   const requiredExports = [
     "startAmazonProductMiningMission",
     "getAmazonProductMiningTaskStatus",
@@ -236,7 +242,29 @@ export const inspectPluginPublicSurface = (
     "exportAmazonProductMiningResult",
     "AmazonMiningSchemas",
   ];
-  if (pluginIndex && requiredExports.every((name) => hasIdentifier(pluginIndex, name))) {
+  const requiredReadModelSymbols = [
+    "buildTaskReadModel",
+    "createKeywordProgress",
+    "getSearchResultsForKeyword",
+    "getProductDetailsForTask",
+    "getReviewsForProduct",
+    "getSearchResultProductLinksForTask",
+    "listKeywordOpportunityReviews",
+  ];
+  const requiredResultSymbols = [
+    "AmazonTaskKeywordProgress",
+    "AmazonTaskRunSummary",
+    "AmazonTaskResultSnapshot",
+    "keywords",
+    "summary",
+  ];
+  if (
+    pluginIndex
+    && resultFile
+    && requiredExports.every((name) => hasIdentifier(pluginIndex, name))
+    && requiredReadModelSymbols.every((name) => hasIdentifier(pluginIndex, name))
+    && requiredResultSymbols.every((name) => hasIdentifier(resultFile, name))
+  ) {
     return;
   }
   findings.push(createFinding({

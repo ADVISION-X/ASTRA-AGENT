@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-28T06:08:49.357Z",
+  "generatedAt": "2026-05-28T10:15:27.824Z",
   "status": "PASS",
-  "scannedFiles": 331,
+  "scannedFiles": 334,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -26,6 +26,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-case-reader.ts",
@@ -167,6 +168,7 @@
     "src/lib/local-runtime/structured-log-bus.ts",
     "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
@@ -229,6 +231,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -335,7 +338,7 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 18,
+  "emitCallCount": 20,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
@@ -353,8 +356,8 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 331,
-    "emitCallCount": 18,
+    "scannedFiles": 334,
+    "emitCallCount": 20,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -364,7 +367,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 326,
+      "scannedFiles": 329,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -373,28 +376,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 255
+      "scannedFiles": 257
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 251,
+      "scannedFiles": 253,
       "metrics": {
-        "emitCallCount": 7
+        "emitCallCount": 9
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 251
+      "scannedFiles": 253
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 256,
+      "scannedFiles": 258,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -403,13 +406,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 21
+      "scannedFiles": 22
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 256,
+      "scannedFiles": 258,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -442,9 +445,9 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 21,
+      "scannedFiles": 22,
       "metrics": {
-        "emitCallCount": 18,
+        "emitCallCount": 20,
         "stageStartCount": 18,
         "stageTerminalCount": 37,
         "failureBranchCount": 32

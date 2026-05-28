@@ -77,6 +77,38 @@ const loadTaskControlFiles = (
     return [repoPath, sourceFile] as const;
   })) as TaskControlFiles;
 
+const inspectTaskControlSchema = (schema: SourceFile | undefined): boolean =>
+  Boolean(schema
+    && hasStringLiteral(schema, "paused")
+    && hasStringLiteral(schema, "terminated")
+    && hasIdentifier(schema, "AmazonKeywordProviderKindSchema"));
+
+const inspectTaskControlFlow = (flow: SourceFile | undefined): boolean =>
+  Boolean(flow
+    && hasCallToLocalIdentifier(flow, "ensureTaskRecord")
+    && hasCallToLocalIdentifier(flow, "haltIfAmazonOperatorControlled")
+    && hasCallToLocalIdentifier(flow, "getAmazonLinkedProductDetail")
+    && hasCallToLocalIdentifier(flow, "hasAmazonKeywordOpportunityReview"));
+
+const inspectTaskControlStorage = (
+  storage: SourceFile | undefined,
+  storageSchema: SourceFile | undefined,
+): boolean => Boolean(storage
+    && storageSchema
+    && hasIdentifier(storage, "listTasksByStatuses")
+    && hasIdentifier(storage, "operatorOverride")
+    && hasStringLiteral(storage, "paused")
+    && hasStringLiteral(storage, "terminated")
+    && fileIncludesText(storageSchema, "provider_kind"));
+
+const inspectTaskControlIndex = (pluginIndex: SourceFile | undefined): boolean =>
+  Boolean(pluginIndex
+    && sourceExports(pluginIndex, "pauseAmazonProductMiningTask")
+    && sourceExports(pluginIndex, "continueAmazonProductMiningTask")
+    && sourceExports(pluginIndex, "terminateAmazonProductMiningTask")
+    && sourceExports(pluginIndex, "continueInterruptedAmazonProductMiningTasks")
+    && enumArrayHasValues(pluginIndex, "RUNNING_TASK_STATUSES", ["created", "keyword_generating", "keyword_ready", "mining", "packaging"]));
+
 const inspectTaskControlCore = (files: TaskControlFiles) => {
   const schema = files["src/plugins/amazon-product-mining/amazon-product-mining.schema.ts"];
   const flow = files["src/plugins/amazon-product-mining/amazon-product-mining.flow.ts"];
@@ -84,25 +116,10 @@ const inspectTaskControlCore = (files: TaskControlFiles) => {
   const storageSchema = files["src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts"];
   const pluginIndex = files["src/plugins/amazon-product-mining/index.ts"];
   return {
-    schemaOk: Boolean(schema
-      && hasStringLiteral(schema, "paused")
-      && hasStringLiteral(schema, "terminated")
-      && hasIdentifier(schema, "AmazonKeywordProviderKindSchema")),
-    flowOk: Boolean(flow
-      && hasCallToLocalIdentifier(flow, "ensureTaskRecord")
-      && hasCallToLocalIdentifier(flow, "haltIfAmazonOperatorControlled")
-      && hasCallToLocalIdentifier(flow, "getAmazonLinkedProductDetail")
-      && hasCallToLocalIdentifier(flow, "hasAmazonKeywordOpportunityReview")),
-    storageOk: Boolean(storage
-      && storageSchema
-      && hasIdentifier(storage, "listTasksByStatuses")
-      && fileIncludesText(storageSchema, "provider_kind")),
-    indexOk: Boolean(pluginIndex
-      && sourceExports(pluginIndex, "pauseAmazonProductMiningTask")
-      && sourceExports(pluginIndex, "continueAmazonProductMiningTask")
-      && sourceExports(pluginIndex, "terminateAmazonProductMiningTask")
-      && sourceExports(pluginIndex, "continueInterruptedAmazonProductMiningTasks")
-      && enumArrayHasValues(pluginIndex, "RUNNING_TASK_STATUSES", ["created", "keyword_generating", "keyword_ready", "mining", "packaging"])),
+    schemaOk: inspectTaskControlSchema(schema),
+    flowOk: inspectTaskControlFlow(flow),
+    storageOk: inspectTaskControlStorage(storage, storageSchema),
+    indexOk: inspectTaskControlIndex(pluginIndex),
   };
 };
 

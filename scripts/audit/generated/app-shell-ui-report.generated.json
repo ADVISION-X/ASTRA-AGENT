@@ -1,17 +1,22 @@
 {
-  "generatedAt": "2026-05-28T06:08:50.218Z",
+  "generatedAt": "2026-05-28T10:15:28.786Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-APP-SHELL-UI-001-V1"
+    "GRASSEYE-APP-SHELL-UI-001-V1",
+    "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"
   ],
   "status": "PASS",
   "findings": [],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
+    "MIGRATION_FILE_DECISION_TABLE.md",
+    "docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md",
     "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
+    "package.json",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
+    "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
     "scripts/audit/domains/app-shell-ui/inspector-skill-registry.ts",
     "scripts/audit/domains/app-shell-ui/inspector.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
@@ -33,6 +38,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-case-reader.ts",

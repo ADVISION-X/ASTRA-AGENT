@@ -148,13 +148,17 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
       const reviewInput = input as {
         inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
         maxInputChars?: number;
+        maxFileCount?: number;
       };
       assert.equal(reviewInput.maxInputChars, 900_000);
       assert.equal(reviewInput.inputRefs?.length, 1);
-      assert.equal(reviewInput.inputRefs?.[0]?.kind, "amazon-product-mining-keyword-evidence-slice");
+      assert.equal(reviewInput.maxFileCount, reviewInput.inputRefs?.length);
+      assert.equal(reviewInput.inputRefs?.every((ref) => ref.kind === "keyword-full-package-zip"), true);
+      assert.equal(reviewInput.inputRefs?.[0]?.filePath?.endsWith("-full-evidence-package.zip"), true);
       assert.equal(typeof reviewInput.inputRefs?.[0]?.id, "string");
-      assert.equal(reviewInput.inputRefs?.[0]?.filePath, undefined);
+      assert.equal(reviewInput.inputRefs?.every((ref) => typeof ref.filePath === "string"), true);
     }
+    const inputRefIds = ((input as { inputRefs?: Array<{ id?: string }> }).inputRefs ?? []).map((ref) => ref.id ?? "");
     const normalizedText = promptContractId === "amazon-product-mining-keyword-opportunity-review-v1"
       ? JSON.stringify({
           decision: "PASS",
@@ -186,7 +190,7 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
         modelName: null,
         inputHash: "input-hash",
         outputHash: "output-hash",
-        inputRefs: [],
+        inputRefs: inputRefIds,
         outputRefs: [],
         startedAt: new Date().toISOString(),
         endedAt: new Date().toISOString(),

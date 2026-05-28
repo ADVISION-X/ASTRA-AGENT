@@ -25,6 +25,7 @@ import {
   inspectKeywordReviewLawAndBlueprint,
   inspectKeywordReviewSchemaAndStorage,
 } from "./inspector-keyword-review-governance.js";
+import { inspectKeywordFullPackageHandoff } from "./inspector-keyword-full-package.js";
 import { inspectPackageScript } from "./inspector-package-scripts.js";
 import {
   inspectBrowserTabExtractionContract,
@@ -37,7 +38,7 @@ import {
   inspectFlowSearchBeforeDetail,
   inspectGptWebChatIsolationForKeywordMining,
   inspectPackageEvidenceDepthContract,
-  inspectRejectedKeywordEvidencePurge,
+  inspectRejectedKeywordEvidenceRetention,
   inspectReviewsPerPagePersistence,
 } from "./inspector-production-paths.js";
 import { buildAmazonMiningInspectorReport, inspectBrowserTabLifecycle } from "./inspector-tab-lifecycle.js";
@@ -51,9 +52,10 @@ type AmazonMiningLawIds = {
   keyword: string;
   keywordReviewBoundary: string;
   keywordReviewEvidenceDepth: string;
+  keywordReviewFullPackage: string;
   keywordReviewSchema: string;
   keywordReviewSurface: string;
-  rejectedKeywordPurge: string;
+  rejectedKeywordRetention: string;
   taskResumeAndControls: string;
   review: string;
   search: string;
@@ -69,9 +71,10 @@ const selectAmazonMiningLawIds = (context: InspectorContext): AmazonMiningLawIds
   keyword: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1"),
   keywordReviewBoundary: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1"),
   keywordReviewEvidenceDepth: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1"),
+  keywordReviewFullPackage: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1"),
   keywordReviewSchema: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1"),
   keywordReviewSurface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1"),
-  rejectedKeywordPurge: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"),
+  rejectedKeywordRetention: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"),
   taskResumeAndControls: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1"),
   review: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1"),
   search: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1"),
@@ -106,6 +109,7 @@ const inspectKeywordReviewContracts = (
   inspectKeywordReviewSchemaAndStorage(context, findings, inspectedFiles, lawIds.keywordReviewSchema);
   inspectKeywordReviewPromptAndFlow(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectKeywordReviewEvidenceSliceDepth(context, findings, inspectedFiles, lawIds.keywordReviewEvidenceDepth);
+  inspectKeywordFullPackageHandoff(context, findings, inspectedFiles, lawIds.keywordReviewFullPackage);
   inspectKeywordReviewAppSurface(context, findings, inspectedFiles, lawIds.keywordReviewSurface);
 };
 
@@ -118,7 +122,7 @@ const inspectProductionContracts = (
   inspectGptWebChatIsolationForKeywordMining(context, findings, inspectedFiles, lawIds.keyword);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, lawIds.search);
   inspectAmazonHumanPacingDelay(context, findings, inspectedFiles, lawIds.humanPacing);
-  inspectRejectedKeywordEvidencePurge(context, findings, inspectedFiles, lawIds.rejectedKeywordPurge);
+  inspectRejectedKeywordEvidenceRetention(context, findings, inspectedFiles, lawIds.rejectedKeywordRetention);
   inspectAmazonTaskResumeAndControls(context, findings, inspectedFiles, lawIds.taskResumeAndControls);
   inspectAmazonWebChatRestoreContinuity(context, findings, inspectedFiles, lawIds.webChatRestore);
   inspectSearchExtractionProductionPath(context, findings, inspectedFiles, lawIds.search);

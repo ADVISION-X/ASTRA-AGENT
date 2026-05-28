@@ -1,5 +1,7 @@
 import type { IncomingMessage } from "node:http";
 
+import { readRequestBuffer } from "./workbench-http.js";
+
 type WorkbenchMultipartFile = {
   filename: string;
   mimeType: string;
@@ -53,14 +55,6 @@ function readMultipartBoundary(contentType: string | string[] | undefined): stri
     throw new Error("multipart boundary is missing.");
   }
   return boundary;
-}
-
-async function readRequestBuffer(request: IncomingMessage): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
 }
 
 function parseMultipartParts(raw: Buffer, boundary: string): MultipartPart[] {
