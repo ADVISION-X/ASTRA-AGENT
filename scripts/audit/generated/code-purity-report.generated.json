@@ -5,8 +5,9 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-28T10:15:24.542Z",
+  "generatedAt": "2026-05-28T12:56:13.092Z",
   "inspectedFiles": [
+    "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -85,6 +86,7 @@
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
@@ -485,6 +487,8 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
@@ -629,6 +633,12 @@
     "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
   ],
   "liveEntryPoints": [
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+      "reason": "package.json script acceptance:amazon-invoice-upload-download",
+      "scriptName": "acceptance:amazon-invoice-upload-download"
+    },
     {
       "entryKind": "package-script",
       "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -1009,6 +1019,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+      "reason": "package.json script audit:amazon-invoice-upload",
+      "scriptName": "audit:amazon-invoice-upload"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
       "reason": "package.json script audit:amazon-product-mining",
       "scriptName": "audit:amazon-product-mining"
@@ -1140,9 +1156,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1635,
+  "liveExportCount": 1667,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 594,
+  "reachableFileCount": 598,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1154,9 +1170,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1635,
+    "liveExportCount": 1667,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 594,
+    "reachableFileCount": 598,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

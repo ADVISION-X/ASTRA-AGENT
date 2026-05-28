@@ -65,8 +65,8 @@ type KeywordPhaseResult = { kind: "stop"; result: AmazonFlowResult } | { kind: "
 type MiningPhaseResult = { kind: "active" } | { kind: "halted"; result: AmazonFlowResult };
 type KeywordWorkResult = "active" | "halted";
 export const AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT = 30;
-export const AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 60_000 } as const;
-export const AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 20_000 } as const;
+export const AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 20_000 } as const;
+export const AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 5_000 } as const;
 
 const waitForProductDetailOpenPacingDelay = async (runtime: AmazonFlowRuntime): Promise<void> =>
   waitForAmazonMiningPacingDelay(runtime.ctx.browser, AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE);

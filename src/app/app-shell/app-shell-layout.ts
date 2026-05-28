@@ -11,12 +11,37 @@ const renderAmazonInvoiceWorkspace = (): string => `
     </div>
   </div>
   <nav class="skill-page-nav" data-workspace-page-nav="amazon-invoice-upload" aria-label="Amazon invoice upload pages">
-    <button class="skill-page-tab" type="button" data-workspace-page="upload" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="true">Upload</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="download" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="true">Download</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="upload" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="false">Upload</button>
     <button class="skill-page-tab" type="button" data-workspace-page="latest" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="false">Latest</button>
     <button class="skill-page-tab" type="button" data-workspace-page="evidence" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="false">Evidence</button>
   </nav>
   <div class="skill-page-stack secondary-page-stack">
-  <section class="skill-page-surface" data-workspace-surface="upload" data-workspace-surface-skill="amazon-invoice-upload">
+  <section class="skill-page-surface" data-workspace-surface="download" data-workspace-surface-skill="amazon-invoice-upload">
+  <section class="panel app-form-panel">
+    <form class="form-grid" data-amazon-tax-invoice-download-form>
+      <div class="field"><label>Marketplace</label><select name="marketplace"><option>AE</option><option>SA</option><option>JP</option><option>US</option><option>UK</option></select></div>
+      <div class="field wide"><label>Seller Central Entry URL</label><input name="sellerCentralEntryUrl" type="url" value="https://sellercentral.amazon.ae/home" required /></div>
+      <div class="field"><label>Date Range</label><input name="dateRange" value="Last 30 Days" readonly /></div>
+      <div class="field"><label>Format</label><input name="format" value="CSV" readonly /></div>
+      <div class="field wide"><label>Report Type</label><input name="reportType" value="亚马逊配送货件 – 税务发票" readonly /></div>
+      <div class="field wide"><label>Callback URL</label><input name="callbackUrl" type="url" /></div>
+      <label class="check wide"><input name="requireHumanReview" type="checkbox" checked /> require human review</label>
+      <div class="actions wide">
+        <button class="btn" type="submit" data-amazon-tax-invoice-download-start>Start Download</button>
+        <button class="btn secondary" type="button" data-amazon-tax-invoice-download-latest>Latest Download</button>
+        <button class="btn secondary" type="button" data-amazon-tax-invoice-download-artifact>Open Artifact</button>
+      </div>
+      <div class="summary-metrics wide" data-amazon-tax-invoice-download-status>
+        <div><b data-amazon-tax-invoice-download-task-id>-</b><span>task id</span></div>
+        <div><b data-amazon-tax-invoice-download-state>-</b><span>status</span></div>
+        <div><b data-amazon-tax-invoice-download-step>-</b><span>reached step</span></div>
+        <div><b data-amazon-tax-invoice-download-artifact-ref>-</b><span>artifact ref</span></div>
+      </div>
+    </form>
+  </section>
+  </section>
+  <section class="skill-page-surface hidden" data-workspace-surface="upload" data-workspace-surface-skill="amazon-invoice-upload">
   <section class="panel app-form-panel">
     <form class="form-grid" data-amazon-form>
       <div class="field"><label>Marketplace</label><select name="marketplace"><option>AE</option><option>SA</option><option>JP</option><option>US</option><option>UK</option></select></div>

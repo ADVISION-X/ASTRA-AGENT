@@ -37,6 +37,7 @@ import {
   inspectAmazonWebChatRestoreContinuity,
   inspectFlowSearchBeforeDetail,
   inspectGptWebChatIsolationForKeywordMining,
+  inspectNeutralKeywordGenerationPrompt,
   inspectPackageEvidenceDepthContract,
   inspectRejectedKeywordEvidenceRetention,
   inspectReviewsPerPagePersistence,
@@ -50,6 +51,7 @@ type AmazonMiningLawIds = {
   flow: string;
   humanPacing: string;
   keyword: string;
+  keywordGeneration: string;
   keywordReviewBoundary: string;
   keywordReviewEvidenceDepth: string;
   keywordReviewFullPackage: string;
@@ -69,6 +71,7 @@ const selectAmazonMiningLawIds = (context: InspectorContext): AmazonMiningLawIds
   flow: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1"),
   humanPacing: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1"),
   keyword: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1"),
+  keywordGeneration: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1"),
   keywordReviewBoundary: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1"),
   keywordReviewEvidenceDepth: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1"),
   keywordReviewFullPackage: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1"),
@@ -120,6 +123,7 @@ const inspectProductionContracts = (
   lawIds: AmazonMiningLawIds,
 ): void => {
   inspectGptWebChatIsolationForKeywordMining(context, findings, inspectedFiles, lawIds.keyword);
+  inspectNeutralKeywordGenerationPrompt(context, findings, inspectedFiles, lawIds.keywordGeneration);
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, lawIds.search);
   inspectAmazonHumanPacingDelay(context, findings, inspectedFiles, lawIds.humanPacing);
   inspectRejectedKeywordEvidenceRetention(context, findings, inspectedFiles, lawIds.rejectedKeywordRetention);

@@ -234,7 +234,7 @@ Agent 禁止输出：最终选品结论 / 这个产品一定赚钱 / 是否采�
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+persisted-record",
-  "summary": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins.",
+  "summary": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins; system prompt text may only add format, deduplication, marketplace, and explicit boundary requirements, not product-trait assumptions.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts"
@@ -243,14 +243,26 @@ Agent 禁止输出：最终选品结论 / 这个产品一定赚钱 / 是否采�
     "AI keyword request without injecting historical mined keywords.",
     "Executing AI natural-language output directly as mining queue.",
     "Mining the same keyword again without an explicit duplicate marker.",
-    "Agent fabricating keywords to fill requested count."
+    "Agent fabricating keywords to fill requested count.",
+    "System prompt adding size, weight, small-item, lightweight, compact, shipping, price, material, or other product-trait constraints that the user did not explicitly request.",
+    "Treating China supplier background as an instruction to narrow keywords by dimensions, low volume, low weight, or ease of shipping."
   ]
 }
 ```
 
 ### 法条
 
-向 AI 请求关键词时必须投喂：目标 Amazon 站点 / 目标市场 / 产品方向 / 历史已挖掘关键词 / 本次禁止重复关键词 / 本次数量要求 / 结构化输出要求。
+向 AI 请求关键词时必须投喂：目标 Amazon 站点 / 目标市场 / 用户原始产品方向 / 历史已挖掘关键词 / 本次禁止重复关键词 / 本次数量要求 / 结构化输出要求。
+
+关键词生成 prompt 的系统侧只能负责：
+
+- 格式要求
+- 去重要求
+- marketplace / market / language 边界
+- 禁止越权判断
+
+系统不得代替用户或 AI 增加产品尺寸、重量、小件、轻量、紧凑、易运输、价格带、材质、包装、利润或采购假设。
+如果用户只说明“中国供应商背景”，只能作为 sourcing background，不得自动收窄成“小件轻货/低体积/易运输”等关键词限制。
 
 返回后必须：解析 → 清洗 → 历史去重 → 本任务去重 → 入队 → 来源记录。
 
@@ -921,7 +933,7 @@ App 可保存最近 taskId，
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "flow+ast+acceptance",
-  "summary": "Amazon Product Mining must pace real browser product and review page opens with governed random waits: product detail open 1-60 seconds and review page open 1-20 seconds.",
+  "summary": "Amazon Product Mining must pace real browser product and review page opens with governed random waits: product detail open 1-20 seconds and review page open 1-5 seconds.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
@@ -937,8 +949,8 @@ App 可保存最近 taskId，
 
 ### 法条
 
-- 每个 product detail 打开前必须随机等待 `1_000..60_000ms`。
-- 每个 review page 打开前必须随机等待 `1_000..20_000ms`。
+- 每个 product detail 打开前必须随机等待 `1_000..20_000ms`。
+- 每个 review page 打开前必须随机等待 `1_000..5_000ms`。
 - pacing 只能降低触发平台风控概率，不得用于绕过验证码、登录墙、地域限制或风险控制。
 - 搜索结果仍然全量保存；详情与评论仍然只处理当前关键词排名前 30。
 

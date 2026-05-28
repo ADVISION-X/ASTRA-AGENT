@@ -13,6 +13,17 @@ type KeywordGenerationResult = {
   failureReason: string | null;
 };
 
+export const AMAZON_KEYWORD_GENERATION_NEUTRALITY_POLICY = "The system only supplies marketplace, market, user product direction, deduplication data, and JSON format rules; it must not add product traits or sourcing assumptions.";
+export const AMAZON_KEYWORD_GENERATION_CHINA_SUPPLIER_POLICY = "If the user mentions China suppliers, treat it only as sourcing background and do not narrow keywords to small, lightweight, compact, low-volume, or easy-to-ship products unless the user explicitly wrote that constraint.";
+export const AMAZON_KEYWORD_GENERATION_FORBIDDEN_SYSTEM_ASSUMPTIONS = [
+  "size",
+  "weight",
+  "small",
+  "lightweight",
+  "compact",
+  "easy-to-ship",
+] as const;
+
 const buildKeywordPrompt = (input: {
   amazonMarketplace: string;
   targetMarket: string;
@@ -39,14 +50,15 @@ TASK: Generate exactly ${input.requestedKeywordCount} NEW Amazon search keywords
 CONSTRAINTS:
 - Must NOT repeat any already-mined keyword
 - Keywords should be actual Amazon search terms buyers would type
-- Focus on commercial intent (buyers looking to purchase)
-- Do NOT include brand names unless commonly used as generic terms
-- Each keyword should be distinct and cover different aspects / use cases
+- Do NOT include brand names unless the user's product direction explicitly asks for brand terms
+- ${AMAZON_KEYWORD_GENERATION_NEUTRALITY_POLICY}
+- ${AMAZON_KEYWORD_GENERATION_CHINA_SUPPLIER_POLICY}
+- Do not add or infer these constraints unless they appear in the user's Product Direction: ${AMAZON_KEYWORD_GENERATION_FORBIDDEN_SYSTEM_ASSUMPTIONS.join(", ")}
 
 OUTPUT FORMAT (JSON only, no explanation):
 {
   "keywords": [
-    { "keyword": "...", "reason": "..." },
+    { "keyword": "..." },
     ...
   ]
 }`;

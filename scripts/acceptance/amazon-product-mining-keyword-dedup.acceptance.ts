@@ -53,7 +53,7 @@ assert.ok(records[0]!.keywordId.length > 0, "keywordId should be non-empty UUID"
 assert.notEqual(records[0]!.keywordId, records[1]!.keywordId, "keywordIds should be unique");
 
 // --- Test 9: keyword AI request obeys selected gateway provider and no file payload ---
-let capturedAiInput: { providerKind?: unknown; maxFileCount?: unknown; maxFileBytes?: unknown } = {};
+let capturedAiInput: { providerKind?: unknown; maxFileCount?: unknown; maxFileBytes?: unknown; textPrompt?: unknown } = {};
 const aiInputGateway = {
   abilityGroupId: "ai-input-gateway" as const,
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once" as const],
@@ -112,5 +112,11 @@ await runKeywordGeneration({
 assert.equal(capturedAiInput?.providerKind, "gpt-web-chat", "Keyword generation must use the provider selected by the user");
 assert.equal(capturedAiInput?.maxFileCount, 0, "Keyword generation must not attach files");
 assert.equal(capturedAiInput?.maxFileBytes, 1, "Keyword generation must pass a positive file-byte budget");
+assert.equal(typeof capturedAiInput?.textPrompt, "string", "Keyword generation must send a governed prompt");
+const capturedPrompt = typeof capturedAiInput.textPrompt === "string" ? capturedAiInput.textPrompt : "";
+assert.ok(capturedPrompt.length > 0, "Keyword generation prompt must be readable text");
+assert.ok(capturedPrompt.includes("The system only supplies marketplace, market, user product direction, deduplication data, and JSON format rules"), "Keyword prompt must keep the system role to format and dedup only.");
+assert.ok(capturedPrompt.includes("If the user mentions China suppliers, treat it only as sourcing background"), "Keyword prompt must not turn China supplier background into product trait constraints.");
+assert.ok(capturedPrompt.includes("Do not add or infer these constraints unless they appear in the user's Product Direction"), "Keyword prompt must forbid system-invented size or shipping constraints.");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-keyword-dedup\n");

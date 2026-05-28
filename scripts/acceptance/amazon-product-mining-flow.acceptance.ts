@@ -137,12 +137,12 @@ assert.deepEqual(selectedRankedItems.map((item) => item.rankPosition), Array.fro
 assert.ok(flowSrc.includes("selectSearchItemsForDetailMining(searchItems)"), "flow.ts must apply top-30 detail mining selector after persisting all search results");
 
 // --- Test 13: governed Amazon page-open pacing ranges are production defaults ---
-assert.deepEqual(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 60_000 });
-assert.deepEqual(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 20_000 });
+assert.deepEqual(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 20_000 });
+assert.deepEqual(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 5_000 });
 assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, 0), 1_000);
-assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, 0.99999), 60_000);
+assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, 0.99999), 20_000);
 assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, 0), 1_000);
-assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, 0.99999), 20_000);
+assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, 0.99999), 5_000);
 assert.ok(flowSrc.includes("waitForProductDetailOpenPacingDelay(runtime)"), "flow.ts must pace every product detail open");
 assert.ok(flowSrc.includes("waitForReviewPageOpenPacingDelay(runtime)"), "flow.ts must pace every review page open");
 assert.ok(flowSrc.includes("persistRejectedKeywordRetentionNote"), "flow.ts must retain reviewable evidence after REJECT keyword review");

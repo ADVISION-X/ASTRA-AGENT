@@ -192,7 +192,6 @@ const applyTargetKindScore = (
 ): void => {
   if ((input.targetKind === "search-input" || input.targetKind === "text-input") && textMatches(candidate.type, ["search", "text"])) {
     addScoreSignal(candidateScore, 0.12, "input-type");
-    return;
   }
   applyExactSignalScore(candidate, input, candidateScore);
   applyKindScore(candidate, input, candidateScore);

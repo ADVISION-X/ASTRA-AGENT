@@ -23,10 +23,14 @@ import {
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
+  getAmazonTaxInvoiceDownloadArtifact as getAmazonTaxInvoiceDownloadArtifactFromPlugin,
+  getAmazonTaxInvoiceDownloadTaskStatus as getAmazonTaxInvoiceDownloadTaskStatusFromPlugin,
   getLatestAmazonInvoiceUploadTaskForInvoice,
+  getLatestAmazonTaxInvoiceDownloadTask as getLatestAmazonTaxInvoiceDownloadTaskFromPlugin,
   getAmazonInvoiceUploadTaskStatus,
   openAmazonInvoiceAdminPage,
   resumeAmazonInvoiceUploadTask,
+  startAmazonTaxInvoiceDownloadTask as startAmazonTaxInvoiceDownloadTaskFromPlugin,
   startAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadMission,
 } from "../../plugins/amazon-invoice-upload/index.js";
@@ -213,6 +217,23 @@ const buildAmazonInvoiceTaskHandle = (
   },
   async getLatestAmazonInvoiceUploadTaskForInvoice(input: { amazonOrderId: string; invoiceNo?: string }) {
     return getLatestAmazonInvoiceUploadTaskForInvoice({ dataDir, ...input });
+  },
+  async startAmazonTaxInvoiceDownloadTask(input: Parameters<typeof startAmazonTaxInvoiceDownloadTaskFromPlugin>[0]["mission"]) {
+    return startAmazonTaxInvoiceDownloadTaskFromPlugin({
+      browser: assembly.browserController,
+      runtimeLogger: assembly.runtimeLogger,
+      dataDir,
+      mission: input,
+    });
+  },
+  async getAmazonTaxInvoiceDownloadTaskStatus(taskId: string) {
+    return getAmazonTaxInvoiceDownloadTaskStatusFromPlugin({ dataDir, taskId });
+  },
+  async getLatestAmazonTaxInvoiceDownloadTask(input?: { marketplace?: string; requestId?: string }) {
+    return getLatestAmazonTaxInvoiceDownloadTaskFromPlugin({ dataDir, ...(input ?? {}) });
+  },
+  async getAmazonTaxInvoiceDownloadArtifact(taskId: string) {
+    return getAmazonTaxInvoiceDownloadArtifactFromPlugin({ dataDir, taskId });
   },
 });
 

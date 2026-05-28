@@ -16,6 +16,8 @@ type FakeWorkbench = GrassEyeWorkbenchHandle & {
   startCalls: number;
 };
 
+type MutableFakeWorkbench = Partial<GrassEyeWorkbenchHandle> & Pick<FakeWorkbench, "apiBoundaryEvents" | "startCalls">;
+
 const createInvoiceMission = (): AmazonInvoiceUploadMissionInput => ({
   missionType: "amazon_invoice_upload",
   marketplace: "AE",
@@ -44,8 +46,33 @@ const createInvoiceRecord = (input: { mission?: AmazonInvoiceUploadMissionInput;
   };
 };
 
+const createDownloadMission = () => ({
+  missionType: "amazon_tax_invoice_download" as const,
+  mode: "download_only" as const,
+  marketplace: "AE" as const,
+  sellerCentralEntryUrl: "https://sellercentral.amazon.ae/home",
+  reportKind: "afn_shipment_invoicing_tax_invoice" as const,
+  dateRange: "last_30_days" as const,
+  format: "csv" as const,
+});
+
+const createDownloadRecord = (input: {
+  status?: "completed" | "manual_required";
+  taskId?: string;
+} = {}) => ({
+  taskId: input.taskId ?? "download_task_test",
+  taskKind: "tax_invoice_download" as const,
+  mission: createDownloadMission(),
+  ok: input.status === "completed",
+  status: input.status ?? "manual_required",
+  reason: "acceptance_fixture_download",
+  reachedStep: input.status === "completed" ? "verify local download artifact" : "acceptance_fixture",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
+
 const createFakeWorkbench = (): FakeWorkbench => {
-  const fake: Partial<GrassEyeWorkbenchHandle> & Pick<FakeWorkbench, "apiBoundaryEvents" | "startCalls"> = {
+  const fake: MutableFakeWorkbench = {
     apiBoundaryEvents: [] as unknown[],
     startCalls: 0,
     recordWorkbenchApiBoundaryEvent(event: unknown) {
@@ -59,19 +86,30 @@ const createFakeWorkbench = (): FakeWorkbench => {
         sourceFingerprint: "acceptance",
       };
     },
-    async startAmazonInvoiceUploadTask(input: AmazonInvoiceUploadTaskStartInput) {
-      fake.startCalls += 1;
-      return createInvoiceRecord({ mission: input.mission });
-    },
-    async getAmazonInvoiceUploadTaskStatus(taskId: string) {
-      return createInvoiceRecord({ taskId });
-    },
-    async getLatestAmazonInvoiceUploadTaskForInvoice() {
-      return createInvoiceRecord({ taskId: "task_latest" });
-    },
   };
+  attachUploadTaskMethods(fake);
+  attachDownloadTaskMethods(fake);
   return fake as FakeWorkbench;
 };
+
+function attachUploadTaskMethods(fake: MutableFakeWorkbench): void {
+  fake.startAmazonInvoiceUploadTask = async (input: AmazonInvoiceUploadTaskStartInput) => {
+    fake.startCalls += 1;
+    return createInvoiceRecord({ mission: input.mission });
+  };
+  fake.getAmazonInvoiceUploadTaskStatus = async (taskId: string) => createInvoiceRecord({ taskId });
+  fake.getLatestAmazonInvoiceUploadTaskForInvoice = async () => createInvoiceRecord({ taskId: "task_latest" });
+}
+
+function attachDownloadTaskMethods(fake: MutableFakeWorkbench): void {
+  fake.startAmazonTaxInvoiceDownloadTask = async () => {
+    fake.startCalls += 1;
+    return createDownloadRecord();
+  };
+  fake.getAmazonTaxInvoiceDownloadTaskStatus = async (taskId: string) => createDownloadRecord({ taskId, status: "completed" });
+  fake.getLatestAmazonTaxInvoiceDownloadTask = async () => null;
+  fake.getAmazonTaxInvoiceDownloadArtifact = async () => null;
+}
 
 const withExternalEnv = (enabled: boolean): void => {
   process.env.GRASSEYE_EXTERNAL_API_ENABLED = enabled ? "true" : "false";
@@ -139,6 +177,41 @@ const postExternalStart = (
   });
 };
 
+const postExternalDownloadStart = (
+  rootUrl: string,
+  input: {
+    key?: string;
+    missionPatch?: Record<string, unknown>;
+    origin?: string;
+  } = {},
+): Promise<Response> => {
+  const headers: Record<string, string> = {
+    Origin: input.origin ?? externalOrigin,
+    "content-type": "application/json",
+    "X-GrassEye-Source-System": "ontheway",
+    "X-GrassEye-Request-Id": "download-request-test-1",
+  };
+  if (input.key !== undefined) {
+    headers["X-GrassEye-Agent-Key"] = input.key;
+  }
+  return fetch(`${rootUrl}/api/plugins/amazon-invoice-upload/download/start`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      missionType: "amazon_tax_invoice_download",
+      marketplace: "AE",
+      sellerCentralEntryUrl: "https://sellercentral.amazon.ae/home",
+      reportKind: "afn_shipment_invoicing_tax_invoice",
+      dateRange: "last_30_days",
+      format: "csv",
+      sourceSystem: "ontheway",
+      requestId: "download-request-test-1",
+      requireHumanReview: true,
+      ...input.missionPatch,
+    }),
+  });
+};
+
 const readJson = async (response: Response): Promise<Record<string, unknown>> =>
   await response.json() as Record<string, unknown>;
 
@@ -196,6 +269,32 @@ const assertExternalStartAllowed = async (): Promise<void> => {
   });
 };
 
+const assertExternalDownloadStartAllowed = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await postExternalDownloadStart(rootUrl, { key: apiKey });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("access-control-allow-origin"), externalOrigin);
+    assert.notEqual(response.headers.get("access-control-allow-origin"), "*");
+    assert.equal(workbench.startCalls, 1);
+  });
+};
+
+const assertDownloadArtifactUnknownRejected = async (): Promise<void> => {
+  await withServer(async ({ rootUrl }) => {
+    withExternalEnv(true);
+    const response = await fetch(`${rootUrl}/api/plugins/amazon-invoice-upload/download/artifact/unknown-task`, {
+      headers: {
+        Origin: externalOrigin,
+        "X-GrassEye-Agent-Key": apiKey,
+      },
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 404);
+    assert.equal(body.error, "download_artifact_not_found");
+  });
+};
+
 const assertExternalAuthBoundaries = async (): Promise<void> => {
   await assertExternalDisabledBoundary();
   await assertMissingApiKeyBoundary();
@@ -219,7 +318,7 @@ const assertExternalRouteBoundary = async (): Promise<void> => {
 };
 
 const assertForbiddenMissionKeys = async (): Promise<void> => {
-  for (const key of ["selector", "actionPlan", "abilityGroupId", "browserProfileDirectory"]) {
+  for (const key of ["selector", "actionPlan", "abilityGroupId", "browserProfileDirectory", "documentId", "downloadUrl"]) {
     await withServer(async ({ rootUrl, workbench }) => {
       withExternalEnv(true);
       const response = await postExternalStart(rootUrl, {
@@ -233,6 +332,18 @@ const assertForbiddenMissionKeys = async (): Promise<void> => {
       assert.equal(workbench.startCalls, 0);
     });
   }
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await postExternalDownloadStart(rootUrl, {
+      key: apiKey,
+      missionPatch: { documentId: "blocked-document-id" },
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 403);
+    assert.equal(body.error, "forbidden_external_request_key");
+    assert.equal(body.reason, "documentId");
+    assert.equal(workbench.startCalls, 0);
+  });
 };
 
 const assertExternalCallbackAndOriginBoundaries = async (): Promise<void> => {
@@ -264,6 +375,8 @@ const assertExternalCallbackAndOriginBoundaries = async (): Promise<void> => {
 const run = async (): Promise<void> => {
   await assertLocalHealthAllowed();
   await assertExternalAuthBoundaries();
+  await assertExternalDownloadStartAllowed();
+  await assertDownloadArtifactUnknownRejected();
   await assertExternalRouteBoundary();
   await assertForbiddenMissionKeys();
   await assertExternalCallbackAndOriginBoundaries();

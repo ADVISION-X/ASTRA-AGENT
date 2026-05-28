@@ -1,18 +1,30 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { runAmazonInvoiceUpload } from "./amazon-invoice-upload.flow.js";
-import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
-import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import { runAmazonTaxInvoiceDownload } from "./amazon-tax-invoice-download.flow.js";
+import { AmazonInvoiceUploadMissionInputSchema, AmazonTaxInvoiceDownloadMissionInputSchema } from "./mission.schema.js";
+import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
 import {
+  buildReceivedDownloadTaskRecord,
   buildReceivedTaskRecord,
   createAmazonInvoiceUploadTaskId,
+  createAmazonTaxInvoiceDownloadTaskId,
+  findLatestDownloadTaskRecord,
   findLatestTaskRecordForInvoice,
+  loadDownloadTaskRecord,
   loadTaskRecord,
   saveApprovedInvoicePdf,
+  saveDownloadTaskRecord,
   saveTaskRecord,
+  updateDownloadTaskRecord,
   updateTaskRecord,
 } from "./amazon-invoice-upload-storage.js";
-import type { AmazonInvoiceUploadPdfFile, AmazonInvoiceUploadTaskRecord } from "./amazon-invoice-upload-storage.types.js";
+import type {
+  AmazonInvoiceUploadPdfFile,
+  AmazonInvoiceUploadTaskRecord,
+  AmazonTaxInvoiceDownloadArtifactMetadata,
+  AmazonTaxInvoiceDownloadTaskRecord,
+} from "./amazon-invoice-upload-storage.types.js";
 import {
   AmazonInvoiceUploadAdminOpenInputSchema,
   type AmazonInvoiceUploadAdminOpenInput,
@@ -133,6 +145,51 @@ export function getLatestAmazonInvoiceUploadTaskForInvoice(input: {
   return findLatestTaskRecordForInvoice(input);
 }
 
+export async function startAmazonTaxInvoiceDownloadTask(input: {
+  browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
+  dataDir: string;
+  mission: AmazonTaxInvoiceDownloadMissionInput;
+}): Promise<AmazonTaxInvoiceDownloadTaskRecord> {
+  const mission = AmazonTaxInvoiceDownloadMissionInputSchema.parse(input.mission);
+  const taskId = createAmazonTaxInvoiceDownloadTaskId();
+  const received = buildReceivedDownloadTaskRecord({ taskId, mission });
+  saveDownloadTaskRecord(input.dataDir, received);
+  const downloading = updateDownloadTaskRecord(received, {
+    status: "downloading",
+    reason: "Amazon tax invoice CSV download started.",
+    reachedStep: "downloading",
+    evidenceStepId: "AID-01",
+  });
+  saveDownloadTaskRecord(input.dataDir, downloading);
+  const result = await runAmazonTaxInvoiceDownload(input.browser, input.runtimeLogger, mission);
+  const completed = updateDownloadTaskRecord(downloading, result);
+  saveDownloadTaskRecord(input.dataDir, completed);
+  return completed;
+}
+
+export function getAmazonTaxInvoiceDownloadTaskStatus(input: {
+  dataDir: string;
+  taskId: string;
+}): AmazonTaxInvoiceDownloadTaskRecord {
+  return loadRequiredDownloadTaskRecord(input.dataDir, input.taskId);
+}
+
+export function getLatestAmazonTaxInvoiceDownloadTask(input: {
+  dataDir: string;
+  marketplace?: string;
+  requestId?: string;
+}): AmazonTaxInvoiceDownloadTaskRecord | null {
+  return findLatestDownloadTaskRecord(input);
+}
+
+export function getAmazonTaxInvoiceDownloadArtifact(input: {
+  dataDir: string;
+  taskId: string;
+}): AmazonTaxInvoiceDownloadArtifactMetadata | null {
+  return loadRequiredDownloadTaskRecord(input.dataDir, input.taskId).artifact ?? null;
+}
+
 function isAllowedAmazonAdminUrl(url: URL): boolean {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return false;
@@ -153,6 +210,14 @@ function loadRequiredTaskRecord(dataDir: string, taskId: string): AmazonInvoiceU
   const record = loadTaskRecord(dataDir, taskId);
   if (!record) {
     throw new Error(`Amazon invoice upload task not found: ${taskId}`);
+  }
+  return record;
+}
+
+function loadRequiredDownloadTaskRecord(dataDir: string, taskId: string): AmazonTaxInvoiceDownloadTaskRecord {
+  const record = loadDownloadTaskRecord(dataDir, taskId);
+  if (!record) {
+    throw new Error(`Amazon tax invoice download task not found: ${taskId}`);
   }
   return record;
 }

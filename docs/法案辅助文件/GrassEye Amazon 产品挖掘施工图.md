@@ -115,10 +115,10 @@ MINING_BROWSER_TAB_PREPARE
 
 ```txt
 PRODUCT_DETAIL_OPEN_PACING
-  -> 每个产品详情页打开前随机等待 1_000..60_000ms
+  -> 每个产品详情页打开前随机等待 1_000..20_000ms
 
 REVIEW_PAGE_OPEN_PACING
-  -> 每个评论页打开前随机等待 1_000..20_000ms
+  -> 每个评论页打开前随机等待 1_000..5_000ms
 ```
 
 冻结细则：
@@ -235,6 +235,13 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 | owner | keyword.ts + ai-input-gateway facade |
 | 禁止 | 自然语言列表直接当队列 / AI 决定浏览器动作 / AI 返回 selector / coordinate / nextAction |
 
+关键词生成 prompt 边界：
+
+- 系统只提供用户原始 `productDirection`、marketplace、targetMarket、language、历史关键词、去重要求和 JSON 格式。
+- 系统不得代替用户或 AI 增加尺寸、重量、小件、轻量、紧凑、易运输、价格带、材质、包装、利润或采购假设。
+- “中国供应商背景”只能作为 sourcing background，不得自动收窄成小件轻货、低体积或易运输关键词。
+- 关键词是否适合进入候选名单，只能在关键词完成后的 full package review 阶段判断。
+
 ---
 
 ## 5. 阶段 3：关键词解析与去重
@@ -337,7 +344,7 @@ extractor_missing
 | -- | -- |
 | 循环 | 按 rankPosition 顺序打开每个产品 detail URL |
 | owner | product-detail.ts |
-| pacing | 打开每个详情页前由 flow.ts 执行 `1_000..60_000ms` 随机等待 |
+| pacing | 打开每个详情页前由 flow.ts 执行 `1_000..20_000ms` 随机等待 |
 | 异常 | 失效 / 跳转 / 缺货 / 受限 → product.status = failed 或 manual_required，单产品失败不中断当前关键词 |
 
 ---
@@ -369,7 +376,7 @@ extractor_missing 不是允许结果。
 | -- | -- |
 | 动作 | 定位评论入口 / 打开全部评论页面 / 确认评论页对应当前产品 / 记录 reviewUrl |
 | owner | reviews.ts |
-| pacing | 打开每个评论页前由 flow.ts 执行 `1_000..20_000ms` 随机等待 |
+| pacing | 打开每个评论页前由 flow.ts 执行 `1_000..5_000ms` 随机等待 |
 | 异常 | 评论入口不存在 / 评论页受限 → product.review_status = failed 或 manual_required |
 | 禁止 | 绕过限制 / 评论失败时删除详情页数据 |
 

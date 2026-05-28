@@ -40,7 +40,13 @@ if (matches.length > 1) return {status: "ambiguous", message: "selector matched 
 const host = matches[0];
 const el = host.shadowRoot?.querySelector("input, textarea") || host;
 const actualValue = String(el.value || "");
-return {status: actualValue === approvedText || actualValue.endsWith(approvedText) ? "success" : "review_required", message: "fill verified", valueLength: actualValue.length};
+const hostedName = host !== el ? el.getAttribute("name") || host.getAttribute("name") : "";
+const hidden = hostedName ? host.querySelector("input[name='" + CSS.escape(hostedName) + "']") : null;
+const hostedValue = host !== el ? String(host.getAttribute("value") || "") : "";
+const hiddenValue = hidden && hidden !== el ? String(hidden.value || "") : "";
+const values = [actualValue, hostedValue, hiddenValue].filter((value) => value.length > 0);
+const verified = values.some((value) => value === approvedText || value.endsWith(approvedText));
+return {status: verified ? "success" : "review_required", message: "fill verified", valueLength: actualValue.length};
 `;
 }
 
@@ -61,25 +67,47 @@ const setNativeValue = (value) => {
   }
   el.value = value;
 };
+const dispatchTextInput = (target, inputType, data) => {
+  target.dispatchEvent(new InputEvent("input", {bubbles: true, composed: true, inputType, data}));
+  target.dispatchEvent(new Event("change", {bubbles: true, composed: true}));
+};
+const setInputLikeValue = (target, value, inputType, data) => {
+  const targetPrototype = target instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const targetDescriptor = Object.getOwnPropertyDescriptor(targetPrototype, "value");
+  if (targetDescriptor && typeof targetDescriptor.set === "function") {
+    targetDescriptor.set.call(target, value);
+  } else {
+    target.value = value;
+  }
+  dispatchTextInput(target, inputType, data);
+};
 el.focus();
 if (${clearBeforeType ? "true" : "false"}) {
   setNativeValue("");
-  el.dispatchEvent(new InputEvent("input", {bubbles: true, composed: true, inputType: "deleteContentBackward"}));
+  dispatchTextInput(el, "deleteContentBackward", null);
 }
 if (typeof el.select === "function") el.select();
 const inserted = document.execCommand("insertText", false, approvedText);
 if (!inserted) {
   setNativeValue(String(el.value || "") + approvedText);
-  el.dispatchEvent(new InputEvent("input", {bubbles: true, composed: true, inputType: "insertText", data: approvedText}));
+  dispatchTextInput(el, "insertText", approvedText);
 }
 el.dispatchEvent(new KeyboardEvent("keyup", {bubbles: true, composed: true, key: approvedText.slice(-1) || "Unidentified"}));
 el.dispatchEvent(new Event("change", {bubbles: true}));
+const hostedName = host !== el ? el.getAttribute("name") || host.getAttribute("name") : "";
+const hidden = hostedName ? host.querySelector("input[name='" + CSS.escape(hostedName) + "']") : null;
 if (host !== el) {
   host.setAttribute("value", approvedText);
-  host.dispatchEvent(new Event("input", {bubbles: true, composed: true}));
+  if (hidden && hidden !== el) {
+    setInputLikeValue(hidden, approvedText, "insertText", approvedText);
+  }
+  host.dispatchEvent(new InputEvent("input", {bubbles: true, composed: true, inputType: "insertText", data: approvedText}));
   host.dispatchEvent(new Event("change", {bubbles: true, composed: true}));
 }
-return {status: el.value === approvedText || String(el.value || "").endsWith(approvedText) ? "success" : "review_required", message: "fill attempted", valueLength: String(el.value || "").length};
+const hiddenValue = host !== el && hidden && hidden !== el ? String(hidden.value || "") : "";
+const hostedValue = host !== el ? String(host.getAttribute("value") || "") : "";
+const values = [String(el.value || ""), hostedValue, hiddenValue].filter((value) => value.length > 0);
+return {status: values.some((value) => value === approvedText || value.endsWith(approvedText)) ? "success" : "review_required", message: "fill attempted", valueLength: String(el.value || "").length};
 `;
 }
 

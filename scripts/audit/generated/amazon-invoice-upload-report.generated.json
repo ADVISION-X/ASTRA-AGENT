@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-05-28T12:56:16.415Z",
+  "capabilityDomain": "amazon-invoice-upload",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "inspectedFiles": [
+    ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+    "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
+    "docs/法案辅助文件/amazon_invoice_upload_process.md",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+    "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/app-shell/app-shell-layout.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector.ts"
+  ]
+}

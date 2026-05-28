@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
-import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
 
 type TraceCandidate = {
   kind: string;
@@ -25,7 +25,7 @@ type CandidateSource = Omit<TraceCandidate, "kind">;
 type AmazonDomTraceStatus = "snapshot" | "success" | "failed" | "review_required";
 
 export type AmazonDomStepTraceContext = {
-  mission: AmazonInvoiceUploadMissionInput;
+  mission: AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput;
   stepName: string;
   status: AmazonDomTraceStatus;
   snapshot?: DomSnapshot | undefined;
@@ -38,13 +38,18 @@ const MAX_TEXT_LENGTH = 140;
 const MAX_CANDIDATES_PER_GROUP = 8;
 
 export function amazonDomTraceRefFromIds(input: {
-  amazonOrderId: string;
-  invoiceNo: string;
+  amazonOrderId?: string | undefined;
+  invoiceNo?: string | undefined;
+  marketplace?: string | undefined;
+  requestId?: string | undefined;
 }): string {
+  const refSegment = input.amazonOrderId && input.invoiceNo
+    ? `${safeSegment(input.amazonOrderId)}-${safeSegment(input.invoiceNo)}`
+    : `download-${safeSegment(input.marketplace ?? "marketplace")}-${safeSegment(input.requestId ?? "latest")}`;
   return path.join(
     "runtime-evidence",
     "amazon-invoice-upload",
-    `${safeSegment(input.amazonOrderId)}-${safeSegment(input.invoiceNo)}.jsonl`,
+    `${refSegment}.jsonl`,
   );
 }
 
@@ -53,13 +58,19 @@ export function buildAmazonDomTraceBaseEvent(input: AmazonDomStepTraceContext) {
   return {
     traceId: traceRef,
     stepId: stepId(input.stepName),
-    missionId: `${input.mission.amazonOrderId}:${input.mission.invoiceNo}`,
+    missionId: missionId(input.mission),
     owner: "amazon-invoice-upload" as const,
     component: "dom-automation-step-trace" as const,
     platformId: "amazon-seller-central",
     refs: buildRefs(input, traceRef),
     payload: buildPayload(input),
   };
+}
+
+function missionId(mission: AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput): string {
+  return mission.missionType === "amazon_invoice_upload"
+    ? `${mission.amazonOrderId}:${mission.invoiceNo}`
+    : `tax-invoice-download:${mission.marketplace}:${mission.requestId ?? "latest"}`;
 }
 
 export function resolveAmazonDomRuntimeStatus(
@@ -135,7 +146,7 @@ function abilityId(input: {
 }
 
 function targetHost(input: {
-  mission: AmazonInvoiceUploadMissionInput;
+  mission: AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput;
   snapshot?: DomSnapshot | undefined;
 }): string {
   return hostFromUrl(input.snapshot?.url ?? input.mission.sellerCentralEntryUrl);

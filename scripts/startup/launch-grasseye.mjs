@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +13,8 @@ import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.m
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+loadStartupEnv(rootDir);
+
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
@@ -25,6 +28,47 @@ const {
   logFail,
   logStartupReady,
 } = createStartupLogHelpers({ terminalLogger, runId: startupRunId, baseUrl });
+
+function unquoteEnvValue(value) {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if ((first === "\"" && last === "\"") || (first === "'" && last === "'")) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) {
+    return;
+  }
+
+  const lines = readFileSync(filePath, "utf8").split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+    const key = line.slice(0, separatorIndex).trim();
+    if (!key || process.env[key] !== undefined) {
+      continue;
+    }
+    process.env[key] = unquoteEnvValue(line.slice(separatorIndex + 1));
+  }
+}
+
+function loadStartupEnv(root) {
+  loadEnvFile(path.join(root, ".env.local"));
+  loadEnvFile(path.join(root, ".env"));
+}
 
 async function ensureDependencies(root, flags) {
   const startedAt = Date.now();

@@ -238,6 +238,16 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
     requiresApiKey: true,
     jobOwner: "amazon-invoice-upload",
     purpose: "external_amazon_invoice_upload_task_latest",
+  },
+  {
+    method: "POST",
+    pathPattern: "exact",
+    path: "/api/plugins/amazon-invoice-upload/download/start",
+    localUiAllowed: true,
+    externalApiAllowed: true,
+    requiresApiKey: true,
+    jobOwner: "amazon-invoice-upload",
+    purpose: "external_amazon_tax_invoice_download_task_start",
   }
 ];
 ```
@@ -351,6 +361,10 @@ adminOrderUrl
 requireHumanFinalSubmit
 invoicePdf
 callbackUrl
+reportKind
+dateRange
+format
+requireHumanReview
 ```
 
 ### 9.2 禁止字段
@@ -375,6 +389,8 @@ evidenceRefOverride
 cookie
 sellerCentralCookie
 browserProfileDirectory
+documentId
+downloadUrl
 ```
 
 ### 9.3 默认人工提交

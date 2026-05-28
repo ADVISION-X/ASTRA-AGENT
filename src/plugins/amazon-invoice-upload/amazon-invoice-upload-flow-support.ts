@@ -19,6 +19,19 @@ const DOM_CLICK_SETTLE_MS = 50;
 
 export const readSnapshot = (browser: BrowserController) => readDomSnapshotOnce(browser);
 
+export const verifyState = (
+  input: Parameters<typeof verifyDomStateOnce>[0],
+) => verifyDomStateOnce(input);
+
+export const locateElement = (
+  input: Parameters<typeof locateDomElementOnce>[0],
+) => locateDomElementOnce(input);
+
+export const clickElement = (
+  browser: BrowserController,
+  input: Parameters<typeof clickDomElementOnce>[1],
+) => clickDomElementOnce(browser, input);
+
 export const fillElement = (
   browser: BrowserController,
   input: Parameters<typeof fillDomElementOnce>[1],

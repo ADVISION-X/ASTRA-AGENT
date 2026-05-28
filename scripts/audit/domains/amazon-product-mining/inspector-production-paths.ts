@@ -7,6 +7,7 @@ import {
   getRequiredSourceFile,
   hasCallToLocalIdentifier,
   hasIdentifier,
+  hasStringLiteral,
   trackSourceFile,
 } from "./inspector-ast-shared.js";
 
@@ -115,8 +116,8 @@ export const inspectAmazonHumanPacingDelay = (
     missingIdentifiers.length === 0
     && hasCallToLocalIdentifier(flowFile, "waitForProductDetailOpenPacingDelay")
     && hasCallToLocalIdentifier(flowFile, "waitForReviewPageOpenPacingDelay")
-    && exportedRangeHasBounds(flowFile, "AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE", 1_000, 60_000)
-    && exportedRangeHasBounds(flowFile, "AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE", 1_000, 20_000)
+    && exportedRangeHasBounds(flowFile, "AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE", 1_000, 20_000)
+    && exportedRangeHasBounds(flowFile, "AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE", 1_000, 5_000)
   ) {
     return;
   }
@@ -125,6 +126,62 @@ export const inspectAmazonHumanPacingDelay = (
     lawId,
     filePath: repoPath,
     message: "flow.ts must enforce governed random pacing before product detail opens and review page opens.",
+    evidence: `missingIdentifiers=${missingIdentifiers.join(",")}`,
+  }));
+};
+
+const readonlyArrayLiteralContains = (
+  sourceFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>,
+  variableName: string,
+  values: readonly string[],
+): boolean => {
+  const declaration = sourceFile.getVariableDeclaration(variableName);
+  const initializer = declaration?.getInitializer();
+  const arrayLiteral = Node.isArrayLiteralExpression(initializer)
+    ? initializer
+    : Node.isAsExpression(initializer)
+      ? initializer.getExpressionIfKind(SyntaxKind.ArrayLiteralExpression)
+      : undefined;
+  if (!arrayLiteral) {
+    return false;
+  }
+  const literalValues = new Set(arrayLiteral.getElements().flatMap((element) =>
+    Node.isStringLiteral(element) ? [element.getLiteralValue()] : [],
+  ));
+  return values.every((value) => literalValues.has(value));
+};
+
+export const inspectNeutralKeywordGenerationPrompt = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const repoPath = "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts";
+  const keywordFile = getRequiredSourceFile(context, repoPath);
+  trackSourceFile(inspectedFiles, keywordFile);
+  if (!keywordFile) {
+    return;
+  }
+  const requiredIdentifiers = [
+    "AMAZON_KEYWORD_GENERATION_NEUTRALITY_POLICY",
+    "AMAZON_KEYWORD_GENERATION_CHINA_SUPPLIER_POLICY",
+    "AMAZON_KEYWORD_GENERATION_FORBIDDEN_SYSTEM_ASSUMPTIONS",
+  ] as const;
+  const missingIdentifiers = requiredIdentifiers.filter((identifier) => !hasIdentifier(keywordFile, identifier));
+  if (
+    missingIdentifiers.length === 0
+    && hasStringLiteral(keywordFile, "The system only supplies marketplace, market, user product direction, deduplication data, and JSON format rules; it must not add product traits or sourcing assumptions.")
+    && hasStringLiteral(keywordFile, "If the user mentions China suppliers, treat it only as sourcing background and do not narrow keywords to small, lightweight, compact, low-volume, or easy-to-ship products unless the user explicitly wrote that constraint.")
+    && readonlyArrayLiteralContains(keywordFile, "AMAZON_KEYWORD_GENERATION_FORBIDDEN_SYSTEM_ASSUMPTIONS", ["size", "weight", "small", "lightweight", "compact", "easy-to-ship"])
+  ) {
+    return;
+  }
+  findings.push(createFinding({
+    checkId: "amazon-mining/neutral-keyword-generation-prompt",
+    lawId,
+    filePath: repoPath,
+    message: "Keyword generation prompt must remain neutral: only format/dedup constraints are system-owned, and China supplier context must not inject size or shipping assumptions.",
     evidence: `missingIdentifiers=${missingIdentifiers.join(",")}`,
   }));
 };

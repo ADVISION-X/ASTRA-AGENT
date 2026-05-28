@@ -67,6 +67,17 @@ for (const token of [
 assert(sidebar.includes("skillRegistry"), "Sidebar must render from Skill Registry.");
 assert(layout.includes("data-skill-workspace"), "Main workspace must render Level 2 skill workspaces.");
 assert(layout.includes("data-workspace-page-nav"), "Secondary skills must expose Level 2 page navigation instead of single form pages.");
+assert(layout.includes('data-workspace-page="download"'), "Amazon invoice workspace must expose a Download page tab.");
+assert(layout.includes('data-workspace-page="upload"'), "Amazon invoice workspace must keep the Upload page tab.");
+assert(layout.includes('data-workspace-page="latest"'), "Amazon invoice workspace must keep the Latest page tab.");
+assert(layout.includes('data-workspace-page="evidence"'), "Amazon invoice workspace must keep the Evidence page tab.");
+assert(layout.includes("data-amazon-tax-invoice-download-form"), "Amazon invoice workspace must expose the tax invoice CSV Download surface.");
+assert(layout.includes("Start Download"), "Amazon invoice Download surface must expose Start Download.");
+assert(layout.includes("Latest Download"), "Amazon invoice Download surface must expose Latest Download.");
+assert(layout.includes("Open Artifact"), "Amazon invoice Download surface must expose Open Artifact.");
+for (const forbiddenDownloadField of ["selector", "actionPlan", "browserCommand", "documentId", "browserProfileDirectory"]) {
+  assert(!layout.includes(`name="${forbiddenDownloadField}"`), `Amazon invoice Download surface must not expose ${forbiddenDownloadField}.`);
+}
 assert(inspector.includes("data-app-shell-inspector"), "Right Inspector must exist.");
 assert(inspector.includes("empty-state"), "Right Inspector must expose empty state.");
 assert(runtimeConsole.includes("data-runtime-console"), "Bottom Runtime Console must exist.");

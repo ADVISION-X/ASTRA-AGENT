@@ -49,6 +49,8 @@ const requiredForbiddenKeys = [
   "nextAction",
   "actionPlan",
   "flowStep",
+  "documentId",
+  "downloadUrl",
   "abilityGroupId",
   "childCapabilityId",
   "capabilityCallId",

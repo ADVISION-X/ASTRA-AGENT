@@ -49,6 +49,19 @@ const handleAmazonPluginStartRequest = async (
   return true;
 };
 
+const handleAmazonPluginDownloadStartRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  const input = await readJsonBody(request);
+  const result = await workbench.startAmazonTaxInvoiceDownloadTask(
+    input as Parameters<typeof workbench.startAmazonTaxInvoiceDownloadTask>[0],
+  );
+  writeJson(response, 200, result);
+  return true;
+};
+
 const handleAmazonTaskResumeRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -80,6 +93,15 @@ const handleAmazonPluginStatusRequest = async (
   taskId: string,
 ): Promise<boolean> => {
   writeJson(response, 200, await workbench.getAmazonInvoiceUploadTaskStatus(taskId));
+  return true;
+};
+
+const handleAmazonPluginDownloadStatusRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  taskId: string,
+): Promise<boolean> => {
+  writeJson(response, 200, await workbench.getAmazonTaxInvoiceDownloadTaskStatus(taskId));
   return true;
 };
 
@@ -121,12 +143,55 @@ const handleAmazonPluginLatestRequest = async (
   return true;
 };
 
+const handleAmazonPluginDownloadLatestRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const marketplace = url.searchParams.get("marketplace") ?? undefined;
+  const requestId = url.searchParams.get("requestId") ?? undefined;
+  const record = await workbench.getLatestAmazonTaxInvoiceDownloadTask({
+    ...(marketplace ? { marketplace } : {}),
+    ...(requestId ? { requestId } : {}),
+  });
+  writeJson(response, 200, record ? { found: true, record } : { found: false });
+  return true;
+};
+
+const handleAmazonPluginDownloadArtifactRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  taskId: string,
+): Promise<boolean> => {
+  const artifact = await workbench.getAmazonTaxInvoiceDownloadArtifact(taskId);
+  if (!artifact) {
+    writeJson(response, 404, { error: "download_artifact_not_found" });
+    return true;
+  }
+  writeJson(response, 200, { artifact });
+  return true;
+};
+
 const handleAmazonPluginRequest = (
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> | null => {
+  if (request.method === "POST" && url.pathname === "/api/plugins/amazon-invoice-upload/download/start") {
+    return handleAmazonPluginDownloadStartRequest(request, response, workbench);
+  }
+  if (request.method === "GET" && url.pathname === "/api/plugins/amazon-invoice-upload/download/latest") {
+    return handleAmazonPluginDownloadLatestRequest(response, workbench, url);
+  }
+  const downloadStatusPrefix = "/api/plugins/amazon-invoice-upload/download/status/";
+  if (request.method === "GET" && url.pathname.startsWith(downloadStatusPrefix)) {
+    return handleAmazonPluginDownloadStatusRequest(response, workbench, url.pathname.slice(downloadStatusPrefix.length));
+  }
+  const downloadArtifactPrefix = "/api/plugins/amazon-invoice-upload/download/artifact/";
+  if (request.method === "GET" && url.pathname.startsWith(downloadArtifactPrefix)) {
+    return handleAmazonPluginDownloadArtifactRequest(response, workbench, url.pathname.slice(downloadArtifactPrefix.length));
+  }
   if (request.method === "POST" && url.pathname === "/api/plugins/amazon-invoice-upload/start") {
     return handleAmazonPluginStartRequest(request, response, workbench);
   }

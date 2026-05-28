@@ -102,7 +102,7 @@ export const skillRegistry: AppShellSkillRegistryItem[] = [
     primarySurface: "amazon-invoice-upload-workspace",
     historySurface: "task-status-inspector",
     detailSurface: "evidence-detail",
-    allowedActions: ["Start", "Resume", "Latest"],
+    allowedActions: ["Start Download", "Latest Download", "Open Artifact", "Start", "Resume", "Latest"],
     forbiddenActions: [...forbiddenAppShellActionGroups],
   },
 ];

@@ -25,6 +25,9 @@ type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-up
 type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
 type StartAmazonInvoiceUploadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadTask;
 type GetAmazonInvoiceUploadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonInvoiceUploadTaskStatus;
+type StartAmazonTaxInvoiceDownloadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonTaxInvoiceDownloadTask;
+type GetAmazonTaxInvoiceDownloadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonTaxInvoiceDownloadTaskStatus;
+type GetAmazonTaxInvoiceDownloadArtifact = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonTaxInvoiceDownloadArtifact;
 type StartFacebookProductVideoMiningMission = typeof import("../../plugins/facebook-product-video-mining/index.js").startFacebookProductVideoMiningMission;
 type GetFacebookProductVideoMiningRunStatus = typeof import("../../plugins/facebook-product-video-mining/index.js").getFacebookProductVideoMiningRunStatus;
 type ListFacebookProductVideoMiningSavedRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").listFacebookProductVideoMiningSavedRecords;
@@ -47,6 +50,9 @@ type AmazonInvoiceUploadMissionStartResult = Awaited<ReturnType<StartAmazonInvoi
 type AmazonInvoiceUploadTaskStartInput = Parameters<StartAmazonInvoiceUploadTask>[0]["task"];
 type AmazonInvoiceUploadTaskResumeInput = { taskId: string };
 type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GetAmazonInvoiceUploadTaskStatus>>;
+type AmazonTaxInvoiceDownloadMissionInput = Parameters<StartAmazonTaxInvoiceDownloadTask>[0]["mission"];
+type AmazonTaxInvoiceDownloadTaskRecord = Awaited<ReturnType<GetAmazonTaxInvoiceDownloadTaskStatus>>;
+type AmazonTaxInvoiceDownloadArtifactMetadata = ReturnType<GetAmazonTaxInvoiceDownloadArtifact>;
 type FacebookProductVideoMiningMissionInput = Parameters<StartFacebookProductVideoMiningMission>[0];
 type FacebookProductVideoMiningRunStatus = Awaited<ReturnType<GetFacebookProductVideoMiningRunStatus>>;
 type FacebookProductVideoMiningSavedRecords = Awaited<ReturnType<ListFacebookProductVideoMiningSavedRecords>>;
@@ -119,6 +125,18 @@ export type GrassEyeWorkbenchHandle = {
   getLatestAmazonInvoiceUploadTaskForInvoice: (
     input: { amazonOrderId: string; invoiceNo?: string },
   ) => Promise<AmazonInvoiceUploadTaskRecord | null>;
+  startAmazonTaxInvoiceDownloadTask: (
+    input: AmazonTaxInvoiceDownloadMissionInput,
+  ) => Promise<AmazonTaxInvoiceDownloadTaskRecord>;
+  getAmazonTaxInvoiceDownloadTaskStatus: (
+    taskId: string,
+  ) => Promise<AmazonTaxInvoiceDownloadTaskRecord>;
+  getLatestAmazonTaxInvoiceDownloadTask: (
+    input?: { marketplace?: string; requestId?: string },
+  ) => Promise<AmazonTaxInvoiceDownloadTaskRecord | null>;
+  getAmazonTaxInvoiceDownloadArtifact: (
+    taskId: string,
+  ) => Promise<AmazonTaxInvoiceDownloadArtifactMetadata>;
   startFacebookProductVideoMiningMission: (
     input: FacebookProductVideoMiningMissionInput,
   ) => Promise<NonNullable<FacebookProductVideoMiningRunStatus>>;

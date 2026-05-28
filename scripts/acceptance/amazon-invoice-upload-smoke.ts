@@ -27,12 +27,28 @@ const smokeFixtureHtml = `
   <section id="upload-panel" hidden>
     <label for="invoice-file">Choose file</label>
     <input id="invoice-file" type="file" />
-    <label for="invoice-number">Invoice number</label>
-    <input id="invoice-number" name="documentNumber" type="text" />
+    <kat-input required="true" label="文件编号" type="text" value="" name="documentNumber"></kat-input>
     <button id="submit-upload">上传</button>
   </section>
   <div id="status"></div>
   <script>
+    customElements.define("kat-input", class extends HTMLElement {
+      connectedCallback() {
+        if (!this.shadowRoot) {
+          const root = this.attachShadow({ mode: "open" });
+          root.innerHTML = '<label for="katal-fixture-input">文件编号</label><input id="katal-fixture-input" part="input" type="text" name="documentNumber" />';
+          const hidden = document.createElement("input");
+          hidden.hidden = true;
+          hidden.name = "documentNumber";
+          hidden.type = "text";
+          this.appendChild(hidden);
+          root.querySelector("input").addEventListener("input", (event) => {
+            hidden.value = event.target.value;
+            this.setAttribute("value", event.target.value);
+          });
+        }
+      }
+    });
     document.querySelector("#upload-invoice").addEventListener("click", () => {
       document.querySelector("#upload-panel").hidden = false;
     });
@@ -40,7 +56,8 @@ const smokeFixtureHtml = `
       document.querySelector("#status").textContent = "File attached INV-1";
     });
     document.querySelector("#submit-upload").addEventListener("click", () => {
-      document.querySelector("#status").textContent = "Invoice uploaded successfully";
+      const invoiceNumber = document.querySelector('kat-input[name="documentNumber"] input[name="documentNumber"]').value;
+      document.querySelector("#status").textContent = invoiceNumber === "INV-1" ? "Invoice uploaded successfully" : "Invoice number missing";
     });
   </script>
 </body></html>

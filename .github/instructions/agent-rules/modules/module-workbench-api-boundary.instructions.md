@@ -334,6 +334,10 @@ At first implementation, only Amazon invoice upload task intake may be external-
 POST /api/plugins/amazon-invoice-upload/start
 GET  /api/plugins/amazon-invoice-upload/status/<taskId>
 GET  /api/plugins/amazon-invoice-upload/latest
+POST /api/plugins/amazon-invoice-upload/download/start
+GET  /api/plugins/amazon-invoice-upload/download/status/<taskId>
+GET  /api/plugins/amazon-invoice-upload/download/latest
+GET  /api/plugins/amazon-invoice-upload/download/artifact/<taskId>
 ```
 
 Alternative legacy routes may remain local-only unless explicitly moved into the allowlist:
@@ -380,6 +384,8 @@ requiresApiKey: true
     "External request contains childCapabilityId.",
     "External request contains capabilityCallId.",
     "External request chooses internal flow step.",
+    "External request contains documentId.",
+    "External request contains downloadUrl.",
     "External request overrides evidence ref."
   ]
 }
@@ -398,6 +404,10 @@ adminOrderUrl
 requireHumanFinalSubmit
 invoicePdf
 callbackUrl
+reportKind
+dateRange
+format
+requireHumanReview
 ```
 
 ### Required defaults

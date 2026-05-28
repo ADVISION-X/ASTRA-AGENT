@@ -1,5 +1,5 @@
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
-import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
 
 export type AmazonInvoiceUploadPdfFile = {
   filename: string;
@@ -10,6 +10,54 @@ export type AmazonInvoiceUploadPdfFile = {
 export type AmazonInvoiceUploadTaskRecord = AmazonInvoiceUploadTaskResult & {
   taskId: string;
   mission: AmazonInvoiceUploadMissionInput;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AmazonTaxInvoiceDownloadStatus =
+  | "received"
+  | "downloading"
+  | "download_requested"
+  | "waiting_report_ready"
+  | "download_ready"
+  | "artifact_persisted"
+  | "completed"
+  | "manual_required"
+  | "failed";
+
+export type AmazonTaxInvoiceDownloadArtifactMetadata = {
+  artifactRef: string;
+  artifactName: string;
+  mimeType: "text/csv";
+  fileSize: number;
+  sha256: string;
+  createdAt: string;
+};
+
+export type AmazonTaxInvoiceDownloadTaskResult = {
+  ok: boolean;
+  status: AmazonTaxInvoiceDownloadStatus;
+  reason: string;
+  reachedStep: string;
+  evidenceStepId?: string;
+  downloadArtifactRef?: string;
+  downloadedFileName?: string;
+  downloadedFileSize?: number;
+  downloadedFileSha256?: string;
+  downloadedAt?: string;
+  evidenceRef?: string;
+  domTraceRef?: string;
+  reviewRequired?: boolean;
+};
+
+export type AmazonTaxInvoiceDownloadTaskRecord = AmazonTaxInvoiceDownloadTaskResult & {
+  taskId: string;
+  taskKind: "tax_invoice_download";
+  mission: AmazonTaxInvoiceDownloadMissionInput;
+  sourceSystem?: string;
+  requestId?: string;
+  callbackStatus?: "not_configured" | "pending" | "sent" | "failed";
+  artifact?: AmazonTaxInvoiceDownloadArtifactMetadata;
   createdAt: string;
   updatedAt: string;
 };
