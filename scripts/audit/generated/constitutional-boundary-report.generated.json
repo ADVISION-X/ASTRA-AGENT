@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T01:18:37.802Z",
+  "generatedAt": "2026-05-28T01:29:41.628Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",

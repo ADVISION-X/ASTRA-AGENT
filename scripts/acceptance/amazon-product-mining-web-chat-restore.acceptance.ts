@@ -3,6 +3,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
+
 import {
   createAiInputGatewayAbilityGroup,
   type AiFeedInput,
@@ -50,7 +52,47 @@ const restoreFailedAdapter: AiProviderAdapter = {
   },
 };
 
+const sourceHasCallExpression = (sourceFile: SourceFile, identifier: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) => {
+      const expression = callExpression.getExpression();
+      return expression.getText() === identifier
+        || (Node.isPropertyAccessExpression(expression) && expression.getName() === identifier);
+    });
+
+const sourceHasStartsWithPrefixPolicy = (sourceFile: SourceFile): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isPropertyAccessExpression(expression)) {
+      return false;
+    }
+    const firstArgument = callExpression.getArguments()[0];
+    return expression.getName() === "startsWith"
+      && expression.getExpression().getText().endsWith("promptContractId")
+      && Node.isIdentifier(firstArgument)
+      && firstArgument.getText() === "AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX";
+  });
+
 try {
+  const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
+  const sharedSource = project.getSourceFileOrThrow("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts");
+  const openSource = project.getSourceFileOrThrow("src/capabilities/ai-input-gateway/providers/web-chat-open.ts");
+  assert.equal(
+    sourceHasCallExpression(sharedSource, "isAmazonProductMiningGptRequest"),
+    true,
+    "Amazon GPT Web Chat provider tabs must be closed after response capture.",
+  );
+  assert.equal(
+    sourceHasCallExpression(sharedSource, "closeActiveTab"),
+    true,
+    "Web chat restore stage must close governed provider tabs instead of leaving stale GPT tabs open.",
+  );
+  assert.equal(
+    sourceHasStartsWithPrefixPolicy(openSource),
+    true,
+    "All amazon-product-mining prompt contracts must use the Amazon GPT Web Chat lifecycle policy.",
+  );
+
   const abilityGroup = createAiInputGatewayAbilityGroup({
     dataDir,
     adapters: {

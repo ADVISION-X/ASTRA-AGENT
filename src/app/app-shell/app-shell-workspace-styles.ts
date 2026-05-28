@@ -9,7 +9,7 @@ export const APP_SHELL_WORKSPACE_STYLES = `
 .skill-workspace {
   min-height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 14px;
 }
 .skill-workspace:not(.hidden) > .research-shell.hidden { display: block !important; }
@@ -38,6 +38,57 @@ export const APP_SHELL_WORKSPACE_STYLES = `
   min-width: 0;
   display: grid;
   gap: 12px;
+}
+.skill-page-nav {
+  min-height: 38px;
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+.skill-page-tab {
+  min-height: 29px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.skill-page-tab[aria-pressed="true"] {
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+.skill-page-stack {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+}
+.skill-page-surface {
+  min-width: 0;
+  min-height: 0;
+}
+.amazon-product-mining-workspace .history-surface {
+  display: grid;
+  min-height: 0;
+}
+.amazon-product-mining-workspace .publish-surface,
+.amazon-product-mining-workspace .latest-surface {
+  align-content: start;
+  max-width: 620px;
+}
+.amazon-product-mining-workspace .publish-task-card,
+.amazon-product-mining-workspace .latest-task-summary-card {
+  width: 100%;
 }
 .panel, .card {
   border: 1px solid var(--line);
@@ -156,7 +207,7 @@ input:focus, select:focus, button:focus-visible {
 }
 .history-table-shell {
   min-height: 360px;
-  max-height: calc(100vh - 340px);
+  max-height: calc(100vh - 330px);
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;

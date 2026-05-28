@@ -3,6 +3,7 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
+import { AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX } from "./web-chat-restore-policy.js";
 import {
   focusExistingWorkspaceTab,
   readSavedWorkspaceUrl,
@@ -41,7 +42,7 @@ export const isAmazonProductMiningGptRequest = (input: {
   request: AiFeedInput;
 }): boolean =>
   new URL(input.providerUrl).host === "chatgpt.com"
-  && input.request.promptContractId === "amazon-product-mining-keyword-generation-v1";
+  && input.request.promptContractId.startsWith(AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX);
 
 const requiresFreshChatGptConversation = (input: {
   providerUrl: string;

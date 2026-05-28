@@ -155,6 +155,15 @@ const showSkill = (skill) => {
     panel.classList.toggle("hidden", mappedSkill !== skill && panel.dataset.skillWorkspace !== skill);
   });
 };
+const showAmazonProductMiningPage = (page) => {
+  const activePage = page || "history";
+  document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.dataset.amazonProductMiningPage === activePage));
+  });
+  document.querySelectorAll("[data-amazon-product-mining-surface]").forEach((surface) => {
+    surface.classList.toggle("hidden", surface.dataset.amazonProductMiningSurface !== activePage);
+  });
+};
 const refreshShell = async () => {
   try {
     const [health, mode] = await Promise.all([readJson("/api/health"), readJson("/api/mode")]);
@@ -299,6 +308,7 @@ const startAmazonProductMining = async (event) => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(mission),
   });
+  showAmazonProductMiningPage("latest");
   state.amazonProductMiningTaskId = task.taskId || "";
   if (state.amazonProductMiningTaskId) {
     const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(state.amazonProductMiningTaskId));
@@ -309,6 +319,7 @@ const startAmazonProductMining = async (event) => {
   renderLedger(task, { job: "amazon-product-mining" });
 };
 const refreshAmazonProductMiningLatest = async () => {
+  showAmazonProductMiningPage("latest");
   const latestTask = await readJson("/api/amazon-product-mining/latest");
   if (!latestTask) {
     writeActivity("amazon product mining latest task not found", "manual-required");
@@ -372,6 +383,9 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-amazon-product-mining-form]")?.addEventListener("submit", startAmazonProductMining);
   qs("[data-facebook-form]")?.addEventListener("submit", startFacebook);
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
+  document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
+    tab.addEventListener("click", () => showAmazonProductMiningPage(tab.dataset.amazonProductMiningPage));
+  });
   qs("[data-amazon-latest]")?.addEventListener("click", refreshAmazonLatest);
   qs("[data-amazon-resume]")?.addEventListener("click", resumeAmazon);
   qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
@@ -396,6 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-facebook-latest]")?.addEventListener("click", refreshFacebookLatest);
   qs("[data-facebook-export]")?.addEventListener("click", exportFacebookSelection);
   showSkill("amazon-product-mining");
+  showAmazonProductMiningPage("history");
   refreshShell();
   renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
 });

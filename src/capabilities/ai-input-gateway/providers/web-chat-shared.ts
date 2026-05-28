@@ -10,7 +10,7 @@ import {
   captureChatGptBusinessHtmlArtifact,
   isBusinessHtmlReportRequest,
 } from "./web-chat-html-artifact-capture.js";
-import { isDeepResearchGptRequest, openProviderPage } from "./web-chat-open.js";
+import { isAmazonProductMiningGptRequest, isDeepResearchGptRequest, openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import {
@@ -30,7 +30,7 @@ const STABLE_ROUNDS_REQUIRED = 2;
 const shouldCloseProviderTabAfterResponse = (input: {
   providerUrl: string;
   request: AiFeedInput;
-}): boolean => isDeepResearchGptRequest(input);
+}): boolean => isDeepResearchGptRequest(input) || isAmazonProductMiningGptRequest(input);
 
 const submitWebChatPrompt = async (input: {
   browser: BrowserController;
@@ -191,7 +191,7 @@ const restoreAfterWebChatFeed = async (input: {
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
     });
     const closeResult = await input.browser.closeActiveTab({
-      reason: "Deep Research provider answer captured",
+      reason: "AI provider answer captured",
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
     });
     if (!closeResult.ok) {

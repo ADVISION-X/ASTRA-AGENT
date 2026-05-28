@@ -448,12 +448,13 @@ gpt-web-chat
 
 ```txt
 promptContractId startsWith amazon-product-mining-
+完成响应捕获后关闭 GPT Web Chat provider tab
 restoredSourcePage = false
 provider proof 保留该事实
 flow 继续进入下一 Amazon 挖掘步骤
 ```
 
-原因：Amazon mining 下一步会打开专用 Amazon 工作标签，source tab 恢复失败不是业务证据失败。
+原因：Amazon mining 下一步会打开专用 Amazon 工作标签，source tab 恢复失败不是业务证据失败；GPT provider tab 不关闭会残留为旧 active tab，可能让后续 BrowserController DOM 提取打到过期页面。
 
 禁止扩大适用范围：
 
@@ -462,6 +463,7 @@ Deep Research / Facebook / invoice upload / other prompt contract 仍 fail close
 不得新增 fallback provider
 不得新增第二导出链路
 不得隐藏 restoredSourcePage=false
+不得保留已完成的 Amazon GPT provider tab 干扰当前 Amazon 工作标签
 ```
 
 异常：

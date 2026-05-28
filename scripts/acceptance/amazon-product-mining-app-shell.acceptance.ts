@@ -10,6 +10,13 @@ const reviewClient = readFileSync("src/app/workbench-home-amazon-product-mining-
 for (const token of [
   'data-skill-workspace="amazon-product-mining"',
   "skill-header",
+  "data-amazon-product-mining-page-nav",
+  'data-amazon-product-mining-page="history"',
+  'data-amazon-product-mining-page="publish"',
+  'data-amazon-product-mining-page="latest"',
+  'data-amazon-product-mining-surface="history"',
+  'data-amazon-product-mining-surface="publish"',
+  'data-amazon-product-mining-surface="latest"',
 ]) {
   assert(workspace.includes(token), `Amazon Product Mining workspace must include ${token}.`);
 }
@@ -19,6 +26,10 @@ assert(workspace.includes("Latest Task Summary Card"), "Amazon Product Mining wo
 assert(history.includes("Keyword Opportunity Review History"), "Amazon Product Mining history module must render Keyword Opportunity Review History.");
 assert(publish.includes("data-amazon-product-mining-publish-area"), "Publish Task Area must remain available.");
 assert(history.includes("data-primary-history-surface"), "Keyword History must be the primary history surface.");
+assert(workspace.indexOf('data-amazon-product-mining-surface="history"') < workspace.indexOf('data-amazon-product-mining-surface="publish"'), "Keyword History must be the default Level 2 surface before Publish Task.");
+assert(workspace.includes('class="skill-page-surface publish-surface hidden"'), "Publish Task must be a secondary Level 2 surface, hidden by default.");
+assert(workspace.includes('class="skill-page-surface latest-surface hidden"'), "Latest Task must be a secondary Level 2 surface, hidden by default.");
+assert(client.includes("showAmazonProductMiningPage"), "Client must switch Amazon Product Mining Level 2 surfaces.");
 
 for (const token of [
   "data-amazon-product-mining-review-filter",

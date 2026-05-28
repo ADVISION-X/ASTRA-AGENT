@@ -1013,8 +1013,9 @@ App 可保存最近 taskId，
   "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
   "status": "active",
   "owner": "amazon-product-mining",
-  "summary": "After an Amazon product mining GPT Web Chat response is captured, source tab restoration failure must be recorded as provider proof but must not fail the mining flow; this exception is forbidden outside amazon-product-mining prompt contracts.",
+  "summary": "After an Amazon product mining GPT Web Chat response is captured, provider tabs must be closed and source tab restoration failure must be recorded as provider proof without failing the mining flow; this exception is forbidden outside amazon-product-mining prompt contracts.",
   "appliesTo": [
+    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
@@ -1024,17 +1025,19 @@ App 可保存最近 taskId，
   "forbidden": [
     "Failing an Amazon product mining GPT Web Chat feed after valid output was captured only because source tab restoration failed.",
     "Allowing non-Amazon prompt contracts to ignore source tab restoration failure.",
-    "Dropping restoredSourcePage=false from provider proof."
+    "Dropping restoredSourcePage=false from provider proof.",
+    "Leaving completed Amazon GPT Web Chat provider tabs open so later BrowserController DOM extraction can hit stale active tabs."
   ]
 }
 ```
 
 ### 法条
 
+- Amazon 产品挖掘所有 `promptContractId` 以 `amazon-product-mining-` 开头的 GPT Web Chat 请求，完成响应捕获后必须关闭 provider tab，避免旧 GPT 页面残留干扰 current active tab。
 - `promptContractId` 以 `amazon-product-mining-` 开头且 GPT Web Chat 已捕获有效输出时，`restoredSourcePage=false` 必须保留在 provider proof，但不得阻断后续 Amazon 挖掘流程。
 - 该连续性例外只适用于 Amazon 产品挖掘 prompt contract；Deep Research、Facebook、invoice upload 或其他能力仍必须对 source restoration failure fail closed。
 - 该例外不得新增 fallback、第二 provider、第二导出链路或手工 repack。
-- Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`。
+- Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`，并以 AST 证明 Amazon GPT provider tab 收口路径存在。
 
 ## 4. State Contracts
 
