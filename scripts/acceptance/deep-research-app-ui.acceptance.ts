@@ -31,6 +31,8 @@ assert(panelView.includes('class="skill-page-surface research-new-surface hidden
 assert(panelView.includes('class="skill-page-surface research-case-surface hidden"'), "Case File must be hidden by default.");
 assert(bootClient.includes("showDeepResearchPage"), "Deep Research client must switch Level 2 page surfaces.");
 assert(bootClient.includes("openDeepResearchInspector"), "Deep Research client must open selected reports in the global Inspector.");
+assert(contracts.includes("openInspector?: boolean"), "Deep Research report loading must distinguish auto reader load from explicit Level 3 Inspector open.");
+assert(bootClient.includes("shouldOpenDeepResearchInspector"), "Deep Research must not open the right Inspector automatically for the default reader.");
 
 assert(contracts.includes("promptBundle:"), "Client contracts must expose promptBundle.");
 assert(contracts.includes("researchPlan:"), "Client contracts must expose researchPlan.");

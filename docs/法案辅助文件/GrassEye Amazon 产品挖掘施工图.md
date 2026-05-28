@@ -67,10 +67,33 @@ INTAKE
 -> KEYWORD_LOOP_END
 
 -> TASK_PACKAGE_BUILD
--> TASK_MASTER_REPORT_BUILD
--> TASK_HANDOFF_SUMMARY
--> COMPLETE
+  -> TASK_MASTER_REPORT_BUILD
+  -> TASK_HANDOFF_SUMMARY
+  -> COMPLETE
 ```
+
+## 1.0.1 断点续跑与人工控制
+
+```txt
+TASK_CONTROL_CHECK
+  -> 每个 keyword / product / review / packaging 安全点读取持久化 task.status
+  -> paused: 停在当前持久化证据位置，不进入后续步骤
+  -> terminated: 停在当前持久化证据位置，不进入 packaging
+  -> running states: 继续单一生产 flow
+
+WORKBENCH_STARTUP
+  -> 扫描 created / keyword_generating / keyword_ready / mining / packaging
+  -> 对每个非终态、非 paused、非 terminated task 自动继续同一 flow
+```
+
+冻结细则：
+
+- 断点真相只能来自 SQLite 与已落地 evidence，不得来自前端缓存、zip、手工重包或第二执行链。
+- Continue 必须复用同一个 `taskId`，并跳过已完成的 keyword/search/detail/review/keyword review。
+- Pause 是人工暂停，系统重启后不自动继续。
+- Terminate 是人工终止，系统重启后不自动继续，也不得生成新的 package。
+- 同一 `taskId` 任意时刻只能有一个活动执行。
+- App surface 必须提供 Pause / Continue / Terminate 三个真实后端控制按钮，不能只改 UI 状态。
 
 ## 1.1 浏览器标签生命周期
 
@@ -144,6 +167,9 @@ GET  /api/amazon-product-mining/keyword-reviews?taskId=
 GET  /api/amazon-product-mining/keyword-review?reviewId=
 POST /api/amazon-product-mining/keyword-review/manual-ingest
 GET  /api/amazon-product-mining/export?taskId=# 下载导出
+POST /api/amazon-product-mining/pause          # 暂停当前 task
+POST /api/amazon-product-mining/continue       # 从持久化断点继续 task
+POST /api/amazon-product-mining/terminate      # 终止当前 task
 ```
 
 禁止：直接写业务步骤 / 直接读 DOM / 直接判断产品好坏 / 直接调用能力组私有实现。
@@ -187,6 +213,13 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 | owner | flow.ts + storage.ts |
 | 异常处理 | marketplace 缺 → 拒绝创建；targetMarket 缺 → 拒绝创建 |
 | 禁止 | 默认值替代用户选择 / 跳过历史关键词读取 / AI 自主决定站点 |
+
+断点续跑约束：
+
+- 新建任务时保存 provider、scope 与初始状态。
+- 如果同一 taskId 已存在，必须进入 Continue 语义，不得重新 create task 或重新生成已存在关键词。
+- App 必须允许用户在任务运行中暂停、继续、终止。
+- 系统重启后自动继续非终态运行状态；`paused` 与 `terminated` 不自动继续。
 
 ---
 
@@ -886,9 +919,11 @@ task-level report refs
 APP_LOAD
 -> LOAD_LATEST_TASK
 -> LOAD_KEYWORD_REVIEW_HISTORY
+-> IF_LATEST_RUNNING_START_STATUS_POLL
 -> RENDER_FILTERS
 -> RENDER_HISTORY_TABLE
 -> USER_FILTERS_DECISION_OR_KEYWORD
+-> USER_PAUSES_CONTINUES_OR_TERMINATES_TASK
 -> USER_OPENS_PACKAGE_OR_AI_REVIEW
 ```
 

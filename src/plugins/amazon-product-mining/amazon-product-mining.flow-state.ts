@@ -41,6 +41,7 @@ export const buildFailedTaskRecord = (input: {
   productDirection: input.miningInput.productDirection,
   requestedKeywordCount: input.miningInput.requestedKeywordCount,
   languagePreference: input.miningInput.languagePreference ?? "en",
+  providerKind: input.miningInput.providerKind,
   status: "failed",
   failureReason: input.message,
   packageJsonPath: null,

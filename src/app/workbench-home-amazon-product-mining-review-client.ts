@@ -40,6 +40,11 @@ const setAmazonProductMiningReviewTaskFilter = (taskId) => {
   state.amazonProductMiningReviewFilters.taskId = taskId || "";
   setInputValue("[data-amazon-product-mining-review-task-filter]", state.amazonProductMiningReviewFilters.taskId);
 };
+const setAmazonProductMiningLatestSummaryState = (stateName) => {
+  document.querySelectorAll("[data-amazon-product-mining-latest-state]").forEach((node) => {
+    node.classList.toggle("hidden", node.dataset.amazonProductMiningLatestState !== stateName);
+  });
+};
 const renderAmazonProductMiningSummary = (record) => {
   const taskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.amazonProductMiningTaskId || "-";
   const packageRef = record.packageZipPath || record.packageJsonPath || record.pdfReportPath || record.evidenceIndexPath || "-";
@@ -48,9 +53,32 @@ const renderAmazonProductMiningSummary = (record) => {
   setText("[data-amazon-product-mining-package]", packageRef);
   if (taskId && taskId !== "-") setAmazonProductMiningReviewTaskFilter(taskId);
   const status = normalizeAmazonProductMiningReviewValue(record.status);
+  setAmazonProductMiningLatestSummaryState(status === "manual_required" || status === "failed" ? status : "loaded");
   if (status === "manual_required") setRegionState("manual-required");
   if (status === "failed") setRegionState("failed");
 };
+const sendAmazonProductMiningControl = async (controlName) => {
+  const taskId = state.amazonProductMiningTaskId;
+  if (!taskId) return writeActivity("amazon product mining task id is required", "manual-required");
+  const result = await readJson("/api/amazon-product-mining/" + controlName, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ taskId }),
+  });
+  writeActivity("amazon product mining " + controlName + " accepted", controlName === "terminate" ? "manual-required" : "running");
+  if (controlName === "pause" || controlName === "terminate") stopAmazonProductMiningPolling();
+  if (controlName === "continue") startAmazonProductMiningPolling(taskId);
+  if (result?.taskId && !result.status) {
+    const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(result.taskId));
+    renderLedger(current, { job: "amazon-product-mining" });
+    return result;
+  }
+  renderLedger(result, { job: "amazon-product-mining" });
+  return result;
+};
+const pauseAmazonProductMining = async () => { await sendAmazonProductMiningControl("pause"); };
+const continueAmazonProductMining = async () => { await sendAmazonProductMiningControl("continue"); };
+const terminateAmazonProductMining = async () => { await sendAmazonProductMiningControl("terminate"); };
 const createReviewPill = (value, variant) => {
   const pill = document.createElement("span");
   const normalizedValue = normalizeAmazonProductMiningReviewValue(value);
@@ -64,6 +92,17 @@ const setAmazonProductMiningReviewState = (message, tone = "empty") => {
   if (!node) return;
   node.textContent = message;
   node.className = "history-state " + tone + "-state";
+};
+const setAmazonProductMiningReviewEmptyPanel = (message, hidden) => {
+  const node = qs("[data-amazon-product-mining-review-empty-panel]");
+  if (!node) return;
+  node.classList.toggle("hidden", Boolean(hidden));
+  const paragraph = node.querySelector("p");
+  if (paragraph) paragraph.textContent = message;
+};
+const setAmazonProductMiningReviewTableVisible = (visible) => {
+  const tableShell = qs("[data-amazon-product-mining-review-table-shell]");
+  if (tableShell) tableShell.classList.toggle("hidden", !visible);
 };
 const setSelectOptions = (selectNode, values, selectedValue) => {
   if (!selectNode) return;
@@ -227,6 +266,8 @@ const renderAmazonProductMiningReviewTable = (reviews) => {
   rowsNode.innerHTML = "";
   if (state.amazonProductMiningReviewLoading) {
     setAmazonProductMiningReviewState("Loading reviews...", "loading");
+    setAmazonProductMiningReviewTableVisible(false);
+    setAmazonProductMiningReviewEmptyPanel("Loading persisted keyword review records from the backend.", false);
     const loadingRow = document.createElement("tr");
     const loadingCell = document.createElement("td");
     loadingCell.className = "loading-state";
@@ -238,6 +279,8 @@ const renderAmazonProductMiningReviewTable = (reviews) => {
   }
   if (state.amazonProductMiningReviewError) {
     setAmazonProductMiningReviewState("Failed to load keyword reviews: " + state.amazonProductMiningReviewError, "error");
+    setAmazonProductMiningReviewTableVisible(false);
+    setAmazonProductMiningReviewEmptyPanel("Failed to load keyword reviews. Use Refresh after fixing the backend or task state.", false);
     const errorRow = document.createElement("tr");
     const errorCell = document.createElement("td");
     errorCell.colSpan = REVIEW_TABLE_COLUMN_COUNT;
@@ -260,6 +303,8 @@ const renderAmazonProductMiningReviewTable = (reviews) => {
       ? "No keyword opportunity reviews match the current filters."
       : "No keyword opportunity reviews yet. Run an Amazon product mining task and complete AI keyword review to populate this table.";
     setAmazonProductMiningReviewState(emptyMessage, (reviews || []).length > 0 ? "manual-required" : "empty");
+    setAmazonProductMiningReviewTableVisible(false);
+    setAmazonProductMiningReviewEmptyPanel(emptyMessage, false);
     const emptyRow = document.createElement("tr");
     const emptyCell = document.createElement("td");
     emptyCell.className = "empty-state";
@@ -270,6 +315,8 @@ const renderAmazonProductMiningReviewTable = (reviews) => {
     return;
   }
   setAmazonProductMiningReviewState("Showing " + filtered.length + " review rows.", "ready");
+  setAmazonProductMiningReviewEmptyPanel("", true);
+  setAmazonProductMiningReviewTableVisible(true);
   for (const review of filtered) rowsNode.append(renderAmazonProductMiningReviewRow(review));
 };
 const renderAmazonProductMiningReviews = (reviews) => renderAmazonProductMiningReviewTable(reviews);

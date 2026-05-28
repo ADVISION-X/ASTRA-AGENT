@@ -2,24 +2,19 @@ import { randomUUID } from "node:crypto";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import type { AmazonMiningInput } from "./amazon-product-mining.schema.js";
-import { writeAmazonHandoffRecord } from "./amazon-product-mining.handoff.js";
+import type { AmazonKeywordRecord, AmazonMiningInput, AmazonSearchResultItem } from "./amazon-product-mining.schema.js";
 import { createAmazonMiningLogger } from "./amazon-product-mining.logging.js";
-import { buildAmazonProductMiningPackage } from "./amazon-product-mining.package.js";
-import { buildAmazonProductMiningReport } from "./amazon-product-mining.pdf.js";
 import { runProductDetailExtraction } from "./amazon-product-mining.product-detail.js";
 import { taskRecordToResult } from "./amazon-product-mining.result.js";
 import { runReviewPagination } from "./amazon-product-mining.reviews.js";
 import { runAmazonSearch } from "./amazon-product-mining.search.js";
-import { buildFailedTaskRecord, resolveFinalTaskState, type FinalTaskResolution } from "./amazon-product-mining.flow-state.js";
+import { buildFailedTaskRecord } from "./amazon-product-mining.flow-state.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { buildKeywordRecords, runKeywordGeneration } from "./amazon-product-mining.keyword.js";
 import { runKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
 import { purgeRejectedKeywordReviewEvidenceArtifacts } from "./amazon-product-mining.keyword-review-support.js";
 import type { AmazonKeywordProviderKind } from "./amazon-product-mining.schema.js";
 import {
-  buildPackageInput,
-  didAllKeywordsFail,
   openDedicatedAmazonMiningTab,
   recordSearchFailure,
   resolveAmazonItemAsin,
@@ -27,6 +22,13 @@ import {
   selectSearchItemsForDetailMining as selectSearchItemsForDetailMiningByLimit,
   waitForAmazonMiningPacingDelay,
 } from "./amazon-product-mining.flow-support.js";
+import { finalizeAmazonMiningPackaging } from "./amazon-product-mining.flow-packaging.js";
+import {
+  getAmazonLinkedProductDetail,
+  haltIfAmazonOperatorControlled,
+  hasAmazonKeywordOpportunityReview,
+  toAmazonTaskResult,
+} from "./amazon-product-mining.flow-control.js";
 export { selectAmazonMiningPacingDelayMs };
 export type AmazonFlowContext = {
   miningInput: AmazonMiningInput;
@@ -61,8 +63,8 @@ type AmazonFlowRuntime = {
   failureReasons: string[];
 };
 type KeywordPhaseResult = { kind: "stop"; result: AmazonFlowResult } | { kind: "continue"; keywordRecords: ReturnType<typeof buildKeywordRecords> };
-type PackageBuildResult = Awaited<ReturnType<typeof buildAmazonProductMiningPackage>>;
-type PackagingArtifacts = { packageResult: PackageBuildResult; pdfPath: string | null };
+type MiningPhaseResult = { kind: "active" } | { kind: "halted"; result: AmazonFlowResult };
+type KeywordWorkResult = "active" | "halted";
 export const AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT = 30;
 export const AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 60_000 } as const;
 export const AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 20_000 } as const;
@@ -83,8 +85,16 @@ const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => (
   manualRequiredReasons: [],
   failureReasons: [],
 });
-const createTaskRecord = (runtime: AmazonFlowRuntime): void => {
+
+const ensureTaskRecord = (runtime: AmazonFlowRuntime): void => {
   const { storage, logger, taskId, miningInput } = runtime;
+  const existingTask = storage.getTask(taskId);
+  if (existingTask) {
+    if (existingTask.status === "paused") {
+      storage.updateTaskStatus({ taskId, status: "mining" });
+    }
+    return;
+  }
   storage.createTask({
     taskId,
     amazonMarketplace: miningInput.amazonMarketplace,
@@ -92,6 +102,7 @@ const createTaskRecord = (runtime: AmazonFlowRuntime): void => {
     productDirection: miningInput.productDirection,
     requestedKeywordCount: miningInput.requestedKeywordCount,
     languagePreference: miningInput.languagePreference ?? "en",
+    providerKind: miningInput.providerKind,
     status: "created",
     failureReason: null,
     packageJsonPath: null,
@@ -107,6 +118,11 @@ const createTaskRecord = (runtime: AmazonFlowRuntime): void => {
 
 const runKeywordPhase = async (runtime: AmazonFlowRuntime): Promise<KeywordPhaseResult> => {
   const { ctx, storage, logger, taskId, miningInput } = runtime;
+  const persistedKeywords = storage.getKeywordsForTask(taskId);
+  if (persistedKeywords.length > 0) {
+    storage.updateTaskStatus({ taskId, status: "keyword_ready" });
+    return { kind: "continue", keywordRecords: persistedKeywords };
+  }
   storage.updateTaskStatus({ taskId, status: "keyword_generating" });
   const existingMinedKeywords = storage.getAllMinedKeywordsForDedup();
 
@@ -167,6 +183,7 @@ const extractAndPersistReviews = async (
   const reviewsUrl = `https://www.${miningInput.amazonMarketplace}/product-reviews/${asin}`;
   storage.updateProductStatus({ detailId, status: "review_extracting" });
   await waitForReviewPageOpenPacingDelay(runtime);
+  if (haltIfAmazonOperatorControlled(runtime)) return;
 
   const paginationResult = await runReviewPagination({
     browser: ctx.browser,
@@ -193,66 +210,87 @@ const extractAndPersistReviews = async (
   storage.updateProductStatus({ detailId, status: "completed" });
 };
 
-const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: string; productUrl: string | null; asinIfAvailable: string | null }): Promise<void> => {
-  if (!item.productUrl) return;
+const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: string; productUrl: string | null; asinIfAvailable: string | null }): Promise<KeywordWorkResult> => {
+  if (haltIfAmazonOperatorControlled(runtime)) return "halted";
+  if (!item.productUrl) return "active";
+  const linkedDetail = getAmazonLinkedProductDetail(runtime, item.itemId);
+  if (linkedDetail) {
+    if (linkedDetail.status === "completed" || linkedDetail.status === "manual_required" || linkedDetail.status === "failed") {
+      return "active";
+    }
+    if (linkedDetail.asin && (linkedDetail.status === "pending_detail" || linkedDetail.status === "detail_completed" || linkedDetail.status === "review_extracting")) {
+      await extractAndPersistReviews(runtime, linkedDetail.detailId, linkedDetail.asin);
+      return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+    }
+  }
   const asin = resolveAmazonItemAsin(item.productUrl, item.asinIfAvailable);
   const productDetail = await extractAndPersistProductDetail(runtime, item.itemId, item.productUrl, asin);
-  if (!productDetail) return;
+  if (!productDetail) return "active";
   if (!productDetail.asin) {
     runtime.storage.updateProductStatus({ detailId: productDetail.detailId, status: "detail_completed" });
-    return;
+    return "active";
   }
   await extractAndPersistReviews(runtime, productDetail.detailId, productDetail.asin);
+  return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
 };
 
 export const selectSearchItemsForDetailMining = <T extends { rankPosition: number }>(
   items: readonly T[],
 ): T[] => selectSearchItemsForDetailMiningByLimit(items, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT);
 
-const processKeywordRecord = async (
+const loadOrSearchKeywordItems = async (
   runtime: AmazonFlowRuntime,
-  keywordRecord: ReturnType<typeof buildKeywordRecords>[number],
-): Promise<void> => {
+  keywordRecord: AmazonKeywordRecord,
+): Promise<AmazonSearchResultItem[]> => {
   const { ctx, storage, logger, taskId, miningInput } = runtime;
-  storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "searching" });
-  logger.logSearchOpen({ taskId, keywordId: keywordRecord.keywordId, keyword: keywordRecord.keyword });
+  let searchItems: AmazonSearchResultItem[] = storage.getSearchResultsForKeyword(keywordRecord.keywordId);
+  if (searchItems.length === 0 && keywordRecord.status !== "failed" && keywordRecord.status !== "manual_required") {
+    storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "searching" });
+    logger.logSearchOpen({ taskId, keywordId: keywordRecord.keywordId, keyword: keywordRecord.keyword });
 
-  const searchResult = await runAmazonSearch({
-    browser: ctx.browser,
-    marketplace: miningInput.amazonMarketplace,
-    keywordId: keywordRecord.keywordId,
-    keyword: keywordRecord.keyword,
-    taskId,
-  });
+    const searchResult = await runAmazonSearch({
+      browser: ctx.browser,
+      marketplace: miningInput.amazonMarketplace,
+      keywordId: keywordRecord.keywordId,
+      keyword: keywordRecord.keyword,
+      taskId,
+    });
 
-  if (!searchResult.ok) {
-    recordSearchFailure(runtime, keywordRecord.keywordId, searchResult.blockerKind, searchResult.reason);
-  } else {
-    logger.logSearchExtracted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
-    storage.persistSearchResults(searchResult.items);
-    logger.logSearchPersisted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
-    storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "search_completed" });
-
-    for (const item of selectSearchItemsForDetailMining(searchResult.items)) {
-      await processSearchItem(runtime, item);
+    if (!searchResult.ok) {
+      recordSearchFailure(runtime, keywordRecord.keywordId, searchResult.blockerKind, searchResult.reason);
+    } else {
+      logger.logSearchExtracted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
+      storage.persistSearchResults(searchResult.items);
+      logger.logSearchPersisted({ taskId, keywordId: keywordRecord.keywordId, count: searchResult.items.length });
+      storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "search_completed" });
+      searchItems = searchResult.items;
     }
+  }
+  return searchItems;
+};
 
-    storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "completed" });
+const processKeywordSearchItems = async (
+  runtime: AmazonFlowRuntime,
+  keywordRecord: AmazonKeywordRecord,
+  searchItems: readonly AmazonSearchResultItem[],
+): Promise<KeywordWorkResult> => {
+  if (searchItems.length > 0) {
+    runtime.storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "search_completed" });
+    for (const item of selectSearchItemsForDetailMining(searchItems)) {
+      const itemResult = await processSearchItem(runtime, item);
+      if (itemResult === "halted") return "halted";
+    }
+    runtime.storage.updateKeywordStatus({ keywordId: keywordRecord.keywordId, status: "completed" });
   }
+  return "active";
+};
 
-  const keywordReview = await runKeywordOpportunityReview({
-    dataDir: runtime.dataDir,
-    taskId,
-    keyword: storage.getKeywordsForTask(taskId).find((record) => record.keywordId === keywordRecord.keywordId) ?? keywordRecord,
-    storage,
-    aiInputGateway: ctx.aiInputGateway,
-  });
-  if (keywordReview.status === "manual_required") {
-    runtime.manualRequiredReasons.push(`keyword_review_manual_required:${keywordRecord.keywordId}`);
-  }
-  if (keywordReview.status === "failed") {
-    runtime.failureReasons.push(`keyword_review_failed:${keywordRecord.keywordId}`);
-  }
+const persistRejectedKeywordTombstone = (
+  runtime: AmazonFlowRuntime,
+  keywordRecord: AmazonKeywordRecord,
+  keywordReview: Awaited<ReturnType<typeof runKeywordOpportunityReview>>,
+): void => {
+  const { storage, taskId } = runtime;
   if (keywordReview.status === "completed" && keywordReview.decision === "REJECT") {
     const purgeResult = storage.purgeRejectedKeywordEvidence({
       taskId,
@@ -278,6 +316,36 @@ const processKeywordRecord = async (
   }
 };
 
+const runKeywordReviewIfNeeded = async (
+  runtime: AmazonFlowRuntime,
+  keywordRecord: AmazonKeywordRecord,
+): Promise<void> => {
+  if (hasAmazonKeywordOpportunityReview(runtime, keywordRecord.keywordId)) return;
+  const { ctx, storage, taskId } = runtime;
+  const keywordReview = await runKeywordOpportunityReview({
+    dataDir: runtime.dataDir,
+    taskId,
+    keyword: storage.getKeywordsForTask(taskId).find((record) => record.keywordId === keywordRecord.keywordId) ?? keywordRecord,
+    storage,
+    aiInputGateway: ctx.aiInputGateway,
+  });
+  if (keywordReview.status === "manual_required") runtime.manualRequiredReasons.push(`keyword_review_manual_required:${keywordRecord.keywordId}`);
+  if (keywordReview.status === "failed") runtime.failureReasons.push(`keyword_review_failed:${keywordRecord.keywordId}`);
+  persistRejectedKeywordTombstone(runtime, keywordRecord, keywordReview);
+};
+
+const processKeywordRecord = async (
+  runtime: AmazonFlowRuntime,
+  keywordRecord: AmazonKeywordRecord,
+): Promise<KeywordWorkResult> => {
+  if (haltIfAmazonOperatorControlled(runtime)) return "halted";
+  const searchItems = await loadOrSearchKeywordItems(runtime, keywordRecord);
+  const itemResult = await processKeywordSearchItems(runtime, keywordRecord, searchItems);
+  if (itemResult === "halted" || haltIfAmazonOperatorControlled(runtime)) return "halted";
+  await runKeywordReviewIfNeeded(runtime, keywordRecord);
+  return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+};
+
 const extractAndPersistProductDetail = async (
   runtime: AmazonFlowRuntime,
   itemId: string,
@@ -286,6 +354,7 @@ const extractAndPersistProductDetail = async (
 ) => {
   const { ctx, storage, logger, taskId } = runtime;
   await waitForProductDetailOpenPacingDelay(runtime);
+  if (haltIfAmazonOperatorControlled(runtime)) return null;
   logger.logDetailOpen({ taskId, detailId: itemId, productUrl });
 
   try {
@@ -320,144 +389,17 @@ const openDedicatedMiningTab = async (runtime: AmazonFlowRuntime): Promise<void>
 
 const runMiningPhase = async (
   runtime: AmazonFlowRuntime,
-  keywordRecords: ReturnType<typeof buildKeywordRecords>,
-): Promise<void> => {
+  keywordRecords: readonly AmazonKeywordRecord[],
+): Promise<MiningPhaseResult> => {
   runtime.storage.updateTaskStatus({ taskId: runtime.taskId, status: "mining" });
   await openDedicatedMiningTab(runtime);
   for (const keywordRecord of keywordRecords) {
-    await processKeywordRecord(runtime, keywordRecord);
+    const control = haltIfAmazonOperatorControlled(runtime);
+    if (control) return control;
+    const result = await processKeywordRecord(runtime, keywordRecord);
+    if (result === "halted") return { kind: "halted", result: toAmazonTaskResult(runtime) };
   }
-};
-
-const buildPackagingArtifacts = async (runtime: AmazonFlowRuntime): Promise<PackagingArtifacts> => {
-  const { storage, logger, taskId, miningInput, dataDir, manualRequiredReasons } = runtime;
-  storage.updateTaskStatus({ taskId, status: "packaging" });
-
-  const packageResult = await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT));
-  logger.logPackageBuilt({
-    taskId,
-    packageJsonPath: packageResult.packageJsonPath,
-    evidenceIndexPath: packageResult.evidenceIndexPath,
-    exceptionSummaryPath: packageResult.exceptionSummaryPath,
-  });
-
-  const reportResult = buildAmazonProductMiningReport({
-    taskId,
-    dataDir,
-    packageJsonPath: packageResult.packageJsonPath,
-    productCount: packageResult.productCount,
-    reviewCount: packageResult.reviewCount,
-    keywordCount: packageResult.keywordCount,
-    productDirection: miningInput.productDirection,
-    amazonMarketplace: miningInput.amazonMarketplace,
-    targetMarket: miningInput.targetMarket,
-  });
-
-  if (!reportResult.ok) {
-    manualRequiredReasons.push(`report_build_failed:${reportResult.reason}`);
-    return { packageResult, pdfPath: null };
-  }
-
-  logger.logPdfBuilt({ taskId, pdfReportPath: reportResult.pdfReportPath });
-  return { packageResult, pdfPath: reportResult.pdfReportPath };
-};
-
-const persistFinalPackagingState = async (
-  runtime: AmazonFlowRuntime,
-  artifacts: PackagingArtifacts,
-  resolution: FinalTaskResolution,
-): Promise<void> => {
-  const { storage, logger, taskId, manualRequiredReasons } = runtime;
-  storage.updateTaskStatus({
-    taskId,
-    status: resolution.finalTaskStatus,
-    failureReason: resolution.finalFailureReason,
-    packageJsonPath: artifacts.packageResult.packageJsonPath,
-    pdfReportPath: artifacts.pdfPath,
-    evidenceIndexPath: artifacts.packageResult.evidenceIndexPath,
-    exceptionSummaryPath: artifacts.packageResult.exceptionSummaryPath,
-    handoffStatus: resolution.finalHandoffStatus,
-  });
-  await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT));
-
-  if (resolution.finalHandoffStatus === "ready") {
-    logger.logHandoffReady({ taskId });
-  } else {
-    logger.logManualRequired({ taskId, scope: "handoff", reason: manualRequiredReasons.join("; ") });
-  }
-
-  logger.logMissionComplete({ taskId });
-};
-
-const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlowResult> => {
-  const { storage, taskId, dataDir, manualRequiredReasons } = runtime;
-  let artifacts = await buildPackagingArtifacts(runtime);
-  const allKeywordsFailed = didAllKeywordsFail(runtime);
-  if (allKeywordsFailed) {
-    manualRequiredReasons.push("all_keywords_failed");
-  }
-
-  let handoff = writeAmazonHandoffRecord({
-    dataDir,
-    taskId,
-    packageJsonPath: artifacts.packageResult.packageJsonPath,
-    reportPath: artifacts.pdfPath ?? "",
-    evidenceIndexPath: artifacts.packageResult.evidenceIndexPath,
-    exceptionSummaryPath: artifacts.packageResult.exceptionSummaryPath,
-    productCount: artifacts.packageResult.productCount,
-    reviewCount: artifacts.packageResult.reviewCount,
-    keywordCount: artifacts.packageResult.keywordCount,
-    amazonMarketplace: runtime.miningInput.amazonMarketplace,
-    targetMarket: runtime.miningInput.targetMarket,
-    productDirection: runtime.miningInput.productDirection,
-    requestedKeywordCount: runtime.miningInput.requestedKeywordCount,
-    languagePreference: runtime.miningInput.languagePreference ?? "en",
-    packageIntegrityStatus: artifacts.packageResult.integrityStatus,
-    manualRequiredReasons,
-  });
-
-  artifacts = {
-    ...artifacts,
-    packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT)),
-  };
-  if (artifacts.packageResult.integrityStatus === "failed" && !manualRequiredReasons.includes("package_integrity_failed")) {
-    manualRequiredReasons.push("package_integrity_failed");
-  }
-
-  const shouldBeReady = manualRequiredReasons.length === 0 && artifacts.packageResult.integrityStatus === "pass";
-  if ((handoff.handoffStatus === "ready") !== shouldBeReady) {
-    handoff = writeAmazonHandoffRecord({
-      dataDir,
-      taskId,
-      packageJsonPath: artifacts.packageResult.packageJsonPath,
-      reportPath: artifacts.pdfPath ?? "",
-      evidenceIndexPath: artifacts.packageResult.evidenceIndexPath,
-      exceptionSummaryPath: artifacts.packageResult.exceptionSummaryPath,
-      productCount: artifacts.packageResult.productCount,
-      reviewCount: artifacts.packageResult.reviewCount,
-      keywordCount: artifacts.packageResult.keywordCount,
-      amazonMarketplace: runtime.miningInput.amazonMarketplace,
-      targetMarket: runtime.miningInput.targetMarket,
-      productDirection: runtime.miningInput.productDirection,
-      requestedKeywordCount: runtime.miningInput.requestedKeywordCount,
-      languagePreference: runtime.miningInput.languagePreference ?? "en",
-      packageIntegrityStatus: artifacts.packageResult.integrityStatus,
-      manualRequiredReasons,
-    });
-    artifacts = {
-      ...artifacts,
-      packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT)),
-    };
-  }
-
-  const resolution = resolveFinalTaskState({
-    allKeywordsFailed,
-    handoffStatus: handoff.handoffStatus,
-    manualRequiredReasons,
-    failureReasons: runtime.failureReasons,
-  });
-  await persistFinalPackagingState(runtime, artifacts, resolution);
-  return taskRecordToResult(storage.getTask(taskId)!);
+  return { kind: "active" };
 };
 
 const buildFailureResult = (runtime: AmazonFlowRuntime, error: unknown): AmazonFlowResult => {
@@ -476,13 +418,18 @@ export const runAmazonProductMiningFlow = async (ctx: AmazonFlowContext): Promis
   const runtime = createAmazonFlowRuntime(ctx);
 
   try {
-    createTaskRecord(runtime);
+    ensureTaskRecord(runtime);
+    const initialControl = haltIfAmazonOperatorControlled(runtime);
+    if (initialControl) return initialControl.result;
     const keywordPhase = await runKeywordPhase(runtime);
     if (keywordPhase.kind === "stop") {
       return keywordPhase.result;
     }
-    await runMiningPhase(runtime, keywordPhase.keywordRecords);
-    return await finalizePackaging(runtime);
+    const miningPhase = await runMiningPhase(runtime, keywordPhase.keywordRecords);
+    if (miningPhase.kind === "halted") return miningPhase.result;
+    const packagingControl = haltIfAmazonOperatorControlled(runtime);
+    if (packagingControl) return packagingControl.result;
+    return await finalizeAmazonMiningPackaging(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT);
   } catch (error) {
     return buildFailureResult(runtime, error);
   } finally {

@@ -46,6 +46,7 @@ export type AmazonMiningStorage = {
   }): AmazonTaskRecord | null;
   getTask(taskId: string): AmazonTaskRecord | null;
   getLatestTask(): AmazonTaskRecord | null;
+  listTasksByStatuses(statuses: readonly AmazonTaskStatus[]): AmazonTaskRecord[];
   saveKeywords(keywords: readonly AmazonKeywordRecord[]): void;
   updateKeywordStatus(input: { keywordId: string; status: AmazonKeywordStatus; }): void;
   getKeywordsForTask(taskId: string): AmazonKeywordRecord[];
@@ -113,7 +114,7 @@ export const createAmazonMiningDatabase = (dataDir: string): Database.Database =
 
 const createTaskOperations = (
   db: Database.Database,
-): Pick<AmazonMiningStorage, "createTask" | "updateTaskStatus" | "getTask" | "getLatestTask"> => {
+): Pick<AmazonMiningStorage, "createTask" | "updateTaskStatus" | "getTask" | "getLatestTask" | "listTasksByStatuses"> => {
   const getTask = (taskId: string): AmazonTaskRecord | null => {
     const row = db.prepare("SELECT * FROM amazon_mining_tasks WHERE task_id=?").get(taskId);
     return row ? rowToTask(row as Record<string, unknown>) : null;
@@ -123,10 +124,10 @@ const createTaskOperations = (
     createTask(task) {
       db.prepare(`INSERT INTO amazon_mining_tasks (
         task_id, amazon_marketplace, target_market, product_direction, requested_keyword_count,
-        language_preference, status, handoff_status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        language_preference, provider_kind, status, handoff_status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         task.taskId, task.amazonMarketplace, task.targetMarket, task.productDirection,
-        task.requestedKeywordCount, task.languagePreference, task.status,
+        task.requestedKeywordCount, task.languagePreference, task.providerKind, task.status,
         task.handoffStatus, task.createdAt,
       );
       return getTask(task.taskId)!;
@@ -148,6 +149,13 @@ const createTaskOperations = (
     getLatestTask() {
       const row = db.prepare("SELECT * FROM amazon_mining_tasks ORDER BY created_at DESC LIMIT 1").get();
       return row ? rowToTask(row as Record<string, unknown>) : null;
+    },
+
+    listTasksByStatuses(statuses) {
+      if (statuses.length === 0) return [];
+      const placeholders = statuses.map(() => "?").join(",");
+      const rows = db.prepare(`SELECT * FROM amazon_mining_tasks WHERE status IN (${placeholders}) ORDER BY created_at ASC`).all(...statuses);
+      return rows.map((row) => rowToTask(row as Record<string, unknown>));
     },
   };
 };

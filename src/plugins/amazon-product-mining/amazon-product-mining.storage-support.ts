@@ -46,6 +46,9 @@ const ensureTableColumns = (
 };
 
 export const ensureAmazonMiningStorageColumns = (db: Database.Database): void => {
+  ensureTableColumns(db, "amazon_mining_tasks", [
+    { columnName: "provider_kind", definition: "TEXT NOT NULL DEFAULT 'gpt-web-chat'" },
+  ]);
   ensureTableColumns(db, "amazon_mining_search_results", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
   ]);
@@ -86,6 +89,7 @@ export const rowToTask = (row: StorageRow): AmazonTaskRecord => ({
   productDirection: row["product_direction"] as string,
   requestedKeywordCount: row["requested_keyword_count"] as number,
   languagePreference: row["language_preference"] as string,
+  providerKind: (row["provider_kind"] as AmazonTaskRecord["providerKind"] | null) ?? "gpt-web-chat",
   status: row["status"] as AmazonTaskStatus,
   failureReason: (row["failure_reason"] as string | null) ?? null,
   packageJsonPath: (row["package_json_path"] as string | null) ?? null,

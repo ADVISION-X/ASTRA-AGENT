@@ -82,7 +82,18 @@ export const renderAmazonProductMiningKeywordHistory = (): string => `
   <div class="history-state empty-state" data-amazon-product-mining-review-state>
     No keyword opportunity reviews yet. Run an Amazon product mining task and complete AI keyword review to populate this table.
   </div>
-  <div class="history-table-shell">
+  <section class="history-empty-panel empty-state" data-amazon-product-mining-review-empty-panel>
+    <div>
+      <span class="eyebrow">Agent History</span>
+      <h3>No keyword reviews loaded</h3>
+      <p>Run or refresh Amazon Product Mining to load persisted keyword opportunity reviews. The wide review table opens only when backend records exist.</p>
+    </div>
+    <div class="history-empty-actions">
+      <button class="btn secondary" type="button" data-amazon-product-mining-refresh-reviews>Refresh</button>
+      <button class="btn secondary" type="button" data-amazon-product-mining-page="publish">New Task</button>
+    </div>
+  </section>
+  <div class="history-table-shell hidden" data-amazon-product-mining-review-table-shell>
     <table class="history-table">
       <thead>
         <tr>

@@ -35,6 +35,10 @@ type ListAmazonProductMiningKeywordReviews = typeof import("../../plugins/amazon
 type GetAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningKeywordReview;
 type IngestAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-product-mining/index.js").ingestAmazonProductMiningKeywordReview;
 type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
+type PauseAmazonProductMiningTask = typeof import("../../plugins/amazon-product-mining/index.js").pauseAmazonProductMiningTask;
+type ContinueAmazonProductMiningTask = typeof import("../../plugins/amazon-product-mining/index.js").continueAmazonProductMiningTask;
+type TerminateAmazonProductMiningTask = typeof import("../../plugins/amazon-product-mining/index.js").terminateAmazonProductMiningTask;
+type ContinueInterruptedAmazonProductMiningTasks = typeof import("../../plugins/amazon-product-mining/index.js").continueInterruptedAmazonProductMiningTasks;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -55,6 +59,10 @@ type AmazonProductMiningKeywordReviewResult = ReturnType<GetAmazonProductMiningK
 type AmazonProductMiningKeywordReviewIngestInput = Parameters<IngestAmazonProductMiningKeywordReview>[0]["rawInput"];
 type AmazonProductMiningKeywordReviewIngestResult = ReturnType<IngestAmazonProductMiningKeywordReview>;
 type AmazonProductMiningExportResult = ReturnType<ExportAmazonProductMiningResult>;
+type AmazonProductMiningControlResult = ReturnType<PauseAmazonProductMiningTask>;
+type AmazonProductMiningContinueResult = ReturnType<ContinueAmazonProductMiningTask>;
+type AmazonProductMiningTerminateResult = ReturnType<TerminateAmazonProductMiningTask>;
+type AmazonProductMiningAutoContinueResult = ReturnType<ContinueInterruptedAmazonProductMiningTasks>;
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -155,4 +163,14 @@ export type GrassEyeWorkbenchHandle = {
   exportAmazonProductMiningResult: (
     taskId: string,
   ) => AmazonProductMiningExportResult;
+  pauseAmazonProductMiningTask: (
+    taskId: string,
+  ) => AmazonProductMiningControlResult;
+  continueAmazonProductMiningTask: (
+    taskId: string,
+  ) => AmazonProductMiningContinueResult;
+  terminateAmazonProductMiningTask: (
+    taskId: string,
+  ) => AmazonProductMiningTerminateResult;
+  continueInterruptedAmazonProductMiningTasks: () => AmazonProductMiningAutoContinueResult;
 };

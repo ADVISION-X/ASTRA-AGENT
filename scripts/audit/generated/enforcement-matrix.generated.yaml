@@ -1,4 +1,4 @@
-generatedAt: "2026-05-28T03:09:56.875Z"
+generatedAt: "2026-05-28T06:08:19.805Z"
 rows:
   - capabilityDomain: "amazon-product-mining"
     manifestPath: "scripts/audit/domains/amazon-product-mining/manifest.json"
@@ -25,6 +25,9 @@ rows:
       - "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"
+      - "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1"
+      - "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1"
+      - "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
   - capabilityDomain: "app-shell-ui"
     manifestPath: "scripts/audit/domains/app-shell-ui/manifest.json"

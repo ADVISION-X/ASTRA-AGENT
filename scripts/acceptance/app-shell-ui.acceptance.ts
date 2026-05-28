@@ -62,11 +62,17 @@ for (const token of [
 
 assert(sidebar.includes("skillRegistry"), "Sidebar must render from Skill Registry.");
 assert(layout.includes("data-skill-workspace"), "Main workspace must render Level 2 skill workspaces.");
+assert(layout.includes("data-workspace-page-nav"), "Secondary skills must expose Level 2 page navigation instead of single form pages.");
 assert(inspector.includes("data-app-shell-inspector"), "Right Inspector must exist.");
 assert(inspector.includes("empty-state"), "Right Inspector must expose empty state.");
 assert(runtimeConsole.includes("data-runtime-console"), "Bottom Runtime Console must exist.");
 assert(runtimeConsole.includes("manual-required-state"), "Runtime Console must expose manual_required state.");
 assert(runtimeConsole.includes("failed-state"), "Runtime Console must expose failed state.");
 assert(client.includes("openInspector"), "Client must support Level 3 detail Inspector.");
+assert(client.includes('document.body.classList.remove("inspector-collapsed")'), "Opening Level 3 detail must expand the Inspector.");
+assert(client.includes("resetInspectorForSkill"), "Skill switching must clear stale Inspector detail.");
+assert(appShell.includes('class="inspector-collapsed"'), "Inspector must be closed by default so Main Workspace owns the screen until detail is selected.");
+assert(!client.includes('openInspector({ kind: "task", title: recordId, payload: record });'), "Task polling and latest refresh must not force-open the right Inspector.");
+assert(client.includes("showWorkspacePage"), "Secondary skills must switch Level 2 workspace pages.");
 
 process.stdout.write("[ACCEPTANCE][app-shell-ui] PASS\n");

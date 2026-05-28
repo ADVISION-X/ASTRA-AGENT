@@ -35,6 +35,8 @@ const AmazonTaskStatusSchema = z.enum([
   "package_completed",
   "failed",
   "manual_required",
+  "paused",
+  "terminated",
 ]);
 
 const AmazonKeywordStatusSchema = z.enum([
@@ -234,6 +236,7 @@ const AmazonTaskRecordSchema = z.object({
   productDirection: z.string().min(1),
   requestedKeywordCount: z.number().int().positive(),
   languagePreference: z.string().min(1),
+  providerKind: AmazonKeywordProviderKindSchema.default("gpt-web-chat"),
   status: AmazonTaskStatusSchema,
   failureReason: z.string().nullable().default(null),
   packageJsonPath: z.string().nullable().default(null),

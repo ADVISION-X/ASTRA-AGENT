@@ -10,7 +10,14 @@ const renderAmazonInvoiceWorkspace = (): string => `
       <p>Structured invoice upload entry inside the unified workbench shell.</p>
     </div>
   </div>
-  <section class="panel">
+  <nav class="skill-page-nav" data-workspace-page-nav="amazon-invoice-upload" aria-label="Amazon invoice upload pages">
+    <button class="skill-page-tab" type="button" data-workspace-page="upload" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="true">Upload</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="latest" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="false">Latest</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="evidence" data-workspace-page-skill="amazon-invoice-upload" aria-pressed="false">Evidence</button>
+  </nav>
+  <div class="skill-page-stack secondary-page-stack">
+  <section class="skill-page-surface" data-workspace-surface="upload" data-workspace-surface-skill="amazon-invoice-upload">
+  <section class="panel app-form-panel">
     <form class="form-grid" data-amazon-form>
       <div class="field"><label>Marketplace</label><select name="marketplace"><option>AE</option><option>SA</option><option>JP</option><option>US</option><option>UK</option></select></div>
       <div class="field"><label>Amazon order ID</label><input name="amazonOrderId" required /></div>
@@ -26,6 +33,22 @@ const renderAmazonInvoiceWorkspace = (): string => `
       </div>
     </form>
   </section>
+  </section>
+  <section class="skill-page-surface hidden" data-workspace-surface="latest" data-workspace-surface-skill="amazon-invoice-upload">
+    <section class="panel empty-state app-empty-surface">
+      <span class="eyebrow">Latest Task</span>
+      <h2>No invoice task selected</h2>
+      <p>Use Latest after entering an Amazon order ID. Task details open in the Inspector only when selected.</p>
+    </section>
+  </section>
+  <section class="skill-page-surface hidden" data-workspace-surface="evidence" data-workspace-surface-skill="amazon-invoice-upload">
+    <section class="panel empty-state app-empty-surface">
+      <span class="eyebrow">Evidence</span>
+      <h2>No evidence loaded</h2>
+      <p>Completed invoice upload evidence and failure reasons appear here from persisted task records.</p>
+    </section>
+  </section>
+  </div>
 </section>`;
 
 const renderFacebookWorkspace = (): string => `
@@ -37,38 +60,54 @@ const renderFacebookWorkspace = (): string => `
       <p>Governed feed scan result surface. Run details open in Inspector.</p>
     </div>
   </div>
-  <section class="panel">
-    <form class="form-grid compact-form" data-facebook-form>
-      <div class="field"><label>Target product count</label><input name="targetProductCount" type="number" min="1" value="3" required /></div>
-      <div class="actions wide">
-        <button class="btn" type="submit">Start</button>
-        <button class="btn secondary" type="button" data-facebook-latest>Latest</button>
-        <button class="btn secondary" type="button" data-facebook-export>Export</button>
-      </div>
-    </form>
-  </section>
-  <section class="panel history-panel" data-facebook-results>
-    <div class="panel-title-row">
-      <div>
-        <span class="eyebrow">History</span>
-        <h2>Saved product records</h2>
-      </div>
-      <span class="status-badge status-insufficient"><b data-facebook-saved-count>0</b>/<b data-facebook-target-count>0</b></span>
-    </div>
-    <div class="record-list" data-facebook-record-list></div>
-  </section>
+  <nav class="skill-page-nav" data-workspace-page-nav="facebook-video-mining" aria-label="Facebook Video Mining pages">
+    <button class="skill-page-tab" type="button" data-workspace-page="records" data-workspace-page-skill="facebook-video-mining" aria-pressed="true">Saved Records</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="run" data-workspace-page-skill="facebook-video-mining" aria-pressed="false">New Run</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="runtime" data-workspace-page-skill="facebook-video-mining" aria-pressed="false">Runtime</button>
+  </nav>
+  <div class="skill-page-stack secondary-page-stack">
+    <section class="skill-page-surface" data-workspace-surface="records" data-workspace-surface-skill="facebook-video-mining">
+      <section class="panel history-panel" data-facebook-results>
+        <div class="panel-title-row">
+          <div>
+            <span class="eyebrow">Primary History</span>
+            <h2>Saved product records</h2>
+          </div>
+          <span class="status-badge status-insufficient"><b data-facebook-saved-count>0</b>/<b data-facebook-target-count>0</b></span>
+        </div>
+        <div class="record-list" data-facebook-record-list></div>
+        <section class="empty-state app-empty-surface" data-facebook-empty-records>
+          <span class="eyebrow">Agent Records</span>
+          <h2>No saved records loaded</h2>
+          <p>Run Facebook Video Mining or load Latest to review persisted product video records. Selecting a record opens the Inspector.</p>
+        </section>
+      </section>
+    </section>
+    <section class="skill-page-surface hidden" data-workspace-surface="run" data-workspace-surface-skill="facebook-video-mining">
+      <section class="panel app-form-panel">
+        <form class="form-grid compact-form" data-facebook-form>
+          <div class="field"><label>Target product count</label><input name="targetProductCount" type="number" min="1" value="3" required /></div>
+          <div class="actions wide">
+            <button class="btn" type="submit">Start</button>
+            <button class="btn secondary" type="button" data-facebook-latest>Latest</button>
+            <button class="btn secondary" type="button" data-facebook-export>Export</button>
+          </div>
+        </form>
+      </section>
+    </section>
+    <section class="skill-page-surface hidden" data-workspace-surface="runtime" data-workspace-surface-skill="facebook-video-mining">
+      <section class="panel empty-state app-empty-surface">
+        <span class="eyebrow">Runtime Events</span>
+        <h2>Use the bottom console for live events</h2>
+        <p>Task started, completed, manual_required, and failed events stay in the independent Runtime Console, not in the history table.</p>
+      </section>
+    </section>
+  </div>
 </section>`;
 
-const renderVideoDownloadWorkspace = (): string => `
-<section class="skill-workspace hidden" data-skill-workspace="video-downloader" data-job-panel="video-download">
-  <div class="skill-header">
-    <div>
-      <span class="eyebrow">Level 2 Skill Workspace</span>
-      <h1>Video Downloader</h1>
-      <p>One source page, one verified media artifact.</p>
-    </div>
-  </div>
-  <section class="panel">
+const renderVideoSourceSurface = (): string => `
+<section class="skill-page-surface" data-workspace-surface="source" data-workspace-surface-skill="video-downloader">
+  <section class="panel app-form-panel">
     <form class="form-grid compact-form" data-video-download-form>
       <input name="platform" type="hidden" value="telegram-web" />
       <input name="telegramDocumentIdHash" type="hidden" value="" />
@@ -113,6 +152,45 @@ const renderVideoDownloadWorkspace = (): string => `
       <div class="actions wide"><button class="btn" type="submit">Start</button></div>
     </form>
   </section>
+</section>`;
+
+const renderVideoArtifactSurface = (): string => `
+<section class="skill-page-surface hidden" data-workspace-surface="artifact" data-workspace-surface-skill="video-downloader">
+  <section class="panel empty-state app-empty-surface">
+    <span class="eyebrow">Artifact</span>
+    <h2>No media artifact selected</h2>
+    <p>Verified video artifacts, subtitles, and failure reasons open here from backend results.</p>
+  </section>
+</section>`;
+
+const renderVideoSettingsSurface = (): string => `
+<section class="skill-page-surface hidden" data-workspace-surface="settings" data-workspace-surface-skill="video-downloader">
+  <section class="panel empty-state app-empty-surface">
+    <span class="eyebrow">Settings</span>
+    <h2>Source-specific controls</h2>
+    <p>Platform mode, quality ceiling, size limit, and download destination stay bounded to this skill workspace.</p>
+  </section>
+</section>`;
+
+const renderVideoDownloadWorkspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="video-downloader" data-job-panel="video-download">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Level 2 Skill Workspace</span>
+      <h1>Video Downloader</h1>
+      <p>One source page, one verified media artifact.</p>
+    </div>
+  </div>
+  <nav class="skill-page-nav" data-workspace-page-nav="video-downloader" aria-label="Video Downloader pages">
+    <button class="skill-page-tab" type="button" data-workspace-page="source" data-workspace-page-skill="video-downloader" aria-pressed="true">Source</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="artifact" data-workspace-page-skill="video-downloader" aria-pressed="false">Artifact</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="settings" data-workspace-page-skill="video-downloader" aria-pressed="false">Settings</button>
+  </nav>
+  <div class="skill-page-stack secondary-page-stack">
+    ${renderVideoSourceSurface()}
+    ${renderVideoArtifactSurface()}
+    ${renderVideoSettingsSurface()}
+  </div>
 </section>`;
 
 const renderPlannedWorkspace = (): string => `

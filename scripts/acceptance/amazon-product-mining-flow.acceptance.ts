@@ -83,6 +83,10 @@ const requiredExports = [
   "getLatestAmazonProductMiningTask",
   "exportAmazonProductMiningResult",
   "AmazonMiningSchemas",
+  "pauseAmazonProductMiningTask",
+  "continueAmazonProductMiningTask",
+  "terminateAmazonProductMiningTask",
+  "continueInterruptedAmazonProductMiningTasks",
 ];
 for (const exported of requiredExports) {
   assert.ok(indexSrc.includes(exported), `index.ts must export '${exported}'`);
@@ -130,7 +134,7 @@ const selectedRankedItems = selectSearchItemsForDetailMining(rankedItems);
 assert.equal(AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT, 30);
 assert.equal(selectedRankedItems.length, 30);
 assert.deepEqual(selectedRankedItems.map((item) => item.rankPosition), Array.from({ length: 30 }, (_, index) => index + 1));
-assert.ok(flowSrc.includes("selectSearchItemsForDetailMining(searchResult.items)"), "flow.ts must apply top-30 detail mining selector after persisting all search results");
+assert.ok(flowSrc.includes("selectSearchItemsForDetailMining(searchItems)"), "flow.ts must apply top-30 detail mining selector after persisting all search results");
 
 // --- Test 13: governed Amazon page-open pacing ranges are production defaults ---
 assert.deepEqual(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 60_000 });
@@ -143,5 +147,9 @@ assert.ok(flowSrc.includes("waitForProductDetailOpenPacingDelay(runtime)"), "flo
 assert.ok(flowSrc.includes("waitForReviewPageOpenPacingDelay(runtime)"), "flow.ts must pace every review page open");
 assert.ok(flowSrc.includes("purgeRejectedKeywordEvidence"), "flow.ts must purge keyword-owned evidence after REJECT keyword review");
 assert.ok(flowSrc.includes("purgeRejectedKeywordReviewEvidenceArtifacts"), "flow.ts must remove full keyword review input/prompt artifacts after REJECT keyword review");
+assert.ok(flowSrc.includes("ensureTaskRecord(runtime)"), "flow.ts must continue from an existing task record instead of recreating it.");
+assert.ok(flowSrc.includes("haltIfAmazonOperatorControlled(runtime)"), "flow.ts must check persisted pause/terminate controls at safe points.");
+assert.ok(indexSrc.includes("ACTIVE_AMAZON_MINING_TASKS.has(taskId)"), "public facade must block duplicate active execution for the same taskId.");
+assert.ok(indexSrc.includes("listTasksByStatuses(RUNNING_TASK_STATUSES)"), "public facade must find interrupted running tasks for startup continuation.");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-flow\n");

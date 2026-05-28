@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T03:10:02.280Z",
+  "generatedAt": "2026-05-28T06:08:26.229Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -191,6 +191,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
@@ -582,6 +583,8 @@
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow-control.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow-packaging.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",

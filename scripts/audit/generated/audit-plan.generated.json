@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T03:09:56.875Z",
+  "generatedAt": "2026-05-28T06:08:19.805Z",
   "entries": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -28,6 +28,9 @@
         "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
       ],
       "clauseIds": [
@@ -48,13 +51,16 @@
         "fs+export+acceptance",
         "fs+export+hash",
         "fs+handoff-record+acceptance",
+        "keyword-review-input+field-disclosure+acceptance+ast",
         "prompt+acceptance+ast",
         "prompt+ast+export",
         "prompt+persisted-record",
+        "provider-proof+tab-lifecycle+acceptance+ast",
         "runtime-log+failure-record",
         "schema+storage+response-validation",
         "snapshot+persisted-record+hash",
-        "storage+flow+acceptance+ast"
+        "storage+flow+acceptance+ast",
+        "storage+flow+app-surface+ast+acceptance"
       ],
       "blueprintRefs": []
     },

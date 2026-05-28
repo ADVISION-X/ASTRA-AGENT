@@ -101,7 +101,7 @@ pre {
   border-bottom: 1px solid var(--line);
 }
 body.sidebar-collapsed .app-shell-layout { grid-template-columns: 64px minmax(940px, 1fr) minmax(290px, 320px); }
-body.inspector-collapsed .app-shell-layout { grid-template-columns: minmax(210px, 230px) minmax(960px, 1fr) 0; }
+body.inspector-collapsed .app-shell-layout { grid-template-columns: minmax(210px, 230px) minmax(1040px, 1fr) 0; }
 body.sidebar-collapsed.inspector-collapsed .app-shell-layout { grid-template-columns: 64px minmax(1000px, 1fr) 0; }
 .sidebar {
   min-width: 0;

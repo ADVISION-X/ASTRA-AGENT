@@ -6,9 +6,10 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 
 const HOME_CLIENT_PATH = "src/app/workbench-home-client.ts";
+const REVIEW_CLIENT_PATH = "src/app/workbench-home-amazon-product-mining-review-client.ts";
 
-const getWorkbenchHomeClientScriptText = (clientFile: SourceFile): string => {
-  const initializer = clientFile.getVariableDeclaration("WORKBENCH_HOME_CLIENT")?.getInitializer();
+const getEmbeddedClientScriptText = (clientFile: SourceFile, variableName: string): string => {
+  const initializer = clientFile.getVariableDeclaration(variableName)?.getInitializer();
   if (!initializer) return "";
   const noSubstitutionTemplate = initializer.asKind(SyntaxKind.NoSubstitutionTemplateLiteral);
   if (noSubstitutionTemplate) return noSubstitutionTemplate.getLiteralText();
@@ -56,6 +57,10 @@ const hasLatestTabRefreshHandler = (sourceFile: SourceFile): boolean =>
     return hasLatestGuard && refreshesLatest;
   });
 
+const controlsLatestSummaryEmptyState = (sourceFile: SourceFile): boolean =>
+  Boolean(getArrowFunctionDeclaration(sourceFile, "setAmazonProductMiningLatestSummaryState"))
+    && arrowFunctionCalls(sourceFile, "renderAmazonProductMiningSummary", "setAmazonProductMiningLatestSummaryState");
+
 export const inspectWorkbenchHomeClientLatestSync = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -63,11 +68,18 @@ export const inspectWorkbenchHomeClientLatestSync = (
   lawId: string,
 ): void => {
   const clientFile = context.project.getSourceFile(resolveFromRepo(HOME_CLIENT_PATH));
-  if (!clientFile) return;
+  const reviewClientFile = context.project.getSourceFile(resolveFromRepo(REVIEW_CLIENT_PATH));
+  if (!clientFile || !reviewClientFile) return;
   inspectedFiles.add(getRepoSourcePath(clientFile));
+  inspectedFiles.add(getRepoSourcePath(reviewClientFile));
   const inlineClient = context.project.createSourceFile(
     "__amazon_product_mining_workbench_home_client_inline.ts",
-    getWorkbenchHomeClientScriptText(clientFile),
+    getEmbeddedClientScriptText(clientFile, "WORKBENCH_HOME_CLIENT"),
+    { overwrite: true },
+  );
+  const inlineReviewClient = context.project.createSourceFile(
+    "__amazon_product_mining_review_client_inline.ts",
+    getEmbeddedClientScriptText(reviewClientFile, "AMAZON_PRODUCT_MINING_REVIEW_CLIENT"),
     { overwrite: true },
   );
   const hasPollingContract =
@@ -92,6 +104,14 @@ export const inspectWorkbenchHomeClientLatestSync = (
       lawId,
       filePath: HOME_CLIENT_PATH,
       message: "Latest Task tab must AST-call refreshAmazonProductMiningLatest instead of only toggling the local surface.",
+    }));
+  }
+  if (!controlsLatestSummaryEmptyState(inlineReviewClient)) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/workbench-latest-summary-empty-state-ast",
+      lawId,
+      filePath: REVIEW_CLIENT_PATH,
+      message: "renderAmazonProductMiningSummary must AST-call setAmazonProductMiningLatestSummaryState so real tasks hide stale empty-state copy.",
     }));
   }
 };

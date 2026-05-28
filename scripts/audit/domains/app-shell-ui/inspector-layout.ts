@@ -186,6 +186,8 @@ const inspectStructureTokens = (
   for (const [repoPath, sourceFile, token, checkId] of [
     [paths.appShell, sources.appShell, "data-app-shell", "app-shell-ui/root-marker"],
     [paths.layout, sources.layout, "data-skill-workspace", "app-shell-ui/skill-workspace"],
+    [paths.layout, sources.layout, "data-workspace-page-nav", "app-shell-ui/secondary-level2-page-nav"],
+    [paths.layout, sources.layout, "data-workspace-surface", "app-shell-ui/secondary-level2-surfaces"],
     [paths.inspector, sources.inspector, "data-app-shell-inspector", "app-shell-ui/right-inspector"],
     [paths.runtime, sources.runtime, "data-runtime-console", "app-shell-ui/runtime-console"],
     [paths.sidebar, sources.sidebar, "data-skill-registry", "app-shell-ui/sidebar-registry"],
@@ -198,6 +200,8 @@ const inspectStructureTokens = (
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-filter", "app-shell-ui/decision-filter"],
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-keyword-filter", "app-shell-ui/keyword-filter"],
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-marketplace-filter", "app-shell-ui/marketplace-filter"],
+    [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-empty-panel", "app-shell-ui/amazon-empty-history-panel"],
+    [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-table-shell", "app-shell-ui/amazon-history-table-visibility"],
     [paths.deepResearchPanel, sources.deepResearchPanel, "data-deep-research-page-nav", "app-shell-ui/deep-research-level2-page-nav"],
     [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="reader"', "app-shell-ui/deep-research-reader-surface"],
     [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="library"', "app-shell-ui/deep-research-library-surface"],
@@ -205,7 +209,12 @@ const inspectStructureTokens = (
     [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="case"', "app-shell-ui/deep-research-case-surface"],
     [paths.deepResearchClient, sources.deepResearchClient, "showDeepResearchPage", "app-shell-ui/deep-research-page-client"],
     [paths.deepResearchClient, sources.deepResearchClient, "openDeepResearchInspector", "app-shell-ui/deep-research-inspector-client"],
+    [paths.deepResearchClient, sources.deepResearchClient, "shouldOpenDeepResearchInspector", "app-shell-ui/deep-research-explicit-inspector"],
+    [paths.appShell, sources.appShell, "inspector-collapsed", "app-shell-ui/inspector-closed-by-default"],
     [paths.client, sources.client, "openInspector", "app-shell-ui/client-inspector"],
+    [paths.client, sources.client, "resetInspectorForSkill", "app-shell-ui/client-inspector-reset"],
+    [paths.client, sources.client, 'document.body.classList.remove("inspector-collapsed")', "app-shell-ui/client-inspector-expands-on-detail"],
+    [paths.client, sources.client, "showWorkspacePage", "app-shell-ui/client-secondary-page-switch"],
   ] as const) {
     requireAstToken({ findings, lawId, repoPath, sourceFile, token, checkId });
   }

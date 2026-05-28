@@ -119,6 +119,7 @@ const renderInspectorValue = (value) => {
   return span;
 };
 const openInspector = ({ kind, title, payload }) => {
+  document.body.classList.remove("inspector-collapsed");
   setText("[data-inspector-title]", title || "Detail");
   setText("[data-inspector-kind]", kind || "detail");
   const body = qs("[data-inspector-body]");
@@ -141,10 +142,36 @@ const openInspector = ({ kind, title, payload }) => {
   section.append(heading, grid);
   body.append(section);
 };
+const resetInspectorForSkill = (skill) => {
+  document.body.classList.add("inspector-collapsed");
+  setText("[data-inspector-title]", "No selection");
+  setText("[data-inspector-kind]", "empty");
+  setText("[data-task-id]", "-");
+  setText("[data-task-status]", "-");
+  setText("[data-task-step]", "-");
+  setText("[data-task-reason]", "-");
+  setText("[data-evidence-ref]", "-");
+  const raw = qs("[data-raw-result]");
+  if (raw) raw.textContent = "{}";
+  const body = qs("[data-inspector-body]");
+  if (!body) return;
+  body.innerHTML = "";
+  const section = document.createElement("section");
+  section.className = "empty-state";
+  section.dataset.inspectorEmpty = "";
+  section.dataset.inspectorEmptyState = "";
+  const heading = document.createElement("h3");
+  heading.textContent = (skillLabels[skill] || "Skill") + " detail is closed";
+  const copy = document.createElement("p");
+  copy.textContent = "Select a task, keyword review, package, evidence, exception, or runtime event to open the third-level Inspector.";
+  section.append(heading, copy);
+  body.append(section);
+};
 const showSkill = (skill) => {
   state.skill = skill;
   document.body.dataset.activeSkill = skill;
   setText("[data-current-skill]", skillLabels[skill] || skill);
+  resetInspectorForSkill(skill);
   document.querySelectorAll("[data-skill-id]").forEach((item) => {
     item.setAttribute("aria-pressed", String(item.dataset.skillId === skill));
   });
@@ -163,6 +190,15 @@ const showAmazonProductMiningPage = (page) => {
   });
   document.querySelectorAll("[data-amazon-product-mining-surface]").forEach((surface) => {
     surface.classList.toggle("hidden", surface.dataset.amazonProductMiningSurface !== activePage);
+  });
+};
+const showWorkspacePage = (skill, page) => {
+  const activePage = page || "main";
+  document.querySelectorAll("[data-workspace-page-skill='" + skill + "']").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.dataset.workspacePage === activePage));
+  });
+  document.querySelectorAll("[data-workspace-surface-skill='" + skill + "']").forEach((surface) => {
+    surface.classList.toggle("hidden", surface.dataset.workspaceSurface !== activePage);
   });
 };
 const refreshShell = async () => {
@@ -206,7 +242,6 @@ const renderLedger = (payload, options = {}) => {
   setText("[data-evidence-ref]", record.evidenceRef || record.videoArtifactRef || "-");
   const raw = qs("[data-raw-result]");
   if (raw) raw.textContent = JSON.stringify(record, null, 2);
-  openInspector({ kind: "task", title: recordId, payload: record });
 };
 const renderFacebookRecords = (records) => {
   const list = qs("[data-facebook-record-list]");
@@ -420,11 +455,19 @@ document.addEventListener("DOMContentLoaded", () => {
       showAmazonProductMiningPage(tab.dataset.amazonProductMiningPage);
     });
   });
+  document.querySelectorAll("[data-workspace-page][data-workspace-page-skill]").forEach((tab) => {
+    tab.addEventListener("click", () => showWorkspacePage(tab.dataset.workspacePageSkill, tab.dataset.workspacePage));
+  });
   qs("[data-amazon-latest]")?.addEventListener("click", refreshAmazonLatest);
   qs("[data-amazon-resume]")?.addEventListener("click", resumeAmazon);
   qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
   qs("[data-amazon-product-mining-export]")?.addEventListener("click", exportAmazonProductMining);
-  qs("[data-amazon-product-mining-refresh-reviews]")?.addEventListener("click", () => refreshAmazonProductMiningKeywordReviews().catch(() => undefined));
+  qs("[data-amazon-product-mining-pause]")?.addEventListener("click", () => pauseAmazonProductMining().catch((error) => writeActivity("amazon product mining pause failed: " + error.message, "failed")));
+  qs("[data-amazon-product-mining-continue]")?.addEventListener("click", () => continueAmazonProductMining().catch((error) => writeActivity("amazon product mining continue failed: " + error.message, "failed")));
+  qs("[data-amazon-product-mining-terminate]")?.addEventListener("click", () => terminateAmazonProductMining().catch((error) => writeActivity("amazon product mining terminate failed: " + error.message, "failed")));
+  document.querySelectorAll("[data-amazon-product-mining-refresh-reviews]").forEach((button) => {
+    button.addEventListener("click", () => refreshAmazonProductMiningKeywordReviews().catch(() => undefined));
+  });
   [
     ["[data-amazon-product-mining-review-task-filter]", "input"],
     ["[data-amazon-product-mining-review-filter]", "change"],

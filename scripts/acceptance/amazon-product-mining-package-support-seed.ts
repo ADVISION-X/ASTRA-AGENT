@@ -145,6 +145,7 @@ export const seedAmazonProductMiningPackageAcceptanceStorage = (input: {
     productDirection: "portable camping stove",
     requestedKeywordCount: 2,
     languagePreference: "en",
+    providerKind: "gpt-web-chat",
     status: "packaging",
     failureReason: null,
     packageJsonPath: null,

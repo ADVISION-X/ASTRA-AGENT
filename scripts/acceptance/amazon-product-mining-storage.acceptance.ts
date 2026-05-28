@@ -34,6 +34,7 @@ try {
     productDirection: "camping gear",
     requestedKeywordCount: 5,
     languagePreference: "en",
+    providerKind: "gpt-web-chat",
     status: "created",
     failureReason: null,
     packageJsonPath: null,
@@ -61,6 +62,13 @@ try {
   storage.updateTaskStatus({ taskId, status: "keyword_generating" });
   const updated = storage.getTask(taskId);
   assert.equal(updated?.status, "keyword_generating");
+  assert.equal(updated?.providerKind, "gpt-web-chat");
+  assert.equal(storage.listTasksByStatuses(["keyword_generating"]).some((record) => record.taskId === taskId), true);
+  storage.updateTaskStatus({ taskId, status: "paused" });
+  assert.equal(storage.getTask(taskId)?.status, "paused");
+  storage.updateTaskStatus({ taskId, status: "terminated" });
+  assert.equal(storage.getTask(taskId)?.status, "terminated");
+  storage.updateTaskStatus({ taskId, status: "keyword_generating" });
 
   // --- Storage: save keywords ---
   const keywordId1 = randomUUID();

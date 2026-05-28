@@ -17,7 +17,7 @@ export const renderAppShell = (): string => `<!doctype html>
   <title>GrassEye AGENT Workbench</title>
   <style>${renderWorkbenchHomeStyles()}${renderWorkbenchDeepResearchStyles()}</style>
 </head>
-<body data-active-skill="amazon-product-mining">
+<body class="inspector-collapsed" data-active-skill="amazon-product-mining">
   <div class="app-shell" data-workbench-shell data-app-shell>
     ${renderCommandBar()}
     <div class="app-shell-layout" data-app-shell-layout>

@@ -44,6 +44,10 @@ import {
   getAmazonProductMiningKeywordReview,
   ingestAmazonProductMiningKeywordReview,
   exportAmazonProductMiningResult,
+  pauseAmazonProductMiningTask,
+  continueAmazonProductMiningTask,
+  terminateAmazonProductMiningTask,
+  continueInterruptedAmazonProductMiningTasks,
 } from "../../plugins/amazon-product-mining/index.js";
 import {
   deepResearchAnalysisPublicFacade,
@@ -240,17 +244,24 @@ const buildFacebookMiningHandle = (
   },
 });
 
-const buildAmazonMiningHandle = (
+const buildAmazonMiningRuntime = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  dataDir,
+  browser: assembly.browserController,
+  aiInputGateway: assembly.aiInputGateway,
+  runtimeLogger: assembly.runtimeLogger,
+});
+
+const buildAmazonMiningTaskHandle = (
   assembly: WorkbenchAssembly,
   dataDir: string,
 ) => ({
   startAmazonProductMiningMission(rawInput: unknown) {
     return startAmazonProductMiningMission({
       rawInput,
-      dataDir,
-      browser: assembly.browserController,
-      aiInputGateway: assembly.aiInputGateway,
-      runtimeLogger: assembly.runtimeLogger,
+      ...buildAmazonMiningRuntime(assembly, dataDir),
     });
   },
   getAmazonProductMiningTaskStatus(taskId: string) {
@@ -259,6 +270,12 @@ const buildAmazonMiningHandle = (
   getLatestAmazonProductMiningTask() {
     return getLatestAmazonProductMiningTask({ dataDir });
   },
+  exportAmazonProductMiningResult(taskId: string) {
+    return exportAmazonProductMiningResult({ dataDir, taskId });
+  },
+});
+
+const buildAmazonMiningReviewHandle = (dataDir: string) => ({
   listAmazonProductMiningKeywordReviews(taskId?: string) {
     return listAmazonProductMiningKeywordReviews(
       taskId ? { dataDir, taskId } : { dataDir },
@@ -270,9 +287,38 @@ const buildAmazonMiningHandle = (
   ingestAmazonProductMiningKeywordReview(rawInput: unknown) {
     return ingestAmazonProductMiningKeywordReview({ dataDir, rawInput });
   },
-  exportAmazonProductMiningResult(taskId: string) {
-    return exportAmazonProductMiningResult({ dataDir, taskId });
+});
+
+const buildAmazonMiningControlHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  pauseAmazonProductMiningTask(taskId: string) {
+    return pauseAmazonProductMiningTask({ dataDir, taskId });
   },
+  continueAmazonProductMiningTask(taskId: string) {
+    return continueAmazonProductMiningTask({
+      taskId,
+      ...buildAmazonMiningRuntime(assembly, dataDir),
+    });
+  },
+  terminateAmazonProductMiningTask(taskId: string) {
+    return terminateAmazonProductMiningTask({ dataDir, taskId });
+  },
+  continueInterruptedAmazonProductMiningTasks() {
+    return continueInterruptedAmazonProductMiningTasks(
+      buildAmazonMiningRuntime(assembly, dataDir),
+    );
+  },
+});
+
+const buildAmazonMiningHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  ...buildAmazonMiningTaskHandle(assembly, dataDir),
+  ...buildAmazonMiningReviewHandle(dataDir),
+  ...buildAmazonMiningControlHandle(assembly, dataDir),
 });
 
 const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
@@ -413,7 +459,12 @@ export class GrassEyeWorkbench {
   }
 
   async init(): Promise<void> {
-    // Storage is created lazily by the first evidence or task write.
+    continueInterruptedAmazonProductMiningTasks({
+      dataDir: this.assembly.dataDir,
+      browser: this.assembly.browserController,
+      aiInputGateway: this.assembly.aiInputGateway,
+      runtimeLogger: this.assembly.runtimeLogger,
+    });
   }
 
   createHandle(): GrassEyeWorkbenchHandle {

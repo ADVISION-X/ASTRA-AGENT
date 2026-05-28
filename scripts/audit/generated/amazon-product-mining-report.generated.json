@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T03:10:21.952Z",
+  "generatedAt": "2026-05-28T06:08:50.108Z",
   "capabilityDomain": "amazon-product-mining",
   "status": "PASS",
   "findingCount": 0,
@@ -52,6 +52,9 @@
     "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
   ],
   "findings": [],
@@ -86,6 +89,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",

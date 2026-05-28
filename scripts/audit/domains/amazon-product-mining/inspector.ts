@@ -41,6 +41,7 @@ import {
   inspectReviewsPerPagePersistence,
 } from "./inspector-production-paths.js";
 import { buildAmazonMiningInspectorReport, inspectBrowserTabLifecycle } from "./inspector-tab-lifecycle.js";
+import { inspectAmazonTaskResumeAndControls } from "./inspector-task-controls.js";
 
 type AmazonMiningLawIds = {
   artifact: string;
@@ -53,6 +54,7 @@ type AmazonMiningLawIds = {
   keywordReviewSchema: string;
   keywordReviewSurface: string;
   rejectedKeywordPurge: string;
+  taskResumeAndControls: string;
   review: string;
   search: string;
   surface: string;
@@ -70,6 +72,7 @@ const selectAmazonMiningLawIds = (context: InspectorContext): AmazonMiningLawIds
   keywordReviewSchema: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1"),
   keywordReviewSurface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1"),
   rejectedKeywordPurge: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"),
+  taskResumeAndControls: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1"),
   review: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1"),
   search: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1"),
   surface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1"),
@@ -116,6 +119,7 @@ const inspectProductionContracts = (
   inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, lawIds.search);
   inspectAmazonHumanPacingDelay(context, findings, inspectedFiles, lawIds.humanPacing);
   inspectRejectedKeywordEvidencePurge(context, findings, inspectedFiles, lawIds.rejectedKeywordPurge);
+  inspectAmazonTaskResumeAndControls(context, findings, inspectedFiles, lawIds.taskResumeAndControls);
   inspectAmazonWebChatRestoreContinuity(context, findings, inspectedFiles, lawIds.webChatRestore);
   inspectSearchExtractionProductionPath(context, findings, inspectedFiles, lawIds.search);
   inspectBrowserTabExtractionContract(

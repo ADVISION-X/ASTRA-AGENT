@@ -238,4 +238,5 @@ export type DeepResearchLoadReportOptions = {
   skipHistoryRefresh?: boolean;
   closeForm?: boolean;
   preserveFormOpen?: boolean;
+  openInspector?: boolean;
 };

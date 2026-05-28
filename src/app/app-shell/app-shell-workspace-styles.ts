@@ -77,6 +77,25 @@ export const APP_SHELL_WORKSPACE_STYLES = `
   min-width: 0;
   min-height: 0;
 }
+.secondary-page-stack {
+  align-content: start;
+}
+.app-form-panel {
+  max-width: 880px;
+}
+.app-empty-surface {
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 26px;
+}
+.app-empty-surface h2 {
+  font-size: 16px;
+}
+.app-empty-surface p {
+  max-width: 620px;
+}
 .amazon-product-mining-workspace .history-surface {
   display: grid;
   min-height: 0;
@@ -212,6 +231,28 @@ input:focus, select:focus, button:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+}
+.history-empty-panel {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 28px;
+}
+.history-empty-panel h3 {
+  color: var(--ink);
+  font-size: 16px;
+}
+.history-empty-panel p {
+  max-width: 520px;
+  color: var(--muted);
+}
+.history-empty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 .history-table {
   width: 100%;

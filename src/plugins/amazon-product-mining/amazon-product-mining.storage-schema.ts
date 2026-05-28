@@ -12,6 +12,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     product_direction TEXT NOT NULL,
     requested_keyword_count INTEGER NOT NULL,
     language_preference TEXT NOT NULL,
+    provider_kind TEXT NOT NULL DEFAULT 'gpt-web-chat',
     status TEXT NOT NULL,
     failure_reason TEXT,
     package_json_path TEXT,

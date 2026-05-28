@@ -103,6 +103,10 @@ function openDeepResearchInspector(report: DeepResearchReport): void {
   });
 }
 
+function shouldOpenDeepResearchInspector(options: DeepResearchLoadReportOptions): boolean {
+  return options.openInspector === true;
+}
+
 function isDeepResearchFormActive(): boolean {
   const form = researchQuery("[data-deep-research-form]");
   if (!(form instanceof HTMLFormElement)) {
@@ -150,7 +154,9 @@ async function loadSelectedReport(
   }
   renderHistory(state);
   renderSelectedReport(state, report);
-  openDeepResearchInspector(report);
+  if (shouldOpenDeepResearchInspector(options)) {
+    openDeepResearchInspector(report);
+  }
   showDeepResearchPage("reader");
   if (!options.skipHistoryRefresh) {
     await refreshHistory(state, jobId);
@@ -334,7 +340,7 @@ function tryHandleDeepResearchJobClick(state: DeepResearchClientState, target: E
   }
   const selectedJob = target?.closest("[data-deep-research-select-job]");
   if (selectedJob) {
-    loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "", { closeForm: true }).catch((error) => {
+    loadSelectedReport(state, selectedJob.getAttribute("data-deep-research-select-job") || "", { closeForm: true, openInspector: true }).catch((error) => {
       writeActivity(`deep research selection failed: ${error.message}`, "bad");
     });
     return true;
