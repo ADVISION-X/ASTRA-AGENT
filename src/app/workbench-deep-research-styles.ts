@@ -2,7 +2,12 @@ import { renderWorkbenchDeepResearchCaseReaderStyles } from "./workbench-deep-re
 import { WORKBENCH_DEEP_RESEARCH_REPORT_STYLES } from "./workbench-deep-research-report-styles.js";
 
 const WORKBENCH_DEEP_RESEARCH_STYLES = `
-.research-shell { display: grid; gap: 14px; }
+.research-shell {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+}
 .research-shell.hidden,
 .research-empty-state.hidden,
 .research-help-modal.hidden,
@@ -30,8 +35,9 @@ const WORKBENCH_DEEP_RESEARCH_STYLES = `
   align-items: start;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, #fffdfa 0%, #f4faf7 58%, #eef4fb 100%);
+  padding: 2px 2px 0;
+  background: transparent;
+  border: 0;
 }
 .research-header h1 {
   font-size: 26px;
@@ -96,6 +102,19 @@ const WORKBENCH_DEEP_RESEARCH_STYLES = `
 }
 .research-form-shell {
   padding: 14px;
+}
+.deep-research-page-stack {
+  min-height: 0;
+  display: grid;
+}
+.deep-research-page-stack .skill-page-surface {
+  min-height: 0;
+}
+.research-reader-surface,
+.research-library-surface,
+.research-new-surface,
+.research-case-surface {
+  min-height: 0;
 }
 .research-field-label {
   display: inline-flex;
@@ -186,13 +205,6 @@ textarea {
   resize: vertical;
   font: inherit;
 }
-.research-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-  min-height: 0;
-}
 .research-history,
 .research-reader,
 .research-side-panel {
@@ -208,7 +220,7 @@ textarea {
   width: 100%;
 }
 .research-history-list {
-  max-height: min(320px, 34vh);
+  max-height: calc(100vh - 390px);
   overflow: auto;
   padding-right: 2px;
 }
@@ -304,10 +316,13 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+  min-height: 0;
 }
 .research-reader {
   min-width: 0;
   max-width: none;
+  height: calc(100vh - 332px);
+  overflow: auto;
 }
 .research-report {
   gap: 14px;
@@ -356,7 +371,7 @@ textarea {
   gap: 12px;
   position: static;
   align-self: start;
-  order: -1;
+  order: initial;
 }
 .research-side-panel {
   min-width: 0;

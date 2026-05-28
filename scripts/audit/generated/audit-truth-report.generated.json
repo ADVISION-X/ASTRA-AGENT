@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T01:29:20.269Z",
+  "generatedAt": "2026-05-28T03:09:58.202Z",
   "status": "PASS",
   "inspectorFileCount": 17,
   "generatedPlanEntryCount": 17,
@@ -11,6 +11,7 @@
     "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",

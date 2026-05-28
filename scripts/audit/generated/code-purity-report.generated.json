@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-28T01:29:41.548Z",
+  "generatedAt": "2026-05-28T03:10:18.305Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -84,6 +84,7 @@
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
@@ -485,6 +486,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
@@ -1116,9 +1118,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1595,
+  "liveExportCount": 1611,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 582,
+  "reachableFileCount": 584,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1130,9 +1132,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1595,
+    "liveExportCount": 1611,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 582,
+    "reachableFileCount": 584,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

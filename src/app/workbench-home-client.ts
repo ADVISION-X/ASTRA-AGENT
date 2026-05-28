@@ -19,6 +19,7 @@ const state = {
   },
   amazonProductMiningReviewLoading: false,
   amazonProductMiningReviewError: "",
+  amazonProductMiningPoll: null,
   facebookRunId: "",
   facebookPoll: null,
 };
@@ -314,6 +315,7 @@ const startAmazonProductMining = async (event) => {
     const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(state.amazonProductMiningTaskId));
     renderLedger(current, { job: "amazon-product-mining" });
     await refreshAmazonProductMiningReviews();
+    startAmazonProductMiningPolling(state.amazonProductMiningTaskId);
     return;
   }
   renderLedger(task, { job: "amazon-product-mining" });
@@ -327,6 +329,32 @@ const refreshAmazonProductMiningLatest = async () => {
   }
   renderLedger(latestTask, { job: "amazon-product-mining" });
   await refreshAmazonProductMiningReviews();
+  if (latestTask.taskId && (latestTask.status === "created" || latestTask.status === "keyword_generating" || latestTask.status === "keyword_ready" || latestTask.status === "mining" || latestTask.status === "packaging")) {
+    startAmazonProductMiningPolling(latestTask.taskId);
+  }
+};
+const stopAmazonProductMiningPolling = () => {
+  if (state.amazonProductMiningPoll) clearInterval(state.amazonProductMiningPoll);
+  state.amazonProductMiningPoll = null;
+};
+const pollAmazonProductMiningTask = async (taskId) => {
+  if (!taskId) return;
+  const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(taskId));
+  renderLedger(current, { job: "amazon-product-mining" });
+  await refreshAmazonProductMiningReviews();
+  const status = current?.status;
+  if (status && status !== "created" && status !== "keyword_generating" && status !== "keyword_ready" && status !== "mining" && status !== "packaging") {
+    stopAmazonProductMiningPolling();
+    writeActivity("amazon product mining stopped with status " + status, status === "package_completed" ? "completed" : "manual-required");
+  }
+};
+const startAmazonProductMiningPolling = (taskId) => {
+  state.amazonProductMiningTaskId = taskId || state.amazonProductMiningTaskId;
+  stopAmazonProductMiningPolling();
+  state.amazonProductMiningPoll = setInterval(() => {
+    pollAmazonProductMiningTask(state.amazonProductMiningTaskId).catch((error) => writeActivity("amazon product mining poll failed: " + error.message, "failed"));
+  }, 5000);
+  pollAmazonProductMiningTask(state.amazonProductMiningTaskId).catch((error) => writeActivity("amazon product mining poll failed: " + error.message, "failed"));
 };
 const exportAmazonProductMining = async () => {
   const taskId = state.amazonProductMiningTaskId;
@@ -384,7 +412,13 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-facebook-form]")?.addEventListener("submit", startFacebook);
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
   document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
-    tab.addEventListener("click", () => showAmazonProductMiningPage(tab.dataset.amazonProductMiningPage));
+    tab.addEventListener("click", () => {
+      if (tab.dataset.amazonProductMiningPage === "latest") {
+        refreshAmazonProductMiningLatest().catch((error) => writeActivity("amazon product mining latest refresh failed: " + error.message, "failed"));
+        return;
+      }
+      showAmazonProductMiningPage(tab.dataset.amazonProductMiningPage);
+    });
   });
   qs("[data-amazon-latest]")?.addEventListener("click", refreshAmazonLatest);
   qs("[data-amazon-resume]")?.addEventListener("click", resumeAmazon);

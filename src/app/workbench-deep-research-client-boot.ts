@@ -20,6 +20,7 @@ const {
 } = deepResearchClientSharedRuntime;
 
 declare const writeActivity: (message: string, tone?: string) => void;
+declare const openInspector: (detail: { kind: string; title: string; payload: Record<string, unknown> }) => void;
 
 type DeepResearchFieldHelpKey =
   | "userQuestion"
@@ -73,6 +74,35 @@ function stopPolling(state: DeepResearchClientState): void {
   state.poll = null;
 }
 
+function showDeepResearchPage(page: string): void {
+  const activePage = page || "reader";
+  document.querySelectorAll("[data-deep-research-page]").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.getAttribute("data-deep-research-page") === activePage));
+  });
+  document.querySelectorAll("[data-deep-research-surface]").forEach((surface) => {
+    surface.classList.toggle("hidden", surface.getAttribute("data-deep-research-surface") !== activePage);
+  });
+}
+
+function openDeepResearchInspector(report: DeepResearchReport): void {
+  openInspector({
+    kind: "task",
+    title: report.job.id,
+    payload: {
+      "Job ID": report.job.id,
+      Status: report.job.status,
+      Phase: report.job.phase,
+      Title: report.job.title,
+      "User Question": report.job.userQuestion,
+      "Subquestions": report.job.subQuestionCount,
+      Interactions: report.job.interactionCount,
+      Exports: report.job.exportCount,
+      "HTML Report": report.primaryBusinessReport?.status || "missing",
+      Reason: report.job.failureReason || report.job.reviewReason || "-",
+    },
+  });
+}
+
 function isDeepResearchFormActive(): boolean {
   const form = researchQuery("[data-deep-research-form]");
   if (!(form instanceof HTMLFormElement)) {
@@ -120,6 +150,8 @@ async function loadSelectedReport(
   }
   renderHistory(state);
   renderSelectedReport(state, report);
+  openDeepResearchInspector(report);
+  showDeepResearchPage("reader");
   if (!options.skipHistoryRefresh) {
     await refreshHistory(state, jobId);
   }
@@ -311,9 +343,20 @@ function tryHandleDeepResearchJobClick(state: DeepResearchClientState, target: E
 }
 
 function tryHandleDeepResearchToolbarClick(state: DeepResearchClientState, target: Element | null): boolean {
+  const pageTab = target?.closest("[data-deep-research-page]");
+  if (pageTab) {
+    const page = pageTab.getAttribute("data-deep-research-page") || "reader";
+    if (page === "new") {
+      state.formOpen = true;
+      syncFormVisibility(state, Boolean(state.selectedJobId));
+    }
+    showDeepResearchPage(page);
+    return true;
+  }
   if (target?.closest("[data-deep-research-new-toggle]")) {
-    state.formOpen = !state.formOpen;
+    state.formOpen = true;
     syncFormVisibility(state, Boolean(state.selectedJobId));
+    showDeepResearchPage("new");
     return true;
   }
   if (target?.closest("[data-deep-research-refresh]")) {
@@ -358,6 +401,7 @@ function handleDeepResearchInput(state: DeepResearchClientState, event: Event): 
 }
 
 function handleDeepResearchDomReady(state: DeepResearchClientState): void {
+  showDeepResearchPage("reader");
   const form = researchQuery("[data-deep-research-form]");
   if (form instanceof HTMLFormElement) {
     form.addEventListener("submit", (event) => {
@@ -392,6 +436,8 @@ function bootWorkbenchDeepResearchClient(): void {
 export const deepResearchClientBootFunctions = [
   setSelectedJobId,
   stopPolling,
+  showDeepResearchPage,
+  openDeepResearchInspector,
   isDeepResearchFormActive,
   closeDeepResearchFormUnlessActive,
   refreshHistory,

@@ -418,7 +418,9 @@ function syncFormVisibility(state: DeepResearchClientState, hasSelectedReport: b
   toggleResearchHidden("[data-deep-research-form-shell]", !shouldShow);
   const toggle = researchQuery("[data-deep-research-new-toggle]");
   if (toggle) {
-    toggle.textContent = shouldShow ? "Hide New Research" : "New Research";
+    toggle.textContent = toggle.classList.contains("skill-page-tab")
+      ? "New Research"
+      : shouldShow ? "Hide New Research" : "New Research";
   }
 }
 

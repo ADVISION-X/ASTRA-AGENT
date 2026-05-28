@@ -16,14 +16,4 @@ export const renderDeepResearchReportView = (): string => `
       <section class="research-section" id="process-trace" data-deep-research-process-trace></section>
     </article>
   </main>
-  <aside class="research-side" data-deep-research-side data-deep-research-side-panel>
-    <section class="research-side-panel">
-      <p class="research-kicker">Report Navigation</p>
-      <nav class="research-nav" data-deep-research-nav></nav>
-    </section>
-    <section class="research-side-panel">
-      <p class="research-kicker">Metadata</p>
-      <div class="research-side-meta" data-deep-research-meta></div>
-    </section>
-  </aside>
 </div>`;

@@ -20,7 +20,7 @@ import {
   type KeywordReviewArtifacts,
 } from "./amazon-product-mining.keyword-review-support.js";
 
-export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 300_000;
+export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 900_000;
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND: AmazonKeywordProviderKind = "gpt-web-chat";
 
 const buildKeywordOpportunityReviewInputRefs = (input: {

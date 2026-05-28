@@ -1,5 +1,7 @@
 import type { AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
 
+const COMPLETED_TASK_STATUSES = new Set<AmazonTaskStatus>(["package_completed", "failed", "manual_required"]);
+
 export type AmazonTaskRunConfig = {
   taskId: string;
   amazonMarketplace: string;
@@ -41,5 +43,5 @@ export const taskRecordToResult = (task: AmazonTaskRecord): AmazonTaskResult => 
     languagePreference: task.languagePreference,
     createdAt: task.createdAt,
   },
-  completedAt: task.updatedAt,
+  completedAt: COMPLETED_TASK_STATUSES.has(task.status) ? task.updatedAt : null,
 });

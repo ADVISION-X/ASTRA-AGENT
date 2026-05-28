@@ -16,6 +16,21 @@ assert(reportView.includes("data-deep-research-research-plan"), "Report view mus
 assert(reportView.includes("data-deep-research-analysis-cards"), "Report view must expose the analysis cards section.");
 assert(reportView.includes("data-deep-research-full-case-file"), "Report view must expose the full case file section.");
 assert(reportView.includes("data-deep-research-process-trace"), "Report view must expose the process-trace section.");
+assert(panelView.includes("data-deep-research-page-nav"), "Deep Research must expose Level 2 page navigation.");
+assert(panelView.includes('data-deep-research-page="reader"'), "Deep Research must expose Report Reader as a Level 2 page.");
+assert(panelView.includes('data-deep-research-page="library"'), "Deep Research must expose Report Library as a Level 2 page.");
+assert(panelView.includes('data-deep-research-page="new"'), "Deep Research must expose New Research as a Level 2 page.");
+assert(panelView.includes('data-deep-research-page="case"'), "Deep Research must expose Case File as a Level 2 page.");
+assert(panelView.includes('data-deep-research-surface="reader"'), "Deep Research must render a reader surface.");
+assert(panelView.includes('data-deep-research-surface="library"'), "Deep Research must render a library surface.");
+assert(panelView.includes('data-deep-research-surface="new"'), "Deep Research must render a new research surface.");
+assert(panelView.includes('data-deep-research-surface="case"'), "Deep Research must render a case file surface.");
+assert(panelView.indexOf('data-deep-research-surface="reader"') < panelView.indexOf('data-deep-research-surface="library"'), "Report Reader must be the default Deep Research surface before Library.");
+assert(panelView.includes('class="skill-page-surface research-library-surface hidden"'), "Report Library must be hidden by default.");
+assert(panelView.includes('class="skill-page-surface research-new-surface hidden"'), "New Research must be hidden by default.");
+assert(panelView.includes('class="skill-page-surface research-case-surface hidden"'), "Case File must be hidden by default.");
+assert(bootClient.includes("showDeepResearchPage"), "Deep Research client must switch Level 2 page surfaces.");
+assert(bootClient.includes("openDeepResearchInspector"), "Deep Research client must open selected reports in the global Inspector.");
 
 assert(contracts.includes("promptBundle:"), "Client contracts must expose promptBundle.");
 assert(contracts.includes("researchPlan:"), "Client contracts must expose researchPlan.");

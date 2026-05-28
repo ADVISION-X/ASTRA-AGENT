@@ -149,7 +149,7 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
         inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
         maxInputChars?: number;
       };
-      assert.equal(reviewInput.maxInputChars, 300_000);
+      assert.equal(reviewInput.maxInputChars, 900_000);
       assert.equal(reviewInput.inputRefs?.length, 1);
       assert.equal(reviewInput.inputRefs?.[0]?.kind, "amazon-product-mining-keyword-evidence-slice");
       assert.equal(typeof reviewInput.inputRefs?.[0]?.id, "string");

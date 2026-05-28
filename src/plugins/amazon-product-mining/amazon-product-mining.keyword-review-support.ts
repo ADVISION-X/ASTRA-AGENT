@@ -3,6 +3,16 @@ import { resolve, join } from "node:path";
 
 import { AMAZON_PRODUCT_MINING_ARTIFACTS_DIR } from "./amazon-product-mining.storage-schema.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
+import {
+  buildKeywordReviewDetailEvidence,
+  buildKeywordReviewSamples,
+  clipKeywordReviewText,
+  compactKeywordReviewDisclosureMap,
+  KEYWORD_REVIEW_MAX_REVIEW_SAMPLES_PER_PRODUCT,
+  type EvidenceDisclosureMap,
+  type EvidenceField,
+  type KeywordReviewSample,
+} from "./amazon-product-mining.keyword-review-evidence.js";
 import type {
   AmazonKeywordOpportunityVerdict,
   AmazonKeywordRecord,
@@ -47,22 +57,25 @@ export type KeywordReviewSlice = {
     detailId: string;
     asin: string | null;
     title: string | null;
+    productUrl: string;
     currentPrice: string | null;
     rating: string | null;
     reviewCount: string | null;
     bestSellersRankIfVisible: string | null;
     categoryPathIfVisible: string | null;
     starDistribution: string | null;
+    fieldDisclosureMap: EvidenceDisclosureMap;
+    detailEvidence: Record<string, EvidenceField<string | string[]>>;
     status: string;
     sourceItemIds: string[];
     reviewSampleCount: number;
-    reviewSamples: Array<{
-      reviewId: string;
-      rating: string | null;
-      reviewTitle: string | null;
-      reviewBody: string | null;
-      verifiedPurchase: boolean | null;
-    }>;
+    reviewCoverage: {
+      totalStoredReviews: number;
+      includedReviewSamples: number;
+      omittedReviewSamples: number;
+      samplePolicy: string;
+    };
+    reviewSamples: KeywordReviewSample[];
     imageRefs: string[];
   }>;
   imageRefs: string[];
@@ -123,16 +136,6 @@ const collectUniqueStrings = (values: Array<string | null | undefined>): string[
   return [...unique];
 };
 
-const takeReviewSamples = (
-  reviews: Array<{
-    reviewId: string;
-    rating: string | null;
-    reviewTitle: string | null;
-    reviewBody: string | null;
-    verifiedPurchase: boolean | null;
-  }>,
-): KeywordReviewSlice["linkedProducts"][number]["reviewSamples"] => reviews.slice(0, 3);
-
 const buildDetailIdsByItemId = (links: SearchResultProductLinkRecord[]): Map<string, string[]> => {
   const detailIdsByItemId = new Map<string, string[]>();
   for (const link of links) {
@@ -162,34 +165,40 @@ const buildKeywordProductReviewSlice = (input: {
   product: ProductDetailRecord;
   links: SearchResultProductLinkRecord[];
   reviews: ReviewRecord[];
-}): KeywordReviewSlice["linkedProducts"][number] => ({
-  detailId: input.product.detailId,
-  asin: input.product.asin,
-  title: input.product.title,
-  currentPrice: input.product.currentPrice,
-  rating: input.product.rating,
-  reviewCount: input.product.reviewCount,
-  bestSellersRankIfVisible: input.product.bestSellersRankIfVisible,
-  categoryPathIfVisible: input.product.categoryPathIfVisible,
-  starDistribution: input.product.starDistribution,
-  status: input.product.status,
-  sourceItemIds: input.links.filter((link) => link.detailId === input.product.detailId).map((link) => link.itemId),
-  reviewSampleCount: input.reviews.length,
-  reviewSamples: takeReviewSamples(input.reviews.map((review) => ({
-    reviewId: review.reviewId,
-    rating: review.rating,
-    reviewTitle: review.reviewTitle,
-    reviewBody: review.reviewBody,
-    verifiedPurchase: review.verifiedPurchase,
-  }))),
-  imageRefs: collectUniqueStrings([
-    input.product.mainImage,
-    ...input.product.allVisibleImages,
-    ...input.product.aPlusImageUrls,
-    ...input.reviews.flatMap((review) => review.reviewImagesIfVisible),
-    ...input.reviews.flatMap((review) => review.reviewVideosIfVisible),
-  ]),
-});
+}): KeywordReviewSlice["linkedProducts"][number] => {
+  const reviewSamples = buildKeywordReviewSamples(input.reviews);
+  return {
+    detailId: input.product.detailId,
+    asin: input.product.asin,
+    title: input.product.title,
+    productUrl: input.product.productUrl,
+    currentPrice: input.product.currentPrice,
+    rating: input.product.rating,
+    reviewCount: input.product.reviewCount,
+    bestSellersRankIfVisible: input.product.bestSellersRankIfVisible,
+    categoryPathIfVisible: input.product.categoryPathIfVisible,
+    starDistribution: clipKeywordReviewText(input.product.starDistribution),
+    fieldDisclosureMap: compactKeywordReviewDisclosureMap(input.product.fieldDisclosureMap),
+    detailEvidence: buildKeywordReviewDetailEvidence(input.product),
+    status: input.product.status,
+    sourceItemIds: input.links.filter((link) => link.detailId === input.product.detailId).map((link) => link.itemId),
+    reviewSampleCount: input.reviews.length,
+    reviewCoverage: {
+      totalStoredReviews: input.reviews.length,
+      includedReviewSamples: reviewSamples.length,
+      omittedReviewSamples: Math.max(input.reviews.length - reviewSamples.length, 0),
+      samplePolicy: `first ${KEYWORD_REVIEW_MAX_REVIEW_SAMPLES_PER_PRODUCT} stored accessible reviews per product, preserving page order and full review media/language/region metadata when captured`,
+    },
+    reviewSamples,
+    imageRefs: collectUniqueStrings([
+      input.product.mainImage,
+      ...input.product.allVisibleImages,
+      ...input.product.aPlusImageUrls,
+      ...input.reviews.flatMap((review) => review.reviewImagesIfVisible),
+      ...input.reviews.flatMap((review) => review.reviewVideosIfVisible),
+    ]),
+  };
+};
 
 const buildKeywordProducts = (input: {
   linkedProducts: ProductDetailRecord[];
@@ -295,30 +304,29 @@ export const buildKeywordEvidenceSlice = (input: {
   };
 };
 
-export const buildKeywordReviewPrompt = (input: {
-  evidenceSlice: KeywordReviewSlice;
-  inputJsonPath: string;
-}): string => `# Keyword Opportunity Review Prompt
-
-You are not a final procurement decision AI.
+const keywordReviewPromptRoleBlock = `You are not a final procurement decision AI.
 You are not a profit calculation AI.
 You are not a supply-chain judgment AI.
 Your task is to judge whether the Amazon product pool under this keyword is worth entering the next stage of human research.
 Your task is only candidate-list screening: decide whether this keyword should remain in the candidate research list.
 Even PASS is not a product choice. It only means a human should continue comparing suppliers, landed cost, compliance, operations, reviews, category competition, and sampling evidence later.
-REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task; it is not a universal claim that every product under the keyword has no value.
+REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task; it is not a universal claim that every product under the keyword has no value.`;
 
-Review unit: keywordId ${input.evidenceSlice.keywordId}
-Review target: keyword product pool, not final single-product selection.
-Evidence input file: ${input.inputJsonPath}
+const keywordReviewPromptEvidenceRulesBlock = `Evidence reading rules:
+- detailEvidence is the authoritative field-level reading surface for product detail data.
+- status=not_present means the captured Amazon page did not show that field; do not treat it as extractor failure.
+- status=blocked, manual_required, failed, unsupported_structure, or extractor_missing must reduce dataConfidence and appear in missingEvidence or riskPoints when material.
+- Primitive top-level product fields are quick-scan mirrors only; use detailEvidence and fieldDisclosureMap to decide whether a missing value is real page absence or extraction weakness.
+- reviewCoverage discloses how many stored accessible reviews exist and how many review samples are included in this prompt.
+- Review samples preserve media, language, region, pagination, variant, helpful count, and raw text when captured. Do not infer unavailable review media/language/region when the evidence status says not_present or blocked.`;
 
-Decision rules:
+const keywordReviewPromptDecisionRulesBlock = `Decision rules:
 - PASS = keep this keyword in the candidate list for the next stage of human validation.
 - WATCH = there is signal, but the evidence is still thin and related keywords or more data should be mined before candidate entry.
 - REJECT = remove this keyword from the candidate list for this mining task because the current product pool evidence is too weak.
-- INSUFFICIENT_DATA = current evidence is not enough to decide.
+- INSUFFICIENT_DATA = current evidence is not enough to decide.`;
 
-Fixed dimensions:
+const keywordReviewPromptFixedDimensionsBlock = `Fixed dimensions:
 - Demand Signal (demandSignal)
 - Review Health (reviewHealth)
 - Price Ceiling (priceCeiling)
@@ -326,15 +334,15 @@ Fixed dimensions:
 - Improvement Opportunity (improvementOpportunity)
 - Data Confidence (dataConfidence)
 
-Each dimension must be exactly one of: strong, medium, weak, insufficient.
+Each dimension must be exactly one of: strong, medium, weak, insufficient.`;
 
-Allowed humanNextStep values:
+const keywordReviewPromptNextStepsBlock = `Allowed humanNextStep values:
 - enter_next_validation
 - mine_related_keywords
 - reject
-- rerun_or_collect_more_data
+- rerun_or_collect_more_data`;
 
-Forbidden output:
+const keywordReviewPromptForbiddenOutputBlock = `Forbidden output:
 - procurement advice
 - sampling advice
 - inventory or place-order advice
@@ -342,11 +350,9 @@ Forbidden output:
 - profit conclusions
 - final product selection
 - deterministic marketing claims
-- wording that treats keyword screening as final product approval
+- wording that treats keyword screening as final product approval`;
 
-Return JSON only. No prose before or after the JSON object.
-
-Required JSON schema:
+const keywordReviewPromptSchemaBlock = `Required JSON schema:
 {
   "decision": "PASS | WATCH | REJECT | INSUFFICIENT_DATA",
   "demandSignal": "strong | medium | weak | insufficient",
@@ -359,7 +365,32 @@ Required JSON schema:
   "missingEvidence": [],
   "riskPoints": [],
   "humanNextStep": "enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data"
-}
+}`;
+
+export const buildKeywordReviewPrompt = (input: {
+  evidenceSlice: KeywordReviewSlice;
+  inputJsonPath: string;
+}): string => `# Keyword Opportunity Review Prompt
+
+${keywordReviewPromptRoleBlock}
+
+Review unit: keywordId ${input.evidenceSlice.keywordId}
+Review target: keyword product pool, not final single-product selection.
+Evidence input file: ${input.inputJsonPath}
+
+${keywordReviewPromptEvidenceRulesBlock}
+
+${keywordReviewPromptDecisionRulesBlock}
+
+${keywordReviewPromptFixedDimensionsBlock}
+
+${keywordReviewPromptNextStepsBlock}
+
+${keywordReviewPromptForbiddenOutputBlock}
+
+Return JSON only. No prose before or after the JSON object.
+
+${keywordReviewPromptSchemaBlock}
 
 Evidence slice:
 ${JSON.stringify(input.evidenceSlice, null, 2)}

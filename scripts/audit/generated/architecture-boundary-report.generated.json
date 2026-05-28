@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T01:29:24.470Z",
+  "generatedAt": "2026-05-28T03:10:02.256Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -348,6 +348,7 @@
     "scripts/audit/config/plugin-status.json",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
@@ -752,6 +753,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",

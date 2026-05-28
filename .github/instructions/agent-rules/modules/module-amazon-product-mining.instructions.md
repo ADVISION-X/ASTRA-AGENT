@@ -1039,6 +1039,40 @@ App 可保存最近 taskId，
 - 该例外不得新增 fallback、第二 provider、第二导出链路或手工 repack。
 - Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`，并以 AST 证明 Amazon GPT provider tab 收口路径存在。
 
+## [GRASSEYE-AMAZON-PRODUCT-MINING-023-V1] Keyword Review Evidence Slice Depth
+
+```json
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
+  "status": "active",
+  "owner": "amazon-product-mining",
+  "summary": "Keyword opportunity review input must be advanced-AI readable: it must carry rich product detail evidence, review media/language/region metadata, and explicit field disclosure instead of silent nulls.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+    "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts"
+  ],
+  "forbidden": [
+    "Feeding keyword opportunity review with only shallow title/price/rating snippets when detail records contain richer fields.",
+    "Omitting fieldDisclosureMap or detailEvidence from keyword review input.",
+    "Dropping review images, review videos, language, region, variant, helpful count, page index, or raw review text from review samples when captured.",
+    "Leaving the advanced AI to infer whether a null means not_present, blocked, failed, unsupported, manual_required, or extractor_missing.",
+    "Letting extractor_missing pass as usable keyword-review evidence."
+  ]
+}
+```
+
+### 法条
+
+- keyword opportunity review input 必须包含 `detailEvidence`，覆盖品牌、卖家、价格、图片组、视频、五点、描述、A+、变体、规格参数、BSR、类目、星级分布、Q&A、关联购买、对比表、配送退货、raw visible text 等详情证据。
+- 每个详情字段必须携带字段级 `status/reason/detail`。页面无该字段应表达为 `not_present`，不得让高级 AI 靠裸 `null` 猜测。
+- review samples 必须携带评论页码、评论人、标题、正文、日期、变体、helpful、图片、视频、语言、地区、raw review text 和 `fieldDisclosureMap`。
+- keyword review input 必须披露 `reviewCoverage`：已入库可访问评论数、投喂样本数、被截断数量和样本策略。
+- keyword opportunity review 的 GPT Web Chat `maxInputChars` 必须不低于 `900_000`，避免深度证据切片被 300k 级旧上限挡住。
+- AST 级执法必须证明上述字段进入生产 evidence slice，并由 acceptance 读取实际生成的 review input 校验。
+
 ## 4. State Contracts
 
 ### task status

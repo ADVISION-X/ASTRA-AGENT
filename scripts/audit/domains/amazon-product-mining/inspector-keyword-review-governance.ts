@@ -18,6 +18,11 @@ import {
 
 const LAW_PATH = ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md";
 const BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md";
+const KEYWORD_REVIEW_DEPTH_IDS = {
+  acceptance: ["detailEvidence", "reviewCoverage", "fieldDisclosureMap", "reviewImagesIfVisible", "reviewVideosIfVisible", "reviewLanguage", "reviewRegionIfVisible", "rawReviewTextSnapshot"],
+  evidence: ["KEYWORD_REVIEW_MAX_REVIEW_SAMPLES_PER_PRODUCT", "fieldDisclosureMap", "buildKeywordReviewDetailEvidence", "buildKeywordReviewSample", "reviewImagesIfVisible", "reviewVideosIfVisible", "reviewLanguage", "reviewRegionIfVisible", "rawReviewTextSnapshot", "aPlusContentIfVisible", "aPlusImageUrls", "variationOptions", "colorSizeStyleOptions", "qaContentIfVisible", "frequentlyBoughtTogetherIfVisible", "compareWithSimilarItemsIfVisible", "allOtherVisibleProductParameters"],
+  support: ["detailEvidence", "reviewCoverage", "fieldDisclosureMap"],
+} as const;
 
 const hasKeywordReviewInputRefsCall = (sourceFile: SourceFile): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
@@ -41,6 +46,14 @@ const hasKeywordReviewInputRefsCall = (sourceFile: SourceFile): boolean =>
       && Node.isIdentifier(initializer.getExpression())
       && initializer.getExpression().getText() === "buildKeywordOpportunityReviewInputRefs";
   });
+
+const numericConstantAtLeast = (sourceFile: SourceFile, variableName: string, minimum: number): boolean => {
+  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializerIfKind(SyntaxKind.NumericLiteral);
+  return (initializer?.getLiteralValue() ?? 0) >= minimum;
+};
+
+const missingIdentifiers = (sourceFile: SourceFile, identifiers: readonly string[]): string[] =>
+  identifiers.filter((identifier) => !hasIdentifier(sourceFile, identifier));
 
 const inspectKeywordReviewSchemaSurface = (input: {
   findings: InspectorFinding[];
@@ -364,6 +377,39 @@ export const inspectKeywordReviewPromptAndFlow = (
       message: "Keyword review prompt must declare the keyword-only screening boundary and the fixed JSON contract.",
     }));
   }
+};
+
+export const inspectKeywordReviewEvidenceSliceDepth = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const supportPath = "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts";
+  const evidencePath = "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts";
+  const reviewPath = "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts";
+  const acceptancePath = "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts";
+  const supportFile = getRequiredSourceFile(context, supportPath);
+  const evidenceFile = getRequiredSourceFile(context, evidencePath);
+  const reviewFile = getRequiredSourceFile(context, reviewPath);
+  const acceptanceFile = getRequiredSourceFile(context, acceptancePath);
+  [supportFile, evidenceFile, reviewFile, acceptanceFile].forEach((sourceFile) => trackSourceFile(inspectedFiles, sourceFile));
+  if (!supportFile || !evidenceFile || !reviewFile || !acceptanceFile) return;
+  const missing = [
+    ...missingIdentifiers(supportFile, KEYWORD_REVIEW_DEPTH_IDS.support),
+    ...missingIdentifiers(evidenceFile, KEYWORD_REVIEW_DEPTH_IDS.evidence),
+    ...missingIdentifiers(acceptanceFile, KEYWORD_REVIEW_DEPTH_IDS.acceptance),
+    ...(numericConstantAtLeast(evidenceFile, "KEYWORD_REVIEW_MAX_REVIEW_SAMPLES_PER_PRODUCT", 8) ? [] : ["reviewSampleLimitAtLeast8"]),
+    ...(numericConstantAtLeast(reviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS", 900_000) ? [] : ["keywordReviewMaxInputAtLeast900k"]),
+  ];
+  if (missing.length === 0) return;
+  findings.push(createFinding({
+    checkId: "amazon-mining/keyword-review-evidence-slice-depth",
+    lawId,
+    filePath: evidencePath,
+    message: "Keyword opportunity review input must carry rich product detail evidence, field disclosure, and review media/language/region metadata for advanced-AI readability.",
+    evidence: `missing=${missing.join(",")}`,
+  }));
 };
 
 export const inspectKeywordReviewAppSurface = (

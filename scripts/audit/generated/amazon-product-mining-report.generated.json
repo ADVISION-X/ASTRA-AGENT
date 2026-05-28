@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T01:29:45.207Z",
+  "generatedAt": "2026-05-28T03:10:21.952Z",
   "capabilityDomain": "amazon-product-mining",
   "status": "PASS",
   "findingCount": 0,
@@ -90,6 +90,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",

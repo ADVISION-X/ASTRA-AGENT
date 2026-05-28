@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -256,7 +256,7 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
         inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
         maxInputChars?: number;
       };
-      assert.equal(reviewInput.maxInputChars, 300_000);
+      assert.equal(reviewInput.maxInputChars, 900_000);
       assert.equal(Array.isArray(reviewInput.inputRefs), true);
       assert.equal(reviewInput.inputRefs?.length, 1);
       assert.equal(reviewInput.inputRefs?.[0]?.kind, "amazon-product-mining-keyword-evidence-slice");
@@ -297,6 +297,49 @@ try {
     assert.equal(new Set(keywordReviews.map((review) => review.keyword)).size, 2);
     assert.equal(keywordReviews.every((review) => existsSync(review.packageRef ?? "")), true);
     assert.equal(keywordReviews.every((review) => existsSync(review.aiResponseRef ?? "")), true);
+    const firstReviewPackagePath = keywordReviews[0]?.packageRef;
+    assert.equal(typeof firstReviewPackagePath, "string");
+    const firstEvidenceSlice = JSON.parse(readFileSync(firstReviewPackagePath ?? "", "utf8")) as {
+      linkedProducts?: Array<{
+        detailEvidence?: Record<string, { status?: string; value?: unknown }>;
+        fieldDisclosureMap?: Record<string, unknown>;
+        reviewCoverage?: {
+          totalStoredReviews?: number;
+          includedReviewSamples?: number;
+          omittedReviewSamples?: number;
+          samplePolicy?: string;
+        };
+        reviewSamples?: Array<{
+          reviewerName?: { status?: string; value?: unknown };
+          reviewDate?: { status?: string; value?: unknown };
+          variant?: { status?: string };
+          helpfulCountIfVisible?: { status?: string; value?: unknown };
+          reviewImagesIfVisible?: string[];
+          reviewVideosIfVisible?: string[];
+          reviewLanguage?: { status?: string };
+          reviewRegionIfVisible?: { status?: string };
+          rawReviewTextSnapshot?: { status?: string; value?: unknown };
+          fieldDisclosureMap?: Record<string, unknown>;
+        }>;
+      }>;
+    };
+    const firstLinkedProduct = firstEvidenceSlice.linkedProducts?.[0];
+    assert.equal(firstLinkedProduct?.detailEvidence?.bulletPoints?.status, "extracted");
+    assert.equal(Array.isArray(firstLinkedProduct?.detailEvidence?.bulletPoints?.value), true);
+    assert.equal(firstLinkedProduct?.detailEvidence?.variationOptions?.status, "not_present");
+    assert.equal(Boolean(firstLinkedProduct?.fieldDisclosureMap), true);
+    assert.equal(firstLinkedProduct?.reviewCoverage?.totalStoredReviews, 1);
+    assert.equal(firstLinkedProduct?.reviewCoverage?.includedReviewSamples, 1);
+    assert.equal(firstLinkedProduct?.reviewCoverage?.omittedReviewSamples, 0);
+    assert.equal(typeof firstLinkedProduct?.reviewCoverage?.samplePolicy, "string");
+    const firstReviewSample = firstLinkedProduct?.reviewSamples?.[0];
+    assert.equal(firstReviewSample?.reviewerName?.status, "extracted");
+    assert.equal(firstReviewSample?.reviewDate?.status, "extracted");
+    assert.equal(firstReviewSample?.helpfulCountIfVisible?.status, "extracted");
+    assert.equal(firstReviewSample?.variant?.status, "not_present");
+    assert.equal(Array.isArray(firstReviewSample?.reviewImagesIfVisible), true);
+    assert.equal(Array.isArray(firstReviewSample?.reviewVideosIfVisible), true);
+    assert.equal(Boolean(firstReviewSample?.fieldDisclosureMap), true);
   } finally {
     storage.close();
   }

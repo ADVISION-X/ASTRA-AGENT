@@ -442,6 +442,61 @@ gpt-web-chat
 
 禁止把关键词评审 prompt 写成最终产品裁决 prompt。
 
+### Keyword Evidence Slice 深度
+
+`keyword-{keywordId}-opportunity-review-input.json` 是 GPT Web Chat 做关键词候选池筛选的直接阅读材料，不得只投喂浅层标题、价格、评分和少量评论正文。
+
+必须投喂：
+
+```txt
+detailEvidence
+fieldDisclosureMap
+reviewCoverage
+reviewSamples.pageIndex
+reviewSamples.reviewerName
+reviewSamples.reviewDate
+reviewSamples.variant
+reviewSamples.helpfulCountIfVisible
+reviewSamples.reviewImagesIfVisible
+reviewSamples.reviewVideosIfVisible
+reviewSamples.reviewLanguage
+reviewSamples.reviewRegionIfVisible
+reviewSamples.rawReviewTextSnapshot
+```
+
+`detailEvidence` 必须覆盖：
+
+```txt
+brand / sellerOrStoreIfVisible / currentPrice / originalPriceDiscountCouponIfVisible
+mainImage / allVisibleImages / visibleVideoInfo
+bulletPoints / aboutThisItem / productDescription
+aPlusContentIfVisible / aPlusImageUrls
+variationOptions / colorSizeStyleOptions
+productInformation / technicalDetails / additionalInformation
+bestSellersRankIfVisible / categoryPathIfVisible / rating / reviewCount / starDistribution
+qaContentIfVisible / frequentlyBoughtTogetherIfVisible / customersAlsoBoughtIfVisible
+compareWithSimilarItemsIfVisible / deliveryInformation / returnInformation
+allOtherVisibleProductParameters / rawVisibleTextSnapshot
+```
+
+字段缺失表达：
+
+```txt
+status = extracted | not_present | blocked | unsupported_structure | manual_required | failed | extractor_missing
+```
+
+页面没有该字段 = `not_present`。  
+抓取器缺字段 = `extractor_missing`，这不是可用证据，必须 FAIL 或降级为人工处理。  
+关键词评审 prompt 必须要求 GPT Web Chat 读取 `detailEvidence` / `fieldDisclosureMap`，不能根据裸 `null` 猜测。
+
+GPT Web Chat 输入上限：
+
+```txt
+AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS >= 900000
+```
+
+原因：关键词级机会评审需要读取前 30 个产品的深度详情、图片索引和评论样本，300k 级旧上限会把“真实可用材料”挡在投喂前。
+
 ### GPT Web Chat source restore 连续性
 
 当 Amazon 产品挖掘的 GPT Web Chat 已经捕获有效输出，但浏览器无法恢复到投喂前 source tab 时：

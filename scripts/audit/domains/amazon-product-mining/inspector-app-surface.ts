@@ -4,6 +4,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { inspectWorkbenchHomeClientLatestSync } from "./inspector-app-latest-sync.js";
 
 const HOME_PAGE_PATH = "src/app/workbench-home-page.ts";
 const HOME_CLIENT_PATH = "src/app/workbench-home-client.ts";
@@ -142,6 +143,7 @@ export const inspectWorkbenchHomeSurface = (
     lawId,
   );
   inspectHomeClient(clientFile, findings, lawId);
+  inspectWorkbenchHomeClientLatestSync(context, findings, inspectedFiles, lawId);
 };
 
 type ArtifactSourceFiles = {

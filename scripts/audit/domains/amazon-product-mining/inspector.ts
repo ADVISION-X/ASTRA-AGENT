@@ -20,6 +20,7 @@ import {
 } from "./inspector-governance-surface.js";
 import {
   inspectKeywordReviewAppSurface,
+  inspectKeywordReviewEvidenceSliceDepth,
   inspectKeywordReviewPromptAndFlow,
   inspectKeywordReviewLawAndBlueprint,
   inspectKeywordReviewSchemaAndStorage,
@@ -48,6 +49,7 @@ type AmazonMiningLawIds = {
   humanPacing: string;
   keyword: string;
   keywordReviewBoundary: string;
+  keywordReviewEvidenceDepth: string;
   keywordReviewSchema: string;
   keywordReviewSurface: string;
   rejectedKeywordPurge: string;
@@ -64,6 +66,7 @@ const selectAmazonMiningLawIds = (context: InspectorContext): AmazonMiningLawIds
   humanPacing: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1"),
   keyword: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1"),
   keywordReviewBoundary: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1"),
+  keywordReviewEvidenceDepth: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1"),
   keywordReviewSchema: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1"),
   keywordReviewSurface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1"),
   rejectedKeywordPurge: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"),
@@ -99,6 +102,7 @@ const inspectKeywordReviewContracts = (
   inspectKeywordReviewLawAndBlueprint(findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectKeywordReviewSchemaAndStorage(context, findings, inspectedFiles, lawIds.keywordReviewSchema);
   inspectKeywordReviewPromptAndFlow(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
+  inspectKeywordReviewEvidenceSliceDepth(context, findings, inspectedFiles, lawIds.keywordReviewEvidenceDepth);
   inspectKeywordReviewAppSurface(context, findings, inspectedFiles, lawIds.keywordReviewSurface);
 };
 

@@ -82,6 +82,8 @@ const paths = {
   amazonWorkspace: "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
   appShell: "src/app/app-shell/app-shell.ts",
   client: "src/app/workbench-home-client.ts",
+  deepResearchPanel: "src/app/workbench-deep-research-panel.ts",
+  deepResearchClient: "src/app/workbench-deep-research-client-boot.ts",
   home: "src/app/workbench-home-page.ts",
   inspector: "src/app/app-shell/inspector.ts",
   layout: "src/app/app-shell/app-shell-layout.ts",
@@ -102,6 +104,8 @@ type AppShellLayoutSources = {
   amazonWorkspace: SourceFile | undefined;
   appShell: SourceFile | undefined;
   client: SourceFile | undefined;
+  deepResearchPanel: SourceFile | undefined;
+  deepResearchClient: SourceFile | undefined;
   home: SourceFile | undefined;
   inspector: SourceFile | undefined;
   layout: SourceFile | undefined;
@@ -115,6 +119,8 @@ const loadAppShellLayoutSources = (context: InspectorContext): AppShellLayoutSou
   amazonWorkspace: sourcePath(context, paths.amazonWorkspace),
   appShell: sourcePath(context, paths.appShell),
   client: sourcePath(context, paths.client),
+  deepResearchPanel: sourcePath(context, paths.deepResearchPanel),
+  deepResearchClient: sourcePath(context, paths.deepResearchClient),
   home: sourcePath(context, paths.home),
   inspector: sourcePath(context, paths.inspector),
   layout: sourcePath(context, paths.layout),
@@ -192,6 +198,13 @@ const inspectStructureTokens = (
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-filter", "app-shell-ui/decision-filter"],
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-keyword-filter", "app-shell-ui/keyword-filter"],
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-marketplace-filter", "app-shell-ui/marketplace-filter"],
+    [paths.deepResearchPanel, sources.deepResearchPanel, "data-deep-research-page-nav", "app-shell-ui/deep-research-level2-page-nav"],
+    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="reader"', "app-shell-ui/deep-research-reader-surface"],
+    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="library"', "app-shell-ui/deep-research-library-surface"],
+    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="new"', "app-shell-ui/deep-research-new-surface"],
+    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="case"', "app-shell-ui/deep-research-case-surface"],
+    [paths.deepResearchClient, sources.deepResearchClient, "showDeepResearchPage", "app-shell-ui/deep-research-page-client"],
+    [paths.deepResearchClient, sources.deepResearchClient, "openDeepResearchInspector", "app-shell-ui/deep-research-inspector-client"],
     [paths.client, sources.client, "openInspector", "app-shell-ui/client-inspector"],
   ] as const) {
     requireAstToken({ findings, lawId, repoPath, sourceFile, token, checkId });

@@ -30,6 +30,15 @@ assert(workspace.indexOf('data-amazon-product-mining-surface="history"') < works
 assert(workspace.includes('class="skill-page-surface publish-surface hidden"'), "Publish Task must be a secondary Level 2 surface, hidden by default.");
 assert(workspace.includes('class="skill-page-surface latest-surface hidden"'), "Latest Task must be a secondary Level 2 surface, hidden by default.");
 assert(client.includes("showAmazonProductMiningPage"), "Client must switch Amazon Product Mining Level 2 surfaces.");
+assert(client.includes("amazonProductMiningPoll"), "Client must keep an Amazon Product Mining polling handle.");
+assert(client.includes("startAmazonProductMiningPolling"), "Client must start Amazon Product Mining polling after task creation or latest refresh.");
+assert(client.includes("stopAmazonProductMiningPolling"), "Client must stop Amazon Product Mining polling when the task reaches a terminal status.");
+assert(client.includes("pollAmazonProductMiningTask"), "Client must poll /api/amazon-product-mining/run for persisted task status.");
+assert(
+  client.includes('tab.dataset.amazonProductMiningPage === "latest"')
+    && client.includes("refreshAmazonProductMiningLatest().catch"),
+  "Latest Task tab must trigger the real latest-task API refresh, not only toggle the local surface.",
+);
 
 for (const token of [
   "data-amazon-product-mining-review-filter",
