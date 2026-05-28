@@ -6,7 +6,7 @@ import { deepResearchClientCaseReaderRuntime } from "./workbench-deep-research-c
 import { deepResearchClientDeliverySectionsRuntime } from "./workbench-deep-research-client-delivery-sections.js";
 import { deepResearchClientSharedRuntime } from "./workbench-deep-research-client-shared.js";
 
-declare const renderLedger: (payload: unknown) => void;
+declare const renderLedger: (payload: unknown, options?: { job?: string }) => void;
 
 const {
   escapeText,
@@ -205,7 +205,7 @@ function renderSelectedReport(state: DeepResearchClientState, report: DeepResear
       reason: report.job.failureReason || report.job.reviewReason || "-",
       evidence: report.exports.length ? `${report.exports.length} export artifacts available` : "-",
     },
-  });
+  }, { job: "deep-research" });
   syncFormVisibility(state, true);
 }
 

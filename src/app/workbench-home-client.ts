@@ -2,9 +2,9 @@ import { renderAmazonProductMiningReviewClient } from "./workbench-home-amazon-p
 
 const WORKBENCH_HOME_CLIENT = `
 const state = {
-  job: "amazon",
-  taskId: localStorage.getItem("grasseye:lastTaskId") || "",
-  amazonProductMiningTaskId: localStorage.getItem("grasseye:lastAmazonProductMiningTaskId") || "",
+  skill: "amazon-product-mining",
+  taskId: "",
+  amazonProductMiningTaskId: "",
   amazonProductMiningReviews: [],
   amazonProductMiningReviewFilters: {
     taskId: "",
@@ -19,9 +19,28 @@ const state = {
   },
   amazonProductMiningReviewLoading: false,
   amazonProductMiningReviewError: "",
-  amazonProductMiningExpandedReviewId: "",
-  facebookRunId: localStorage.getItem("grasseye:lastFacebookRunId") || "",
+  facebookRunId: "",
   facebookPoll: null,
+};
+
+const skillLabels = {
+  "amazon-product-mining": "Amazon Product Mining",
+  "facebook-video-mining": "Facebook Video Mining",
+  "tiktok-product-mining": "TikTok Product Mining",
+  "deep-research-analysis": "Deep Research Analysis",
+  "video-downloader": "Video Downloader",
+  "amazon-invoice-upload": "Amazon Invoice Upload",
+};
+const jobToSkill = {
+  "amazon-product-mining": "amazon-product-mining",
+  facebook: "facebook-video-mining",
+  "facebook-video-mining": "facebook-video-mining",
+  "video-download": "video-downloader",
+  "video-downloader": "video-downloader",
+  "deep-research": "deep-research-analysis",
+  "deep-research-analysis": "deep-research-analysis",
+  amazon: "amazon-invoice-upload",
+  "amazon-invoice-upload": "amazon-invoice-upload",
 };
 const qs = (selector) => document.querySelector(selector);
 const setText = (selector, value) => { const node = qs(selector); if (node) node.textContent = value ?? "-"; };
@@ -29,11 +48,30 @@ const setInputValue = (selector, value) => {
   const node = qs(selector);
   if (node && typeof value === "string") node.value = value;
 };
-const writeActivity = (message, tone = "") => {
-  const node = document.createElement("div");
-  node.className = tone;
+const setRegionState = (stateName) => {
+  const normalized = stateName || "ready";
+  setText("[data-runtime-console-state]", normalized);
+};
+const clearRuntimeEmptyState = () => {
+  const empty = qs("[data-runtime-empty-state]");
+  if (empty) empty.remove();
+};
+const writeActivity = (message, tone = "ready") => {
+  const list = qs("[data-activity-log]");
+  if (!list) return;
+  clearRuntimeEmptyState();
+  const node = document.createElement("button");
+  node.type = "button";
+  node.className = "runtime-event " + tone + "-state";
+  node.dataset.runtimeEvent = tone;
   node.textContent = new Date().toLocaleTimeString() + " " + message;
-  qs("[data-activity-log]").prepend(node);
+  node.addEventListener("click", () => openInspector({
+    kind: "runtime event",
+    title: tone,
+    payload: { Message: message, Status: tone, Time: new Date().toISOString() },
+  }));
+  list.prepend(node);
+  setRegionState(tone);
 };
 const readJson = async (url, options) => {
   const response = await fetch(url, options);
@@ -42,14 +80,79 @@ const readJson = async (url, options) => {
   if (!response.ok) throw new Error(payload.failureReason || payload.error || response.statusText);
   return payload;
 };
-const showJob = (job) => {
-  state.job = job;
-  document.body.dataset.activeJob = job;
-  document.querySelectorAll("[data-job-card]").forEach((card) => {
-    card.setAttribute("aria-pressed", String(card.dataset.jobCard === job));
+const renderInspectorValue = (value) => {
+  if (value && typeof value === "object" && "label" in value && "value" in value) {
+    const wrap = document.createElement("div");
+    wrap.className = "inspector-link-line";
+    const text = document.createElement("span");
+    text.textContent = value.value || "not_available";
+    wrap.append(text);
+    if (value.action) {
+      const action = document.createElement("button");
+      action.className = "btn secondary compact-button";
+      action.type = "button";
+      action.textContent = value.label;
+      action.addEventListener("click", value.action);
+      wrap.append(action);
+    }
+    return wrap;
+  }
+  if (Array.isArray(value)) {
+    const list = document.createElement("ul");
+    list.className = "inspector-list";
+    if (value.length === 0) {
+      const item = document.createElement("li");
+      item.textContent = "not_available";
+      list.append(item);
+      return list;
+    }
+    for (const entry of value) {
+      const item = document.createElement("li");
+      item.textContent = entry || "not_available";
+      list.append(item);
+    }
+    return list;
+  }
+  const span = document.createElement("span");
+  span.textContent = value === undefined || value === null || value === "" ? "not_available" : String(value);
+  return span;
+};
+const openInspector = ({ kind, title, payload }) => {
+  setText("[data-inspector-title]", title || "Detail");
+  setText("[data-inspector-kind]", kind || "detail");
+  const body = qs("[data-inspector-body]");
+  if (!body) return;
+  body.innerHTML = "";
+  const section = document.createElement("section");
+  section.className = "detail-section";
+  const heading = document.createElement("h3");
+  heading.textContent = title || "Detail";
+  const grid = document.createElement("div");
+  grid.className = "detail-grid inspector-detail-grid";
+  const entries = payload && typeof payload === "object" && !Array.isArray(payload) ? Object.entries(payload) : [["Value", payload]];
+  for (const [key, value] of entries) {
+    const row = document.createElement("div");
+    const label = document.createElement("b");
+    label.textContent = key;
+    row.append(label, renderInspectorValue(value));
+    grid.append(row);
+  }
+  section.append(heading, grid);
+  body.append(section);
+};
+const showSkill = (skill) => {
+  state.skill = skill;
+  document.body.dataset.activeSkill = skill;
+  setText("[data-current-skill]", skillLabels[skill] || skill);
+  document.querySelectorAll("[data-skill-id]").forEach((item) => {
+    item.setAttribute("aria-pressed", String(item.dataset.skillId === skill));
+  });
+  document.querySelectorAll("[data-skill-workspace]").forEach((workspace) => {
+    workspace.classList.toggle("hidden", workspace.dataset.skillWorkspace !== skill);
   });
   document.querySelectorAll("[data-job-panel]").forEach((panel) => {
-    panel.classList.toggle("hidden", panel.dataset.jobPanel !== job);
+    const mappedSkill = jobToSkill[panel.dataset.jobPanel] || panel.dataset.jobPanel;
+    panel.classList.toggle("hidden", mappedSkill !== skill && panel.dataset.skillWorkspace !== skill);
   });
 };
 const refreshShell = async () => {
@@ -57,53 +160,51 @@ const refreshShell = async () => {
     const [health, mode] = await Promise.all([readJson("/api/health"), readJson("/api/mode")]);
     setText("[data-health-status]", health.status || "ready");
     setText("[data-mode-status]", mode.mode?.platformTarget || mode.mode?.mode || "local");
-    writeActivity("health and mode refreshed", "ok");
+    writeActivity("shell refreshed", "completed");
   } catch (error) {
-    writeActivity("shell refresh failed: " + error.message, "bad");
+    writeActivity("shell refresh failed: " + error.message, "failed");
   }
 };
 ${renderAmazonProductMiningReviewClient()}
 const renderLedger = (payload, options = {}) => {
   const record = payload?.record || payload?.task || payload;
   if (!record || typeof record !== "object") return;
-  const job = options.job || state.job;
+  const job = options.job || state.skill;
+  const targetSkill = jobToSkill[job] || job;
+  if (targetSkill !== state.skill) {
+    return;
+  }
   let recordId = "-";
-  if (job === "facebook") {
+  if (job === "facebook" || job === "facebook-video-mining") {
     const nextRunId = typeof record.runId === "string" && record.runId ? record.runId : state.facebookRunId;
     recordId = nextRunId || "-";
-    if (nextRunId) {
-      state.facebookRunId = nextRunId;
-      localStorage.setItem("grasseye:lastFacebookRunId", nextRunId);
-    }
+    if (nextRunId) state.facebookRunId = nextRunId;
   } else if (job === "amazon-product-mining") {
     const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.amazonProductMiningTaskId;
     recordId = nextTaskId || "-";
-    if (nextTaskId) {
-      state.amazonProductMiningTaskId = nextTaskId;
-      localStorage.setItem("grasseye:lastAmazonProductMiningTaskId", nextTaskId);
-    }
+    if (nextTaskId) state.amazonProductMiningTaskId = nextTaskId;
     renderAmazonProductMiningSummary(record);
   } else {
     const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.taskId;
     recordId = nextTaskId || "-";
-    if (nextTaskId) {
-      state.taskId = nextTaskId;
-      localStorage.setItem("grasseye:lastTaskId", nextTaskId);
-    }
+    if (nextTaskId) state.taskId = nextTaskId;
   }
   setText("[data-task-id]", recordId);
   setText("[data-task-status]", record.status || "-");
   setText("[data-task-step]", record.reachedStep || record.currentRoundId || "-");
   setText("[data-task-reason]", record.failureReason || record.reason || "-");
   setText("[data-evidence-ref]", record.evidenceRef || record.videoArtifactRef || "-");
-  qs("[data-raw-result]").textContent = JSON.stringify(record, null, 2);
+  const raw = qs("[data-raw-result]");
+  if (raw) raw.textContent = JSON.stringify(record, null, 2);
+  openInspector({ kind: "task", title: recordId, payload: record });
 };
 const renderFacebookRecords = (records) => {
   const list = qs("[data-facebook-record-list]");
   if (!list) return;
   list.innerHTML = "";
   for (const record of records || []) {
-    const item = document.createElement("article");
+    const item = document.createElement("button");
+    item.type = "button";
     item.className = "record-item";
     const title = document.createElement("strong");
     title.textContent = [record.visibleProduct, record.productCategory, record.pageTitle].filter(Boolean).join(" · ") || record.candidateId;
@@ -113,6 +214,7 @@ const renderFacebookRecords = (records) => {
     meta.className = "record-meta";
     meta.textContent = [record.sourcePageUrl, record.videoArtifactRef || record.videoFilePath || ""].filter(Boolean).join(" | ");
     item.append(title, reason, meta);
+    item.addEventListener("click", () => openInspector({ kind: "evidence", title: title.textContent, payload: record }));
     list.append(item);
   }
 };
@@ -130,21 +232,20 @@ const stopFacebookPolling = () => {
 };
 const pollFacebookRun = async (runId) => {
   const payload = await renderFacebookResults(runId);
-  if (payload?.run) renderLedger(payload.run);
+  if (payload?.run) renderLedger(payload.run, { job: "facebook" });
   const status = payload?.run?.status;
   if (status && status !== "queued" && status !== "running") {
     stopFacebookPolling();
-    writeActivity("facebook run stopped with status " + status, status === "completed" ? "ok" : "warn");
+    writeActivity("facebook run stopped with status " + status, status === "completed" ? "completed" : "manual-required");
   }
 };
 const startFacebookPolling = (runId) => {
   state.facebookRunId = runId;
-  localStorage.setItem("grasseye:lastFacebookRunId", runId);
   stopFacebookPolling();
   state.facebookPoll = setInterval(() => {
-    pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "bad"));
+    pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "failed"));
   }, 5000);
-  pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "bad"));
+  pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "failed"));
 };
 const startAmazon = async (event) => {
   event.preventDefault();
@@ -162,19 +263,19 @@ const startAmazon = async (event) => {
   const body = new FormData();
   body.append("mission", JSON.stringify(mission));
   body.append("invoicePdf", form.invoicePdf.files[0]);
-  writeActivity("amazon invoice upload submitted");
-  renderLedger(await readJson("/api/plugins/amazon-invoice-upload/start", { method: "POST", body }));
+  writeActivity("amazon invoice upload submitted", "running");
+  renderLedger(await readJson("/api/plugins/amazon-invoice-upload/start", { method: "POST", body }), { job: "amazon" });
 };
 const refreshAmazonLatest = async () => {
-  const orderId = qs("[name=amazonOrderId]").value;
-  if (!orderId) return writeActivity("amazon order id is required", "warn");
-  const invoiceNo = qs("[name=invoiceNo]").value;
+  const orderId = qs("[name=amazonOrderId]")?.value;
+  if (!orderId) return writeActivity("amazon order id is required", "manual-required");
+  const invoiceNo = qs("[name=invoiceNo]")?.value;
   const params = new URLSearchParams({ amazonOrderId: orderId });
   if (invoiceNo) params.set("invoiceNo", invoiceNo);
-  renderLedger(await readJson("/api/plugins/amazon-invoice-upload/latest?" + params));
+  renderLedger(await readJson("/api/plugins/amazon-invoice-upload/latest?" + params), { job: "amazon" });
 };
 const resumeAmazon = async () => {
-  if (!state.taskId) return writeActivity("task id is required", "warn");
+  if (!state.taskId) return writeActivity("task id is required", "manual-required");
   renderLedger(await readJson("/api/amazon-invoice-upload/task/resume", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -184,16 +285,15 @@ const resumeAmazon = async () => {
 const startAmazonProductMining = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const amazonKeywordProviderKind = form.amazonKeywordProviderKind.value;
   const mission = {
     amazonMarketplace: form.amazonMarketplace.value,
     targetMarket: form.targetMarket.value.trim(),
     productDirection: form.productDirection.value.trim(),
     requestedKeywordCount: Number(form.requestedKeywordCount.value),
     languagePreference: form.languagePreference.value,
-    providerKind: amazonKeywordProviderKind,
+    providerKind: form.amazonKeywordProviderKind.value,
   };
-  writeActivity("amazon product mining submitted");
+  writeActivity("task started: amazon product mining", "running");
   const task = await readJson("/api/amazon-product-mining/mission", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -201,7 +301,6 @@ const startAmazonProductMining = async (event) => {
   });
   state.amazonProductMiningTaskId = task.taskId || "";
   if (state.amazonProductMiningTaskId) {
-    localStorage.setItem("grasseye:lastAmazonProductMiningTaskId", state.amazonProductMiningTaskId);
     const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(state.amazonProductMiningTaskId));
     renderLedger(current, { job: "amazon-product-mining" });
     await refreshAmazonProductMiningReviews();
@@ -212,7 +311,7 @@ const startAmazonProductMining = async (event) => {
 const refreshAmazonProductMiningLatest = async () => {
   const latestTask = await readJson("/api/amazon-product-mining/latest");
   if (!latestTask) {
-    writeActivity("amazon product mining latest task not found", "warn");
+    writeActivity("amazon product mining latest task not found", "manual-required");
     return;
   }
   renderLedger(latestTask, { job: "amazon-product-mining" });
@@ -220,7 +319,7 @@ const refreshAmazonProductMiningLatest = async () => {
 };
 const exportAmazonProductMining = async () => {
   const taskId = state.amazonProductMiningTaskId;
-  if (!taskId) return writeActivity("amazon product mining task id is required", "warn");
+  if (!taskId) return writeActivity("amazon product mining task id is required", "manual-required");
   const exported = await readJson("/api/amazon-product-mining/export?taskId=" + encodeURIComponent(taskId));
   const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
   const link = document.createElement("a");
@@ -228,19 +327,16 @@ const exportAmazonProductMining = async () => {
   link.download = "amazon-product-mining-" + taskId + ".json";
   link.click();
   URL.revokeObjectURL(link.href);
-  writeActivity("amazon product mining export ready", "ok");
+  writeActivity("package generated: amazon product mining export ready", "completed");
 };
 const startFacebook = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const mission = {
-    targetProductCount: Number(form.targetProductCount.value),
-  };
-  writeActivity("facebook product video mining submitted");
+  writeActivity("task started: facebook video mining", "running");
   const run = await readJson("/api/facebook-product-video-mining/mission", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(mission),
+    body: JSON.stringify({ targetProductCount: Number(form.targetProductCount.value) }),
   });
   renderLedger(run, { job: "facebook" });
   startFacebookPolling(run.runId);
@@ -250,14 +346,13 @@ const refreshFacebookLatest = async () => {
   renderLedger(run, { job: "facebook" });
   if (run?.runId) {
     state.facebookRunId = run.runId;
-    localStorage.setItem("grasseye:lastFacebookRunId", run.runId);
     await renderFacebookResults(run.runId);
     if (run.status === "queued" || run.status === "running") startFacebookPolling(run.runId);
   }
 };
 const exportFacebookSelection = async () => {
   const runId = state.facebookRunId;
-  if (!runId) return writeActivity("facebook run id is required", "warn");
+  if (!runId) return writeActivity("facebook run id is required", "manual-required");
   const exported = await readJson("/api/facebook-product-video-mining/export?runId=" + encodeURIComponent(runId));
   const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
   const link = document.createElement("a");
@@ -265,23 +360,23 @@ const exportFacebookSelection = async () => {
   link.download = "facebook-product-video-selection-" + runId + ".json";
   link.click();
   URL.revokeObjectURL(link.href);
-  writeActivity("facebook selection export ready", "ok");
+  writeActivity("facebook export ready", "completed");
 };
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[data-job-card]").forEach((card) => {
-    card.addEventListener("click", () => showJob(card.dataset.jobCard));
+  document.querySelectorAll("[data-skill-id]").forEach((item) => {
+    item.addEventListener("click", () => showSkill(item.dataset.skillId));
   });
-  qs("[data-amazon-form]").addEventListener("submit", startAmazon);
-  qs("[data-amazon-product-mining-form]").addEventListener("submit", startAmazonProductMining);
-  qs("[data-facebook-form]").addEventListener("submit", startFacebook);
-  qs("[data-refresh-shell]").addEventListener("click", refreshShell);
-  qs("[data-amazon-latest]").addEventListener("click", refreshAmazonLatest);
-  qs("[data-amazon-resume]").addEventListener("click", resumeAmazon);
-  qs("[data-amazon-product-mining-latest]").addEventListener("click", refreshAmazonProductMiningLatest);
-  qs("[data-amazon-product-mining-export]").addEventListener("click", exportAmazonProductMining);
-  qs("[data-amazon-product-mining-refresh-reviews]").addEventListener("click", () => {
-    refreshAmazonProductMiningKeywordReviews().catch(() => undefined);
-  });
+  qs("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed"));
+  qs("[data-inspector-toggle]")?.addEventListener("click", () => document.body.classList.toggle("inspector-collapsed"));
+  qs("[data-amazon-form]")?.addEventListener("submit", startAmazon);
+  qs("[data-amazon-product-mining-form]")?.addEventListener("submit", startAmazonProductMining);
+  qs("[data-facebook-form]")?.addEventListener("submit", startFacebook);
+  qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
+  qs("[data-amazon-latest]")?.addEventListener("click", refreshAmazonLatest);
+  qs("[data-amazon-resume]")?.addEventListener("click", resumeAmazon);
+  qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
+  qs("[data-amazon-product-mining-export]")?.addEventListener("click", exportAmazonProductMining);
+  qs("[data-amazon-product-mining-refresh-reviews]")?.addEventListener("click", () => refreshAmazonProductMiningKeywordReviews().catch(() => undefined));
   [
     ["[data-amazon-product-mining-review-task-filter]", "input"],
     ["[data-amazon-product-mining-review-filter]", "change"],
@@ -293,21 +388,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ["[data-amazon-product-mining-review-package-integrity-filter]", "change"],
     ["[data-amazon-product-mining-review-sort]", "change"],
   ].forEach(([selector, eventName]) => {
-    qs(selector).addEventListener(eventName, () => {
+    qs(selector)?.addEventListener(eventName, () => {
       syncAmazonProductMiningReviewFiltersFromDom();
       renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
     });
   });
-  qs("[data-facebook-latest]").addEventListener("click", refreshFacebookLatest);
-  qs("[data-facebook-export]").addEventListener("click", exportFacebookSelection);
+  qs("[data-facebook-latest]")?.addEventListener("click", refreshFacebookLatest);
+  qs("[data-facebook-export]")?.addEventListener("click", exportFacebookSelection);
+  showSkill("amazon-product-mining");
   refreshShell();
   renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
-  if (state.amazonProductMiningTaskId) {
-    setText("[data-amazon-product-mining-task-id]", state.amazonProductMiningTaskId);
-    setAmazonProductMiningReviewTaskFilter(state.amazonProductMiningTaskId);
-    refreshAmazonProductMiningKeywordReviews().catch(() => undefined);
-  }
-  if (state.facebookRunId) renderFacebookResults(state.facebookRunId).catch(() => undefined);
 });
 `;
 

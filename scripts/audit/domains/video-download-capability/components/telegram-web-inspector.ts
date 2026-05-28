@@ -128,7 +128,11 @@ const inspectTelegramChild = (findings: Finding[], lawId: string): void => {
 };
 
 const inspectTelegramWorkbenchProgressAndLimits = (findings: Finding[], lawId: string): void => {
-  const pageText = readRepoFile("src/app/workbench-home-page.ts");
+  const pagePath = "src/app/app-shell/app-shell-layout.ts";
+  const pageText = [
+    readRepoFile("src/app/workbench-home-page.ts"),
+    readRepoFile(pagePath),
+  ].join("\n");
   const clientText = readRepoFile("src/app/workbench-video-download-client.ts");
   const routeText = readRepoFile("src/app/workbench-video-download-routes.ts");
   const schemaText = readRepoFile("src/capabilities/video-download/schema.ts");
@@ -136,7 +140,7 @@ const inspectTelegramWorkbenchProgressAndLimits = (findings: Finding[], lawId: s
     requireText({
       findings,
       lawId,
-      filePath: "src/app/workbench-home-page.ts",
+      filePath: pagePath,
       text: pageText,
       marker,
       checkId: "video-download/telegram-progress-ui",

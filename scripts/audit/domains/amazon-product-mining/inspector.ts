@@ -27,51 +27,98 @@ import {
 import { inspectPackageScript } from "./inspector-package-scripts.js";
 import {
   inspectBrowserTabExtractionContract,
+  inspectProductDetailDomFallbacks,
+  inspectSearchExtractionProductionPath,
+} from "./inspector-production-browser-paths.js";
+import {
+  inspectAmazonHumanPacingDelay,
+  inspectAmazonWebChatRestoreContinuity,
   inspectFlowSearchBeforeDetail,
   inspectGptWebChatIsolationForKeywordMining,
   inspectPackageEvidenceDepthContract,
-  inspectProductDetailDomFallbacks,
+  inspectRejectedKeywordEvidencePurge,
   inspectReviewsPerPagePersistence,
-  inspectSearchExtractionProductionPath,
 } from "./inspector-production-paths.js";
 import { buildAmazonMiningInspectorReport, inspectBrowserTabLifecycle } from "./inspector-tab-lifecycle.js";
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const project = context.project;
-  const flowLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1");
-  const surfaceLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1");
-  const keywordLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1");
-  const artifactLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1");
-  const deliveryLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1");
-  const keywordReviewBoundaryLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1");
-  const keywordReviewSchemaLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1");
-  const keywordReviewSurfaceLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1");
-  const searchLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1");
-  const reviewLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1");
-  const findings: InspectorFinding[] = [];
-  const inspectedFiles = new Set<string>();
+type AmazonMiningLawIds = {
+  artifact: string;
+  delivery: string;
+  flow: string;
+  humanPacing: string;
+  keyword: string;
+  keywordReviewBoundary: string;
+  keywordReviewSchema: string;
+  keywordReviewSurface: string;
+  rejectedKeywordPurge: string;
+  review: string;
+  search: string;
+  surface: string;
+  webChatRestore: string;
+};
 
-  inspectGovernanceStatus(findings, inspectedFiles, flowLawId);
-  inspectRequiredPluginFiles(context, findings, inspectedFiles, flowLawId);
-  inspectRequiredAcceptanceFiles(findings, inspectedFiles, flowLawId);
-  inspectPluginPublicSurface(context, findings, inspectedFiles, surfaceLawId);
-  inspectWorkbenchHandle(context, findings, inspectedFiles, surfaceLawId);
-  inspectAppShellRoutes(context, findings, inspectedFiles, surfaceLawId);
-  inspectWorkbenchHomeSurface(context, findings, inspectedFiles, surfaceLawId);
-  inspectArtifactOutputs(context, findings, inspectedFiles, artifactLawId);
-  inspectPackageScript(findings, inspectedFiles, deliveryLawId);
-  inspectKeywordReviewLawAndBlueprint(findings, inspectedFiles, keywordReviewBoundaryLawId);
-  inspectKeywordReviewSchemaAndStorage(context, findings, inspectedFiles, keywordReviewSchemaLawId);
-  inspectKeywordReviewPromptAndFlow(context, findings, inspectedFiles, keywordReviewBoundaryLawId);
-  inspectKeywordReviewAppSurface(context, findings, inspectedFiles, keywordReviewSurfaceLawId);
-  inspectGptWebChatIsolationForKeywordMining(context, findings, inspectedFiles, keywordLawId);
-  inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, searchLawId);
-  inspectSearchExtractionProductionPath(context, findings, inspectedFiles, searchLawId);
+const selectAmazonMiningLawIds = (context: InspectorContext): AmazonMiningLawIds => ({
+  artifact: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1"),
+  delivery: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1"),
+  flow: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1"),
+  humanPacing: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1"),
+  keyword: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1"),
+  keywordReviewBoundary: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1"),
+  keywordReviewSchema: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1"),
+  keywordReviewSurface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1"),
+  rejectedKeywordPurge: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"),
+  review: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1"),
+  search: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1"),
+  surface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1"),
+  webChatRestore: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1"),
+});
+
+const inspectGovernanceAndSurface = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawIds: AmazonMiningLawIds,
+): void => {
+  inspectGovernanceStatus(findings, inspectedFiles, lawIds.flow);
+  inspectRequiredPluginFiles(context, findings, inspectedFiles, lawIds.flow);
+  inspectRequiredAcceptanceFiles(findings, inspectedFiles, lawIds.flow);
+  inspectPluginPublicSurface(context, findings, inspectedFiles, lawIds.surface);
+  inspectWorkbenchHandle(context, findings, inspectedFiles, lawIds.surface);
+  inspectAppShellRoutes(context, findings, inspectedFiles, lawIds.surface);
+  inspectWorkbenchHomeSurface(context, findings, inspectedFiles, lawIds.surface);
+  inspectArtifactOutputs(context, findings, inspectedFiles, lawIds.artifact);
+  inspectPackageScript(findings, inspectedFiles, lawIds.delivery);
+};
+
+const inspectKeywordReviewContracts = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawIds: AmazonMiningLawIds,
+): void => {
+  inspectKeywordReviewLawAndBlueprint(findings, inspectedFiles, lawIds.keywordReviewBoundary);
+  inspectKeywordReviewSchemaAndStorage(context, findings, inspectedFiles, lawIds.keywordReviewSchema);
+  inspectKeywordReviewPromptAndFlow(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
+  inspectKeywordReviewAppSurface(context, findings, inspectedFiles, lawIds.keywordReviewSurface);
+};
+
+const inspectProductionContracts = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawIds: AmazonMiningLawIds,
+): void => {
+  inspectGptWebChatIsolationForKeywordMining(context, findings, inspectedFiles, lawIds.keyword);
+  inspectFlowSearchBeforeDetail(context, findings, inspectedFiles, lawIds.search);
+  inspectAmazonHumanPacingDelay(context, findings, inspectedFiles, lawIds.humanPacing);
+  inspectRejectedKeywordEvidencePurge(context, findings, inspectedFiles, lawIds.rejectedKeywordPurge);
+  inspectAmazonWebChatRestoreContinuity(context, findings, inspectedFiles, lawIds.webChatRestore);
+  inspectSearchExtractionProductionPath(context, findings, inspectedFiles, lawIds.search);
   inspectBrowserTabExtractionContract(
     context,
     findings,
     inspectedFiles,
-    searchLawId,
+    lawIds.search,
     {
       repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
       checkPrefix: "detail",
@@ -85,7 +132,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     context,
     findings,
     inspectedFiles,
-    reviewLawId,
+    lawIds.review,
     {
       repoPath: "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
       checkPrefix: "reviews",
@@ -93,13 +140,24 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       scriptVariableName: "AMAZON_REVIEWS_EXTRACT_SCRIPT",
     },
   );
-  inspectProductDetailDomFallbacks(context, findings, inspectedFiles, searchLawId);
-  inspectReviewsPerPagePersistence(context, findings, inspectedFiles, reviewLawId);
-  inspectPackageEvidenceDepthContract(context, findings, inspectedFiles, artifactLawId);
-  inspectForbiddenAiIdentifiers(context, findings, inspectedFiles, keywordLawId);
-  inspectForbiddenPluginTerms(context, findings, inspectedFiles, surfaceLawId);
-  inspectNoAbilityGroupBoundary(context, findings, inspectedFiles, surfaceLawId);
-  const tabLifecycleDebug = inspectBrowserTabLifecycle({ ...context, project }, findings, inspectedFiles, surfaceLawId);
+  inspectProductDetailDomFallbacks(context, findings, inspectedFiles, lawIds.search);
+  inspectReviewsPerPagePersistence(context, findings, inspectedFiles, lawIds.review);
+  inspectPackageEvidenceDepthContract(context, findings, inspectedFiles, lawIds.artifact);
+  inspectForbiddenAiIdentifiers(context, findings, inspectedFiles, lawIds.keyword);
+  inspectForbiddenPluginTerms(context, findings, inspectedFiles, lawIds.surface);
+  inspectNoAbilityGroupBoundary(context, findings, inspectedFiles, lawIds.surface);
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+  const project = context.project;
+  const lawIds = selectAmazonMiningLawIds(context);
+  const findings: InspectorFinding[] = [];
+  const inspectedFiles = new Set<string>();
+
+  inspectGovernanceAndSurface(context, findings, inspectedFiles, lawIds);
+  inspectKeywordReviewContracts(context, findings, inspectedFiles, lawIds);
+  inspectProductionContracts(context, findings, inspectedFiles, lawIds);
+  const tabLifecycleDebug = inspectBrowserTabLifecycle({ ...context, project }, findings, inspectedFiles, lawIds.surface);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

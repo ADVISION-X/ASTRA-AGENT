@@ -36,6 +36,7 @@ const REQUIRED_PLUGIN_FILES = [
 const REQUIRED_ACCEPTANCE_FILES = [
   "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-keyword-dedup.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
 	  "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
@@ -47,8 +48,7 @@ const REQUIRED_ACCEPTANCE_FILES = [
   "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-keyword-review-boundary.acceptance.ts",
   "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
-  "scripts/acceptance/amazon-product-mining-app-ui.acceptance.ts",
-  "scripts/acceptance/amazon-product-mining-keyword-review-app-ui.acceptance.ts",
+  "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
 ] as const;
 
 const GOVERNANCE_LAW_PATH = ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md";
@@ -68,6 +68,99 @@ const FORBIDDEN_PLUGIN_TERMS = ["fallback", "shadow", "bridge", "legacy", "compa
 const hasAnyToken = (text: string, tokens: readonly string[]): boolean =>
   tokens.some((token) => text.includes(token));
 
+const inspectLawStatus = (
+  findings: InspectorFinding[],
+  lawId: string,
+  lawText: string,
+): void => {
+  if (
+    lawText.includes("status: active")
+    && !hasAnyToken(lawText, ["status: draft", "Phase 1", "Phase 2", "Activation Checklist"])
+  ) {
+    return;
+  }
+  findings.push(createFinding({
+    checkId: "amazon-mining/governance-law-status",
+    lawId,
+    filePath: GOVERNANCE_LAW_PATH,
+    message: "Amazon mining law file must be active production governance with no draft/Phase residue.",
+  }));
+};
+
+const inspectBlueprintStatus = (
+  findings: InspectorFinding[],
+  lawId: string,
+  blueprintText: string,
+): void => {
+  if (
+    blueprintText.includes("status: frozen-production")
+    && !hasAnyToken(blueprintText, ["status: frozen-phase-1", "Phase 1", "Phase 2", "draft -> active", "runId"])
+  ) {
+    return;
+  }
+  findings.push(createFinding({
+    checkId: "amazon-mining/blueprint-status",
+    lawId,
+    filePath: BLUEPRINT_PATH,
+    message: "Amazon mining blueprint must be frozen-production and taskId-only with no phase residue.",
+  }));
+};
+
+const inspectBlueprintLifecycleTokens = (
+  findings: InspectorFinding[],
+  lawId: string,
+  blueprintText: string,
+): void => {
+  const missingTabLifecycleTokens = [
+    "专用工作标签",
+    "复用当前活动标签",
+    "不得按页面持续新开标签",
+  ].filter((token) => !blueprintText.includes(token));
+  if (missingTabLifecycleTokens.length === 0) {
+    return;
+  }
+  findings.push(createFinding({
+    checkId: "amazon-mining/blueprint-tab-lifecycle",
+    lawId,
+    filePath: BLUEPRINT_PATH,
+    message: "Amazon mining blueprint must freeze the browser tab lifecycle contract for a single dedicated workspace tab.",
+    evidence: `missing=${missingTabLifecycleTokens.join(",")}`,
+  }));
+};
+
+const inspectKeywordReviewGovernanceTokens = (
+  findings: InspectorFinding[],
+  lawId: string,
+  lawText: string,
+  blueprintText: string,
+): void => {
+  const missingKeywordReviewTokens = [
+    "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
+    "KEYWORD_PACKAGE_SLICE_BUILD",
+    "KEYWORD_ADVANCED_AI_HANDOFF",
+    "KEYWORD_OPPORTUNITY_REVIEW",
+    "KEYWORD_REVIEW_PERSIST",
+    "APP_HISTORY_UPDATE",
+    "Keyword Opportunity Review History",
+  ].filter((token) => !lawText.includes(token) && !blueprintText.includes(token));
+  if (missingKeywordReviewTokens.length === 0) {
+    return;
+  }
+  findings.push(createFinding({
+    checkId: "amazon-mining/keyword-review-governance-tokens",
+    lawId,
+    filePath: GOVERNANCE_LAW_PATH,
+    message: "Amazon mining governance must declare keyword opportunity review laws and blueprint stages.",
+    evidence: `missing=${missingKeywordReviewTokens.join(",")}`,
+  }));
+};
+
 export const inspectGovernanceStatus = (
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
@@ -77,68 +170,10 @@ export const inspectGovernanceStatus = (
   inspectedFiles.add(BLUEPRINT_PATH);
   const lawText = readFileSync(resolveFromRepo(GOVERNANCE_LAW_PATH), "utf8");
   const blueprintText = readFileSync(resolveFromRepo(BLUEPRINT_PATH), "utf8");
-
-  if (
-    !lawText.includes("status: active")
-    || hasAnyToken(lawText, ["status: draft", "Phase 1", "Phase 2", "Activation Checklist"])
-  ) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/governance-law-status",
-      lawId,
-      filePath: GOVERNANCE_LAW_PATH,
-      message: "Amazon mining law file must be active production governance with no draft/Phase residue.",
-    }));
-  }
-
-  if (
-    !blueprintText.includes("status: frozen-production")
-    || hasAnyToken(blueprintText, ["status: frozen-phase-1", "Phase 1", "Phase 2", "draft -> active", "runId"])
-  ) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/blueprint-status",
-      lawId,
-      filePath: BLUEPRINT_PATH,
-      message: "Amazon mining blueprint must be frozen-production and taskId-only with no phase residue.",
-    }));
-  }
-
-  const missingTabLifecycleTokens = [
-    "专用工作标签",
-    "复用当前活动标签",
-    "不得按页面持续新开标签",
-  ].filter((token) => !blueprintText.includes(token));
-
-  const missingKeywordReviewTokens = [
-    "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
-    "KEYWORD_PACKAGE_SLICE_BUILD",
-    "KEYWORD_ADVANCED_AI_HANDOFF",
-    "KEYWORD_OPPORTUNITY_REVIEW",
-    "KEYWORD_REVIEW_PERSIST",
-    "APP_HISTORY_UPDATE",
-    "Keyword Opportunity Review History",
-  ].filter((token) => !lawText.includes(token) && !blueprintText.includes(token));
-
-  if (missingTabLifecycleTokens.length > 0) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/blueprint-tab-lifecycle",
-      lawId,
-      filePath: BLUEPRINT_PATH,
-      message: "Amazon mining blueprint must freeze the browser tab lifecycle contract for a single dedicated workspace tab.",
-      evidence: `missing=${missingTabLifecycleTokens.join(",")}`,
-    }));
-  }
-
-  if (missingKeywordReviewTokens.length > 0) {
-    findings.push(createFinding({
-      checkId: "amazon-mining/keyword-review-governance-tokens",
-      lawId,
-      filePath: GOVERNANCE_LAW_PATH,
-      message: "Amazon mining governance must declare keyword opportunity review laws and blueprint stages.",
-      evidence: `missing=${missingKeywordReviewTokens.join(",")}`,
-    }));
-  }
+  inspectLawStatus(findings, lawId, lawText);
+  inspectBlueprintStatus(findings, lawId, blueprintText);
+  inspectBlueprintLifecycleTokens(findings, lawId, blueprintText);
+  inspectKeywordReviewGovernanceTokens(findings, lawId, lawText, blueprintText);
 };
 
 export const inspectRequiredPluginFiles = (

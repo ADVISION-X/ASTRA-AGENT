@@ -12,6 +12,7 @@ import {
   buildAiFeedSuccess,
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
+import { canContinueAfterWebChatSourceRestoreFailure } from "../providers/web-chat-restore-policy.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -111,6 +112,7 @@ const buildProviderSuccess = async (input: {
     input.response.transport === "web-chat"
     && input.response.sourcePageUrlBeforeFeed
     && input.response.restoredSourcePage === false
+    && !canContinueAfterWebChatSourceRestoreFailure({ request: input.request })
   ) {
     return buildRestoreFailure({
       request: input.request,

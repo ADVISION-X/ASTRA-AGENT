@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T23:12:42.482Z",
+  "generatedAt": "2026-05-28T01:18:42.281Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -19,6 +19,7 @@
     "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+    "src/app/app-shell/app-shell-layout.ts",
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",

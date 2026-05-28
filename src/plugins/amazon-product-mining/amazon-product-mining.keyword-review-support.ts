@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 import { AMAZON_PRODUCT_MINING_ARTIFACTS_DIR } from "./amazon-product-mining.storage-schema.js";
@@ -304,15 +304,18 @@ You are not a final procurement decision AI.
 You are not a profit calculation AI.
 You are not a supply-chain judgment AI.
 Your task is to judge whether the Amazon product pool under this keyword is worth entering the next stage of human research.
+Your task is only candidate-list screening: decide whether this keyword should remain in the candidate research list.
+Even PASS is not a product choice. It only means a human should continue comparing suppliers, landed cost, compliance, operations, reviews, category competition, and sampling evidence later.
+REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task; it is not a universal claim that every product under the keyword has no value.
 
 Review unit: keywordId ${input.evidenceSlice.keywordId}
 Review target: keyword product pool, not final single-product selection.
 Evidence input file: ${input.inputJsonPath}
 
 Decision rules:
-- PASS = worth entering the next stage of human validation.
-- WATCH = there is signal, but the evidence is still thin and related keywords or more data should be mined.
-- REJECT = the product pool is too weak to enter the next human candidate pool.
+- PASS = keep this keyword in the candidate list for the next stage of human validation.
+- WATCH = there is signal, but the evidence is still thin and related keywords or more data should be mined before candidate entry.
+- REJECT = remove this keyword from the candidate list for this mining task because the current product pool evidence is too weak.
 - INSUFFICIENT_DATA = current evidence is not enough to decide.
 
 Fixed dimensions:
@@ -339,6 +342,7 @@ Forbidden output:
 - profit conclusions
 - final product selection
 - deterministic marketing claims
+- wording that treats keyword screening as final product approval
 
 Return JSON only. No prose before or after the JSON object.
 
@@ -375,6 +379,27 @@ export const writeKeywordReviewSourceArtifacts = (input: {
   writeJson(artifacts.inputJsonPath, input.evidenceSlice);
   writeText(artifacts.promptPath, aiPromptText);
   return { artifacts, aiPromptText };
+};
+
+export const purgeRejectedKeywordReviewEvidenceArtifacts = (input: {
+  dataDir: string;
+  taskId: string;
+  keywordId: string;
+}): { removedInputArtifact: boolean; removedPromptArtifact: boolean; responsePath: string } => {
+  const artifacts = resolveKeywordReviewArtifacts(input);
+  const removedInputArtifact = existsSync(artifacts.inputJsonPath);
+  const removedPromptArtifact = existsSync(artifacts.promptPath);
+  if (removedInputArtifact) {
+    unlinkSync(artifacts.inputJsonPath);
+  }
+  if (removedPromptArtifact) {
+    unlinkSync(artifacts.promptPath);
+  }
+  return {
+    removedInputArtifact,
+    removedPromptArtifact,
+    responsePath: artifacts.responsePath,
+  };
 };
 
 const unwrapJsonPayload = (rawResponse: string): string | null => {

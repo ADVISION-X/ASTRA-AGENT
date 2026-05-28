@@ -79,6 +79,9 @@ const prompt = buildKeywordReviewPrompt({
 for (const requiredToken of [
   "You are not a final procurement decision AI.",
   "You are not a profit calculation AI.",
+  "Your task is only candidate-list screening",
+  "Even PASS is not a product choice.",
+  "REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task",
   "Demand Signal",
   "Review Health",
   "Price Ceiling",

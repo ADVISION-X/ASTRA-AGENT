@@ -21,6 +21,7 @@ import {
   requireBrowser,
   restoreSourcePage,
 } from "./web-chat-shared-support.js";
+import { canContinueAfterWebChatSourceRestoreFailure } from "./web-chat-restore-policy.js";
 import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
@@ -199,7 +200,10 @@ const restoreAfterWebChatFeed = async (input: {
   }
   const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
   input.response.restoredSourcePage = restoredSourcePage;
-  if (restoredSourcePage === false) {
+  if (
+    restoredSourcePage === false
+    && !canContinueAfterWebChatSourceRestoreFailure({ request: input.request })
+  ) {
     throw new Error("review_required: source page restoration failed after web chat feed.");
   }
 };

@@ -221,6 +221,19 @@ try {
   assert.equal(exceptions.length, 1);
   assert.equal(exceptions[0]!.exceptionKind, "captcha");
 
+  // --- Storage: rejected keyword evidence purge keeps keyword tombstone but removes keyword-owned bulk evidence ---
+  const purgeResult = storage.purgeRejectedKeywordEvidence({ taskId, keywordId: keywordId1 });
+  assert.equal(purgeResult.keywordId, keywordId1);
+  assert.equal(purgeResult.searchResultCount, 1);
+  assert.equal(purgeResult.linkCount, 1);
+  assert.equal(purgeResult.productDetailCount, 1);
+  assert.equal(purgeResult.reviewCount, 1);
+  assert.equal(purgeResult.exceptionCount, 1);
+  assert.equal(storage.getSearchResultsForKeyword(keywordId1).length, 0);
+  assert.equal(storage.getProductDetail(detailId), null);
+  assert.equal(storage.getReviewsForProduct(detailId).length, 0);
+  assert.equal(storage.getKeywordsForTask(taskId).some((keyword) => keyword.keywordId === keywordId1), true);
+
   storage.close();
   process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-storage\n");
 } finally {

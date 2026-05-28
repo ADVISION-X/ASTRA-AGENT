@@ -7,6 +7,9 @@ import { getRepoSourcePath } from "../../shared/source-files.js";
 
 const HOME_PAGE_PATH = "src/app/workbench-home-page.ts";
 const HOME_CLIENT_PATH = "src/app/workbench-home-client.ts";
+const AMAZON_WORKSPACE_PATH = "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts";
+const AMAZON_PUBLISH_PATH = "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts";
+const APP_SHELL_SIDEBAR_PATH = "src/app/app-shell/sidebar.ts";
 const FORBIDDEN_APP_SURFACE_TERMS = ["profit", "purchase", "sampling", "inventory", "finalSelection", "runId"] as const;
 
 const getRequiredSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -30,13 +33,22 @@ const identifierText = (sourceFile: SourceFile): string =>
 const fileIncludesText = (sourceFile: SourceFile, text: string): boolean =>
   literalText(sourceFile).includes(text) || identifierText(sourceFile).includes(text);
 
+const sourceFilesIncludeText = (sourceFiles: SourceFile[], text: string): boolean =>
+  sourceFiles.some((sourceFile) => fileIncludesText(sourceFile, text));
+
+const joinedSourceText = (sourceFiles: SourceFile[]): string =>
+  sourceFiles.map((sourceFile) => `${literalText(sourceFile)}\n${identifierText(sourceFile)}`).join("\n");
+
 const inspectHomePage = (
-  pageFile: SourceFile | undefined,
+  pageFiles: SourceFile[],
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
   const requiredPageTokens = [
-    'data-job-card="amazon-product-mining"',
+    'amazon-product-mining',
+    "renderAppShell",
+    "renderAmazonProductMiningWorkspace",
+    "renderAmazonProductMiningTaskPublish",
     'data-job-panel="amazon-product-mining"',
     'name="amazonMarketplace"',
     'name="targetMarket"',
@@ -49,15 +61,15 @@ const inspectHomePage = (
     'name="languagePreference"',
     'data-amazon-product-mining-status',
   ];
-  if (!pageFile || !requiredPageTokens.every((token) => fileIncludesText(pageFile, token))) {
+  if (!requiredPageTokens.every((token) => sourceFilesIncludeText(pageFiles, token))) {
     findings.push(createFinding({
       checkId: "amazon-mining/workbench-home-page-surface",
       lawId,
       filePath: HOME_PAGE_PATH,
-      message: "workbench-home-page.ts must expose Amazon mining card, panel, required inputs, and status display.",
+      message: "App Shell home surface must expose Amazon mining skill workspace, required inputs, and status display.",
     }));
   }
-  const pageText = pageFile ? `${literalText(pageFile)}\n${identifierText(pageFile)}`.toLowerCase() : "";
+  const pageText = joinedSourceText(pageFiles).toLowerCase();
   for (const forbiddenTerm of FORBIDDEN_APP_SURFACE_TERMS) {
     if (!pageText.includes(forbiddenTerm.toLowerCase())) continue;
     findings.push(createFinding({
@@ -115,10 +127,20 @@ export const inspectWorkbenchHomeSurface = (
   lawId: string,
 ): void => {
   const pageFile = getRequiredSourceFile(context, HOME_PAGE_PATH);
+  const amazonWorkspaceFile = getRequiredSourceFile(context, AMAZON_WORKSPACE_PATH);
+  const amazonPublishFile = getRequiredSourceFile(context, AMAZON_PUBLISH_PATH);
+  const sidebarFile = getRequiredSourceFile(context, APP_SHELL_SIDEBAR_PATH);
   const clientFile = getRequiredSourceFile(context, HOME_CLIENT_PATH);
   trackSourceFile(inspectedFiles, pageFile);
+  trackSourceFile(inspectedFiles, amazonWorkspaceFile);
+  trackSourceFile(inspectedFiles, amazonPublishFile);
+  trackSourceFile(inspectedFiles, sidebarFile);
   trackSourceFile(inspectedFiles, clientFile);
-  inspectHomePage(pageFile, findings, lawId);
+  inspectHomePage(
+    [pageFile, amazonWorkspaceFile, amazonPublishFile, sidebarFile].filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile)),
+    findings,
+    lawId,
+  );
   inspectHomeClient(clientFile, findings, lawId);
 };
 

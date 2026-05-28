@@ -1,0 +1,144 @@
+import { renderDeepResearchPanel } from "../workbench-deep-research-panel.js";
+import { renderAmazonProductMiningWorkspace } from "../skills/amazon-product-mining/amazon-product-mining-workspace.js";
+
+const renderAmazonInvoiceWorkspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="amazon-invoice-upload" data-job-panel="amazon">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Bounded Job Flow Surface</span>
+      <h1>Amazon invoice upload</h1>
+      <p>Structured invoice upload entry inside the unified workbench shell.</p>
+    </div>
+  </div>
+  <section class="panel">
+    <form class="form-grid" data-amazon-form>
+      <div class="field"><label>Marketplace</label><select name="marketplace"><option>AE</option><option>SA</option><option>JP</option><option>US</option><option>UK</option></select></div>
+      <div class="field"><label>Amazon order ID</label><input name="amazonOrderId" required /></div>
+      <div class="field wide"><label>Seller Central URL</label><input name="sellerCentralEntryUrl" type="url" required /></div>
+      <div class="field"><label>Invoice number</label><input name="invoiceNo" required /></div>
+      <div class="field"><label>Approved PDF</label><input name="invoicePdf" type="file" accept="application/pdf" required /></div>
+      <div class="field wide"><label>Admin order URL</label><input name="adminOrderUrl" type="url" /></div>
+      <label class="check wide"><input name="requireHumanFinalSubmit" type="checkbox" checked /> require human final submit</label>
+      <div class="actions wide">
+        <button class="btn" type="submit">Start</button>
+        <button class="btn secondary" type="button" data-amazon-resume>Resume</button>
+        <button class="btn secondary" type="button" data-amazon-latest>Latest</button>
+      </div>
+    </form>
+  </section>
+</section>`;
+
+const renderFacebookWorkspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="facebook-video-mining" data-job-panel="facebook">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Level 2 Skill Workspace</span>
+      <h1>Facebook Video Mining</h1>
+      <p>Governed feed scan result surface. Run details open in Inspector.</p>
+    </div>
+  </div>
+  <section class="panel">
+    <form class="form-grid compact-form" data-facebook-form>
+      <div class="field"><label>Target product count</label><input name="targetProductCount" type="number" min="1" value="3" required /></div>
+      <div class="actions wide">
+        <button class="btn" type="submit">Start</button>
+        <button class="btn secondary" type="button" data-facebook-latest>Latest</button>
+        <button class="btn secondary" type="button" data-facebook-export>Export</button>
+      </div>
+    </form>
+  </section>
+  <section class="panel history-panel" data-facebook-results>
+    <div class="panel-title-row">
+      <div>
+        <span class="eyebrow">History</span>
+        <h2>Saved product records</h2>
+      </div>
+      <span class="status-badge status-insufficient"><b data-facebook-saved-count>0</b>/<b data-facebook-target-count>0</b></span>
+    </div>
+    <div class="record-list" data-facebook-record-list></div>
+  </section>
+</section>`;
+
+const renderVideoDownloadWorkspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="video-downloader" data-job-panel="video-download">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Level 2 Skill Workspace</span>
+      <h1>Video Downloader</h1>
+      <p>One source page, one verified media artifact.</p>
+    </div>
+  </div>
+  <section class="panel">
+    <form class="form-grid compact-form" data-video-download-form>
+      <input name="platform" type="hidden" value="telegram-web" />
+      <input name="telegramDocumentIdHash" type="hidden" value="" />
+      <div class="platform-tabs wide" data-video-platform-tabs>
+        <button class="platform-tab" type="button" data-video-platform="telegram" aria-pressed="true">Telegram Web</button>
+        <button class="platform-tab" type="button" data-video-platform="youtube" aria-pressed="false">YouTube</button>
+        <button class="platform-tab" type="button" data-video-platform="universal" aria-pressed="false">Universal</button>
+        <button class="platform-tab" type="button" data-video-platform="facebook" aria-pressed="false">Facebook</button>
+        <button class="platform-tab" type="button" data-video-platform="tiktok" aria-pressed="false">TikTok</button>
+      </div>
+      <div class="notice wide" data-video-platform-note="telegram" data-video-download-telegram-boundary>
+        <b>Telegram Web boundary</b>
+        <span>Open and authorize the target Telegram Web page in local Chrome, play the target video, then detect the current source.</span>
+        <a class="btn secondary" href="https://web.telegram.org/k/" target="_blank" rel="noopener noreferrer">Open Telegram Web</a>
+      </div>
+      <div class="notice wide hidden" data-video-platform-note="youtube"><b>YouTube</b><span>URL -> governed local runtime -> optional subtitles.</span></div>
+      <div class="notice wide hidden" data-video-platform-note="universal"><b>Universal</b><span>Visible page media candidates -> one validated artifact.</span></div>
+      <div class="notice wide hidden" data-video-platform-note="facebook"><b>Facebook</b><span>Visible video URL -> governed media artifact.</span></div>
+      <div class="notice wide hidden" data-video-platform-note="tiktok"><b>TikTok</b><span>Visible video URL -> governed media artifact.</span></div>
+      <div class="field wide"><label>Source page URL</label><input name="sourcePageUrl" type="url" required /></div>
+      <div class="actions wide" data-video-detect-row>
+        <button class="btn secondary" type="button" data-video-detect-source="telegram-web">Detect current video</button>
+        <span class="muted" data-video-source-state>Play the video first, then detect.</span>
+      </div>
+      <div class="wide hidden" data-video-candidate-list></div>
+      <div class="field">
+        <label>Quality</label>
+        <select name="preferredQuality">
+          <option value="best_available">Best available</option>
+          <option value="1080p">1080p</option>
+          <option value="720p">720p</option>
+          <option value="480p">480p</option>
+        </select>
+      </div>
+      <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="5000" value="5000" required /></div>
+      <label class="check" data-video-subtitles-field><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
+      <label class="check wide"><input name="saveToDownloads" type="checkbox" checked /> Save to Downloads</label>
+      <div class="wide hidden" data-video-download-progress>
+        <progress></progress>
+        <div class="muted" data-video-download-progress-label></div>
+      </div>
+      <div class="actions wide"><button class="btn" type="submit">Start</button></div>
+    </form>
+  </section>
+</section>`;
+
+const renderPlannedWorkspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="tiktok-product-mining">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Planned Skill Workspace</span>
+      <h1>TikTok Product Mining</h1>
+      <p>This skill is registered but disabled until a future law authorizes its job flow.</p>
+    </div>
+    <span class="status-badge status-insufficient">planned</span>
+  </div>
+  <section class="panel empty-state">
+    <h2>No production surface</h2>
+    <p>Planned skills remain visible in the registry without creating a second implementation path.</p>
+  </section>
+</section>`;
+
+export const renderMainWorkspace = (): string => `
+<main class="workspace" data-app-shell-workspace>
+  ${renderAmazonProductMiningWorkspace()}
+  ${renderFacebookWorkspace()}
+  ${renderPlannedWorkspace()}
+  <section class="skill-workspace hidden" data-skill-workspace="deep-research-analysis" data-job-panel="deep-research">
+    ${renderDeepResearchPanel()}
+  </section>
+  ${renderVideoDownloadWorkspace()}
+  ${renderAmazonInvoiceWorkspace()}
+</main>`;

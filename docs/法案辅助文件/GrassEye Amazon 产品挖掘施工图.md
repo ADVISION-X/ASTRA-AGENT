@@ -87,6 +87,23 @@ MINING_BROWSER_TAB_PREPARE
 - 评论翻页必须继续复用当前活动标签，不得按页面持续新开标签。
 - 禁止 one-page-one-tab、one-product-one-tab、review-page-one-tab 造成 Chrome 标签膨胀。
 
+## 1.2 Amazon 页面打开节奏
+
+```txt
+PRODUCT_DETAIL_OPEN_PACING
+  -> 每个产品详情页打开前随机等待 1_000..60_000ms
+
+REVIEW_PAGE_OPEN_PACING
+  -> 每个评论页打开前随机等待 1_000..20_000ms
+```
+
+冻结细则：
+
+- pacing 是生产默认行为，不是 UI 选项。
+- pacing 只能降低连续快速访问触发 Amazon 风控的概率。
+- 如果出现验证码、登录墙、地域限制或风险控制，仍必须进入 manual_required / failed，不得绕过。
+- 搜索首页仍保存所有可见产品；详情和评论仍只处理 rankPosition <= 30 的产品。
+
 ---
 
 ## 2. 推荐文件布局
@@ -286,6 +303,7 @@ extractor_missing
 | -- | -- |
 | 循环 | 按 rankPosition 顺序打开每个产品 detail URL |
 | owner | product-detail.ts |
+| pacing | 打开每个详情页前由 flow.ts 执行 `1_000..60_000ms` 随机等待 |
 | 异常 | 失效 / 跳转 / 缺货 / 受限 → product.status = failed 或 manual_required，单产品失败不中断当前关键词 |
 
 ---
@@ -317,6 +335,7 @@ extractor_missing 不是允许结果。
 | -- | -- |
 | 动作 | 定位评论入口 / 打开全部评论页面 / 确认评论页对应当前产品 / 记录 reviewUrl |
 | owner | reviews.ts |
+| pacing | 打开每个评论页前由 flow.ts 执行 `1_000..20_000ms` 随机等待 |
 | 异常 | 评论入口不存在 / 评论页受限 → product.review_status = failed 或 manual_required |
 | 禁止 | 绕过限制 / 评论失败时删除详情页数据 |
 
@@ -399,10 +418,50 @@ strong | medium | weak | insufficient
 ### Keyword Opportunity Review 决策规则
 
 ```txt
-PASS = 值得进入下一阶段人工研究
-WATCH = 有信号但证据不足，继续挖相关关键词或补数据
-REJECT = 产品池明显弱，不进入人工候选池
+PASS = 该 keyword product pool 保留进入候选名单，等待下一阶段人工验证
+WATCH = 有信号但证据不足，继续挖相关关键词或补数据后再决定是否进入候选名单
+REJECT = 本次证据下该 keyword product pool 不保留为候选名单
 INSUFFICIENT_DATA = 当前资料不足，不能判断
+```
+
+边界：
+
+```txt
+PASS 不是最终选品。
+PASS 不是采购、打样、压货、投广告、利润结论。
+REJECT 不是全网产品终局无价值结论。
+关键词评审只决定该关键词是否进入下一阶段人工候选池。
+真正选品仍需要人工进行供应商、成本、合规、运营、评论、类目竞争、样品验证等复杂对比。
+```
+
+默认 AI provider：
+
+```txt
+gpt-web-chat
+```
+
+禁止把关键词评审 prompt 写成最终产品裁决 prompt。
+
+### GPT Web Chat source restore 连续性
+
+当 Amazon 产品挖掘的 GPT Web Chat 已经捕获有效输出，但浏览器无法恢复到投喂前 source tab 时：
+
+```txt
+promptContractId startsWith amazon-product-mining-
+restoredSourcePage = false
+provider proof 保留该事实
+flow 继续进入下一 Amazon 挖掘步骤
+```
+
+原因：Amazon mining 下一步会打开专用 Amazon 工作标签，source tab 恢复失败不是业务证据失败。
+
+禁止扩大适用范围：
+
+```txt
+Deep Research / Facebook / invoice upload / other prompt contract 仍 fail closed
+不得新增 fallback provider
+不得新增第二导出链路
+不得隐藏 restoredSourcePage=false
 ```
 
 异常：
@@ -411,6 +470,36 @@ INSUFFICIENT_DATA = 当前资料不足，不能判断
 AI 不可用 -> review.status = manual_required
 AI 输出越权或非结构化 -> review.status = failed
 资料包或 evidence slice 不完整 -> decision = INSUFFICIENT_DATA 或 review.status = manual_required
+```
+
+### REJECT 后物理清理
+
+当 keyword opportunity review 返回：
+
+```txt
+status = completed
+decision = REJECT
+```
+
+必须立即执行 keyword evidence purge：
+
+```txt
+delete search results under keywordId
+delete keyword-owned search-result/product links
+delete product details that are exclusively linked to this keyword
+delete reviews under those exclusive product details
+delete related exception rows
+delete full keyword review input/prompt evidence artifacts
+retain minimal keyword record for historical deduplication
+retain raw AI response and structured verdict tombstone
+```
+
+禁止：
+
+```txt
+REJECT 后继续保留完整详情/评论 bulk evidence
+REJECT 后删除 keyword record 导致历史去重失效
+误删仍被其他 keyword 共享引用的 product detail / reviews
 ```
 
 ---

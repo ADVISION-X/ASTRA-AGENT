@@ -11,6 +11,36 @@
 
 ---
 
+## [GRASSEYE-APP-SHELL-UI-001-V1] Mac-Style Agent Workbench Shell
+
+```apex-law
+{
+  "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "app-shell-ui",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ts-morph+acceptance+visual",
+  "summary": "GrassEye Workbench UI must be a unified Mac-style Agent Workbench Shell with Skill Registry, Level 2 Skill Workspace, Level 3 Inspector, and independent Runtime Console; old one-page dashboard production entry is forbidden.",
+  "appliesTo": [
+    "src/app/**",
+    "scripts/audit/domains/app-shell-ui/**",
+    "scripts/acceptance/app-shell-*.acceptance.ts",
+    "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts"
+  ],
+  "forbidden": [
+    "Legacy one-page home UI remaining as production entry.",
+    "Second App Shell or hidden parallel UI shell.",
+    "Skill list hardcoded outside Skill Registry.",
+    "Amazon Product Mining details expanded inside an ultra-wide history table instead of Inspector.",
+    "Runtime Console replaced by business history table.",
+    "UI using localStorage, fixture rows, package scanning, or log parsing as production truth.",
+    "UI computing AI verdict or product opportunity score.",
+    "UI exposing commerce, supplier-ordering, listing-launch, campaign-launch, inventory, winner-selection, or margin adjudication actions."
+  ]
+}
+```
+
 ## 0. 最高原则
 
 GrassEye 不是网页后台。

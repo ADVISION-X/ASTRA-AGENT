@@ -1,0 +1,72 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const read = (path: string): string => readFileSync(path, "utf8");
+
+const appShell = read("src/app/app-shell/app-shell.ts");
+const sidebar = read("src/app/app-shell/sidebar.ts");
+const layout = read("src/app/app-shell/app-shell-layout.ts");
+const inspector = read("src/app/app-shell/inspector.ts");
+const runtimeConsole = read("src/app/app-shell/runtime-console.ts");
+const styles = [
+  "src/app/app-shell/app-shell-styles.ts",
+  "src/app/app-shell/app-shell-core-styles.ts",
+  "src/app/app-shell/app-shell-workspace-styles.ts",
+  "src/app/app-shell/app-shell-inspector-console-styles.ts",
+].map(read).join("\n");
+const home = read("src/app/workbench-home-page.ts");
+const client = read("src/app/workbench-home-client.ts");
+
+for (const token of [
+  "renderAppShell",
+  "data-app-shell",
+  "renderCommandBar",
+  "renderSidebar",
+  "renderMainWorkspace",
+  "renderInspector",
+  "renderRuntimeConsole",
+]) {
+  assert(appShell.includes(token) || home.includes(token), `App Shell entry must include ${token}.`);
+}
+
+for (const token of [
+  "command-bar",
+  "sidebar",
+  "workspace",
+  "inspector",
+  "runtime-console",
+  "panel",
+  "card",
+  "history-table",
+  "filter-bar",
+  "status-badge",
+  "decision-badge",
+  "detail-section",
+  "empty-state",
+  "loading-state",
+  "error-state",
+  "manual-required-state",
+  "failed-state",
+  "status-pass",
+  "status-watch",
+  "status-reject",
+  "status-insufficient",
+  "status-running",
+  "status-completed",
+  "status-completed-with-errors",
+  "status-manual-required",
+  "status-failed",
+]) {
+  assert(styles.includes(token), `App Shell styles must define ${token}.`);
+}
+
+assert(sidebar.includes("skillRegistry"), "Sidebar must render from Skill Registry.");
+assert(layout.includes("data-skill-workspace"), "Main workspace must render Level 2 skill workspaces.");
+assert(inspector.includes("data-app-shell-inspector"), "Right Inspector must exist.");
+assert(inspector.includes("empty-state"), "Right Inspector must expose empty state.");
+assert(runtimeConsole.includes("data-runtime-console"), "Bottom Runtime Console must exist.");
+assert(runtimeConsole.includes("manual-required-state"), "Runtime Console must expose manual_required state.");
+assert(runtimeConsole.includes("failed-state"), "Runtime Console must expose failed state.");
+assert(client.includes("openInspector"), "Client must support Level 3 detail Inspector.");
+
+process.stdout.write("[ACCEPTANCE][app-shell-ui] PASS\n");

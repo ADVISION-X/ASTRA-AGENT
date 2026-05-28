@@ -11,8 +11,15 @@ const serverSource = readFileSync("src/app/workbench-facebook-routes.ts", "utf8"
 const videoSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts", "utf8");
 const aiJudgeSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts", "utf8");
 const aiTimeoutSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts", "utf8");
-const pageSource = readFileSync("src/app/workbench-home-page.ts", "utf8");
+const pageSource = [
+  readFileSync("src/app/workbench-home-page.ts", "utf8"),
+  readFileSync("src/app/app-shell/app-shell-layout.ts", "utf8"),
+].join("\n");
 const clientSource = readFileSync("src/app/workbench-home-client.ts", "utf8");
+const facebookClientSource = clientSource.slice(
+  clientSource.indexOf("const startFacebook = async"),
+  clientSource.indexOf("const refreshFacebookLatest"),
+);
 const schemaSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts", "utf8");
 
 assert.match(flowSource, /savedProductCount\s*>=\s*(?:run|input\.run)\.targetProductCount/u);
@@ -48,7 +55,7 @@ assert.match(pageSource, /name="targetProductCount"/u);
 assert.match(pageSource, /data-facebook-record-list/u);
 assert.match(pageSource, /data-facebook-export/u);
 assert.doesNotMatch(pageSource, /name="feedEntryUrl"|name="providerKind"|name="modelName"|name="maxRounds"|name="maxMinutes"/u);
-assert.doesNotMatch(clientSource, /feedEntryUrl:\s*form\.|providerKind:\s*form\.|modelName:\s*form\.|maxRounds:\s*Number|maxMinutes:\s*Number/u);
+assert.doesNotMatch(facebookClientSource, /feedEntryUrl:\s*form\.|providerKind:\s*form\.|modelName:\s*form\.|maxRounds:\s*Number|maxMinutes:\s*Number/u);
 assert.match(clientSource, /api\/facebook-product-video-mining\/results\?runId=/u);
 assert.match(clientSource, /api\/facebook-product-video-mining\/export\?runId=/u);
 assert.match(clientSource, /setInterval/u);

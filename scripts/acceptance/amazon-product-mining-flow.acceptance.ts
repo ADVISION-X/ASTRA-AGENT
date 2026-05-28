@@ -3,7 +3,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
+  AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE,
   AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT,
+  AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE,
+  selectAmazonMiningPacingDelayMs,
   selectSearchItemsForDetailMining,
 } from "../../src/plugins/amazon-product-mining/amazon-product-mining.flow.js";
 
@@ -128,5 +131,17 @@ assert.equal(AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT, 30);
 assert.equal(selectedRankedItems.length, 30);
 assert.deepEqual(selectedRankedItems.map((item) => item.rankPosition), Array.from({ length: 30 }, (_, index) => index + 1));
 assert.ok(flowSrc.includes("selectSearchItemsForDetailMining(searchResult.items)"), "flow.ts must apply top-30 detail mining selector after persisting all search results");
+
+// --- Test 13: governed Amazon page-open pacing ranges are production defaults ---
+assert.deepEqual(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 60_000 });
+assert.deepEqual(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 20_000 });
+assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, 0), 1_000);
+assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, 0.99999), 60_000);
+assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, 0), 1_000);
+assert.equal(selectAmazonMiningPacingDelayMs(AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE, 0.99999), 20_000);
+assert.ok(flowSrc.includes("waitForProductDetailOpenPacingDelay(runtime)"), "flow.ts must pace every product detail open");
+assert.ok(flowSrc.includes("waitForReviewPageOpenPacingDelay(runtime)"), "flow.ts must pace every review page open");
+assert.ok(flowSrc.includes("purgeRejectedKeywordEvidence"), "flow.ts must purge keyword-owned evidence after REJECT keyword review");
+assert.ok(flowSrc.includes("purgeRejectedKeywordReviewEvidenceArtifacts"), "flow.ts must remove full keyword review input/prompt artifacts after REJECT keyword review");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-flow\n");

@@ -17,6 +17,10 @@ const PAGE_TAB_REUSE_FILES = [
 ] as const;
 
 const FLOW_TAB_OWNER_FILE = "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts";
+const FLOW_TAB_OWNER_FILES = [
+  FLOW_TAB_OWNER_FILE,
+  "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
+] as const;
 
 export type BrowserOpenCallDebug = {
   filePath: string;
@@ -132,7 +136,9 @@ export const inspectBrowserTabLifecycle = (
     return calls;
   });
 
-  const dedicatedWorkspaceTabCalls = collectBrowserOpenCalls(context, inspectedFiles, FLOW_TAB_OWNER_FILE);
+  const dedicatedWorkspaceTabCalls = FLOW_TAB_OWNER_FILES.flatMap((repoPath) =>
+    collectBrowserOpenCalls(context, inspectedFiles, repoPath),
+  );
   if (!dedicatedWorkspaceTabCalls.some((call) => call.reusePolicy === "open-new-tab")) {
     findings.push(createFinding({
       checkId: "amazon-mining/dedicated-workspace-tab-missing",

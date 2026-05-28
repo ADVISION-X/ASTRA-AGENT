@@ -111,8 +111,10 @@ const inspectKeywordReviewOwnerSurface = (input: {
 
   const hasReviewInputContract = input.keywordReviewFile
     && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS")
+    && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND")
     && hasIdentifier(input.keywordReviewFile, "buildKeywordOpportunityReviewInputRefs")
     && hasStringLiteral(input.keywordReviewFile, "amazon-product-mining-keyword-evidence-slice")
+    && hasStringLiteral(input.keywordReviewFile, "gpt-web-chat")
     && hasCallToLocalIdentifier(input.keywordReviewFile, "buildKeywordOpportunityReviewInputRefs")
     && hasKeywordReviewInputRefsCall(input.keywordReviewFile);
   if (!hasReviewInputContract) {
@@ -137,12 +139,11 @@ const inspectKeywordReviewOwnerSurface = (input: {
 const inspectKeywordReviewAppPageSurface = (input: {
   findings: InspectorFinding[];
   lawId: string;
-  pageFile: SourceFile | undefined;
+  pageFiles: SourceFile[];
 }): void => {
-  const pageFile = input.pageFile;
   const pageTokens = [
-    "Task Publish Area",
-    "Latest Task Summary",
+    "Publish Task Card",
+    "Latest Task Summary Card",
     "Keyword Opportunity Review History",
     "data-amazon-product-mining-review-task-filter",
     "data-amazon-product-mining-review-filter",
@@ -151,16 +152,23 @@ const inspectKeywordReviewAppPageSurface = (input: {
     "data-amazon-product-mining-review-sort",
     "data-amazon-product-mining-refresh-reviews",
     "Created At",
-    "Marketplace",
-    "Target Market",
+    "Keyword",
+    "Decision",
     "Human Next Step",
+    "Demand Signal",
+    "Review Health",
+    "Price Ceiling",
+    "Competition Openness",
+    "Improvement Opportunity",
+    "Data Confidence",
     "Product Count",
     "Review Count",
     "Package Integrity",
     "Data Completeness",
-    "Reason / Evidence Summary",
+    "Status",
   ];
-  const hasPageSurface = pageFile ? pageTokens.every((token) => fileIncludesText(pageFile, token)) : false;
+  const hasPageSurface = input.pageFiles.length > 0
+    && pageTokens.every((token) => input.pageFiles.some((file) => fileIncludesText(file, token)));
   if (!hasPageSurface) {
     input.findings.push(createFinding({
       checkId: "amazon-mining/keyword-review-app-page",
@@ -180,17 +188,19 @@ const inspectKeywordReviewAppClientSurface = (input: {
     "amazonProductMiningReviewFilters",
     "amazonProductMiningReviewLoading",
     "amazonProductMiningReviewError",
-    "amazonProductMiningExpandedReviewId",
     "renderAmazonProductMiningReviewFilters",
     "renderAmazonProductMiningReviewTable",
     "renderAmazonProductMiningReviewRow",
-    "renderAmazonProductMiningReviewDetail",
+    "renderReviewInspector",
+    "openInspector",
     "refreshAmazonProductMiningKeywordReviews",
     "refreshAmazonProductMiningReviews",
     "amazonProductMiningReviews",
     "/api/amazon-product-mining/keyword-reviews",
     "Open Package",
+    "Open Master Report",
     "Open AI Review",
+    "Open Evidence",
     "Loading reviews...",
     "Failed to load keyword reviews: ",
     "No keyword opportunity reviews yet.",
@@ -233,6 +243,7 @@ const inspectKeywordReviewAppForbiddenSurface = (input: {
   findings: InspectorFinding[];
   lawId: string;
   pageFile: SourceFile | undefined;
+  pageFiles?: SourceFile[];
 }): void => {
   const forbiddenTokens = [
     "Procure",
@@ -242,7 +253,7 @@ const inspectKeywordReviewAppForbiddenSurface = (input: {
     "Final Selection",
     "grasseye:lastAmazonProductMiningReviews",
   ];
-  const appSurfaceText = `${input.pageFile ? literalText(input.pageFile) : ""}\n${input.clientFiles.map((file) => literalText(file)).join("\n")}`;
+  const appSurfaceText = `${input.pageFiles?.map((file) => literalText(file)).join("\n") ?? ""}\n${input.pageFile ? literalText(input.pageFile) : ""}\n${input.clientFiles.map((file) => literalText(file)).join("\n")}`;
   if (forbiddenTokens.some((token) => appSurfaceText.includes(token))) {
     input.findings.push(createFinding({
       checkId: "amazon-mining/keyword-review-forbidden-actions",
@@ -266,6 +277,9 @@ export const inspectKeywordReviewLawAndBlueprint = (
     "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
     "keyword opportunity review",
     "KEYWORD_OPPORTUNITY_REVIEW",
     "KEYWORD_REVIEW_PERSIST",
@@ -273,6 +287,9 @@ export const inspectKeywordReviewLawAndBlueprint = (
     "APP_UI_KEYWORD_REVIEW_HISTORY",
     "LOAD_KEYWORD_REVIEW_HISTORY",
     "USER_OPENS_PACKAGE_OR_AI_REVIEW",
+    "PRODUCT_DETAIL_OPEN_PACING",
+    "REVIEW_PAGE_OPEN_PACING",
+    "REJECT 后物理清理",
   ];
   const missing = requiredTokens.filter((token) => !lawText.includes(token) && !blueprintText.includes(token));
   if (missing.length === 0) {
@@ -333,6 +350,9 @@ export const inspectKeywordReviewPromptAndFlow = (
     "You are not a final procurement decision AI.",
     "You are not a profit calculation AI.",
     "You are not a supply-chain judgment AI.",
+    "Your task is only candidate-list screening",
+    "Even PASS is not a product choice.",
+    "REJECT means this keyword evidence is too weak to keep as a candidate pool in this mining task",
     "PASS | WATCH | REJECT | INSUFFICIENT_DATA",
     "enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data",
   ];
@@ -353,18 +373,25 @@ export const inspectKeywordReviewAppSurface = (
   lawId: string,
 ): void => {
   const pageFile = getRequiredSourceFile(context, "src/app/workbench-home-page.ts");
+  const workspaceFile = getRequiredSourceFile(context, "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts");
+  const publishFile = getRequiredSourceFile(context, "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts");
+  const historyFile = getRequiredSourceFile(context, "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts");
   const clientFile = getRequiredSourceFile(context, "src/app/workbench-home-client.ts");
   const clientHelperFile = getRequiredSourceFile(context, "src/app/workbench-home-amazon-product-mining-review-client.ts");
   const routesFile = getRequiredSourceFile(context, "src/app/workbench-amazon-product-mining-routes.ts");
   const clientFiles = [clientFile, clientHelperFile].filter((file): file is SourceFile => file !== undefined);
 
   trackSourceFile(inspectedFiles, pageFile);
+  trackSourceFile(inspectedFiles, workspaceFile);
+  trackSourceFile(inspectedFiles, publishFile);
+  trackSourceFile(inspectedFiles, historyFile);
   trackSourceFile(inspectedFiles, clientFile);
   trackSourceFile(inspectedFiles, clientHelperFile);
   trackSourceFile(inspectedFiles, routesFile);
 
-  inspectKeywordReviewAppPageSurface({ findings, lawId, pageFile });
+  const pageFiles = [pageFile, workspaceFile, publishFile, historyFile].filter((file): file is SourceFile => file !== undefined);
+  inspectKeywordReviewAppPageSurface({ findings, lawId, pageFiles });
   inspectKeywordReviewAppClientSurface({ clientFiles, findings, lawId });
   inspectKeywordReviewAppRouteSurface({ findings, lawId, routesFile });
-  inspectKeywordReviewAppForbiddenSurface({ clientFiles, findings, lawId, pageFile });
+  inspectKeywordReviewAppForbiddenSurface({ clientFiles, findings, lawId, pageFile, pageFiles });
 };

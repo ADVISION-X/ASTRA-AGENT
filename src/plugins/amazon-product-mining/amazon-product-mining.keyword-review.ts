@@ -21,6 +21,7 @@ import {
 } from "./amazon-product-mining.keyword-review-support.js";
 
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 300_000;
+export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND: AmazonKeywordProviderKind = "gpt-web-chat";
 
 const buildKeywordOpportunityReviewInputRefs = (input: {
   keyword: AmazonKeywordRecord;
@@ -123,10 +124,9 @@ const persistKeywordOpportunityReviewOutcome = (input: {
 
 const requestKeywordOpportunityReview = (input: {
   aiInputGateway: AiInputGatewayAbilityGroup;
-  providerKind: AmazonKeywordProviderKind;
   context: KeywordOpportunityReviewRuntimeContext;
 }) => input.aiInputGateway.execute({
-  providerKind: input.providerKind,
+  providerKind: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND,
   promptPackageId: `amazon-mining-keyword-review-${input.context.taskId}-${input.context.keyword.keywordId}`,
   promptContractId: "amazon-product-mining-keyword-opportunity-review-v1",
   expectedOutputSchemaRef: null,
@@ -202,7 +202,6 @@ export const runKeywordOpportunityReview = async (input: {
   keyword: AmazonKeywordRecord;
   storage: AmazonMiningStorage;
   aiInputGateway: AiInputGatewayAbilityGroup;
-  providerKind: AmazonKeywordProviderKind;
 }): Promise<AmazonKeywordOpportunityReviewRecord> => {
   const evidenceSlice = buildKeywordEvidenceSlice({
     storage: input.storage,
@@ -228,7 +227,6 @@ export const runKeywordOpportunityReview = async (input: {
   try {
     const aiResult = await requestKeywordOpportunityReview({
       aiInputGateway: input.aiInputGateway,
-      providerKind: input.providerKind,
       context,
     });
     return finalizeKeywordOpportunityReview({

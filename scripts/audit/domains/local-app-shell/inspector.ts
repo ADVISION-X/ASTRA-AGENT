@@ -17,6 +17,12 @@ type Finding = ReturnType<typeof createFinding>;
 
 const pagePath = "src/app/workbench-home-page.ts";
 const clientPath = "src/app/workbench-home-client.ts";
+const appShellPath = "src/app/app-shell/app-shell.ts";
+const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
+const appShellSidebarPath = "src/app/app-shell/sidebar.ts";
+const appShellCommandBarPath = "src/app/app-shell/command-bar.ts";
+const appShellInspectorPath = "src/app/app-shell/inspector.ts";
+const appShellRuntimeConsolePath = "src/app/app-shell/runtime-console.ts";
 const videoDownloadClientPath = "src/app/workbench-video-download-client.ts";
 const deepResearchPanelPath = "src/app/workbench-deep-research-panel.ts";
 const deepResearchClientPath = "src/app/workbench-deep-research-client.ts";
@@ -27,6 +33,16 @@ const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
 
 const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
+
+const readAppShellSurfaceText = (): string => [
+  pagePath,
+  appShellPath,
+  appShellLayoutPath,
+  appShellSidebarPath,
+  appShellCommandBarPath,
+  appShellInspectorPath,
+  appShellRuntimeConsolePath,
+].map(readRepoFile).join("\n");
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
@@ -108,7 +124,7 @@ const requireCall = (input: {
 };
 
 const inspectRootSurface = (findings: Finding[], lawId: string): void => {
-  const pageText = readRepoFile(pagePath);
+  const pageText = readAppShellSurfaceText();
   const clientText = readRepoFile(clientPath);
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-workbench-shell", checkId: "local-app-shell/root-shell" });
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-job-flow-list", checkId: "local-app-shell/job-list" });
@@ -119,7 +135,7 @@ const inspectRootSurface = (findings: Finding[], lawId: string): void => {
 };
 
 const inspectJobInputs = (findings: Finding[], lawId: string): void => {
-  const pageText = readRepoFile(pagePath);
+  const pageText = readAppShellSurfaceText();
   const videoClientText = readRepoFile(videoDownloadClientPath);
   const videoRouteText = readRepoFile(videoDownloadRoutePath);
   const requiredAmazonFields = [
@@ -158,12 +174,12 @@ const inspectDeepResearchAppSurface = (
   lawId: string,
   deliveryLawId: string,
 ): void => {
-  const pageText = readRepoFile(pagePath);
-  requireImport({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", moduleSuffix: "./workbench-deep-research-panel.js", checkId: "local-app-shell/deep-research-ui-import" });
+  const pageText = readAppShellSurfaceText();
+  requireImport({ context, findings, lawId, filePath: appShellLayoutPath, symbolName: "renderDeepResearchPanel", moduleSuffix: "../workbench-deep-research-panel.js", checkId: "local-app-shell/deep-research-ui-import" });
   requireImport({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", moduleSuffix: "./workbench-deep-research-routes.js", checkId: "local-app-shell/deep-research-route-import" });
-  requireCall({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
+  requireCall({ context, findings, lawId, filePath: appShellLayoutPath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
   requireCall({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", checkId: "local-app-shell/deep-research-route-call" });
-  requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-job-card=\"deep-research\"", checkId: "local-app-shell/deep-research-surface" });
+  requireMarker({ findings, lawId, filePath: appShellLayoutPath, text: pageText, marker: "data-skill-workspace=\"deep-research-analysis\"", checkId: "local-app-shell/deep-research-surface" });
   inspectDeepResearchCaseReaderUi({
     context,
     findings,
@@ -233,7 +249,7 @@ const inspectDeepResearchAppBoundary = (
 };
 
 const inspectStatusWindow = (findings: Finding[], lawId: string): void => {
-  const pageText = `${readRepoFile(pagePath)}\n${readRepoFile(videoDownloadClientPath)}`;
+  const pageText = `${readAppShellSurfaceText()}\n${readRepoFile(videoDownloadClientPath)}`;
   for (const marker of ["data-task-status-panel", "data-task-reason", "data-evidence-ref", "data-raw-result"]) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/status-window" });
   }
@@ -241,7 +257,7 @@ const inspectStatusWindow = (findings: Finding[], lawId: string): void => {
 };
 
 const inspectForbiddenPageTerms = (findings: Finding[], lawId: string): void => {
-  const pageText = `${readRepoFile(pagePath)}\n${readRepoFile(clientPath)}\n${readRepoFile(videoDownloadClientPath)}\n${readRepoFile(stylesPath)}`;
+  const pageText = `${readAppShellSurfaceText()}\n${readRepoFile(clientPath)}\n${readRepoFile(videoDownloadClientPath)}\n${readRepoFile(stylesPath)}`;
   const forbiddenMarkers = [
     "universal mission dashboard",
     "commander console",
@@ -347,6 +363,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const inspectedFiles = new Set<string>([
     pagePath,
     clientPath,
+    appShellPath,
+    appShellLayoutPath,
+    appShellSidebarPath,
+    appShellCommandBarPath,
+    appShellInspectorPath,
+    appShellRuntimeConsolePath,
     videoDownloadClientPath,
     videoDownloadRoutePath,
     deepResearchPanelPath,

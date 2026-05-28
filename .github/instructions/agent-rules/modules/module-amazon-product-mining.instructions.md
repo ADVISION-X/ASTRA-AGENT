@@ -910,6 +910,132 @@ Retry
 App 可保存最近 taskId，
 但 keyword review history 真相只能来自持久化记录与只读 route。
 
+## [GRASSEYE-AMAZON-PRODUCT-MINING-019-V1] Amazon Human Pacing Delay
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "flow+ast+acceptance",
+  "summary": "Amazon Product Mining must pace real browser product and review page opens with governed random waits: product detail open 1-60 seconds and review page open 1-20 seconds.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+    "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts"
+  ],
+  "forbidden": [
+    "Opening product detail pages in a tight loop without governed pacing.",
+    "Opening review pages in a tight loop without governed pacing.",
+    "Using pacing to bypass captcha, login, geographic, or risk-control restrictions."
+  ]
+}
+```
+
+### 法条
+
+- 每个 product detail 打开前必须随机等待 `1_000..60_000ms`。
+- 每个 review page 打开前必须随机等待 `1_000..20_000ms`。
+- pacing 只能降低触发平台风控概率，不得用于绕过验证码、登录墙、地域限制或风险控制。
+- 搜索结果仍然全量保存；详情与评论仍然只处理当前关键词排名前 30。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-020-V1] Candidate Keyword Review Prompt Boundary
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+acceptance+ast",
+  "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as candidate-list screening, not final product judgment.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "scripts/acceptance/amazon-product-mining-keyword-review-boundary.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts"
+  ],
+  "forbidden": [
+    "Prompt asking GPT Web Chat to make final product selection.",
+    "Prompt asking for procurement, sampling, inventory, launch, advertising, or profit conclusions.",
+    "Treating PASS as product approval or REJECT as a universal claim that every product has no value."
+  ]
+}
+```
+
+### 法条
+
+- 高级 AI 默认走 `gpt-web-chat` provider。
+- 关键词评审只判断该 keyword product pool 是否进入候选研究名单。
+- `PASS` 只表示进入下一阶段人工验证，不表示选品成功。
+- `REJECT` 只表示本次证据下该关键词不保留为候选池，不是全网产品终局裁决。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-021-V1] Rejected Keyword Evidence Purge
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "storage+flow+acceptance+ast",
+  "summary": "When keyword opportunity review returns REJECT, the system must physically purge bulk evidence under that keyword while retaining only the minimal verdict tombstone needed for deduplication and audit history.",
+  "appliesTo": [
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts"
+  ],
+  "forbidden": [
+    "Keeping search/detail/review bulk rows after a completed keyword review decision=REJECT.",
+    "Keeping full keyword review evidence-slice artifacts after decision=REJECT.",
+    "Deleting the keyword tombstone so historical deduplication can regenerate the same rejected keyword."
+  ]
+}
+```
+
+### 法条
+
+- `decision=REJECT` 后必须清理该 keyword 下 search results、keyword-owned product links、exclusive product details、reviews、related exceptions。
+- full evidence slice prompt/input artifacts 必须删除或清成 tombstone；raw AI response 与 structured verdict 必须保留。
+- keyword record 必须保留，用于历史去重，防止垃圾关键词重生。
+- 若同一 product detail 仍被其他 keyword 关系引用，不得误删其他 keyword 的证据。
+
+## [GRASSEYE-AMAZON-PRODUCT-MINING-022-V1] Amazon GPT Web Chat Restore Failure Continuity
+
+```json
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
+  "status": "active",
+  "owner": "amazon-product-mining",
+  "summary": "After an Amazon product mining GPT Web Chat response is captured, source tab restoration failure must be recorded as provider proof but must not fail the mining flow; this exception is forbidden outside amazon-product-mining prompt contracts.",
+  "appliesTo": [
+    "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
+    "scripts/audit/domains/amazon-product-mining/**/*.ts"
+  ],
+  "forbidden": [
+    "Failing an Amazon product mining GPT Web Chat feed after valid output was captured only because source tab restoration failed.",
+    "Allowing non-Amazon prompt contracts to ignore source tab restoration failure.",
+    "Dropping restoredSourcePage=false from provider proof."
+  ]
+}
+```
+
+### 法条
+
+- `promptContractId` 以 `amazon-product-mining-` 开头且 GPT Web Chat 已捕获有效输出时，`restoredSourcePage=false` 必须保留在 provider proof，但不得阻断后续 Amazon 挖掘流程。
+- 该连续性例外只适用于 Amazon 产品挖掘 prompt contract；Deep Research、Facebook、invoice upload 或其他能力仍必须对 source restoration failure fail closed。
+- 该例外不得新增 fallback、第二 provider、第二导出链路或手工 repack。
+- Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`。
+
 ## 4. State Contracts
 
 ### task status
@@ -1007,8 +1133,8 @@ Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程�
      index.ts
 2. src/app/workbench-amazon-product-mining-routes.ts （最小 surface）
   3. src/app/workbench-home-page.ts 与 src/app/workbench-home-client.ts 提供 job card / panel / start / latest / export / keyword review history
-3. scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}
-  4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,search-page,detail-page,review-pagination,package,app-ui,keyword-opportunity-review,keyword-review-boundary,keyword-review-app-ui}.acceptance.ts
+  3. scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}
+  4. scripts/acceptance/amazon-product-mining-{flow,storage,keyword-dedup,web-chat-restore,search-page,detail-page,review-pagination,package,app-ui,keyword-opportunity-review,keyword-review-boundary,keyword-review-app-ui}.acceptance.ts
   5. package.json 暴露 acceptance:amazon-product-mining 与 audit:amazon-product-mining
   6. taskId 是 Amazon 产品挖掘唯一任务标识，不允许 runId 兼容别名
   7. inspector 必须真使用 context.project，不得仅靠正则/字符串匹配

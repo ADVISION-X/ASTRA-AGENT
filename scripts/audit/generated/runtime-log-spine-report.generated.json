@@ -1,14 +1,29 @@
 {
-  "generatedAt": "2026-05-27T23:12:41.366Z",
+  "generatedAt": "2026-05-28T01:18:40.822Z",
   "status": "PASS",
-  "scannedFiles": 310,
+  "scannedFiles": 328,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/inspector.ts",
+    "src/app/app-shell/app-shell-core-styles.ts",
+    "src/app/app-shell/app-shell-inspector-console-styles.ts",
+    "src/app/app-shell/app-shell-layout.ts",
+    "src/app/app-shell/app-shell-styles.ts",
+    "src/app/app-shell/app-shell-workspace-styles.ts",
+    "src/app/app-shell/app-shell.ts",
+    "src/app/app-shell/command-bar.ts",
+    "src/app/app-shell/inspector.ts",
+    "src/app/app-shell/runtime-console.ts",
+    "src/app/app-shell/sidebar.ts",
+    "src/app/app-shell/skill-registry.ts",
     "src/app/create-workbench-server.ts",
     "src/app/server.ts",
+    "src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts",
+    "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
+    "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
+    "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
@@ -50,6 +65,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
@@ -208,6 +224,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
@@ -239,6 +256,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.search-extract-script.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.storage-keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
@@ -332,7 +350,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 310,
+    "scannedFiles": 328,
     "emitCallCount": 18,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -343,7 +361,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 305,
+      "scannedFiles": 323,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -352,13 +370,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 249
+      "scannedFiles": 252
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 245,
+      "scannedFiles": 248,
       "metrics": {
         "emitCallCount": 7
       }
@@ -367,13 +385,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 245
+      "scannedFiles": 248
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 250,
+      "scannedFiles": 253,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -388,7 +406,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 250,
+      "scannedFiles": 253,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -409,7 +427,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 39
+      "scannedFiles": 40
     },
     {
       "name": "browser-action-log-contract",

@@ -23,12 +23,12 @@ export const inspectPackageScript = (
       message: "package.json must expose acceptance:amazon-product-mining script.",
     }));
   }
-  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-app-ui.acceptance.ts")) {
+  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-app-shell.acceptance.ts")) {
     findings.push(createFinding({
       checkId: "amazon-mining/package-acceptance-script-app-ui",
       lawId,
       filePath: packagePath,
-      message: "acceptance:amazon-product-mining must include amazon-product-mining-app-ui.acceptance.ts.",
+      message: "acceptance:amazon-product-mining must include amazon-product-mining-app-shell.acceptance.ts.",
     }));
   }
 	  if (acceptanceScript && !acceptanceScript.includes("amazon-product-mining-package-zip.acceptance.ts")) {

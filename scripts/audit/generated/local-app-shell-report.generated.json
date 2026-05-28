@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T23:12:42.593Z",
+  "generatedAt": "2026-05-28T01:18:42.384Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,6 +13,12 @@
   "findings": [],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
+    "src/app/app-shell/app-shell-layout.ts",
+    "src/app/app-shell/app-shell.ts",
+    "src/app/app-shell/command-bar.ts",
+    "src/app/app-shell/inspector.ts",
+    "src/app/app-shell/runtime-console.ts",
+    "src/app/app-shell/sidebar.ts",
     "src/app/create-workbench-server.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
     "src/app/workbench-deep-research-client-boot.ts",

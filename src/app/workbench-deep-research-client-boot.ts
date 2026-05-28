@@ -64,9 +64,6 @@ function getFieldHelpContent(): Record<DeepResearchFieldHelpKey, {
 
 function setSelectedJobId(state: DeepResearchClientState, jobId: string): void {
   state.selectedJobId = jobId;
-  if (jobId) {
-    localStorage.setItem("grasseye:lastDeepResearchJobId", jobId);
-  }
 }
 
 function stopPolling(state: DeepResearchClientState): void {
@@ -255,7 +252,6 @@ async function deleteDeepResearchJob(state: DeepResearchClientState, jobId: stri
   });
   if (state.selectedJobId === jobId) {
     state.selectedJobId = "";
-    localStorage.removeItem("grasseye:lastDeepResearchJobId");
     stopPolling(state);
   }
   writeActivity("deep research report deleted", "ok");
@@ -383,9 +379,9 @@ function handleDeepResearchDomReady(state: DeepResearchClientState): void {
 function bootWorkbenchDeepResearchClient(): void {
   const state: DeepResearchClientState = {
     history: [],
-    selectedJobId: localStorage.getItem("grasseye:lastDeepResearchJobId") || "",
+    selectedJobId: "",
     historyFilter: "",
-    formOpen: !localStorage.getItem("grasseye:lastDeepResearchJobId"),
+    formOpen: true,
     poll: null,
   };
   document.addEventListener("click", (event) => handleDeepResearchClick(state, event));
@@ -408,6 +404,10 @@ export const deepResearchClientBootFunctions = [
   downloadDeepResearchExport,
   openDeepResearchExport,
   deleteDeepResearchJob,
+  tryHandleDeepResearchHelpClick,
+  tryHandleDeepResearchExportClick,
+  tryHandleDeepResearchJobClick,
+  tryHandleDeepResearchToolbarClick,
   handleDeepResearchClick,
   handleDeepResearchInput,
   handleDeepResearchDomReady,

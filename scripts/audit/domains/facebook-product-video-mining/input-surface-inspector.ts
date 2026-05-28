@@ -6,11 +6,30 @@ import { containsAny } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const facebookPagePath = "src/app/workbench-home-page.ts";
+const facebookWorkspacePath = "src/app/app-shell/app-shell-layout.ts";
 const facebookClientPath = "src/app/workbench-home-client.ts";
 const facebookSchemaPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts";
 const facebookSelectionExportPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts";
 
 const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
+
+const readFacebookWorkspaceText = (): string => [
+  readRepoText(facebookPagePath),
+  readRepoText(facebookWorkspacePath),
+].join("\n");
+
+const extractClientFunctionText = (
+  clientText: string,
+  startMarker: string,
+  endMarker: string,
+): string => {
+  const startIndex = clientText.indexOf(startMarker);
+  if (startIndex < 0) {
+    return "";
+  }
+  const endIndex = clientText.indexOf(endMarker, startIndex);
+  return clientText.slice(startIndex, endIndex > startIndex ? endIndex : undefined);
+};
 
 const inspectTargetCountInput = (
   findings: InspectorFinding[],
@@ -50,6 +69,7 @@ const inspectForbiddenClientPayload = (
   lawId: string,
   clientText: string,
 ): void => {
+  const facebookMissionText = extractClientFunctionText(clientText, "const startFacebook = async", "const refreshFacebookLatest");
   const forbiddenPayloadMarkers = [
     "feedEntryUrl: form.",
     "providerKind: form.",
@@ -57,13 +77,13 @@ const inspectForbiddenClientPayload = (
     "maxRounds: Number",
     "maxMinutes: Number",
   ] as const;
-  if (containsAny(clientText, forbiddenPayloadMarkers)) {
+  if (containsAny(facebookMissionText, forbiddenPayloadMarkers)) {
     findings.push(createFinding({
       checkId: "facebook-mining/forbidden-client-payload-advanced-input",
       lawId,
       filePath: facebookClientPath,
       message: "Facebook client mission payload must submit only targetProductCount from the visible form.",
-      evidence: forbiddenPayloadMarkers.find((marker) => clientText.includes(marker)),
+      evidence: forbiddenPayloadMarkers.find((marker) => facebookMissionText.includes(marker)),
     }));
   }
 };
@@ -135,9 +155,10 @@ export const inspectMinimalOperatorInput = (
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  for (const repoPath of [facebookPagePath, facebookClientPath, facebookSchemaPath]) inspectedFiles.add(repoPath);
-  inspectTargetCountInput(findings, lawId, readRepoText(facebookPagePath));
-  inspectForbiddenVisibleInputs(findings, lawId, readRepoText(facebookPagePath));
+  for (const repoPath of [facebookPagePath, facebookWorkspacePath, facebookClientPath, facebookSchemaPath]) inspectedFiles.add(repoPath);
+  const workspaceText = readFacebookWorkspaceText();
+  inspectTargetCountInput(findings, lawId, workspaceText);
+  inspectForbiddenVisibleInputs(findings, lawId, workspaceText);
   inspectForbiddenClientPayload(findings, lawId, readRepoText(facebookClientPath));
   inspectSchemaDefaultMarkers(findings, lawId, readRepoText(facebookSchemaPath));
 };
@@ -147,8 +168,8 @@ export const inspectSavedRecordExportSurface = (
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  for (const repoPath of [facebookPagePath, facebookClientPath, facebookSelectionExportPath]) inspectedFiles.add(repoPath);
-  inspectResultSurface(findings, lawId, readRepoText(facebookPagePath), readRepoText(facebookClientPath));
+  for (const repoPath of [facebookPagePath, facebookWorkspacePath, facebookClientPath, facebookSelectionExportPath]) inspectedFiles.add(repoPath);
+  inspectResultSurface(findings, lawId, readFacebookWorkspaceText(), readRepoText(facebookClientPath));
   inspectSelectionExportOwner(findings, lawId, readRepoText(facebookSelectionExportPath));
 };
 

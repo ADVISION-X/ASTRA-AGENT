@@ -12,11 +12,11 @@ import {
   rowToAiKeywordRun,
   rowToDetail,
   rowToKeyword,
-  rowToKeywordOpportunityReview,
   rowToReview,
   rowToSearchItem,
   rowToTask,
 } from "./amazon-product-mining.storage-support.js";
+import { createKeywordReviewOperations } from "./amazon-product-mining.storage-keyword-review.js";
 import type {
   AmazonKeywordRecord,
   AmazonKeywordOpportunityDecision,
@@ -85,6 +85,14 @@ export type AmazonMiningStorage = {
   getReviewsForProduct(detailId: string): AmazonReviewRecord[];
   persistException(input: { exceptionId: string; taskId: string; scope: string; scopeId?: string; exceptionKind: string; message: string; }): void;
   getExceptionsForTask(taskId: string): Array<{ exceptionId: string; scope: string; scopeId: string | null; exceptionKind: string; message: string; createdAt: string; }>;
+  purgeRejectedKeywordEvidence(input: { taskId: string; keywordId: string; }): {
+    keywordId: string;
+    searchResultCount: number;
+    linkCount: number;
+    productDetailCount: number;
+    reviewCount: number;
+    exceptionCount: number;
+  };
   close(): void;
 };
 
@@ -217,94 +225,6 @@ const createSearchOperations = (
   },
 });
 
-type KeywordOpportunityReviewFilter = {
-  taskId?: string;
-  decision?: AmazonKeywordOpportunityDecision;
-};
-
-const keywordOpportunityReviewUpsertSql = `INSERT INTO amazon_mining_keyword_opportunity_reviews (
-  review_id, task_id, keyword_id, keyword, status, decision, demand_signal,
-  review_health, price_ceiling, competition_openness, improvement_opportunity,
-  data_confidence, human_next_step, evidence_refs_json, missing_evidence_json,
-  risk_points_json, ai_prompt_text, ai_raw_response, ai_response_ref, package_ref,
-  keyword_package_slice_ref, failure_reason, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(review_id) DO UPDATE SET
-  status=excluded.status,
-  decision=excluded.decision,
-  demand_signal=excluded.demand_signal,
-  review_health=excluded.review_health,
-  price_ceiling=excluded.price_ceiling,
-  competition_openness=excluded.competition_openness,
-  improvement_opportunity=excluded.improvement_opportunity,
-  data_confidence=excluded.data_confidence,
-  human_next_step=excluded.human_next_step,
-  evidence_refs_json=excluded.evidence_refs_json,
-  missing_evidence_json=excluded.missing_evidence_json,
-  risk_points_json=excluded.risk_points_json,
-  ai_prompt_text=excluded.ai_prompt_text,
-  ai_raw_response=excluded.ai_raw_response,
-  ai_response_ref=excluded.ai_response_ref,
-  package_ref=excluded.package_ref,
-  keyword_package_slice_ref=excluded.keyword_package_slice_ref,
-  failure_reason=excluded.failure_reason,
-  updated_at=excluded.updated_at`;
-
-const buildKeywordOpportunityReviewValues = (
-  review: AmazonKeywordOpportunityReviewRecord,
-): readonly unknown[] => [
-  review.reviewId, review.taskId, review.keywordId, review.keyword, review.status,
-  review.decision, review.demandSignal, review.reviewHealth, review.priceCeiling,
-  review.competitionOpenness, review.improvementOpportunity, review.dataConfidence,
-  review.humanNextStep, JSON.stringify(review.evidenceRefs), JSON.stringify(review.missingEvidence),
-  JSON.stringify(review.riskPoints), review.aiPromptText, review.aiRawResponse,
-  review.aiResponseRef, review.packageRef, review.keywordPackageSliceRef, review.failureReason,
-  review.createdAt, review.updatedAt,
-];
-
-const buildKeywordOpportunityReviewQuery = (
-  input?: KeywordOpportunityReviewFilter,
-): { values: unknown[]; whereClause: string } => {
-  const conditions: string[] = [];
-  const values: unknown[] = [];
-  if (input?.taskId) {
-    conditions.push("task_id=?");
-    values.push(input.taskId);
-  }
-  if (input?.decision) {
-    conditions.push("decision=?");
-    values.push(input.decision);
-  }
-  return {
-    values,
-    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
-  };
-};
-
-const createKeywordReviewOperations = (
-  db: Database.Database,
-): Pick<AmazonMiningStorage, "saveKeywordOpportunityReview" | "getKeywordOpportunityReview" | "listKeywordOpportunityReviews"> => ({
-  saveKeywordOpportunityReview(review) {
-    db.prepare(keywordOpportunityReviewUpsertSql).run(...buildKeywordOpportunityReviewValues(review));
-    return this.getKeywordOpportunityReview(review.reviewId)!;
-  },
-
-  getKeywordOpportunityReview(reviewId) {
-    const row = db.prepare("SELECT * FROM amazon_mining_keyword_opportunity_reviews WHERE review_id=?").get(reviewId);
-    return row ? rowToKeywordOpportunityReview(row as Record<string, unknown>) : null;
-  },
-
-  listKeywordOpportunityReviews(input) {
-    const { values, whereClause } = buildKeywordOpportunityReviewQuery(input);
-    const rows = db.prepare(`
-      SELECT * FROM amazon_mining_keyword_opportunity_reviews
-      ${whereClause}
-      ORDER BY created_at DESC, review_id DESC
-    `).all(...values) as Array<Record<string, unknown>>;
-    return rows.map((row) => rowToKeywordOpportunityReview(row));
-  },
-});
-
 const createProductOperations = (
   db: Database.Database,
 ): Pick<AmazonMiningStorage, "persistProductDetail" | "updateProductStatus" | "getProductDetailsForTask" | "getProductDetail"> => ({
@@ -434,6 +354,74 @@ const createExceptionOperations = (
   },
 });
 
+const createRejectedKeywordPurgeOperations = (
+  db: Database.Database,
+): Pick<AmazonMiningStorage, "purgeRejectedKeywordEvidence"> => ({
+  purgeRejectedKeywordEvidence({ taskId, keywordId }) {
+    const run = db.transaction(() => {
+      const exclusiveDetailRows = db.prepare(`
+        SELECT link.detail_id AS detail_id
+        FROM amazon_mining_search_result_product_link AS link
+        GROUP BY link.detail_id
+        HAVING SUM(CASE WHEN link.item_id IN (
+          SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
+        ) THEN 1 ELSE 0 END) > 0
+        AND SUM(CASE WHEN link.item_id NOT IN (
+          SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
+        ) THEN 1 ELSE 0 END) = 0
+      `).all(taskId, keywordId, taskId, keywordId) as Array<{ detail_id: string }>;
+      const exclusiveDetailIds = exclusiveDetailRows.map((row) => row.detail_id);
+
+      const itemRows = db.prepare(`
+        SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
+      `).all(taskId, keywordId) as Array<{ item_id: string }>;
+      const itemIds = itemRows.map((row) => row.item_id);
+
+      let reviewCount = 0;
+      let productDetailCount = 0;
+      if (exclusiveDetailIds.length > 0) {
+        const placeholders = exclusiveDetailIds.map(() => "?").join(",");
+        reviewCount = db.prepare(`
+          DELETE FROM amazon_mining_reviews
+          WHERE task_id=? AND detail_id IN (${placeholders})
+        `).run(taskId, ...exclusiveDetailIds).changes;
+        productDetailCount = db.prepare(`
+          DELETE FROM amazon_mining_product_details
+          WHERE task_id=? AND detail_id IN (${placeholders})
+        `).run(taskId, ...exclusiveDetailIds).changes;
+      }
+
+      const linkCount = db.prepare(`
+        DELETE FROM amazon_mining_search_result_product_link
+        WHERE item_id IN (
+          SELECT item_id FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
+        )
+      `).run(taskId, keywordId).changes;
+
+      const searchResultCount = db.prepare(`
+        DELETE FROM amazon_mining_search_results WHERE task_id=? AND keyword_id=?
+      `).run(taskId, keywordId).changes;
+
+      const exceptionScopeIds = [keywordId, ...itemIds, ...exclusiveDetailIds];
+      const exceptionPlaceholders = exceptionScopeIds.map(() => "?").join(",");
+      const exceptionCount = db.prepare(`
+        DELETE FROM amazon_mining_exception_records
+        WHERE task_id=? AND scope_id IN (${exceptionPlaceholders})
+      `).run(taskId, ...exceptionScopeIds).changes;
+
+      return {
+        keywordId,
+        searchResultCount,
+        linkCount,
+        productDetailCount,
+        reviewCount,
+        exceptionCount,
+      };
+    });
+    return run();
+  },
+});
+
 export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage => {
   const db = createAmazonMiningDatabase(dataDir);
   const dbPath = resolveDbPath(dataDir);
@@ -448,6 +436,7 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
     ...createTraceabilityOperations(db),
     ...createReviewOperations(db),
     ...createExceptionOperations(db),
+    ...createRejectedKeywordPurgeOperations(db),
     close() {
       db.close();
     },

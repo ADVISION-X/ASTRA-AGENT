@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T23:12:18.424Z",
+  "generatedAt": "2026-05-28T01:18:14.993Z",
   "rows": [
     {
       "capabilityDomain": "amazon-product-mining",
@@ -24,7 +24,18 @@
         "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
+        "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
         "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "app-shell-ui",
+      "manifestPath": "scripts/audit/domains/app-shell-ui/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/app-shell-ui/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-APP-SHELL-UI-001-V1"
       ]
     },
     {

@@ -15,7 +15,19 @@ import { buildFailedTaskRecord, resolveFinalTaskState, type FinalTaskResolution 
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import { buildKeywordRecords, runKeywordGeneration } from "./amazon-product-mining.keyword.js";
 import { runKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
+import { purgeRejectedKeywordReviewEvidenceArtifacts } from "./amazon-product-mining.keyword-review-support.js";
 import type { AmazonKeywordProviderKind } from "./amazon-product-mining.schema.js";
+import {
+  buildPackageInput,
+  didAllKeywordsFail,
+  openDedicatedAmazonMiningTab,
+  recordSearchFailure,
+  resolveAmazonItemAsin,
+  selectAmazonMiningPacingDelayMs,
+  selectSearchItemsForDetailMining as selectSearchItemsForDetailMiningByLimit,
+  waitForAmazonMiningPacingDelay,
+} from "./amazon-product-mining.flow-support.js";
+export { selectAmazonMiningPacingDelayMs };
 export type AmazonFlowContext = {
   miningInput: AmazonMiningInput;
   taskId: string;
@@ -52,6 +64,15 @@ type KeywordPhaseResult = { kind: "stop"; result: AmazonFlowResult } | { kind: "
 type PackageBuildResult = Awaited<ReturnType<typeof buildAmazonProductMiningPackage>>;
 type PackagingArtifacts = { packageResult: PackageBuildResult; pdfPath: string | null };
 export const AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT = 30;
+export const AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 60_000 } as const;
+export const AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE = { min: 1_000, max: 20_000 } as const;
+
+const waitForProductDetailOpenPacingDelay = async (runtime: AmazonFlowRuntime): Promise<void> =>
+  waitForAmazonMiningPacingDelay(runtime.ctx.browser, AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE);
+
+const waitForReviewPageOpenPacingDelay = async (runtime: AmazonFlowRuntime): Promise<void> =>
+  waitForAmazonMiningPacingDelay(runtime.ctx.browser, AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE);
+
 const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => ({
   ctx,
   storage: createAmazonMiningStorage(ctx.dataDir),
@@ -62,14 +83,6 @@ const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => (
   manualRequiredReasons: [],
   failureReasons: [],
 });
-const buildPackageInput = (runtime: AmazonFlowRuntime) => ({
-  taskId: runtime.taskId,
-  dataDir: runtime.dataDir,
-  storage: runtime.storage,
-  detailRankLimit: AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT,
-  ...(runtime.ctx.reviewMaxPages !== undefined ? { reviewMaxPages: runtime.ctx.reviewMaxPages } : {}),
-});
-
 const createTaskRecord = (runtime: AmazonFlowRuntime): void => {
   const { storage, logger, taskId, miningInput } = runtime;
   storage.createTask({
@@ -145,31 +158,6 @@ const runKeywordPhase = async (runtime: AmazonFlowRuntime): Promise<KeywordPhase
   return { kind: "continue", keywordRecords };
 };
 
-const recordSearchFailure = (
-  runtime: AmazonFlowRuntime,
-  keywordId: string,
-  blockerKind: string,
-  reason: string,
-): void => {
-  const { storage, logger, taskId, manualRequiredReasons } = runtime;
-  storage.updateKeywordStatus({ keywordId, status: "failed" });
-  storage.persistException({
-    exceptionId: randomUUID(),
-    taskId,
-    scope: "search",
-    scopeId: keywordId,
-    exceptionKind: blockerKind,
-    message: reason,
-  });
-  logger.logFailure({ taskId, scope: "search", scopeId: keywordId, reason });
-  if (blockerKind === "login_required" || blockerKind === "captcha") {
-    manualRequiredReasons.push(`search_blocked:${blockerKind}`);
-  }
-};
-
-const resolveItemAsin = (productUrl: string, asinIfAvailable: string | null): string =>
-  asinIfAvailable ?? productUrl.match(/\/dp\/([A-Z0-9]{10})/)?.[1] ?? productUrl;
-
 const extractAndPersistReviews = async (
   runtime: AmazonFlowRuntime,
   detailId: string,
@@ -178,6 +166,7 @@ const extractAndPersistReviews = async (
   const { ctx, storage, logger, taskId, miningInput, manualRequiredReasons } = runtime;
   const reviewsUrl = `https://www.${miningInput.amazonMarketplace}/product-reviews/${asin}`;
   storage.updateProductStatus({ detailId, status: "review_extracting" });
+  await waitForReviewPageOpenPacingDelay(runtime);
 
   const paginationResult = await runReviewPagination({
     browser: ctx.browser,
@@ -206,7 +195,7 @@ const extractAndPersistReviews = async (
 
 const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: string; productUrl: string | null; asinIfAvailable: string | null }): Promise<void> => {
   if (!item.productUrl) return;
-  const asin = resolveItemAsin(item.productUrl, item.asinIfAvailable);
+  const asin = resolveAmazonItemAsin(item.productUrl, item.asinIfAvailable);
   const productDetail = await extractAndPersistProductDetail(runtime, item.itemId, item.productUrl, asin);
   if (!productDetail) return;
   if (!productDetail.asin) {
@@ -218,9 +207,7 @@ const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: str
 
 export const selectSearchItemsForDetailMining = <T extends { rankPosition: number }>(
   items: readonly T[],
-): T[] => [...items]
-  .sort((left, right) => left.rankPosition - right.rankPosition)
-  .filter((item) => item.rankPosition <= AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT);
+): T[] => selectSearchItemsForDetailMiningByLimit(items, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT);
 
 const processKeywordRecord = async (
   runtime: AmazonFlowRuntime,
@@ -259,13 +246,35 @@ const processKeywordRecord = async (
     keyword: storage.getKeywordsForTask(taskId).find((record) => record.keywordId === keywordRecord.keywordId) ?? keywordRecord,
     storage,
     aiInputGateway: ctx.aiInputGateway,
-    providerKind: ctx.providerKind,
   });
   if (keywordReview.status === "manual_required") {
     runtime.manualRequiredReasons.push(`keyword_review_manual_required:${keywordRecord.keywordId}`);
   }
   if (keywordReview.status === "failed") {
     runtime.failureReasons.push(`keyword_review_failed:${keywordRecord.keywordId}`);
+  }
+  if (keywordReview.status === "completed" && keywordReview.decision === "REJECT") {
+    const purgeResult = storage.purgeRejectedKeywordEvidence({
+      taskId,
+      keywordId: keywordRecord.keywordId,
+    });
+    purgeRejectedKeywordReviewEvidenceArtifacts({
+      dataDir: runtime.dataDir,
+      taskId,
+      keywordId: keywordRecord.keywordId,
+    });
+    storage.saveKeywordOpportunityReview({
+      ...keywordReview,
+      evidenceRefs: [...keywordReview.evidenceRefs, "rejected_keyword_evidence_purged"],
+      riskPoints: [
+        ...keywordReview.riskPoints,
+        `Rejected keyword evidence purged: searchResults=${purgeResult.searchResultCount}; products=${purgeResult.productDetailCount}; reviews=${purgeResult.reviewCount}`,
+      ],
+      aiPromptText: "Purged after keyword opportunity review returned REJECT. Raw AI response and structured verdict remain as the tombstone record.",
+      packageRef: null,
+      keywordPackageSliceRef: null,
+      updatedAt: new Date().toISOString(),
+    });
   }
 };
 
@@ -276,6 +285,7 @@ const extractAndPersistProductDetail = async (
   asin: string,
 ) => {
   const { ctx, storage, logger, taskId } = runtime;
+  await waitForProductDetailOpenPacingDelay(runtime);
   logger.logDetailOpen({ taskId, detailId: itemId, productUrl });
 
   try {
@@ -305,11 +315,7 @@ const extractAndPersistProductDetail = async (
 };
 
 const openDedicatedMiningTab = async (runtime: AmazonFlowRuntime): Promise<void> => {
-  await runtime.ctx.browser.open({
-    url: "about:blank",
-    title: `Amazon mining workspace: ${runtime.taskId}`,
-    reusePolicy: "open-new-tab",
-  });
+  await openDedicatedAmazonMiningTab(runtime.ctx.browser, runtime.taskId);
 };
 
 const runMiningPhase = async (
@@ -327,7 +333,7 @@ const buildPackagingArtifacts = async (runtime: AmazonFlowRuntime): Promise<Pack
   const { storage, logger, taskId, miningInput, dataDir, manualRequiredReasons } = runtime;
   storage.updateTaskStatus({ taskId, status: "packaging" });
 
-  const packageResult = await buildAmazonProductMiningPackage(buildPackageInput(runtime));
+  const packageResult = await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT));
   logger.logPackageBuilt({
     taskId,
     packageJsonPath: packageResult.packageJsonPath,
@@ -356,12 +362,6 @@ const buildPackagingArtifacts = async (runtime: AmazonFlowRuntime): Promise<Pack
   return { packageResult, pdfPath: reportResult.pdfReportPath };
 };
 
-const didAllKeywordsFail = (runtime: AmazonFlowRuntime): boolean => {
-  const keywords = runtime.storage.getKeywordsForTask(runtime.taskId);
-  return keywords.length > 0
-    && keywords.every((keyword) => keyword.status === "failed" || keyword.status === "manual_required");
-};
-
 const persistFinalPackagingState = async (
   runtime: AmazonFlowRuntime,
   artifacts: PackagingArtifacts,
@@ -378,7 +378,7 @@ const persistFinalPackagingState = async (
     exceptionSummaryPath: artifacts.packageResult.exceptionSummaryPath,
     handoffStatus: resolution.finalHandoffStatus,
   });
-  await buildAmazonProductMiningPackage(buildPackageInput(runtime));
+  await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT));
 
   if (resolution.finalHandoffStatus === "ready") {
     logger.logHandoffReady({ taskId });
@@ -418,7 +418,7 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
 
   artifacts = {
     ...artifacts,
-    packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime)),
+    packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT)),
   };
   if (artifacts.packageResult.integrityStatus === "failed" && !manualRequiredReasons.includes("package_integrity_failed")) {
     manualRequiredReasons.push("package_integrity_failed");
@@ -446,7 +446,7 @@ const finalizePackaging = async (runtime: AmazonFlowRuntime): Promise<AmazonFlow
     });
     artifacts = {
       ...artifacts,
-      packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime)),
+      packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT)),
     };
   }
 
