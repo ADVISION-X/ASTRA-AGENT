@@ -280,6 +280,51 @@ const assertExternalDownloadStartAllowed = async (): Promise<void> => {
   });
 };
 
+const assertExternalDownloadCallbackAllowed = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await postExternalDownloadStart(rootUrl, {
+      key: apiKey,
+      missionPatch: { callbackUrl: `${externalOrigin}/api/grasseye/download-callback` },
+    });
+    assert.equal(response.status, 200);
+    assert.equal(workbench.startCalls, 1);
+  });
+};
+
+const assertExternalDownloadCallbackBlocked = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await postExternalDownloadStart(rootUrl, {
+      key: apiKey,
+      missionPatch: { callbackUrl: "https://evil.example/callback" },
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 403);
+    assert.equal(body.error, "callback_url_not_allowed");
+    assert.equal(workbench.startCalls, 0);
+  });
+};
+
+const assertNestedJsonCallbackBlocked = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await fetch(`${rootUrl}/api/plugins/amazon-invoice-upload/download/start`, {
+      method: "POST",
+      headers: {
+        Origin: externalOrigin,
+        "content-type": "application/json",
+        "X-GrassEye-Agent-Key": apiKey,
+      },
+      body: JSON.stringify({ mission: { callbackUrl: "https://evil.example/callback" } }),
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 403);
+    assert.equal(body.error, "callback_url_not_allowed");
+    assert.equal(workbench.startCalls, 0);
+  });
+};
+
 const assertDownloadArtifactUnknownRejected = async (): Promise<void> => {
   await withServer(async ({ rootUrl }) => {
     withExternalEnv(true);
@@ -376,6 +421,9 @@ const run = async (): Promise<void> => {
   await assertLocalHealthAllowed();
   await assertExternalAuthBoundaries();
   await assertExternalDownloadStartAllowed();
+  await assertExternalDownloadCallbackAllowed();
+  await assertExternalDownloadCallbackBlocked();
+  await assertNestedJsonCallbackBlocked();
   await assertDownloadArtifactUnknownRejected();
   await assertExternalRouteBoundary();
   await assertForbiddenMissionKeys();

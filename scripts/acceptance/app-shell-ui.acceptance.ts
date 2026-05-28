@@ -89,5 +89,12 @@ assert(client.includes("resetInspectorForSkill"), "Skill switching must clear st
 assert(appShell.includes('class="inspector-collapsed"'), "Inspector must be closed by default so Main Workspace owns the screen until detail is selected.");
 assert(!client.includes('openInspector({ kind: "task", title: recordId, payload: record });'), "Task polling and latest refresh must not force-open the right Inspector.");
 assert(client.includes("showWorkspacePage"), "Secondary skills must switch Level 2 workspace pages.");
+assert(client.includes("data-amazon-tax-invoice-download-form"), "Client must bind the Amazon tax invoice download form submit.");
+assert(client.includes("startAmazonTaxInvoiceDownload"), "Client must expose the Amazon tax invoice download start handler.");
+assert(client.includes("/api/plugins/amazon-invoice-upload/download/start"), "Client must call the Amazon tax invoice download start route.");
+assert(client.includes("data-amazon-tax-invoice-download-latest"), "Client must bind Latest Download.");
+assert(client.includes("/api/plugins/amazon-invoice-upload/download/latest"), "Client must call the Amazon tax invoice download latest route.");
+assert(client.includes("data-amazon-tax-invoice-download-artifact"), "Client must bind Open Artifact.");
+assert(client.includes("/api/plugins/amazon-invoice-upload/download/artifact/"), "Client must call the Amazon tax invoice download artifact route.");
 
 process.stdout.write("[ACCEPTANCE][app-shell-ui] PASS\n");

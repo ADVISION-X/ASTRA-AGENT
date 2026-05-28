@@ -28,6 +28,7 @@ const evidencePath = `${ownerRoot}/amazon-tax-invoice-download-evidence.ts`;
 const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
+const appShellClientPath = "src/app/workbench-home-client.ts";
 const selfPath = "scripts/audit/domains/amazon-invoice-upload/inspector.ts";
 
 const evidenceStepIds = [
@@ -135,7 +136,7 @@ const inspectRequiredFiles = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  for (const repoPath of [lawPath, blueprintPath, processPath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, selfPath]) {
+  for (const repoPath of [lawPath, blueprintPath, processPath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellClientPath, selfPath]) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
         checkId: "amazon-invoice-upload/required-file",
@@ -229,6 +230,22 @@ const inspectDownloadFlow = (
       message: "Download flow must expose manual_required gates.",
     });
   }
+  if (!values.has("Latest row is not proven to be the current requested CSV report.")) {
+    addFinding(findings, {
+      checkId: "amazon-invoice-upload/current-request-row-gate",
+      lawId: lawIds.evidence,
+      filePath: downloadFlowPath,
+      message: "Download flow must reject rows that are not proven to be the current requested CSV report.",
+    });
+  }
+  if (!values.has("进行中")) {
+    addFinding(findings, {
+      checkId: "amazon-invoice-upload/current-request-in-progress-gate",
+      lawId: lawIds.evidence,
+      filePath: downloadFlowPath,
+      message: "Download flow must observe the current requested row entering 进行中 before waiting for 下载.",
+    });
+  }
   if (values.has("documentId")) {
     addFinding(findings, {
       checkId: "amazon-invoice-upload/no-document-id-log",
@@ -236,6 +253,32 @@ const inspectDownloadFlow = (
       filePath: downloadFlowPath,
       message: "Download flow must not persist or log Amazon download documentId.",
     });
+  }
+};
+
+const inspectAppShellClient = (
+  file: SourceFile | null,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  if (!file) return;
+  const corpus = literalCorpus(file);
+  for (const value of [
+    "data-amazon-tax-invoice-download-form",
+    "data-amazon-tax-invoice-download-latest",
+    "data-amazon-tax-invoice-download-artifact",
+    "/api/plugins/amazon-invoice-upload/download/start",
+    "/api/plugins/amazon-invoice-upload/download/latest",
+    "/api/plugins/amazon-invoice-upload/download/artifact/",
+  ]) {
+    if (!corpus.includes(value)) {
+      addFinding(findings, {
+        checkId: "amazon-invoice-upload/app-shell-client-download-binding",
+        lawId,
+        filePath: appShellClientPath,
+        message: `Amazon invoice App Shell client must bind ${value}.`,
+      });
+    }
   }
 };
 
@@ -325,6 +368,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectDownloadFlow(source(context.project, downloadFlowPath), findings, lawIds);
   inspectBoundaryRoutes(source(context.project, boundaryPath), findings, lawIds.api);
   inspectAppShell(source(context.project, appShellLayoutPath), findings, lawIds.ui);
+  inspectAppShellClient(source(context.project, appShellClientPath), findings, lawIds.ui);
 
   return {
     capabilityDomain: domain,
@@ -339,6 +383,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       routesPath,
       boundaryPath,
       appShellLayoutPath,
+      appShellClientPath,
       selfPath,
     ],
   };

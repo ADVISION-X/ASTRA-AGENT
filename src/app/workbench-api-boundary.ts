@@ -171,15 +171,26 @@ const safeParseJson = (value: string): unknown => {
   }
 };
 
-const readCallbackUrl = (preview: BodyPreview): string | null => {
-  const fields = preview.fields ?? {};
-  const mission = parseJsonText(fields.mission);
+const callbackUrlFromObject = (value: unknown): string | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const callbackUrl = (value as { callbackUrl?: unknown }).callbackUrl;
+  if (typeof callbackUrl === "string" && callbackUrl.trim().length > 0) {
+    return callbackUrl.trim();
+  }
+  const mission = parseJsonText((value as { mission?: unknown }).mission);
   if (mission && typeof mission === "object" && !Array.isArray(mission)) {
     const value = (mission as { callbackUrl?: unknown }).callbackUrl;
     return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
   }
-  const value = fields.callbackUrl;
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return null;
+};
+
+const readCallbackUrl = (preview: BodyPreview): string | null => {
+  const jsonCallbackUrl = callbackUrlFromObject(preview.json);
+  if (jsonCallbackUrl) return jsonCallbackUrl;
+  return callbackUrlFromObject(preview.fields ?? {});
 };
 
 const inspectExternalBodyPreview = (preview: unknown): { error: string; reason: string } | null => {

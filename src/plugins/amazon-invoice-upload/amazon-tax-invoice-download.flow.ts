@@ -57,12 +57,13 @@ export async function runAmazonTaxInvoiceDownload(
     openFulfillmentReports,
     openAfnShipmentInvoicingReport,
     selectLast30Days,
-    requestCsvDownload,
   ] as const) {
     const result = await step(browser, runtimeLogger, mission);
     if (!result.ok) return result.failure;
   }
 
+  const requested = await requestCsvDownload(browser, runtimeLogger, mission);
+  if (!requested.ok) return requested.failure;
   const ready = await waitLatestReportDownloadReady(browser, runtimeLogger, mission);
   if (!ready.ok) return ready.failure;
   const clicked = await clickLatestReportDownload(browser, runtimeLogger, mission, baselineFiles);
@@ -177,15 +178,17 @@ async function requestCsvDownload(
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
   const snapshot = await readSnapshotAndTrace(browser, runtimeLogger, mission, "AID-07", "locate request csv button");
+  const beforeRow = firstReportRowText(snapshot);
   const csvButton = locate(snapshot, "button", ["请求下载 .csv 文件", "CSV"]);
   if (!csvButton.ok) return fail(manualRequired(mission, "AID-07", csvButton.reason, "locate request csv button"));
   const clicked = await clickLocated(browser, runtimeLogger, mission, "AID-07", "request csv download", csvButton.element);
   if (!clicked.ok) return clicked;
   await browser.wait(3_000);
   const after = await readSnapshotAndTrace(browser, runtimeLogger, mission, "AID-07", "verify csv request row");
-  return firstReportRowText(after).includes(".csv")
+  const afterRow = firstReportRowText(after);
+  return afterRow !== beforeRow && afterRow.includes(".csv") && afterRow.includes("进行中")
     ? pass(undefined, after)
-    : fail(manualRequired(mission, "AID-07", "CSV request did not create an observed .csv report row.", "request csv download"));
+    : fail(manualRequired(mission, "AID-07", "Latest row is not proven to be the current requested CSV report.", "request csv download"));
 }
 
 async function waitLatestReportDownloadReady(

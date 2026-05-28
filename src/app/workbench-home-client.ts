@@ -4,6 +4,7 @@ const WORKBENCH_HOME_CLIENT = `
 const state = {
   skill: "amazon-product-mining",
   taskId: "",
+  amazonTaxInvoiceDownloadTaskId: "",
   amazonProductMiningTaskId: "",
   amazonProductMiningReviews: [],
   amazonProductMiningReviewFilters: {
@@ -327,6 +328,50 @@ const resumeAmazon = async () => {
     body: JSON.stringify({ taskId: state.taskId }),
   }), { job: "amazon" });
 };
+const renderAmazonTaxInvoiceDownload = (payload) => {
+  const record = payload?.record || payload?.task || payload;
+  if (!record || typeof record !== "object") return;
+  const taskId = record.taskId || state.amazonTaxInvoiceDownloadTaskId || "";
+  if (taskId) state.amazonTaxInvoiceDownloadTaskId = taskId;
+  setText("[data-amazon-tax-invoice-download-task-id]", taskId || "-");
+  setText("[data-amazon-tax-invoice-download-state]", record.status || "-");
+  setText("[data-amazon-tax-invoice-download-step]", record.reachedStep || "-");
+  setText("[data-amazon-tax-invoice-download-artifact-ref]", record.downloadArtifactRef || "-");
+  renderLedger(record, { job: "amazon" });
+};
+const startAmazonTaxInvoiceDownload = async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const mission = {
+    missionType: "amazon_tax_invoice_download",
+    marketplace: form.marketplace.value,
+    sellerCentralEntryUrl: form.sellerCentralEntryUrl.value,
+    reportKind: "afn_shipment_invoicing_tax_invoice",
+    dateRange: "last_30_days",
+    format: "csv",
+    requireHumanReview: form.requireHumanReview.checked,
+  };
+  if (form.callbackUrl.value) mission.callbackUrl = form.callbackUrl.value;
+  writeActivity("amazon tax invoice download submitted", "running");
+  renderAmazonTaxInvoiceDownload(await readJson("/api/plugins/amazon-invoice-upload/download/start", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(mission),
+  }));
+};
+const refreshAmazonTaxInvoiceDownloadLatest = async () => {
+  const marketplace = qs("[data-amazon-tax-invoice-download-form] [name=marketplace]")?.value || "AE";
+  const params = new URLSearchParams({ marketplace });
+  const latest = await readJson("/api/plugins/amazon-invoice-upload/download/latest?" + params);
+  if (!latest) return writeActivity("amazon tax invoice latest download not found", "manual-required");
+  renderAmazonTaxInvoiceDownload(latest);
+};
+const openAmazonTaxInvoiceDownloadArtifact = async () => {
+  const taskId = state.amazonTaxInvoiceDownloadTaskId || qs("[data-amazon-tax-invoice-download-task-id]")?.textContent;
+  if (!taskId || taskId === "-") return writeActivity("download task id is required", "manual-required");
+  const artifact = await readJson("/api/plugins/amazon-invoice-upload/download/artifact/" + encodeURIComponent(taskId));
+  openInspector({ kind: "artifact", title: "Amazon tax invoice CSV artifact", payload: artifact });
+};
 const startAmazonProductMining = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -460,6 +505,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   qs("[data-amazon-latest]")?.addEventListener("click", refreshAmazonLatest);
   qs("[data-amazon-resume]")?.addEventListener("click", resumeAmazon);
+  qs("[data-amazon-tax-invoice-download-form]")?.addEventListener("submit", startAmazonTaxInvoiceDownload);
+  qs("[data-amazon-tax-invoice-download-latest]")?.addEventListener("click", refreshAmazonTaxInvoiceDownloadLatest);
+  qs("[data-amazon-tax-invoice-download-artifact]")?.addEventListener("click", openAmazonTaxInvoiceDownloadArtifact);
   qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
   qs("[data-amazon-product-mining-export]")?.addEventListener("click", exportAmazonProductMining);
   qs("[data-amazon-product-mining-pause]")?.addEventListener("click", () => pauseAmazonProductMining().catch((error) => writeActivity("amazon product mining pause failed: " + error.message, "failed")));
