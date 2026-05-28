@@ -315,3 +315,59 @@ scripts/audit/domains/amazon-tax-invoice-download/**
 第二 evidence store
 第二 runtime log chain
 ```
+
+## 17. Approved Invoice Upload Stability Guard
+
+问题追溯：
+
+```txt
+WHY HAPPEN:
+法案已定义 amazon-invoice-upload 单 owner、DOM 边界、audit+acceptance+ci-full 覆盖。
+缺口不属于可修改 active law；法案文件冻结。
+缺口属于后半段上传施工图细节缺失 + amazon-invoice-upload owner inspector 未覆盖刷新/重试稳定性。
+```
+
+后半段上传必须固定以下生产行为：
+
+1. 打开订单详情 URL 后，必须对同一订单详情 URL 执行一次刷新。
+2. 刷新后必须等待随机 3-6 秒，再进入上传入口定位和点击。
+3. 上传关键步骤失败时必须最多额外递归重试 2 次。
+4. 重试必须只复用既有 `amazon-invoice-upload` flow、既有 BrowserController、既有 Runtime Log Spine、既有 DOM public facade。
+5. 登录、2FA、验证码、人工最终提交、最终上传验证等敏感终态不得被重试伪造成成功。
+6. 每次刷新和每次重试必须通过 `recordAmazonDomStepTrace` 留下结构化调试证据，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
+
+生产落点：
+
+```txt
+src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts
+src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
+```
+
+防复发落点：
+
+```txt
+scripts/audit/domains/amazon-invoice-upload/inspector.ts
+```
+
+Inspector 必须用 ts-morph AST 检查：
+
+```txt
+ORDER_DETAIL_REFRESH_WAIT_MIN_MS = 3_000
+ORDER_DETAIL_REFRESH_WAIT_MAX_MS = 6_000
+openApprovedOrderDetail -> refreshApprovedOrderDetailOnce
+randomOrderDetailRefreshWaitMs -> Math.random()
+UPLOAD_STEP_RETRY_LIMIT = 2
+runUploadStepWithRetries 递归调用自身
+open order detail / open upload invoice entry / upload approved invoice 均接入 runUploadStepWithRetries
+敏感终态 gate 不进入无限重试
+```
+
+验收要求：
+
+```txt
+1. 故意破坏生产代码中的刷新或重试守卫。
+2. 运行 npm run audit:amazon-invoice-upload。
+3. 必须观测到 FAIL。
+4. 恢复生产代码。
+5. npm run audit:amazon-invoice-upload / npm run typecheck / npm run ci:full 必须通过。
+```

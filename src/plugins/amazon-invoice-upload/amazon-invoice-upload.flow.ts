@@ -39,6 +39,10 @@ type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 
 const ENTRY_READY_TIMEOUT_MS = 10000;
 const ENTRY_READY_POLL_INTERVAL_MS = 500;
+const UPLOAD_STEP_RETRY_LIMIT = 2;
+const UPLOAD_STEP_RETRY_SETTLE_MS = 500;
+
+type UploadStepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
 
 export async function runAmazonInvoiceUpload(
   browser: BrowserController,
@@ -56,16 +60,61 @@ async function continueInvoiceUpload(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission);
+  const orderDetailResult = await runUploadStepWithRetries({
+    browser,
+    runtimeLogger,
+    mission,
+    stepName: "open order detail",
+    action: () => openOrderDetail(browser, runtimeLogger, mission),
+  });
   if (!orderDetailResult.ok) return orderDetailResult.failure;
 
   const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
   if (alreadyUploaded) return alreadyUploaded;
 
-  const uploadEntryResult = await openUploadInvoiceEntry(browser, runtimeLogger, mission);
+  const uploadEntryResult = await runUploadStepWithRetries({
+    browser,
+    runtimeLogger,
+    mission,
+    stepName: "open upload invoice entry",
+    action: () => openUploadInvoiceEntry(browser, runtimeLogger, mission),
+  });
   if (!uploadEntryResult.ok) return uploadEntryResult.failure;
 
   return uploadAndSubmitInvoice(browser, runtimeLogger, mission);
+}
+
+async function runUploadStepWithRetries<T>(input: {
+  browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
+  mission: AmazonInvoiceUploadMissionInput;
+  stepName: string;
+  action: () => Promise<UploadStepResult<T>>;
+  attempt?: number;
+}): Promise<UploadStepResult<T>> {
+  const attempt = input.attempt ?? 0;
+  const result = await input.action();
+  if (result.ok || attempt >= UPLOAD_STEP_RETRY_LIMIT || !isRetryableUploadStepFailure(result.failure)) {
+    return result;
+  }
+  const nextAttempt = attempt + 1;
+  recordAmazonDomStepTrace({
+    runtimeLogger: input.runtimeLogger,
+    mission: input.mission,
+    stepName: `${input.stepName} retry ${nextAttempt}`,
+    status: "failed",
+    reason: `Retrying transient upload step failure ${nextAttempt}/${UPLOAD_STEP_RETRY_LIMIT}: ${result.failure.status} ${result.failure.reason}`,
+  });
+  await input.browser.wait(UPLOAD_STEP_RETRY_SETTLE_MS);
+  return runUploadStepWithRetries({ ...input, attempt: nextAttempt });
+}
+
+function isRetryableUploadStepFailure(failure: AmazonInvoiceUploadTaskResult): boolean {
+  return failure.status !== "login_required"
+    && failure.status !== "captcha_or_2fa_required"
+    && failure.reachedStep !== "file attached before final submit"
+    && failure.reachedStep !== "verify upload success"
+    && failure.reachedStep !== "close uploaded order tab";
 }
 
 async function openSellerCentralEntry(
@@ -136,7 +185,13 @@ async function uploadAndSubmitInvoice(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const uploadResult = await uploadApprovedInvoice(browser, runtimeLogger, mission);
+  const uploadResult = await runUploadStepWithRetries({
+    browser,
+    runtimeLogger,
+    mission,
+    stepName: "upload approved invoice",
+    action: () => uploadApprovedInvoice(browser, runtimeLogger, mission),
+  });
   if (!uploadResult.ok) return uploadResult.failure;
   if (mission.requireHumanFinalSubmit === true) {
     return taskResult({
@@ -242,4 +297,3 @@ async function readAndTraceSubmitSnapshot(
   });
   return snapshot;
 }
-

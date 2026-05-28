@@ -446,6 +446,19 @@ src/plugins/amazon-invoice-upload/amazon-dom-hints.ts
 3. DOM hints 属于 plugin job flow，不得放进 DOM Automation ability group。
 4. 订单号、发票号、上传成功文案属于 Amazon invoice upload 业务语义。
 5. 每一步必须有 DOM step trace / evidence ref / failure reason。
+6. 打开订单详情 URL 后必须刷新同一 URL 一次，刷新后随机等待 3-6 秒，再开始定位并点击上传发票入口。
+7. 上传后半段关键步骤失败时最多额外递归重试 2 次，用于抵御 Seller Central DOM 闪烁、弹窗延迟、file input 延迟暴露。
+8. 登录、2FA、验证码、人工最终提交、最终成功验证等敏感终态不得通过重试伪造成自动成功。
+9. 刷新与重试必须写入现有 `recordAmazonDomStepTrace`，只记录结构化摘要，不记录 PDF 内容、cookie、documentId 或订单敏感正文。
+
+防复发要求：
+
+```txt
+唯一固化点: scripts/audit/domains/amazon-invoice-upload/inspector.ts
+禁止新增第二 inspector / 第二 runner / 第二 flow。
+禁止用 acceptance 文件替代执法脚本固化。
+执法脚本必须能在故意破坏生产刷新/重试守卫时 FAIL。
+```
 
 ---
 

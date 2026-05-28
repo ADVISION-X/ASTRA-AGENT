@@ -4,8 +4,27 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-05-28T12:56:13.092Z",
+  "findings": [
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/amazon-invoice-upload/inspector.ts has an over-line function near line 179.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+      "evidence": "{\"owner\":\"audit:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-home-client.ts has 545 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-home-client.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-05-28T19:59:07.889Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -1159,7 +1178,7 @@
   "liveExportCount": 1667,
   "orphanDeclarationCount": 0,
   "reachableFileCount": 598,
-  "status": "PASS",
+  "status": "FAIL",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],

@@ -7,6 +7,9 @@ import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 type DomSnapshot = Awaited<ReturnType<typeof readSnapshot>>;
 
+const ORDER_DETAIL_REFRESH_WAIT_MIN_MS = 3_000;
+const ORDER_DETAIL_REFRESH_WAIT_MAX_MS = 6_000;
+
 export async function openApprovedOrderDetail(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
@@ -14,6 +17,7 @@ export async function openApprovedOrderDetail(
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   const detailUrl = buildApprovedOrderDetailUrl(mission);
   await browser.open({ url: detailUrl, title: "Amazon Seller Central approved order detail" });
+  await refreshApprovedOrderDetailOnce(browser, runtimeLogger, mission, detailUrl);
   return await waitForApprovedOrderDetail(browser, runtimeLogger, mission, detailUrl) ? null : buildOrderDetailNotFoundResult(mission);
 }
 
@@ -53,6 +57,30 @@ const snapshotHasInvoiceActionState = (snapshot: DomSnapshot): boolean =>
 const snapshotIsLoading = (snapshot: DomSnapshot): boolean =>
   [...snapshot.textBlocks.map((item) => item.visibleText), ...snapshot.dialogs.map((item) => item.visibleText)]
     .some((value) => String(value ?? "").includes("正在加载"));
+
+const randomOrderDetailRefreshWaitMs = (): number =>
+  ORDER_DETAIL_REFRESH_WAIT_MIN_MS
+  + Math.floor(Math.random() * (ORDER_DETAIL_REFRESH_WAIT_MAX_MS - ORDER_DETAIL_REFRESH_WAIT_MIN_MS + 1));
+
+async function refreshApprovedOrderDetailOnce(
+  browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  detailUrl: string,
+): Promise<void> {
+  await browser.open({ url: detailUrl, title: "Amazon Seller Central approved order detail refresh" });
+  const waitMs = randomOrderDetailRefreshWaitMs();
+  await browser.wait(waitMs);
+  const snapshot = await readSnapshot(browser);
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "refresh approved order detail before upload",
+    status: "snapshot",
+    snapshot,
+    reason: `Order detail refreshed once before upload entry detection; waited ${waitMs}ms.`,
+  });
+}
 
 const retryOrderDetailIfNeeded = (
   browser: BrowserController,

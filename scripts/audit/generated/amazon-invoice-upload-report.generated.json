@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T12:56:16.415Z",
+  "generatedAt": "2026-05-28T19:59:11.346Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -18,11 +18,14 @@
     ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
     "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
     "docs/法案辅助文件/amazon_invoice_upload_process.md",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/app-shell/app-shell-layout.ts",
+    "src/app/workbench-home-client.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts"
   ]
 }
