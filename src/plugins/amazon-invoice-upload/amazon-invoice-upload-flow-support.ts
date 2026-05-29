@@ -55,7 +55,7 @@ export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok"> & {
   ok?: boolean;
 }): AmazonInvoiceUploadTaskResult {
   return {
-    ok: input.ok ?? input.status === "upload_success",
+    ok: input.ok ?? isStrongUploadTerminalStatus(input.status),
     status: input.status,
     reason: input.reason,
     reachedStep: input.reachedStep,
@@ -68,6 +68,10 @@ export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok"> & {
     }),
     ...(input.reviewRequired ? { reviewRequired: true } : {}),
   };
+}
+
+function isStrongUploadTerminalStatus(status: AmazonInvoiceUploadStatus): boolean {
+  return status === "upload_success" || status === "already_uploaded";
 }
 
 export function gatedResult(

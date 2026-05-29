@@ -135,9 +135,9 @@ function inspectLedgerCanonicalProjection(
   lawId: string,
 ): void {
   const ledgerCorpus = literalCorpus(ledgerFile);
-  for (const required of ["ranked_ledger", "ROW_NUMBER() OVER", "PARTITION BY amazon_order_id, invoice_no", "status = 'upload_success'", "canonical_rank = 1"]) {
+  for (const required of ["ranked_ledger", "ROW_NUMBER() OVER", "PARTITION BY amazon_order_id, invoice_no", "status IN ('upload_success', 'already_uploaded')", "canonical_rank = 1"]) {
     if (!ledgerCorpus.includes(required)) {
-      addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-success-wins-projection", `External upload ledger must use success-wins canonical projection token ${required}.`);
+      addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-strong-terminal-projection", `External upload ledger must use strong-terminal canonical projection token ${required}.`);
     }
   }
   if (!ledgerFile.getFunction("backfillLedgerFromTaskRecords") || !ledgerFile.getFunction("readTaskRecords")) {
@@ -151,13 +151,13 @@ function inspectLedgerCanonicalProjection(
   }
   const canonicalSelector = storageFile.getFunction("selectCanonicalUploadTaskRecord");
   if (!canonicalSelector) {
-    addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/latest-success-wins", "Latest task lookup must preserve prior upload_success over later uncertain review.");
+    addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/latest-strong-terminal", "Latest task lookup must preserve prior upload_success or already_uploaded over later uncertain review while keeping the two statuses distinct.");
   } else {
-    const hasUploadSuccessLiteral = canonicalSelector
+    const literalValues = canonicalSelector
       .getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .some((item) => item.getLiteralText() === "upload_success");
-    if (!hasUploadSuccessLiteral) {
-      addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/latest-success-wins", "Latest task lookup canonical selector must prefer upload_success records.");
+      .map((item) => item.getLiteralText());
+    if (!literalValues.includes("upload_success") || !literalValues.includes("already_uploaded")) {
+      addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/latest-strong-terminal", "Latest task lookup canonical selector must prefer upload_success and already_uploaded records without collapsing already_uploaded into upload_success.");
     }
   }
 }

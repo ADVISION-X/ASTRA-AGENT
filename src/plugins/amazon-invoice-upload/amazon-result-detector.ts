@@ -18,9 +18,9 @@ const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
   "upload_submitted",
   "submit_failed",
   "upload_success",
+  "already_uploaded",
   "review_required",
   "failed",
 ] as const;
 
 export type AmazonInvoiceUploadStatus = (typeof AMAZON_INVOICE_UPLOAD_STATUS_VALUES)[number];
-

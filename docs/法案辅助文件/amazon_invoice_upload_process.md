@@ -44,7 +44,7 @@ flowchart TD
 ```txt
 首张：打开订单详情页
 后续：在同一个 active Seller Central tab 中更换 /orders-v3/order/<orderId> URL
-每张：先等待目标订单号、发票动作状态、loading 结束；若 readiness window 内缺失且不是登录/验证码/2FA，只做一次恢复刷新
+每张：先等待目标订单号、发票动作状态、loading 结束；若 7-15 秒 readiness window 内缺失且不是登录/验证码/2FA，只做一次恢复刷新
 成功/已上传：保留该 tab，进入下一张
 ```
 
@@ -52,7 +52,7 @@ flowchart TD
 
 网站侧 API 与本地批量入口共用单张上传链路。真实 Seller Central HTTP URL 的入口导航必须先读取真实 Chrome 当前状态，再用 `reuse-host-tab` 搜索并复用同 host 的 Seller Central tab；找不到时才开一个新的 Seller Central worker tab。禁止仅凭 controller 内存中的旧 `currentUrl` 判断是否复用。
 
-本地批量入口在逐张调用单张上传链路前，必须先读取 Agent 侧 upload ledger。只有同 `amazonOrderId + invoiceNo` 已经存在 `upload_success` 时才允许跳过，页面队列显示为 `already_uploaded / skipped_by_upload_ledger`。失败、阻断、人工、未知状态不得跳过。
+本地批量入口在逐张调用单张上传链路前，必须先读取 Agent 侧 upload ledger。只有同 `amazonOrderId + invoiceNo` 已经存在 `upload_success` 或 `already_uploaded` 时才允许跳过，页面队列显示为 `already_uploaded / skipped_by_upload_ledger`。失败、阻断、人工、未知状态不得跳过。
 
 ---
 

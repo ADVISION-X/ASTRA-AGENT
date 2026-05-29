@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T21:33:26.893Z",
+  "generatedAt": "2026-05-29T22:10:59.105Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -256,7 +256,7 @@
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
       ],
       "required": [
-        "Order detail navigation first waits a random 3-5 second readiness window for target order id, upload/manage/already-uploaded invoice state, and loading completion.",
+        "Order detail navigation first waits a random 7-15 second readiness window for target order id, upload/manage/already-uploaded invoice state, and loading completion.",
         "If the readiness window succeeds, upload proceeds without a recovery refresh.",
         "If the readiness window fails and login/captcha/2FA gates are not present, the flow executes at most one same-tab recovery refresh.",
         "After the recovery refresh, the flow waits a random short window before final readiness verification.",

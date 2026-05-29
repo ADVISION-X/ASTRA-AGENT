@@ -15,13 +15,10 @@ const UPLOAD_SUCCESS_HINTS = [
   "Thank you for uploading the document",
   "The customer can download the file directly from their account",
   "The customer will be able to download it directly from their account",
-  "Manage invoice",
-  "Manage invoices",
   "Upload another invoice or credit note",
   "上传成功",
   "感谢您上传文件",
   "客户可以直接从自己的账户下载文件",
-  "管理发票",
   "上传其他发票或贷记单",
 ];
 const UPLOAD_SUCCESS_TIMEOUT_MS = 15000;
@@ -51,7 +48,7 @@ export async function verifyUploadSuccess(
   });
   if (success.status !== "success") {
     const existing = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
-    if (existing?.status === "upload_success") return existing;
+    if (existing?.status === "already_uploaded") return existing;
     return buildUploadReviewResult(mission, success);
   }
   recordAmazonDomStepTrace({

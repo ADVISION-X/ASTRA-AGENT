@@ -8,8 +8,8 @@ import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 type DomSnapshot = Awaited<ReturnType<typeof readSnapshot>>;
 
-const ORDER_DETAIL_READY_WAIT_MIN_MS = 3_000;
-const ORDER_DETAIL_READY_WAIT_MAX_MS = 5_000;
+const ORDER_DETAIL_READY_WAIT_MIN_MS = 7_000;
+const ORDER_DETAIL_READY_WAIT_MAX_MS = 15_000;
 const ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS = 2_000;
 const ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS = 4_000;
 

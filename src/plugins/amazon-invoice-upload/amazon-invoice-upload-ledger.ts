@@ -64,7 +64,7 @@ export function listAmazonInvoiceUploadLedgerRecords(dataDir: string): AmazonInv
       SELECT *,
         ROW_NUMBER() OVER (
           PARTITION BY amazon_order_id, invoice_no
-          ORDER BY CASE WHEN status = 'upload_success' THEN 0 ELSE 1 END, updated_at DESC
+          ORDER BY CASE WHEN status IN ('upload_success', 'already_uploaded') THEN 0 ELSE 1 END, updated_at DESC
         ) AS canonical_rank
       FROM amazon_invoice_upload_ledger
     )

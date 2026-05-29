@@ -406,7 +406,7 @@ WHY HAPPEN:
 
 后半段上传必须固定以下生产行为：
 
-1. 打开订单详情 URL 后，先在随机 3-5 秒 readiness window 内轮询 DOM。
+1. 打开订单详情 URL 后，先在随机 10-15 秒 readiness window 内轮询 DOM。
 2. 若已出现目标 orderId + upload/manage/already-uploaded invoice action state，且页面不在 loading，则不得执行恢复刷新。
 3. 若 readiness window 内未出现目标 orderId + invoice action state，且不是登录/验证码/2FA gate，则只允许执行一次同 tab 恢复刷新。
 4. 恢复刷新后等待随机短窗口，再进入最终订单详情验证。
@@ -415,7 +415,7 @@ WHY HAPPEN:
 5. 登录、2FA、验证码、人工最终提交、最终上传验证等敏感终态不得被重试伪造成成功。
 6. 每次刷新和每次重试必须通过 `recordAmazonDomStepTrace` 留下结构化调试证据，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
 7. AGENT 发票上传执行链禁止默认或主动停在人工最终提交；`requireHumanFinalSubmit` 不再属于上传执行契约，UI/client/schema/service 均不得发送或保留该字段。外部旧 payload 若携带该字段，只能在 upload route 清洗后进入既有单张上传链路，生产执行必须继续自动点击 Seller Central 弹窗底部最终 `上传` / `Upload`。
-8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`管理发票` / `Manage invoice`、`由卖家生成` / `Seller generated`。
+8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传强证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`由卖家生成` / `Seller generated`。`管理发票` / `Manage invoice` / `Pending` / `待处理` 只能定位发票动作或进入复核，不得作为 `upload_success` 或 `already_uploaded` 的充分证据。
 
 生产落点：
 
@@ -433,8 +433,8 @@ scripts/audit/domains/amazon-invoice-upload/inspector.ts
 Inspector 必须用 ts-morph AST 检查：
 
 ```txt
-ORDER_DETAIL_READY_WAIT_MIN_MS = 3_000
-ORDER_DETAIL_READY_WAIT_MAX_MS = 5_000
+ORDER_DETAIL_READY_WAIT_MIN_MS = 7_000
+ORDER_DETAIL_READY_WAIT_MAX_MS = 15_000
 ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS / MAX 存在
 openApprovedOrderDetail -> waitForApprovedOrderDetail
 openApprovedOrderDetail -> refreshApprovedOrderDetailIfNeeded
@@ -536,7 +536,7 @@ select local PDFs
   -> read existing upload ledger once from GET /api/plugins/amazon-invoice-upload/ledger
   -> parse filename as amazonOrderId/invoiceNo
   -> for each queued item:
-       if ledger has upload_success for same amazonOrderId + invoiceNo:
+       if ledger has upload_success or already_uploaded for same amazonOrderId + invoiceNo:
          mark item already_uploaded / skipped_by_upload_ledger
          do not open Seller Central
          continue
@@ -570,7 +570,7 @@ ledger storage 固定使用既有单张上传 task ledger；本地队列运行�
 
 ```txt
 1. 本地 batch 开始后必须先读取 Agent 上传台账。
-2. 只允许跳过 `status === upload_success` 的同 orderId + invoiceNo 记录。
+2. 只允许跳过 `status === upload_success` 或 `status === already_uploaded` 的同 orderId + invoiceNo 记录。
 3. `failed` / `review_required` / `blocked_auth` / `manual_required` / `invalid` / unknown 不得跳过，必须按正常上传策略处理。
 4. 如果 ledger preflight 读取失败，batch 必须 fail closed，不得继续盲传。
 5. 跳过项必须在页面队列可见，状态归一为 already_uploaded，reason=skipped_by_upload_ledger，reachedStep=upload ledger preflight。
@@ -614,7 +614,7 @@ batch start
   -> refresh current Chrome navigation state
   -> find existing Seller Central same-host worker tab, or open one if none exists
   -> item 1: navigate worker tab to /orders-v3/order/<orderId>
-       -> wait random 3-5s for order id + invoice action state
+       -> wait random 10-15s for order id + invoice action state
        -> if missing and no auth gate, perform one recovery refresh and wait a random short window
        -> verify target order id + invoice action state
        -> upload / already-uploaded judgment

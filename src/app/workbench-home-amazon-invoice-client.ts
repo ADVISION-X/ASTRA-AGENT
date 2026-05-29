@@ -134,8 +134,8 @@ const normalizeAmazonInvoiceLocalBatchResult = (result) => {
   const record = result?.record || result?.task || result;
   if (!record || typeof record !== "object") return { status: "failed", reason: "empty upload response", reachedStep: "single upload response" };
   const payload = { reason: record.reason || record.failureReason || "-", reachedStep: record.reachedStep || "-", taskId: record.taskId, evidenceRef: record.evidenceRef, domTraceRef: record.domTraceRef };
-  if (record.status === "upload_success" && String(record.reason || "").toLowerCase().includes("already uploaded")) return { ...payload, status: "already_uploaded" };
   if (record.status === "upload_success") return { ...payload, status: "upload_success" };
+  if (record.status === "already_uploaded") return { ...payload, status: "already_uploaded" };
   if (record.status === "login_required" || record.status === "captcha_or_2fa_required") return { ...payload, status: "blocked_auth" };
   return { ...payload, status: "failed" };
 };
@@ -153,7 +153,7 @@ const loadAmazonInvoiceUploadLedgerIndex = async () => {
   const payload = await readJson("/api/plugins/amazon-invoice-upload/ledger");
   const index = new Map();
   for (const record of payload.records || []) {
-    if (record.status === "upload_success") index.set(record.amazonOrderId + "::" + record.invoiceNo, record);
+    if (record.status === "upload_success" || record.status === "already_uploaded") index.set(record.amazonOrderId + "::" + record.invoiceNo, record);
   }
   return index;
 };

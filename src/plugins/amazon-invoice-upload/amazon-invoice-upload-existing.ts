@@ -183,7 +183,7 @@ function alreadyUploadedSuccess(
   evidenceRef: string | undefined,
 ): AmazonInvoiceUploadTaskResult {
   return taskResult({
-    status: "upload_success",
+    status: "already_uploaded",
     reason: `Amazon Seller Central shows this invoice is already uploaded; ${reason}; active order tab retained for next invoice navigation.`,
     reachedStep: "already uploaded verified",
     amazonOrderId: mission.amazonOrderId,

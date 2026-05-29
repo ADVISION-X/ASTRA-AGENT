@@ -69,7 +69,7 @@ export function updateTaskRecord(
   result: AmazonInvoiceUploadTaskResult | { status: AmazonInvoiceUploadStatus; reason: string; reachedStep: string },
 ): AmazonInvoiceUploadTaskRecord {
   const fullResult = "ok" in result ? result : {
-    ok: result.status === "upload_success",
+    ok: result.status === "upload_success" || result.status === "already_uploaded",
     status: result.status,
     reason: result.reason,
     reachedStep: result.reachedStep,
@@ -123,7 +123,8 @@ export function findLatestTaskRecordForInvoice(input: {
 function selectCanonicalUploadTaskRecord(
   records: readonly AmazonInvoiceUploadTaskRecord[],
 ): AmazonInvoiceUploadTaskRecord | null {
-  const successful = records.filter((record) => record.status === "upload_success");
+  const successful = records.filter((record) =>
+    record.status === "upload_success" || record.status === "already_uploaded");
   return (successful[0] ?? records[0]) ?? null;
 }
 

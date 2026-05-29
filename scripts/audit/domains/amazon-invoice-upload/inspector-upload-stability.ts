@@ -132,7 +132,7 @@ function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
   return [
     ...collectUploadRetryGuardGaps(files.flowFile),
     ...collectNoHumanFinalSubmitContractGaps(files.taskServiceFile, files.missionSchemaFile),
-    ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingEvidenceFile),
+    ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingUploadFile, files.existingEvidenceFile),
   ];
 }
 
@@ -186,8 +186,8 @@ function isOrderRefreshFinding(item: string): boolean {
 function collectOrderRefreshGuardGaps(orderFile: SourceFile): string[] {
   const orderValues = stringLiteralValues(orderFile);
   const missing: string[] = [];
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MIN_MS", "3_000")) missing.push("refresh-ready-min-3000");
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MAX_MS", "5_000")) missing.push("refresh-ready-max-5000");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MIN_MS", "7_000")) missing.push("refresh-ready-min-7000");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MAX_MS", "15_000")) missing.push("refresh-ready-max-15000");
   if (!orderFile.getVariableDeclaration("ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS")) missing.push("refresh-recovery-min");
   if (!orderFile.getVariableDeclaration("ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS")) missing.push("refresh-recovery-max");
   if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "waitForApprovedOrderDetail")) {
@@ -233,28 +233,30 @@ function hasPropertyAssignment(file: SourceFile, propertyName: string): boolean 
     property.getName() === propertyName);
 }
 
-function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingEvidenceFile: SourceFile): string[] {
+function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUploadFile: SourceFile, existingEvidenceFile: SourceFile): string[] {
   const missing: string[] = [];
   const verifyValues = stringLiteralValues(verifyFile);
   if (!verifyValues.has("./amazon-invoice-upload-existing.js")) missing.push("post-submit-existing-evidence:import");
   if (!functionCallsIdentifier(verifyFile, "verifyUploadSuccess", "verifyAlreadyUploadedInvoice")) {
     missing.push("post-submit-existing-evidence:fallback-call");
   }
-  if (!verifyValues.has("upload_success")) missing.push("post-submit-existing-evidence:success-only");
+  if (!verifyValues.has("already_uploaded")) missing.push("post-submit-existing-evidence:already-uploaded-terminal");
   for (const value of [
     "Thank you for uploading the document",
     "The customer will be able to download it directly from their account",
-    "Manage invoice",
     "Upload another invoice or credit note",
   ]) {
     if (!verifyValues.has(value)) missing.push(`english-success-evidence:${value}`);
+  }
+  const existingUploadValues = stringLiteralValues(existingUploadFile);
+  if (!existingUploadValues.has("already_uploaded")) {
+    missing.push("english-existing-evidence:already-uploaded-terminal");
   }
   const existingValues = stringLiteralValues(existingEvidenceFile);
   for (const value of [
     "Thank you for uploading the document",
     "The customer will be able to download it directly from their account",
     "Seller generated",
-    "Manage invoice",
   ]) {
     if (!existingValues.has(value)) missing.push(`english-existing-evidence:${value}`);
   }
