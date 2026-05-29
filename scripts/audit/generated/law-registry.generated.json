@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T22:10:59.105Z",
+  "generatedAt": "2026-05-29T23:01:53.092Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -227,7 +227,8 @@
         "When any retained browser tab is already on the same Seller Central host, the next order detail navigation uses reuse-host-tab to focus that tab and replace its URL.",
         "When the active browser tab is already on the same non-HTTP test host, the next order detail navigation uses reuse-active-tab.",
         "Successful upload verification records upload_success without calling closeActiveTab.",
-        "Already-uploaded verification records upload_success without calling closeActiveTab.",
+        "Already-uploaded verification records already_uploaded without calling closeActiveTab.",
+        "upload_success and already_uploaded must remain distinct in task records, ledger projection, latest lookup, and APP batch rendering.",
         "Tab cleanup, if needed, is a batch/session cleanup concern and must not change per-item upload_success into review_required.",
         "Each reused-tab item must still verify the target order id and invoice action state before upload or already-uploaded judgment."
       ],
@@ -256,7 +257,7 @@
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
       ],
       "required": [
-        "Order detail navigation first waits a random 7-15 second readiness window for target order id, upload/manage/already-uploaded invoice state, and loading completion.",
+        "Order detail navigation first waits a random 10-15 second readiness window for target order id, upload/manage/already-uploaded invoice state, and loading completion.",
         "If the readiness window succeeds, upload proceeds without a recovery refresh.",
         "If the readiness window fails and login/captcha/2FA gates are not present, the flow executes at most one same-tab recovery refresh.",
         "After the recovery refresh, the flow waits a random short window before final readiness verification.",
@@ -280,7 +281,7 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ledger+app-shell+acceptance+audit",
-      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success for the same order id and invoice number.",
+      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success or already_uploaded for the same order id and invoice number.",
       "appliesTo": [
         "src/app/workbench-home-amazon-invoice-client.ts",
         "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
@@ -291,8 +292,9 @@
       "required": [
         "Before local batch queue uploads queued PDFs, it reads GET /api/plugins/amazon-invoice-upload/ledger through the existing ledger route.",
         "The local queue builds a lookup by amazonOrderId plus invoiceNo.",
-        "Only ledger records with status upload_success may be skipped before opening Seller Central.",
+        "Only ledger records with status upload_success or already_uploaded may be skipped before opening Seller Central.",
         "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
+        "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
         "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
         "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
         "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf."
@@ -301,6 +303,7 @@
         "Skipping based on website export state.",
         "Skipping based on filename alone.",
         "Skipping failed, review_required, blocked_auth, manual_required, or invalid records.",
+        "Branching business logic from reason.includes(\"already uploaded\") instead of the formal already_uploaded status.",
         "Adding a second batch ledger, second batch route, or second upload service to support resume.",
         "Uploading all selected PDFs in one multipart request."
       ],
