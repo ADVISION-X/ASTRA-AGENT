@@ -23,7 +23,7 @@ const smokeFixtureHtml = `
   <table id="orders">
     <tr id="order-row"><td>123-1234567-1234567</td><td>Buyer</td><td>Ship</td></tr>
   </table>
-  <div id="upload-invoice" role="button" tabindex="0">Upload invoice</div>
+  <div id="upload-invoice" role="button" tabindex="0"></div>
   <section id="upload-panel" hidden>
     <label for="invoice-file">Choose file</label>
     <input id="invoice-file" type="file" />
@@ -80,7 +80,6 @@ const createSmokeFixturePaths = (): SmokeFixturePaths => {
 
 const assertSmokeResult = (result: Awaited<ReturnType<typeof runAmazonInvoiceUpload>>): void => {
   if (result.status === "upload_success" && result.reachedStep === "upload success verified") {
-    process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success\n");
     return;
   }
   process.stdout.write(`[AMAZON-INVOICE-UPLOAD-SMOKE][FAIL] unexpected dry-run result: ${JSON.stringify(result)}\n`);
@@ -104,6 +103,16 @@ async function main(): Promise<void> {
       sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
     });
     assertSmokeResult(result);
+    if (browser.closeActiveTabCalls !== 0) {
+      throw new Error(`Amazon invoice smoke must retain the order tab; closeActiveTabCalls=${browser.closeActiveTabCalls}`);
+    }
+    if (!browser.openReusePolicies.includes("reuse-active-tab")) {
+      throw new Error("Amazon invoice smoke must reuse the active order tab during order detail navigation.");
+    }
+    if (browser.orderDetailRefreshOpenCount !== 1) {
+      throw new Error(`Amazon invoice smoke must execute exactly one conditional recovery refresh; orderDetailRefreshOpenCount=${browser.orderDetailRefreshOpenCount}`);
+    }
+    process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success with retained tab lifecycle\n");
   } finally {
     await launched.close();
   }
@@ -156,13 +165,28 @@ async function buildGeometrySnapshot(page: Page): Promise<BrowserGeometrySnapsho
 }
 
 class AmazonSmokeBrowserAdapter implements BrowserController {
+  closeActiveTabCalls = 0;
+  openReusePolicies: string[] = [];
+  private fileUrlOpenCount = 0;
+  orderDetailRefreshOpenCount = 0;
+
   constructor(private readonly page: Page, private readonly screenshotDir: string) {}
 
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "playwright Amazon upload smoke adapter" }; }
   getSessionState(): BrowserStateSnapshot { return buildBrowserState(this.page); }
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> { return buildGeometrySnapshot(this.page); }
-  async open(input: { url: string; title: string }): Promise<BrowserActionResult> {
+  async open(input: { url: string; title: string; reusePolicy?: string }): Promise<BrowserActionResult> {
+    if (input.reusePolicy) this.openReusePolicies.push(input.reusePolicy);
     await this.page.goto(input.url);
+    if (input.url.startsWith("file:")) {
+      this.fileUrlOpenCount += 1;
+      if (this.fileUrlOpenCount >= 3) {
+        this.orderDetailRefreshOpenCount += 1;
+        await this.page.locator("#upload-invoice").evaluate((element) => {
+          element.textContent = "Upload invoice";
+        });
+      }
+    }
     return action(`opened ${input.title}`);
   }
   async scroll(): Promise<BrowserActionResult> { return action("scroll not needed"); }
@@ -223,6 +247,7 @@ class AmazonSmokeBrowserAdapter implements BrowserController {
     return action(`waited ${durationMs}`);
   }
   async closeActiveTab(): Promise<BrowserActionResult> {
+    this.closeActiveTabCalls += 1;
     return action("active tab closed");
   }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }

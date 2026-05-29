@@ -34,6 +34,7 @@ const taskServicePath = `${ownerRoot}/amazon-invoice-upload-task-service.ts`;
 const uploadLedgerPath = `${ownerRoot}/amazon-invoice-upload-ledger.ts`;
 const uploadStoragePath = `${ownerRoot}/amazon-invoice-upload-storage.ts`;
 const uploadVerifyPath = `${ownerRoot}/amazon-invoice-upload-verify.ts`;
+const existingUploadPath = `${ownerRoot}/amazon-invoice-upload-existing.ts`;
 const existingEvidencePath = `${ownerRoot}/amazon-existing-invoice-evidence.ts`;
 const downloadFlowPath = `${ownerRoot}/amazon-tax-invoice-download.flow.ts`;
 const evidencePath = `${ownerRoot}/amazon-tax-invoice-download-evidence.ts`;
@@ -156,7 +157,7 @@ const inspectRequiredFiles = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  for (const repoPath of [lawPath, blueprintPath, processPath, uploadFlowPath, orderDetailPath, taskServicePath, uploadLedgerPath, uploadStoragePath, uploadVerifyPath, existingEvidencePath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellAmazonInvoiceWorkspacePath, appShellClientPath, selfPath]) {
+  for (const repoPath of [lawPath, blueprintPath, processPath, uploadFlowPath, orderDetailPath, taskServicePath, uploadLedgerPath, uploadStoragePath, uploadVerifyPath, existingUploadPath, existingEvidencePath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellAmazonInvoiceWorkspacePath, appShellClientPath, selfPath]) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
         checkId: "amazon-invoice-upload/required-file",
@@ -392,6 +393,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     artifact: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1"),
     audit: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1"),
     ledger: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"),
+    conditionalRefresh: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1"),
+    batchLedgerPreflight: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"),
   };
   const findings: InspectorFinding[] = [];
   inspectRequiredFiles(findings, lawIds.owner);
@@ -409,11 +412,14 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     taskServiceFile: source(context.project, taskServicePath),
     missionSchemaFile: source(context.project, missionSchemaPath),
     verifyFile: source(context.project, uploadVerifyPath),
+    existingUploadFile: source(context.project, existingUploadPath),
     existingEvidenceFile: source(context.project, existingEvidencePath),
     findings,
     lawId: lawIds.audit,
+    conditionalRefreshLawId: lawIds.conditionalRefresh,
+    tabLifecycleLawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1"),
   });
-  inspectAmazonInvoiceBatchGuard(context, findings, lawIds.audit);
+  inspectAmazonInvoiceBatchGuard(context, findings, lawIds.batchLedgerPreflight);
 
   return {
     capabilityDomain: domain,
@@ -429,6 +435,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       uploadLedgerPath,
       uploadStoragePath,
       uploadVerifyPath,
+      existingUploadPath,
       existingEvidencePath,
       downloadFlowPath,
       evidencePath,
@@ -438,9 +445,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       appShellAmazonInvoiceWorkspacePath,
       appShellClientPath,
       "src/app/workbench-home-amazon-invoice-client.ts",
-      "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
-      "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
-      "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
       "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
       "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
       "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",

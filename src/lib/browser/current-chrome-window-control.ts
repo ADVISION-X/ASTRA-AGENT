@@ -12,7 +12,7 @@ type ChromeWindowState = {
   currentTitle: string;
 };
 
-type ChromeOpenReusePolicy = "reuse-exact-url" | "open-new-tab" | "reuse-active-tab";
+type ChromeOpenReusePolicy = "reuse-exact-url" | "open-new-tab" | "reuse-active-tab" | "reuse-host-tab";
 
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
@@ -62,8 +62,26 @@ const buildOpenUrlScript = (
   reusePolicy: ChromeOpenReusePolicy = "reuse-exact-url",
 ): string => {
   const escapedUrl = escapeAppleScriptString(url);
-  const reuseExistingTabScript = reusePolicy === "reuse-exact-url"
-  ? `
+  const existingTabScript = buildReuseExactUrlScript(reusePolicy, escapedUrl);
+  const hostTabScript = buildReuseHostTabScript(url, reusePolicy, escapedUrl);
+  return `
+tell application "Google Chrome" to activate
+tell application "Google Chrome"
+    if (count of windows) = 0 then
+        make new window
+        set URL of active tab of front window to "${escapedUrl}"
+        return "opened_new_window"
+    end if
+  ${existingTabScript}
+  ${hostTabScript}
+  ${buildPolicyNavigationScript(reusePolicy, escapedUrl)}
+end tell
+`;
+};
+
+function buildReuseExactUrlScript(reusePolicy: ChromeOpenReusePolicy, escapedUrl: string): string {
+  return reusePolicy === "reuse-exact-url"
+    ? `
   repeat with w in windows
     set tIndex to 1
     repeat with t in tabs of w
@@ -75,39 +93,68 @@ const buildOpenUrlScript = (
       set tIndex to tIndex + 1
     end repeat
   end repeat`
-  : "";
+    : "";
+}
+
+function buildReuseHostTabScript(
+  url: string,
+  reusePolicy: ChromeOpenReusePolicy,
+  escapedUrl: string,
+): string {
+  const hostMatchPrefix = buildHostMatchPrefix(url);
+  if (reusePolicy !== "reuse-host-tab" || !hostMatchPrefix) return "";
+  const origin = escapeAppleScriptString(hostMatchPrefix.origin);
+  const withSlash = escapeAppleScriptString(hostMatchPrefix.withSlash);
   return `
-tell application "Google Chrome" to activate
-tell application "Google Chrome"
-    if (count of windows) = 0 then
-        make new window
-        set URL of active tab of front window to "${escapedUrl}"
-        return "opened_new_window"
-    end if
-  ${reuseExistingTabScript}
-  ${reusePolicy === "reuse-active-tab"
-    ? `
+  repeat with w in windows
+    set tIndex to 1
+    repeat with t in tabs of w
+      set tabUrl to URL of t
+      if tabUrl is "${origin}" or tabUrl starts with "${withSlash}" then
+        set active tab index of w to tIndex
+        set index of w to 1
+        set URL of active tab of w to "${escapedUrl}"
+        return "reused_host_tab"
+      end if
+      set tIndex to tIndex + 1
+    end repeat
+  end repeat`;
+}
+
+function buildPolicyNavigationScript(
+  reusePolicy: ChromeOpenReusePolicy,
+  escapedUrl: string,
+): string {
+  if (reusePolicy === "reuse-active-tab") return buildReuseActiveTabScript(escapedUrl);
+  if (reusePolicy === "open-new-tab") return buildOpenNewTabScript(escapedUrl, "opened_new_tab");
+  if (reusePolicy === "reuse-exact-url") return buildOpenNewTabScript(escapedUrl, "opened_new_tab");
+  if (reusePolicy === "reuse-host-tab") return buildOpenNewTabScript(escapedUrl, "opened_new_host_tab");
+  return "";
+}
+
+function buildReuseActiveTabScript(escapedUrl: string): string {
+  return `
     set URL of active tab of front window to "${escapedUrl}"
-    return "reused_active_tab"`
-    : ""}
-  ${reusePolicy === "open-new-tab"
-    ? `
+    return "reused_active_tab"`;
+}
+
+function buildOpenNewTabScript(escapedUrl: string, result: string): string {
+  return `
     tell front window
         make new tab with properties {URL:"${escapedUrl}"}
         set active tab index to (count of tabs)
     end tell
-    return "opened_new_tab"`
-    : ""}
-  ${reusePolicy === "reuse-exact-url"
-    ? `
-    tell front window
-        make new tab with properties {URL:"${escapedUrl}"}
-        set active tab index to (count of tabs)
-    end tell
-    return "opened_new_tab"`
-    : ""}
-end tell
-`;
+    return "${result}"`;
+}
+
+const buildHostMatchPrefix = (url: string): { origin: string; withSlash: string } | null => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return { origin: parsed.origin, withSlash: `${parsed.origin}/` };
+  } catch {
+    return null;
+  }
 };
 
 const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => {

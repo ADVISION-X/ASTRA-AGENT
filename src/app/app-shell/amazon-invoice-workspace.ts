@@ -51,7 +51,7 @@ const renderAmazonInvoiceBatchSurface = (): string => `
         <div class="field wide"><label>PDF files</label><input name="invoicePdfs" type="file" accept="application/pdf" multiple required /></div>
         <div class="field"><label>Source rule</label><input name="sourceKind" value="filename = order id = invoice no" readonly /></div>
         <label class="check"><input name="stopOnFailed" type="checkbox" /> stop on failed</label>
-        <div class="actions wide"><button class="btn" type="submit" data-amazon-invoice-batch-start>Start Batch Upload</button><button class="btn secondary" type="button" data-amazon-invoice-batch-latest>Latest Batch</button><button class="btn secondary" type="button" data-amazon-invoice-batch-history>Open Ledger</button></div>
+        <div class="actions wide"><button class="btn" type="submit" data-amazon-invoice-batch-start>Start Batch Upload</button><button class="btn secondary" type="button" data-amazon-invoice-upload-ledger-refresh>Open Ledger</button></div>
         <div class="summary-metrics wide" data-amazon-invoice-batch-status><div><b data-amazon-invoice-batch-id>-</b><span>batch id</span></div><div><b data-amazon-invoice-batch-state>-</b><span>status</span></div><div><b data-amazon-invoice-batch-current>-</b><span>current order</span></div><div><b data-amazon-invoice-batch-total>-</b><span>total</span></div><div><b data-amazon-invoice-batch-succeeded>-</b><span>succeeded</span></div><div><b data-amazon-invoice-batch-already>-</b><span>already uploaded</span></div><div><b data-amazon-invoice-batch-failed>-</b><span>failed</span></div><div><b data-amazon-invoice-batch-blocked-auth>-</b><span>blocked auth</span></div></div>
         <div class="record-list wide" data-amazon-invoice-batch-items></div>
       </form>
@@ -61,7 +61,6 @@ const renderAmazonInvoiceBatchSurface = (): string => `
 const renderAmazonInvoiceLedgerSurface = (): string => `
   <section class="skill-page-surface hidden" data-workspace-surface="ledger" data-workspace-surface-skill="amazon-invoice-upload">
     <section class="panel history-panel"><div class="panel-title-row"><div><span class="eyebrow">Upload Ledger</span><h2>Invoice upload records</h2></div><button class="btn secondary" type="button" data-amazon-invoice-upload-ledger-refresh>Refresh</button></div><div class="record-list" data-amazon-invoice-upload-ledger-list></div></section>
-    <section class="panel history-panel"><div class="panel-title-row"><div><span class="eyebrow">Batch Ledger</span><h2>Invoice upload batches</h2></div><button class="btn secondary" type="button" data-amazon-invoice-batch-history>Refresh</button></div><div class="record-list" data-amazon-invoice-batch-history-list></div></section>
   </section>`;
 
 const renderEmptyAmazonInvoiceSurface = (surface: string, eyebrow: string, title: string, copy: string): string => `

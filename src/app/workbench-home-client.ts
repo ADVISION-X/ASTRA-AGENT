@@ -6,7 +6,6 @@ const state = {
   skill: "amazon-product-mining",
   taskId: "",
   amazonInvoiceBatchId: "",
-  amazonInvoiceBatchPoll: null,
   amazonTaxInvoiceDownloadTaskId: "",
   amazonProductMiningTaskId: "",
   amazonProductMiningReviews: [],
@@ -217,10 +216,6 @@ const refreshShell = async () => {
 };
 ${renderAmazonProductMiningReviewClient()}
 ${renderAmazonInvoiceClient({
-  batchHistory: "/api/plugins/amazon-invoice-upload/batch/history",
-  batchLatest: "/api/plugins/amazon-invoice-upload/batch/latest",
-  batchStart: "/api/plugins/amazon-invoice-upload/batch/start",
-  batchStatus: "/api/plugins/amazon-invoice-upload/batch/status/",
   downloadStart: "/api/plugins/amazon-invoice-upload/download/start",
   downloadLatest: "/api/plugins/amazon-invoice-upload/download/latest",
   downloadArtifact: "/api/plugins/amazon-invoice-upload/download/artifact/",
@@ -443,11 +438,9 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-amazon-tax-invoice-download-latest]")?.addEventListener("click", refreshAmazonTaxInvoiceDownloadLatest);
   qs("[data-amazon-tax-invoice-download-artifact]")?.addEventListener("click", openAmazonTaxInvoiceDownloadArtifact);
   qs("[data-amazon-invoice-batch-form]")?.addEventListener("submit", startAmazonInvoiceBatch);
-  qs("[data-amazon-invoice-batch-latest]")?.addEventListener("click", refreshAmazonInvoiceBatchLatest);
-  document.querySelectorAll("[data-amazon-invoice-batch-history]").forEach((button) => {
-    button.addEventListener("click", refreshAmazonInvoiceBatchHistory);
+  document.querySelectorAll("[data-amazon-invoice-upload-ledger-refresh]").forEach((button) => {
+    button.addEventListener("click", refreshAmazonInvoiceUploadLedger);
   });
-  qs("[data-amazon-invoice-upload-ledger-refresh]")?.addEventListener("click", refreshAmazonInvoiceUploadLedger);
   qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
   qs("[data-amazon-product-mining-export]")?.addEventListener("click", exportAmazonProductMining);
   qs("[data-amazon-product-mining-pause]")?.addEventListener("click", () => pauseAmazonProductMining().catch((error) => writeActivity("amazon product mining pause failed: " + error.message, "failed")));

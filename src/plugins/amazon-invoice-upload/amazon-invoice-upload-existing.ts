@@ -15,8 +15,7 @@ import {
   locateManageInvoiceEntry,
 } from "./amazon-existing-invoice-evidence.js";
 
-type CloseAlreadyUploadedTabInput = {
-  browser: BrowserController;
+type AlreadyUploadedRetainedTabInput = {
   runtimeLogger: RuntimeLogger;
   mission: AmazonInvoiceUploadMissionInput;
   reason: string;
@@ -31,8 +30,7 @@ export async function verifyAlreadyUploadedInvoice(
   const snapshot = await readSnapshot(browser);
   if (hasExistingInvoiceEvidence(snapshot, mission)) {
     traceAlreadyUploaded(runtimeLogger, mission, snapshot);
-    return closeAlreadyUploadedTab({
-      browser,
+    return alreadyUploadedWithRetainedTab({
       runtimeLogger,
       mission,
       reason: "order detail already showed uploaded invoice state",
@@ -45,8 +43,7 @@ export async function verifyAlreadyUploadedInvoice(
 
   const evidenceRef = await waitForExistingInvoiceEvidence(browser, runtimeLogger, mission);
   return evidenceRef
-    ? closeAlreadyUploadedTab({
-      browser,
+    ? alreadyUploadedWithRetainedTab({
       runtimeLogger,
       mission,
       reason: "existing invoice verified from Amazon invoice list",
@@ -160,45 +157,23 @@ async function waitForExistingInvoiceEvidence(
   return undefined;
 }
 
-async function closeAlreadyUploadedTab(input: CloseAlreadyUploadedTabInput): Promise<AmazonInvoiceUploadTaskResult> {
-  const closeResult = await input.browser.closeActiveTab({
-    reason: "Amazon invoice already uploaded state verified",
-  });
-  traceAlreadyUploadedClose(input.runtimeLogger, input.mission, closeResult, input.evidenceRef);
-  if (!closeResult.ok) return alreadyUploadedCloseReview(input.mission, input.reason, closeResult.message, input.evidenceRef);
+function alreadyUploadedWithRetainedTab(input: AlreadyUploadedRetainedTabInput): AmazonInvoiceUploadTaskResult {
+  traceAlreadyUploadedRetainedTab(input.runtimeLogger, input.mission, input.evidenceRef);
   return alreadyUploadedSuccess(input.mission, input.reason, input.evidenceRef);
 }
 
-function traceAlreadyUploadedClose(
+function traceAlreadyUploadedRetainedTab(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  closeResult: Awaited<ReturnType<BrowserController["closeActiveTab"]>>,
   evidenceRef: string | undefined,
 ): void {
   recordAmazonDomStepTrace({
     runtimeLogger,
     mission,
-    stepName: "close already uploaded order tab",
-    status: closeResult.ok ? "success" : "review_required",
-    reason: closeResult.ok ? "Active order tab closed." : closeResult.message,
+    stepName: "retain already uploaded order tab",
+    status: "success",
+    reason: "Active Seller Central order worker tab retained after already-uploaded verification.",
     evidenceRef,
-  });
-}
-
-function alreadyUploadedCloseReview(
-  mission: AmazonInvoiceUploadMissionInput,
-  reason: string,
-  closeMessage: string,
-  evidenceRef: string | undefined,
-): AmazonInvoiceUploadTaskResult {
-  return taskResult({
-    status: "review_required",
-    reason: `Amazon Seller Central shows this invoice is already uploaded; ${reason}; active tab close needs review: ${closeMessage}`,
-    reachedStep: "close already uploaded order tab",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    ...evidenceField(evidenceRef),
-    reviewRequired: true,
   });
 }
 
@@ -209,7 +184,7 @@ function alreadyUploadedSuccess(
 ): AmazonInvoiceUploadTaskResult {
   return taskResult({
     status: "upload_success",
-    reason: `Amazon Seller Central shows this invoice is already uploaded; ${reason}; active order tab closed.`,
+    reason: `Amazon Seller Central shows this invoice is already uploaded; ${reason}; active order tab retained for next invoice navigation.`,
     reachedStep: "already uploaded verified",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,

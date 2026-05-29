@@ -34,12 +34,6 @@ import {
   type AmazonInvoiceUploadTaskStartInput,
 } from "./amazon-invoice-upload-task-service.types.js";
 import type { AmazonInvoiceUploadLedgerRecord } from "./amazon-invoice-upload-ledger.js";
-export {
-  getAmazonInvoiceUploadBatchStatus,
-  getLatestAmazonInvoiceUploadBatch,
-  listAmazonInvoiceUploadBatches,
-  startAmazonInvoiceUploadBatchTask,
-} from "./amazon-invoice-upload-batch-service.js";
 
 const DEFAULT_ALLOWED_ADMIN_HOSTS = ["localhost", "127.0.0.1"] as const;
 

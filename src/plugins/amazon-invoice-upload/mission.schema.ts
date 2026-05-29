@@ -27,17 +27,3 @@ export const AmazonTaxInvoiceDownloadMissionInputSchema = z.object({
 }).strict();
 
 export type AmazonTaxInvoiceDownloadMissionInput = z.infer<typeof AmazonTaxInvoiceDownloadMissionInputSchema>;
-
-export const AmazonInvoiceUploadBatchMissionInputSchema = z.object({
-  missionType: z.literal("amazon_invoice_upload_batch"),
-  mode: z.literal("batch_upload").default("batch_upload"),
-  marketplace: z.enum(["AE", "SA", "JP", "US", "UK"]),
-  sellerCentralEntryUrl: z.string().url(),
-  sourceKind: z.literal("filename_order_id"),
-  stopOnFailed: z.boolean().optional(),
-  maxItems: z.number().int().min(1).optional(),
-  sourceSystem: z.string().min(1).optional(),
-  requestId: z.string().min(1).optional(),
-}).strict();
-
-export type AmazonInvoiceUploadBatchMissionInput = z.infer<typeof AmazonInvoiceUploadBatchMissionInputSchema>;

@@ -8,6 +8,7 @@ const orderDetailPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload
 const taskServicePath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts";
 const missionSchemaPath = "src/plugins/amazon-invoice-upload/mission.schema.ts";
 const verifyPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts";
+const existingUploadPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts";
 const existingEvidencePath = "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts";
 
 type UploadStabilityGuardInput = {
@@ -16,9 +17,12 @@ type UploadStabilityGuardInput = {
   taskServiceFile: SourceFile | null;
   missionSchemaFile: SourceFile | null;
   verifyFile: SourceFile | null;
+  existingUploadFile: SourceFile | null;
   existingEvidenceFile: SourceFile | null;
   findings: InspectorFinding[];
   lawId: string;
+  conditionalRefreshLawId: string;
+  tabLifecycleLawId: string;
 };
 
 type UploadStabilityFiles = {
@@ -27,6 +31,7 @@ type UploadStabilityFiles = {
   taskServiceFile: SourceFile;
   missionSchemaFile: SourceFile;
   verifyFile: SourceFile;
+  existingUploadFile: SourceFile;
   existingEvidenceFile: SourceFile;
 };
 
@@ -34,6 +39,9 @@ const stringLiteralValues = (file: SourceFile): Set<string> =>
   new Set([
     ...file.getDescendantsOfKind(SyntaxKind.StringLiteral).map((item) => item.getLiteralText()),
     ...file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((item) => item.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.TemplateHead).map((item) => item.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((item) => item.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.TemplateTail).map((item) => item.getLiteralText()),
   ]);
 
 const propertyValue = (objectLiteral: Node, name: string): string | null => {
@@ -61,6 +69,12 @@ const sourceCallsProperty = (file: SourceFile, ownerName: string, methodName: st
       && expression.getName() === methodName;
   });
 
+const sourceCallsMethod = (file: SourceFile, methodName: string): boolean =>
+  file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === methodName;
+  });
+
 const retryStepNames = (file: SourceFile): Set<string> =>
   new Set(file.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
     const expression = call.getExpression();
@@ -74,20 +88,25 @@ const retryStepNames = (file: SourceFile): Set<string> =>
 export const inspectUploadStabilityGuard = (input: UploadStabilityGuardInput): void => {
   const files = resolveUploadStabilityFiles(input);
   if (!files) return;
+  const refreshMissing = collectOrderRefreshGuardGaps(files.orderFile);
+  appendUploadStabilityFindings(input.findings, input.conditionalRefreshLawId, refreshMissing);
   const missing = collectUploadStabilityGaps(files);
   writeUploadStabilityDebug(missing.length);
   appendUploadStabilityFindings(input.findings, input.lawId, missing);
+  const tabLifecycleMissing = collectTabLifecycleGaps(files);
+  appendUploadStabilityFindings(input.findings, input.tabLifecycleLawId, tabLifecycleMissing);
 };
 
 function resolveUploadStabilityFiles(input: UploadStabilityGuardInput): UploadStabilityFiles | null {
   if (!input.flowFile || !input.orderFile || !input.taskServiceFile) return null;
-  if (!input.missionSchemaFile || !input.verifyFile || !input.existingEvidenceFile) return null;
+  if (!input.missionSchemaFile || !input.verifyFile || !input.existingUploadFile || !input.existingEvidenceFile) return null;
   return {
     flowFile: input.flowFile,
     orderFile: input.orderFile,
     taskServiceFile: input.taskServiceFile,
     missionSchemaFile: input.missionSchemaFile,
     verifyFile: input.verifyFile,
+    existingUploadFile: input.existingUploadFile,
     existingEvidenceFile: input.existingEvidenceFile,
   };
 }
@@ -111,7 +130,6 @@ function appendUploadStabilityFindings(findings: InspectorFinding[], lawId: stri
 
 function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
   return [
-    ...collectOrderRefreshGuardGaps(files.orderFile),
     ...collectUploadRetryGuardGaps(files.flowFile),
     ...collectNoHumanFinalSubmitContractGaps(files.taskServiceFile, files.missionSchemaFile),
     ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingEvidenceFile),
@@ -119,12 +137,44 @@ function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
 }
 
 function uploadStabilityFindingPath(item: string): string {
+  const tabLifecyclePath = tabLifecycleFindingPath(item);
+  if (tabLifecyclePath) return tabLifecyclePath;
   if (item.startsWith("english-success-evidence")) return verifyPath;
   if (item.startsWith("english-existing-evidence")) return existingEvidencePath;
   if (item.startsWith("no-human-final-submit-schema")) return missionSchemaPath;
   if (item.startsWith("no-human-final-submit-service")) return taskServicePath;
   if (isOrderRefreshFinding(item)) return orderDetailPath;
   return uploadFlowPath;
+}
+
+function tabLifecycleFindingPath(item: string): string | null {
+  if (item.startsWith("tab-lifecycle-existing")) return existingUploadPath;
+  if (item.startsWith("tab-lifecycle-verify")) return verifyPath;
+  if (item.startsWith("tab-lifecycle-order")) return orderDetailPath;
+  return null;
+}
+
+function collectTabLifecycleGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  const flowValues = stringLiteralValues(files.flowFile);
+  const orderValues = stringLiteralValues(files.orderFile);
+  const verifyValues = stringLiteralValues(files.verifyFile);
+  const existingValues = stringLiteralValues(files.existingUploadFile);
+  if (!flowValues.has("reuse-active-tab")) missing.push("tab-lifecycle-flow:reuse-active-tab");
+  if (!orderValues.has("reuse-active-tab")) missing.push("tab-lifecycle-order:reuse-active-tab");
+  if (!flowValues.has("reuse-host-tab")) missing.push("tab-lifecycle-flow:reuse-host-tab");
+  if (!orderValues.has("reuse-host-tab")) missing.push("tab-lifecycle-order:reuse-host-tab");
+  if (!sourceCallsMethod(files.flowFile, "getGeometrySnapshot")) {
+    missing.push("tab-lifecycle-flow:refresh-current-chrome-state");
+  }
+  if (!sourceCallsMethod(files.orderFile, "getGeometrySnapshot")) {
+    missing.push("tab-lifecycle-order:refresh-current-chrome-state");
+  }
+  if (!verifyValues.has("retain uploaded order tab")) missing.push("tab-lifecycle-verify:retain-uploaded-trace");
+  if (!existingValues.has("retain already uploaded order tab")) missing.push("tab-lifecycle-existing:retain-already-uploaded-trace");
+  if (sourceCallsMethod(files.verifyFile, "closeActiveTab")) missing.push("tab-lifecycle-verify:no-per-item-close");
+  if (sourceCallsMethod(files.existingUploadFile, "closeActiveTab")) missing.push("tab-lifecycle-existing:no-per-item-close");
+  return missing;
 }
 
 function isOrderRefreshFinding(item: string): boolean {
@@ -136,15 +186,24 @@ function isOrderRefreshFinding(item: string): boolean {
 function collectOrderRefreshGuardGaps(orderFile: SourceFile): string[] {
   const orderValues = stringLiteralValues(orderFile);
   const missing: string[] = [];
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_REFRESH_WAIT_MIN_MS", "3_000")) missing.push("refresh-min-3000");
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_REFRESH_WAIT_MAX_MS", "6_000")) missing.push("refresh-max-6000");
-  if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "refreshApprovedOrderDetailOnce")) {
-    missing.push("order-detail-refresh-call");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MIN_MS", "3_000")) missing.push("refresh-ready-min-3000");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MAX_MS", "5_000")) missing.push("refresh-ready-max-5000");
+  if (!orderFile.getVariableDeclaration("ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS")) missing.push("refresh-recovery-min");
+  if (!orderFile.getVariableDeclaration("ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS")) missing.push("refresh-recovery-max");
+  if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "waitForApprovedOrderDetail")) {
+    missing.push("order-detail-readiness-wait-call");
+  }
+  if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "refreshApprovedOrderDetailIfNeeded")) {
+    missing.push("order-detail-conditional-refresh-call");
+  }
+  if (orderFile.getFunction("refreshApprovedOrderDetailOnce")) {
+    missing.push("order-detail-unconditional-refresh-function");
   }
   if (!sourceCallsProperty(orderFile, "Math", "random")) missing.push("random-refresh-wait");
   const evidenceValues = [
     "Amazon Seller Central approved order detail refresh",
-    "refresh approved order detail before upload",
+    "refresh approved order detail after readiness timeout",
+    "Order detail recovery refresh executed once after missing readiness markers: ",
   ];
   for (const value of evidenceValues) {
     if (!orderValues.has(value)) missing.push(value);
@@ -177,6 +236,11 @@ function hasPropertyAssignment(file: SourceFile, propertyName: string): boolean 
 function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingEvidenceFile: SourceFile): string[] {
   const missing: string[] = [];
   const verifyValues = stringLiteralValues(verifyFile);
+  if (!verifyValues.has("./amazon-invoice-upload-existing.js")) missing.push("post-submit-existing-evidence:import");
+  if (!functionCallsIdentifier(verifyFile, "verifyUploadSuccess", "verifyAlreadyUploadedInvoice")) {
+    missing.push("post-submit-existing-evidence:fallback-call");
+  }
+  if (!verifyValues.has("upload_success")) missing.push("post-submit-existing-evidence:success-only");
   for (const value of [
     "Thank you for uploading the document",
     "The customer will be able to download it directly from their account",

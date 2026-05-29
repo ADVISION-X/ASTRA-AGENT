@@ -1,16 +1,12 @@
 import {
-  getAmazonInvoiceUploadBatchStatus,
   getAmazonInvoiceUploadTaskStatus,
   getAmazonTaxInvoiceDownloadArtifact as getAmazonTaxInvoiceDownloadArtifactFromPlugin,
   getAmazonTaxInvoiceDownloadTaskStatus as getAmazonTaxInvoiceDownloadTaskStatusFromPlugin,
-  getLatestAmazonInvoiceUploadBatch,
   getLatestAmazonInvoiceUploadTaskForInvoice,
   getLatestAmazonTaxInvoiceDownloadTask as getLatestAmazonTaxInvoiceDownloadTaskFromPlugin,
   listAmazonInvoiceUploadLedger,
-  listAmazonInvoiceUploadBatches,
   openAmazonInvoiceAdminPage,
   resumeAmazonInvoiceUploadTask,
-  startAmazonInvoiceUploadBatchTask,
   startAmazonInvoiceUploadMission,
   startAmazonInvoiceUploadTask,
   startAmazonTaxInvoiceDownloadTask as startAmazonTaxInvoiceDownloadTaskFromPlugin,
@@ -24,7 +20,6 @@ export const buildAmazonInvoiceHandle = (
   ...buildAmazonInvoiceMissionHandle(assembly),
   ...buildAmazonInvoiceTaskHandle(assembly, dataDir),
   ...buildAmazonInvoiceDownloadHandle(assembly, dataDir),
-  ...buildAmazonInvoiceBatchHandle(assembly, dataDir),
 });
 
 const buildAmazonInvoiceMissionHandle = (assembly: WorkbenchAssembly) => ({
@@ -87,30 +82,5 @@ const buildAmazonInvoiceDownloadHandle = (
   },
   async getAmazonTaxInvoiceDownloadArtifact(taskId: string) {
     return getAmazonTaxInvoiceDownloadArtifactFromPlugin({ dataDir, taskId });
-  },
-});
-
-const buildAmazonInvoiceBatchHandle = (
-  assembly: WorkbenchAssembly,
-  dataDir: string,
-) => ({
-  async startAmazonInvoiceUploadBatchTask(input: Parameters<typeof startAmazonInvoiceUploadBatchTask>[0]["mission"] & { invoicePdfs: Parameters<typeof startAmazonInvoiceUploadBatchTask>[0]["invoicePdfs"] }) {
-    const { invoicePdfs, ...mission } = input;
-    return startAmazonInvoiceUploadBatchTask({
-      browser: assembly.browserController,
-      runtimeLogger: assembly.runtimeLogger,
-      dataDir,
-      mission,
-      invoicePdfs,
-    });
-  },
-  async getAmazonInvoiceUploadBatchStatus(batchId: string) {
-    return getAmazonInvoiceUploadBatchStatus({ dataDir, batchId });
-  },
-  async getLatestAmazonInvoiceUploadBatch(input?: { marketplace?: string; requestId?: string }) {
-    return getLatestAmazonInvoiceUploadBatch({ dataDir, ...(input ?? {}) });
-  },
-  async listAmazonInvoiceUploadBatches(input?: Parameters<typeof listAmazonInvoiceUploadBatches>[0]["query"]) {
-    return listAmazonInvoiceUploadBatches({ dataDir, ...(input ? { query: input } : {}) });
   },
 });

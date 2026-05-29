@@ -117,7 +117,14 @@ export function findLatestTaskRecordForInvoice(input: {
       return input.invoiceNo ? record.invoiceNo === input.invoiceNo : true;
     })
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-  return records[0] ?? null;
+  return selectCanonicalUploadTaskRecord(records);
+}
+
+function selectCanonicalUploadTaskRecord(
+  records: readonly AmazonInvoiceUploadTaskRecord[],
+): AmazonInvoiceUploadTaskRecord | null {
+  const successful = records.filter((record) => record.status === "upload_success");
+  return (successful[0] ?? records[0]) ?? null;
 }
 
 export function buildReceivedDownloadTaskRecord(input: {

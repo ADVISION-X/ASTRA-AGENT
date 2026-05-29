@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T16:03:58.700Z",
+  "generatedAt": "2026-05-29T21:33:55.784Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -147,7 +147,6 @@
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
-    "scripts/acceptance/workbench-api-boundary-batch-support.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -560,9 +559,6 @@
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",

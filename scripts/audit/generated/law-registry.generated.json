@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T16:03:29.424Z",
+  "generatedAt": "2026-05-29T21:33:26.893Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -207,6 +207,105 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-invoice-upload",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "flow+ast+acceptance+chrome",
+      "summary": "Amazon invoice batch upload must reuse the active Seller Central order worker tab across items and must not make per-item tab close a success condition.",
+      "appliesTo": [
+        "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/audit/domains/amazon-invoice-upload/**",
+        "scripts/acceptance/amazon-invoice-upload*.ts",
+        "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+      ],
+      "required": [
+        "Before deciding Seller Central tab reuse, the implementation refreshes current Chrome navigation state from the real browser.",
+        "When any retained browser tab is already on the same Seller Central host, the next order detail navigation uses reuse-host-tab to focus that tab and replace its URL.",
+        "When the active browser tab is already on the same non-HTTP test host, the next order detail navigation uses reuse-active-tab.",
+        "Successful upload verification records upload_success without calling closeActiveTab.",
+        "Already-uploaded verification records upload_success without calling closeActiveTab.",
+        "Tab cleanup, if needed, is a batch/session cleanup concern and must not change per-item upload_success into review_required.",
+        "Each reused-tab item must still verify the target order id and invoice action state before upload or already-uploaded judgment."
+      ],
+      "forbidden": [
+        "Per-item closeActiveTab inside upload success verification.",
+        "Per-item closeActiveTab inside already-uploaded verification.",
+        "Opening a new Seller Central tab for every batch item when any retained tab is already on the same Seller Central host.",
+        "Deciding Seller Central tab lifecycle from stale controller state without reading real Chrome state.",
+        "Treating tab close failure as invoice upload failure after Amazon success or already-uploaded state is verified."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-invoice-upload",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "flow+ast+acceptance+chrome",
+      "summary": "Amazon invoice upload must not mechanically refresh every order detail page; it may execute only one recovery refresh after a bounded DOM readiness window proves the target order id and invoice action state are missing and auth gates are not present.",
+      "appliesTo": [
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
+        "scripts/audit/domains/amazon-invoice-upload/**",
+        "scripts/acceptance/amazon-invoice-upload*.ts",
+        "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+      ],
+      "required": [
+        "Order detail navigation first waits a random 3-5 second readiness window for target order id, upload/manage/already-uploaded invoice state, and loading completion.",
+        "If the readiness window succeeds, upload proceeds without a recovery refresh.",
+        "If the readiness window fails and login/captcha/2FA gates are not present, the flow executes at most one same-tab recovery refresh.",
+        "After the recovery refresh, the flow waits a random short window before final readiness verification.",
+        "The recovery refresh trace records why it happened without logging PDF bytes, cookies, documentId, or local absolute invoice paths.",
+        "The final readiness check still fails closed if target order id and invoice action state are not proven."
+      ],
+      "forbidden": [
+        "Unconditional order-detail refresh immediately after every order-detail navigation.",
+        "More than one recovery refresh for the same order detail attempt.",
+        "Refresh loops that can continue indefinitely.",
+        "Refreshing login, captcha, or 2FA gates into a fake upload attempt.",
+        "Proceeding to upload before target order id and invoice action state are proven."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+      "blockIndex": 10
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-invoice-upload",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ledger+app-shell+acceptance+audit",
+      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success for the same order id and invoice number.",
+      "appliesTo": [
+        "src/app/workbench-home-amazon-invoice-client.ts",
+        "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/audit/domains/amazon-invoice-upload/**",
+        "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+        "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+      ],
+      "required": [
+        "Before local batch queue uploads queued PDFs, it reads GET /api/plugins/amazon-invoice-upload/ledger through the existing ledger route.",
+        "The local queue builds a lookup by amazonOrderId plus invoiceNo.",
+        "Only ledger records with status upload_success may be skipped before opening Seller Central.",
+        "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
+        "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
+        "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
+        "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf."
+      ],
+      "forbidden": [
+        "Skipping based on website export state.",
+        "Skipping based on filename alone.",
+        "Skipping failed, review_required, blocked_auth, manual_required, or invalid records.",
+        "Adding a second batch ledger, second batch route, or second upload service to support resume.",
+        "Uploading all selected PDFs in one multipart request."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+      "blockIndex": 11
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",

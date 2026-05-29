@@ -1,4 +1,5 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserOpenReusePolicy } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
@@ -115,8 +116,7 @@ async function runUploadStepWithRetries<T>(input: {
 function isRetryableUploadStepFailure(failure: AmazonInvoiceUploadTaskResult): boolean {
   return failure.status !== "login_required"
     && failure.status !== "captcha_or_2fa_required"
-    && failure.reachedStep !== "verify upload success"
-    && failure.reachedStep !== "close uploaded order tab";
+    && failure.reachedStep !== "verify upload success";
 }
 
 async function openSellerCentralEntry(
@@ -124,7 +124,21 @@ async function openSellerCentralEntry(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
-  await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
+  const reusePolicy = await sellerCentralEntryReusePolicy(browser, mission.sellerCentralEntryUrl);
+  await browser.open({
+    url: mission.sellerCentralEntryUrl,
+    title: "Amazon Seller Central invoice upload entry",
+    reusePolicy,
+  });
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "open seller central entry tab lifecycle",
+    status: "success",
+    reason: reusePolicy === "reuse-host-tab" || reusePolicy === "reuse-active-tab"
+      ? "Reused retained Seller Central order worker tab for the next invoice."
+      : "Opened a dedicated Seller Central order worker tab.",
+  });
   const entryReady = await waitForSellerCentralEntry(browser, mission);
   recordAmazonDomStepTrace({
     runtimeLogger,
@@ -137,6 +151,38 @@ async function openSellerCentralEntry(
   const gate = gatedResult(entryReady.snapshot, mission, "open seller central");
   if (gate) return gate;
   return entryReady.ready ? null : sellerCentralEntryNotReadyResult(mission, entryReady.reason);
+}
+
+async function sellerCentralEntryReusePolicy(
+  browser: BrowserController,
+  targetUrl: string,
+): Promise<BrowserOpenReusePolicy> {
+  await refreshCurrentBrowserState(browser);
+  if (isHttpSellerCentralUrl(targetUrl)) return "reuse-host-tab";
+  return isSameNavigationHost(browser.getSessionState().currentUrl, targetUrl) ? "reuse-active-tab" : "open-new-tab";
+}
+
+async function refreshCurrentBrowserState(browser: BrowserController): Promise<void> {
+  await browser.getGeometrySnapshot().catch(() => null);
+}
+
+function isHttpSellerCentralUrl(targetUrl: string): boolean {
+  try {
+    const url = new URL(targetUrl);
+    return (url.protocol === "http:" || url.protocol === "https:") && url.hostname.includes("sellercentral.amazon.");
+  } catch {
+    return false;
+  }
+}
+
+function isSameNavigationHost(currentUrl: string, targetUrl: string): boolean {
+  try {
+    const current = new URL(currentUrl);
+    const target = new URL(targetUrl);
+    return current.protocol === target.protocol && current.host === target.host;
+  } catch {
+    return false;
+  }
 }
 
 const sellerCentralEntryNotReadyResult = (

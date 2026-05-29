@@ -1,115 +1,86 @@
 import { strict as assert } from "node:assert";
-import { mkdtempSync } from "node:fs";
-import { IncomingMessage } from "node:http";
-import { Socket } from "node:net";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import {
-  buildAmazonInvoiceUploadBatchItems,
-  buildReceivedBatchRecord,
-  listBatchRecords,
-  loadBatchRecord,
-  parseAmazonInvoiceUploadBatchFilename,
-  saveBatchRecord,
-  updateBatchItem,
-} from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.js";
-import { AmazonInvoiceUploadBatchMissionInputSchema } from "../../src/plugins/amazon-invoice-upload/mission.schema.js";
-import type { AmazonInvoiceUploadBatchPdfFile } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.js";
-import { readMultipartFormData } from "../../src/app/workbench-multipart.js";
+const repoRoot = process.cwd();
+const read = (path: string): string => readFileSync(join(repoRoot, path), "utf8");
 
-const validMission = {
-  missionType: "amazon_invoice_upload_batch",
-  marketplace: "AE",
-  sellerCentralEntryUrl: "https://sellercentral.amazon.ae/home",
-  sourceKind: "filename_order_id",
-  sourceSystem: "ontheway",
-  requestId: "batch-acceptance-1",
-} as const;
+const client = read("src/app/workbench-home-amazon-invoice-client.ts");
+const homeClient = read("src/app/workbench-home-client.ts");
+const layout = read("src/app/app-shell/amazon-invoice-workspace.ts");
+const routes = read("src/app/workbench-amazon-routes.ts");
+const boundary = read("src/app/workbench-api-boundary.ts");
+const workbenchHandle = read("src/lib/local-runtime/workbench-handle.ts");
+const amazonHandle = read("src/lib/local-runtime/workbench-amazon-invoice-handle.ts");
+const missionSchema = read("src/plugins/amazon-invoice-upload/mission.schema.ts");
+const pluginIndex = read("src/plugins/amazon-invoice-upload/index.ts");
+const taskService = read("src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts");
 
-const pdfFile = (filename: string): AmazonInvoiceUploadBatchPdfFile => ({
-  filename,
-  mimeType: "application/pdf",
-  bytes: Buffer.from("%PDF-1.4\n"),
-});
+const obsoleteBackendBatchFiles = [
+  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
+  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
+  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
+] as const;
 
-const assertSchema = (): void => {
-  const parsed = AmazonInvoiceUploadBatchMissionInputSchema.parse(validMission);
-  assert.equal(parsed.mode, "batch_upload");
-  for (const forbidden of ["selector", "cookie", "browserCommand", "flowStep", "documentId", "requireHumanFinalSubmit", "stopOnManualRequired"]) {
-    assert.equal(
-      AmazonInvoiceUploadBatchMissionInputSchema.safeParse({ ...validMission, [forbidden]: "blocked" }).success,
-      false,
-      `batch mission schema must reject ${forbidden}`,
-    );
-  }
-};
+const obsoleteBackendBatchRoutes = [
+  "/api/plugins/amazon-invoice-upload/batch/start",
+  "/api/plugins/amazon-invoice-upload/batch/status/",
+  "/api/plugins/amazon-invoice-upload/batch/latest",
+  "/api/plugins/amazon-invoice-upload/batch/history",
+] as const;
 
-const assertFileValidation = (): void => {
-  const parsed = parseAmazonInvoiceUploadBatchFilename("403-7307700-7597913.pdf");
-  assert.equal(parsed?.amazonOrderId, "403-7307700-7597913");
-  assert.equal(parsed?.invoiceNo, "403-7307700-7597913");
-  assert.equal(buildAmazonInvoiceUploadBatchItems([pdfFile("invoice.pdf")]).reason, "invalid_pdf_filename");
-  assert.equal(buildAmazonInvoiceUploadBatchItems([{ ...pdfFile("403-7307700-7597913.pdf"), mimeType: "image/jpeg" }]).reason, "invalid_pdf_mime_type");
-  assert.equal(buildAmazonInvoiceUploadBatchItems([pdfFile("403-7307700-7597913.pdf"), pdfFile("403-7307700-7597913.pdf")]).reason, "duplicate_order_id");
-  const largeBatch = buildAmazonInvoiceUploadBatchItems(Array.from({ length: 2000 }, (_, index) => pdfFile(`403-${String(7300000 + index)}-${String(index).padStart(7, "0")}.pdf`)));
-  assert.equal(largeBatch.ok, true);
-  assert.equal(largeBatch.items.length, 2000);
-};
+const obsoleteBackendBatchSymbols = [
+  "startAmazonInvoiceUploadBatchTask",
+  "getAmazonInvoiceUploadBatchStatus",
+  "getLatestAmazonInvoiceUploadBatch",
+  "listAmazonInvoiceUploadBatches",
+  "AmazonInvoiceUploadBatchMissionInputSchema",
+] as const;
 
-const assertStorageAndCounters = (): void => {
-  const dataDir = mkdtempSync(join(tmpdir(), "grasseye-amazon-invoice-batch-"));
-  const mission = AmazonInvoiceUploadBatchMissionInputSchema.parse(validMission);
-  const firstItems = buildAmazonInvoiceUploadBatchItems([pdfFile("403-7307700-7597913.pdf")]).items;
-  const older = buildReceivedBatchRecord({ batchId: "batch_older", mission, items: firstItems });
-  saveBatchRecord(dataDir, older);
-  const newer = updateBatchItem(
-    buildReceivedBatchRecord({ batchId: "batch_newer", mission, items: firstItems }),
-    0,
-    { status: "upload_success", reason: "done", reachedStep: "upload success verified" },
-  );
-  saveBatchRecord(dataDir, newer);
-  assert.equal(loadBatchRecord(dataDir, "batch_newer")?.succeeded, 1);
-  assert.equal(listBatchRecords(dataDir, { limit: 2 })[0]?.batchId, "batch_newer");
-  assert.equal(listBatchRecords(dataDir, { orderId: "403-7307700-7597913" }).length, 2);
-  const serialized = JSON.stringify(newer);
-  assert.equal(serialized.includes("%PDF"), false, "batch record must not include PDF bytes");
-  assert.equal(serialized.includes(dataDir), false, "batch record must not include local absolute paths");
-  assert.equal(serialized.includes("cookie"), false, "batch record must not include cookies");
-  assert.equal(serialized.includes("documentId"), false, "batch record must not include documentId");
-};
-
-const assertMultipartFileLists = async (): Promise<void> => {
-  const boundary = "batch-boundary";
-  const body = [
-    part(boundary, 'form-data; name="mission"', JSON.stringify(validMission)),
-    part(boundary, 'form-data; name="invoicePdf"; filename="403-7307700-7597913.pdf"', "%PDF-single\n", "application/pdf"),
-    part(boundary, 'form-data; name="invoicePdfs"; filename="403-7307700-7597913.pdf"', "%PDF-a\n", "application/pdf"),
-    part(boundary, 'form-data; name="invoicePdfs"; filename="403-7307700-7597914.pdf"', "%PDF-b\n", "application/pdf"),
-    `--${boundary}--\r\n`,
-  ].join("");
-  const request = new IncomingMessage(new Socket());
-  request.headers = { "content-type": `multipart/form-data; boundary=${boundary}` };
-  request.push(Buffer.from(body, "utf8"));
-  request.push(null);
-  const form = await readMultipartFormData(request);
-  assert.equal(form.files.get("invoicePdf")?.filename, "403-7307700-7597913.pdf");
-  assert.equal(form.fileLists.get("invoicePdfs")?.length, 2);
-};
-
-function part(boundary: string, disposition: string, body: string, mimeType?: string): string {
-  return [
-    `--${boundary}`,
-    `Content-Disposition: ${disposition}`,
-    ...(mimeType ? [`Content-Type: ${mimeType}`] : []),
-    "",
-    body,
-  ].join("\r\n") + "\r\n";
+for (const filePath of obsoleteBackendBatchFiles) {
+  assert.equal(existsSync(join(repoRoot, filePath)), false, `${filePath} must not exist; it was the huge-multipart backend batch mode.`);
 }
 
-assertSchema();
-assertFileValidation();
-assertStorageAndCounters();
-await assertMultipartFileLists();
+for (const route of obsoleteBackendBatchRoutes) {
+  for (const [label, source] of Object.entries({ client, homeClient, routes, boundary })) {
+    assert.equal(source.includes(route), false, `${label} must not reference obsolete backend batch route ${route}.`);
+  }
+}
+
+for (const symbol of obsoleteBackendBatchSymbols) {
+  for (const [label, source] of Object.entries({ workbenchHandle, amazonHandle, missionSchema, pluginIndex, taskService })) {
+    assert.equal(source.includes(symbol), false, `${label} must not expose obsolete backend batch symbol ${symbol}.`);
+  }
+}
+
+assert(layout.includes("data-amazon-invoice-batch-form"), "APP must keep the Batch Upload surface.");
+assert(layout.includes('name="invoicePdfs" type="file"'), "Batch Upload must keep a multiple PDF selector.");
+assert(layout.includes("multiple required"), "Batch Upload selector must support large multi-select from the local folder.");
+assert(layout.includes("Start Batch Upload"), "Batch Upload must keep the user action.");
+assert(layout.includes("data-amazon-invoice-upload-ledger-list"), "Ledger must show persisted single-upload task records.");
+assert.equal(layout.includes("Latest Batch"), false, "APP must not expose obsolete backend batch latest mode.");
+assert.equal(layout.includes("Batch Ledger"), false, "APP must not expose obsolete backend batch ledger mode.");
+
+assert(client.includes("parseAmazonInvoiceBatchFileName"), "Local queue must parse orderId/invoiceNo from filename.");
+assert(client.includes("ensureAmazonInvoiceBackendReady"), "Local queue must health-check backend before large runs.");
+assert(client.includes("backend_unreachable"), "Local queue must surface backend_unreachable.");
+assert(client.includes("AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT"), "Local queue must cap rendered rows for huge selections.");
+assert(client.includes("compactAmazonInvoiceBatchRecord"), "Local queue must compact rendered records.");
+assert(client.includes("amazonInvoiceLocalQueueCounterKey"), "Local queue must update counters incrementally.");
+assert(client.includes("loadAmazonInvoiceUploadLedgerIndex"), "Local queue must read the existing upload ledger before per-file upload.");
+assert(client.includes("upload_ledger_preflight_failed"), "Local queue must fail closed when the upload ledger preflight cannot be read.");
+assert(client.includes("skipped_by_upload_ledger"), "Local queue must visibly skip orders already proven by upload ledger.");
+assert(client.includes("upload ledger preflight"), "Local queue skipped items must record the ledger preflight step.");
+assert(client.includes("amazonInvoiceBatchSellerCentralEntryUrl"), "Local queue must derive Seller Central order detail URL per marketplace/order.");
+assert(client.includes("/api/plugins/amazon-invoice-upload/start"), "Local queue must reuse the existing single-upload API.");
+assert(client.includes("/api/plugins/amazon-invoice-upload/ledger"), "Local queue must reuse the existing upload ledger route for resume/skip.");
+assert(client.includes('body.append("invoicePdf"'), "Local queue must send one PDF per single-upload request.");
+assert.equal(client.includes('body.append("invoicePdfs"'), false, "Local queue must not send all PDFs in one multipart request.");
+assert.equal(client.includes("requireHumanFinalSubmit"), false, "Local queue must not send human final-submit mode.");
+assert.equal(client.includes("stopOnManualRequired"), false, "Local queue must not send manual stop mode.");
+
+assert(homeClient.includes("startAmazonInvoiceBatch"), "Home client must bind the batch form to the local queue runner.");
+assert(homeClient.includes("refreshAmazonInvoiceUploadLedger"), "Home client must bind persisted upload ledger refresh.");
+assert(homeClient.includes("/api/plugins/amazon-invoice-upload/ledger"), "Home client must call the upload ledger route.");
 
 process.stdout.write("[ACCEPTANCE] amazon-invoice-upload-batch PASS\n");

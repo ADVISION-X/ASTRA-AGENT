@@ -92,9 +92,10 @@ assert(layout.includes("data-amazon-invoice-batch-form"), "Amazon invoice worksp
 assert(layout.includes('name="invoicePdfs" type="file"'), "Batch Upload must expose a PDF file selector.");
 assert(layout.includes("multiple required"), "Batch Upload PDF selector must allow multiple files.");
 assert(layout.includes("Start Batch Upload"), "Batch Upload must expose Start Batch Upload.");
-assert(layout.includes("data-amazon-invoice-batch-history-list"), "Ledger page must expose a batch history list.");
 assert(layout.includes("data-amazon-invoice-upload-ledger-list"), "Ledger page must expose the persisted upload ledger list.");
 assert(layout.includes("data-amazon-invoice-upload-ledger-refresh"), "Ledger page must expose upload ledger refresh.");
+assert(!layout.includes("Latest Batch"), "Amazon invoice workspace must not expose obsolete backend batch latest mode.");
+assert(!layout.includes("Batch Ledger"), "Amazon invoice workspace must not expose obsolete backend batch ledger mode.");
 assert(!batchSurface.includes("sellerCentralEntryUrl"), "Batch Upload must not expose Seller Central Entry URL as a user input.");
 assert(!layout.includes("Safe Review Mode"), "Amazon invoice upload must not expose a human final-submit mode.");
 assert(!layout.includes("requireHumanFinalSubmit"), "Amazon invoice upload must not hide a human final-submit compatibility field.");
@@ -123,7 +124,6 @@ assert(client.includes("data-amazon-tax-invoice-download-artifact"), "Client mus
 assert(client.includes("/api/plugins/amazon-invoice-upload/download/artifact/"), "Client must call the Amazon tax invoice download artifact route.");
 assert(client.includes("startAmazonInvoiceBatch"), "Client must expose the Amazon invoice batch start handler.");
 assert(client.includes("data-amazon-invoice-batch-form"), "Client must bind the Amazon invoice batch form submit.");
-assert(client.includes("/api/plugins/amazon-invoice-upload/batch/start"), "Client must call the Amazon invoice batch start route.");
 assert(client.includes("Local file queue"), "Client must turn large local file selections into a visible queue.");
 assert(client.includes("/api/plugins/amazon-invoice-upload/start"), "Client local batch queue must reuse the existing single upload route per file.");
 assert(!client.includes('body.append("invoicePdfs"'), "Client must not upload all selected PDFs in one multipart request.");
@@ -132,8 +132,10 @@ assert(client.includes("backend_unreachable"), "Client must surface backend_unre
 assert(client.includes("AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT"), "Client must cap rendered batch rows so large selections do not freeze the App Shell.");
 assert(client.includes("compactAmazonInvoiceBatchRecord"), "Client must compact raw batch rendering for large local queues.");
 assert(client.includes("amazonInvoiceLocalQueueCounterKey"), "Client must update large local queue counters incrementally.");
-assert(client.includes("/api/plugins/amazon-invoice-upload/batch/history"), "Client must call the Amazon invoice batch history route.");
-assert(client.includes("/api/plugins/amazon-invoice-upload/batch/status/"), "Client must poll the Amazon invoice batch status route.");
+assert(client.includes("loadAmazonInvoiceUploadLedgerIndex"), "Client local batch queue must read upload ledger before uploading queued files.");
+assert(client.includes("skipped_by_upload_ledger"), "Client local batch queue must visibly skip already successful ledger records.");
+assert(client.includes("upload_ledger_preflight_failed"), "Client local batch queue must fail closed when ledger preflight fails.");
+assert(!client.includes("/api/plugins/amazon-invoice-upload/batch/"), "Client must not call obsolete backend batch routes.");
 assert(client.includes("refreshAmazonInvoiceUploadLedger"), "Client must render the persisted upload ledger.");
 assert(client.includes("/api/plugins/amazon-invoice-upload/ledger"), "Client must call the Amazon invoice upload ledger route.");
 assert(client.includes("amazonInvoiceBatchSellerCentralEntryUrl"), "Batch client must derive Seller Central Entry URL from marketplace.");

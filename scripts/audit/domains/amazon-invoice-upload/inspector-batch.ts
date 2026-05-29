@@ -6,35 +6,46 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
-const batchFiles = [
+const obsoleteBackendBatchFiles = [
   "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
   "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
   "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
-  "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
 ] as const;
 
-const requiredBatchRoutes = [
+const obsoleteBatchRoutes = [
   "/api/plugins/amazon-invoice-upload/batch/start",
   "/api/plugins/amazon-invoice-upload/batch/status/",
   "/api/plugins/amazon-invoice-upload/batch/latest",
   "/api/plugins/amazon-invoice-upload/batch/history",
 ] as const;
 
-const forbiddenBatchSchemaKeys = ["selector", "cookie", "browserCommand", "flowStep", "documentId", "requireHumanFinalSubmit", "stopOnManualRequired"] as const;
-const batchServicePath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts";
-const batchStoragePath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts";
+const obsoleteBatchHandleNames = [
+  "startAmazonInvoiceUploadBatchTask",
+  "getAmazonInvoiceUploadBatchStatus",
+  "getLatestAmazonInvoiceUploadBatch",
+  "listAmazonInvoiceUploadBatches",
+] as const;
+
+const requiredLocalQueueGuards = [
+  "parseAmazonInvoiceBatchFileName",
+  "ensureAmazonInvoiceBackendReady",
+  "backend_unreachable",
+  "AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT",
+  "compactAmazonInvoiceBatchRecord",
+  "amazonInvoiceLocalQueueCounterKey",
+  "loadAmazonInvoiceUploadLedgerIndex",
+  "skipped_by_upload_ledger",
+  "upload ledger preflight",
+  "upload_ledger_preflight_failed",
+] as const;
 
 export const inspectAmazonInvoiceBatchGuard = (
   context: InspectorContext,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  inspectBatchFiles(findings, lawId);
-  inspectBatchRoutes(context, findings, lawId);
-  inspectBatchSchema(context, findings, lawId);
-  inspectBatchService(context, findings, lawId);
-  inspectBatchScaleLimits(context, findings, lawId);
-  inspectBatchUi(context, findings, lawId);
+  inspectObsoleteBackendBatchSurface(context, findings, lawId);
+  inspectLocalQueueUi(context, findings, lawId);
 };
 
 const addFinding = (findings: InspectorFinding[], lawId: string, filePath: string, checkId: string, message: string): void => {
@@ -71,98 +82,81 @@ const exportedArray = (file: SourceFile, name: string): ArrayLiteralExpression |
   return Node.isArrayLiteralExpression(expression) ? expression : null;
 };
 
-const propertyValue = (objectLiteral: ObjectLiteralExpression, name: string): string | boolean | null => {
+const propertyValue = (objectLiteral: ObjectLiteralExpression, name: string): string | null => {
   const item = objectLiteral.getProperties().find((property) => Node.isPropertyAssignment(property) && property.getName() === name);
   if (!item || !Node.isPropertyAssignment(item)) return null;
   const initializer = item.getInitializer();
-  if (!initializer) return null;
-  if (Node.isStringLiteral(initializer)) return initializer.getLiteralText();
-  if (initializer.getKind() === SyntaxKind.TrueKeyword) return true;
-  if (initializer.getKind() === SyntaxKind.FalseKeyword) return false;
-  return null;
+  return initializer && Node.isStringLiteral(initializer) ? initializer.getLiteralText() : null;
 };
 
-function inspectBatchFiles(findings: InspectorFinding[], lawId: string): void {
-  for (const filePath of batchFiles) {
-    if (!existsSync(resolveFromRepo(filePath))) {
-      addFinding(findings, lawId, filePath, "amazon-invoice-upload/batch-required-file", `${filePath} must exist.`);
+function inspectObsoleteBackendBatchSurface(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
+  for (const filePath of obsoleteBackendBatchFiles) {
+    if (existsSync(resolveFromRepo(filePath))) {
+      addFinding(findings, lawId, filePath, "amazon-invoice-upload/no-obsolete-backend-batch-file", `${filePath} must not exist; APP batch upload must stay a local queue over the existing single-upload route.`);
     }
   }
+
+  inspectRouteRules(context, findings, lawId);
+  inspectSourceLiterals(context, findings, lawId, "src/app/workbench-amazon-routes.ts");
+  inspectSourceLiterals(context, findings, lawId, "src/app/workbench-home-client.ts");
+  inspectSourceLiterals(context, findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts");
+  inspectHandleExports(context, findings, lawId);
+  inspectSchema(context, findings, lawId);
 }
 
-function inspectBatchRoutes(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
+function inspectRouteRules(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
   const boundary = source(context, "src/app/workbench-api-boundary.ts");
   const routes = boundary ? exportedArray(boundary, "WORKBENCH_API_ROUTE_RULES") : null;
   const objects = routes?.getElements().filter(Node.isObjectLiteralExpression) ?? [];
-  for (const route of requiredBatchRoutes) {
-    const rule = objects.find((item) => propertyValue(item, "path") === route);
-    if (!rule) {
-      addFinding(findings, lawId, "src/app/workbench-api-boundary.ts", "amazon-invoice-upload/batch-route-missing", `${route} must be allowlisted.`);
-      continue;
-    }
-    if (propertyValue(rule, "localUiAllowed") !== true || propertyValue(rule, "externalApiAllowed") !== false || propertyValue(rule, "requiresApiKey") !== false || propertyValue(rule, "jobOwner") !== "amazon-invoice-upload") {
-      addFinding(findings, lawId, "src/app/workbench-api-boundary.ts", "amazon-invoice-upload/batch-route-shape", `${route} must be local UI only under amazon-invoice-upload owner.`);
+  for (const route of obsoleteBatchRoutes) {
+    if (objects.some((item) => propertyValue(item, "path") === route)) {
+      addFinding(findings, lawId, "src/app/workbench-api-boundary.ts", "amazon-invoice-upload/no-backend-batch-route-allowlist", `${route} must not be allowlisted; large selections use the local queue and /api/plugins/amazon-invoice-upload/start.`);
     }
   }
 }
 
-function inspectBatchSchema(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
+function inspectSourceLiterals(context: InspectorContext, findings: InspectorFinding[], lawId: string, filePath: string): void {
+  const file = source(context, filePath);
+  if (!file) return;
+  const values = stringLiteralValues(file);
+  for (const route of obsoleteBatchRoutes) {
+    if (values.has(route)) {
+      addFinding(findings, lawId, filePath, "amazon-invoice-upload/no-obsolete-backend-batch-route", `${filePath} must not reference obsolete backend batch route ${route}.`);
+    }
+  }
+  for (const handleName of obsoleteBatchHandleNames) {
+    if (file.getVariableDeclaration(handleName) || file.getFunction(handleName)) {
+      addFinding(findings, lawId, filePath, "amazon-invoice-upload/no-obsolete-backend-batch-handle", `${handleName} must not remain in the active route or handle surface.`);
+    }
+  }
+}
+
+function inspectHandleExports(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
+  for (const filePath of [
+    "src/lib/local-runtime/workbench-handle.ts",
+    "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+    "src/plugins/amazon-invoice-upload/index.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
+  ]) {
+    const file = source(context, filePath);
+    if (!file) continue;
+    const values = stringLiteralValues(file);
+    for (const handleName of obsoleteBatchHandleNames) {
+      if (values.has(handleName)) {
+        addFinding(findings, lawId, filePath, "amazon-invoice-upload/no-obsolete-backend-batch-export", `${handleName} must not be exported or typed as an active workbench API.`);
+      }
+    }
+  }
+}
+
+function inspectSchema(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
   const schema = source(context, "src/plugins/amazon-invoice-upload/mission.schema.ts");
-  if (!schema?.getVariableDeclaration("AmazonInvoiceUploadBatchMissionInputSchema")) {
-    addFinding(findings, lawId, "src/plugins/amazon-invoice-upload/mission.schema.ts", "amazon-invoice-upload/batch-schema-missing", "Batch mission schema must exist.");
-    return;
-  }
-  const values = stringLiteralValues(schema);
-  for (const key of forbiddenBatchSchemaKeys) {
-    if (values.has(key)) {
-      addFinding(findings, lawId, "src/plugins/amazon-invoice-upload/mission.schema.ts", "amazon-invoice-upload/batch-forbidden-schema-key", `Batch schema must not expose ${key}.`);
-    }
+  if (schema?.getVariableDeclaration("AmazonInvoiceUploadBatchMissionInputSchema")) {
+    addFinding(findings, lawId, "src/plugins/amazon-invoice-upload/mission.schema.ts", "amazon-invoice-upload/no-backend-batch-mission-schema", "amazon_invoice_upload_batch mission schema must not exist; local file queue items become normal amazon_invoice_upload missions.");
   }
 }
 
-function inspectBatchService(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
-  const service = source(context, batchServicePath);
-  if (!service) return;
-  const values = stringLiteralValues(service);
-  if (!service.getVariableDeclaration("sellerCentralOriginByMarketplace") || !service.getFunction("buildSellerCentralOrderDetailEntryUrl")) {
-    addFinding(findings, lawId, batchServicePath, "amazon-invoice-upload/batch-derived-seller-url", "Batch service must derive Seller Central order-detail entry URL from marketplace and order id.");
-  }
-  for (const url of ["https://sellercentral.amazon.ae", "https://sellercentral.amazon.sa", "https://sellercentral.amazon.co.jp", "https://sellercentral.amazon.com", "https://sellercentral.amazon.co.uk"]) {
-    if (!values.has(url)) {
-      addFinding(findings, lawId, batchServicePath, "amazon-invoice-upload/batch-derived-seller-url", `Batch service must derive supported Seller Central origin ${url}.`);
-    }
-  }
-  if (!values.has("/orders-v3/order/")) {
-    addFinding(findings, lawId, batchServicePath, "amazon-invoice-upload/batch-derived-seller-url", "Batch service must derive the same order-detail entry shape as single-upload API missions.");
-  }
-  const imports = service.getImportDeclarations().map((item) => item.getModuleSpecifierValue());
-  for (const forbiddenImport of ["./amazon-invoice-upload-steps.js", "./amazon-invoice-upload-file-attachment.js", "./amazon-invoice-upload-order-detail.js", "./amazon-invoice-upload-existing.js", "./amazon-invoice-upload-verify.js"]) {
-    if (imports.includes(forbiddenImport)) {
-      addFinding(findings, lawId, batchServicePath, "amazon-invoice-upload/batch-no-dom-copy", "Batch service must not import Seller Central DOM step modules.");
-    }
-  }
-  const hasPromiseAll = service.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression) && expression.getExpression().getText() === "Promise" && expression.getName() === "all";
-  });
-  if (hasPromiseAll) {
-    addFinding(findings, lawId, batchServicePath, "amazon-invoice-upload/batch-no-parallel-upload", "Batch upload must remain sequential and must not call Promise.all.");
-  }
-}
-
-function inspectBatchScaleLimits(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
-  const storage = source(context, batchStoragePath);
-  const service = source(context, batchServicePath);
-  if (storage?.getVariableDeclaration("MAX_BATCH_ITEMS") || storage?.getVariableDeclaration("MAX_BATCH_TOTAL_BYTES")) {
-    addFinding(findings, lawId, batchStoragePath, "amazon-invoice-upload/batch-no-count-cap", "Batch validation must not impose an arbitrary selected-file count or total-byte cap.");
-  }
-  const values = service ? stringLiteralValues(service) : storage ? stringLiteralValues(storage) : new Set<string>();
-  if (values.has("too_many_files")) {
-    addFinding(findings, lawId, batchServicePath, "amazon-invoice-upload/batch-no-count-cap", "Batch service must not reject local file queues with too_many_files.");
-  }
-}
-
-function inspectBatchUi(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
+function inspectLocalQueueUi(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
   const layout = source(context, "src/app/app-shell/amazon-invoice-workspace.ts");
   const client = source(context, "src/app/workbench-home-amazon-invoice-client.ts");
   const homeClient = source(context, "src/app/workbench-home-client.ts");
@@ -172,38 +166,38 @@ function inspectBatchUi(context: InspectorContext, findings: InspectorFinding[],
     ...(client ? stringLiteralValues(client) : []),
     ...(homeClient ? stringLiteralValues(homeClient) : []),
   ])].join("\n");
-  inspectBatchUiLayout(layoutCorpus, batchSurfaceCorpus, findings, lawId);
-  inspectBatchUiClient(clientCorpus, findings, lawId);
+  inspectLocalQueueLayout(layoutCorpus, batchSurfaceCorpus, findings, lawId);
+  inspectLocalQueueClient(clientCorpus, findings, lawId);
 }
 
-function inspectBatchUiLayout(layoutCorpus: string, batchSurfaceCorpus: string, findings: InspectorFinding[], lawId: string): void {
-  for (const value of ["batch", "ledger", "data-amazon-invoice-batch-form", "Start Batch Upload"]) {
+function inspectLocalQueueLayout(layoutCorpus: string, batchSurfaceCorpus: string, findings: InspectorFinding[], lawId: string): void {
+  for (const value of ["batch", "ledger", "data-amazon-invoice-batch-form", "Start Batch Upload", "data-amazon-invoice-upload-ledger-list"]) {
     if (!layoutCorpus.includes(value)) addFinding(findings, lawId, "src/app/app-shell/amazon-invoice-workspace.ts", "amazon-invoice-upload/batch-ui-surface", `Batch UI must expose ${value}.`);
   }
   if (batchSurfaceCorpus.includes("Seller Central Entry URL") || batchSurfaceCorpus.includes("sellerCentralEntryUrl")) {
-    addFinding(findings, lawId, "src/app/app-shell/amazon-invoice-workspace.ts", "amazon-invoice-upload/batch-ui-seller-url", "Batch UI must not expose Seller Central Entry URL; it is derived from marketplace.");
+    addFinding(findings, lawId, "src/app/app-shell/amazon-invoice-workspace.ts", "amazon-invoice-upload/batch-ui-seller-url", "Batch UI must not expose Seller Central Entry URL; it is derived per file from marketplace and order id.");
   }
-  if (layoutCorpus.includes("Safe Review Mode") || layoutCorpus.includes("require human final submit")) {
-    addFinding(findings, lawId, "src/app/app-shell/amazon-invoice-workspace.ts", "amazon-invoice-upload/no-human-final-submit-ui", "Amazon invoice upload UI must not expose human final-submit mode.");
+  if (layoutCorpus.includes("Safe Review Mode") || layoutCorpus.includes("require human final submit") || layoutCorpus.includes("Latest Batch") || layoutCorpus.includes("Batch Ledger")) {
+    addFinding(findings, lawId, "src/app/app-shell/amazon-invoice-workspace.ts", "amazon-invoice-upload/no-obsolete-batch-ui-mode", "Amazon invoice UI must not expose human-review or obsolete backend batch history modes.");
   }
 }
 
-function inspectBatchUiClient(clientCorpus: string, findings: InspectorFinding[], lawId: string): void {
-  if (!clientCorpus.includes("amazonInvoiceBatchSellerCentralEntryUrl")) {
-    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-derived-seller-url", "Batch client must derive a placeholder Seller Central order-detail entry URL from marketplace.");
-  }
-  if (clientCorpus.includes("requireHumanFinalSubmit") || clientCorpus.includes("stopOnManualRequired")) {
-    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/no-human-final-submit-contract", "Amazon invoice client must not send human final-submit or manual stop compatibility fields.");
-  }
-  if (clientCorpus.includes("body.append(\"invoicePdfs\"")) {
-    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-no-single-huge-multipart", "Large local selections must be queued through the existing single-upload route instead of one huge multipart request.");
-  }
-  for (const requiredClientGuard of ["ensureAmazonInvoiceBackendReady", "backend_unreachable", "AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT", "compactAmazonInvoiceBatchRecord", "amazonInvoiceLocalQueueCounterKey"]) {
+function inspectLocalQueueClient(clientCorpus: string, findings: InspectorFinding[], lawId: string): void {
+  for (const requiredClientGuard of requiredLocalQueueGuards) {
     if (!clientCorpus.includes(requiredClientGuard)) {
       addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-local-queue-health", `Batch local queue client must include ${requiredClientGuard}.`);
     }
   }
-  for (const route of requiredBatchRoutes) {
-    if (!clientCorpus.includes(route)) addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-client-route", `Batch client must bind ${route}.`);
+  if (!clientCorpus.includes("/api/plugins/amazon-invoice-upload/start")) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-single-route", "Batch local queue must call the existing single-upload route.");
+  }
+  if (!clientCorpus.includes("/api/plugins/amazon-invoice-upload/ledger")) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-ledger-preflight", "Batch local queue must read the existing upload ledger before opening Seller Central for queued files.");
+  }
+  if (!clientCorpus.includes("body.append(\"invoicePdf\"")) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-one-file-per-request", "Batch local queue must submit exactly one invoicePdf per request.");
+  }
+  if (clientCorpus.includes("body.append(\"invoicePdfs\"") || clientCorpus.includes("requireHumanFinalSubmit") || clientCorpus.includes("stopOnManualRequired")) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/no-obsolete-batch-request-shape", "Batch client must not send huge invoicePdfs multipart or human/manual compatibility fields.");
   }
 }

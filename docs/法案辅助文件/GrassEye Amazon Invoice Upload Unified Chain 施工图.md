@@ -301,9 +301,11 @@ Before start/latest/status upload API handoff, website reads full Agent upload l
 APP visibility rule:
 
 ```txt
-Amazon Invoice Upload 的 App Shell Ledger 页面必须同时展示：
-1. 单张上传台账：GET /api/plugins/amazon-invoice-upload/ledger 返回的 records。
-2. 批量编排台账：GET /api/plugins/amazon-invoice-upload/batch/history 返回的 batches。
+Amazon Invoice Upload 的 App Shell Ledger 页面必须展示单张上传台账：
+GET /api/plugins/amazon-invoice-upload/ledger 返回的 records。
+
+本地批量选择只是 APP 端队列编排；每一张 PDF 必须落到既有单张上传 task ledger。
+不得再新增 /batch/history 作为第二台账真相。
 SQLite upload ledger 真实存在但 APP 不读取，视为台账不可见缺陷。
 ```
 
@@ -398,14 +400,16 @@ scripts/audit/domains/amazon-tax-invoice-download/**
 ```txt
 WHY HAPPEN:
 法案已定义 amazon-invoice-upload 单 owner、DOM 边界、audit+acceptance+ci-full 覆盖。
-缺口不属于可修改 active law；法案文件冻结。
-缺口属于后半段上传施工图细节缺失 + amazon-invoice-upload owner inspector 未覆盖刷新/重试稳定性。
+旧治理把“订单详情打开后立即刷新一次”写成固定动作，虽然降低了闪烁失败，但过于机械且增加每单固定节奏。
+该缺口已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 固化为条件式唯一恢复刷新。
 ```
 
 后半段上传必须固定以下生产行为：
 
-1. 打开订单详情 URL 后，必须对同一订单详情 URL 执行一次刷新。
-2. 刷新后必须等待随机 3-6 秒，再进入上传入口定位和点击。
+1. 打开订单详情 URL 后，先在随机 3-5 秒 readiness window 内轮询 DOM。
+2. 若已出现目标 orderId + upload/manage/already-uploaded invoice action state，且页面不在 loading，则不得执行恢复刷新。
+3. 若 readiness window 内未出现目标 orderId + invoice action state，且不是登录/验证码/2FA gate，则只允许执行一次同 tab 恢复刷新。
+4. 恢复刷新后等待随机短窗口，再进入最终订单详情验证。
 3. 上传关键步骤失败时必须最多额外递归重试 2 次。
 4. 重试必须只复用既有 `amazon-invoice-upload` flow、既有 BrowserController、既有 Runtime Log Spine、既有 DOM public facade。
 5. 登录、2FA、验证码、人工最终提交、最终上传验证等敏感终态不得被重试伪造成成功。
@@ -429,10 +433,14 @@ scripts/audit/domains/amazon-invoice-upload/inspector.ts
 Inspector 必须用 ts-morph AST 检查：
 
 ```txt
-ORDER_DETAIL_REFRESH_WAIT_MIN_MS = 3_000
-ORDER_DETAIL_REFRESH_WAIT_MAX_MS = 6_000
-openApprovedOrderDetail -> refreshApprovedOrderDetailOnce
-randomOrderDetailRefreshWaitMs -> Math.random()
+ORDER_DETAIL_READY_WAIT_MIN_MS = 3_000
+ORDER_DETAIL_READY_WAIT_MAX_MS = 5_000
+ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS / MAX 存在
+openApprovedOrderDetail -> waitForApprovedOrderDetail
+openApprovedOrderDetail -> refreshApprovedOrderDetailIfNeeded
+禁止 refreshApprovedOrderDetailOnce
+random wait -> Math.random()
+恢复刷新日志包含 Order detail recovery refresh executed once after missing readiness markers
 UPLOAD_STEP_RETRY_LIMIT = 2
 runUploadStepWithRetries 递归调用自身
 open order detail / open upload invoice entry / upload approved invoice 均接入 runUploadStepWithRetries
@@ -461,7 +469,7 @@ Batch / Upload UI 不得暴露 `Safe Review Mode` 或 `require human final submi
 ```txt
 WHY HAPPEN:
 单张上传能力已经存在，但批量使用方式没有稳定编排层、没有多文件入口、没有长期 batch ledger。
-该缺口属于 amazon-invoice-upload 施工图细节和防复发验收缺失，不属于 active law 缺失；法案文件冻结。
+该缺口后续实证暴露出“巨大 multipart 后端 batch 模式”和“本地队列断点恢复缺失”两个问题；已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1 固化为本地队列读取既有 upload ledger 的预检跳过规则。
 ```
 
 批量上传必须固定为：
@@ -503,18 +511,14 @@ App Shell Batch Upload 不得把所有选中的 PDF bytes 一次性塞进一个 
 生产落点：
 
 ```txt
-src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts
-src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts
-src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts
 src/app/workbench-amazon-routes.ts
 src/app/workbench-api-boundary.ts
-src/app/workbench-multipart.ts
 src/app/app-shell/app-shell-layout.ts
 src/app/workbench-home-amazon-invoice-client.ts
 src/lib/local-runtime/workbench-amazon-invoice-handle.ts
 ```
 
-Batch route 必须保持在现有 owner 路径内：
+禁止恢复旧后端 batch route family：
 
 ```txt
 POST /api/plugins/amazon-invoice-upload/batch/start
@@ -523,7 +527,28 @@ GET  /api/plugins/amazon-invoice-upload/batch/latest
 GET  /api/plugins/amazon-invoice-upload/batch/history
 ```
 
-Batch route 是本地 App Shell 来源入口，不是网站侧新增上传协议。外部网站继续使用单张：
+原因：该模式一次性接收全部 selected PDFs 为巨大 multipart；用户选择几千至上万张时会卡死 APP/Node 入口，是已实证失败模式。
+
+本地 APP 批量上传必须是 browser-side local queue：
+
+```txt
+select local PDFs
+  -> read existing upload ledger once from GET /api/plugins/amazon-invoice-upload/ledger
+  -> parse filename as amazonOrderId/invoiceNo
+  -> for each queued item:
+       if ledger has upload_success for same amazonOrderId + invoiceNo:
+         mark item already_uploaded / skipped_by_upload_ledger
+         do not open Seller Central
+         continue
+       POST /api/plugins/amazon-invoice-upload/start
+       field: mission
+       file: invoicePdf
+  -> existing startAmazonInvoiceUploadTask
+  -> existing runAmazonInvoiceUpload
+  -> existing upload ledger
+```
+
+Batch UI 是本地 App Shell 队列入口，不是网站侧新增上传协议。外部网站继续使用单张：
 
 ```txt
 POST /api/plugins/amazon-invoice-upload/start
@@ -539,11 +564,17 @@ https://sellercentral.amazon.<market>/orders-v3/order/<amazonOrderId>
 
 Batch Upload 不得暴露、隐藏发送、默认启用人审最终提交模式。批量上传必须纯自动执行到 Seller Central 最终提交和上传结果验证；登录失效、验证码、2FA 等全局鉴权问题必须进入 `blocked_auth` 并停止，普通单张 DOM/平台失败必须记录为该 item `failed`，默认继续后续 item，除非用户显式开启 `stopOnFailed`。
 
-ledger storage:
+ledger storage 固定使用既有单张上传 task ledger；本地队列运行态可以在页面显示 batchId/current counters，但不得成为第二持久台账。
+
+断点恢复 / 去重规则：
 
 ```txt
-<dataDir>/plugin-tasks/amazon-invoice-upload/batch/<batchId>/batch.json
-<dataDir>/plugin-tasks/amazon-invoice-upload/batch/<batchId>/files/<orderId>.pdf
+1. 本地 batch 开始后必须先读取 Agent 上传台账。
+2. 只允许跳过 `status === upload_success` 的同 orderId + invoiceNo 记录。
+3. `failed` / `review_required` / `blocked_auth` / `manual_required` / `invalid` / unknown 不得跳过，必须按正常上传策略处理。
+4. 如果 ledger preflight 读取失败，batch 必须 fail closed，不得继续盲传。
+5. 跳过项必须在页面队列可见，状态归一为 already_uploaded，reason=skipped_by_upload_ledger，reachedStep=upload ledger preflight。
+6. 不得为断点恢复新增第二 batch route、第二 ledger 或第二上传 service。
 ```
 
 防复发落点：
@@ -561,6 +592,83 @@ scripts/audit/domains/amazon-invoice-upload/inspector.ts
 npm run acceptance:amazon-invoice-upload-batch
 npm run acceptance:app-shell-ui
 npm run acceptance:workbench-api-boundary
+npm run audit:amazon-invoice-upload
+npm run ci:full
+```
+
+## 19. Batch Order Tab Lifecycle
+
+问题追溯：
+
+```txt
+WHY HAPPEN:
+旧上传链路在 upload_success / already_uploaded 后逐单关闭 active tab。
+这让“清理 tab 失败”污染了真实业务结果，并且批量处理时反复开关 Seller Central 订单 tab，页面焦点和弹窗状态更脆弱。
+该问题属于 active law 缺失 + 施工图细节缺失；已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1 固化。
+```
+
+批量上传订单 tab 生命周期必须固定为：
+
+```txt
+batch start
+  -> refresh current Chrome navigation state
+  -> find existing Seller Central same-host worker tab, or open one if none exists
+  -> item 1: navigate worker tab to /orders-v3/order/<orderId>
+       -> wait random 3-5s for order id + invoice action state
+       -> if missing and no auth gate, perform one recovery refresh and wait a random short window
+       -> verify target order id + invoice action state
+       -> upload / already-uploaded judgment
+       -> retain worker tab
+  -> item 2: reuse same active worker tab and navigate URL
+  -> ...
+  -> batch end: optional session cleanup outside per-item success judgment
+```
+
+网站侧逐单 API 与本地批量读取必须共用同一单张上传入口。入口导航策略固定为：
+
+```txt
+HTTP Seller Central URL:
+  reuse-host-tab
+    -> search all Chrome windows for same protocol + host
+    -> focus retained Seller Central tab and replace URL
+    -> if none exists, open one new Seller Central worker tab
+
+file/local smoke URL:
+  reuse-active-tab only after current state confirms same host
+```
+
+强制规则：
+
+```txt
+1. 如果 active tab 已经是同 Seller Central host，下一单必须使用 reuse-active-tab。
+2. upload_success 不得依赖 closeActiveTab。
+3. already_uploaded 不得依赖 closeActiveTab。
+4. close tab 失败不得把 Amazon 已验证成功变成 review_required。
+5. 每次复用 tab 后仍必须重新验证目标 orderId、invoice action state、loading 结束。
+```
+
+允许：
+
+```txt
+首单在当前 tab 不是 Seller Central 时打开一个专用订单工作 tab。
+登录失效、验证码、2FA、风险验证时停止 batch 并进入 blocked_auth / manual_required。
+整个 batch 结束后可做非业务性 session cleanup，但 cleanup 不得改写 item 结果。
+```
+
+禁止：
+
+```txt
+每张发票成功后立即关闭 active tab。
+每张已上传确认后立即关闭 active tab。
+为了复用 tab 新增第二浏览器控制器或第二上传 flow。
+App Shell/API Boundary 决定 Seller Central tab 生命周期。
+```
+
+防复发落点：
+
+```txt
+scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts
+scripts/acceptance/amazon-invoice-upload-smoke.ts
 npm run audit:amazon-invoice-upload
 npm run ci:full
 ```

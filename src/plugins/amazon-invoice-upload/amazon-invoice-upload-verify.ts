@@ -4,6 +4,7 @@ import { taskResult, waitForState } from "./amazon-invoice-upload-flow-support.j
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
+import { verifyAlreadyUploadedInvoice } from "./amazon-invoice-upload-existing.js";
 
 const UPLOAD_SUCCESS_HINTS = [
   "invoice uploaded successfully",
@@ -48,19 +49,19 @@ export async function verifyUploadSuccess(
     reason: success.reason,
     evidenceRef: success.evidenceRef,
   });
-  if (success.status !== "success") return buildUploadReviewResult(mission, success);
-  const closeResult = await browser.closeActiveTab({
-    reason: "Amazon invoice upload success verified",
-  });
+  if (success.status !== "success") {
+    const existing = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
+    if (existing?.status === "upload_success") return existing;
+    return buildUploadReviewResult(mission, success);
+  }
   recordAmazonDomStepTrace({
     runtimeLogger,
     mission,
-    stepName: "close uploaded order tab",
-    status: closeResult.ok ? "success" : "review_required",
-    reason: closeResult.ok ? "Active order tab closed." : closeResult.message,
+    stepName: "retain uploaded order tab",
+    status: "success",
+    reason: "Active Seller Central order worker tab retained for next invoice navigation.",
   });
-  if (!closeResult.ok) return buildCloseReviewResult(mission, success, closeResult.message);
-  return buildUploadSuccessResult(mission, success, closeResult);
+  return buildUploadSuccessResult(mission, success);
 }
 
 const buildUploadReviewResult = (
@@ -80,30 +81,12 @@ const buildUploadReviewResult = (
 const buildUploadSuccessResult = (
   mission: AmazonInvoiceUploadMissionInput,
   success: VerifySuccessResult,
-  closeResult: Awaited<ReturnType<BrowserController["closeActiveTab"]>>,
 ): AmazonInvoiceUploadTaskResult =>
   taskResult({
     status: "upload_success",
-    reason: closeResult.ok
-      ? "Amazon Seller Central shows invoice uploaded successfully; active order tab closed."
-      : `Amazon Seller Central shows invoice uploaded successfully; active tab close needs review: ${closeResult.message}`,
+    reason: "Amazon Seller Central shows invoice uploaded successfully; active order tab retained for next invoice navigation.",
     reachedStep: "upload success verified",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
     evidenceRef: success.evidenceRef,
-  });
-
-const buildCloseReviewResult = (
-  mission: AmazonInvoiceUploadMissionInput,
-  success: VerifySuccessResult,
-  closeMessage: string,
-): AmazonInvoiceUploadTaskResult =>
-  taskResult({
-    status: "review_required",
-    reason: `Amazon Seller Central shows invoice uploaded successfully, but active tab close needs review: ${closeMessage}`,
-    reachedStep: "close uploaded order tab",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    evidenceRef: success.evidenceRef,
-    reviewRequired: true,
   });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T16:03:56.915Z",
+  "generatedAt": "2026-05-29T21:33:53.988Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -11,7 +11,10 @@
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -25,6 +28,7 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
@@ -34,9 +38,6 @@
     "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",

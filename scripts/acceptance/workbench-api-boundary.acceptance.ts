@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 import type { AddressInfo } from "node:net";
 
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
-import { createBoundaryBatchRecord, getLocalBatchRoute, postExternalBatchStart, postLocalBatchStart } from "./workbench-api-boundary-batch-support.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 import type { AmazonInvoiceUploadTaskRecord } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.js";
 import type { AmazonInvoiceUploadTaskStartInput } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.js";
@@ -98,7 +97,6 @@ const createFakeWorkbench = (): FakeWorkbench => {
   };
   attachUploadTaskMethods(fake);
   attachDownloadTaskMethods(fake);
-  attachBatchTaskMethods(fake);
   return fake as FakeWorkbench;
 };
 
@@ -121,16 +119,6 @@ function attachDownloadTaskMethods(fake: MutableFakeWorkbench): void {
   fake.getAmazonTaxInvoiceDownloadTaskStatus = async (taskId: string) => createDownloadRecord({ taskId, status: "completed" });
   fake.getLatestAmazonTaxInvoiceDownloadTask = async () => null;
   fake.getAmazonTaxInvoiceDownloadArtifact = async () => null;
-}
-
-function attachBatchTaskMethods(fake: MutableFakeWorkbench): void {
-  fake.startAmazonInvoiceUploadBatchTask = async () => {
-    fake.startCalls += 1;
-    return createBoundaryBatchRecord();
-  };
-  fake.getAmazonInvoiceUploadBatchStatus = async () => createBoundaryBatchRecord();
-  fake.getLatestAmazonInvoiceUploadBatch = async () => createBoundaryBatchRecord();
-  fake.listAmazonInvoiceUploadBatches = async () => [createBoundaryBatchRecord()];
 }
 
 const withExternalEnv = (enabled: boolean): void => {
@@ -312,29 +300,32 @@ const assertExternalUploadLedgerAllowed = async (): Promise<void> => {
   });
 };
 
-const assertLocalBatchRoutesAllowed = async (): Promise<void> => {
+const assertObsoleteBatchRoutesUnavailable = async (): Promise<void> => {
   await withServer(async ({ rootUrl, workbench }) => {
-    const response = await postLocalBatchStart(rootUrl, localBaseUrl);
-    assert.equal(response.status, 200);
-    assert.equal(workbench.startCalls, 1);
     for (const path of [
+      "/api/plugins/amazon-invoice-upload/batch/start",
       "/api/plugins/amazon-invoice-upload/batch/status/batch_acceptance",
       "/api/plugins/amazon-invoice-upload/batch/latest",
       "/api/plugins/amazon-invoice-upload/batch/history",
     ]) {
-      const statusResponse = await getLocalBatchRoute(rootUrl, localBaseUrl, path);
-      assert.equal(statusResponse.status, 200);
+      const response = await fetch(`${rootUrl}${path}`, { method: path.endsWith("/start") ? "POST" : "GET", headers: { Origin: localBaseUrl } });
+      assert.notEqual(response.status, 200, `${path} must not remain an active backend batch route.`);
     }
+    assert.equal(workbench.startCalls, 0);
   });
 };
 
 const assertExternalBatchRoutesBlocked = async (): Promise<void> => {
   await withServer(async ({ rootUrl, workbench }) => {
     withExternalEnv(true);
-    const response = await postExternalBatchStart(rootUrl, externalOrigin, apiKey);
-    const body = await readJson(response);
-    assert.equal(response.status, 403);
-    assert.equal(body.error, "route_not_external_allowed");
+    const response = await fetch(`${rootUrl}/api/plugins/amazon-invoice-upload/batch/start`, {
+      method: "POST",
+      headers: {
+        Origin: externalOrigin,
+        "X-GrassEye-Agent-Key": apiKey,
+      },
+    });
+    assert([403, 404].includes(response.status), "obsolete external batch route must be blocked or absent");
     assert.equal(workbench.startCalls, 0);
   });
 };
@@ -481,7 +472,7 @@ const runCoreBoundaryAssertions = async (): Promise<void> => {
   await assertExternalAuthBoundaries();
   await assertExternalDownloadStartAllowed();
   await assertExternalUploadLedgerAllowed();
-  await assertLocalBatchRoutesAllowed();
+  await assertObsoleteBatchRoutesUnavailable();
   await assertExternalDownloadCallbackAllowed();
   await assertExternalDownloadCallbackBlocked();
 };

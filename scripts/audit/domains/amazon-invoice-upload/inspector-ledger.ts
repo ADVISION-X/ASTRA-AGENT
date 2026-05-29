@@ -51,6 +51,14 @@ const literalCorpus = (file: SourceFile): string =>
     ...file.getDescendantsOfKind(SyntaxKind.TemplateTail).map((item) => item.getLiteralText()),
   ].join("\n");
 
+const hasStringLiteralValue = (file: SourceFile, value: string): boolean =>
+  file.getDescendantsOfKind(SyntaxKind.StringLiteral).some((item) => item.getLiteralText() === value)
+    || file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).some((item) => item.getLiteralText() === value);
+
+const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeName: string): boolean =>
+  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
+    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName);
+
 export function inspectAmazonInvoiceUploadLedgerGuard(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
   inspectLedgerBoundary(source(context, boundaryPath), findings, lawId);
   inspectLedgerFiles({
@@ -94,6 +102,7 @@ function inspectLedgerFiles(input: {
   if (!ledgerFile || !storageFile || !taskServiceFile || !routesFile || !appShellFile || !appClientFile) return;
   inspectLedgerStorage(ledgerFile, findings, lawId);
   inspectLedgerProjectionWrites(storageFile, findings, lawId);
+  inspectLedgerCanonicalProjection(ledgerFile, storageFile, findings, lawId);
   inspectLedgerServiceAndRoute(taskServiceFile, routesFile, findings, lawId);
   inspectLedgerAppShell(appShellFile, appClientFile, findings, lawId);
 }
@@ -116,6 +125,40 @@ function inspectLedgerProjectionWrites(storageFile: SourceFile, findings: Inspec
     Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "upsertAmazonInvoiceUploadLedgerRecord");
   if (!literalCorpus(storageFile).includes("./amazon-invoice-upload-ledger.js") || !callsLedger) {
     addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/ledger-save-task-record", "saveTaskRecord must write the Agent upload ledger through the existing upload task record path.");
+  }
+}
+
+function inspectLedgerCanonicalProjection(
+  ledgerFile: SourceFile,
+  storageFile: SourceFile,
+  findings: InspectorFinding[],
+  lawId: string,
+): void {
+  const ledgerCorpus = literalCorpus(ledgerFile);
+  for (const required of ["ranked_ledger", "ROW_NUMBER() OVER", "PARTITION BY amazon_order_id, invoice_no", "status = 'upload_success'", "canonical_rank = 1"]) {
+    if (!ledgerCorpus.includes(required)) {
+      addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-success-wins-projection", `External upload ledger must use success-wins canonical projection token ${required}.`);
+    }
+  }
+  if (!ledgerFile.getFunction("backfillLedgerFromTaskRecords") || !ledgerFile.getFunction("readTaskRecords")) {
+    addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-task-record-backfill", "External upload ledger must backfill from existing task records.");
+  }
+  if (!hasStringLiteralValue(ledgerFile, "task.json")) {
+    addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-task-record-backfill", "External upload ledger backfill must read task.json records.");
+  }
+  if (!functionCallsIdentifier(ledgerFile, "backfillLedgerFromTaskRecords", "writeLedgerRecord")) {
+    addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-task-record-backfill", "External upload ledger backfill must reuse the canonical ledger writer.");
+  }
+  const canonicalSelector = storageFile.getFunction("selectCanonicalUploadTaskRecord");
+  if (!canonicalSelector) {
+    addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/latest-success-wins", "Latest task lookup must preserve prior upload_success over later uncertain review.");
+  } else {
+    const hasUploadSuccessLiteral = canonicalSelector
+      .getDescendantsOfKind(SyntaxKind.StringLiteral)
+      .some((item) => item.getLiteralText() === "upload_success");
+    if (!hasUploadSuccessLiteral) {
+      addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/latest-success-wins", "Latest task lookup canonical selector must prefer upload_success records.");
+    }
   }
 }
 

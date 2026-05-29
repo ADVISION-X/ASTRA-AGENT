@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T16:03:29.424Z",
+  "generatedAt": "2026-05-29T21:33:26.893Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -15,7 +15,10 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"
       ],
       "clauseIds": [
         "primary"
@@ -26,7 +29,9 @@
         "ast+acceptance",
         "audit+acceptance+ci-full",
         "evidence-map+ast",
+        "flow+ast+acceptance+chrome",
         "fs+ast",
+        "ledger+app-shell+acceptance+audit",
         "schema+storage+acceptance",
         "storage+acceptance+ast",
         "storage+api-boundary+audit+acceptance"
