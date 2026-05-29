@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:59:13.087Z",
+  "generatedAt": "2026-05-29T15:43:08.321Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -100,6 +100,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",

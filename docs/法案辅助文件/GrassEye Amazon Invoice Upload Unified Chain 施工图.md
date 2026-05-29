@@ -14,6 +14,7 @@ owner：amazon-invoice-upload
 POST /api/plugins/amazon-invoice-upload/start
 GET  /api/plugins/amazon-invoice-upload/status/<taskId>
 GET  /api/plugins/amazon-invoice-upload/latest
+GET  /api/plugins/amazon-invoice-upload/ledger
 ```
 
 当前没有 tax invoice CSV download schema、download task record、download routes、Download UI surface、Amazon invoice 专项 audit domain。
@@ -30,6 +31,7 @@ Website / App Shell UI
                   -> DOWNLOAD_ARTIFACT_PERSIST
                   -> APPROVED_INVOICE_UPLOAD
                       -> Task Record / Artifact / Evidence / Runtime Logs
+                          -> Agent Upload Ledger
                           -> Website polling or callback
 ```
 
@@ -160,6 +162,7 @@ createdAt
 新增到现有 `src/app/workbench-amazon-routes.ts`：
 
 ```txt
+GET  /api/plugins/amazon-invoice-upload/ledger
 POST /api/plugins/amazon-invoice-upload/download/start
 GET  /api/plugins/amazon-invoice-upload/download/status/<taskId>
 GET  /api/plugins/amazon-invoice-upload/download/latest
@@ -251,9 +254,69 @@ GET /api/plugins/amazon-invoice-upload/download/artifact/<taskId>
 
 Artifact response must not include raw CSV content, documentId, cookies, or local absolute path.
 
-## 12. Status / Latest / Artifact 查询
+### Upload Ledger
 
-Status returns the persisted download task record. Latest may filter by requestId or marketplace. Artifact returns safe metadata for known task only and rejects unknown task.
+```http
+GET /api/plugins/amazon-invoice-upload/ledger
+Origin: https://<allowed-website-origin>
+X-GrassEye-Agent-Key: <secret>
+```
+
+Ledger response is the website-side upload status truth source. It is populated only when the existing `saveTaskRecord` path writes an Amazon invoice upload task record. It must not be written by website export actions, PDF download actions, or any second upload chain.
+
+Allowed ledger fields:
+
+```txt
+taskId
+amazonOrderId
+invoiceNo
+status
+reason
+reachedStep
+evidenceRef
+domTraceRef
+reviewRequired
+createdAt
+updatedAt
+```
+
+Forbidden ledger response fields:
+
+```txt
+invoicePdfPath
+raw PDF bytes
+local absolute path
+cookie / sellerCentralCookie
+browserProfileDirectory
+selector / browserCommand / flowStep
+documentId / downloadUrl
+```
+
+Website integration rule:
+
+```txt
+Before start/latest/status upload API handoff, website reads full Agent upload ledger and syncs website DB from that ledger. Exporting unuploaded invoices does not change upload status.
+```
+
+APP visibility rule:
+
+```txt
+Amazon Invoice Upload 的 App Shell Ledger 页面必须同时展示：
+1. 单张上传台账：GET /api/plugins/amazon-invoice-upload/ledger 返回的 records。
+2. 批量编排台账：GET /api/plugins/amazon-invoice-upload/batch/history 返回的 batches。
+SQLite upload ledger 真实存在但 APP 不读取，视为台账不可见缺陷。
+```
+
+External upload compatibility rule:
+
+```txt
+API Boundary 只拦截 selector / browserCommand / documentId / cookie 等 DOM 控制或敏感逃逸字段。
+历史网站 payload 中的 requireHumanFinalSubmit / stopOnManualRequired / sourceSystem / requestId 不得作为 forbidden_external_request_key 在 Boundary 层拦截；upload route 必须先清洗这些非单张上传 schema 字段，再进入既有 startAmazonInvoiceUploadTask 单张上传链路。执行层、schema、service 仍不得保留人工最终提交字段。
+```
+
+## 12. Status / Latest / Artifact / Ledger 查询
+
+Status returns the persisted download task record. Latest may filter by requestId or marketplace. Artifact returns safe metadata for known task only and rejects unknown task. Ledger returns safe upload status records for website DB sync and never returns local PDF paths.
 
 ## 13. Callback 二阶段策略
 
@@ -276,6 +339,18 @@ scripts/acceptance/app-shell-ui.acceptance.ts
 ```
 
 Inspector 必须使用 ts-morph AST 结构检查，不使用 grep / RegExp / raw source scanning 作为执法依据。
+
+Inspector 还必须阻断：
+
+```txt
+缺少 amazon-invoice-upload-ledger.ts
+saveTaskRecord 未写入 upload ledger
+ledger route 未通过 Workbench API Boundary 显式 exact allowlist
+ledger route 非 externalApiAllowed true / requiresApiKey true / jobOwner amazon-invoice-upload
+ledger response 暴露 invoicePdfPath、本地路径、cookie、selector、browserCommand、documentId、downloadUrl
+```
+
+Acceptance 至少覆盖 Workbench API Boundary 外部 GET ledger 成功返回 records。
 
 ## 15. Chrome 验证步骤
 
@@ -335,6 +410,8 @@ WHY HAPPEN:
 4. 重试必须只复用既有 `amazon-invoice-upload` flow、既有 BrowserController、既有 Runtime Log Spine、既有 DOM public facade。
 5. 登录、2FA、验证码、人工最终提交、最终上传验证等敏感终态不得被重试伪造成成功。
 6. 每次刷新和每次重试必须通过 `recordAmazonDomStepTrace` 留下结构化调试证据，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
+7. AGENT 发票上传执行链禁止默认或主动停在人工最终提交；`requireHumanFinalSubmit` 不再属于上传执行契约，UI/client/schema/service 均不得发送或保留该字段。外部旧 payload 若携带该字段，只能在 upload route 清洗后进入既有单张上传链路，生产执行必须继续自动点击 Seller Central 弹窗底部最终 `上传` / `Upload`。
+8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`管理发票` / `Manage invoice`、`由卖家生成` / `Seller generated`。
 
 生产落点：
 
@@ -360,6 +437,11 @@ UPLOAD_STEP_RETRY_LIMIT = 2
 runUploadStepWithRetries 递归调用自身
 open order detail / open upload invoice entry / upload approved invoice 均接入 runUploadStepWithRetries
 敏感终态 gate 不进入无限重试
+不得存在 `file attached before final submit` 人审终止分支
+schema / UI / client / service 均不得保留 `requireHumanFinalSubmit` 或 `stopOnManualRequired`
+API Boundary 不得把 `requireHumanFinalSubmit` / `stopOnManualRequired` 当作 forbidden_external_request_key；upload route 必须清洗 legacy 非 schema 字段
+APP Ledger 页面必须读取 `/api/plugins/amazon-invoice-upload/ledger` 并展示 upload records
+Batch / Upload UI 不得暴露 `Safe Review Mode` 或 `require human final submit`
 ```
 
 验收要求：
@@ -370,4 +452,115 @@ open order detail / open upload invoice entry / upload approved invoice 均接�
 3. 必须观测到 FAIL。
 4. 恢复生产代码。
 5. npm run audit:amazon-invoice-upload / npm run typecheck / npm run ci:full 必须通过。
+```
+
+## 18. Batch Upload Orchestration Ledger
+
+问题追溯：
+
+```txt
+WHY HAPPEN:
+单张上传能力已经存在，但批量使用方式没有稳定编排层、没有多文件入口、没有长期 batch ledger。
+该缺口属于 amazon-invoice-upload 施工图细节和防复发验收缺失，不属于 active law 缺失；法案文件冻结。
+```
+
+批量上传必须固定为：
+
+```txt
+Batch Upload = orchestration only
+Single Upload = existing startAmazonInvoiceUploadTask / runAmazonInvoiceUpload
+```
+
+禁止：
+
+```txt
+新增第二 Amazon 发票技能
+复制 Seller Central DOM 上传步骤
+并发上传
+外部输入 selector / browserCommand / flowStep / cookie / documentId
+只保存内存结果而不保存本地 ledger
+```
+
+第一版文件规则：
+
+```txt
+文件名必须是 403-7307700-7597913.pdf
+amazonOrderId = basename without .pdf
+invoiceNo = amazonOrderId
+同一 batch 重复 orderId 阻断
+单文件最大 10MB
+不得设置任意 batch 张数上限；本地一次选择 2000 / 100000 张都必须进入可见队列。
+```
+
+大批量本地来源执行规则：
+
+```txt
+App Shell Batch Upload 不得把所有选中的 PDF bytes 一次性塞进一个 multipart 请求。
+本地一次选择的 FileList 必须被视为 local file queue：逐张按文件名解析 amazonOrderId / invoiceNo，逐张调用既有 POST /api/plugins/amazon-invoice-upload/start 单张上传入口。
+这不是第二链路；它等价于网站过去逐张发 API，只是 PDF 来源从网站传输变为用户本地选择。
+```
+
+生产落点：
+
+```txt
+src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts
+src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts
+src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts
+src/app/workbench-amazon-routes.ts
+src/app/workbench-api-boundary.ts
+src/app/workbench-multipart.ts
+src/app/app-shell/app-shell-layout.ts
+src/app/workbench-home-amazon-invoice-client.ts
+src/lib/local-runtime/workbench-amazon-invoice-handle.ts
+```
+
+Batch route 必须保持在现有 owner 路径内：
+
+```txt
+POST /api/plugins/amazon-invoice-upload/batch/start
+GET  /api/plugins/amazon-invoice-upload/batch/status/<batchId>
+GET  /api/plugins/amazon-invoice-upload/batch/latest
+GET  /api/plugins/amazon-invoice-upload/batch/history
+```
+
+Batch route 是本地 App Shell 来源入口，不是网站侧新增上传协议。外部网站继续使用单张：
+
+```txt
+POST /api/plugins/amazon-invoice-upload/start
+```
+
+Batch UI 不得暴露 `Seller Central Entry URL`。批量本地来源层必须对每个 item 用 marketplace + `amazonOrderId` 派生和网站单张 API 一致的订单详情入口：
+
+```txt
+https://sellercentral.amazon.<market>/orders-v3/order/<amazonOrderId>
+```
+
+禁止把 batch 单张任务接到 Seller Central `/home` 作为上传入口；首页只适用于下载报告入口，不是订单发票上传入口。
+
+Batch Upload 不得暴露、隐藏发送、默认启用人审最终提交模式。批量上传必须纯自动执行到 Seller Central 最终提交和上传结果验证；登录失效、验证码、2FA 等全局鉴权问题必须进入 `blocked_auth` 并停止，普通单张 DOM/平台失败必须记录为该 item `failed`，默认继续后续 item，除非用户显式开启 `stopOnFailed`。
+
+ledger storage:
+
+```txt
+<dataDir>/plugin-tasks/amazon-invoice-upload/batch/<batchId>/batch.json
+<dataDir>/plugin-tasks/amazon-invoice-upload/batch/<batchId>/files/<orderId>.pdf
+```
+
+防复发落点：
+
+```txt
+scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts
+scripts/acceptance/app-shell-ui.acceptance.ts
+scripts/acceptance/workbench-api-boundary.acceptance.ts
+scripts/audit/domains/amazon-invoice-upload/inspector.ts
+```
+
+验收要求：
+
+```txt
+npm run acceptance:amazon-invoice-upload-batch
+npm run acceptance:app-shell-ui
+npm run acceptance:workbench-api-boundary
+npm run audit:amazon-invoice-upload
+npm run ci:full
 ```

@@ -232,6 +232,16 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   {
     method: "GET",
     pathPattern: "exact",
+    path: "/api/plugins/amazon-invoice-upload/ledger",
+    localUiAllowed: true,
+    externalApiAllowed: true,
+    requiresApiKey: true,
+    jobOwner: "amazon-invoice-upload",
+    purpose: "external_amazon_invoice_upload_ledger",
+  },
+  {
+    method: "GET",
+    pathPattern: "exact",
     path: "/api/plugins/amazon-invoice-upload/latest",
     localUiAllowed: true,
     externalApiAllowed: true,

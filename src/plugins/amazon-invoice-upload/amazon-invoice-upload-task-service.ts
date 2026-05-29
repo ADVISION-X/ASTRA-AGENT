@@ -2,6 +2,7 @@ import type { BrowserController } from "../../lib/browser/browser-controller.js"
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { runAmazonInvoiceUpload } from "./amazon-invoice-upload.flow.js";
 import { runAmazonTaxInvoiceDownload } from "./amazon-tax-invoice-download.flow.js";
+import { listAmazonInvoiceUploadLedgerRecords } from "./amazon-invoice-upload-ledger.js";
 import { AmazonInvoiceUploadMissionInputSchema, AmazonTaxInvoiceDownloadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
 import {
@@ -32,6 +33,13 @@ import {
   type AmazonInvoiceUploadMissionStartResult,
   type AmazonInvoiceUploadTaskStartInput,
 } from "./amazon-invoice-upload-task-service.types.js";
+import type { AmazonInvoiceUploadLedgerRecord } from "./amazon-invoice-upload-ledger.js";
+export {
+  getAmazonInvoiceUploadBatchStatus,
+  getLatestAmazonInvoiceUploadBatch,
+  listAmazonInvoiceUploadBatches,
+  startAmazonInvoiceUploadBatchTask,
+} from "./amazon-invoice-upload-batch-service.js";
 
 const DEFAULT_ALLOWED_ADMIN_HOSTS = ["localhost", "127.0.0.1"] as const;
 
@@ -120,7 +128,7 @@ export async function resumeAmazonInvoiceUploadTask(input: {
   const record = loadRequiredTaskRecord(input.dataDir, input.taskId);
   const resumed = updateTaskRecord(record, {
     status: "uploading",
-    reason: "Amazon invoice upload resumed after human handoff.",
+    reason: "Amazon invoice upload resumed.",
     reachedStep: "resume",
   });
   saveTaskRecord(input.dataDir, resumed);
@@ -143,6 +151,12 @@ export function getLatestAmazonInvoiceUploadTaskForInvoice(input: {
   invoiceNo?: string;
 }): AmazonInvoiceUploadTaskRecord | null {
   return findLatestTaskRecordForInvoice(input);
+}
+
+export function listAmazonInvoiceUploadLedger(input: {
+  dataDir: string;
+}): AmazonInvoiceUploadLedgerRecord[] {
+  return listAmazonInvoiceUploadLedgerRecords(input.dataDir);
 }
 
 export async function startAmazonTaxInvoiceDownloadTask(input: {

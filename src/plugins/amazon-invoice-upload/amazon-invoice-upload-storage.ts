@@ -6,6 +6,7 @@ import path from "node:path";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import type { AmazonTaxInvoiceDownloadMissionInput, AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import { upsertAmazonInvoiceUploadLedgerRecord } from "./amazon-invoice-upload-ledger.js";
 import type {
   AmazonInvoiceUploadPdfFile,
   AmazonInvoiceUploadTaskRecord,
@@ -86,6 +87,7 @@ export function saveTaskRecord(dataDir: string, record: AmazonInvoiceUploadTaskR
   const taskDir = path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", safeSegment(record.taskId));
   mkdirSync(taskDir, { recursive: true });
   writeFileSync(path.join(taskDir, "task.json"), JSON.stringify(record, null, 2));
+  upsertAmazonInvoiceUploadLedgerRecord(dataDir, record);
 }
 
 export function loadTaskRecord(dataDir: string, taskId: string): AmazonInvoiceUploadTaskRecord | null {

@@ -99,6 +99,7 @@ export function locateOrStatus(input: {
   snapshot: DomSnapshot;
   targetKind: DomElementRef["targetKind"];
   hints: string[];
+  proximityAnchorText?: string;
   requiredText?: string;
   notFoundStatus: AmazonInvoiceUploadStatus;
 }): { ok: true; element: DomElementRef } | { ok: false; status: AmazonInvoiceUploadStatus; reason: string } {
@@ -106,6 +107,7 @@ export function locateOrStatus(input: {
     snapshot: input.snapshot,
     targetKind: input.targetKind,
     hints: input.hints,
+    ...(input.proximityAnchorText ? { proximityAnchorText: input.proximityAnchorText } : {}),
     ...(input.requiredText ? { requiredText: input.requiredText } : {}),
   });
   if (element.elementRef.startsWith("dom:unresolved:")) {

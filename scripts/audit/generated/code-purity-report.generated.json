@@ -4,28 +4,10 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/amazon-invoice-upload/inspector.ts has an over-line function near line 179.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-      "evidence": "{\"owner\":\"audit:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-home-client.ts has 545 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-home-client.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-05-28T19:59:07.889Z",
+  "findings": [],
+  "generatedAt": "2026-05-29T15:43:02.996Z",
   "inspectedFiles": [
+    "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -91,6 +73,7 @@
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+    "scripts/acceptance/workbench-api-boundary-batch-support.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -105,6 +88,10 @@
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
@@ -295,6 +282,7 @@
     "scripts/startup/lib/startup-main-support.mjs",
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+    "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -330,6 +318,7 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
@@ -453,6 +442,7 @@
     "src/lib/local-runtime/structured-log-bus.ts",
     "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
@@ -493,10 +483,14 @@
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
@@ -652,6 +646,12 @@
     "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
   ],
   "liveEntryPoints": [
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+      "reason": "package.json script acceptance:amazon-invoice-upload-batch",
+      "scriptName": "acceptance:amazon-invoice-upload-batch"
+    },
     {
       "entryKind": "package-script",
       "filePath": "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -1175,10 +1175,10 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1667,
+  "liveExportCount": 1714,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 598,
-  "status": "FAIL",
+  "reachableFileCount": 611,
+  "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],
@@ -1189,9 +1189,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1667,
+    "liveExportCount": 1714,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 598,
+    "reachableFileCount": 611,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

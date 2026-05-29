@@ -25,6 +25,10 @@ type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-up
 type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
 type StartAmazonInvoiceUploadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadTask;
 type GetAmazonInvoiceUploadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonInvoiceUploadTaskStatus;
+type ListAmazonInvoiceUploadLedger = typeof import("../../plugins/amazon-invoice-upload/index.js").listAmazonInvoiceUploadLedger;
+type StartAmazonInvoiceUploadBatchTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadBatchTask;
+type GetAmazonInvoiceUploadBatchStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonInvoiceUploadBatchStatus;
+type ListAmazonInvoiceUploadBatches = typeof import("../../plugins/amazon-invoice-upload/index.js").listAmazonInvoiceUploadBatches;
 type StartAmazonTaxInvoiceDownloadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonTaxInvoiceDownloadTask;
 type GetAmazonTaxInvoiceDownloadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonTaxInvoiceDownloadTaskStatus;
 type GetAmazonTaxInvoiceDownloadArtifact = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonTaxInvoiceDownloadArtifact;
@@ -50,6 +54,12 @@ type AmazonInvoiceUploadMissionStartResult = Awaited<ReturnType<StartAmazonInvoi
 type AmazonInvoiceUploadTaskStartInput = Parameters<StartAmazonInvoiceUploadTask>[0]["task"];
 type AmazonInvoiceUploadTaskResumeInput = { taskId: string };
 type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GetAmazonInvoiceUploadTaskStatus>>;
+type AmazonInvoiceUploadLedgerRecord = ReturnType<ListAmazonInvoiceUploadLedger>[number];
+type AmazonInvoiceUploadBatchStartInput = Parameters<StartAmazonInvoiceUploadBatchTask>[0]["mission"] & {
+  invoicePdfs: Parameters<StartAmazonInvoiceUploadBatchTask>[0]["invoicePdfs"];
+};
+type AmazonInvoiceUploadBatchRecord = Awaited<ReturnType<GetAmazonInvoiceUploadBatchStatus>>;
+type AmazonInvoiceUploadBatchHistoryQuery = Parameters<ListAmazonInvoiceUploadBatches>[0]["query"];
 type AmazonTaxInvoiceDownloadMissionInput = Parameters<StartAmazonTaxInvoiceDownloadTask>[0]["mission"];
 type AmazonTaxInvoiceDownloadTaskRecord = Awaited<ReturnType<GetAmazonTaxInvoiceDownloadTaskStatus>>;
 type AmazonTaxInvoiceDownloadArtifactMetadata = ReturnType<GetAmazonTaxInvoiceDownloadArtifact>;
@@ -125,6 +135,19 @@ export type GrassEyeWorkbenchHandle = {
   getLatestAmazonInvoiceUploadTaskForInvoice: (
     input: { amazonOrderId: string; invoiceNo?: string },
   ) => Promise<AmazonInvoiceUploadTaskRecord | null>;
+  listAmazonInvoiceUploadLedger: () => Promise<AmazonInvoiceUploadLedgerRecord[]>;
+  startAmazonInvoiceUploadBatchTask: (
+    input: AmazonInvoiceUploadBatchStartInput,
+  ) => Promise<AmazonInvoiceUploadBatchRecord>;
+  getAmazonInvoiceUploadBatchStatus: (
+    batchId: string,
+  ) => Promise<AmazonInvoiceUploadBatchRecord>;
+  getLatestAmazonInvoiceUploadBatch: (
+    input?: { marketplace?: string; requestId?: string },
+  ) => Promise<AmazonInvoiceUploadBatchRecord | null>;
+  listAmazonInvoiceUploadBatches: (
+    input?: AmazonInvoiceUploadBatchHistoryQuery,
+  ) => Promise<AmazonInvoiceUploadBatchRecord[]>;
   startAmazonTaxInvoiceDownloadTask: (
     input: AmazonTaxInvoiceDownloadMissionInput,
   ) => Promise<AmazonTaxInvoiceDownloadTaskRecord>;

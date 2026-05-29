@@ -233,3 +233,39 @@ Download completion is not upload completion. Website status return is not task 
   ]
 }
 ```
+
+## [GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1] Upload Ledger Status Truth
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-invoice-upload",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "storage+api-boundary+audit+acceptance",
+  "summary": "Amazon invoice upload status truth for external websites must come from the Agent-side upload ledger written by the existing amazon-invoice-upload task record path, not from website inference or export actions.",
+  "appliesTo": [
+    "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+    "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/lib/local-runtime/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/audit/domains/amazon-invoice-upload/**",
+    "scripts/acceptance/workbench-api-boundary.acceptance.ts"
+  ],
+  "required": [
+    "Agent upload ledger persists under dataDir/plugin-tasks/amazon-invoice-upload.",
+    "saveTaskRecord writes the upload ledger using the existing task record path.",
+    "GET /api/plugins/amazon-invoice-upload/ledger returns safe ledger records for website status sync.",
+    "Ledger external route is exact, externalApiAllowed true, requiresApiKey true, and jobOwner amazon-invoice-upload.",
+    "Ledger response excludes raw invoice PDF bytes, local invoicePdfPath, cookies, Seller Central profile paths, selectors, browser commands, documentId, and downloadUrl."
+  ],
+  "forbidden": [
+    "Website marks upload status from PDF export.",
+    "Website infers upload success without reading Agent ledger.",
+    "Second upload ledger outside amazon-invoice-upload owner.",
+    "Ledger route outside /api/plugins/amazon-invoice-upload/ledger.",
+    "Ledger response leaking invoicePdfPath or raw PDF/local file paths."
+  ]
+}
+```

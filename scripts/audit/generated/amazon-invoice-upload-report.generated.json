@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:59:11.346Z",
+  "generatedAt": "2026-05-29T15:43:06.524Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,7 +10,8 @@
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1"
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -20,12 +21,27 @@
     "docs/法案辅助文件/amazon_invoice_upload_process.md",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
+    "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/app-shell/app-shell-layout.ts",
+    "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-amazon-invoice-client.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
+    "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts"
   ]
 }

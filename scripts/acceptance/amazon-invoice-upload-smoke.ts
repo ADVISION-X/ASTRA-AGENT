@@ -102,7 +102,6 @@ async function main(): Promise<void> {
       invoiceNo: "INV-1",
       invoicePdfPath: fixture.pdfPath,
       sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
-      requireHumanFinalSubmit: false,
     });
     assertSmokeResult(result);
   } finally {

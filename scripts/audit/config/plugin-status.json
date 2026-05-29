@@ -7,13 +7,18 @@
       "phase": "validated-mainline",
       "allowedEntrypoints": [
         "src/app/workbench-amazon-routes.ts",
+        "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
+        "acceptance:amazon-invoice-upload-batch",
+        "acceptance:amazon-invoice-upload-download",
         "acceptance:amazon-invoice-upload-smoke"
       ],
       "allowedNpmScripts": [
+        "acceptance:amazon-invoice-upload-batch",
+        "acceptance:amazon-invoice-upload-download",
         "acceptance:amazon-invoice-upload-smoke"
       ],
       "exposureTokens": [

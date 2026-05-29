@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:59:12.316Z",
+  "generatedAt": "2026-05-29T15:43:07.551Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -19,6 +19,7 @@
     "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
     "scripts/audit/domains/app-shell-ui/inspector-skill-registry.ts",
     "scripts/audit/domains/app-shell-ui/inspector.ts",
+    "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -54,6 +55,7 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-28T19:58:44.216Z",
+  "generatedAt": "2026-05-29T15:42:36.570Z",
   "summary": {
-    "activeLawCount": 186,
-    "coveredLawCount": 186,
+    "activeLawCount": 187,
+    "coveredLawCount": 187,
     "coveragePercent": 100
   },
   "coverage": [
@@ -78,6 +78,16 @@
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "capabilityDomain": "amazon-invoice-upload",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-invoice-upload/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
       "capabilityDomain": "amazon-invoice-upload",
       "clauses": [
         {

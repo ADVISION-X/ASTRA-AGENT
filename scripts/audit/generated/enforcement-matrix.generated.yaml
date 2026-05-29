@@ -1,4 +1,4 @@
-generatedAt: "2026-05-28T19:58:44.216Z"
+generatedAt: "2026-05-29T15:42:36.570Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
@@ -12,6 +12,7 @@ rows:
       - "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1"
       - "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1"
       - "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1"
+      - "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"
   - capabilityDomain: "amazon-product-mining"
     manifestPath: "scripts/audit/domains/amazon-product-mining/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/amazon-product-mining/inspector.ts"

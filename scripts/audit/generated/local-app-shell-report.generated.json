@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:59:13.315Z",
+  "generatedAt": "2026-05-29T15:43:08.556Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,6 +13,7 @@
   "findings": [],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
+    "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/app-shell-layout.ts",
     "src/app/app-shell/app-shell.ts",
     "src/app/app-shell/command-bar.ts",

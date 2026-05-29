@@ -11,6 +11,7 @@ type WorkbenchMultipartFile = {
 type WorkbenchMultipartForm = {
   fields: ReadonlyMap<string, string>;
   files: ReadonlyMap<string, WorkbenchMultipartFile>;
+  fileLists: ReadonlyMap<string, WorkbenchMultipartFile[]>;
 };
 
 type MultipartPart = {
@@ -28,20 +29,23 @@ export async function readMultipartFormData(request: IncomingMessage): Promise<W
   const parts = parseMultipartParts(raw, boundary);
   const fields = new Map<string, string>();
   const files = new Map<string, WorkbenchMultipartFile>();
+  const fileLists = new Map<string, WorkbenchMultipartFile[]>();
 
   for (const part of parts) {
     if (part.filename) {
-      files.set(part.name, {
+      const file = {
         filename: part.filename,
         mimeType: part.mimeType || "application/octet-stream",
         bytes: part.body,
-      });
+      };
+      files.set(part.name, file);
+      fileLists.set(part.name, [...(fileLists.get(part.name) ?? []), file]);
     } else {
       fields.set(part.name, part.body.toString("utf8"));
     }
   }
 
-  return { fields, files };
+  return { fields, files, fileLists };
 }
 
 function readMultipartBoundary(contentType: string | string[] | undefined): string {

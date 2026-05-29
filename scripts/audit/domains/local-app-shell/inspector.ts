@@ -19,6 +19,7 @@ const pagePath = "src/app/workbench-home-page.ts";
 const clientPath = "src/app/workbench-home-client.ts";
 const appShellPath = "src/app/app-shell/app-shell.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
+const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellSidebarPath = "src/app/app-shell/sidebar.ts";
 const appShellCommandBarPath = "src/app/app-shell/command-bar.ts";
 const appShellInspectorPath = "src/app/app-shell/inspector.ts";
@@ -38,6 +39,7 @@ const readAppShellSurfaceText = (): string => [
   pagePath,
   appShellPath,
   appShellLayoutPath,
+  appShellAmazonInvoiceWorkspacePath,
   appShellSidebarPath,
   appShellCommandBarPath,
   appShellInspectorPath,
@@ -144,7 +146,6 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
     "amazonOrderId",
     "invoiceNo",
     "invoicePdf",
-    "requireHumanFinalSubmit",
   ];
   for (const fieldName of requiredAmazonFields) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: fieldName, checkId: "local-app-shell/amazon-input" });
@@ -365,6 +366,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     clientPath,
     appShellPath,
     appShellLayoutPath,
+    appShellAmazonInvoiceWorkspacePath,
     appShellSidebarPath,
     appShellCommandBarPath,
     appShellInspectorPath,

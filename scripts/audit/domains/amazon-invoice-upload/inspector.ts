@@ -17,19 +17,30 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
+import { inspectAmazonInvoiceBatchGuard } from "./inspector-batch.js";
+import { inspectAmazonInvoiceUploadLedgerGuard } from "./inspector-ledger.js";
+import { inspectUploadRouteSanitizer } from "./inspector-upload-route-sanitizer.js";
+import { inspectUploadStabilityGuard } from "./inspector-upload-stability.js";
 
 const domain = "amazon-invoice-upload";
 const lawPath = ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md";
 const blueprintPath = "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md";
 const processPath = "docs/法案辅助文件/amazon_invoice_upload_process.md";
 const ownerRoot = "src/plugins/amazon-invoice-upload";
+const missionSchemaPath = `${ownerRoot}/mission.schema.ts`;
 const uploadFlowPath = `${ownerRoot}/amazon-invoice-upload.flow.ts`;
 const orderDetailPath = `${ownerRoot}/amazon-invoice-upload-order-detail.ts`;
+const taskServicePath = `${ownerRoot}/amazon-invoice-upload-task-service.ts`;
+const uploadLedgerPath = `${ownerRoot}/amazon-invoice-upload-ledger.ts`;
+const uploadStoragePath = `${ownerRoot}/amazon-invoice-upload-storage.ts`;
+const uploadVerifyPath = `${ownerRoot}/amazon-invoice-upload-verify.ts`;
+const existingEvidencePath = `${ownerRoot}/amazon-existing-invoice-evidence.ts`;
 const downloadFlowPath = `${ownerRoot}/amazon-tax-invoice-download.flow.ts`;
 const evidencePath = `${ownerRoot}/amazon-tax-invoice-download-evidence.ts`;
 const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
+const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellClientPath = "src/app/workbench-home-client.ts";
 const selfPath = "scripts/audit/domains/amazon-invoice-upload/inspector.ts";
 
@@ -57,6 +68,11 @@ const forbiddenExternalKeys = [
   "cookie",
   "sellerCentralCookie",
   "browserProfileDirectory",
+] as const;
+
+const uploadCompatibilityKeys = [
+  "requireHumanFinalSubmit",
+  "stopOnManualRequired",
 ] as const;
 
 const requiredDownloadRoutes = [
@@ -140,7 +156,7 @@ const inspectRequiredFiles = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  for (const repoPath of [lawPath, blueprintPath, processPath, uploadFlowPath, orderDetailPath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellClientPath, selfPath]) {
+  for (const repoPath of [lawPath, blueprintPath, processPath, uploadFlowPath, orderDetailPath, taskServicePath, uploadLedgerPath, uploadStoragePath, uploadVerifyPath, existingEvidencePath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellAmazonInvoiceWorkspacePath, appShellClientPath, selfPath]) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
         checkId: "amazon-invoice-upload/required-file",
@@ -149,65 +165,6 @@ const inspectRequiredFiles = (
         message: `${repoPath} must exist.`,
       });
     }
-  }
-};
-
-const hasConstInitializer = (file: SourceFile, name: string, initializerText: string): boolean =>
-  file.getVariableDeclaration(name)?.getInitializer()?.getText() === initializerText;
-
-const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeName: string): boolean =>
-  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName);
-
-const sourceCallsProperty = (file: SourceFile, ownerName: string, methodName: string): boolean =>
-  file.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => {
-      const expression = call.getExpression();
-      return Node.isPropertyAccessExpression(expression)
-        && Node.isIdentifier(expression.getExpression())
-        && expression.getExpression().getText() === ownerName
-        && expression.getName() === methodName;
-    });
-
-const retryStepNames = (file: SourceFile): Set<string> =>
-  new Set(file.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
-    if (!Node.isIdentifier(call.getExpression()) || call.getExpression().getText() !== "runUploadStepWithRetries") return [];
-    const argument = call.getArguments()[0];
-    return Node.isObjectLiteralExpression(argument) ? [propertyValue(argument, "stepName")].filter((value): value is string => typeof value === "string") : [];
-  }));
-
-const inspectUploadStabilityGuard = (
-  flowFile: SourceFile | null,
-  orderFile: SourceFile | null,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  if (!flowFile || !orderFile) return;
-  const flowValues = stringLiteralValues(flowFile);
-  const orderValues = stringLiteralValues(orderFile);
-  const missing: string[] = [];
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_REFRESH_WAIT_MIN_MS", "3_000")) missing.push("refresh-min-3000");
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_REFRESH_WAIT_MAX_MS", "6_000")) missing.push("refresh-max-6000");
-  if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "refreshApprovedOrderDetailOnce")) missing.push("order-detail-refresh-call");
-  if (!sourceCallsProperty(orderFile, "Math", "random")) missing.push("random-refresh-wait");
-  for (const value of ["Amazon Seller Central approved order detail refresh", "refresh approved order detail before upload"]) {
-    if (!orderValues.has(value)) missing.push(value);
-  }
-  if (!hasConstInitializer(flowFile, "UPLOAD_STEP_RETRY_LIMIT", "2")) missing.push("retry-limit-2");
-  if (!flowFile.getFunction("runUploadStepWithRetries")) missing.push("recursive-retry-function");
-  if (!functionCallsIdentifier(flowFile, "runUploadStepWithRetries", "runUploadStepWithRetries")) missing.push("recursive-retry-self-call");
-  for (const stepName of ["open order detail", "open upload invoice entry", "upload approved invoice"]) {
-    if (!retryStepNames(flowFile).has(stepName)) missing.push(`retry-step:${stepName}`);
-  }
-  if (!flowValues.has("file attached before final submit") || !flowValues.has("verify upload success")) missing.push("retry-sensitive-terminal-gates");
-  process.stdout.write(`[AUDIT][amazon-invoice-upload][upload-stability] checked refresh/retry guards; missing=${missing.length}\n`);
-  for (const item of missing) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/upload-stability-refresh-retry",
-      lawId,
-      filePath: item.startsWith("refresh") || item === "order-detail-refresh-call" || item === "random-refresh-wait" ? orderDetailPath : uploadFlowPath,
-      message: `Amazon invoice upload stability guard missing: ${item}.`,
-    });
   }
 };
 
@@ -385,6 +342,16 @@ const inspectBoundaryRoutes = (
       });
     }
   }
+  for (const key of uploadCompatibilityKeys) {
+    if (actual.has(key)) {
+      addFinding(findings, {
+        checkId: "amazon-invoice-upload/upload-compatibility-key-boundary-block",
+        lawId,
+        filePath: boundaryPath,
+        message: `API Boundary must not block legacy non-control upload key ${key}; upload routes must sanitize it before the single-task service.`,
+      });
+    }
+  }
 };
 
 const inspectAppShell = (
@@ -424,6 +391,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     ui: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1"),
     artifact: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1"),
     audit: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1"),
+    ledger: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"),
   };
   const findings: InspectorFinding[] = [];
   inspectRequiredFiles(findings, lawIds.owner);
@@ -431,9 +399,21 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectEvidenceMap(source(context.project, evidencePath), findings, lawIds.evidence);
   inspectDownloadFlow(source(context.project, downloadFlowPath), findings, lawIds);
   inspectBoundaryRoutes(source(context.project, boundaryPath), findings, lawIds.api);
-  inspectAppShell(source(context.project, appShellLayoutPath), findings, lawIds.ui);
+  inspectUploadRouteSanitizer(source(context.project, routesPath), findings, lawIds.api);
+  inspectAmazonInvoiceUploadLedgerGuard(context, findings, lawIds.ledger);
+  inspectAppShell(source(context.project, appShellAmazonInvoiceWorkspacePath), findings, lawIds.ui);
   inspectAppShellClient(source(context.project, appShellClientPath), findings, lawIds.ui);
-  inspectUploadStabilityGuard(source(context.project, uploadFlowPath), source(context.project, orderDetailPath), findings, lawIds.audit);
+  inspectUploadStabilityGuard({
+    flowFile: source(context.project, uploadFlowPath),
+    orderFile: source(context.project, orderDetailPath),
+    taskServiceFile: source(context.project, taskServicePath),
+    missionSchemaFile: source(context.project, missionSchemaPath),
+    verifyFile: source(context.project, uploadVerifyPath),
+    existingEvidenceFile: source(context.project, existingEvidencePath),
+    findings,
+    lawId: lawIds.audit,
+  });
+  inspectAmazonInvoiceBatchGuard(context, findings, lawIds.audit);
 
   return {
     capabilityDomain: domain,
@@ -445,12 +425,27 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       processPath,
       uploadFlowPath,
       orderDetailPath,
+      taskServicePath,
+      uploadLedgerPath,
+      uploadStoragePath,
+      uploadVerifyPath,
+      existingEvidencePath,
       downloadFlowPath,
       evidencePath,
       routesPath,
       boundaryPath,
       appShellLayoutPath,
+      appShellAmazonInvoiceWorkspacePath,
       appShellClientPath,
+      "src/app/workbench-home-amazon-invoice-client.ts",
+      "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
+      "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
+      "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
+      "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+      "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+      "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+      "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+      "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
       selfPath,
     ],
   };

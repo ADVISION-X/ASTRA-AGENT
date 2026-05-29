@@ -208,7 +208,7 @@ function snapshotHasUploadDialogCopy(snapshot: Awaited<ReturnType<typeof readSna
   ].map((item) =>
     `${item.visibleText ?? ""} ${item.ariaLabel ?? ""} ${item.nearbyText ?? ""}`,
   ).join(" ").toLowerCase();
-  return ["请上传", "choose file", "select file", "upload invoice", "invoice file"].some((hint) =>
+  return ["请上传", "请上传您的发票或贷记单", "choose file", "select file", "please upload your invoice or credit note", "select file type", "upload invoice", "invoice file"].some((hint) =>
     dialogText.includes(hint));
 }
 

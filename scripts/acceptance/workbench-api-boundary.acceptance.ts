@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import type { AddressInfo } from "node:net";
 
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
+import { createBoundaryBatchRecord, getLocalBatchRoute, postExternalBatchStart, postLocalBatchStart } from "./workbench-api-boundary-batch-support.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 import type { AmazonInvoiceUploadTaskRecord } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.js";
 import type { AmazonInvoiceUploadTaskStartInput } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.js";
@@ -10,13 +11,13 @@ import type { AmazonInvoiceUploadMissionInput } from "../../src/plugins/amazon-i
 const localBaseUrl = "http://127.0.0.1:4173";
 const externalOrigin = "https://ontheway.example.com";
 const apiKey = "test-secret";
-
 type FakeWorkbench = GrassEyeWorkbenchHandle & {
   apiBoundaryEvents: unknown[];
+  lastUploadMission?: AmazonInvoiceUploadMissionInput;
   startCalls: number;
 };
 
-type MutableFakeWorkbench = Partial<GrassEyeWorkbenchHandle> & Pick<FakeWorkbench, "apiBoundaryEvents" | "startCalls">;
+type MutableFakeWorkbench = Partial<GrassEyeWorkbenchHandle> & Pick<FakeWorkbench, "apiBoundaryEvents" | "lastUploadMission" | "startCalls">;
 
 const createInvoiceMission = (): AmazonInvoiceUploadMissionInput => ({
   missionType: "amazon_invoice_upload",
@@ -26,7 +27,6 @@ const createInvoiceMission = (): AmazonInvoiceUploadMissionInput => ({
   invoicePdfPath: "/tmp/invoice.pdf",
   sellerCentralEntryUrl: "https://sellercentral.amazon.ae/orders-v3/order/000-0000000-0000000",
   adminOrderUrl: `${externalOrigin}/admin/orders/123`,
-  requireHumanFinalSubmit: true,
 });
 
 const createInvoiceRecord = (input: { mission?: AmazonInvoiceUploadMissionInput; taskId?: string } = {}): AmazonInvoiceUploadTaskRecord => {
@@ -46,23 +46,32 @@ const createInvoiceRecord = (input: { mission?: AmazonInvoiceUploadMissionInput;
   };
 };
 
-const createDownloadMission = () => ({
-  missionType: "amazon_tax_invoice_download" as const,
-  mode: "download_only" as const,
-  marketplace: "AE" as const,
-  sellerCentralEntryUrl: "https://sellercentral.amazon.ae/home",
-  reportKind: "afn_shipment_invoicing_tax_invoice" as const,
-  dateRange: "last_30_days" as const,
-  format: "csv" as const,
+const createLedgerRecord = () => ({
+  taskId: "task_ledger",
+  amazonOrderId: "000-0000000-0000000",
+  invoiceNo: "INV-TEST-1",
+  status: "review_required",
+  reason: "acceptance_fixture_review_required",
+  reachedStep: "acceptance_fixture",
+  evidenceRef: null,
+  domTraceRef: null,
+  reviewRequired: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 });
 
-const createDownloadRecord = (input: {
-  status?: "completed" | "manual_required";
-  taskId?: string;
-} = {}) => ({
+const createDownloadRecord = (input: { status?: "completed" | "manual_required"; taskId?: string } = {}) => ({
   taskId: input.taskId ?? "download_task_test",
   taskKind: "tax_invoice_download" as const,
-  mission: createDownloadMission(),
+  mission: {
+    missionType: "amazon_tax_invoice_download" as const,
+    mode: "download_only" as const,
+    marketplace: "AE" as const,
+    sellerCentralEntryUrl: "https://sellercentral.amazon.ae/home",
+    reportKind: "afn_shipment_invoicing_tax_invoice" as const,
+    dateRange: "last_30_days" as const,
+    format: "csv" as const,
+  },
   ok: input.status === "completed",
   status: input.status ?? "manual_required",
   reason: "acceptance_fixture_download",
@@ -89,16 +98,19 @@ const createFakeWorkbench = (): FakeWorkbench => {
   };
   attachUploadTaskMethods(fake);
   attachDownloadTaskMethods(fake);
+  attachBatchTaskMethods(fake);
   return fake as FakeWorkbench;
 };
 
 function attachUploadTaskMethods(fake: MutableFakeWorkbench): void {
   fake.startAmazonInvoiceUploadTask = async (input: AmazonInvoiceUploadTaskStartInput) => {
     fake.startCalls += 1;
+    fake.lastUploadMission = input.mission;
     return createInvoiceRecord({ mission: input.mission });
   };
   fake.getAmazonInvoiceUploadTaskStatus = async (taskId: string) => createInvoiceRecord({ taskId });
   fake.getLatestAmazonInvoiceUploadTaskForInvoice = async () => createInvoiceRecord({ taskId: "task_latest" });
+  fake.listAmazonInvoiceUploadLedger = async () => [createLedgerRecord()];
 }
 
 function attachDownloadTaskMethods(fake: MutableFakeWorkbench): void {
@@ -109,6 +121,16 @@ function attachDownloadTaskMethods(fake: MutableFakeWorkbench): void {
   fake.getAmazonTaxInvoiceDownloadTaskStatus = async (taskId: string) => createDownloadRecord({ taskId, status: "completed" });
   fake.getLatestAmazonTaxInvoiceDownloadTask = async () => null;
   fake.getAmazonTaxInvoiceDownloadArtifact = async () => null;
+}
+
+function attachBatchTaskMethods(fake: MutableFakeWorkbench): void {
+  fake.startAmazonInvoiceUploadBatchTask = async () => {
+    fake.startCalls += 1;
+    return createBoundaryBatchRecord();
+  };
+  fake.getAmazonInvoiceUploadBatchStatus = async () => createBoundaryBatchRecord();
+  fake.getLatestAmazonInvoiceUploadBatch = async () => createBoundaryBatchRecord();
+  fake.listAmazonInvoiceUploadBatches = async () => [createBoundaryBatchRecord()];
 }
 
 const withExternalEnv = (enabled: boolean): void => {
@@ -147,7 +169,6 @@ const buildInvoiceForm = (missionPatch: Record<string, unknown> = {}): FormData 
     invoiceNo: "INV-TEST-1",
     sellerCentralEntryUrl: "https://sellercentral.amazon.ae/orders-v3/order/000-0000000-0000000",
     adminOrderUrl: `${externalOrigin}/admin/orders/123`,
-    requireHumanFinalSubmit: true,
     ...missionPatch,
   }));
   form.set("invoicePdf", new Blob(["%PDF-1.4\n"], { type: "application/pdf" }), "invoice.pdf");
@@ -156,11 +177,7 @@ const buildInvoiceForm = (missionPatch: Record<string, unknown> = {}): FormData 
 
 const postExternalStart = (
   rootUrl: string,
-  input: {
-    key?: string;
-    missionPatch?: Record<string, unknown>;
-    origin?: string;
-  } = {},
+  input: { key?: string; missionPatch?: Record<string, unknown>; origin?: string } = {},
 ): Promise<Response> => {
   const headers: Record<string, string> = {
     Origin: input.origin ?? externalOrigin,
@@ -179,11 +196,7 @@ const postExternalStart = (
 
 const postExternalDownloadStart = (
   rootUrl: string,
-  input: {
-    key?: string;
-    missionPatch?: Record<string, unknown>;
-    origin?: string;
-  } = {},
+  input: { key?: string; missionPatch?: Record<string, unknown>; origin?: string } = {},
 ): Promise<Response> => {
   const headers: Record<string, string> = {
     Origin: input.origin ?? externalOrigin,
@@ -261,11 +274,13 @@ const assertInvalidApiKeyBoundary = async (): Promise<void> => {
 const assertExternalStartAllowed = async (): Promise<void> => {
   await withServer(async ({ rootUrl, workbench }) => {
     withExternalEnv(true);
-    const response = await postExternalStart(rootUrl, { key: apiKey });
+    const response = await postExternalStart(rootUrl, { key: apiKey, missionPatch: { requireHumanFinalSubmit: true, stopOnManualRequired: true } });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("access-control-allow-origin"), externalOrigin);
     assert.notEqual(response.headers.get("access-control-allow-origin"), "*");
     assert.equal(workbench.startCalls, 1);
+    assert.equal(workbench.lastUploadMission?.invoicePdfPath, "approved-by-workbench");
+    for (const key of ["requireHumanFinalSubmit", "stopOnManualRequired", "sourceSystem", "requestId"]) assert.equal(key in (workbench.lastUploadMission ?? {}), false);
   });
 };
 
@@ -277,6 +292,50 @@ const assertExternalDownloadStartAllowed = async (): Promise<void> => {
     assert.equal(response.headers.get("access-control-allow-origin"), externalOrigin);
     assert.notEqual(response.headers.get("access-control-allow-origin"), "*");
     assert.equal(workbench.startCalls, 1);
+  });
+};
+
+const assertExternalUploadLedgerAllowed = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await fetch(`${rootUrl}/api/plugins/amazon-invoice-upload/ledger`, {
+      headers: {
+        Origin: externalOrigin,
+        "X-GrassEye-Agent-Key": apiKey,
+      },
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("access-control-allow-origin"), externalOrigin);
+    assert.equal(Array.isArray(body.records), true);
+    assert.equal(workbench.startCalls, 0);
+  });
+};
+
+const assertLocalBatchRoutesAllowed = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    const response = await postLocalBatchStart(rootUrl, localBaseUrl);
+    assert.equal(response.status, 200);
+    assert.equal(workbench.startCalls, 1);
+    for (const path of [
+      "/api/plugins/amazon-invoice-upload/batch/status/batch_acceptance",
+      "/api/plugins/amazon-invoice-upload/batch/latest",
+      "/api/plugins/amazon-invoice-upload/batch/history",
+    ]) {
+      const statusResponse = await getLocalBatchRoute(rootUrl, localBaseUrl, path);
+      assert.equal(statusResponse.status, 200);
+    }
+  });
+};
+
+const assertExternalBatchRoutesBlocked = async (): Promise<void> => {
+  await withServer(async ({ rootUrl, workbench }) => {
+    withExternalEnv(true);
+    const response = await postExternalBatchStart(rootUrl, externalOrigin, apiKey);
+    const body = await readJson(response);
+    assert.equal(response.status, 403);
+    assert.equal(body.error, "route_not_external_allowed");
+    assert.equal(workbench.startCalls, 0);
   });
 };
 
@@ -417,18 +476,24 @@ const assertExternalCallbackAndOriginBoundaries = async (): Promise<void> => {
   });
 };
 
-const run = async (): Promise<void> => {
+const runCoreBoundaryAssertions = async (): Promise<void> => {
   await assertLocalHealthAllowed();
   await assertExternalAuthBoundaries();
   await assertExternalDownloadStartAllowed();
+  await assertExternalUploadLedgerAllowed();
+  await assertLocalBatchRoutesAllowed();
   await assertExternalDownloadCallbackAllowed();
   await assertExternalDownloadCallbackBlocked();
+};
+
+const runSafetyBoundaryAssertions = async (): Promise<void> => {
   await assertNestedJsonCallbackBlocked();
   await assertDownloadArtifactUnknownRejected();
   await assertExternalRouteBoundary();
   await assertForbiddenMissionKeys();
   await assertExternalCallbackAndOriginBoundaries();
+  await assertExternalBatchRoutesBlocked();
 };
 
-await run();
+await runCoreBoundaryAssertions(); await runSafetyBoundaryAssertions();
 process.stdout.write("[ACCEPTANCE] workbench-api-boundary PASS\n");

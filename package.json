@@ -16,6 +16,7 @@
     "acceptance:constitutional-boundary-anti-escape": "node --import tsx scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
     "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "acceptance:amazon-invoice-upload-download": "node --import tsx scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+    "acceptance:amazon-invoice-upload-batch": "node --import tsx scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "acceptance:facebook-product-video-mining": "node --import tsx scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-ai-upload.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts && node --import tsx scripts/acceptance/facebook-product-video-mining-failure-diagnosis.acceptance.ts",
     "audit:constitutional-boundary": "node --import tsx scripts/audit/domains/constitutional-boundary/inspector.ts",
     "audit:facebook-product-video-mining": "node --import tsx scripts/audit/domains/facebook-product-video-mining/inspector.ts",

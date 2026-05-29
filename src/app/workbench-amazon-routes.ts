@@ -6,6 +6,25 @@ import { readJsonBody, writeJson } from "./workbench-http.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 
 type AmazonRouteHandler = () => Promise<boolean>;
+type AmazonInvoiceUploadRouteMission = Parameters<GrassEyeWorkbenchHandle["startAmazonInvoiceUploadTask"]>[0]["mission"];
+
+function sanitizeAmazonInvoiceUploadMission(missionText: string): AmazonInvoiceUploadRouteMission {
+  const raw = JSON.parse(missionText) as Record<string, unknown>;
+  const mission: AmazonInvoiceUploadRouteMission = {
+    missionType: "amazon_invoice_upload",
+    marketplace: raw.marketplace as AmazonInvoiceUploadRouteMission["marketplace"],
+    amazonOrderId: String(raw.amazonOrderId ?? ""),
+    invoiceNo: String(raw.invoiceNo ?? ""),
+    invoicePdfPath: typeof raw.invoicePdfPath === "string" && raw.invoicePdfPath ? raw.invoicePdfPath : "approved-by-workbench",
+    sellerCentralEntryUrl: String(raw.sellerCentralEntryUrl ?? ""),
+    ...(typeof raw.adminOrderUrl === "string" && raw.adminOrderUrl ? { adminOrderUrl: raw.adminOrderUrl } : {}),
+  };
+  delete raw.requireHumanFinalSubmit;
+  delete raw.stopOnManualRequired;
+  delete raw.sourceSystem;
+  delete raw.requestId;
+  return mission;
+}
 
 const handleAmazonMissionRequest = async (
   request: IncomingMessage,
@@ -29,11 +48,11 @@ const handleAmazonTaskCreateRequest = async (
   return true;
 };
 
-const handleAmazonPluginStartRequest = async (
+async function handleAmazonPluginStartRequest(
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
+): Promise<boolean> {
   const form = await readMultipartFormData(request);
   const missionText = form.fields.get("mission");
   const invoicePdf = form.files.get("invoicePdf");
@@ -42,9 +61,27 @@ const handleAmazonPluginStartRequest = async (
     return true;
   }
   const result = await workbench.startAmazonInvoiceUploadTask({
-    mission: JSON.parse(missionText) as Parameters<typeof workbench.startAmazonInvoiceUploadTask>[0]["mission"],
+    mission: sanitizeAmazonInvoiceUploadMission(missionText),
     invoicePdf,
   });
+  writeJson(response, 200, result);
+  return true;
+}
+
+const handleAmazonPluginBatchStartRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  const form = await readMultipartFormData(request);
+  const missionText = form.fields.get("mission");
+  const invoicePdfs = form.fileLists.get("invoicePdfs") ?? [];
+  if (!missionText || invoicePdfs.length === 0) {
+    writeJson(response, 400, { error: "missing_mission_or_invoice_pdfs" });
+    return true;
+  }
+  const mission = JSON.parse(missionText) as Omit<Parameters<typeof workbench.startAmazonInvoiceUploadBatchTask>[0], "invoicePdfs">;
+  const result = await workbench.startAmazonInvoiceUploadBatchTask({ ...mission, invoicePdfs });
   writeJson(response, 200, result);
   return true;
 };
@@ -143,6 +180,14 @@ const handleAmazonPluginLatestRequest = async (
   return true;
 };
 
+const handleAmazonPluginLedgerRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  writeJson(response, 200, { records: await workbench.listAmazonInvoiceUploadLedger() });
+  return true;
+};
+
 const handleAmazonPluginDownloadLatestRequest = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -172,7 +217,72 @@ const handleAmazonPluginDownloadArtifactRequest = async (
   return true;
 };
 
-const handleAmazonPluginRequest = (
+const handleAmazonPluginBatchStatusRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  batchId: string,
+): Promise<boolean> => {
+  writeJson(response, 200, await workbench.getAmazonInvoiceUploadBatchStatus(batchId));
+  return true;
+};
+
+const handleAmazonPluginBatchLatestRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const marketplace = url.searchParams.get("marketplace") ?? undefined;
+  const requestId = url.searchParams.get("requestId") ?? undefined;
+  const record = await workbench.getLatestAmazonInvoiceUploadBatch({
+    ...(marketplace ? { marketplace } : {}),
+    ...(requestId ? { requestId } : {}),
+  });
+  writeJson(response, 200, record ? { found: true, record } : { found: false });
+  return true;
+};
+
+const handleAmazonPluginBatchHistoryRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const limit = url.searchParams.get("limit");
+  const status = url.searchParams.get("status");
+  const marketplace = url.searchParams.get("marketplace");
+  const orderId = url.searchParams.get("orderId");
+  const history = await workbench.listAmazonInvoiceUploadBatches({
+    ...(limit ? { limit: Number(limit) } : {}),
+    ...(status ? { status: status as never } : {}),
+    ...(marketplace ? { marketplace } : {}),
+    ...(orderId ? { orderId } : {}),
+  });
+  writeJson(response, 200, { batches: history });
+  return true;
+};
+
+const handleAmazonPluginBatchRequest = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> | null => {
+  if (request.method === "POST" && url.pathname === "/api/plugins/amazon-invoice-upload/batch/start") {
+    return handleAmazonPluginBatchStartRequest(request, response, workbench);
+  }
+  if (request.method === "GET" && url.pathname === "/api/plugins/amazon-invoice-upload/batch/latest") {
+    return handleAmazonPluginBatchLatestRequest(response, workbench, url);
+  }
+  if (request.method === "GET" && url.pathname === "/api/plugins/amazon-invoice-upload/batch/history") {
+    return handleAmazonPluginBatchHistoryRequest(response, workbench, url);
+  }
+  const batchStatusPrefix = "/api/plugins/amazon-invoice-upload/batch/status/";
+  if (request.method === "GET" && url.pathname.startsWith(batchStatusPrefix)) {
+    return handleAmazonPluginBatchStatusRequest(response, workbench, url.pathname.slice(batchStatusPrefix.length));
+  }
+  return null;
+};
+
+const handleAmazonPluginDownloadRequest = (
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -192,11 +302,23 @@ const handleAmazonPluginRequest = (
   if (request.method === "GET" && url.pathname.startsWith(downloadArtifactPrefix)) {
     return handleAmazonPluginDownloadArtifactRequest(response, workbench, url.pathname.slice(downloadArtifactPrefix.length));
   }
+  return null;
+};
+
+const handleAmazonPluginUploadRequest = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> | null => {
   if (request.method === "POST" && url.pathname === "/api/plugins/amazon-invoice-upload/start") {
     return handleAmazonPluginStartRequest(request, response, workbench);
   }
   if (request.method === "GET" && url.pathname === "/api/plugins/amazon-invoice-upload/latest") {
     return handleAmazonPluginLatestRequest(response, workbench, url);
+  }
+  if (request.method === "GET" && url.pathname === "/api/plugins/amazon-invoice-upload/ledger") {
+    return handleAmazonPluginLedgerRequest(response, workbench);
   }
   const statusPrefix = "/api/plugins/amazon-invoice-upload/status/";
   if (request.method === "GET" && url.pathname.startsWith(statusPrefix)) {
@@ -204,6 +326,16 @@ const handleAmazonPluginRequest = (
   }
   return null;
 };
+
+const handleAmazonPluginRequest = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> | null =>
+  handleAmazonPluginBatchRequest(request, response, workbench, url)
+  ?? handleAmazonPluginDownloadRequest(request, response, workbench, url)
+  ?? handleAmazonPluginUploadRequest(request, response, workbench, url);
 
 export const handleAmazonRequest = async (
   request: IncomingMessage,

@@ -334,6 +334,7 @@ At first implementation, only Amazon invoice upload task intake may be external-
 POST /api/plugins/amazon-invoice-upload/start
 GET  /api/plugins/amazon-invoice-upload/status/<taskId>
 GET  /api/plugins/amazon-invoice-upload/latest
+GET  /api/plugins/amazon-invoice-upload/ledger
 POST /api/plugins/amazon-invoice-upload/download/start
 GET  /api/plugins/amazon-invoice-upload/download/status/<taskId>
 GET  /api/plugins/amazon-invoice-upload/download/latest

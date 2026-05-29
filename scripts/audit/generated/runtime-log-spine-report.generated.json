@@ -1,12 +1,13 @@
 {
-  "generatedAt": "2026-05-28T19:59:11.330Z",
+  "generatedAt": "2026-05-29T15:43:06.478Z",
   "status": "PASS",
-  "scannedFiles": 336,
+  "scannedFiles": 343,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/inspector.ts",
+    "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -42,6 +43,7 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
@@ -168,6 +170,7 @@
     "src/lib/local-runtime/structured-log-bus.ts",
     "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
@@ -208,10 +211,14 @@
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
@@ -358,7 +365,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 336,
+    "scannedFiles": 343,
     "emitCallCount": 20,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -369,7 +376,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 331,
+      "scannedFiles": 338,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -378,13 +385,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 259
+      "scannedFiles": 264
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 255,
+      "scannedFiles": 260,
       "metrics": {
         "emitCallCount": 9
       }
@@ -393,13 +400,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 255
+      "scannedFiles": 260
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 260,
+      "scannedFiles": 265,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -414,7 +421,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 260,
+      "scannedFiles": 265,
       "metrics": {
         "failureWithoutClassCount": 0
       }

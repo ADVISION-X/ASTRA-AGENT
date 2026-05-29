@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:58:50.122Z",
+  "generatedAt": "2026-05-29T15:42:42.808Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -29,13 +29,18 @@
       "phase": "validated-mainline",
       "allowedEntrypoints": [
         "src/app/workbench-amazon-routes.ts",
+        "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
+        "acceptance:amazon-invoice-upload-batch",
+        "acceptance:amazon-invoice-upload-download",
         "acceptance:amazon-invoice-upload-smoke"
       ],
       "allowedNpmScripts": [
+        "acceptance:amazon-invoice-upload-batch",
+        "acceptance:amazon-invoice-upload-download",
         "acceptance:amazon-invoice-upload-smoke"
       ],
       "exposureTokens": [
@@ -143,7 +148,7 @@
   "pluginExposureFilesByPluginId": {
     "amazon-invoice-upload": [
       "src/app/workbench-amazon-routes.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/lib/local-runtime/workbench-amazon-invoice-handle.ts"
     ],
     "amazon-product-mining": [
       "src/app/workbench-amazon-product-mining-routes.ts",
@@ -164,6 +169,7 @@
     ]
   },
   "ciFullAcceptanceScripts": [
+    "acceptance:amazon-invoice-upload-batch",
     "acceptance:amazon-invoice-upload-download",
     "acceptance:amazon-invoice-upload-smoke",
     "acceptance:amazon-product-mining",
@@ -211,6 +217,7 @@
     ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
     ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
     ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+    "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -337,6 +344,7 @@
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+    "scripts/acceptance/workbench-api-boundary-batch-support.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -352,6 +360,10 @@
     "scripts/audit/config/plugin-status.json",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
@@ -542,6 +554,7 @@
     "scripts/startup/lib/startup-main-support.mjs",
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+    "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -577,6 +590,7 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
@@ -703,6 +717,7 @@
     "src/lib/local-runtime/structured-log-bus.ts",
     "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
@@ -743,10 +758,14 @@
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-service.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch-storage.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",

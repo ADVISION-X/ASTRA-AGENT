@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:58:45.601Z",
+  "generatedAt": "2026-05-29T15:42:38.060Z",
   "status": "PASS",
   "inspectorFileCount": 19,
   "generatedPlanEntryCount": 19,
@@ -11,6 +11,10 @@
     "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/manifest.json",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",

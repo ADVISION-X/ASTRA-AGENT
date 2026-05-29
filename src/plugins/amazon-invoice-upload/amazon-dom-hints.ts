@@ -4,7 +4,7 @@ export const AMAZON_INVOICE_UPLOAD_DOM_HINTS = {
   searchSubmit: ["search", "find", "submit", "搜索"],
   orderRow: ["order", "order date", "buyer", "ship"],
   uploadInvoiceEntry: ["upload invoice", "invoice", "choose file", "attach invoice", "上传发票", "发票"],
-  invoiceNumber: ["documentNumber", "document number", "invoice number", "invoice no", "file number", "文件编号", "发票编号", "发票"],
-  chooseFile: ["choose file", "upload", "attach", "选择文件", "选取文件", "上传"],
-  submit: ["submit invoice", "save invoice", "submit", "save", "提交", "保存", "上传"],
+  invoiceNumber: ["documentNumber", "document number", "invoice number", "invoice no", "file number", "File number", "文件编号", "发票编号", "发票"],
+  chooseFile: ["choose file", "Choose file", "select file", "Select file", "upload", "attach", "选择文件", "选取文件", "上传"],
+  submit: ["Upload", "上传"],
 } as const;

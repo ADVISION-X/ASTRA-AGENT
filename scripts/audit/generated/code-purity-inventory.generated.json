@@ -1,26 +1,5 @@
 {
-  "generatedAt": "2026-05-28T19:59:07.887Z",
-  "itemCount": 2,
-  "items": [
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:amazon-invoice-upload",
-      "reason": "Function near line 179 breaks function budget: cyclomatic complexity 20 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/app/workbench-home-client.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "app-shell",
-      "reason": "active executable source file has 545 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-05-29T15:43:02.995Z",
+  "itemCount": 0,
+  "items": []
 }

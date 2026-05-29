@@ -36,6 +36,9 @@ export type AmazonInvoiceUploadTaskResult = {
 };
 
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
+type SubmitButtonLocateResult =
+  | { ok: true; element: DomElementRef; expectedText: string }
+  | LocateFailure;
 
 const ENTRY_READY_TIMEOUT_MS = 10000;
 const ENTRY_READY_POLL_INTERVAL_MS = 500;
@@ -112,7 +115,6 @@ async function runUploadStepWithRetries<T>(input: {
 function isRetryableUploadStepFailure(failure: AmazonInvoiceUploadTaskResult): boolean {
   return failure.status !== "login_required"
     && failure.status !== "captcha_or_2fa_required"
-    && failure.reachedStep !== "file attached before final submit"
     && failure.reachedStep !== "verify upload success"
     && failure.reachedStep !== "close uploaded order tab";
 }
@@ -193,18 +195,6 @@ async function uploadAndSubmitInvoice(
     action: () => uploadApprovedInvoice(browser, runtimeLogger, mission),
   });
   if (!uploadResult.ok) return uploadResult.failure;
-  if (mission.requireHumanFinalSubmit === true) {
-    return taskResult({
-      status: "review_required",
-      reason: "Approved PDF is attached; human final submit is required by mission payload.",
-      reachedStep: "file attached before final submit",
-      amazonOrderId: mission.amazonOrderId,
-      invoiceNo: mission.invoiceNo,
-      ...(uploadResult.value ? { evidenceRef: uploadResult.value } : {}),
-      reviewRequired: true,
-    });
-  }
-
   return submitAndVerifyInvoice(browser, runtimeLogger, mission);
 }
 
@@ -213,17 +203,33 @@ async function submitAndVerifyInvoice(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const submitButton = locateOrStatus({
-    snapshot: await readAndTraceSubmitSnapshot(browser, runtimeLogger, mission),
-    targetKind: "button",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.submit],
-    notFoundStatus: "submit_failed",
-  });
+  const submitButton = locateSubmitButton(await readAndTraceSubmitSnapshot(browser, runtimeLogger, mission));
   if (!submitButton.ok) return submitButtonFailure(runtimeLogger, mission, submitButton);
   traceSubmitButtonLocated(runtimeLogger, mission, submitButton.element);
-  const submitFailure = await clickSubmitButton(browser, runtimeLogger, mission, submitButton.element);
+  const submitFailure = await clickSubmitButton(browser, runtimeLogger, mission, submitButton.element, submitButton.expectedText);
   if (submitFailure) return normalizeSubmitFailure(submitFailure);
   return verifyUploadSuccess(browser, runtimeLogger, mission);
+}
+
+function locateSubmitButton(snapshot: DomSnapshot): SubmitButtonLocateResult {
+  const zhButton = locateOrStatus({
+    snapshot,
+    targetKind: "button",
+    hints: ["上传"],
+    requiredText: "上传",
+    proximityAnchorText: "请上传您的发票或贷记单",
+    notFoundStatus: "submit_failed",
+  });
+  if (zhButton.ok) return { ...zhButton, expectedText: "上传" };
+  const enButton = locateOrStatus({
+    snapshot,
+    targetKind: "button",
+    hints: ["Upload"],
+    requiredText: "Upload",
+    proximityAnchorText: "Please upload your invoice or credit note",
+    notFoundStatus: "submit_failed",
+  });
+  return enButton.ok ? { ...enButton, expectedText: "Upload" } : enButton;
 }
 
 function submitButtonFailure(
@@ -261,6 +267,7 @@ async function clickSubmitButton(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   element: DomElementRef,
+  expectedText: string,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   const submitFailure = await clickLocated({
     browser,
@@ -269,7 +276,7 @@ async function clickSubmitButton(
     expectedKind: "submit-invoice-upload",
     reachedStep: "submit invoice upload",
     mission,
-    expectedText: "上传",
+    expectedText,
   });
   if (submitFailure) return submitFailure;
   recordAmazonDomStepTrace({
