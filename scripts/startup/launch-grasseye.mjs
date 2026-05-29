@@ -121,8 +121,17 @@ async function preparePort() {
   logEvent("STARTUP", "bootstrap", "hot_mount_probe", "started", `probing existing workbench at ${baseUrl}/api/health`);
   const hotMount = await probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint });
   if (hotMount.mounted) {
+    const stableHotMount = await verifyHotMountedWorkbenchStability();
+    if (!stableHotMount.stable) {
+      logEvent("STARTUP", "bootstrap", "hot_mount_probe", "event", "existing workbench health was transient; port clear may proceed", {
+        refs: [`healthUrl=${hotMount.healthUrl}`, `stabilityAttempt=${stableHotMount.attempt}`],
+        failureReason: stableHotMount.failureReason,
+      });
+      await clearWorkbenchPort();
+      return { hotMounted: false };
+    }
     logPass("STARTUP", "bootstrap", "hot_mount_probe", "passed", `hot-mounted existing workbench at ${baseUrl}`, {
-      refs: [`healthUrl=${hotMount.healthUrl}`, `contentType=${hotMount.contentType}`, `healthStatus=${hotMount.status}`],
+      refs: [`healthUrl=${hotMount.healthUrl}`, `contentType=${hotMount.contentType}`, `healthStatus=${hotMount.status}`, `stabilityChecks=${stableHotMount.attempt}`],
       durationMs: Date.now() - hotMountStart,
     });
     return { hotMounted: true };
@@ -133,6 +142,32 @@ async function preparePort() {
     failureReason: hotMount.failureReason,
   });
 
+  await clearWorkbenchPort();
+  return { hotMounted: false };
+}
+
+const waitForStartupDelay = (delayMs) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+
+async function verifyHotMountedWorkbenchStability() {
+  const attempts = 3;
+  let lastFailureReason = "hot mount stability probe did not run";
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (attempt > 1) {
+      await waitForStartupDelay(750);
+    }
+    const probe = await probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint });
+    if (!probe.mounted) {
+      return { stable: false, attempt, failureReason: probe.failureReason };
+    }
+    lastFailureReason = probe.failureReason ?? "healthy";
+  }
+  return { stable: true, attempt: attempts, failureReason: lastFailureReason };
+}
+
+async function clearWorkbenchPort() {
   const portStart = Date.now();
   logEvent("STARTUP", "bootstrap", "port_clear", "started", `clearing ${host}:${port}`);
   await clearPortListeners({
@@ -143,7 +178,6 @@ async function preparePort() {
   logPass("STARTUP", "bootstrap", "port_clear", "passed", `port ${host}:${port} is ready`, {
     durationMs: Date.now() - portStart,
   });
-  return { hotMounted: false };
 }
 
 async function startService(root) {

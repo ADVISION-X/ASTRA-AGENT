@@ -198,6 +198,11 @@ function inspectBatchUiClient(clientCorpus: string, findings: InspectorFinding[]
   if (clientCorpus.includes("body.append(\"invoicePdfs\"")) {
     addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-no-single-huge-multipart", "Large local selections must be queued through the existing single-upload route instead of one huge multipart request.");
   }
+  for (const requiredClientGuard of ["ensureAmazonInvoiceBackendReady", "backend_unreachable", "AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT", "compactAmazonInvoiceBatchRecord", "amazonInvoiceLocalQueueCounterKey"]) {
+    if (!clientCorpus.includes(requiredClientGuard)) {
+      addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-local-queue-health", `Batch local queue client must include ${requiredClientGuard}.`);
+    }
+  }
   for (const route of requiredBatchRoutes) {
     if (!clientCorpus.includes(route)) addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-client-route", `Batch client must bind ${route}.`);
   }

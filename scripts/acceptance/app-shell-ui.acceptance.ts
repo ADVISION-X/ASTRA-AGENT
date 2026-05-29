@@ -127,6 +127,11 @@ assert(client.includes("/api/plugins/amazon-invoice-upload/batch/start"), "Clien
 assert(client.includes("Local file queue"), "Client must turn large local file selections into a visible queue.");
 assert(client.includes("/api/plugins/amazon-invoice-upload/start"), "Client local batch queue must reuse the existing single upload route per file.");
 assert(!client.includes('body.append("invoicePdfs"'), "Client must not upload all selected PDFs in one multipart request.");
+assert(client.includes("ensureAmazonInvoiceBackendReady"), "Client must health-check the local backend before starting a large local queue.");
+assert(client.includes("backend_unreachable"), "Client must surface backend_unreachable instead of leaving large local queues stuck.");
+assert(client.includes("AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT"), "Client must cap rendered batch rows so large selections do not freeze the App Shell.");
+assert(client.includes("compactAmazonInvoiceBatchRecord"), "Client must compact raw batch rendering for large local queues.");
+assert(client.includes("amazonInvoiceLocalQueueCounterKey"), "Client must update large local queue counters incrementally.");
 assert(client.includes("/api/plugins/amazon-invoice-upload/batch/history"), "Client must call the Amazon invoice batch history route.");
 assert(client.includes("/api/plugins/amazon-invoice-upload/batch/status/"), "Client must poll the Amazon invoice batch status route.");
 assert(client.includes("refreshAmazonInvoiceUploadLedger"), "Client must render the persisted upload ledger.");

@@ -264,7 +264,7 @@ const inspectRealPortClear = (context: InspectorContext, findings: Finding[], la
 
 const collectHotMountOrderMetrics = (launchSource: SourceFile) => {
   const hotProbeStart = callStartInFunction(launchSource, "preparePort", "probeExistingWorkbench");
-  const clearStart = callStartInFunction(launchSource, "preparePort", "clearPortListeners");
+  const clearStart = callStartInFunction(launchSource, "preparePort", "clearWorkbenchPort");
   const startServiceStart = callStartInFunction(launchSource, "performLaunch", "startService");
   const preparePortStart = callStartInFunction(launchSource, "performLaunch", "preparePort");
   return {
@@ -314,6 +314,12 @@ const collectHotMountHealthMetrics = (readinessSource: SourceFile) => {
   };
 };
 
+const collectHotMountStabilityMetrics = (launchSource: SourceFile) => ({
+  verifiesTransientHotMount: launchSource.getFunction("verifyHotMountedWorkbenchStability") !== undefined,
+  usesSharedPortClearAfterTransientHotMount: launchSource.getFunction("clearWorkbenchPort") !== undefined,
+  reportsTransientHealth: hasStringLiteral(launchSource, "existing workbench health was transient; port clear may proceed"),
+});
+
 const inspectHotMountAst = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const launchSource = getProjectSource(context, launchPath);
   const readinessSource = getProjectSource(context, readinessPath);
@@ -334,6 +340,7 @@ const inspectHotMountAst = (context: InspectorContext, findings: Finding[], lawI
     ...collectHotMountOrderMetrics(launchSource),
     ...collectHotMountHealthMetrics(readinessSource),
     ...collectHotMountFreshnessMetrics(launchSource, readinessSource, sourceFingerprintSource),
+    ...collectHotMountStabilityMetrics(launchSource),
   };
 
   if (Object.values(metrics).some((value) => value === false)) {
