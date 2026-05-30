@@ -35,7 +35,7 @@ export function createWorkbenchAssembly(
   const structuredLogBus = createWorkbenchStructuredLogBus();
   const browserController = createWorkbenchBrowserController(options, dataDir);
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
-  const videoDownload = createWorkbenchVideoDownload(dataDir, browserController);
+  const videoDownload = createWorkbenchVideoDownload(dataDir, browserController, runtimeLogger);
   const aiInputGateway = createWorkbenchAiInputGateway(dataDir, browserController);
 
   return {

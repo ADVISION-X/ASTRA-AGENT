@@ -1,4 +1,4 @@
-import { access, chmod, mkdir } from "node:fs/promises";
+import { access, chmod, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -34,6 +34,9 @@ const execFileAsync = promisify(execFile);
 const localBinaryPath = (): string =>
   path.join(homedir(), ".cache", "grasseye", "video-download", "yt-dlp");
 
+const localRunnerPath = (): string =>
+  path.join(homedir(), ".cache", "grasseye", "video-download", "yt-dlp-runner");
+
 const canExecute = async (binaryPath: string): Promise<boolean> => {
   try {
     await execFileAsync(binaryPath, ["--version"], { timeout: 5_000 });
@@ -52,6 +55,33 @@ const fileExists = async (filePath: string): Promise<boolean> => {
   }
 };
 
+const resolvePythonRuntime = async (): Promise<string | null> => {
+  for (const candidate of ["python3.12", "python3.11", "python3.10", "python3"]) {
+    try {
+      const { stdout } = await execFileAsync(candidate, ["-c", "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')"], { timeout: 5_000 });
+      const [majorRaw, minorRaw] = stdout.trim().split(".");
+      const major = Number(majorRaw);
+      const minor = Number(minorRaw);
+      if (major > 3 || major === 3 && minor >= 10) {
+        return candidate;
+      }
+    } catch {
+      // Keep looking for a Python runtime supported by current yt-dlp.
+    }
+  }
+  return null;
+};
+
+const buildLocalRunner = async (binaryPath: string): Promise<string | null> => {
+  const python = await resolvePythonRuntime();
+  if (!python) return null;
+  const runner = localRunnerPath();
+  await mkdir(path.dirname(runner), { recursive: true });
+  await writeFile(runner, `#!/bin/sh\nexec ${python} ${JSON.stringify(binaryPath)} "$@"\n`);
+  await chmod(runner, 0o755);
+  return await canExecute(runner) ? runner : null;
+};
+
 const downloadLatestBinary = async (binaryPath: string): Promise<string> => {
   await mkdir(path.dirname(binaryPath), { recursive: true });
   await YTDlpWrapRuntime.downloadFromGithub(binaryPath);
@@ -65,9 +95,14 @@ export const resolveYtDlpBinaryPath = async (): Promise<string> => {
   if (await canExecute("yt-dlp")) return "yt-dlp";
 
   const local = localBinaryPath();
-  const shouldRefresh = process.env.GRASSEYE_YT_DLP_AUTO_UPDATE === "1";
+  const shouldRefresh = process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0";
   if (!shouldRefresh && await fileExists(local) && await canExecute(local)) {
     return local;
   }
-  return downloadLatestBinary(local);
+  if (!shouldRefresh && await fileExists(local)) {
+    const runner = await buildLocalRunner(local);
+    if (runner) return runner;
+  }
+  const downloaded = await downloadLatestBinary(local);
+  return await buildLocalRunner(downloaded) ?? downloaded;
 };

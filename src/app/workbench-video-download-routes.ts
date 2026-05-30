@@ -1,4 +1,4 @@
-import { copyFile } from "node:fs/promises";
+import { copyFile, mkdir } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -60,6 +60,9 @@ const readString = (value: unknown): string | null =>
 
 const readPositiveInteger = (value: unknown): number | null =>
   typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+
+const buildUserDownloadPath = (filePath: string): string =>
+  path.join(homedir(), "Downloads", "GrassEye Video Downloads", path.basename(filePath));
 
 const buildVideoDownloadJobInputForPlatform = (
   body: VideoDownloadRequestBody,
@@ -136,12 +139,13 @@ export const handleVideoDownloadRequest = async (
   }
   const result = await routeVideoDownloadArtifactJob(input, workbench);
   let downloadsPath: string | null = null;
-  if (result.status === "success" && body.saveToDownloads === true) {
+  if (result.status === "success" && body.saveToDownloads !== false) {
     const output = result.result.output as Record<string, unknown>;
     const filePath = typeof output.filePath === "string" ? output.filePath : null;
     if (filePath) {
-      const dest = path.join(homedir(), "Downloads", path.basename(filePath));
+      const dest = buildUserDownloadPath(filePath);
       try {
+        await mkdir(path.dirname(dest), { recursive: true });
         await copyFile(filePath, dest);
         downloadsPath = dest;
       } catch {

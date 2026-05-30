@@ -8,12 +8,14 @@ import type {
 } from "./schema.js";
 import type { BrowserMediaSourcePort } from "./ports/browser-media-source-port.js";
 import type { VideoArtifactStoragePort } from "./ports/video-artifact-storage-port.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type VideoDownloadAbilityGroupId = "video-download";
 
 export type VideoDownloadExecutionContext = {
   browserMediaSourcePort: BrowserMediaSourcePort;
   artifactStoragePort: VideoArtifactStoragePort;
+  runtimeLogger?: RuntimeLogger;
 };
 
 export interface VideoDownloadAbilityGroup {
@@ -38,4 +40,3 @@ export interface VideoDownloadChildCapability {
     context: VideoDownloadExecutionContext,
   ): Promise<VideoDownloadResult>;
 }
-

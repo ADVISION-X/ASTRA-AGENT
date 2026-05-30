@@ -1,6 +1,7 @@
 export {
   createVideoDownloadAbilityGroup,
   createVideoDownloadAbilityGroupFromFilesystem,
+  prepareVideoDownloadRuntimeDependencies,
   probeTelegramWebVisibleMediaSourcePage,
 } from "./ability-group.js";
 export type {

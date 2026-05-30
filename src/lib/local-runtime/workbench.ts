@@ -51,6 +51,7 @@ import {
   type DeepResearchReportViewModel,
   type DeepResearchTimelineSnapshot,
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
+import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
 
 type DeepResearchExecutionState = {
   status: DeepResearchJobSnapshot["job"]["status"];
@@ -407,6 +408,7 @@ export class GrassEyeWorkbench {
   }
 
   async init(): Promise<void> {
+    await prepareVideoDownloadRuntimeDependencies();
     continueInterruptedAmazonProductMiningTasks({
       dataDir: this.assembly.dataDir,
       browser: this.assembly.browserController,

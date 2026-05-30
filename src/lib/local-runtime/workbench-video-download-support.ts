@@ -6,6 +6,7 @@ import {
   type TelegramWebVisibleVideoCandidate,
 } from "../../capabilities/video-download/index.js";
 import type { BrowserController } from "../browser/browser-controller.js";
+import type { RuntimeLogger } from "../runtime-logs/index.js";
 import { runAppleScript } from "../browser/current-chrome-window-control.js";
 
 export type VideoDownloadSourcePagePlatform = "telegram-web";
@@ -194,10 +195,12 @@ const createWorkbenchBrowserMediaSourcePort = (
 export function createWorkbenchVideoDownload(
   dataDir: string,
   browserController: BrowserController,
+  runtimeLogger?: RuntimeLogger,
 ) {
   return createVideoDownloadAbilityGroupFromFilesystem({
     browserMediaSourcePort: createWorkbenchBrowserMediaSourcePort(browserController),
     dataDir,
+    ...(runtimeLogger ? { runtimeLogger } : {}),
   });
 }
 

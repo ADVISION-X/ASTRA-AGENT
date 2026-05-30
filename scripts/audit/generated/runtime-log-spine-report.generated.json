@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T20:17:48.687Z",
+  "generatedAt": "2026-05-30T21:21:58.983Z",
   "status": "PASS",
   "scannedFiles": 340,
   "inspectedFiles": [
@@ -352,10 +352,10 @@
   "missingTraceContractCount": 0,
   "catchBranchCount": 1,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 32,
+  "failureBranchCount": 35,
   "failureWithoutClassCount": 0,
-  "stageStartCount": 18,
-  "stageTerminalCount": 37,
+  "stageStartCount": 19,
+  "stageTerminalCount": 41,
   "stagePairViolationCount": 0,
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
@@ -412,7 +412,7 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 22
+      "scannedFiles": 23
     },
     {
       "name": "failure-class",
@@ -451,12 +451,12 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 22,
+      "scannedFiles": 23,
       "metrics": {
         "emitCallCount": 20,
-        "stageStartCount": 18,
-        "stageTerminalCount": 37,
-        "failureBranchCount": 32
+        "stageStartCount": 19,
+        "stageTerminalCount": 41,
+        "failureBranchCount": 35
       }
     },
     {

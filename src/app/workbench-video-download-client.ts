@@ -1,15 +1,15 @@
 const WORKBENCH_VIDEO_DOWNLOAD_CLIENT = `
 const VIDEO_PLATFORM_DEFAULTS = {
   telegram: { platform: "telegram-web", maxMegabytes: 5000, quality: false, subtitles: false, detect: true },
-  youtube: { platform: "youtube", maxMegabytes: 500, quality: true, subtitles: true, detect: false },
-  universal: { platform: "universal", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  facebook: { platform: "facebook", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  tiktok: { platform: "tiktok", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  instagram: { platform: "instagram", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  bilibili: { platform: "bilibili", maxMegabytes: 500, quality: true, subtitles: false, detect: false },
-  douyin: { platform: "douyin", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  x: { platform: "x", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
-  xiaohongshu: { platform: "xiaohongshu", maxMegabytes: 200, quality: true, subtitles: false, detect: false },
+  youtube: { platform: "youtube", maxMegabytes: 5000, quality: true, subtitles: true, detect: false },
+  universal: { platform: "universal", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  facebook: { platform: "facebook", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  tiktok: { platform: "tiktok", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  instagram: { platform: "instagram", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  bilibili: { platform: "bilibili", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  douyin: { platform: "douyin", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  x: { platform: "x", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  xiaohongshu: { platform: "xiaohongshu", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
 };
 const setVideoPlatform = (platform) => {
   const form = qs("[data-video-download-form]");
@@ -107,7 +107,7 @@ const renderVideoDownloadLedger = (result, downloadsPath) => {
       ? artifact.slice(artifact.lastIndexOf(downloadsMarker) + downloadsMarker.length)
       : artifact;
     const msg = downloadsPath
-      ? "✓ 视频已下载到 ~/Downloads：" + displayArtifact
+      ? "✓ 视频已下载到 ~/Downloads/GrassEye Video Downloads：" + displayArtifact
       : "✓ 视频下载完成：" + artifact;
     writeActivity(msg, "ok");
     return;

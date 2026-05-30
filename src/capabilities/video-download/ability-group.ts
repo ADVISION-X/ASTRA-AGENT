@@ -23,6 +23,7 @@ import {
 import { createFilesystemVideoArtifactStoragePort } from "./runtime/artifact-storage.js";
 import { buildVideoDownloadFailure } from "./runtime/result.js";
 import { buildTelegramWebVisibleMediaProbeScript } from "./runtime/telegram-web-visible-media-probe-script.js";
+import { resolveYtDlpBinaryPath } from "./runtime/youtube-dlp-binary.js";
 
 export type TelegramWebVisibleVideoCandidate = {
   documentIdHash: string;
@@ -173,10 +174,12 @@ export const createVideoDownloadAbilityGroup = (
 export const createVideoDownloadAbilityGroupFromFilesystem = (input: {
   browserMediaSourcePort: BrowserMediaSourcePort;
   dataDir: string;
+  runtimeLogger?: import("../../lib/runtime-logs/index.js").RuntimeLogger;
 }): VideoDownloadAbilityGroup =>
   createVideoDownloadAbilityGroup({
     browserMediaSourcePort: input.browserMediaSourcePort,
     artifactStoragePort: createFilesystemVideoArtifactStoragePort(input.dataDir),
+    ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   });
 
 export const probeTelegramWebVisibleMediaSourcePage = async (input: {
@@ -201,4 +204,8 @@ export const probeTelegramWebVisibleMediaSourcePage = async (input: {
     description: "collect Telegram Web visible media list",
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
+};
+
+export const prepareVideoDownloadRuntimeDependencies = async (): Promise<void> => {
+  await resolveYtDlpBinaryPath();
 };
