@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T02:01:19.490Z",
+  "generatedAt": "2026-05-31T05:29:28.909Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3271,6 +3271,61 @@
       "summary": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.",
       "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
       "blockIndex": 9
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection+acceptance",
+      "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 10
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
+      "summary": "Video-download owner inspection must be AST/symbol/anti-evasion based and must not use raw source string scans, regex, or marker theater as enforcement.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 11
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
+      "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 12
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
+      "summary": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 13
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
+      "summary": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 14
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",

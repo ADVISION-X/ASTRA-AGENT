@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { constants } from "node:fs";
+import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type {
@@ -8,6 +10,7 @@ import type {
   VideoDownloadArtifact,
   VideoArtifactStoragePort,
   VideoArtifactDisposition,
+  ImportVideoArtifactFromFileInput,
   WriteVideoArtifactInput,
 } from "../ports/video-artifact-storage-port.js";
 
@@ -30,7 +33,13 @@ const buildArtifactPath = (baseDir: string, input: WriteVideoArtifactInput): str
   );
 
 const sha256ForFile = async (filePath: string): Promise<string> =>
-  createHash("sha256").update(await readFile(filePath)).digest("hex");
+  new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    const stream = createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.once("error", reject);
+    stream.once("end", () => resolve(hash.digest("hex")));
+  });
 
 const buildArtifactRecord = async (input: {
   artifactId: string;
@@ -77,6 +86,19 @@ export const createFilesystemVideoArtifactStoragePort = (
         sha256,
         artifactDisposition: input.artifactDisposition ?? "final",
       };
+    },
+    async importVideoArtifactFromFile(input: ImportVideoArtifactFromFileInput): Promise<VideoDownloadArtifact> {
+      const filePath = buildArtifactPath(dataDir, {
+        ...input,
+        bytes: new Uint8Array(),
+      });
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await copyFile(input.sourceFilePath, filePath, constants.COPYFILE_EXCL);
+      return buildArtifactRecord({
+        artifactId: input.artifactId,
+        filePath,
+        artifactDisposition: input.artifactDisposition ?? "final",
+      });
     },
     promoteVideoArtifact,
     deleteVideoArtifact,

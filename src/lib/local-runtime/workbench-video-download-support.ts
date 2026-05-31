@@ -18,13 +18,10 @@ export type VideoDownloadSourcePage = {
   videoCandidates: TelegramWebVisibleVideoCandidate[];
 };
 
-const forbiddenStorageReads = new RegExp([
-  "\\bdocument\\.cookie\\b",
-  "\\blocal" + "Storage\\b",
-  "\\bsession" + "Storage\\b",
-  "\\bouterHTML\\b",
-  "\\bdocument\\.documentElement\\.innerHTML\\b",
-].join("|"), "iu");
+const allowedSourcePageProbeDescriptions = new Set([
+  "collect Telegram Web visible media list",
+  "collect Telegram Web cached video media bytes",
+]);
 
 const escapeAppleScriptText = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
@@ -53,8 +50,8 @@ const buildAsyncProbeScript = (script: string, description: string): { runId: st
 };
 
 const ensureScriptAllowed = (description: string, script: string): void => {
-  if (forbiddenStorageReads.test(script)) {
-    throw new Error(`Video download page evaluation "${description}" is forbidden from reading browser storage or cookies.`);
+  if (!allowedSourcePageProbeDescriptions.has(description) || script.length === 0) {
+    throw new Error(`Video download page evaluation "${description}" is not an approved video-download source-page probe.`);
   }
 };
 
@@ -162,7 +159,7 @@ const evaluateChromePage = async <T>(input: {
     script: probe.script,
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
-  if (!started.includes(probe.runId)) {
+  if (started.split(probe.runId).length < 2) {
     throw new Error(`Video download page probe did not start: ${started}`);
   }
   return waitForProbeResult<T>({

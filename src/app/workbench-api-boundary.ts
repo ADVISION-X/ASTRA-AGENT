@@ -90,6 +90,8 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   { method: "POST", pathPattern: "exact", path: "/api/amazon-product-mining/terminate", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "amazon-product-mining", purpose: "local_amazon_product_mining_terminate" },
   { method: "GET", pathPattern: "exact", path: "/api/video-download/source-page", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_source_page" },
   { method: "POST", pathPattern: "exact", path: "/api/video-download/start", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_start" },
+  { method: "POST", pathPattern: "exact", path: "/api/video-download/start-async", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_start_async" },
+  { method: "GET", pathPattern: "exact", path: "/api/video-download/status", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_status" },
 ];
 
 type BodyPreview = {

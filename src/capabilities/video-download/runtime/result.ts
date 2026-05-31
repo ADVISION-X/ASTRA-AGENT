@@ -49,6 +49,7 @@ type ResultBaseInput = {
   sha256?: string | null;
   artifactDisposition?: ParsedVideoDownloadAbilityInput["artifactDisposition"] | null;
   subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
+  selectedQuality?: ParsedVideoDownloadAbilityInput["preferredQuality"] | "unknown";
 };
 
 const elapsedMs = (startedAt: string, endedAt: string): number =>
@@ -68,7 +69,7 @@ const buildProofIdentity = (base: ResultBaseInput, status: VideoDownloadResult["
   sourcePageUrl: base.input.sourcePageUrl,
   platformId: resolvePlatformId(base.input),
   status,
-  selectedQuality: base.input.preferredQuality,
+  selectedQuality: base.selectedQuality ?? base.input.preferredQuality,
   artifactDisposition: base.artifactDisposition ?? null,
   sha256: base.sha256 ?? null,
 });
@@ -135,7 +136,7 @@ const buildSuccessOutput = (
   durationMs: base.durationMs ?? null,
   width: base.width ?? null,
   height: base.height ?? null,
-  selectedQuality: base.input.preferredQuality,
+  selectedQuality: runtimeProof.selectedQuality,
   candidateKind: base.candidate?.kind ?? "media_resource",
   downloadedAt: endedAt,
   proofRef: runtimeProof.proofId,

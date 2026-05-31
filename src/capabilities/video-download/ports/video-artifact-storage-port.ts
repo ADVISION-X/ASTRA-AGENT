@@ -19,6 +19,10 @@ export type WriteVideoArtifactInput = {
   artifactDisposition?: VideoArtifactDisposition;
 };
 
+export type ImportVideoArtifactFromFileInput = Omit<WriteVideoArtifactInput, "bytes"> & {
+  sourceFilePath: string;
+};
+
 export type PromoteVideoArtifactInput = {
   artifact: VideoDownloadArtifact;
   destinationFilePath: string;
@@ -30,6 +34,7 @@ export type DeleteVideoArtifactInput = {
 
 export interface VideoArtifactStoragePort {
   writeVideoArtifact(input: WriteVideoArtifactInput): Promise<VideoDownloadArtifact>;
+  importVideoArtifactFromFile(input: ImportVideoArtifactFromFileInput): Promise<VideoDownloadArtifact>;
   promoteVideoArtifact(input: PromoteVideoArtifactInput): Promise<VideoDownloadArtifact>;
   deleteVideoArtifact(input: DeleteVideoArtifactInput): Promise<void>;
 }

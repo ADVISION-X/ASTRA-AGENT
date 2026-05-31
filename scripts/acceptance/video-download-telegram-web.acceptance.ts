@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   createVideoDownloadAbilityGroup,
+  type ImportVideoArtifactFromFileInput,
   type BrowserMediaSourcePort,
   type VideoArtifactStoragePort,
   type WriteVideoArtifactInput,
@@ -32,6 +33,15 @@ const createStorage = (): VideoArtifactStoragePort => ({
       storageRef: `storage:${input.artifactId}`,
       filePath: `/tmp/${input.artifactId}${input.extension}`,
       sha256: createHash("sha256").update(input.bytes).digest("hex"),
+      artifactDisposition: input.artifactDisposition ?? "final",
+    };
+  },
+  async importVideoArtifactFromFile(input: ImportVideoArtifactFromFileInput) {
+    return {
+      artifactRef: `artifact:${input.artifactId}`,
+      storageRef: input.sourceFilePath,
+      filePath: input.sourceFilePath,
+      sha256: createHash("sha256").update(input.sourceFilePath).digest("hex"),
       artifactDisposition: input.artifactDisposition ?? "final",
     };
   },

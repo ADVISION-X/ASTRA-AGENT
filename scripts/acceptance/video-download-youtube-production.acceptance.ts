@@ -1,42 +1,260 @@
-import { readFileSync } from "node:fs";
 import { strict as assert } from "node:assert";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
+import { buildVideoDownloadJobInput, copyResultToDownloads, persistTerminalVideoDownloadTask } from "../../src/app/workbench-video-download-routes.js";
+import { youtubeProductionExpectedSubtitleLanguages, youtubeProductionLanguageMatches, youtubeProductionMaxHeightForQuality } from "../../src/capabilities/video-download/index.js";
+import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 
-const read = (path: string): string => readFileSync(path, "utf8");
+const project = new Project({
+  tsConfigFilePath: "tsconfig.json",
+  compilerOptions: { allowJs: true },
+});
 
-const client = read("src/app/workbench-video-download-client.ts");
-const route = read("src/app/workbench-video-download-routes.ts");
-const runtime = read("src/capabilities/video-download/runtime/youtube-dlp-download.ts");
-const child = read("src/capabilities/video-download/children/download-youtube-video-once.ts");
-const policy = read("src/capabilities/video-download/runtime/youtube-dlp-policy.ts");
-const abilityGroup = read("src/capabilities/video-download/ability-group.ts");
-const binary = read("src/capabilities/video-download/runtime/youtube-dlp-binary.ts");
-const workbench = read("src/lib/local-runtime/workbench.ts");
+const source = (filePath: string): SourceFile => {
+  const file = project.getSourceFile(filePath);
+  assert(file, `${filePath} must be present in the ts-morph project.`);
+  return file;
+};
 
-assert.match(policy, /YOUTUBE_DEFAULT_TIMEOUT_MS = 120_000/u);
-assert.match(policy, /replace\(\/https\?:/u);
-assert.match(policy, /drm_or_private_video/u);
-assert.match(policy, /captcha_or_2fa_required/u);
-assert.match(policy, /login_required/u);
-assert.match(policy, /network_failed/u);
-assert.match(client, /form\.preferredQuality\.value = "720p"/u);
-assert.match(client, /requestTimeoutMs.*youtube.*120000/u);
-assert.match(client, /setText\("\[data-evidence-ref\]"/u);
-assert.match(route, /platform === "youtube" \? 120_000 : 3_600_000/u);
-assert.match(runtime, /youtube metadata probe started/u);
-assert.match(runtime, /youtubeMetadataTimeoutSeconds/u);
-assert.match(runtime, /sanitizeYoutubeProgressLine/u);
-assert.match(runtime, /YOUTUBE_PROCESS_KILL_GRACE_MS/u);
-assert.match(child, /input\.downloaded\.failureReason/u);
-assert.match(abilityGroup, /prepareVideoDownloadRuntimeDependencies/u);
-assert.match(abilityGroup, /resolveYtDlpBinaryPath\(\{ refresh: process\.env\.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0" \}\)/u);
-assert.match(workbench, /await prepareVideoDownloadRuntimeDependencies\(\);/u);
-assert.match(binary, /downloadFromGithub/u);
-assert.match(binary, /resolveCachedLocalBinaryPath/u);
-assert.match(binary, /input\.refresh === true/u);
-assert.match(binary, /python3\.10/u);
+const callName = (node: Node): string => {
+  if (!Node.isCallExpression(node)) return "";
+  const expression = node.getExpression();
+  if (Node.isIdentifier(expression)) return String(expression.compilerNode.escapedText);
+  if (Node.isPropertyAccessExpression(expression)) return expression.getName();
+  return "";
+};
 
-const refreshBranchIndex = binary.indexOf("if (input.refresh === true)");
-const systemBinaryIndex = binary.indexOf('canExecute("yt-dlp")');
-assert.ok(refreshBranchIndex >= 0 && systemBinaryIndex > refreshBranchIndex, "startup refresh must prefer managed latest yt-dlp before PATH yt-dlp");
+const identifierName = (node: Node): string | null =>
+  Node.isIdentifier(node) ? String(node.compilerNode.escapedText) : null;
+
+const hasCall = (file: SourceFile, name: string): boolean =>
+  file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => callName(call) === name);
+
+const hasStringLiteral = (file: SourceFile, value: string): boolean =>
+  file.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === value) ||
+  file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).some((literal) =>
+    literal.getLiteralText().split(value).length > 1);
+
+const objectLiteralHasProperty = (file: SourceFile, propertyName: string): boolean =>
+  file.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((literal) =>
+    literal.getProperties().some((property) => {
+      if (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) {
+        return property.getName() === propertyName;
+      }
+      return false;
+    }));
+
+const objectLiteralHasInitializer = (
+  file: SourceFile,
+  propertyName: string,
+  expressionName: string,
+  initializerPropertyName: string,
+): boolean => file.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((literal) => {
+  const property = literal.getProperty(propertyName);
+  if (!Node.isPropertyAssignment(property)) return false;
+  const initializer = property.getInitializer();
+  return Node.isPropertyAccessExpression(initializer) &&
+    identifierName(initializer.getExpression()) === expressionName &&
+    initializer.getName() === initializerPropertyName;
+});
+
+const objectLiteralStringValue = (
+  file: SourceFile,
+  variableName: string,
+  propertyName: string,
+): string | null => {
+  const initializer = file.getVariableDeclaration(variableName)?.getInitializer();
+  const objectLiteral = Node.isObjectLiteralExpression(initializer)
+    ? initializer
+    : initializer?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)[0];
+  if (!objectLiteral) return null;
+  const property = objectLiteral.getProperties().find((candidate) =>
+    (Node.isPropertyAssignment(candidate) || Node.isShorthandPropertyAssignment(candidate)) &&
+    candidate.getName().replaceAll('"', "").replaceAll("'", "") === propertyName);
+  if (!Node.isPropertyAssignment(property)) return null;
+  const propertyInitializer = property.getInitializer();
+  return Node.isStringLiteral(propertyInitializer) ? propertyInitializer.getLiteralText() : null;
+};
+
+const selectorBranches = (selector: string): string[] =>
+  selector.split("/").map((branch) => branch.trim()).filter((branch) => branch.length > 0);
+
+const selectorIsFullyBounded = (selector: string, maxHeight: string): boolean =>
+  selectorBranches(selector).every((branch) => branch.split(`height<=${maxHeight}`).length > 1);
+
+const typeLiteralPropertyNames = (node: Node | undefined): string[] => {
+  if (!node) return [];
+  if (Node.isTypeLiteral(node)) {
+    return node.getMembers().flatMap((member) =>
+      Node.isPropertySignature(member) ? [member.getName()] : []);
+  }
+  return node.forEachChildAsArray().flatMap((childNode) => typeLiteralPropertyNames(childNode));
+};
+
+const client = source("src/app/workbench-video-download-client.ts");
+const route = source("src/app/workbench-video-download-routes.ts");
+const runtime = source("src/capabilities/video-download/runtime/youtube-dlp-download.ts");
+const child = source("src/capabilities/video-download/children/download-youtube-video-once.ts");
+const abilityGroup = source("src/capabilities/video-download/ability-group.ts");
+const binary = source("src/capabilities/video-download/runtime/youtube-dlp-binary.ts");
+const output = source("src/capabilities/video-download/runtime/youtube-dlp-output.ts");
+const storagePort = source("src/capabilities/video-download/ports/video-artifact-storage-port.ts");
+const storage = source("src/capabilities/video-download/runtime/artifact-storage.ts");
+const boundary = source("src/app/workbench-api-boundary.ts");
+const args = source("src/capabilities/video-download/runtime/youtube-dlp-args.ts");
+
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "2160p") ?? "", "2160"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "1440p") ?? "", "1440"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "1080p") ?? "", "1080"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "720p") ?? "", "720"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "480p") ?? "", "480"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "360p") ?? "", "360"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "hd") ?? "", "1080"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "sd") ?? "", "480"), true);
+assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORMAT_SELECTORS", "best_available") ?? "", "2160"), true);
+assert.equal(hasStringLiteral(client, "best_available"), true);
+assert.equal(hasStringLiteral(client, "/api/video-download/start-async"), true);
+assert.equal(hasStringLiteral(client, "/api/video-download/status?taskId="), true);
+
+assert.equal(hasStringLiteral(route, "/api/video-download/start-async"), true);
+assert.equal(hasStringLiteral(route, "/api/video-download/status"), true);
+assert.equal(hasStringLiteral(route, "video_download_concurrency_limit_reached"), true);
+assert.equal(hasCall(route, "persistVideoDownloadTask"), true);
+assert.equal(hasCall(route, "readPersistedVideoDownloadTask"), true);
+assert.equal(hasCall(route, "runningTaskCount"), true);
+assert.equal(hasCall(route, "rename"), true);
+const youtubeDefaultMaxBytesInitializer = route.getVariableDeclaration("YOUTUBE_DEFAULT_MAX_BYTES")?.getInitializer();
+assert(Node.isNumericLiteral(youtubeDefaultMaxBytesInitializer));
+assert.equal(Number(youtubeDefaultMaxBytesInitializer.getLiteralValue()), 5_000_000_000);
+
+assert.equal(hasStringLiteral(runtime, "--max-filesize"), true);
+assert.equal(hasStringLiteral(runtime, "metadata_validation_failed"), true);
+assert.equal(hasCall(runtime, "selectedQualityFromHeight"), true);
+assert.equal(objectLiteralHasProperty(runtime, "selectedQuality"), true);
+assert.equal(hasCall(runtime, "getPreparedYtDlpBinaryPath"), true);
+assert.equal(hasCall(runtime, "resolveYtDlpBinaryPath"), false);
+
+assert.equal(hasCall(child, "importVideoArtifactFromFile"), true);
+assert.equal(objectLiteralHasInitializer(child, "sourceFilePath", "downloaded", "filePath"), true);
+assert.equal(objectLiteralHasInitializer(child, "sourceFilePath", "subtitle", "filePath"), true);
+assert.equal(objectLiteralHasProperty(child, "selectedQuality"), true);
+assert.equal(hasCall(child, "setTimeout"), true);
+assert.equal(hasCall(child, "randomUUID"), true);
+
+assert(abilityGroup.getVariableDeclaration("prepareVideoDownloadRuntimeDependencies"), "prepareVideoDownloadRuntimeDependencies must be exported.");
+assert.equal(hasCall(abilityGroup, "resolveYtDlpBinaryPath"), true);
+assert.equal(hasCall(abilityGroup, "verifyFfprobeAvailable"), true);
+assert.equal(hasCall(binary, "downloadFromGithub"), true);
+assert(binary.getVariableDeclaration("getPreparedYtDlpBinaryPath"), "prepared yt-dlp accessor must be exported.");
+
+assert.equal(hasCall(output, "execFileAsync"), true);
+assert.equal(hasStringLiteral(output, "ffprobe"), true);
+assert.equal(objectLiteralHasProperty(output, "durationMs"), true);
+assert.equal(objectLiteralHasProperty(output, "width"), true);
+assert.equal(objectLiteralHasProperty(output, "height"), true);
+
+const outputFilesTypeNode = output.getTypeAlias("YoutubeOutputFiles")?.getTypeNode();
+const videoProperty = Node.isTypeLiteral(outputFilesTypeNode)
+  ? outputFilesTypeNode.getMembers().find((member) => Node.isPropertySignature(member) && member.getName() === "video")
+  : undefined;
+assert.equal(typeLiteralPropertyNames(videoProperty).some((propertyName) => propertyName === "bytes"), false);
+
+const subtitleTypeNode = output.getTypeAlias("YoutubeSubtitleDownload")?.getTypeNode();
+assert.equal(typeLiteralPropertyNames(subtitleTypeNode).some((propertyName) => propertyName === "filePath"), true);
+assert.equal(typeLiteralPropertyNames(subtitleTypeNode).some((propertyName) => propertyName === "bytes"), false);
+
+assert.equal(storagePort.getInterface("VideoArtifactStoragePort")?.getMethods().some((method) => method.getName() === "importVideoArtifactFromFile"), true);
+assert.equal(hasCall(storage, "createReadStream"), true);
+assert.equal(hasCall(storage, "copyFile"), true);
+
+assert.equal(hasStringLiteral(boundary, "/api/video-download/start-async"), true);
+assert.equal(hasStringLiteral(boundary, "/api/video-download/status"), true);
+
+const defaultYoutubeJob = buildVideoDownloadJobInput({
+  platform: "youtube",
+  sourcePageUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+});
+assert(defaultYoutubeJob);
+assert.equal(defaultYoutubeJob.preferredQuality, "best_available");
+assert.equal(defaultYoutubeJob.maxBytes, 5_000_000_000);
+assert.deepEqual(defaultYoutubeJob.subtitleLanguages, ["en"]);
+
+const boundedYoutubeJob = buildVideoDownloadJobInput({
+  platform: "youtube",
+  sourcePageUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  maxBytes: 123_456,
+  subtitleLanguages: ["en", "zh"],
+});
+assert(boundedYoutubeJob);
+assert.equal(boundedYoutubeJob.maxBytes, 123_456);
+assert.deepEqual(boundedYoutubeJob.subtitleLanguages, ["en", "zh"]);
+
+const cappedYoutubeJob = buildVideoDownloadJobInput({
+  platform: "youtube",
+  sourcePageUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  maxBytes: 9_000_000_000,
+});
+assert(cappedYoutubeJob);
+assert.equal(cappedYoutubeJob.maxBytes, 5_000_000_000);
+
+assert.equal(youtubeProductionLanguageMatches("en", "en-US"), true);
+assert.equal(youtubeProductionLanguageMatches("zh", "zh-Hans"), true);
+assert.equal(youtubeProductionLanguageMatches("en-US", "en"), true);
+assert.equal(youtubeProductionLanguageMatches("en", "fr"), false);
+assert.deepEqual(youtubeProductionExpectedSubtitleLanguages(["en-US", "fr"], ["en"], true), ["en-US"]);
+assert.deepEqual(youtubeProductionExpectedSubtitleLanguages(["zh-Hans", "en"], ["zh"], true), ["zh-Hans"]);
+assert.deepEqual(youtubeProductionExpectedSubtitleLanguages(["en-US"], ["en"], false), []);
+assert.equal(youtubeProductionMaxHeightForQuality("720p"), 720);
+assert.equal(youtubeProductionMaxHeightForQuality("hd"), 1080);
+assert.equal(youtubeProductionMaxHeightForQuality("best_available"), 2160);
+
+const failedPersistence = await persistTerminalVideoDownloadTask(
+  { getDataDir: () => "/dev/null" } as GrassEyeWorkbenchHandle,
+  "video_download_acceptance",
+  {
+    taskId: "video_download_acceptance",
+    status: "success",
+    startedAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+    platform: "youtube",
+    sourcePageUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    record: null,
+    downloadsPath: null,
+    failureReason: null,
+  },
+);
+assert.equal(failedPersistence.status, "failed");
+assert(failedPersistence.failureReason?.startsWith("video_download_task_persistence_failed"));
+
+const missingDelivery = await copyResultToDownloads({
+  jobType: "video-download-artifact",
+  status: "success",
+  result: {
+    status: "success",
+    output: {
+      filePath: path.join(await mkdtemp(path.join(tmpdir(), "grasseye-missing-delivery-")), "missing.mp4"),
+    },
+  },
+} as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true)
+  .then(() => "unexpected_success")
+  .catch((error: unknown) => error instanceof Error ? error.message : String(error));
+assert.notEqual(missingDelivery, "unexpected_success");
+
+const deliveryFixtureDir = await mkdtemp(path.join(tmpdir(), "grasseye-delivery-"));
+const deliverySource = path.join(deliveryFixtureDir, "video.mp4");
+await writeFile(deliverySource, "fixture");
+const deliveredPath = await copyResultToDownloads({
+  jobType: "video-download-artifact",
+  status: "success",
+  result: {
+    status: "success",
+    output: { filePath: deliverySource },
+  },
+} as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true);
+assert(deliveredPath);
+assert.equal(path.basename(deliveredPath).endsWith("-video.mp4"), true);
+assert.notEqual(path.basename(deliveredPath), `${Date.now()}-video.mp4`);
 
 process.stdout.write("[ACCEPTANCE][video-download-youtube-production] PASS\n");

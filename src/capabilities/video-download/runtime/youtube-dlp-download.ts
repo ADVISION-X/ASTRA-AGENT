@@ -3,11 +3,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
-import YTDlpWrapModule from "yt-dlp-wrap/dist/index.js";
-
 import type { ParsedVideoDownloadAbilityInput } from "../schema.js";
 import { extractYoutubeVideoId, normalizeYoutubeVideoUrl } from "./youtube-url.js";
-import { resolveYtDlpBinaryPath } from "./youtube-dlp-binary.js";
+import { getPreparedYtDlpBinaryPath } from "./youtube-dlp-binary.js";
 import { formatSelector, subtitleArgs, youtubeArgs } from "./youtube-dlp-args.js";
 import { collectYtDlpOutputFiles, type YoutubeSubtitleDownload } from "./youtube-dlp-output.js";
 import {
@@ -20,43 +18,30 @@ import {
   type YoutubeDlpFailure,
 } from "./youtube-dlp-policy.js";
 
-type YTDlpWrapInstance = {
-  execPromise(args: string[], options?: { maxBuffer?: number }, abortSignal?: AbortSignal): Promise<string>;
-};
-
-type YTDlpWrapRuntime = new (binaryPath: string) => YTDlpWrapInstance;
-
-const unwrapDefaultExport = (value: unknown): unknown => {
-  const record = value && typeof value === "object" ? value as { default?: unknown } : null;
-  return record?.default ?? value;
-};
-
-const resolveYTDlpWrapRuntime = (value: unknown): YTDlpWrapRuntime => {
-  const runtimeValue = unwrapDefaultExport(value);
-  if (!runtimeValue || typeof runtimeValue !== "function") {
-    throw new Error("yt-dlp-wrap runtime is not constructable.");
-  }
-  return runtimeValue as YTDlpWrapRuntime;
-};
-
-const YTDlpWrapRuntime = resolveYTDlpWrapRuntime(YTDlpWrapModule);
-
 type YoutubeMetadata = {
   id: string | null;
   durationMs: number | null;
   width: number | null;
   height: number | null;
   fileSize: number | null;
+  subtitleLanguages: string[];
 };
+
+type ParsedYoutubeInput = Extract<
+  ParsedVideoDownloadAbilityInput,
+  { childCapabilityId: "download-youtube-video-once" }
+>;
 
 type YoutubeDownloadSuccess = {
   ok: true;
-  bytes: Uint8Array;
+  filePath: string;
+  tempDir: string;
   contentType: string;
   byteSize: number;
   durationMs: number | null;
   width: number | null;
   height: number | null;
+  selectedQuality: ParsedYoutubeInput["preferredQuality"] | "unknown";
   videoId: string | null;
   subtitles: YoutubeSubtitleDownload[];
 };
@@ -79,46 +64,46 @@ const stringField = (value: unknown): string | null =>
 const metadataFromJson = (raw: unknown): YoutubeMetadata => {
   const record = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
   const seconds = numberField(record.duration);
+  const subtitles = typeof record.subtitles === "object" && record.subtitles !== null
+    ? Object.keys(record.subtitles)
+    : [];
+  const automaticCaptions = typeof record.automatic_captions === "object" && record.automatic_captions !== null
+    ? Object.keys(record.automatic_captions)
+    : [];
   return {
     id: stringField(record.id),
     durationMs: seconds === null ? null : Math.round(seconds * 1000),
     width: numberField(record.width),
     height: numberField(record.height),
     fileSize: numberField(record.filesize) ?? numberField(record.filesize_approx),
+    subtitleLanguages: [...new Set([...subtitles, ...automaticCaptions])],
   };
-};
-
-type ParsedYoutubeInput = Extract<
-  ParsedVideoDownloadAbilityInput,
-  { childCapabilityId: "download-youtube-video-once" }
->;
-
-const readMetadata = async (
-  wrapper: YTDlpWrapInstance,
-  url: string,
-  timeoutMs: number,
-  abortSignal: AbortSignal,
-): Promise<YoutubeMetadata> => {
-  const stdout = await wrapper.execPromise([
-    "--dump-json",
-    "--no-warnings",
-    "--socket-timeout",
-    String(youtubeMetadataTimeoutSeconds({ timeoutMs })),
-    ...youtubeArgs(url),
-  ], { maxBuffer: 10 * 1024 * 1024 }, abortSignal);
-  return metadataFromJson(JSON.parse(stdout) as unknown);
 };
 
 const runYtDlpProcess = async (input: {
   args: string[];
   abortSignal: AbortSignal;
+  captureStdout?: boolean;
   onProgress?: (message: string) => void;
-}): Promise<void> => {
-  const binaryPath = await resolveYtDlpBinaryPath();
-  await new Promise<void>((resolve, reject) => {
+}): Promise<string> => {
+  const binaryPath = getPreparedYtDlpBinaryPath();
+  return new Promise<string>((resolve, reject) => {
     const child = spawn(binaryPath, input.args, { stdio: ["ignore", "pipe", "pipe"] });
+    const stdout: string[] = [];
     const stderr: string[] = [];
+    let settled = false;
     let lastProgressAt = 0;
+    const rejectOnce = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    const abort = () => {
+      child.kill("SIGTERM");
+      setTimeout(() => {
+        if (!child.killed) child.kill("SIGKILL");
+      }, YOUTUBE_PROCESS_KILL_GRACE_MS).unref();
+    };
     const emitProgress = (chunk: Buffer) => {
       const text = chunk.toString();
       stderr.push(text);
@@ -129,21 +114,20 @@ const runYtDlpProcess = async (input: {
       lastProgressAt = now;
       input.onProgress?.(line);
     };
-    const abort = () => {
-      child.kill("SIGTERM");
-      setTimeout(() => {
-        if (!child.killed) child.kill("SIGKILL");
-      }, YOUTUBE_PROCESS_KILL_GRACE_MS).unref();
-    };
     if (input.abortSignal.aborted) abort();
     input.abortSignal.addEventListener("abort", abort, { once: true });
-    child.stdout.on("data", emitProgress);
+    child.stdout.on("data", (chunk: Buffer) => {
+      if (input.captureStdout) stdout.push(chunk.toString());
+      else emitProgress(chunk);
+    });
     child.stderr.on("data", emitProgress);
-    child.on("error", reject);
+    child.on("error", rejectOnce);
     child.on("close", (code, signal) => {
       input.abortSignal.removeEventListener("abort", abort);
+      if (settled) return;
+      settled = true;
       if (code === 0) {
-        resolve();
+        resolve(stdout.join(""));
         return;
       }
       const tail = stderr.join("").slice(-2_000).trim();
@@ -152,6 +136,69 @@ const runYtDlpProcess = async (input: {
         : `yt-dlp failed with code ${code ?? "null"} signal ${signal ?? "none"}: ${tail || "no stderr"}`));
     });
   });
+};
+
+const readMetadata = async (
+  url: string,
+  timeoutMs: number,
+  abortSignal: AbortSignal,
+): Promise<YoutubeMetadata> => {
+  const stdout = await runYtDlpProcess({
+    abortSignal,
+    captureStdout: true,
+    args: [
+    "--dump-json",
+    "--no-warnings",
+    "--socket-timeout",
+    String(youtubeMetadataTimeoutSeconds({ timeoutMs })),
+    ...youtubeArgs(url),
+    ],
+  });
+  return metadataFromJson(JSON.parse(stdout) as unknown);
+};
+
+export const youtubeExpectedSubtitleLanguages = (
+  availableLanguages: readonly string[],
+  requestedLanguages: readonly string[],
+  downloadSubtitles: boolean,
+): Set<string> => {
+  if (!downloadSubtitles) return new Set();
+  return new Set(availableLanguages.filter((language) =>
+    requestedLanguages.some((requested) => youtubeLanguageMatches(requested, language))));
+};
+
+const expectedSubtitleLanguages = (metadata: YoutubeMetadata, request: ParsedYoutubeInput): Set<string> =>
+  youtubeExpectedSubtitleLanguages(metadata.subtitleLanguages, request.subtitleLanguages, request.downloadSubtitles);
+
+const missingSubtitleLanguages = (
+  expected: Set<string>,
+  subtitles: readonly YoutubeSubtitleDownload[],
+): string[] => {
+  const downloaded = new Set(subtitles.map((subtitle) => subtitle.language));
+  return [...expected].filter((language) =>
+    ![...downloaded].some((downloadedLanguage) => youtubeLanguageMatches(language, downloadedLanguage)));
+};
+
+export const youtubeLanguageMatches = (requestedLanguage: string, availableLanguage: string): boolean => {
+  const requested = requestedLanguage.toLowerCase();
+  const available = availableLanguage.toLowerCase();
+  return available === requested || available.startsWith(`${requested}-`) || requested.startsWith(`${available}-`);
+};
+
+const selectedQualityFromHeight = (
+  _request: ParsedYoutubeInput,
+  height: number,
+): ParsedYoutubeInput["preferredQuality"] | "unknown" => {
+  const knownHeights = [2160, 1440, 1080, 720, 480, 360] as const;
+  const matched = knownHeights.find((candidate) => height >= candidate);
+  return matched ? `${matched}p` as ParsedYoutubeInput["preferredQuality"] : "360p";
+};
+
+export const maxYoutubeHeightForQuality = (quality: ParsedYoutubeInput["preferredQuality"]): number => {
+  if (quality === "hd") return 1080;
+  if (quality === "sd") return 480;
+  if (quality === "best_available") return 2160;
+  return Number(quality.slice(0, -1));
 };
 
 const runYoutubeDownload = async (input: {
@@ -164,10 +211,8 @@ const runYoutubeDownload = async (input: {
   metadata: YoutubeMetadata;
   output: Awaited<ReturnType<typeof collectYtDlpOutputFiles>>;
 }> => {
-  const wrapper = new YTDlpWrapRuntime(await resolveYtDlpBinaryPath());
   input.onProgress?.("youtube metadata probe started");
   const metadata = await readMetadata(
-    wrapper,
     input.normalizedUrl,
     input.request.timeoutMs,
     input.abortSignal,
@@ -186,6 +231,8 @@ const runYoutubeDownload = async (input: {
     "mp4",
     "--output",
     outputTemplate,
+    "--max-filesize",
+    String(input.request.maxBytes),
     "--socket-timeout",
     String(youtubeTimeoutSeconds(input.request)),
     "--retries",
@@ -213,6 +260,7 @@ const buildYoutubeDownloadResult = (input: {
   request: ParsedYoutubeInput;
   metadata: YoutubeMetadata;
   output: Awaited<ReturnType<typeof collectYtDlpOutputFiles>>;
+  tempDir: string;
 }): YoutubeDownloadResult => {
   if (!input.output.video) {
     return {
@@ -222,22 +270,37 @@ const buildYoutubeDownloadResult = (input: {
       reviewRequired: false,
     };
   }
-  if (input.output.video.byteSize > input.request.maxBytes) {
+  const maxHeight = maxYoutubeHeightForQuality(input.request.preferredQuality);
+  if (input.output.video.height > maxHeight) {
     return {
       ok: false,
-      failureReason: "download_too_large",
-      reason: `Downloaded YouTube file exceeded maxBytes ${input.request.maxBytes}.`,
+      failureReason: "metadata_validation_failed",
+      reason: `YouTube selected media height ${input.output.video.height} exceeds requested quality limit ${maxHeight}.`,
+      reviewRequired: false,
+    };
+  }
+  const missingSubtitles = missingSubtitleLanguages(
+    expectedSubtitleLanguages(input.metadata, input.request),
+    input.output.subtitles,
+  );
+  if (missingSubtitles.length > 0) {
+    return {
+      ok: false,
+      failureReason: "metadata_validation_failed",
+      reason: `YouTube reported subtitles for requested language(s), but subtitle artifacts were not written: ${missingSubtitles.join(", ")}.`,
       reviewRequired: false,
     };
   }
   return {
     ok: true,
-    bytes: input.output.video.bytes,
+    filePath: input.output.video.filePath,
+    tempDir: input.tempDir,
     contentType: input.output.video.contentType,
     byteSize: input.output.video.byteSize,
-    durationMs: input.metadata.durationMs,
-    width: input.metadata.width,
-    height: input.metadata.height,
+    durationMs: input.output.video.durationMs,
+    width: input.output.video.width,
+    height: input.output.video.height,
+    selectedQuality: selectedQualityFromHeight(input.request, input.output.video.height),
     videoId: input.metadata.id ?? extractYoutubeVideoId(input.request.sourcePageUrl),
     subtitles: input.output.subtitles,
   };
@@ -267,14 +330,18 @@ export const downloadYoutubeVideoWithYtDlp = async (
       normalizedUrl,
       ...(onProgress ? { onProgress } : {}),
     });
-    return buildYoutubeDownloadResult({
+    const result = buildYoutubeDownloadResult({
       request: input,
       metadata: downloaded.metadata,
       output: downloaded.output,
+      tempDir,
     });
+    if (!result.ok) {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+    return result;
   } catch (error) {
-    return { ok: false, ...classifyYoutubeDlpFailure(error) };
-  } finally {
     await rm(tempDir, { recursive: true, force: true });
+    return { ok: false, ...classifyYoutubeDlpFailure(error) };
   }
 };

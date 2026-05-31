@@ -1,4 +1,4 @@
-generatedAt: "2026-05-31T02:01:19.490Z"
+generatedAt: "2026-05-31T05:29:28.909Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
@@ -265,6 +265,11 @@ rows:
       - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1"
       - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1"
       - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1"
+      - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1"
+      - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1"
+      - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1"
+      - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1"
+      - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1"
   - capabilityDomain: "workbench-api-boundary"
     manifestPath: "scripts/audit/domains/workbench-api-boundary/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/workbench-api-boundary/inspector.ts"

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T02:01:46.674Z",
+  "generatedAt": "2026-05-31T05:29:55.505Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -12,34 +12,38 @@
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
-    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1"
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1"
   ],
   "status": "PASS",
   "findings": [],
   "inspectedFiles": [
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/registry.ts",
-    "src/capabilities/video-download/runtime/platform-router.ts",
+    "src/capabilities/video-download/ability-group.ts",
     "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
-    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
-    "src/capabilities/video-download/runtime/telegram-web-visible-media-probe-script.ts",
-    "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
+    "src/capabilities/video-download/runtime/artifact-storage.ts",
+    "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
     "src/capabilities/video-download/children/download-youtube-video-once.ts",
     "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
-    "src/capabilities/video-download/ability-group.ts",
-    "src/app/workbench-home-page.ts",
-    "src/app/workbench-home-styles.ts",
+    "src/app/workbench-video-download-routes.ts",
     "src/app/workbench-video-download-client.ts",
+    "src/app/workbench-api-boundary.ts",
     "src/mediator/video-download-artifact-route.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
-    "src/app/workbench-video-download-routes.ts",
     "src/lib/local-runtime/workbench.ts",
-    "src/lib/local-runtime/workbench-video-download-support.ts"
+    "src/lib/local-runtime/workbench-video-download-support.ts",
+    "scripts/audit/domains/video-download-capability/inspector.ts"
   ]
 }

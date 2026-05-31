@@ -24,6 +24,8 @@ import { createFilesystemVideoArtifactStoragePort } from "./runtime/artifact-sto
 import { buildVideoDownloadFailure } from "./runtime/result.js";
 import { buildTelegramWebVisibleMediaProbeScript } from "./runtime/telegram-web-visible-media-probe-script.js";
 import { resolveYtDlpBinaryPath } from "./runtime/youtube-dlp-binary.js";
+import { maxYoutubeHeightForQuality, youtubeExpectedSubtitleLanguages, youtubeLanguageMatches } from "./runtime/youtube-dlp-download.js";
+import { verifyFfprobeAvailable } from "./runtime/youtube-dlp-output.js";
 
 export type TelegramWebVisibleVideoCandidate = {
   documentIdHash: string;
@@ -208,4 +210,21 @@ export const probeTelegramWebVisibleMediaSourcePage = async (input: {
 
 export const prepareVideoDownloadRuntimeDependencies = async (): Promise<void> => {
   await resolveYtDlpBinaryPath({ refresh: process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0" });
+  await verifyFfprobeAvailable();
 };
+
+type YoutubeProductionQuality = NonNullable<VideoDownloadPublicRequest["preferredQuality"]>;
+
+export const youtubeProductionLanguageMatches = (
+  requestedLanguage: string,
+  availableLanguage: string,
+): boolean => youtubeLanguageMatches(requestedLanguage, availableLanguage);
+
+export const youtubeProductionMaxHeightForQuality = (quality: YoutubeProductionQuality): number =>
+  maxYoutubeHeightForQuality(quality);
+
+export const youtubeProductionExpectedSubtitleLanguages = (
+  availableLanguages: readonly string[],
+  requestedLanguages: readonly string[],
+  downloadSubtitles: boolean,
+): string[] => [...youtubeExpectedSubtitleLanguages(availableLanguages, requestedLanguages, downloadSubtitles)];

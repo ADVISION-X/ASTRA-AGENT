@@ -1,7 +1,7 @@
 const WORKBENCH_VIDEO_DOWNLOAD_CLIENT = `
 const VIDEO_PLATFORM_DEFAULTS = {
   telegram: { platform: "telegram-web", maxMegabytes: 5000, quality: false, subtitles: false, detect: true },
-  youtube: { platform: "youtube", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
+  youtube: { platform: "youtube", maxMegabytes: null, quality: true, subtitles: false, detect: false },
   universal: { platform: "universal", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   facebook: { platform: "facebook", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   tiktok: { platform: "tiktok", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
@@ -58,9 +58,9 @@ const setVideoPlatform = (platform) => {
   const config = VIDEO_PLATFORM_DEFAULTS[platform] || VIDEO_PLATFORM_DEFAULTS.universal;
   if (!form) return;
   form.platform.value = config.platform;
-  form.maxMegabytes.value = String(config.maxMegabytes);
+  form.maxMegabytes.value = config.maxMegabytes === null ? "" : String(config.maxMegabytes);
   if (config.platform === "youtube") {
-    form.preferredQuality.value = "720p";
+    form.preferredQuality.value = "best_available";
   }
   if (form.downloadSubtitles) {
     form.downloadSubtitles.checked = config.subtitles;
@@ -72,6 +72,11 @@ const setVideoPlatform = (platform) => {
     note.classList.toggle("hidden", note.dataset.videoPlatformNote !== platform);
   });
   qs("[name=preferredQuality]")?.closest(".field")?.classList.toggle("hidden", !config.quality);
+  qs("[name=maxMegabytes]")?.closest(".field")?.classList.toggle("hidden", config.maxMegabytes === null);
+  if (form.maxMegabytes) {
+    form.maxMegabytes.disabled = config.maxMegabytes === null;
+    form.maxMegabytes.required = config.maxMegabytes !== null;
+  }
   qs("[data-video-subtitles-field]")?.classList.toggle("hidden", !config.subtitles);
   qs("[data-video-detect-row]")?.classList.toggle("hidden", !config.detect);
   qs("[data-video-candidate-list]")?.classList.add("hidden");
@@ -200,28 +205,39 @@ const startVideoDownload = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   if (form.dataset.videoDownloadBusy === "true") return;
-  const maxMegabytes = Number(form.maxMegabytes.value);
   const request = {
     sourcePageUrl: form.sourcePageUrl.value,
     platform: form.platform.value,
     preferredQuality: form.preferredQuality.value,
-    maxBytes: Math.max(1, maxMegabytes) * 1000000,
-    timeoutMs: requestTimeoutMs(form.platform.value),
     downloadSubtitles: form.downloadSubtitles.checked,
     saveToDownloads: form.saveToDownloads?.checked === true,
     telegramDocumentIdHash: form.telegramDocumentIdHash?.value || undefined,
   };
+  if (form.platform.value !== "youtube") {
+    const maxMegabytes = Number(form.maxMegabytes.value);
+    request.maxBytes = Math.max(1, maxMegabytes) * 1000000;
+    request.timeoutMs = 3600000;
+  }
   writeActivity("video download submitted: " + request.platform);
   setVideoDownloadResult("<b>下载已开始</b><span>等待服务器返回最终文件、大小、SHA-256 和保存位置。</span>", "ready");
   setVideoDownloadBusy(form, true);
   startVideoDownloadTimer(request.platform);
   try {
-    const payload = await readJson("/api/video-download/start", {
+    const started = await readJson("/api/video-download/start-async", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(request),
     });
-    updateVideoDownloadProgress({ state: payload.record?.status === "success" ? "done" : "failed", label: payload.record?.status === "success" ? "下载完成：" + formatElapsed(videoDownloadRun?.startedAt) : "需要检查：" + formatElapsed(videoDownloadRun?.startedAt) });
+    if (!started.taskId) throw new Error("video download task id missing");
+    writeActivity("video download running: " + started.taskId, "running");
+    let payload = started;
+    while (payload.status === "running") {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      payload = await readJson("/api/video-download/status?taskId=" + encodeURIComponent(started.taskId));
+      updateVideoDownloadProgress({ state: "running", label: "下载中：" + formatElapsed(videoDownloadRun?.startedAt) + "，服务器任务 " + payload.status });
+    }
+    updateVideoDownloadProgress({ state: payload.status === "success" ? "done" : "failed", label: payload.status === "success" ? "下载完成：" + formatElapsed(videoDownloadRun?.startedAt) : "需要检查：" + formatElapsed(videoDownloadRun?.startedAt) });
+    if (!payload.record) throw new Error(payload.failureReason || "video download ended without result record");
     renderVideoDownloadLedger(payload.record, payload.downloadsPath ?? null);
   } catch (error) {
     updateVideoDownloadProgress({ state: "failed", label: "下载失败：" + formatElapsed(videoDownloadRun?.startedAt) });
@@ -232,7 +248,6 @@ const startVideoDownload = async (event) => {
     setVideoDownloadBusy(form, false);
   }
 };
-const requestTimeoutMs = (platform) => platform === "youtube" ? 120000 : 3600000;
 document.addEventListener("DOMContentLoaded", () => {
   const form = qs("[data-video-download-form]");
   if (form) form.addEventListener("submit", startVideoDownload);

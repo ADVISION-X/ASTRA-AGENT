@@ -37,6 +37,8 @@ const localBinaryPath = (): string =>
 const localRunnerPath = (): string =>
   path.join(homedir(), ".cache", "grasseye", "video-download", "yt-dlp-runner");
 
+let preparedYtDlpBinaryPath: string | null = null;
+
 const canExecute = async (binaryPath: string): Promise<boolean> => {
   try {
     await execFileAsync(binaryPath, ["--version"], { timeout: 5_000 });
@@ -102,18 +104,41 @@ const resolveCachedLocalBinaryPath = async (binaryPath: string): Promise<string 
 
 export const resolveYtDlpBinaryPath = async (input: { refresh?: boolean } = {}): Promise<string> => {
   const configured = process.env.GRASSEYE_YT_DLP_BINARY;
-  if (configured && await canExecute(configured)) return configured;
+  if (configured && await canExecute(configured)) {
+    preparedYtDlpBinaryPath = configured;
+    return configured;
+  }
 
   const local = localBinaryPath();
   if (input.refresh === true) {
-    const downloaded = await downloadLatestBinary(local);
-    return await buildLocalRunner(downloaded) ?? downloaded;
+    try {
+      const downloaded = await downloadLatestBinary(local);
+      preparedYtDlpBinaryPath = await buildLocalRunner(downloaded) ?? downloaded;
+      return preparedYtDlpBinaryPath;
+    } catch (error) {
+      const cached = await resolveCachedLocalBinaryPath(local);
+      if (cached) {
+        preparedYtDlpBinaryPath = cached;
+        return cached;
+      }
+      throw error;
+    }
   }
 
   const cached = await resolveCachedLocalBinaryPath(local);
-  if (cached) return cached;
-  if (await canExecute("yt-dlp")) return "yt-dlp";
+  if (cached) {
+    preparedYtDlpBinaryPath = cached;
+    return cached;
+  }
 
   const downloaded = await downloadLatestBinary(local);
-  return await buildLocalRunner(downloaded) ?? downloaded;
+  preparedYtDlpBinaryPath = await buildLocalRunner(downloaded) ?? downloaded;
+  return preparedYtDlpBinaryPath;
+};
+
+export const getPreparedYtDlpBinaryPath = (): string => {
+  if (!preparedYtDlpBinaryPath) {
+    throw new Error("Managed yt-dlp runtime was not prepared by Workbench startup dependency gate.");
+  }
+  return preparedYtDlpBinaryPath;
 };

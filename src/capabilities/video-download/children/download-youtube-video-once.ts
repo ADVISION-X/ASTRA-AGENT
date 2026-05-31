@@ -2,6 +2,8 @@ import type {
   VideoDownloadChildCapability,
   VideoDownloadExecutionContext,
 } from "../contract.js";
+import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
 import type {
   ParsedVideoDownloadAbilityInput,
   VideoDownloadResult,
@@ -38,12 +40,12 @@ const writeArtifact = (
   input: ParsedDownloadYoutubeVideoInput,
   context: VideoDownloadExecutionContext,
   downloaded: Awaited<ReturnType<typeof downloadYoutubeVideoWithYtDlp>> & { ok: true },
-) => context.artifactStoragePort.writeVideoArtifact({
+) => context.artifactStoragePort.importVideoArtifactFromFile({
   missionId: input.missionId,
   runId: input.runId,
-  artifactId: `youtube_${Date.now()}`,
+  artifactId: `youtube_${randomUUID()}`,
   extension: downloaded.contentType.includes("webm") ? ".webm" : ".mp4",
-  bytes: downloaded.bytes,
+  sourceFilePath: downloaded.filePath,
   contentType: downloaded.contentType,
   createdAt: new Date().toISOString(),
   artifactDisposition: input.artifactDisposition,
@@ -56,12 +58,12 @@ const writeSubtitleArtifacts = async (
 ): Promise<VideoDownloadSubtitleArtifact[]> => {
   const artifacts: VideoDownloadSubtitleArtifact[] = [];
   for (const [index, subtitle] of downloaded.subtitles.entries()) {
-    const artifact = await context.artifactStoragePort.writeVideoArtifact({
+    const artifact = await context.artifactStoragePort.importVideoArtifactFromFile({
       missionId: input.missionId,
       runId: input.runId,
-      artifactId: `youtube_subtitle_${subtitle.language}_${index}_${Date.now()}`,
+      artifactId: `youtube_subtitle_${subtitle.language}_${index}_${randomUUID()}`,
       extension: subtitle.extension,
-      bytes: subtitle.bytes,
+      sourceFilePath: subtitle.filePath,
       contentType: subtitle.contentType,
       createdAt: new Date().toISOString(),
       artifactDisposition: input.artifactDisposition,
@@ -95,13 +97,21 @@ const validateYoutubeSource = (
   );
 };
 
-const createYoutubeAbortHandle = (timeoutMs: number) => {
+const createYoutubeAbortHandle = () => {
   const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), timeoutMs);
+  let timeout: NodeJS.Timeout | null = null;
   return {
     abortController,
+    start(timeoutMs: number): void {
+      timeout = setTimeout(() => {
+        abortController.abort();
+      }, timeoutMs);
+      timeout.unref();
+    },
     dispose(): void {
-      clearTimeout(timeout);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     },
   };
 };
@@ -127,6 +137,7 @@ const buildYoutubeDownloadSuccess = (
   durationMs: downloaded.durationMs,
   width: downloaded.width,
   height: downloaded.height,
+  selectedQuality: downloaded.selectedQuality,
   artifactRef: persisted.artifact.artifactRef,
   storageRef: persisted.artifact.storageRef,
   filePath: persisted.artifact.filePath,
@@ -231,7 +242,7 @@ async function executeDownloadYoutubeVideoOnce(
     context: createYoutubeTrace(input),
     stageName: "YOUTUBE_VIDEO_DOWNLOAD",
     modeVisibility: ["FLOW", "DEBUG", "TRACE"] satisfies RuntimeLogMode[],
-    metrics: { maxBytes: input.maxBytes, timeoutMs: input.timeoutMs },
+    metrics: { timeoutMs: input.timeoutMs },
     preview: {
       videoId: new URL(input.sourcePageUrl).searchParams.get("v") ?? "unknown",
       selectedQuality: input.preferredQuality,
@@ -249,7 +260,8 @@ async function executeDownloadYoutubeVideoOnce(
     failYoutubeStageForSource(youtubeStage, sourceFailure);
     return sourceFailure;
   }
-  const abortHandle = createYoutubeAbortHandle(input.timeoutMs);
+  const abortHandle = createYoutubeAbortHandle();
+  abortHandle.start(input.timeoutMs);
   try {
     const downloaded = await downloadYoutubeVideoWithYtDlp(input, abortHandle.abortController.signal, (message) => {
       emitYoutubeProgress({ request: input, context, startedAt: youtubeStage.startedAt, message });
@@ -257,11 +269,9 @@ async function executeDownloadYoutubeVideoOnce(
     if (!downloaded.ok) {
       return buildAndLogYoutubeFailure({ base, youtubeStage, downloaded });
     }
-    const success = buildYoutubeDownloadSuccess(
-      base,
-      downloaded,
-      await persistYoutubeArtifacts({ request: input, context, downloaded }),
-    );
+    const persisted = await persistYoutubeArtifacts({ request: input, context, downloaded })
+      .finally(() => rm(downloaded.tempDir, { recursive: true, force: true }));
+    const success = buildYoutubeDownloadSuccess(base, downloaded, persisted);
     completeYoutubeStage(youtubeStage, success);
     return success;
   } finally {

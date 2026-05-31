@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T02:01:25.028Z",
+  "generatedAt": "2026-05-31T05:29:34.338Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -525,7 +525,7 @@
     "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
     "scripts/audit/domains/runtime-truth/inspector.ts",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
-    "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
+    "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",

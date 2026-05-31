@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T02:01:20.969Z",
+  "generatedAt": "2026-05-31T05:29:30.262Z",
   "status": "PASS",
   "inspectorFileCount": 19,
   "generatedPlanEntryCount": 19,
@@ -192,7 +192,7 @@
     "scripts/audit/domains/runtime-truth/manifest.json",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/startup-entrypoint/manifest.json",
-    "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
+    "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/video-download-capability/manifest.json",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",

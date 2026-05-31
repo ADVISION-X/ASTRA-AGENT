@@ -136,9 +136,17 @@ Video download skill 必须作为独立受治理 job flow 入口展示。页面�
 - Source page URL
 - Capability child id
 - Preferred quality
-- Max MB
+- Max MB（YouTube 禁止显示；缓存型/直链型平台按其 active law 使用）
 - Download subtitles
 - Start
+
+YouTube 和长下载必须通过 Workbench 受治理任务状态路径呈现：
+
+- 页面提交长下载使用 `/api/video-download/start-async` 获取 `taskId`。
+- 页面用 `/api/video-download/status?taskId=...` 轮询真实任务状态。
+- 本地 timer 只显示耗时，不能替代 status route，也不能让用户误以为无日志卡死。
+- 同步 `/api/video-download/start` 仅可作为 API 兼容入口，不作为 UI 长等待路径。
+- 完成时必须展示最终 `success` / `failed` / `review_required` / `invalid_input`、保存路径、artifactRef、sha256、failureReason。
 
 Telegram Web 接入形态：
 
