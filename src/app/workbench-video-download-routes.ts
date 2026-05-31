@@ -142,8 +142,29 @@ const runningTaskCount = (): number => {
   return [...videoDownloadTasks.values()].filter((task) => task.status === "running").length;
 };
 
-const buildUserDownloadPath = (filePath: string): string =>
-  path.join(homedir(), "Downloads", "GrassEye Video Downloads", `${randomUUID()}-${path.basename(filePath)}`);
+export const safeDeliveryTitleSegment = (value: string): string => {
+  const cleaned = [...value.trim()]
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      if (code < 32 || char === "/" || char === "\\" || char === ":" || char === "*" || char === "?" || char === "\"" || char === "<" || char === ">" || char === "|") {
+        return " ";
+      }
+      return char;
+    })
+    .join("")
+    .split(" ")
+    .filter((part) => part.length > 0)
+    .join(" ")
+    .slice(0, 120)
+    .trim();
+  return cleaned || "YouTube video";
+};
+
+const buildUserDownloadPath = (filePath: string, displayTitle: string | null): string => {
+  const extension = path.extname(filePath) || ".mp4";
+  const title = safeDeliveryTitleSegment(displayTitle ?? path.basename(filePath, extension));
+  return path.join(homedir(), "Downloads", "GrassEye Video Downloads", `${title}-${randomUUID()}${extension}`);
+};
 
 const buildVideoDownloadJobInputForPlatform = (
   body: VideoDownloadRequestBody,
@@ -187,10 +208,11 @@ export const copyResultToDownloads = async (
   }
   const output = result.result.output as Record<string, unknown>;
   const filePath = typeof output.filePath === "string" ? output.filePath : null;
+  const displayTitle = typeof output.displayTitle === "string" ? output.displayTitle : null;
   if (!filePath) {
     return null;
   }
-  const dest = buildUserDownloadPath(filePath);
+  const dest = buildUserDownloadPath(filePath, displayTitle);
   await mkdir(path.dirname(dest), { recursive: true });
   try {
     await stat(dest);

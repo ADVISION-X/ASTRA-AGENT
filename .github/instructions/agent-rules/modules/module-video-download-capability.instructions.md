@@ -795,3 +795,103 @@ FORBIDDEN:
 - initial async persistence failure that throws without an observable failed task body;
 - timestamp-only Downloads delivery names;
 - reporting a user-requested YouTube delivery complete without real artifact, ffprobe metadata, status-path evidence, and delivery-path proof.
+
+## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
+  "summary": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk."
+}
+```
+
+status: active
+tier: P0
+capabilityDomain: video-download-capability
+enforcementMode: machine-blocking
+evidenceMode: ts-morph+symbol+executable-fixture+real-download
+
+summary: YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.
+
+### 主题
+
+YouTube 生产交付证据一致性与人机交互防复发
+
+### 法条
+
+YouTube success evidence, runtime logs, and Workbench presentation must be usable by a production operator without reading code or guessing hidden state.
+
+Required behavior:
+- On every successful YouTube result, `output.candidateKind` and `runtimeProof.candidateKind` must both be non-null and equal.
+- YouTube retry/error progress lines from yt-dlp must be logged as warning or failure events, never as `status: "success"`.
+- YouTube progress lines must not use `ARTIFACT_REF_RECORDED`; artifact-ref events are reserved for actual artifact/proof recording.
+- YouTube stage-completion logs must expose `selectedQuality`, content type, byte size, artifact ref, and candidate kind.
+- Workbench result UI must expose Downloads path or artifact path, selected quality, dimensions/duration, size, sha256, proof ref, and subtitle artifact count.
+- YouTube UI must expose subtitle request and caller language controls instead of hiding the subtitle chain.
+- Owner inspector and production acceptance must block proof/output candidate-kind divergence, artifact-ref progress misuse, success-logged retry/error events, missing UI proof fields, and hidden YouTube subtitle controls using ts-morph AST/symbol checks plus executable fixtures.
+- Final production release must treat `npm audit` moderate-or-higher vulnerabilities as unresolved risk unless explicitly fixed or documented by an active law exception.
+
+### 禁止
+
+FORBIDDEN:
+- successful YouTube runtime proof with `candidateKind: null`;
+- `output.candidateKind` diverging from `runtimeProof.candidateKind`;
+- logging yt-dlp retry/error text as successful progress;
+- using `ARTIFACT_REF_RECORDED` for download percentages or metadata-progress chatter;
+- hiding selected quality, dimensions, sha256, proof ref, or subtitle artifact count from the final Workbench result;
+- hiding all YouTube subtitle controls while claiming subtitle production readiness;
+- final PASS while dependency audit reports unresolved moderate-or-higher vulnerabilities without an explicit active-law exception.
+
+## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
+  "summary": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title."
+}
+```
+
+status: active
+tier: P0
+capabilityDomain: video-download-capability
+enforcementMode: machine-blocking
+evidenceMode: ts-morph+symbol+executable-fixture+real-download
+
+summary: YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.
+
+### 主题
+
+YouTube 原始标题保真与交付文件名防复发
+
+### 法条
+
+YouTube success evidence, artifact storage, Workbench status, and Downloads delivery must preserve the YouTube metadata title as a first-class operator-readable field.
+
+Required behavior:
+- Metadata probing must read the platform `title` from yt-dlp JSON and fail or review when a successful YouTube result cannot expose a non-empty `sourceTitle`.
+- YouTube success output and runtime proof must include `sourceTitle` and `displayTitle`.
+- `displayTitle` must be derived from `sourceTitle`; it may only be changed for filesystem safety, length bounds, or collision-resistant suffixes.
+- Artifact ids and Downloads filenames may include `randomUUID()` or other collision-resistant suffixes, but the visible basename must begin with or otherwise prominently preserve the sanitized source title.
+- Workbench UI must show the title as the primary success label, above or alongside delivery path, quality, dimensions, size, sha256, proof, and subtitle count.
+- Production acceptance must execute fixtures proving title extraction, title propagation into proof/output, sanitized title delivery names, and that pure UUID/random-only YouTube delivery names are rejected.
+- Owner inspector must block regressions through ts-morph AST/symbol checks, including schema fields, runtime metadata title extraction, child propagation, Downloads filename construction, UI title rendering, and acceptance fixture coverage.
+
+### 禁止
+
+FORBIDDEN:
+- fixed yt-dlp output templates such as `youtube_video.%(ext)s` as the final human-facing identity;
+- success output or runtime proof that omits `sourceTitle` or `displayTitle`;
+- Downloads delivery filenames that are only UUID/timestamp/hash plus extension or only UUID/timestamp/hash plus an internal artifact id;
+- using random ids as a substitute for the YouTube title;
+- UI success states that require the operator to infer the video identity from a path, artifact id, video id, sha256, or proof id;
+- acceptance or inspector coverage that passes without a title-preservation fixture.

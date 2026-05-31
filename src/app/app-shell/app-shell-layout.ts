@@ -95,6 +95,7 @@ const renderVideoSourceSurface = (): string => `
       </div>
       <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="5000" value="5000" required /></div>
       <label class="check" data-video-subtitles-field><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
+      <div class="field" data-video-subtitle-languages-field><label>Subtitle languages</label><input name="subtitleLanguages" type="text" value="en" /></div>
       <label class="check wide"><input name="saveToDownloads" type="checkbox" checked /> Save to Downloads/GrassEye Video Downloads</label>
       <div class="wide hidden" data-video-download-progress>
         <progress></progress>

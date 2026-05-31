@@ -20,6 +20,7 @@ import {
 
 type YoutubeMetadata = {
   id: string | null;
+  title: string | null;
   durationMs: number | null;
   width: number | null;
   height: number | null;
@@ -43,6 +44,8 @@ type YoutubeDownloadSuccess = {
   height: number | null;
   selectedQuality: ParsedYoutubeInput["preferredQuality"] | "unknown";
   videoId: string | null;
+  sourceTitle: string;
+  displayTitle: string;
   subtitles: YoutubeSubtitleDownload[];
 };
 
@@ -59,7 +62,25 @@ const numberField = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 
 const stringField = (value: unknown): string | null =>
-  typeof value === "string" && value.length > 0 ? value : null;
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+
+export const youtubeDisplayTitle = (sourceTitle: string): string => {
+  const cleaned = [...sourceTitle.trim()]
+    .map((char) => {
+      if (char === "/" || char === "\\" || char === ":" || char === "*" || char === "?" || char === "\"" || char === "<" || char === ">" || char === "|") {
+        return " ";
+      }
+      const code = char.charCodeAt(0);
+      return code < 32 ? " " : char;
+    })
+    .join("")
+    .split(" ")
+    .filter((part) => part.length > 0)
+    .join(" ")
+    .slice(0, 120)
+    .trim();
+  return cleaned || "YouTube video";
+};
 
 const metadataFromJson = (raw: unknown): YoutubeMetadata => {
   const record = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
@@ -72,6 +93,7 @@ const metadataFromJson = (raw: unknown): YoutubeMetadata => {
     : [];
   return {
     id: stringField(record.id),
+    title: stringField(record.title),
     durationMs: seconds === null ? null : Math.round(seconds * 1000),
     width: numberField(record.width),
     height: numberField(record.height),
@@ -220,7 +242,7 @@ const runYoutubeDownload = async (input: {
   input.onProgress?.("youtube metadata resolved: " + (
     metadata.durationMs ? Math.round(metadata.durationMs / 1000) + "s" : "duration_unknown"
   ));
-  const outputTemplate = path.join(input.tempDir, "youtube_video.%(ext)s");
+  const outputTemplate = path.join(input.tempDir, "%(title).120B-%(id)s.%(ext)s");
   await runYtDlpProcess({
     abortSignal: input.abortSignal,
     ...(input.onProgress ? { onProgress: input.onProgress } : {}),
@@ -270,6 +292,14 @@ const buildYoutubeDownloadResult = (input: {
       reviewRequired: false,
     };
   }
+  if (!input.metadata.title) {
+    return {
+      ok: false,
+      failureReason: "metadata_validation_failed",
+      reason: "YouTube metadata did not expose a source title.",
+      reviewRequired: false,
+    };
+  }
   const maxHeight = maxYoutubeHeightForQuality(input.request.preferredQuality);
   if (input.output.video.height > maxHeight) {
     return {
@@ -302,6 +332,8 @@ const buildYoutubeDownloadResult = (input: {
     height: input.output.video.height,
     selectedQuality: selectedQualityFromHeight(input.request, input.output.video.height),
     videoId: input.metadata.id ?? extractYoutubeVideoId(input.request.sourcePageUrl),
+    sourceTitle: input.metadata.title,
+    displayTitle: youtubeDisplayTitle(input.metadata.title),
     subtitles: input.output.subtitles,
   };
 };

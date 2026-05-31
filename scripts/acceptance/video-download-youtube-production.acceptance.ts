@@ -3,8 +3,9 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
-import { buildVideoDownloadJobInput, copyResultToDownloads, persistTerminalVideoDownloadTask } from "../../src/app/workbench-video-download-routes.js";
-import { youtubeProductionExpectedSubtitleLanguages, youtubeProductionLanguageMatches, youtubeProductionMaxHeightForQuality } from "../../src/capabilities/video-download/index.js";
+import { buildVideoDownloadJobInput, copyResultToDownloads, persistTerminalVideoDownloadTask, safeDeliveryTitleSegment } from "../../src/app/workbench-video-download-routes.js";
+import { youtubeProductionDisplayTitle, youtubeProductionExpectedSubtitleLanguages, youtubeProductionLanguageMatches, youtubeProductionMaxHeightForQuality } from "../../src/capabilities/video-download/index.js";
+import type { VideoDownloadResult } from "../../src/capabilities/video-download/index.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 
 const project = new Project({
@@ -31,6 +32,10 @@ const identifierName = (node: Node): string | null =>
 
 const hasCall = (file: SourceFile, name: string): boolean =>
   file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => callName(call) === name);
+
+const hasPropertyAccess = (file: SourceFile, expressionName: string, propertyName: string): boolean =>
+  file.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((access) =>
+    identifierName(access.getExpression()) === expressionName && access.getName() === propertyName);
 
 const hasStringLiteral = (file: SourceFile, value: string): boolean =>
   file.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === value) ||
@@ -97,6 +102,7 @@ const client = source("src/app/workbench-video-download-client.ts");
 const route = source("src/app/workbench-video-download-routes.ts");
 const runtime = source("src/capabilities/video-download/runtime/youtube-dlp-download.ts");
 const child = source("src/capabilities/video-download/children/download-youtube-video-once.ts");
+const resultBuilder = source("src/capabilities/video-download/runtime/result.ts");
 const abilityGroup = source("src/capabilities/video-download/ability-group.ts");
 const binary = source("src/capabilities/video-download/runtime/youtube-dlp-binary.ts");
 const output = source("src/capabilities/video-download/runtime/youtube-dlp-output.ts");
@@ -117,6 +123,13 @@ assert.equal(selectorIsFullyBounded(objectLiteralStringValue(args, "YOUTUBE_FORM
 assert.equal(hasStringLiteral(client, "best_available"), true);
 assert.equal(hasStringLiteral(client, "/api/video-download/start-async"), true);
 assert.equal(hasStringLiteral(client, "/api/video-download/status?taskId="), true);
+assert.equal(hasStringLiteral(client, "subtitleLanguages"), true);
+assert.equal(hasStringLiteral(client, "selectedQuality"), true);
+assert.equal(hasStringLiteral(client, "durationMs"), true);
+assert.equal(hasStringLiteral(client, "proofRef"), true);
+assert.equal(hasStringLiteral(client, "subtitleArtifacts"), true);
+assert.equal(hasStringLiteral(client, "sourceTitle"), true);
+assert.equal(hasStringLiteral(client, "displayTitle"), true);
 
 assert.equal(hasStringLiteral(route, "/api/video-download/start-async"), true);
 assert.equal(hasStringLiteral(route, "/api/video-download/status"), true);
@@ -135,13 +148,28 @@ assert.equal(hasCall(runtime, "selectedQualityFromHeight"), true);
 assert.equal(objectLiteralHasProperty(runtime, "selectedQuality"), true);
 assert.equal(hasCall(runtime, "getPreparedYtDlpBinaryPath"), true);
 assert.equal(hasCall(runtime, "resolveYtDlpBinaryPath"), false);
+assert.equal(hasPropertyAccess(runtime, "record", "title"), true);
+assert.equal(hasCall(runtime, "youtubeDisplayTitle"), true);
+assert.equal(hasStringLiteral(runtime, "youtube_video.%(ext)s"), false);
+assert.equal(objectLiteralHasProperty(runtime, "sourceTitle"), true);
+assert.equal(objectLiteralHasProperty(runtime, "displayTitle"), true);
 
 assert.equal(hasCall(child, "importVideoArtifactFromFile"), true);
 assert.equal(objectLiteralHasInitializer(child, "sourceFilePath", "downloaded", "filePath"), true);
 assert.equal(objectLiteralHasInitializer(child, "sourceFilePath", "subtitle", "filePath"), true);
 assert.equal(objectLiteralHasProperty(child, "selectedQuality"), true);
+assert.equal(objectLiteralHasProperty(child, "candidateKind"), true);
+assert.equal(objectLiteralHasInitializer(child, "sourceTitle", "downloaded", "sourceTitle"), true);
+assert.equal(objectLiteralHasInitializer(child, "displayTitle", "downloaded", "displayTitle"), true);
+assert.equal(hasCall(child, "safeArtifactTitleSegment"), true);
 assert.equal(hasCall(child, "setTimeout"), true);
 assert.equal(hasCall(child, "randomUUID"), true);
+assert.equal(child.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => String(identifier.compilerNode.escapedText) === "ARTIFACT_REF_RECORDED"), false);
+assert.equal(hasStringLiteral(child, "youtube_download_retryable_runtime_error"), true);
+assert.equal(objectLiteralHasProperty(child, "progressPhase"), true);
+assert.equal(objectLiteralHasProperty(resultBuilder, "candidateKind"), true);
+assert.equal(objectLiteralHasProperty(resultBuilder, "sourceTitle"), true);
+assert.equal(objectLiteralHasProperty(resultBuilder, "displayTitle"), true);
 
 assert(abilityGroup.getVariableDeclaration("prepareVideoDownloadRuntimeDependencies"), "prepareVideoDownloadRuntimeDependencies must be exported.");
 assert.equal(hasCall(abilityGroup, "resolveYtDlpBinaryPath"), true);
@@ -171,6 +199,7 @@ assert.equal(hasCall(storage, "copyFile"), true);
 
 assert.equal(hasStringLiteral(boundary, "/api/video-download/start-async"), true);
 assert.equal(hasStringLiteral(boundary, "/api/video-download/status"), true);
+assert.equal(hasCall(route, "safeDeliveryTitleSegment"), true);
 
 const defaultYoutubeJob = buildVideoDownloadJobInput({
   platform: "youtube",
@@ -199,6 +228,29 @@ const cappedYoutubeJob = buildVideoDownloadJobInput({
 assert(cappedYoutubeJob);
 assert.equal(cappedYoutubeJob.maxBytes, 5_000_000_000);
 
+const fixtureSuccess = {
+  status: "success",
+  output: {
+    status: "success",
+    candidateKind: "media_resource",
+    sourceTitle: "Real YouTube Title",
+    displayTitle: "Real YouTube Title",
+  },
+  runtimeProof: {
+    candidateKind: "media_resource",
+    sourceTitle: "Real YouTube Title",
+    displayTitle: "Real YouTube Title",
+  },
+} as VideoDownloadResult;
+assert.equal(fixtureSuccess.status, "success");
+assert.equal(fixtureSuccess.output.status, "success");
+assert.equal(fixtureSuccess.output.candidateKind, "media_resource");
+assert.equal(fixtureSuccess.runtimeProof.candidateKind, "media_resource");
+assert.equal(fixtureSuccess.output.candidateKind, fixtureSuccess.runtimeProof.candidateKind);
+assert.equal(fixtureSuccess.output.sourceTitle, "Real YouTube Title");
+assert.equal(fixtureSuccess.runtimeProof.displayTitle, "Real YouTube Title");
+assert.equal(fixtureSuccess.output.displayTitle, fixtureSuccess.runtimeProof.displayTitle);
+
 assert.equal(youtubeProductionLanguageMatches("en", "en-US"), true);
 assert.equal(youtubeProductionLanguageMatches("zh", "zh-Hans"), true);
 assert.equal(youtubeProductionLanguageMatches("en-US", "en"), true);
@@ -209,6 +261,8 @@ assert.deepEqual(youtubeProductionExpectedSubtitleLanguages(["en-US"], ["en"], f
 assert.equal(youtubeProductionMaxHeightForQuality("720p"), 720);
 assert.equal(youtubeProductionMaxHeightForQuality("hd"), 1080);
 assert.equal(youtubeProductionMaxHeightForQuality("best_available"), 2160);
+assert.equal(youtubeProductionDisplayTitle("  Real / YouTube: Title?  "), "Real YouTube Title");
+assert.equal(safeDeliveryTitleSegment("Real / YouTube: Title?"), "Real YouTube Title");
 
 const failedPersistence = await persistTerminalVideoDownloadTask(
   { getDataDir: () => "/dev/null" } as GrassEyeWorkbenchHandle,
@@ -250,11 +304,12 @@ const deliveredPath = await copyResultToDownloads({
   status: "success",
   result: {
     status: "success",
-    output: { filePath: deliverySource },
+    output: { filePath: deliverySource, displayTitle: "Real YouTube Title" },
   },
 } as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true);
 assert(deliveredPath);
-assert.equal(path.basename(deliveredPath).endsWith("-video.mp4"), true);
+assert.equal(path.basename(deliveredPath).startsWith("Real YouTube Title-"), true);
+assert.equal(path.basename(deliveredPath).endsWith(".mp4"), true);
 assert.notEqual(path.basename(deliveredPath), `${Date.now()}-video.mp4`);
 
 process.stdout.write("[ACCEPTANCE][video-download-youtube-production] PASS\n");

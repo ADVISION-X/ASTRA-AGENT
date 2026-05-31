@@ -129,6 +129,17 @@ const objectLiteralContainsCallInitializer = (
     return callExpressionName(initializer) === callName;
   });
 
+const objectLiteralContainsStringInitializer = (
+  source: SourceFile,
+  propertyName: string,
+  literalValue: string,
+): boolean => source.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((literal) => {
+    const initializer = objectPropertyInitializer(literal, propertyName);
+    if (initializer === null) return false;
+    if (!Node.isStringLiteral(initializer)) return false;
+    return initializer.getLiteralText() === literalValue;
+  });
+
 const importedNamesFromModule = (source: SourceFile, moduleSpecifier: string): string[] =>
   source.getImportDeclarations().flatMap((declaration) =>
     declaration.getModuleSpecifierValue() === moduleSpecifier
@@ -254,26 +265,29 @@ const inspectYoutubeDownloadRuntimeProof = (download: SourceFile, findings: Find
   if (!hasCall(download, "maxYoutubeHeightForQuality")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/actual-selected-quality-bound", "YouTube success must fail when probed height exceeds requested quality limit.");
   }
-  if (!hasCall(download, "youtubeLanguageMatches")) {
-    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/subtitle-language-variants", "YouTube subtitle availability must match language variants such as en-US for en.");
+  if (!hasCall(download, "youtubeLanguageMatches") || !hasCall(download, "youtubeExpectedSubtitleLanguages")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/subtitle-language-variants", "YouTube subtitle availability must use a fixture-callable variant-aware helper.");
   }
-  if (!hasCall(download, "youtubeExpectedSubtitleLanguages")) {
-    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/subtitle-availability-fixture", "YouTube subtitle availability must be centralized in a fixture-callable variant-aware helper.");
-  }
-  if (!hasCall(download, "runYtDlpProcess")) {
+  if (!hasCall(download, "runYtDlpProcess") || sourceContainsIdentifier(download, "YTDlpWrapRuntime")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/metadata-process-abort", "YouTube metadata and download execution must share the abortable yt-dlp process runner.");
   }
-  if (sourceContainsIdentifier(download, "YTDlpWrapRuntime")) {
-    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/metadata-process-abort", "Metadata probe must not use the separate yt-dlp-wrap execPromise path.");
-  }
-  if (hasCall(download, "resolveYtDlpBinaryPath")) {
-    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/no-download-runtime-resolution", "Download execution must not resolve or refresh yt-dlp dependencies.");
-  }
-  if (!hasCall(download, "getPreparedYtDlpBinaryPath")) {
-    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/prepared-runtime-only", "Download execution must use the prepared managed yt-dlp runtime accessor.");
+  if (hasCall(download, "resolveYtDlpBinaryPath") || !hasCall(download, "getPreparedYtDlpBinaryPath")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/prepared-runtime-only", "Download execution must use the prepared managed yt-dlp runtime accessor only.");
   }
   if (!hasCall(download, "rm")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/tempdir-cleanup", "YouTube temporary directories must be cleaned for failed validation and thrown download failures.");
+  }
+};
+
+const inspectYoutubeTitleRuntime = (download: SourceFile, findings: Finding[], lawId: string): void => {
+  if (!hasPropertyAccess(download, "record", "title") || !hasCall(download, "youtubeDisplayTitle")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/youtube-title-metadata", "YouTube metadata must read title and derive displayTitle from sourceTitle.");
+  }
+  if (!objectLiteralContainsProperty(download, "sourceTitle") || !objectLiteralContainsProperty(download, "displayTitle")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/youtube-title-result", "YouTube download success must carry sourceTitle and displayTitle.");
+  }
+  if (hasStringLiteral(download, "youtube_video.%(ext)s")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts", "video-download/youtube-fixed-output-template", "YouTube yt-dlp output template must preserve title identity and must not use a fixed youtube_video template.");
   }
 };
 
@@ -289,6 +303,46 @@ const inspectYoutubeChildProof = (child: SourceFile, findings: Finding[], lawId:
   }
   if (!hasCall(child, "randomUUID")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/collision-resistant-artifact-id", "YouTube artifact ids must use collision-resistant ids, not timestamp-only ids.");
+  }
+  if (!objectLiteralContainsStringInitializer(child, "candidateKind", "media_resource")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/youtube-success-proof-candidate-kind", "YouTube success must pass a non-null candidateKind into runtime proof.");
+  }
+  if (sourceContainsIdentifier(child, "ARTIFACT_REF_RECORDED")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/progress-not-artifact-ref", "YouTube progress/retry logs must not use ARTIFACT_REF_RECORDED.");
+  }
+  if (!hasStringLiteral(child, "youtube_download_retryable_runtime_error") ||
+    !hasStringLiteral(child, "failed") ||
+    !objectLiteralContainsProperty(child, "candidateKind")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/retry-log-not-success", "YouTube retry/error progress must be warning/failure semantics and completion logs must expose candidateKind.");
+  }
+  if (!objectLiteralContainsPropertyAccessInitializer(child, "sourceTitle", "downloaded", "sourceTitle") ||
+    !objectLiteralContainsPropertyAccessInitializer(child, "displayTitle", "downloaded", "displayTitle")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/youtube-title-proof", "YouTube child must pass sourceTitle and displayTitle into result proof.");
+  }
+  if (!hasCall(child, "safeArtifactTitleSegment")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/youtube-title-artifact-id", "YouTube artifact ids must include a sanitized title segment plus collision-resistant suffix.");
+  }
+};
+
+const inspectYoutubeResultProofConsistency = (result: SourceFile, findings: Finding[], lawId: string): void => {
+  if (!objectLiteralContainsProperty(result, "candidateKind") || !sourceContainsIdentifier(result, "candidateKind")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/result.ts", "video-download/proof-candidate-kind-contract", "Video-download result builder must carry candidateKind into runtime proof and output.");
+  }
+  if (!sourceContainsIdentifier(result, "runtimeProof")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/result.ts", "video-download/proof-output-candidate-kind-parity", "Success output candidateKind must be derived from runtimeProof candidateKind.");
+  }
+  for (const propertyName of ["sourceTitle", "displayTitle"]) {
+    if (!objectLiteralContainsProperty(result, propertyName) || !sourceContainsIdentifier(result, propertyName)) {
+      pushFinding(findings, lawId, "src/capabilities/video-download/runtime/result.ts", "video-download/youtube-title-proof-output", `Video-download result builder must carry ${propertyName} into runtime proof and output.`);
+    }
+  }
+};
+
+const inspectYoutubeUiEvidence = (client: SourceFile, findings: Finding[], lawId: string): void => {
+  for (const literal of ["subtitleLanguages", "selectedQuality", "durationMs", "proofRef", "subtitleArtifacts", "sourceTitle", "displayTitle"]) {
+    if (!hasStringLiteral(client, literal)) {
+      pushFinding(findings, lawId, "src/app/workbench-video-download-client.ts", "video-download/youtube-ui-evidence-fields", `Workbench YouTube UI must expose/send ${literal}.`);
+    }
   }
 };
 
@@ -321,6 +375,17 @@ const inspectWorkbenchYoutubeBoundary = (route: SourceFile, findings: Finding[],
   if (!hasStringLiteral(route, "youtube_requires_async_status_route")) {
     pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-sync-route-blocked", "Synchronous /api/video-download/start must reject YouTube long downloads.");
   }
+  if (!hasCall(route, "safeDeliveryTitleSegment") || !sourceContainsIdentifier(route, "displayTitle")) {
+    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-title-delivery-name", "Downloads delivery filenames must preserve sanitized displayTitle plus collision-resistant suffix.");
+  }
+};
+
+const inspectYoutubeTitleContract = (schema: SourceFile, findings: Finding[], lawId: string): void => {
+  for (const propertyName of ["sourceTitle", "displayTitle"]) {
+    if (!sourceContainsIdentifier(schema, propertyName)) {
+      pushFinding(findings, lawId, "src/capabilities/video-download/schema.ts", "video-download/youtube-title-schema", `Video-download schema must expose ${propertyName} in proof and success output.`);
+    }
+  }
 };
 
 const inspectYoutubeFileArtifacts = (output: SourceFile, child: SourceFile, findings: Finding[], lawId: string): void => {
@@ -344,18 +409,25 @@ export const inspectYoutubeProduction = (context: InspectorContext, findings: Fi
   const download = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts");
   const output = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-output.ts");
   const child = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts");
+  const result = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/result.ts");
   const abilityGroup = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/ability-group.ts");
   const route = requiredSourceFile(context, findings, lawId, "src/app/workbench-video-download-routes.ts");
+  const client = requiredSourceFile(context, findings, lawId, "src/app/workbench-video-download-client.ts");
+  const schema = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/schema.ts");
   const support = requiredSourceFile(context, findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts");
-  if (!args || !binary || !download || !output || !child || !abilityGroup || !route || !support) return;
+  if (!args || !binary || !download || !output || !child || !result || !abilityGroup || !route || !client || !schema || !support) return;
   inspectYoutubeQualitySelectors(args, findings, lawId);
   inspectYoutubeSubtitleArgs(args, findings, lawId);
   inspectYoutubeDependencyGate(abilityGroup, binary, findings, lawId);
   inspectYoutubeMediaProbe(output, findings, lawId);
   inspectYoutubeDownloadRuntimeProof(download, findings, lawId);
+  inspectYoutubeTitleRuntime(download, findings, lawId);
   inspectYoutubeChildProof(child, findings, lawId);
+  inspectYoutubeResultProofConsistency(result, findings, lawId);
+  inspectYoutubeTitleContract(schema, findings, lawId);
   inspectYoutubeFileArtifacts(output, child, findings, lawId);
   inspectWorkbenchYoutubeBoundary(route, findings, lawId);
+  inspectYoutubeUiEvidence(client, findings, lawId);
   if (support.getDescendantsOfKind(SyntaxKind.RegularExpressionLiteral).length > 0 ||
     support.getDescendantsOfKind(SyntaxKind.NewExpression).some((node) => identifierName(node.getExpression()) === "RegExp")) {
     pushFinding(findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts", "video-download/source-page-safety-no-regex", "Source-page script safety gate must not use regex or text blacklist enforcement.");

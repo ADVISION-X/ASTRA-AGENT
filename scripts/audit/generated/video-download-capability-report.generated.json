@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T05:29:55.505Z",
+  "generatedAt": "2026-05-31T15:47:51.885Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -17,7 +17,9 @@
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
-    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1"
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1"
   ],
   "status": "PASS",
   "findings": [],

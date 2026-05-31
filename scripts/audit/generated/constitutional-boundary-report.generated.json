@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T05:29:50.584Z",
+  "generatedAt": "2026-05-31T15:47:46.494Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",

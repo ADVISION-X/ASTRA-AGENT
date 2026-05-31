@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-31T05:29:28.909Z",
+  "generatedAt": "2026-05-31T15:47:22.396Z",
   "summary": {
-    "activeLawCount": 195,
-    "coveredLawCount": 195,
+    "activeLawCount": 197,
+    "coveredLawCount": 197,
     "coveragePercent": 100
   },
   "coverage": [
@@ -1978,6 +1978,26 @@
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
+      "capabilityDomain": "video-download-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/video-download-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
+      "capabilityDomain": "video-download-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/video-download-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
       "capabilityDomain": "video-download-capability",
       "clauses": [
         {

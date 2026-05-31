@@ -36,6 +36,22 @@ const buildYoutubeDownloadBase = (input: ParsedDownloadYoutubeVideoInput) => ({
   startedAt: new Date().toISOString(),
 });
 
+const safeArtifactTitleSegment = (value: string): string =>
+  [...value]
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      if (code < 32 || char === "/" || char === "\\" || char === ":" || char === "*" || char === "?" || char === "\"" || char === "<" || char === ">" || char === "|") {
+        return "_";
+      }
+      return char;
+    })
+    .join("")
+    .split(" ")
+    .filter((part) => part.length > 0)
+    .join("_")
+    .slice(0, 80)
+    .trim() || "youtube_video";
+
 const writeArtifact = (
   input: ParsedDownloadYoutubeVideoInput,
   context: VideoDownloadExecutionContext,
@@ -43,7 +59,7 @@ const writeArtifact = (
 ) => context.artifactStoragePort.importVideoArtifactFromFile({
   missionId: input.missionId,
   runId: input.runId,
-  artifactId: `youtube_${randomUUID()}`,
+  artifactId: `youtube_${safeArtifactTitleSegment(downloaded.displayTitle)}_${randomUUID()}`,
   extension: downloaded.contentType.includes("webm") ? ".webm" : ".mp4",
   sourceFilePath: downloaded.filePath,
   contentType: downloaded.contentType,
@@ -138,6 +154,9 @@ const buildYoutubeDownloadSuccess = (
   width: downloaded.width,
   height: downloaded.height,
   selectedQuality: downloaded.selectedQuality,
+  candidateKind: "media_resource",
+  sourceTitle: downloaded.sourceTitle,
+  displayTitle: downloaded.displayTitle,
   artifactRef: persisted.artifact.artifactRef,
   storageRef: persisted.artifact.storageRef,
   filePath: persisted.artifact.filePath,
@@ -153,17 +172,32 @@ const emitYoutubeProgress = (input: {
   startedAt: number;
   message: string;
 }): void => {
+  const message = input.message.trim();
+  const isRetryOrError = message.toLowerCase().split("error").length > 1 || message.toLowerCase().split("retry").length > 1;
+  const isMetadataResolved = message.split("metadata resolved").length > 1;
+  const isProgress = message.split("[download]").length > 1;
+  let eventType: RuntimeLogEventType = RuntimeLogEventType.ARTIFACT_OPERATION_STARTED;
+  if (isRetryOrError) {
+    eventType = RuntimeLogEventType.ARTIFACT_OPERATION_FAILED;
+  } else if (isMetadataResolved) {
+    eventType = RuntimeLogEventType.ARTIFACT_OPERATION_COMPLETED;
+  }
   input.context.runtimeLogger?.emit(createRuntimeEvent({
     context: createYoutubeTrace(input.request),
-    eventType: RuntimeLogEventType.ARTIFACT_REF_RECORDED,
-    level: "info",
+    eventType,
+    level: isRetryOrError ? "warn" : "info",
     modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-    status: "success",
-    preview: { message: input.message },
+    status: isRetryOrError ? "failed" : isMetadataResolved ? "success" : "started",
+    reason: isRetryOrError ? "youtube_download_retryable_runtime_error" : "youtube_download_progress",
+    preview: {
+      message,
+      phase: isProgress ? "download_progress" : isMetadataResolved ? "metadata_resolved" : "metadata_or_download",
+    },
     metrics: { elapsedMs: Date.now() - input.startedAt },
     payload: {
       progressName: "YOUTUBE_DLP_PROGRESS",
       childCapabilityId: "download-youtube-video-once",
+      progressPhase: isProgress ? "download_progress" : isMetadataResolved ? "metadata_resolved" : "metadata_or_download",
     },
   }));
 };
@@ -225,7 +259,9 @@ const completeYoutubeStage = (
     },
     preview: {
       selectedQuality: success.runtimeProof.selectedQuality,
+      displayTitle: success.runtimeProof.displayTitle ?? "unknown",
       contentType: success.runtimeProof.contentType ?? "unknown",
+      candidateKind: success.runtimeProof.candidateKind ?? "unknown",
     },
   });
 };

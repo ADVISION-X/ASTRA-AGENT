@@ -50,6 +50,9 @@ type ResultBaseInput = {
   artifactDisposition?: ParsedVideoDownloadAbilityInput["artifactDisposition"] | null;
   subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
   selectedQuality?: ParsedVideoDownloadAbilityInput["preferredQuality"] | "unknown";
+  candidateKind?: VideoDownloadCandidate["kind"];
+  sourceTitle?: string | null;
+  displayTitle?: string | null;
 };
 
 const elapsedMs = (startedAt: string, endedAt: string): number =>
@@ -72,10 +75,12 @@ const buildProofIdentity = (base: ResultBaseInput, status: VideoDownloadResult["
   selectedQuality: base.selectedQuality ?? base.input.preferredQuality,
   artifactDisposition: base.artifactDisposition ?? null,
   sha256: base.sha256 ?? null,
+  sourceTitle: base.sourceTitle ?? null,
+  displayTitle: base.displayTitle ?? null,
 });
 
 const buildProofCandidateDetails = (base: ResultBaseInput) => ({
-  candidateKind: base.candidate?.kind ?? null,
+  candidateKind: base.candidate?.kind ?? base.candidateKind ?? null,
   candidateHost: base.candidateHost ?? null,
   contentType: base.contentType ?? null,
   byteSize: base.byteSize ?? null,
@@ -118,6 +123,8 @@ const buildSuccessOutput = (
     artifactDisposition: ParsedVideoDownloadAbilityInput["artifactDisposition"];
     subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
     videoId: string | null;
+    sourceTitle?: string | null;
+    displayTitle?: string | null;
   },
   runtimeProof: ReturnType<typeof baseProof> & { failureReason: null; reviewRequiredReason: null },
   endedAt: string,
@@ -130,6 +137,8 @@ const buildSuccessOutput = (
   storageRef: base.storageRef,
   filePath: base.filePath,
   sha256: base.sha256,
+  sourceTitle: base.sourceTitle ?? null,
+  displayTitle: base.displayTitle ?? null,
   artifactDisposition: base.artifactDisposition,
   contentType: base.contentType ?? "video/mp4",
   byteSize: base.byteSize ?? 0,
@@ -137,7 +146,7 @@ const buildSuccessOutput = (
   width: base.width ?? null,
   height: base.height ?? null,
   selectedQuality: runtimeProof.selectedQuality,
-  candidateKind: base.candidate?.kind ?? "media_resource",
+  candidateKind: runtimeProof.candidateKind ?? "media_resource",
   downloadedAt: endedAt,
   proofRef: runtimeProof.proofId,
   subtitleArtifacts: [...(base.subtitleArtifacts ?? [])],
@@ -175,6 +184,8 @@ export const buildVideoDownloadSuccess = (
     artifactDisposition: ParsedVideoDownloadAbilityInput["artifactDisposition"];
     subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
     videoId: string | null;
+    sourceTitle?: string | null;
+    displayTitle?: string | null;
   },
 ): VideoDownloadResult => {
   const endedAt = new Date().toISOString();

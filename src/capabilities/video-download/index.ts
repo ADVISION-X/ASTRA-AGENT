@@ -3,6 +3,7 @@ export {
   createVideoDownloadAbilityGroupFromFilesystem,
   prepareVideoDownloadRuntimeDependencies,
   probeTelegramWebVisibleMediaSourcePage,
+  youtubeProductionDisplayTitle,
   youtubeProductionExpectedSubtitleLanguages,
   youtubeProductionLanguageMatches,
   youtubeProductionMaxHeightForQuality,

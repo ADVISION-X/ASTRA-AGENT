@@ -1,7 +1,7 @@
 const WORKBENCH_VIDEO_DOWNLOAD_CLIENT = `
 const VIDEO_PLATFORM_DEFAULTS = {
   telegram: { platform: "telegram-web", maxMegabytes: 5000, quality: false, subtitles: false, detect: true },
-  youtube: { platform: "youtube", maxMegabytes: null, quality: true, subtitles: false, detect: false },
+  youtube: { platform: "youtube", maxMegabytes: null, quality: true, subtitles: true, detect: false },
   universal: { platform: "universal", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   facebook: { platform: "facebook", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   tiktok: { platform: "tiktok", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
@@ -78,6 +78,7 @@ const setVideoPlatform = (platform) => {
     form.maxMegabytes.required = config.maxMegabytes !== null;
   }
   qs("[data-video-subtitles-field]")?.classList.toggle("hidden", !config.subtitles);
+  qs("[data-video-subtitle-languages-field]")?.classList.toggle("hidden", !config.subtitles);
   qs("[data-video-detect-row]")?.classList.toggle("hidden", !config.detect);
   qs("[data-video-candidate-list]")?.classList.add("hidden");
   if (form?.telegramDocumentIdHash) form.telegramDocumentIdHash.value = "";
@@ -183,6 +184,10 @@ const renderVideoDownloadLedger = (result, downloadsPath) => {
     const artifact = downloadsPath || output.filePath || output.artifactRef || "artifact ready";
     const byteSize = output.byteSize || output.fileSizeBytes || output.sizeBytes;
     const sha256 = output.sha256 || output.digest || "-";
+    const title = output.displayTitle || output.sourceTitle || "-";
+    const dimensions = output.width && output.height ? output.width + "x" + output.height : "-";
+    const duration = output.durationMs ? formatDuration(output.durationMs) : "-";
+    const subtitleCount = Array.isArray(output.subtitleArtifacts) ? output.subtitleArtifacts.length : 0;
     const downloadsMarker = "/Downloads/";
     const displayArtifact = artifact.includes(downloadsMarker)
       ? artifact.slice(artifact.lastIndexOf(downloadsMarker) + downloadsMarker.length)
@@ -191,7 +196,7 @@ const renderVideoDownloadLedger = (result, downloadsPath) => {
       ? "✓ 视频已下载到 ~/Downloads/GrassEye Video Downloads：" + displayArtifact
       : "✓ 视频下载完成：" + artifact;
     setVideoDownloadResult(
-      "<b>下载成功</b><span>文件：" + escapeHtml(displayArtifact) + "</span><span>大小：" + escapeHtml(formatBytes(byteSize)) + "</span><span>SHA-256：" + escapeHtml(sha256) + "</span>",
+      "<b>" + escapeHtml(title) + "</b><span>文件：" + escapeHtml(displayArtifact) + "</span><span>质量：" + escapeHtml(output.selectedQuality || "-") + " · " + escapeHtml(dimensions) + " · " + escapeHtml(duration) + "</span><span>大小：" + escapeHtml(formatBytes(byteSize)) + " · 字幕：" + escapeHtml(String(subtitleCount)) + "</span><span>SHA-256：" + escapeHtml(sha256) + "</span><span>Proof：" + escapeHtml(output.proofRef || nested?.runtimeProof?.proofId || "-") + "</span>",
       "ok",
     );
     writeActivity(msg, "ok");
@@ -210,6 +215,9 @@ const startVideoDownload = async (event) => {
     platform: form.platform.value,
     preferredQuality: form.preferredQuality.value,
     downloadSubtitles: form.downloadSubtitles.checked,
+    subtitleLanguages: form.subtitleLanguages?.value
+      ? form.subtitleLanguages.value.split(",").map((item) => item.trim()).filter(Boolean)
+      : undefined,
     saveToDownloads: form.saveToDownloads?.checked === true,
     telegramDocumentIdHash: form.telegramDocumentIdHash?.value || undefined,
   };

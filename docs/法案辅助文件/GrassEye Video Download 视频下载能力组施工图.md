@@ -199,6 +199,8 @@ type VideoDownloadSuccess = {
   height: number | null;
   selectedQuality: "hd" | "sd" | "best_available" | "unknown";
   candidateKind: VideoDownloadCandidateKind;
+  sourceTitle: string | null;
+  displayTitle: string | null;
   downloadedAt: string;
   proofRef: string;
 };
@@ -310,6 +312,7 @@ YouTube 子能力只允许作为 `src/capabilities/video-download/**` 内的受�
 - App API `/api/video-download/start` 必须把 `preferredQuality` 和 `downloadSubtitles` 交给 mediator route，再进入 `video-download-artifact` job flow，由 job flow 调用 public facade。
 - `downloadSubtitles=true` 必须向本地 yt-dlp runtime 请求字幕，并把 `.vtt` 或 `.srt` 写入治理 artifact path。
 - success result 与 runtime proof 必须包含 `selectedQuality`、视频 artifact、`subtitleArtifacts`。
+- YouTube success result 与 runtime proof 必须包含 `sourceTitle` 和 `displayTitle`；`sourceTitle` 来自 yt-dlp metadata 的平台标题，`displayTitle` 只能为文件系统安全、长度边界和碰撞后缀做最小清洗。
 - 平台没有提供字幕时，不得伪造字幕 artifact；下载视频仍可按真实结果成功。
 - YouTube 下载不得读取或导出 cookie、localStorage、sessionStorage、token。
 - YouTube 下载不得使用第三方 downloader 网站、去水印 API、隐藏付费 API 或第二 downloader owner。
@@ -343,6 +346,7 @@ YouTube 生产级下载规则：
 - async task 状态必须有生产边界：并发限制、TTL 清理、进程内状态和 Workbench dataDir 下的原子持久快照；进程重启后未完成任务不得继续显示为 running；终态快照写入失败必须让任务失败，不能内存成功、磁盘失败。
 - 同步 `/api/video-download/start` 可保留给 API 兼容，但 UI 不得再用它做长下载等待。
 - 保存到 `~/Downloads/GrassEye Video Downloads` 是 deliverable 交付动作；复制失败必须返回失败，不得吞掉错误后显示成功；目标文件名必须避免覆盖已有交付文件。
+- YouTube 交付文件名必须保留 YouTube 原始标题。允许添加 collision-resistant suffix，但禁止纯 UUID、timestamp、hash 或内部 artifact id 取代标题。
 - 启动刷新 `yt-dlp` 若网络失败，但 managed local binary 已验证可执行，可继续启动并使用该 managed binary；不得退回第三方 downloader 或 cookie/session 绕过。
 
 YouTube 生产验收真实性追加规则：
@@ -351,6 +355,7 @@ YouTube 生产验收真实性追加规则：
 - `/api/video-download/start` 不得执行 YouTube 长下载；YouTube 只能通过 `/api/video-download/start-async` + `/api/video-download/status` 完成生产下载。
 - async 任务终态必须先完成原子持久化，再对外呈现 success/review/failed；若终态持久化失败，任务必须转为 failed 且暴露 `video_download_task_persistence_failed`。
 - YouTube artifact id 必须用 collision-resistant id，不得只用 `Date.now()`。
+- YouTube metadata probe 必须读取 `title`；成功结果不能缺 `sourceTitle` / `displayTitle`。
 - 字幕可得性判断必须支持语言变体：请求 `en` 时，平台 `en-US` / `en-GB` 视为可得；请求 `zh` 时，平台 `zh-Hans` / `zh-Hant` 视为可得。平台报告可得但未落 artifact 时必须失败。
 - `selectedQuality` 必须同时满足两个条件：来自 ffprobe height，且不得超过请求质量上限；超限时必须失败。
 - Source-page JavaScript 安全守门不得依赖 regex/text blacklist；只能执行 video-download owner 提供的 allowlisted probe script，或使用结构化 allowlist token。
@@ -365,7 +370,19 @@ YouTube 真实交付防复发规则：
 - Workbench `subtitleLanguages` 策略是：用户传入有效数组则原样传入 job flow；用户不传才默认 `["en"]`。
 - 初始 async snapshot 写入失败时，HTTP 必须返回可观察 failed task body，内存状态也必须是 failed；不得留下 running。
 - Downloads delivery 文件名必须使用 collision-resistant id；复制失败必须让任务失败，不得展示成功。
+- Downloads delivery 文件名必须以安全清洗后的 `displayTitle` 为人类可读主体，并附加 collision-resistant suffix 防覆盖；不得把随机串当作主体。
 - 真实交付验收必须记录：状态 route 从 running 到 success/failed 的观察、artifact path、Downloads delivery path、ffprobe metadata、runtime log evidence。
+
+YouTube 证据一致性与人机交互防复发规则：
+
+- 成功结果中 `output.candidateKind` 与 `runtimeProof.candidateKind` 必须同时非空且一致；YouTube 默认为 `media_resource`，不得让 proof 留空。
+- yt-dlp retry/error 行必须进入 warning/failure 语义事件，不得写成 `status=success`。
+- 下载百分比、metadata probe、retry 行不得复用 `ARTIFACT_REF_RECORDED`；artifact-ref 事件只用于真实 artifact/proof 记录。
+- 完成日志必须暴露 `selectedQuality`、contentType、byteSize、artifactRef、candidateKind，方便 operator 直接判断交付质量。
+- Workbench 成功结果必须显示交付文件、selectedQuality、分辨率、时长、大小、sha256、proofRef、subtitle artifact 数量。
+- Workbench 成功结果必须把 YouTube 标题作为第一视觉身份显示；文件路径、artifact id、video id、sha256、proofRef 只能作为证据字段，不能替代标题。
+- YouTube UI 必须显示字幕开关和语言输入，`subtitleLanguages` 以逗号分隔传入 route；不传时才默认 `["en"]`。
+- 生产 release 不能忽略 `npm audit` moderate-or-higher 漏洞；除非 active law 明确例外，否则必须修复或阻断 PASS。
 
 ## Telegram Web 内部下载链路取证与实现边界
 
@@ -545,6 +562,8 @@ inspector 阻断条件：
 - async task 终态持久化用非原子写入，或持久化失败后仍在内存中显示成功；
 - Downloads copy failure 被吞掉并仍然显示成功；
 - Downloads 交付路径可能覆盖既有文件；
+- YouTube metadata 没有读取 title，或 success output/runtimeProof/UI/Downloads path 没有保留 `sourceTitle` / `displayTitle`；
+- YouTube Downloads 文件名是纯 UUID/timestamp/hash 或内部 artifact id；
 - YouTube route 默认值不是 `best_available`；
 - `/api/video-download/start` 仍执行 YouTube 长下载；
 - async terminal snapshot 持久化失败后仍能显示 success；
@@ -588,6 +607,7 @@ Phase 1 完成标准：
 - YouTube dependency gate 必须证明 Workbench 启动默认刷新 managed local `yt-dlp`，刷新顺序优先于 PATH 系统 `yt-dlp`，并验证 `ffprobe`；该规则必须进入 `video-download-capability` inspector 与 production acceptance。
 - YouTube production gate 必须证明：无完整视频内存读取、存在 `importVideoArtifactFromFile`、存在 `--max-filesize`、存在 ffprobe media probe、真实 `selectedQuality`、字幕可得性核对、UI 使用 async status route、任务状态有并发/TTL/持久快照边界、Downloads copy failure 不被静默吞掉且不覆盖既有文件。
 - YouTube production acceptance 必须执行本地 deterministic fixtures，证明 route 默认 `best_available`、同步 YouTube 被拒绝、终态持久化失败转 failed、字幕语言变体正确匹配、质量上限越界失败、artifact id 防碰撞、Downloads copy failure 失败。
+- YouTube evidence acceptance 必须执行 deterministic fixture，证明 success output/proof candidateKind 一致、`sourceTitle` / `displayTitle` 从 metadata 到 proof/output/UI/Downloads 全链路保真、retry/error 日志不再记 success、progress 不用 `ARTIFACT_REF_RECORDED`、UI 成功态包含 title/quality/dimensions/duration/sha/proof/subtitle count、YouTube 字幕语言控件可见并传入 route。
 - 字幕实测必须用 `downloadSubtitles=true` 请求，平台提供字幕时必须产生 `subtitleArtifacts`；平台未提供字幕时必须在交付中如实说明，不得伪造。
 - Telegram Web 实测必须证明 `web.telegram.org` 路由、CacheStorage 完整分片拼接成功路径、缓存不完整 `review_required` 路径、以及不读取 credential/storage/token 的红线。
 - Telegram Web 实测必须证明目标页先识别出可见视频清单，选择某个 `documentIdHash` 后只下载该目标；不得以“第一个完整缓存命中”冒充用户选择。

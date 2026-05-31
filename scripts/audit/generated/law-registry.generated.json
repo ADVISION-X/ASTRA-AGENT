@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T05:29:28.909Z",
+  "generatedAt": "2026-05-31T15:47:22.396Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3326,6 +3326,28 @@
       "summary": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
       "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
       "blockIndex": 14
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
+      "summary": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 15
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
+      "summary": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 16
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",

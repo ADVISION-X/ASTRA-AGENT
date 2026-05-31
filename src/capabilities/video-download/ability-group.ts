@@ -24,7 +24,7 @@ import { createFilesystemVideoArtifactStoragePort } from "./runtime/artifact-sto
 import { buildVideoDownloadFailure } from "./runtime/result.js";
 import { buildTelegramWebVisibleMediaProbeScript } from "./runtime/telegram-web-visible-media-probe-script.js";
 import { resolveYtDlpBinaryPath } from "./runtime/youtube-dlp-binary.js";
-import { maxYoutubeHeightForQuality, youtubeExpectedSubtitleLanguages, youtubeLanguageMatches } from "./runtime/youtube-dlp-download.js";
+import { maxYoutubeHeightForQuality, youtubeDisplayTitle, youtubeExpectedSubtitleLanguages, youtubeLanguageMatches } from "./runtime/youtube-dlp-download.js";
 import { verifyFfprobeAvailable } from "./runtime/youtube-dlp-output.js";
 
 export type TelegramWebVisibleVideoCandidate = {
@@ -228,3 +228,6 @@ export const youtubeProductionExpectedSubtitleLanguages = (
   requestedLanguages: readonly string[],
   downloadSubtitles: boolean,
 ): string[] => [...youtubeExpectedSubtitleLanguages(availableLanguages, requestedLanguages, downloadSubtitles)];
+
+export const youtubeProductionDisplayTitle = (sourceTitle: string): string =>
+  youtubeDisplayTitle(sourceTitle);
