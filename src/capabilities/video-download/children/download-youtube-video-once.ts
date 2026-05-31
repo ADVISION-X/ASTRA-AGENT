@@ -11,7 +11,7 @@ import type { VideoDownloadSubtitleArtifact } from "../type-contracts.js";
 import { buildVideoDownloadFailure, buildVideoDownloadSuccess } from "../runtime/result.js";
 import { isYoutubePageUrl } from "../runtime/youtube-url.js";
 import { downloadYoutubeVideoWithYtDlp } from "../runtime/youtube-dlp-download.js";
-import { createRuntimeLogger, createStageLogger, RuntimeFailureClass } from "../../../lib/runtime-logs/index.js";
+import { createRuntimeEvent, createRuntimeLogger, createStageLogger, RuntimeFailureClass, RuntimeLogEventType } from "../../../lib/runtime-logs/index.js";
 import { createMissionTrace } from "../../../lib/runtime-logs/trace-context.js";
 
 type ParsedDownloadYoutubeVideoInput = Extract<
@@ -136,6 +136,89 @@ const buildYoutubeDownloadSuccess = (
   videoId: downloaded.videoId,
 });
 
+const emitYoutubeProgress = (input: {
+  request: ParsedDownloadYoutubeVideoInput;
+  context: VideoDownloadExecutionContext;
+  startedAt: number;
+  message: string;
+}): void => {
+  input.context.runtimeLogger?.emit(createRuntimeEvent({
+    context: createYoutubeTrace(input.request),
+    eventType: RuntimeLogEventType.ARTIFACT_REF_RECORDED,
+    level: "info",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    status: "success",
+    preview: { message: input.message },
+    metrics: { elapsedMs: Date.now() - input.startedAt },
+    payload: {
+      progressName: "YOUTUBE_DLP_PROGRESS",
+      childCapabilityId: "download-youtube-video-once",
+    },
+  }));
+};
+
+const failYoutubeStageForSource = (
+  youtubeStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>,
+  sourceFailure: VideoDownloadResult,
+): void => {
+  youtubeStage.fail({
+    reason: sourceFailure.failureReason ?? "source_page_mismatch",
+    failureClass: RuntimeFailureClass.MEDIA_DOWNLOAD_FAILURE,
+    retryable: false,
+    terminal: true,
+    recoveryPolicy: "terminal",
+  });
+};
+
+const buildAndLogYoutubeFailure = (input: {
+  base: ReturnType<typeof buildYoutubeDownloadBase>;
+  youtubeStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>;
+  downloaded: Awaited<ReturnType<typeof downloadYoutubeVideoWithYtDlp>> & { ok: false };
+}): VideoDownloadResult => {
+  const failed = buildVideoDownloadFailure(
+    input.base,
+    input.downloaded.failureReason,
+    input.downloaded.reason,
+    asFailureStatus(input.downloaded.reviewRequired),
+  );
+  const terminalInput = {
+    reason: failed.failureReason ?? "candidate_not_video",
+    failureClass: RuntimeFailureClass.MEDIA_DOWNLOAD_FAILURE,
+    retryable: false,
+    terminal: true,
+    recoveryPolicy: input.downloaded.reviewRequired ? "review_required" : "terminal",
+    durationMs: failed.runtimeProof.durationMsTotal,
+    metrics: { durationMs: failed.runtimeProof.durationMsTotal },
+  };
+  if (input.downloaded.reviewRequired) {
+    input.youtubeStage.reviewRequired({
+      ...terminalInput,
+      ...(failed.reviewRequiredReason ? { actionableMessage: failed.reviewRequiredReason } : {}),
+    });
+  } else {
+    input.youtubeStage.fail({ ...terminalInput, recoveryPolicy: "terminal" });
+  }
+  return failed;
+};
+
+const completeYoutubeStage = (
+  youtubeStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>,
+  success: VideoDownloadResult,
+): void => {
+  youtubeStage.complete({
+    durationMs: success.runtimeProof.durationMsTotal,
+    ...(success.runtimeProof.artifactRef ? { refs: { artifactRef: success.runtimeProof.artifactRef } } : {}),
+    metrics: {
+      durationMs: success.runtimeProof.durationMsTotal,
+      byteSize: success.runtimeProof.byteSize ?? 0,
+    },
+    preview: {
+      selectedQuality: success.runtimeProof.selectedQuality,
+      contentType: success.runtimeProof.contentType ?? "unknown",
+    },
+  });
+};
+
 async function executeDownloadYoutubeVideoOnce(
   input: ParsedDownloadYoutubeVideoInput,
   context: VideoDownloadExecutionContext,
@@ -163,45 +246,23 @@ async function executeDownloadYoutubeVideoOnce(
   });
   const sourceFailure = validateYoutubeSource(input, base);
   if (sourceFailure) {
-    youtubeStage.fail({ reason: sourceFailure.failureReason ?? "source_page_mismatch", failureClass: RuntimeFailureClass.MEDIA_DOWNLOAD_FAILURE, retryable: false, terminal: true, recoveryPolicy: "terminal" });
+    failYoutubeStageForSource(youtubeStage, sourceFailure);
     return sourceFailure;
   }
   const abortHandle = createYoutubeAbortHandle(input.timeoutMs);
   try {
-    const downloaded = await downloadYoutubeVideoWithYtDlp(input, abortHandle.abortController.signal);
-    if (!downloaded.ok) {
-      const failed = buildVideoDownloadFailure(
-        base,
-        downloaded.reviewRequired ? "permission_denied" : "candidate_not_video",
-        downloaded.reason,
-        asFailureStatus(downloaded.reviewRequired),
-      );
-      const terminalInput = {
-        reason: failed.failureReason ?? "candidate_not_video",
-        failureClass: RuntimeFailureClass.MEDIA_DOWNLOAD_FAILURE,
-        retryable: false,
-        terminal: true,
-        recoveryPolicy: downloaded.reviewRequired ? "review_required" : "terminal",
-        durationMs: failed.runtimeProof.durationMsTotal,
-        metrics: { durationMs: failed.runtimeProof.durationMsTotal },
-      };
-      if (downloaded.reviewRequired) {
-        youtubeStage.reviewRequired({ ...terminalInput, ...(failed.reviewRequiredReason ? { actionableMessage: failed.reviewRequiredReason } : {}) });
-      } else {
-        youtubeStage.fail({ ...terminalInput, recoveryPolicy: "terminal" });
-      }
-      return failed;
-    }
-    const success = buildYoutubeDownloadSuccess(base, downloaded, await persistYoutubeArtifacts({ request: input, context, downloaded }));
-    youtubeStage.complete({
-      durationMs: success.runtimeProof.durationMsTotal,
-      ...(success.runtimeProof.artifactRef ? { refs: { artifactRef: success.runtimeProof.artifactRef } } : {}),
-      metrics: { durationMs: success.runtimeProof.durationMsTotal, byteSize: success.runtimeProof.byteSize ?? 0 },
-      preview: {
-        selectedQuality: success.runtimeProof.selectedQuality,
-        contentType: success.runtimeProof.contentType ?? "unknown",
-      },
+    const downloaded = await downloadYoutubeVideoWithYtDlp(input, abortHandle.abortController.signal, (message) => {
+      emitYoutubeProgress({ request: input, context, startedAt: youtubeStage.startedAt, message });
     });
+    if (!downloaded.ok) {
+      return buildAndLogYoutubeFailure({ base, youtubeStage, downloaded });
+    }
+    const success = buildYoutubeDownloadSuccess(
+      base,
+      downloaded,
+      await persistYoutubeArtifacts({ request: input, context, downloaded }),
+    );
+    completeYoutubeStage(youtubeStage, success);
     return success;
   } finally {
     abortHandle.dispose();

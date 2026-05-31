@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T21:22:00.889Z",
+  "generatedAt": "2026-05-31T00:16:40.034Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -22,6 +22,7 @@
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
@@ -30,6 +31,7 @@
     "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
     "src/capabilities/video-download/children/download-youtube-video-once.ts",
     "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+    "src/capabilities/video-download/ability-group.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-video-download-client.ts",
@@ -37,6 +39,7 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
     "src/app/workbench-video-download-routes.ts",
+    "src/lib/local-runtime/workbench.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts"
   ]
 }

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-30T21:21:56.013Z",
+  "generatedAt": "2026-05-31T00:16:34.996Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -73,6 +73,7 @@
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+    "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -416,6 +417,7 @@
     "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-policy.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
@@ -1016,6 +1018,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/video-download-youtube-production.acceptance.ts",
+      "reason": "package.json script acceptance:video-download-youtube-production",
+      "scriptName": "acceptance:video-download-youtube-production"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/workbench-api-boundary.acceptance.ts",
       "reason": "package.json script acceptance:workbench-api-boundary",
       "scriptName": "acceptance:workbench-api-boundary"
@@ -1171,9 +1179,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1681,
+  "liveExportCount": 1688,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 607,
+  "reachableFileCount": 609,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1185,9 +1193,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1681,
+    "liveExportCount": 1688,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 607,
+    "reachableFileCount": 609,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

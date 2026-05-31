@@ -89,20 +89,31 @@ const downloadLatestBinary = async (binaryPath: string): Promise<string> => {
   return binaryPath;
 };
 
-export const resolveYtDlpBinaryPath = async (): Promise<string> => {
-  const configured = process.env.GRASSEYE_YT_DLP_BINARY;
-  if (configured && await canExecute(configured)) return configured;
-  if (await canExecute("yt-dlp")) return "yt-dlp";
-
-  const local = localBinaryPath();
-  const shouldRefresh = process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0";
-  if (!shouldRefresh && await fileExists(local) && await canExecute(local)) {
-    return local;
+const resolveCachedLocalBinaryPath = async (binaryPath: string): Promise<string | null> => {
+  if (await fileExists(binaryPath) && await canExecute(binaryPath)) {
+    return binaryPath;
   }
-  if (!shouldRefresh && await fileExists(local)) {
-    const runner = await buildLocalRunner(local);
+  if (await fileExists(binaryPath)) {
+    const runner = await buildLocalRunner(binaryPath);
     if (runner) return runner;
   }
+  return null;
+};
+
+export const resolveYtDlpBinaryPath = async (input: { refresh?: boolean } = {}): Promise<string> => {
+  const configured = process.env.GRASSEYE_YT_DLP_BINARY;
+  if (configured && await canExecute(configured)) return configured;
+
+  const local = localBinaryPath();
+  if (input.refresh === true) {
+    const downloaded = await downloadLatestBinary(local);
+    return await buildLocalRunner(downloaded) ?? downloaded;
+  }
+
+  const cached = await resolveCachedLocalBinaryPath(local);
+  if (cached) return cached;
+  if (await canExecute("yt-dlp")) return "yt-dlp";
+
   const downloaded = await downloadLatestBinary(local);
   return await buildLocalRunner(downloaded) ?? downloaded;
 };

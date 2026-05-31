@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 import YTDlpWrapModule from "yt-dlp-wrap/dist/index.js";
 
@@ -9,6 +10,15 @@ import { extractYoutubeVideoId, normalizeYoutubeVideoUrl } from "./youtube-url.j
 import { resolveYtDlpBinaryPath } from "./youtube-dlp-binary.js";
 import { formatSelector, subtitleArgs, youtubeArgs } from "./youtube-dlp-args.js";
 import { collectYtDlpOutputFiles, type YoutubeSubtitleDownload } from "./youtube-dlp-output.js";
+import {
+  classifyYoutubeDlpFailure,
+  sanitizeYoutubeProgressLine,
+  YOUTUBE_PROCESS_KILL_GRACE_MS,
+  YOUTUBE_PROGRESS_INTERVAL_MS,
+  youtubeMetadataTimeoutSeconds,
+  youtubeTimeoutSeconds,
+  type YoutubeDlpFailure,
+} from "./youtube-dlp-policy.js";
 
 type YTDlpWrapInstance = {
   execPromise(args: string[], options?: { maxBuffer?: number }, abortSignal?: AbortSignal): Promise<string>;
@@ -53,6 +63,7 @@ type YoutubeDownloadSuccess = {
 
 type YoutubeDownloadFailure = {
   ok: false;
+  failureReason: YoutubeDlpFailure["failureReason"];
   reason: string;
   reviewRequired: boolean;
 };
@@ -77,14 +88,6 @@ const metadataFromJson = (raw: unknown): YoutubeMetadata => {
   };
 };
 
-const timeoutSeconds = (input: ParsedYoutubeInput, metadata: YoutubeMetadata): number => {
-  if (!metadata.fileSize || metadata.fileSize <= 0) {
-    return Math.max(30, Math.ceil(input.timeoutMs / 1000));
-  }
-  const sizeMb = metadata.fileSize / (1024 * 1024);
-  return Math.max(300, Math.min(3600, Math.ceil(300 + sizeMb * 3)));
-};
-
 type ParsedYoutubeInput = Extract<
   ParsedVideoDownloadAbilityInput,
   { childCapabilityId: "download-youtube-video-once" }
@@ -93,30 +96,62 @@ type ParsedYoutubeInput = Extract<
 const readMetadata = async (
   wrapper: YTDlpWrapInstance,
   url: string,
+  timeoutMs: number,
   abortSignal: AbortSignal,
 ): Promise<YoutubeMetadata> => {
   const stdout = await wrapper.execPromise([
     "--dump-json",
     "--no-warnings",
+    "--socket-timeout",
+    String(youtubeMetadataTimeoutSeconds({ timeoutMs })),
     ...youtubeArgs(url),
   ], { maxBuffer: 10 * 1024 * 1024 }, abortSignal);
   return metadataFromJson(JSON.parse(stdout) as unknown);
 };
 
-const classifyFailure = (error: unknown): YoutubeDownloadFailure => {
-  const message = error instanceof Error ? error.message : "Unknown YouTube download failure.";
-  const lower = message.toLowerCase();
-  const reviewRequired = [
-    "private video",
-    "sign in",
-    "login",
-    "captcha",
-    "confirm your age",
-    "drm",
-    "members-only",
-    "this video is unavailable",
-  ].some((needle) => lower.includes(needle));
-  return { ok: false, reason: message, reviewRequired };
+const runYtDlpProcess = async (input: {
+  args: string[];
+  abortSignal: AbortSignal;
+  onProgress?: (message: string) => void;
+}): Promise<void> => {
+  const binaryPath = await resolveYtDlpBinaryPath();
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(binaryPath, input.args, { stdio: ["ignore", "pipe", "pipe"] });
+    const stderr: string[] = [];
+    let lastProgressAt = 0;
+    const emitProgress = (chunk: Buffer) => {
+      const text = chunk.toString();
+      stderr.push(text);
+      const now = Date.now();
+      if (now - lastProgressAt < YOUTUBE_PROGRESS_INTERVAL_MS) return;
+      const line = sanitizeYoutubeProgressLine(text);
+      if (!line) return;
+      lastProgressAt = now;
+      input.onProgress?.(line);
+    };
+    const abort = () => {
+      child.kill("SIGTERM");
+      setTimeout(() => {
+        if (!child.killed) child.kill("SIGKILL");
+      }, YOUTUBE_PROCESS_KILL_GRACE_MS).unref();
+    };
+    if (input.abortSignal.aborted) abort();
+    input.abortSignal.addEventListener("abort", abort, { once: true });
+    child.stdout.on("data", emitProgress);
+    child.stderr.on("data", emitProgress);
+    child.on("error", reject);
+    child.on("close", (code, signal) => {
+      input.abortSignal.removeEventListener("abort", abort);
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      const tail = stderr.join("").slice(-2_000).trim();
+      reject(new Error(input.abortSignal.aborted
+        ? "yt-dlp aborted after request timeout."
+        : `yt-dlp failed with code ${code ?? "null"} signal ${signal ?? "none"}: ${tail || "no stderr"}`));
+    });
+  });
 };
 
 const runYoutubeDownload = async (input: {
@@ -124,14 +159,27 @@ const runYoutubeDownload = async (input: {
   abortSignal: AbortSignal;
   tempDir: string;
   normalizedUrl: string;
+  onProgress?: (message: string) => void;
 }): Promise<{
   metadata: YoutubeMetadata;
   output: Awaited<ReturnType<typeof collectYtDlpOutputFiles>>;
 }> => {
   const wrapper = new YTDlpWrapRuntime(await resolveYtDlpBinaryPath());
-  const metadata = await readMetadata(wrapper, input.normalizedUrl, input.abortSignal);
+  input.onProgress?.("youtube metadata probe started");
+  const metadata = await readMetadata(
+    wrapper,
+    input.normalizedUrl,
+    input.request.timeoutMs,
+    input.abortSignal,
+  );
+  input.onProgress?.("youtube metadata resolved: " + (
+    metadata.durationMs ? Math.round(metadata.durationMs / 1000) + "s" : "duration_unknown"
+  ));
   const outputTemplate = path.join(input.tempDir, "youtube_video.%(ext)s");
-  await wrapper.execPromise([
+  await runYtDlpProcess({
+    abortSignal: input.abortSignal,
+    ...(input.onProgress ? { onProgress: input.onProgress } : {}),
+    args: [
     "--format",
     formatSelector(input.request),
     "--merge-output-format",
@@ -139,19 +187,22 @@ const runYoutubeDownload = async (input: {
     "--output",
     outputTemplate,
     "--socket-timeout",
-    String(timeoutSeconds(input.request, metadata)),
+    String(youtubeTimeoutSeconds(input.request)),
     "--retries",
-    "10",
+    "2",
     "--fragment-retries",
-    "50",
-    "--file-access-retries",
     "5",
+    "--file-access-retries",
+    "2",
+    "--newline",
+    "--no-playlist",
     "--continue",
     "--concurrent-fragments",
     "4",
     ...subtitleArgs(input.request),
     ...youtubeArgs(input.normalizedUrl),
-  ], { maxBuffer: 10 * 1024 * 1024 }, input.abortSignal);
+    ],
+  });
   return {
     metadata,
     output: await collectYtDlpOutputFiles(input.tempDir),
@@ -164,11 +215,17 @@ const buildYoutubeDownloadResult = (input: {
   output: Awaited<ReturnType<typeof collectYtDlpOutputFiles>>;
 }): YoutubeDownloadResult => {
   if (!input.output.video) {
-    return { ok: false, reason: "yt-dlp completed without a supported video file.", reviewRequired: false };
+    return {
+      ok: false,
+      failureReason: "downloaded_file_invalid",
+      reason: "yt-dlp completed without a supported video file.",
+      reviewRequired: false,
+    };
   }
   if (input.output.video.byteSize > input.request.maxBytes) {
     return {
       ok: false,
+      failureReason: "download_too_large",
       reason: `Downloaded YouTube file exceeded maxBytes ${input.request.maxBytes}.`,
       reviewRequired: false,
     };
@@ -189,10 +246,16 @@ const buildYoutubeDownloadResult = (input: {
 export const downloadYoutubeVideoWithYtDlp = async (
   input: ParsedYoutubeInput,
   abortSignal: AbortSignal,
+  onProgress?: (message: string) => void,
 ): Promise<YoutubeDownloadResult> => {
   const normalizedUrl = normalizeYoutubeVideoUrl(input.sourcePageUrl);
   if (!normalizedUrl) {
-    return { ok: false, reason: "Source page URL is not a supported YouTube video URL.", reviewRequired: false };
+    return {
+      ok: false,
+      failureReason: "source_page_mismatch",
+      reason: "Source page URL is not a supported YouTube video URL.",
+      reviewRequired: false,
+    };
   }
 
   const tempDir = await mkdtemp(path.join(tmpdir(), "grasseye-youtube-"));
@@ -202,6 +265,7 @@ export const downloadYoutubeVideoWithYtDlp = async (
       abortSignal,
       tempDir,
       normalizedUrl,
+      ...(onProgress ? { onProgress } : {}),
     });
     return buildYoutubeDownloadResult({
       request: input,
@@ -209,7 +273,7 @@ export const downloadYoutubeVideoWithYtDlp = async (
       output: downloaded.output,
     });
   } catch (error) {
-    return classifyFailure(error);
+    return { ok: false, ...classifyYoutubeDlpFailure(error) };
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }

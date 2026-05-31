@@ -315,6 +315,16 @@ YouTube 子能力只允许作为 `src/capabilities/video-download/**` 内的受�
 - YouTube 下载不得使用第三方 downloader 网站、去水印 API、隐藏付费 API 或第二 downloader owner。
 - App route 不得直接调用 `getVideoDownloadAbilityGroup().execute`；直调能力组是绕过 job flow 的违法捷径。
 
+YouTube 依赖更新规则：
+
+- Workbench 启动时必须调用 `prepareVideoDownloadRuntimeDependencies()`。
+- 默认必须执行 `resolveYtDlpBinaryPath({ refresh: process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0" })`，即每次启动刷新 managed local `yt-dlp`。
+- 默认刷新必须优先于 PATH 中的系统 `yt-dlp`，避免系统旧版抢先命中导致 YouTube 下载失败。
+- managed binary 存放在用户本机 cache：`~/.cache/grasseye/video-download/yt-dlp`；如当前 yt-dlp zipapp 需要 Python，必须生成 `yt-dlp-runner` 并使用 Python 3.10+。
+- `GRASSEYE_YT_DLP_BINARY` 是显式人工 override；设置后由操作者负责该 binary 的版本治理。
+- `GRASSEYE_YT_DLP_AUTO_UPDATE=0` 只允许用于离线/调试场景；生产默认不得关闭。
+- 下载执行阶段不得再次刷新依赖；刷新属于启动 dependency gate，下载阶段只使用已解析的 runtime binary，避免每次点击下载都被依赖网络阻塞。
+
 ## Telegram Web 内部下载链路取证与实现边界
 
 本节记录 Telegram Web 视频下载子能力的实证发现与 active 实现边界。`download-telegram-web-video-once` 只能在 `src/capabilities/video-download/**` 内实现。
@@ -476,6 +486,8 @@ inspector 阻断条件：
 - Telegram Web 下载探针只从 `performance` resource 识别 selected document，未合并可见 video src 与 CacheStorage keys，导致清单 hash 到下载 hash 断链；
 - Telegram Web 下载探针无条件枚举大型 `tt-media-progressive` cache keys，导致 `Operation too large` 直接变成 `network_failed`；
 - Workbench 缺少下载进度 UI，或 Telegram 默认上限退回 500MB；
+- Workbench 启动未刷新 managed YouTube `yt-dlp`，或默认先使用 PATH 里的系统 `yt-dlp`；
+- YouTube 下载执行阶段刷新依赖，导致每次下载都被依赖更新网络阻塞；
 - 代码复活 `telegram-web-download-stream-probe`、裸 progressive XHR/fetch 分片下载，或把 HTTP 302/HTML 当作成功；
 - 代码中出现 cookie/session/token/DRM/CAPTCHA bypass 正向实现；
 - 代码中出现第三方下载站调用；
@@ -502,6 +514,7 @@ Phase 1 完成标准：
 - `npm run ci:full` 通过 `codex:entry-gate`、audit build、generated plan、typecheck 和现役 acceptance。
 - `video-download-capability` owner report 为 `PASS`，并进入 generated registry / matrix / plan。
 - YouTube API 实测至少覆盖两个不同 `preferredQuality` 请求，且必须经过 mediator + `video-download-artifact` job flow，并证明输出 `selectedQuality`、文件路径、字节数、sha256。
+- YouTube dependency gate 必须证明 Workbench 启动默认刷新 managed local `yt-dlp`，并且刷新顺序优先于 PATH 系统 `yt-dlp`；该规则必须进入 `video-download-capability` inspector 与 production acceptance。
 - 字幕实测必须用 `downloadSubtitles=true` 请求，平台提供字幕时必须产生 `subtitleArtifacts`；平台未提供字幕时必须在交付中如实说明，不得伪造。
 - Telegram Web 实测必须证明 `web.telegram.org` 路由、CacheStorage 完整分片拼接成功路径、缓存不完整 `review_required` 路径、以及不读取 credential/storage/token 的红线。
 - Telegram Web 实测必须证明目标页先识别出可见视频清单，选择某个 `documentIdHash` 后只下载该目标；不得以“第一个完整缓存命中”冒充用户选择。

@@ -16,6 +16,7 @@ const sourceFiles = [
   "src/capabilities/video-download/runtime/platform-router.ts",
   "src/capabilities/video-download/runtime/result.ts",
   "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
+  "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
   "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
   "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
   "src/capabilities/video-download/runtime/youtube-url.ts",
@@ -24,6 +25,7 @@ const sourceFiles = [
   "scripts/audit/domains/video-download-capability/components/telegram-web-inspector.ts",
   "src/capabilities/video-download/children/download-youtube-video-once.ts",
   "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+  "src/capabilities/video-download/ability-group.ts",
   "src/app/workbench-home-page.ts",
   "src/app/workbench-home-styles.ts",
   "src/app/workbench-video-download-client.ts",
@@ -31,6 +33,7 @@ const sourceFiles = [
   "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
   "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
   "src/app/workbench-video-download-routes.ts",
+  "src/lib/local-runtime/workbench.ts",
   "src/lib/local-runtime/workbench-video-download-support.ts",
 ] as const;
 
@@ -189,6 +192,70 @@ const inspectYoutubeQualityAndSubtitles = (findings: Finding[], lawId: string): 
   }
 };
 
+const inspectYoutubeDependencyAutoUpdate = (findings: Finding[], lawId: string): void => {
+  const abilityGroupText = readRepoFile("src/capabilities/video-download/ability-group.ts");
+  const binaryText = readRepoFile("src/capabilities/video-download/runtime/youtube-dlp-binary.ts");
+  const downloadText = readRepoFile("src/capabilities/video-download/runtime/youtube-dlp-download.ts");
+  const workbenchText = readRepoFile("src/lib/local-runtime/workbench.ts");
+  for (const marker of [
+    "prepareVideoDownloadRuntimeDependencies",
+    "resolveYtDlpBinaryPath({ refresh: process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== \"0\" })",
+  ]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/capabilities/video-download/ability-group.ts",
+      text: abilityGroupText,
+      marker,
+      checkId: "video-download/youtube-dependency-startup-refresh",
+    });
+  }
+  for (const marker of [
+    "downloadFromGithub",
+    "resolveCachedLocalBinaryPath",
+    "input.refresh === true",
+    "python3.10",
+    "yt-dlp-runner",
+  ]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
+      text: binaryText,
+      marker,
+      checkId: "video-download/youtube-managed-binary",
+    });
+  }
+  requireText({
+    findings,
+    lawId,
+    filePath: "src/lib/local-runtime/workbench.ts",
+    text: workbenchText,
+    marker: "await prepareVideoDownloadRuntimeDependencies();",
+    checkId: "video-download/youtube-startup-entry",
+  });
+  const refreshBranchIndex = binaryText.indexOf("if (input.refresh === true)");
+  const systemBinaryIndex = binaryText.indexOf("canExecute(\"yt-dlp\")");
+  if (refreshBranchIndex < 0 || systemBinaryIndex < 0 || systemBinaryIndex < refreshBranchIndex) {
+    pushFinding(
+      findings,
+      lawId,
+      "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
+      "video-download/youtube-refresh-before-system-binary",
+      "Default startup refresh must prefer the managed latest yt-dlp before PATH yt-dlp.",
+    );
+  }
+  if (downloadText.includes("resolveYtDlpBinaryPath({ refresh")) {
+    pushFinding(
+      findings,
+      lawId,
+      "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
+      "video-download/youtube-download-time-refresh",
+      "YouTube dependency refresh must stay in Workbench startup, not inside each download execution.",
+    );
+  }
+};
+
 const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
   const routerText = readRepoFile("src/capabilities/video-download/runtime/platform-router.ts");
   const routeText = readRepoFile("src/app/workbench-video-download-routes.ts");
@@ -311,6 +378,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAstProjectCoverage(context, findings, lawId);
   inspectChildRegistry(findings, lawId);
   inspectYoutubeQualityAndSubtitles(findings, lawId);
+  inspectYoutubeDependencyAutoUpdate(findings, lawId);
   inspectRoutingAndApi(findings, lawId);
   inspectTelegramWebChain(findings, lawId);
   inspectTelegramVisibleListAst(context, findings, lawId);

@@ -100,6 +100,7 @@ const renderVideoSourceSurface = (): string => `
         <progress></progress>
         <div class="muted" data-video-download-progress-label></div>
       </div>
+      <div class="notice wide hidden" data-video-download-result></div>
       <div class="actions wide"><button class="btn" type="submit">Start</button></div>
     </form>
   </section>

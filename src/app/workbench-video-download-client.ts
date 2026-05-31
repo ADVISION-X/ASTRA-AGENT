@@ -1,7 +1,7 @@
 const WORKBENCH_VIDEO_DOWNLOAD_CLIENT = `
 const VIDEO_PLATFORM_DEFAULTS = {
   telegram: { platform: "telegram-web", maxMegabytes: 5000, quality: false, subtitles: false, detect: true },
-  youtube: { platform: "youtube", maxMegabytes: 5000, quality: true, subtitles: true, detect: false },
+  youtube: { platform: "youtube", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   universal: { platform: "universal", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   facebook: { platform: "facebook", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   tiktok: { platform: "tiktok", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
@@ -11,12 +11,60 @@ const VIDEO_PLATFORM_DEFAULTS = {
   x: { platform: "x", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
   xiaohongshu: { platform: "xiaohongshu", maxMegabytes: 5000, quality: true, subtitles: false, detect: false },
 };
+let videoDownloadRun = null;
+const formatElapsed = (startedAt) => {
+  if (!startedAt) return "00:00";
+  const totalSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return (hours ? hours + ":" + String(minutes).padStart(2, "0") : String(minutes).padStart(2, "0")) + ":" + seconds;
+};
+const formatBytes = (value) => {
+  const bytes = Number(value);
+  if (!Number.isFinite(bytes) || bytes <= 0) return "-";
+  if (bytes >= 1000000000) return (bytes / 1000000000).toFixed(2) + " GB";
+  if (bytes >= 1000000) return (bytes / 1000000).toFixed(1) + " MB";
+  return Math.round(bytes / 1000) + " KB";
+};
+const escapeHtml = (value) => String(value ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#39;");
+const setVideoDownloadResult = (html, tone = "ready") => {
+  const node = qs("[data-video-download-result]");
+  if (!node) return;
+  node.classList.toggle("hidden", !html);
+  node.classList.toggle("ok-state", tone === "ok");
+  node.classList.toggle("failed-state", tone === "failed");
+  node.innerHTML = html || "";
+};
+const setVideoDownloadBusy = (form, busy) => {
+  if (!form) return;
+  form.dataset.videoDownloadBusy = busy ? "true" : "false";
+  const button = form.querySelector("button[type=submit]");
+  if (button) {
+    button.disabled = busy;
+    button.textContent = busy ? "Downloading..." : "Start";
+  }
+  form.querySelectorAll("[data-video-platform], [data-video-detect-source]").forEach((control) => {
+    control.disabled = busy;
+  });
+};
 const setVideoPlatform = (platform) => {
   const form = qs("[data-video-download-form]");
   const config = VIDEO_PLATFORM_DEFAULTS[platform] || VIDEO_PLATFORM_DEFAULTS.universal;
   if (!form) return;
   form.platform.value = config.platform;
   form.maxMegabytes.value = String(config.maxMegabytes);
+  if (config.platform === "youtube") {
+    form.preferredQuality.value = "720p";
+  }
+  if (form.downloadSubtitles) {
+    form.downloadSubtitles.checked = config.subtitles;
+  }
   document.querySelectorAll("[data-video-platform]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.videoPlatform === platform));
   });
@@ -73,10 +121,11 @@ const renderTelegramVideoCandidates = (candidates) => {
   });
 };
 const updateVideoDownloadProgress = (input) => {
-  const progress = qs("[data-video-download-progress]");
+  const wrap = qs("[data-video-download-progress]");
+  const progress = qs("[data-video-download-progress] progress");
   const label = qs("[data-video-download-progress-label]");
-  if (!progress || !label) return;
-  progress.classList.toggle("hidden", input.state === "idle");
+  if (!wrap || !progress || !label) return;
+  wrap.classList.toggle("hidden", input.state === "idle");
   if (input.state === "running") {
     progress.removeAttribute("value");
     label.textContent = input.label || "下载中";
@@ -84,6 +133,26 @@ const updateVideoDownloadProgress = (input) => {
   }
   progress.value = input.state === "done" ? 100 : 0;
   label.textContent = input.label || "";
+};
+const startVideoDownloadTimer = (platform) => {
+  if (videoDownloadRun?.timerId) clearInterval(videoDownloadRun.timerId);
+  videoDownloadRun = { startedAt: Date.now(), platform, lastActivitySeconds: 0, timerId: null };
+  const tick = () => {
+    if (!videoDownloadRun) return;
+    const elapsed = formatElapsed(videoDownloadRun.startedAt);
+    updateVideoDownloadProgress({ state: "running", label: "下载中：" + elapsed + "，正在通过授权页面组装媒体分片；服务器仍在处理 " + videoDownloadRun.platform + " 请求" });
+    const elapsedSeconds = Math.floor((Date.now() - videoDownloadRun.startedAt) / 1000);
+    if (elapsedSeconds > 0 && elapsedSeconds % 30 === 0 && elapsedSeconds !== videoDownloadRun.lastActivitySeconds) {
+      videoDownloadRun.lastActivitySeconds = elapsedSeconds;
+      writeActivity("video download still running: " + elapsed + " / " + videoDownloadRun.platform, "running");
+    }
+  };
+  tick();
+  videoDownloadRun.timerId = setInterval(tick, 1000);
+};
+const stopVideoDownloadTimer = () => {
+  if (videoDownloadRun?.timerId) clearInterval(videoDownloadRun.timerId);
+  videoDownloadRun = null;
 };
 const detectVideoSourcePage = async (platformId) => {
   const sourceInput = qs("[data-video-download-form] [name=sourcePageUrl]");
@@ -99,9 +168,16 @@ const detectVideoSourcePage = async (platformId) => {
 };
 const renderVideoDownloadLedger = (result, downloadsPath) => {
   renderLedger({ record: result });
+  const nested = result?.result || result;
+  const nestedOutput = nested?.output || {};
+  setText("[data-task-status]", nested?.status || result?.status || "-");
+  setText("[data-task-reason]", nested?.failureReason || nested?.reviewRequiredReason || nestedOutput.reason || "-");
+  setText("[data-evidence-ref]", nestedOutput.artifactRef || nestedOutput.proofRef || nested?.runtimeProof?.artifactRef || nested?.runtimeProof?.proofId || "-");
   if (result?.status === "success") {
-    const output = result?.result?.output || result?.output || {};
+    const output = nestedOutput;
     const artifact = downloadsPath || output.filePath || output.artifactRef || "artifact ready";
+    const byteSize = output.byteSize || output.fileSizeBytes || output.sizeBytes;
+    const sha256 = output.sha256 || output.digest || "-";
     const downloadsMarker = "/Downloads/";
     const displayArtifact = artifact.includes(downloadsMarker)
       ? artifact.slice(artifact.lastIndexOf(downloadsMarker) + downloadsMarker.length)
@@ -109,35 +185,54 @@ const renderVideoDownloadLedger = (result, downloadsPath) => {
     const msg = downloadsPath
       ? "✓ 视频已下载到 ~/Downloads/GrassEye Video Downloads：" + displayArtifact
       : "✓ 视频下载完成：" + artifact;
+    setVideoDownloadResult(
+      "<b>下载成功</b><span>文件：" + escapeHtml(displayArtifact) + "</span><span>大小：" + escapeHtml(formatBytes(byteSize)) + "</span><span>SHA-256：" + escapeHtml(sha256) + "</span>",
+      "ok",
+    );
     writeActivity(msg, "ok");
     return;
   }
-  const nested = result?.result || result;
-  writeActivity("视频下载需要检查：" + (nested?.failureReason || nested?.reviewRequiredReason || nested?.output?.reason || "unknown"), "warn");
+  const reason = nested?.failureReason || nested?.reviewRequiredReason || nestedOutput.reason || "unknown";
+  setVideoDownloadResult("<b>下载未完成</b><span>原因：" + escapeHtml(reason) + "</span>", "failed");
+  writeActivity("视频下载需要检查：" + reason, "warn");
 };
 const startVideoDownload = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (form.dataset.videoDownloadBusy === "true") return;
   const maxMegabytes = Number(form.maxMegabytes.value);
   const request = {
     sourcePageUrl: form.sourcePageUrl.value,
     platform: form.platform.value,
     preferredQuality: form.preferredQuality.value,
     maxBytes: Math.max(1, maxMegabytes) * 1000000,
+    timeoutMs: requestTimeoutMs(form.platform.value),
     downloadSubtitles: form.downloadSubtitles.checked,
     saveToDownloads: form.saveToDownloads?.checked === true,
     telegramDocumentIdHash: form.telegramDocumentIdHash?.value || undefined,
   };
   writeActivity("video download submitted: " + request.platform);
-  updateVideoDownloadProgress({ state: "running", label: "下载中：正在通过授权页面组装媒体分片" });
-  const payload = await readJson("/api/video-download/start", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(request),
-  });
-  updateVideoDownloadProgress({ state: payload.record?.status === "success" ? "done" : "failed", label: payload.record?.status === "success" ? "下载完成" : "需要检查" });
-  renderVideoDownloadLedger(payload.record, payload.downloadsPath ?? null);
+  setVideoDownloadResult("<b>下载已开始</b><span>等待服务器返回最终文件、大小、SHA-256 和保存位置。</span>", "ready");
+  setVideoDownloadBusy(form, true);
+  startVideoDownloadTimer(request.platform);
+  try {
+    const payload = await readJson("/api/video-download/start", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    updateVideoDownloadProgress({ state: payload.record?.status === "success" ? "done" : "failed", label: payload.record?.status === "success" ? "下载完成：" + formatElapsed(videoDownloadRun?.startedAt) : "需要检查：" + formatElapsed(videoDownloadRun?.startedAt) });
+    renderVideoDownloadLedger(payload.record, payload.downloadsPath ?? null);
+  } catch (error) {
+    updateVideoDownloadProgress({ state: "failed", label: "下载失败：" + formatElapsed(videoDownloadRun?.startedAt) });
+    setVideoDownloadResult("<b>下载失败</b><span>原因：" + escapeHtml(error.message) + "</span>", "failed");
+    writeActivity("video download failed: " + error.message, "failed");
+  } finally {
+    stopVideoDownloadTimer();
+    setVideoDownloadBusy(form, false);
+  }
 };
+const requestTimeoutMs = (platform) => platform === "youtube" ? 120000 : 3600000;
 document.addEventListener("DOMContentLoaded", () => {
   const form = qs("[data-video-download-form]");
   if (form) form.addEventListener("submit", startVideoDownload);

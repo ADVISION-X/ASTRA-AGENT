@@ -207,5 +207,5 @@ export const probeTelegramWebVisibleMediaSourcePage = async (input: {
 };
 
 export const prepareVideoDownloadRuntimeDependencies = async (): Promise<void> => {
-  await resolveYtDlpBinaryPath();
+  await resolveYtDlpBinaryPath({ refresh: process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0" });
 };

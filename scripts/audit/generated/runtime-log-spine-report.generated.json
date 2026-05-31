@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-30T21:21:58.983Z",
+  "generatedAt": "2026-05-31T00:16:38.223Z",
   "status": "PASS",
-  "scannedFiles": 340,
+  "scannedFiles": 341,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -145,6 +145,7 @@
     "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-policy.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
@@ -344,7 +345,7 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 20,
+  "emitCallCount": 22,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
@@ -352,18 +353,18 @@
   "missingTraceContractCount": 0,
   "catchBranchCount": 1,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 35,
+  "failureBranchCount": 33,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
-  "stageTerminalCount": 41,
+  "stageTerminalCount": 39,
   "stagePairViolationCount": 0,
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 340,
-    "emitCallCount": 20,
+    "scannedFiles": 341,
+    "emitCallCount": 22,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -373,7 +374,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335,
+      "scannedFiles": 336,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -382,28 +383,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 261
+      "scannedFiles": 262
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 257,
+      "scannedFiles": 258,
       "metrics": {
-        "emitCallCount": 9
+        "emitCallCount": 11
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 257
+      "scannedFiles": 258
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 262,
+      "scannedFiles": 263,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -418,7 +419,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 262,
+      "scannedFiles": 263,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -453,10 +454,10 @@
       "findingCount": 0,
       "scannedFiles": 23,
       "metrics": {
-        "emitCallCount": 20,
+        "emitCallCount": 22,
         "stageStartCount": 19,
-        "stageTerminalCount": 41,
-        "failureBranchCount": 35
+        "stageTerminalCount": 39,
+        "failureBranchCount": 33
       }
     },
     {

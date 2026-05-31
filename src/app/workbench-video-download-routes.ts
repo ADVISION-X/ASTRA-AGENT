@@ -72,9 +72,11 @@ const buildVideoDownloadJobInputForPlatform = (
   jobType: "video-download-artifact",
   platform,
   sourcePageUrl,
-  preferredQuality: isVideoDownloadQuality(body.preferredQuality) ? body.preferredQuality : "best_available",
+  preferredQuality: isVideoDownloadQuality(body.preferredQuality)
+    ? body.preferredQuality
+    : platform === "youtube" ? "720p" : "best_available",
   maxBytes: readPositiveInteger(body.maxBytes) ?? 5_000_000_000,
-  timeoutMs: readPositiveInteger(body.timeoutMs) ?? 3_600_000,
+  timeoutMs: readPositiveInteger(body.timeoutMs) ?? (platform === "youtube" ? 120_000 : 3_600_000),
   downloadSubtitles: body.downloadSubtitles === true,
   subtitleLanguages: ["en"],
   ...(typeof body.telegramDocumentIdHash === "string" && /^[a-f0-9]{24}$/u.test(body.telegramDocumentIdHash)

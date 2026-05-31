@@ -72,6 +72,7 @@ export const acceptanceSteps: readonly CommandStep[] = [
   createAcceptanceStep("facebook-product-video-mining", ["npm", "run", "acceptance:facebook-product-video-mining"], "package.json", "Run npm run acceptance:facebook-product-video-mining directly and repair the first failing Facebook acceptance."),
   createAcceptanceStep("amazon-product-mining", ["npm", "run", "acceptance:amazon-product-mining"], "package.json", "Run npm run acceptance:amazon-product-mining directly and repair the first failing Amazon acceptance."),
   createAcceptanceStep("video-download-telegram-web", ["npm", "run", "acceptance:video-download-telegram-web"], "scripts/acceptance/video-download-telegram-web.acceptance.ts", "Run npm run acceptance:video-download-telegram-web directly and repair the first failing video-download acceptance."),
+  createAcceptanceStep("video-download-youtube-production", ["npm", "run", "acceptance:video-download-youtube-production"], "scripts/acceptance/video-download-youtube-production.acceptance.ts", "Run npm run acceptance:video-download-youtube-production directly and repair the first failing YouTube production assertion."),
 ];
 
 export const plannedSteps: readonly PlannedStep[] = [

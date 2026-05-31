@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T21:21:56.096Z",
+  "generatedAt": "2026-05-31T00:16:35.079Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -129,6 +129,7 @@
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+    "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -475,6 +476,7 @@
     "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-policy.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
