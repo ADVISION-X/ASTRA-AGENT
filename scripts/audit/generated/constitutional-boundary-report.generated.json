@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T15:47:46.494Z",
+  "generatedAt": "2026-06-01T22:24:16.635Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -159,6 +159,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-runtime-truth.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
@@ -569,6 +570,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-dedup.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",

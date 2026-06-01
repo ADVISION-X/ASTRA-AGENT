@@ -48,6 +48,7 @@ const fixtureDetailCatalog = {
   categoryPathIfVisible: "Sports & Outdoors > Camping & Hiking > Tents",
   rating: "4.5 out of 5 stars",
   reviewCount: "234 global ratings",
+  boughtInPastMonthIfVisible: "200+ bought in past month",
   starDistribution: null,
   qaContentIfVisible: null,
   frequentlyBoughtTogetherIfVisible: null,
@@ -101,6 +102,7 @@ assert.equal(detail1.bulletPoints.length, 3);
 assert.ok(detail1.bulletPoints[0]!.includes("Lightweight"), "First bullet should mention Lightweight");
 assert.equal(detail1.technicalDetails, "Weight: 2.4 lbs, Size: 84x48x40 inches");
 assert.equal(detail1.bestSellersRankIfVisible, "#47 in Camping Tents");
+assert.equal(detail1.boughtInPastMonthIfVisible, "200+ bought in past month");
 assert.equal(detail1.status, "pending_detail");
 
 // --- Test 2: Adapter is passed the correct inputs ---

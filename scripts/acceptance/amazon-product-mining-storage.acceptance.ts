@@ -92,9 +92,14 @@ try {
   assert.equal(keywords.length, 2);
   assert.ok(keywords.some((k) => k.keyword === "lightweight tent"), "Should find 'lightweight tent'");
 
-  // --- Storage: dedup method ---
-  const allMined = storage.getAllMinedKeywordsForDedup();
+  // --- Storage: dedup history must include queued keywords for the same marketplace/target market ---
+  const allMined = storage.getMinedKeywordHistoryForDedup({ amazonMarketplace: "amazon.com", targetMarket: "outdoor enthusiasts" });
   assert.ok(allMined.includes("lightweight tent"), "Dedup list should include 'lightweight tent'");
+  assert.equal(
+    storage.getMinedKeywordHistoryForDedup({ amazonMarketplace: "amazon.ae", targetMarket: "outdoor enthusiasts" }).includes("lightweight tent"),
+    false,
+    "Dedup history must not bleed across marketplaces",
+  );
 
   // --- Storage: AI keyword run ---
   storage.saveAiKeywordRun({
@@ -172,6 +177,7 @@ try {
     categoryPathIfVisible: null,
     rating: "4.5 out of 5",
     reviewCount: "234 ratings",
+    boughtInPastMonthIfVisible: "200+ bought in past month",
     starDistribution: null,
     qaContentIfVisible: null,
     frequentlyBoughtTogetherIfVisible: null,
@@ -196,6 +202,7 @@ try {
   const products = storage.getProductDetailsForTask(taskId);
   assert.equal(products.length, 1);
   assert.equal(products[0]!.asin, "B001TEST01");
+  assert.equal(products[0]!.boughtInPastMonthIfVisible, "200+ bought in past month");
   assert.deepEqual(products[0]!.aPlusImageUrls, []);
 
   // --- Storage: persist reviews ---
@@ -226,6 +233,91 @@ try {
   const reviews = storage.getReviewsForProduct(detailId);
   assert.equal(reviews.length, 1);
   assert.equal(reviews[0]!.reviewTitle, "Great tent!");
+
+  // --- Storage: dedup history must include keyword opportunity review history, including manual/failed review rows ---
+  const reviewedOnlyTaskId = randomUUID();
+  storage.createTask({
+    taskId: reviewedOnlyTaskId,
+    amazonMarketplace: "amazon.com",
+    targetMarket: "outdoor enthusiasts",
+    productDirection: "camping gear",
+    requestedKeywordCount: 5,
+    languagePreference: "en",
+    providerKind: "gpt-web-chat",
+    status: "package_completed",
+    failureReason: null,
+    packageJsonPath: null,
+    pdfReportPath: null,
+    evidenceIndexPath: null,
+    exceptionSummaryPath: null,
+    handoffStatus: "ready",
+    createdAt: now,
+    updatedAt: null,
+  });
+  storage.saveKeywordOpportunityReview({
+    reviewId: randomUUID(),
+    taskId: reviewedOnlyTaskId,
+    keywordId: randomUUID(),
+    keyword: "solar camping light",
+    status: "completed",
+    decision: "WATCH",
+    demandSignal: "medium",
+    reviewHealth: "medium",
+    priceCeiling: "medium",
+    competitionOpenness: "medium",
+    improvementOpportunity: "medium",
+    dataConfidence: "medium",
+    humanNextStep: "enter_next_validation",
+    evidenceRefs: ["history-fixture"],
+    missingEvidence: [],
+    riskPoints: [],
+    aiPromptText: "prompt",
+    aiRawResponse: "response",
+    aiResponseRef: null,
+    packageRef: null,
+    keywordPackageSliceRef: null,
+    failureReason: null,
+    createdAt: now,
+    updatedAt: null,
+  });
+  assert.ok(
+    storage.getMinedKeywordHistoryForDedup({ amazonMarketplace: "amazon.com", targetMarket: "outdoor enthusiasts" }).includes("solar camping light"),
+    "Dedup history must include keyword opportunity review rows, not only queued keywords",
+  );
+  const uaeTaskId = randomUUID();
+  storage.createTask({
+    taskId: uaeTaskId,
+    amazonMarketplace: "amazon.ae",
+    targetMarket: "UAE",
+    productDirection: "China supply products",
+    requestedKeywordCount: 5,
+    languagePreference: "en",
+    providerKind: "gpt-web-chat",
+    status: "package_completed",
+    failureReason: null,
+    packageJsonPath: null,
+    pdfReportPath: null,
+    evidenceIndexPath: null,
+    exceptionSummaryPath: null,
+    handoffStatus: "ready",
+    createdAt: now,
+    updatedAt: null,
+  });
+  storage.saveKeywords([{
+    keywordId: randomUUID(),
+    taskId: uaeTaskId,
+    keyword: "shower head filter",
+    source: "ai_generated",
+    aiRunId: "uae-run",
+    reason: null,
+    status: "completed",
+    createdAt: now,
+    updatedAt: null,
+  }]);
+  assert.ok(
+    storage.getMinedKeywordHistoryForDedup({ amazonMarketplace: "amazon.ae", targetMarket: "阿联酋" }).includes("shower head filter"),
+    "Dedup history must canonicalize UAE / 阿联酋 / United Arab Emirates as the same target market.",
+  );
 
   // --- Public read model: App/API task status must expose live persisted progress, not only the task shell ---
   const publicStatus = getAmazonProductMiningTaskStatus({ dataDir, taskId }) as {

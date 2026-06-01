@@ -245,6 +245,14 @@ The inline navigation file is only a reading map: ${input.artifacts.inlineNaviga
 Package integrity report: ${input.artifacts.packageIntegrityReportPath}
 Package root: ${input.artifacts.packageRootPath}
 
+This is a pre-human-validation screening gate. Only AI-accepted keyword product pools enter human product finding, product comparison, and later calculation work.
+PASS is conservative: use it only when demandSignal and dataConfidence are at least medium, the evidence gives humans a workable validation path, and no core blocker dominates.
+REJECT is mandatory when the readable full package gives enough evidence that the keyword product pool is not worth human validation.
+Use REJECT for non-workable pools with weak or insufficient demand, bad review health without actionable improvement, an unworkable price ceiling, closed competition, or weak improvement opportunity.
+Do not choose WATCH to be polite when the evidence is sufficient for REJECT.
+Use WATCH only for mixed signals that justify mining related keywords or collecting more data.
+Use INSUFFICIENT_DATA only when the package is unreadable, core search/detail/review evidence is missing, or dataConfidence is insufficient.
+
 Return JSON only:
 {
   "decision": "PASS | WATCH | REJECT | INSUFFICIENT_DATA",

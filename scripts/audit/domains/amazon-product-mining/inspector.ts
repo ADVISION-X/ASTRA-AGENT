@@ -42,6 +42,13 @@ import {
   inspectRejectedKeywordEvidenceRetention,
   inspectReviewsPerPagePersistence,
 } from "./inspector-production-paths.js";
+import {
+  inspectAmazonRuntimeFailureEvidenceContract,
+  inspectDuplicateProductDetailSuppressionContract,
+  inspectKeywordHistoricalDedupContract,
+  inspectKeywordReviewLooseQuoteParserContract,
+  inspectSearchSponsoredUrlNormalization,
+} from "./inspector-runtime-truth.js";
 import { buildAmazonMiningInspectorReport, inspectBrowserTabLifecycle } from "./inspector-tab-lifecycle.js";
 import { inspectAmazonTaskResumeAndControls } from "./inspector-task-controls.js";
 
@@ -159,6 +166,11 @@ const inspectProductionContracts = (
   inspectProductDetailDomFallbacks(context, findings, inspectedFiles, lawIds.search);
   inspectReviewsPerPagePersistence(context, findings, inspectedFiles, lawIds.review);
   inspectPackageEvidenceDepthContract(context, findings, inspectedFiles, lawIds.artifact);
+  inspectAmazonRuntimeFailureEvidenceContract(context, findings, inspectedFiles, lawIds.artifact);
+  inspectDuplicateProductDetailSuppressionContract(context, findings, inspectedFiles, lawIds.search);
+  inspectSearchSponsoredUrlNormalization(context, findings, inspectedFiles, lawIds.search);
+  inspectKeywordHistoricalDedupContract(context, findings, inspectedFiles, lawIds.keywordGeneration);
+  inspectKeywordReviewLooseQuoteParserContract(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectForbiddenAiIdentifiers(context, findings, inspectedFiles, lawIds.keyword);
   inspectForbiddenPluginTerms(context, findings, inspectedFiles, lawIds.surface);
   inspectNoAbilityGroupBoundary(context, findings, inspectedFiles, lawIds.surface);

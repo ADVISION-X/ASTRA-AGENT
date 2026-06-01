@@ -38,6 +38,21 @@ const exportedRangeHasBounds = (
     && maxInitializer?.getLiteralValue() === expectedMax;
 };
 
+const firstCallStartByName = (
+  sourceFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>,
+  callName: string,
+): number | null => {
+  const starts = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .flatMap((callExpression) => {
+      const expression = callExpression.getExpression();
+      const matches = Node.isIdentifier(expression)
+        ? expression.getText() === callName
+        : Node.isPropertyAccessExpression(expression) && expression.getName() === callName;
+      return matches ? [callExpression.getStart()] : [];
+    });
+  return starts.length > 0 ? Math.min(...starts) : null;
+};
+
 export const inspectFlowSearchBeforeDetail = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -51,13 +66,10 @@ export const inspectFlowSearchBeforeDetail = (
     return;
   }
 
-  const text = flowFile.getFullText();
-  const lastFromIdx = Math.max(text.lastIndexOf("from '"), text.lastIndexOf('from "'));
-  const bodyStart = lastFromIdx > 0 ? lastFromIdx : 0;
-  const persistSearchIdx = text.indexOf("persistSearchResults", bodyStart);
-  const productDetailOpenIdx = text.indexOf("runProductDetailExtraction(", bodyStart);
+  const persistSearchIdx = firstCallStartByName(flowFile, "persistSearchResults");
+  const productDetailOpenIdx = firstCallStartByName(flowFile, "runProductDetailExtraction");
 
-  if (persistSearchIdx < 0 || productDetailOpenIdx < 0) {
+  if (persistSearchIdx === null || productDetailOpenIdx === null) {
     findings.push(createFinding({
       checkId: "amazon-mining/search-before-detail",
       lawId,

@@ -1,9 +1,25 @@
 import { randomUUID } from "node:crypto";
 
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import {
+  hasNearDuplicateAmazonKeyword,
+  normalizeAmazonKeywordText,
+  normalizeAmazonTargetMarketKey,
+} from "./amazon-product-mining.keyword-dedup.js";
 import type { AmazonKeywordProviderKind, AmazonKeywordRecord, AmazonMiningInput } from "./amazon-product-mining.schema.js";
 
 type KeywordGenerationResult = {
+  runs: KeywordGenerationRun[];
+  runId: string;
+  promptText: string;
+  rawResponse: string;
+  parsedKeywords: string[];
+  dedupedKeywords: string[];
+  status: "success" | "failed";
+  failureReason: string | null;
+};
+
+type KeywordGenerationRun = {
   runId: string;
   promptText: string;
   rawResponse: string;
@@ -23,6 +39,7 @@ export const AMAZON_KEYWORD_GENERATION_FORBIDDEN_SYSTEM_ASSUMPTIONS = [
   "compact",
   "easy-to-ship",
 ] as const;
+export const AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON = "keyword_generation_insufficient_new_keywords";
 
 const buildKeywordPrompt = (input: {
   amazonMarketplace: string;
@@ -32,9 +49,10 @@ const buildKeywordPrompt = (input: {
   languagePreference: string;
   existingMinedKeywords: string[];
 }): string => {
+  const targetMarketCanonicalKey = normalizeAmazonTargetMarketKey(input.targetMarket);
   const existingList = input.existingMinedKeywords.length > 0
-    ? `\n\nAlready mined keywords (DO NOT REPEAT THESE):\n${input.existingMinedKeywords.map((k) => `- ${k}`).join("\n")}`
-    : "\n\nNo keywords mined yet for this product direction.";
+    ? `\n\nHistorical keyword exclusions for this canonical marketplace/target market (${targetMarketCanonicalKey}); count=${input.existingMinedKeywords.length}:\n${input.existingMinedKeywords.map((k) => `- ${k}`).join("\n")}`
+    : `\n\nNo previously mined keywords found for this canonical marketplace/target market (${targetMarketCanonicalKey}).`;
 
   return `You are helping mine Amazon product search keywords for a specific market opportunity.
 
@@ -64,6 +82,23 @@ OUTPUT FORMAT (JSON only, no explanation):
 }`;
 };
 
+const buildKeywordRefillPrompt = (input: {
+  amazonMarketplace: string;
+  targetMarket: string;
+  productDirection: string;
+  requestedKeywordCount: number;
+  languagePreference: string;
+  existingMinedKeywords: string[];
+  acceptedKeywords: string[];
+}): string => buildKeywordPrompt({
+  amazonMarketplace: input.amazonMarketplace,
+  targetMarket: input.targetMarket,
+  productDirection: input.productDirection,
+  requestedKeywordCount: input.requestedKeywordCount,
+  languagePreference: input.languagePreference,
+  existingMinedKeywords: [...input.existingMinedKeywords, ...input.acceptedKeywords],
+});
+
 const parseKeywordsFromResponse = (rawResponse: string): string[] => {
   const jsonMatch = rawResponse.match(/\{[\s\S]*"keywords"[\s\S]*\}/u);
   if (!jsonMatch) return [];
@@ -79,7 +114,7 @@ const parseKeywordsFromResponse = (rawResponse: string): string[] => {
 };
 
 const normalizeKeyword = (keyword: string): string =>
-  keyword.toLowerCase().replace(/\s+/gu, " ").trim();
+  normalizeAmazonKeywordText(keyword);
 
 export const deduplicateKeywords = (
   candidates: string[],
@@ -96,28 +131,41 @@ export const deduplicateKeywords = (
     const normalized = normalizeKeyword(candidate);
     if (existingNormalized.has(normalized)) continue;
     if (seenInBatch.has(normalized)) continue;
+    if (hasNearDuplicateAmazonKeyword(candidate, [...existingMinedKeywords, ...currentTaskKeywords, ...result])) continue;
     seenInBatch.add(normalized);
     result.push(candidate);
   }
   return result;
 };
 
-export const runKeywordGeneration = async (input: {
+const runKeywordGenerationAttempt = async (input: {
   miningInput: AmazonMiningInput;
   taskId: string;
   existingMinedKeywords: string[];
+  currentTaskKeywords: string[];
+  requestedKeywordCount: number;
   aiInputGateway: AiInputGatewayAbilityGroup;
   providerKind: AmazonKeywordProviderKind;
-}): Promise<KeywordGenerationResult> => {
+}): Promise<KeywordGenerationRun> => {
   const runId = randomUUID();
-  const promptText = buildKeywordPrompt({
-    amazonMarketplace: input.miningInput.amazonMarketplace,
-    targetMarket: input.miningInput.targetMarket,
-    productDirection: input.miningInput.productDirection,
-    requestedKeywordCount: input.miningInput.requestedKeywordCount,
-    languagePreference: input.miningInput.languagePreference,
-    existingMinedKeywords: input.existingMinedKeywords,
-  });
+  const promptText = input.currentTaskKeywords.length > 0
+    ? buildKeywordRefillPrompt({
+        amazonMarketplace: input.miningInput.amazonMarketplace,
+        targetMarket: input.miningInput.targetMarket,
+        productDirection: input.miningInput.productDirection,
+        requestedKeywordCount: input.requestedKeywordCount,
+        languagePreference: input.miningInput.languagePreference,
+        existingMinedKeywords: input.existingMinedKeywords,
+        acceptedKeywords: input.currentTaskKeywords,
+      })
+    : buildKeywordPrompt({
+        amazonMarketplace: input.miningInput.amazonMarketplace,
+        targetMarket: input.miningInput.targetMarket,
+        productDirection: input.miningInput.productDirection,
+        requestedKeywordCount: input.requestedKeywordCount,
+        languagePreference: input.miningInput.languagePreference,
+        existingMinedKeywords: input.existingMinedKeywords,
+      });
 
   let rawResponse = "";
   try {
@@ -140,7 +188,7 @@ export const runKeywordGeneration = async (input: {
     });
     rawResponse = result.normalizedText ?? "";
     const parsedKeywords = parseKeywordsFromResponse(rawResponse);
-    const dedupedKeywords = deduplicateKeywords(parsedKeywords, input.existingMinedKeywords, []);
+    const dedupedKeywords = deduplicateKeywords(parsedKeywords, input.existingMinedKeywords, input.currentTaskKeywords);
     return {
       runId,
       promptText,
@@ -161,6 +209,45 @@ export const runKeywordGeneration = async (input: {
       failureReason: error instanceof Error ? error.message : String(error),
     };
   }
+};
+
+export const runKeywordGeneration = async (input: {
+  miningInput: AmazonMiningInput;
+  taskId: string;
+  existingMinedKeywords: string[];
+  aiInputGateway: AiInputGatewayAbilityGroup;
+  providerKind: AmazonKeywordProviderKind;
+}): Promise<KeywordGenerationResult> => {
+  const runs: KeywordGenerationRun[] = [];
+  const acceptedKeywords: string[] = [];
+  const maxAttempts = 3;
+  for (let attemptIndex = 0; attemptIndex < maxAttempts && acceptedKeywords.length < input.miningInput.requestedKeywordCount; attemptIndex++) {
+    const requestedKeywordCount = input.miningInput.requestedKeywordCount - acceptedKeywords.length;
+    const run = await runKeywordGenerationAttempt({
+      ...input,
+      currentTaskKeywords: acceptedKeywords,
+      requestedKeywordCount,
+    });
+    runs.push(run);
+    acceptedKeywords.push(...run.dedupedKeywords.slice(0, requestedKeywordCount));
+    if (run.status === "failed") break;
+  }
+  const parsedKeywords = runs.flatMap((run) => run.parsedKeywords);
+  const lastRun = runs.at(-1)!;
+  const reachedRequestedCount = acceptedKeywords.length >= input.miningInput.requestedKeywordCount;
+  const failureReason = reachedRequestedCount
+    ? null
+    : `${AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON}:requested=${input.miningInput.requestedKeywordCount};deduped=${acceptedKeywords.length}`;
+  return {
+    runs,
+    runId: lastRun.runId,
+    promptText: lastRun.promptText,
+    rawResponse: lastRun.rawResponse,
+    parsedKeywords,
+    dedupedKeywords: acceptedKeywords,
+    status: reachedRequestedCount ? "success" : "failed",
+    failureReason,
+  };
 };
 
 export const buildKeywordRecords = (input: {

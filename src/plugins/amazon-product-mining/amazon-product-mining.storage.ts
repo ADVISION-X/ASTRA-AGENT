@@ -17,6 +17,7 @@ import {
   rowToTask,
 } from "./amazon-product-mining.storage-support.js";
 import { createKeywordReviewOperations } from "./amazon-product-mining.storage-keyword-review.js";
+import { normalizeAmazonTargetMarketKey } from "./amazon-product-mining.keyword-dedup.js";
 import type {
   AmazonKeywordRecord,
   AmazonKeywordOpportunityDecision,
@@ -51,7 +52,7 @@ export type AmazonMiningStorage = {
   saveKeywords(keywords: readonly AmazonKeywordRecord[]): void;
   updateKeywordStatus(input: { keywordId: string; status: AmazonKeywordStatus; }): void;
   getKeywordsForTask(taskId: string): AmazonKeywordRecord[];
-  getAllMinedKeywordsForDedup(): string[];
+  getMinedKeywordHistoryForDedup(input: { amazonMarketplace: string; targetMarket: string; }): string[];
   saveAiKeywordRun(run: {
     runId: string;
     taskId: string;
@@ -184,7 +185,7 @@ const createTaskOperations = (
 
 const createKeywordOperations = (
   db: Database.Database,
-): Pick<AmazonMiningStorage, "saveKeywords" | "updateKeywordStatus" | "getKeywordsForTask" | "getAllMinedKeywordsForDedup" | "saveAiKeywordRun" | "getAiKeywordRunsForTask"> => ({
+): Pick<AmazonMiningStorage, "saveKeywords" | "updateKeywordStatus" | "getKeywordsForTask" | "getMinedKeywordHistoryForDedup" | "saveAiKeywordRun" | "getAiKeywordRunsForTask"> => ({
   saveKeywords(keywords) {
     const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_keywords (
       keyword_id, task_id, keyword, source, ai_run_id, reason, status, created_at
@@ -204,9 +205,27 @@ const createKeywordOperations = (
     return rows.map((row) => rowToKeyword(row as Record<string, unknown>));
   },
 
-  getAllMinedKeywordsForDedup() {
-    const rows = db.prepare("SELECT DISTINCT keyword FROM amazon_mining_keywords").all() as Array<{ keyword: string }>;
-    return rows.map((row) => row.keyword);
+  getMinedKeywordHistoryForDedup({ amazonMarketplace, targetMarket }) {
+    const targetMarketKey = normalizeAmazonTargetMarketKey(targetMarket);
+    const rows = db.prepare(`
+      SELECT k.keyword, t.target_market AS targetMarket
+      FROM amazon_mining_keywords k
+      JOIN amazon_mining_tasks t ON t.task_id = k.task_id
+      WHERE t.amazon_marketplace = ?
+      UNION
+      SELECT r.keyword, t.target_market AS targetMarket
+      FROM amazon_mining_keyword_opportunity_reviews r
+      JOIN amazon_mining_tasks t ON t.task_id = r.task_id
+      WHERE t.amazon_marketplace = ?
+      ORDER BY keyword ASC
+    `).all(amazonMarketplace, amazonMarketplace) as Array<{ keyword: string; targetMarket: string }>;
+    const deduped = new Set<string>();
+    for (const row of rows) {
+      if (normalizeAmazonTargetMarketKey(row.targetMarket) === targetMarketKey) {
+        deduped.add(row.keyword);
+      }
+    }
+    return [...deduped];
   },
 
   saveAiKeywordRun({ runId, taskId, promptText, rawResponse, parsedKeywords, dedupedKeywords, status, failureReason }) {
@@ -266,12 +285,12 @@ const createProductOperations = (
       product_description, a_plus_content_if_visible, a_plus_image_urls_json, variation_options,
       color_size_style_options, product_information, technical_details,
       additional_information, best_sellers_rank_if_visible, category_path_if_visible,
-      rating, review_count, star_distribution, qa_content_if_visible,
+      rating, review_count, bought_in_past_month_if_visible, star_distribution, qa_content_if_visible,
       frequently_bought_together_if_visible, customers_also_bought_if_visible,
       compare_with_similar_items_if_visible, delivery_information, return_information,
       all_other_visible_product_parameters, raw_visible_text_snapshot, field_disclosure_json, status,
       failure_reason, created_at, updated_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
       detail.detailId, detail.taskId, detail.asin, detail.productUrl, detail.title,
       detail.brand, detail.sellerOrStoreIfVisible, detail.currentPrice,
       detail.originalPriceDiscountCouponIfVisible, detail.mainImage,
@@ -281,7 +300,7 @@ const createProductOperations = (
       detail.variationOptions, detail.colorSizeStyleOptions,
       detail.productInformation, detail.technicalDetails, detail.additionalInformation,
       detail.bestSellersRankIfVisible, detail.categoryPathIfVisible, detail.rating,
-      detail.reviewCount, detail.starDistribution, detail.qaContentIfVisible,
+      detail.reviewCount, detail.boughtInPastMonthIfVisible, detail.starDistribution, detail.qaContentIfVisible,
       detail.frequentlyBoughtTogetherIfVisible, detail.customersAlsoBoughtIfVisible,
       detail.compareWithSimilarItemsIfVisible, detail.deliveryInformation,
       detail.returnInformation, detail.allOtherVisibleProductParameters,

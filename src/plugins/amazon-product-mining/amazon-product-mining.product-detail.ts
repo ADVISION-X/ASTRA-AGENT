@@ -40,6 +40,7 @@ type ExtractedDetail = {
   categoryPath: string | null;
   rating: string | null;
   reviewCount: string | null;
+  boughtInPastMonthIfVisible: string | null;
   starDistribution: string | null;
   qaContent: string | null;
   frequentlyBoughtTogether: string | null;
@@ -120,6 +121,7 @@ const buildCommerceDisclosure = (raw: ExtractedDetail) => ({
   categoryPathIfVisible: fieldDisclosureFromValue(raw.categoryPath, "not_present", "Category breadcrumb is not visible."),
   rating: fieldDisclosureFromValue(raw.rating, "not_present", "Product rating is not visible."),
   reviewCount: fieldDisclosureFromValue(raw.reviewCount, "not_present", "Review count is not visible."),
+  boughtInPastMonthIfVisible: fieldDisclosureFromValue(raw.boughtInPastMonthIfVisible, "not_present", "Bought-in-past-month social proof is not visible."),
   starDistribution: fieldDisclosureFromValue(raw.starDistribution, "not_present", "Star distribution is not visible."),
   qaContentIfVisible: fieldDisclosureFromValue(raw.qaContent, "not_present", "Q&A section is not visible."),
   frequentlyBoughtTogetherIfVisible: fieldDisclosureFromValue(raw.frequentlyBoughtTogether, "not_present", "Frequently bought together module is not visible."),
@@ -168,6 +170,7 @@ const buildProductCommerce = (raw: ExtractedDetail) => ({
   categoryPathIfVisible: raw.categoryPath,
   rating: raw.rating,
   reviewCount: raw.reviewCount,
+  boughtInPastMonthIfVisible: raw.boughtInPastMonthIfVisible,
   starDistribution: raw.starDistribution,
   qaContentIfVisible: raw.qaContent,
   frequentlyBoughtTogetherIfVisible: raw.frequentlyBoughtTogether,

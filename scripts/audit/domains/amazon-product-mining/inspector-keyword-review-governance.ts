@@ -52,6 +52,29 @@ const numericConstantAtLeast = (sourceFile: SourceFile, variableName: string, mi
   return (initializer?.getLiteralValue() ?? 0) >= minimum;
 };
 
+const initializerLiteralText = (sourceFile: SourceFile, variableName: string): string => {
+  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
+  if (!initializer) {
+    return "";
+  }
+  return [
+    ...initializer.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
+    ...initializer.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
+    ...initializer.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()),
+    ...initializer.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()),
+    ...initializer.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
+  ].join("\n");
+};
+
+const initializerContainsAllLiterals = (
+  sourceFile: SourceFile,
+  variableName: string,
+  literals: readonly string[],
+): boolean => {
+  const text = initializerLiteralText(sourceFile, variableName);
+  return literals.every((literal) => text.includes(literal));
+};
+
 const missingIdentifiers = (sourceFile: SourceFile, identifiers: readonly string[]): string[] =>
   identifiers.filter((identifier) => !hasIdentifier(sourceFile, identifier));
 
@@ -375,6 +398,23 @@ export const inspectKeywordReviewPromptAndFlow = (
       lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
       message: "Keyword review prompt must require uploaded full package reading and preserve the fixed JSON contract.",
+    }));
+  }
+
+  const requiredScreeningTokens = [
+    "pre-human-validation screening gate",
+    "Only AI-accepted keyword product pools enter human product finding, product comparison, and later calculation work.",
+    "PASS is conservative",
+    "REJECT is mandatory when the readable full package gives enough evidence that the keyword product pool is not worth human validation.",
+    "Do not choose WATCH to be polite when the evidence is sufficient for REJECT.",
+    "Use INSUFFICIENT_DATA only when the package is unreadable, core search/detail/review evidence is missing, or dataConfidence is insufficient.",
+  ];
+  if (!packageFile || !initializerContainsAllLiterals(packageFile, "buildKeywordFullPackagePrompt", requiredScreeningTokens)) {
+    findings.push(createFinding({
+      checkId: "amazon-mining/keyword-review-hard-screening-prompt",
+      lawId,
+      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
+      message: "Keyword review prompt must make REJECT a mandatory pre-human-validation screening outcome for non-workable keyword pools.",
     }));
   }
 };

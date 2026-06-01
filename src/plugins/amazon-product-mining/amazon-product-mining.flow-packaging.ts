@@ -24,8 +24,9 @@ type AmazonPackagingStorage = {
 
 type AmazonPackagingLogger = {
   logHandoffReady(input: { taskId: string }): void;
+  logFailure(input: { taskId: string; scope: string; reason: string }): void;
   logManualRequired(input: { taskId: string; scope: string; reason: string }): void;
-  logMissionComplete(input: { taskId: string }): void;
+  logMissionComplete(input: { taskId: string; status?: "success" | "failed" | "review_required" }): void;
   logPackageBuilt(input: { taskId: string; packageJsonPath: string; evidenceIndexPath: string; exceptionSummaryPath: string }): void;
   logPdfBuilt(input: { taskId: string; pdfReportPath: string }): void;
 };
@@ -98,10 +99,17 @@ const persistFinalPackagingState = async (
   await buildAmazonProductMiningPackage(buildPackageInput(runtime, detailRankLimit));
   if (resolution.finalHandoffStatus === "ready") {
     runtime.logger.logHandoffReady({ taskId: runtime.taskId });
+  } else if (resolution.finalTaskStatus === "failed") {
+    runtime.logger.logFailure({ taskId: runtime.taskId, scope: "handoff", reason: resolution.finalFailureReason ?? "amazon_product_mining_failed" });
   } else {
-    runtime.logger.logManualRequired({ taskId: runtime.taskId, scope: "handoff", reason: runtime.manualRequiredReasons.join("; ") });
+    runtime.logger.logManualRequired({ taskId: runtime.taskId, scope: "handoff", reason: resolution.finalFailureReason ?? runtime.manualRequiredReasons.join("; ") });
   }
-  runtime.logger.logMissionComplete({ taskId: runtime.taskId });
+  runtime.logger.logMissionComplete({
+    taskId: runtime.taskId,
+    status: resolution.finalTaskStatus === "package_completed"
+      ? "success"
+      : resolution.finalTaskStatus === "manual_required" ? "review_required" : "failed",
+  });
 };
 
 export const finalizeAmazonMiningPackaging = async (

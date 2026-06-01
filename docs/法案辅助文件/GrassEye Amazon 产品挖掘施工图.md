@@ -504,6 +504,38 @@ REJECT = 本次证据下该 keyword product pool 不保留为候选名单
 INSUFFICIENT_DATA = 当前资料不足，不能判断
 ```
 
+硬筛选规则：
+
+```txt
+本阶段是人工找产品 / 对比产品 / 核算之前的筛选闸门。
+AI 承认的 keyword product pool 才进入人工候选池。
+
+PASS 只能用于：
+- demandSignal 至少 medium
+- dataConfidence 至少 medium
+- reviewHealth / competitionOpenness / improvementOpportunity 中有足够正向证据支持人工继续验证
+- 没有足以阻断人工阶段的核心风险
+
+REJECT 必须用于：
+- full package 可读且证据足够
+- demandSignal weak 或 insufficient，或搜索结果显示需求不可行动
+- reviewHealth weak 或 insufficient 且差评/低星/投诉无法形成可改良机会
+- priceCeiling weak 或 insufficient，显示价格带不支持后续核算
+- competitionOpenness weak 或 insufficient，显示关键词池被强品牌、广告或同质化严重封闭
+- improvementOpportunity weak 或 insufficient，无法找到值得人工继续对比的改良切入点
+
+WATCH 只能用于：
+- 有局部正向信号，但证据混合
+- 更适合挖相关关键词或补数据后再判断
+
+INSUFFICIENT_DATA 只能用于：
+- package 不可读
+- search / detail / review 核心证据缺失
+- dataConfidence insufficient
+
+禁止为了礼貌、保守或避免否定而把应当 REJECT 的 keyword product pool 标成 WATCH。
+```
+
 边界：
 
 ```txt

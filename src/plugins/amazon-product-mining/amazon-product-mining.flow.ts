@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import type { AmazonKeywordRecord, AmazonMiningInput, AmazonSearchResultItem } from "./amazon-product-mining.schema.js";
+import type { AmazonKeywordRecord, AmazonMiningInput, AmazonProductDetail, AmazonSearchResultItem } from "./amazon-product-mining.schema.js";
 import { createAmazonMiningLogger } from "./amazon-product-mining.logging.js";
 import { runProductDetailExtraction } from "./amazon-product-mining.product-detail.js";
 import { taskRecordToResult } from "./amazon-product-mining.result.js";
@@ -74,6 +74,26 @@ const waitForProductDetailOpenPacingDelay = async (runtime: AmazonFlowRuntime): 
 const waitForReviewPageOpenPacingDelay = async (runtime: AmazonFlowRuntime): Promise<void> =>
   waitForAmazonMiningPacingDelay(runtime.ctx.browser, AMAZON_REVIEW_PAGE_OPEN_DELAY_MS_RANGE);
 
+const findExistingDetailForSearchItem = (
+  runtime: AmazonFlowRuntime,
+  item: { productUrl: string },
+  asin: string,
+): AmazonProductDetail | null => runtime.storage.getProductDetailsForTask(runtime.taskId)
+  .find((detail) => (detail.asin !== null && detail.asin === asin) || detail.productUrl === item.productUrl) ?? null;
+
+const linkExistingDetailForSearchItem = async (
+  runtime: AmazonFlowRuntime,
+  item: { itemId: string },
+  existingDetail: AmazonProductDetail,
+): Promise<KeywordWorkResult> => {
+  runtime.storage.persistProductDetail(existingDetail, [item.itemId]);
+  if (existingDetail.asin && existingDetail.status !== "completed") {
+    await extractAndPersistReviews(runtime, existingDetail.detailId, existingDetail.asin);
+    return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+  }
+  return "active";
+};
+
 const createAmazonFlowRuntime = (ctx: AmazonFlowContext): AmazonFlowRuntime => ({
   ctx,
   storage: createAmazonMiningStorage(ctx.dataDir),
@@ -123,7 +143,10 @@ const runKeywordPhase = async (runtime: AmazonFlowRuntime): Promise<KeywordPhase
     return { kind: "continue", keywordRecords: persistedKeywords };
   }
   storage.updateTaskStatus({ taskId, status: "keyword_generating" });
-  const existingMinedKeywords = storage.getAllMinedKeywordsForDedup();
+  const existingMinedKeywords = storage.getMinedKeywordHistoryForDedup({
+    amazonMarketplace: miningInput.amazonMarketplace,
+    targetMarket: miningInput.targetMarket,
+  });
 
   logger.logKeywordAiSend({ taskId, runId: taskId });
   const keywordResult = await runKeywordGeneration({
@@ -137,16 +160,18 @@ const runKeywordPhase = async (runtime: AmazonFlowRuntime): Promise<KeywordPhase
     logger.logKeywordAiCapture({ taskId, runId: keywordResult.runId, rawLength: keywordResult.rawResponse.length });
   }
 
-  storage.saveAiKeywordRun({
-    runId: keywordResult.runId,
-    taskId,
-    promptText: keywordResult.promptText,
-    rawResponse: keywordResult.rawResponse,
-    parsedKeywords: keywordResult.parsedKeywords,
-    dedupedKeywords: keywordResult.dedupedKeywords,
-    status: keywordResult.status,
-    failureReason: keywordResult.failureReason,
-  });
+  for (const run of keywordResult.runs) {
+    storage.saveAiKeywordRun({
+      runId: run.runId,
+      taskId,
+      promptText: run.promptText,
+      rawResponse: run.rawResponse,
+      parsedKeywords: run.parsedKeywords,
+      dedupedKeywords: run.dedupedKeywords,
+      status: run.status,
+      failureReason: run.failureReason,
+    });
+  }
 
   if (keywordResult.status === "failed" || keywordResult.dedupedKeywords.length === 0) {
     const reason = keywordResult.failureReason ?? "keyword_generation_returned_zero_keywords";
@@ -223,6 +248,10 @@ const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: str
     }
   }
   const asin = resolveAmazonItemAsin(item.productUrl, item.asinIfAvailable);
+  const existingDetail = findExistingDetailForSearchItem(runtime, { productUrl: item.productUrl }, asin);
+  if (existingDetail) {
+    return linkExistingDetailForSearchItem(runtime, item, existingDetail);
+  }
   const productDetail = await extractAndPersistProductDetail(runtime, item.itemId, item.productUrl, asin);
   if (!productDetail) return "active";
   if (!productDetail.asin) {

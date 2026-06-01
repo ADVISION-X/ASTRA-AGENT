@@ -179,6 +179,7 @@ const amazonProductDetailCommerceShape = {
   categoryPathIfVisible: z.string().nullable().default(null),
   rating: z.string().nullable().default(null),
   reviewCount: z.string().nullable().default(null),
+  boughtInPastMonthIfVisible: z.string().nullable().default(null),
   starDistribution: z.string().nullable().default(null),
   qaContentIfVisible: z.string().nullable().default(null),
   frequentlyBoughtTogetherIfVisible: z.string().nullable().default(null),

@@ -293,6 +293,14 @@ return (function() {
     var reviewCountMatch = ratingLabel.match(/([0-9][0-9,\.]*)\s+ratings?/i);
     reviewCount = reviewCountMatch ? '(' + reviewCountMatch[1] + ')' : null;
   }
+  var boughtInPastMonthIfVisible = pickText([
+    '#socialProofingAsinFaceout_feature_div #social-proofing-faceout-title-tk_bought',
+    '#socialProofingAsinFaceout_feature_div .social-proofing-faceout-title-text',
+    '#socialProofingAsinFaceout_feature_div .social-proofing-faceout'
+  ]);
+  if (boughtInPastMonthIfVisible && !/\bbought\s+in\s+past\s+month\b/i.test(boughtInPastMonthIfVisible)) {
+    boughtInPastMonthIfVisible = null;
+  }
   var starDistribution = serializeStarDistribution();
   var qaContentRaw = pickSectionText(['#ask-btf-container', '#ask_lazy_load_div', '#ask_feature_div'], 3000);
   var qaContent = qaContentRaw && (qaContentRaw.indexOf('?') >= 0 || qaContentRaw.toLowerCase().indexOf('answer') >= 0 || qaContentRaw.toLowerCase().indexOf('question') >= 0) ? qaContentRaw : null;
@@ -333,6 +341,7 @@ return (function() {
     categoryPath: categoryPath,
     rating: rating,
     reviewCount: reviewCount,
+    boughtInPastMonthIfVisible: boughtInPastMonthIfVisible,
     starDistribution: starDistribution,
     qaContent: qaContent,
     frequentlyBoughtTogether: frequentlyBoughtTogether,

@@ -7,6 +7,7 @@ import type { AiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input
 import type { BrowserActionResult, BrowserController } from "../../src/lib/browser/browser-controller.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runAmazonProductMiningFlow } from "../../src/plugins/amazon-product-mining/amazon-product-mining.flow.js";
+import { parseKeywordReviewResponse } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.js";
 import { createAmazonMiningStorage } from "../../src/plugins/amazon-product-mining/amazon-product-mining.storage.js";
 
 const dataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-keyword-review-"));
@@ -104,6 +105,10 @@ const createKeywordMiningGatewayResponse = () => createAiGatewaySuccess({
   inputHash: "keyword-input-hash",
   outputHash: "keyword-output-hash",
 });
+
+const repairedLooseQuoteVerdict = parseKeywordReviewResponse(`{ "decision": "PASS", "demandSignal": "strong", "reviewHealth": "medium", "priceCeiling": "medium", "competitionOpenness": "medium", "improvementOpportunity": "strong", "dataConfidence": "strong", "evidenceRefs": [ "manifest.json: keyword is "shoe rack"; package contains reviewable evidence.", "01-search-results/search-results.json: visible text shows "1-48 of over 9,000 results for shoe rack"." ], "missingEvidence": [], "riskPoints": [], "humanNextStep": "enter_next_validation" }`);
+assert.equal(repairedLooseQuoteVerdict?.decision, "PASS");
+assert.equal(repairedLooseQuoteVerdict?.evidenceRefs[0]?.includes('"shoe rack"'), true);
 
 const currentKeyword = (): keyof typeof productsByKeyword => {
   const currentUrl = openedUrls.at(-1) ?? "https://www.amazon.com/s?k=keyword+alpha";

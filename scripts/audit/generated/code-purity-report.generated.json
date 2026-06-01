@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-05-31T15:47:46.407Z",
+  "generatedAt": "2026-06-01T22:24:16.534Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -103,6 +103,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-runtime-truth.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
@@ -510,6 +511,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-dedup.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
@@ -1179,9 +1181,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1707,
+  "liveExportCount": 1717,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 609,
+  "reachableFileCount": 611,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1193,9 +1195,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1707,
+    "liveExportCount": 1717,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 609,
+    "reachableFileCount": 611,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

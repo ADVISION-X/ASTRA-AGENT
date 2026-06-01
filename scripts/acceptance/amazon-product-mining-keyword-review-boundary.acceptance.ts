@@ -35,6 +35,12 @@ for (const requiredToken of [
   "The archive is a transport wrapper over the full package directory, not a second truth source.",
   "The inline navigation file is only a reading map",
   "keyword product pool candidate screening, not final product selection",
+  "pre-human-validation screening gate",
+  "Only AI-accepted keyword product pools enter human product finding, product comparison, and later calculation work.",
+  "PASS is conservative",
+  "REJECT is mandatory when the readable full package gives enough evidence that the keyword product pool is not worth human validation.",
+  "Do not choose WATCH to be polite when the evidence is sufficient for REJECT.",
+  "Use INSUFFICIENT_DATA only when the package is unreadable, core search/detail/review evidence is missing, or dataConfidence is insufficient.",
   "PASS | WATCH | REJECT | INSUFFICIENT_DATA",
   "enter_next_validation | mine_related_keywords | reject | rerun_or_collect_more_data",
 ]) {
@@ -58,6 +64,22 @@ const parsed = parseKeywordReviewResponse(`\`\`\`json
 \`\`\``);
 assert.equal(parsed?.decision, "WATCH");
 assert.equal(parseKeywordReviewResponse("not-json"), null);
+
+const rejected = parseKeywordReviewResponse(JSON.stringify({
+  decision: "REJECT",
+  demandSignal: "weak",
+  reviewHealth: "weak",
+  priceCeiling: "weak",
+  competitionOpenness: "weak",
+  improvementOpportunity: "weak",
+  dataConfidence: "medium",
+  evidenceRefs: ["05-completeness/data-completeness-report.json", "03-reviews/reviews-summary.json"],
+  missingEvidence: [],
+  riskPoints: ["full package shows a non-workable keyword pool for human validation"],
+  humanNextStep: "reject",
+}));
+assert.equal(rejected?.decision, "REJECT");
+assert.equal(rejected?.humanNextStep, "reject");
 
 assert.throws(() => AmazonMiningSchemas.AmazonKeywordOpportunityManualIngestSchema.parse({
   reviewId: "review-1",

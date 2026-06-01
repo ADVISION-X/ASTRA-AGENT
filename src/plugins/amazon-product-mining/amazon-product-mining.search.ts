@@ -43,6 +43,24 @@ type ExtractResult =
   | { blocker: string }
   | { items: ExtractedItem[]; rawText: string | null; totalCards?: number };
 
+const normalizeSearchProductUrl = (productUrl: string): string => {
+  try {
+    const parsed = new URL(productUrl);
+    if (!parsed.pathname.includes("/sspa/click")) {
+      return productUrl;
+    }
+    const targetPath = parsed.searchParams.get("url");
+    if (!targetPath) {
+      return productUrl;
+    }
+    return targetPath.startsWith("http")
+      ? targetPath
+      : `${parsed.origin}${targetPath}`;
+  } catch {
+    return productUrl;
+  }
+};
+
 const evaluateSearchResultSlice = async (input: {
   browser: BrowserController;
   keyword: string;
@@ -119,7 +137,7 @@ const mapExtractedSearchItems = (input: {
     rankPosition: item.rankPosition,
     isSponsored: item.isSponsored,
     title: item.title,
-    productUrl: item.productUrl,
+    productUrl: normalizeSearchProductUrl(item.productUrl),
     asinIfAvailable: item.asin,
     mainImageUrl: item.mainImageUrl,
     price: item.price,

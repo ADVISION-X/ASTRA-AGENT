@@ -36,6 +36,12 @@ const current = ["existing keyword"];
 const deduped6 = deduplicateKeywords(["existing keyword", "brand new"], [], current);
 assert.deepEqual(deduped6, ["brand new"], "Should filter against currentTaskKeywords");
 
+// --- Test 6.1: historical near-duplicate phrases must not bypass exact keyword dedup ---
+const nearDuplicateCandidates = ["shoe rack organizer", "fresh kitchen mat", "led strip light"];
+const nearDuplicateExisting = ["shoe rack", "led strip lights"];
+const dedupedNearDuplicates = deduplicateKeywords(nearDuplicateCandidates, nearDuplicateExisting, []);
+assert.deepEqual(dedupedNearDuplicates, ["fresh kitchen mat"], "Near-duplicate keyword expansions must be filtered before AI refill.");
+
 // --- Test 7: Empty candidates returns empty ---
 const deduped7 = deduplicateKeywords([], ["something"], []);
 assert.deepEqual(deduped7, [], "Empty candidates returns empty array");
@@ -118,5 +124,104 @@ assert.ok(capturedPrompt.length > 0, "Keyword generation prompt must be readable
 assert.ok(capturedPrompt.includes("The system only supplies marketplace, market, user product direction, deduplication data, and JSON format rules"), "Keyword prompt must keep the system role to format and dedup only.");
 assert.ok(capturedPrompt.includes("If the user mentions China suppliers, treat it only as sourcing background"), "Keyword prompt must not turn China supplier background into product trait constraints.");
 assert.ok(capturedPrompt.includes("Do not add or infer these constraints unless they appear in the user's Product Direction"), "Keyword prompt must forbid system-invented size or shipping constraints.");
+
+// --- Test 10: keyword AI must receive historical keywords and refill duplicate responses instead of silently accepting shortage ---
+const capturedPrompts: string[] = [];
+let generationCallCount = 0;
+const refillGateway = {
+  abilityGroupId: "ai-input-gateway" as const,
+  listChildCapabilityIds: () => ["feed-gpt-web-chat-once" as const],
+  async execute(input: unknown) {
+    const prompt = (input as { textPrompt?: string }).textPrompt ?? "";
+    capturedPrompts.push(prompt);
+    generationCallCount += 1;
+    const keywords = generationCallCount === 1
+      ? ["water bottle", "shoe rack", "fresh kitchen mat"]
+      : ["fresh kitchen mat", "new cabinet organizer"];
+    return {
+      abilityGroupId: "ai-input-gateway" as const,
+      childCapabilityId: "feed-gpt-web-chat-once" as const,
+      providerKind: "gpt-web-chat" as const,
+      status: "success" as const,
+      normalizedText: JSON.stringify({ keywords: keywords.map((keyword) => ({ keyword })) }),
+      rawOutputRef: null,
+      rawOutputHash: null,
+      parseStatus: "json_valid" as const,
+      parsedJson: null,
+      schemaValidationStatus: "not_applicable" as const,
+      providerProof: {
+        providerKind: "gpt-web-chat" as const,
+        modelName: null,
+        inputHash: "hash-in",
+        outputHash: "hash-out",
+        inputRefs: [],
+        outputRefs: [],
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMs: 0,
+        transport: "web-chat" as const,
+        webChatUrl: null,
+        sourcePageUrlBeforeFeed: null,
+        restoredSourcePage: null,
+        retryCount: 0,
+        cooldownMs: 0,
+        estimatedInputTokens: null,
+        estimatedOutputTokens: null,
+        tokenEstimateUnavailableReason: null,
+      },
+      failureReason: null,
+      reviewRequiredReason: null,
+    };
+  },
+};
+const refillResult = await runKeywordGeneration({
+  taskId,
+  aiInputGateway: refillGateway,
+  existingMinedKeywords: ["water bottle", "shoe rack"],
+  miningInput: {
+    amazonMarketplace: "amazon.ae",
+    targetMarket: "United Arab Emirates",
+    productDirection: "China supply products",
+    requestedKeywordCount: 2,
+    languagePreference: "en",
+    providerKind: "gpt-web-chat",
+  },
+  providerKind: "gpt-web-chat",
+});
+assert.equal(refillResult.status, "success");
+assert.deepEqual(refillResult.dedupedKeywords, ["fresh kitchen mat", "new cabinet organizer"]);
+assert.equal(refillResult.runs.length, 2, "Duplicate-heavy first answer must trigger same-stage refill");
+assert.ok(capturedPrompts[0]?.includes("Historical keyword exclusions for this canonical marketplace/target market"));
+assert.ok(capturedPrompts[0]?.includes("- water bottle"));
+assert.ok(capturedPrompts[0]?.includes("- shoe rack"));
+assert.ok(capturedPrompts[1]?.includes("- fresh kitchen mat"), "Refill prompt must also exclude already accepted current-task keywords");
+
+// --- Test 11: keyword generation must fail honestly when refills cannot reach requested new count ---
+const shortageGateway = {
+  ...refillGateway,
+  async execute(input: unknown) {
+    capturedPrompts.push((input as { textPrompt?: string }).textPrompt ?? "");
+    return {
+      ...(await refillGateway.execute(input)),
+      normalizedText: JSON.stringify({ keywords: [{ keyword: "water bottle" }] }),
+    };
+  },
+};
+const shortageResult = await runKeywordGeneration({
+  taskId,
+  aiInputGateway: shortageGateway,
+  existingMinedKeywords: ["water bottle"],
+  miningInput: {
+    amazonMarketplace: "amazon.ae",
+    targetMarket: "United Arab Emirates",
+    productDirection: "China supply products",
+    requestedKeywordCount: 2,
+    languagePreference: "en",
+    providerKind: "gpt-web-chat",
+  },
+  providerKind: "gpt-web-chat",
+});
+assert.equal(shortageResult.status, "failed");
+assert.equal(shortageResult.failureReason?.includes("keyword_generation_insufficient_new_keywords"), true);
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-keyword-dedup\n");

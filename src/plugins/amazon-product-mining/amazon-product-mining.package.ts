@@ -164,6 +164,7 @@ const buildPackageProductCommerce = (product: AmazonProductDetail) => ({
   originalPriceDiscountCouponIfVisible: product.originalPriceDiscountCouponIfVisible,
   rating: product.rating,
   reviewCount: product.reviewCount,
+  boughtInPastMonthIfVisible: product.boughtInPastMonthIfVisible,
   starDistribution: product.starDistribution,
   bestSellersRankIfVisible: product.bestSellersRankIfVisible,
   categoryPathIfVisible: product.categoryPathIfVisible,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T15:47:23.824Z",
+  "generatedAt": "2026-06-01T22:23:51.219Z",
   "status": "PASS",
   "inspectorFileCount": 19,
   "generatedPlanEntryCount": 19,
@@ -27,6 +27,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-runtime-truth.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",

@@ -55,6 +55,7 @@ export const ensureAmazonMiningStorageColumns = (db: Database.Database): void =>
   ensureTableColumns(db, "amazon_mining_product_details", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
     { columnName: "a_plus_image_urls_json", definition: "TEXT" },
+    { columnName: "bought_in_past_month_if_visible", definition: "TEXT" },
   ]);
   ensureTableColumns(db, "amazon_mining_reviews", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
@@ -163,6 +164,11 @@ const buildDetailContent = (row: StorageRow) => ({
 });
 
 const buildDetailCommerce = (row: StorageRow) => ({
+  ...buildDetailCatalogCommerce(row),
+  ...buildDetailRelatedCommerce(row),
+});
+
+const buildDetailCatalogCommerce = (row: StorageRow) => ({
   productInformation: (row["product_information"] as string | null) ?? null,
   technicalDetails: (row["technical_details"] as string | null) ?? null,
   additionalInformation: (row["additional_information"] as string | null) ?? null,
@@ -170,13 +176,17 @@ const buildDetailCommerce = (row: StorageRow) => ({
   categoryPathIfVisible: (row["category_path_if_visible"] as string | null) ?? null,
   rating: (row["rating"] as string | null) ?? null,
   reviewCount: (row["review_count"] as string | null) ?? null,
+  boughtInPastMonthIfVisible: (row["bought_in_past_month_if_visible"] as string | null) ?? null,
   starDistribution: (row["star_distribution"] as string | null) ?? null,
+  deliveryInformation: (row["delivery_information"] as string | null) ?? null,
+  returnInformation: (row["return_information"] as string | null) ?? null,
+});
+
+const buildDetailRelatedCommerce = (row: StorageRow) => ({
   qaContentIfVisible: (row["qa_content_if_visible"] as string | null) ?? null,
   frequentlyBoughtTogetherIfVisible: (row["frequently_bought_together_if_visible"] as string | null) ?? null,
   customersAlsoBoughtIfVisible: (row["customers_also_bought_if_visible"] as string | null) ?? null,
   compareWithSimilarItemsIfVisible: (row["compare_with_similar_items_if_visible"] as string | null) ?? null,
-  deliveryInformation: (row["delivery_information"] as string | null) ?? null,
-  returnInformation: (row["return_information"] as string | null) ?? null,
   allOtherVisibleProductParameters: (row["all_other_visible_product_parameters"] as string | null) ?? null,
 });
 

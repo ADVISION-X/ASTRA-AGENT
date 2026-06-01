@@ -135,6 +135,8 @@ assert.equal(AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT, 30);
 assert.equal(selectedRankedItems.length, 30);
 assert.deepEqual(selectedRankedItems.map((item) => item.rankPosition), Array.from({ length: 30 }, (_, index) => index + 1));
 assert.ok(flowSrc.includes("selectSearchItemsForDetailMining(searchItems)"), "flow.ts must apply top-30 detail mining selector after persisting all search results");
+assert.ok(flowSrc.includes("getProductDetailsForTask(runtime.taskId)"), "flow.ts must check existing task product details before opening duplicate product detail URLs.");
+assert.ok(flowSrc.includes("persistProductDetail(existingDetail, [item.itemId])"), "flow.ts must link duplicate search cards to existing product details instead of re-opening the same ASIN.");
 
 // --- Test 13: governed Amazon page-open pacing ranges are production defaults ---
 assert.deepEqual(AMAZON_PRODUCT_DETAIL_OPEN_DELAY_MS_RANGE, { min: 1_000, max: 20_000 });

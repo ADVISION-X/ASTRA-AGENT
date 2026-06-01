@@ -84,6 +84,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     category_path_if_visible TEXT,
     rating TEXT,
     review_count TEXT,
+    bought_in_past_month_if_visible TEXT,
     star_distribution TEXT,
     qa_content_if_visible TEXT,
     frequently_bought_together_if_visible TEXT,

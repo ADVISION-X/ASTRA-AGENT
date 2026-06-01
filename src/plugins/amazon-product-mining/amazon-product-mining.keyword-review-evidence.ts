@@ -90,13 +90,34 @@ const evidenceArray = (
 export const buildKeywordReviewDetailEvidence = (
   product: AmazonProductDetail,
 ): Record<string, EvidenceField<string | string[]>> => ({
+  ...buildKeywordReviewIdentityEvidence(product),
+  ...buildKeywordReviewMediaEvidence(product),
+  ...buildKeywordReviewListingEvidence(product),
+  ...buildKeywordReviewCommerceEvidence(product),
+  ...buildKeywordReviewRelatedEvidence(product),
+  rawVisibleTextSnapshot: evidenceScalar(product.fieldDisclosureMap, "rawVisibleTextSnapshot", product.rawVisibleTextSnapshot, KEYWORD_REVIEW_RAW_TEXT_MAX_CHARS),
+});
+
+const buildKeywordReviewIdentityEvidence = (
+  product: AmazonProductDetail,
+): Record<string, EvidenceField<string | string[]>> => ({
   brand: evidenceScalar(product.fieldDisclosureMap, "brand", product.brand),
   sellerOrStoreIfVisible: evidenceScalar(product.fieldDisclosureMap, "sellerOrStoreIfVisible", product.sellerOrStoreIfVisible),
   currentPrice: evidenceScalar(product.fieldDisclosureMap, "currentPrice", product.currentPrice),
   originalPriceDiscountCouponIfVisible: evidenceScalar(product.fieldDisclosureMap, "originalPriceDiscountCouponIfVisible", product.originalPriceDiscountCouponIfVisible),
+});
+
+const buildKeywordReviewMediaEvidence = (
+  product: AmazonProductDetail,
+): Record<string, EvidenceField<string | string[]>> => ({
   mainImage: evidenceScalar(product.fieldDisclosureMap, "mainImage", product.mainImage),
   allVisibleImages: evidenceArray(product.fieldDisclosureMap, "allVisibleImages", product.allVisibleImages),
   visibleVideoInfo: evidenceScalar(product.fieldDisclosureMap, "visibleVideoInfo", product.visibleVideoInfo),
+});
+
+const buildKeywordReviewListingEvidence = (
+  product: AmazonProductDetail,
+): Record<string, EvidenceField<string | string[]>> => ({
   bulletPoints: evidenceArray(product.fieldDisclosureMap, "bulletPoints", product.bulletPoints),
   aboutThisItem: evidenceScalar(product.fieldDisclosureMap, "aboutThisItem", product.aboutThisItem),
   productDescription: evidenceScalar(product.fieldDisclosureMap, "productDescription", product.productDescription),
@@ -107,19 +128,29 @@ export const buildKeywordReviewDetailEvidence = (
   productInformation: evidenceScalar(product.fieldDisclosureMap, "productInformation", product.productInformation),
   technicalDetails: evidenceScalar(product.fieldDisclosureMap, "technicalDetails", product.technicalDetails),
   additionalInformation: evidenceScalar(product.fieldDisclosureMap, "additionalInformation", product.additionalInformation),
+});
+
+const buildKeywordReviewCommerceEvidence = (
+  product: AmazonProductDetail,
+): Record<string, EvidenceField<string | string[]>> => ({
   bestSellersRankIfVisible: evidenceScalar(product.fieldDisclosureMap, "bestSellersRankIfVisible", product.bestSellersRankIfVisible),
   categoryPathIfVisible: evidenceScalar(product.fieldDisclosureMap, "categoryPathIfVisible", product.categoryPathIfVisible),
   rating: evidenceScalar(product.fieldDisclosureMap, "rating", product.rating),
   reviewCount: evidenceScalar(product.fieldDisclosureMap, "reviewCount", product.reviewCount),
+  boughtInPastMonthIfVisible: evidenceScalar(product.fieldDisclosureMap, "boughtInPastMonthIfVisible", product.boughtInPastMonthIfVisible),
   starDistribution: evidenceScalar(product.fieldDisclosureMap, "starDistribution", product.starDistribution),
+  deliveryInformation: evidenceScalar(product.fieldDisclosureMap, "deliveryInformation", product.deliveryInformation),
+  returnInformation: evidenceScalar(product.fieldDisclosureMap, "returnInformation", product.returnInformation),
+});
+
+const buildKeywordReviewRelatedEvidence = (
+  product: AmazonProductDetail,
+): Record<string, EvidenceField<string | string[]>> => ({
   qaContentIfVisible: evidenceScalar(product.fieldDisclosureMap, "qaContentIfVisible", product.qaContentIfVisible),
   frequentlyBoughtTogetherIfVisible: evidenceScalar(product.fieldDisclosureMap, "frequentlyBoughtTogetherIfVisible", product.frequentlyBoughtTogetherIfVisible),
   customersAlsoBoughtIfVisible: evidenceScalar(product.fieldDisclosureMap, "customersAlsoBoughtIfVisible", product.customersAlsoBoughtIfVisible),
   compareWithSimilarItemsIfVisible: evidenceScalar(product.fieldDisclosureMap, "compareWithSimilarItemsIfVisible", product.compareWithSimilarItemsIfVisible),
-  deliveryInformation: evidenceScalar(product.fieldDisclosureMap, "deliveryInformation", product.deliveryInformation),
-  returnInformation: evidenceScalar(product.fieldDisclosureMap, "returnInformation", product.returnInformation),
   allOtherVisibleProductParameters: evidenceScalar(product.fieldDisclosureMap, "allOtherVisibleProductParameters", product.allOtherVisibleProductParameters),
-  rawVisibleTextSnapshot: evidenceScalar(product.fieldDisclosureMap, "rawVisibleTextSnapshot", product.rawVisibleTextSnapshot, KEYWORD_REVIEW_RAW_TEXT_MAX_CHARS),
 });
 
 export const buildKeywordReviewSample = (review: AmazonReviewRecord) => ({

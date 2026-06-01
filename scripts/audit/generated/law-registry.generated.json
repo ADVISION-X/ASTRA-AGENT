@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-31T15:47:22.396Z",
+  "generatedAt": "2026-06-01T22:23:49.609Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -771,7 +771,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+acceptance+ast",
-      "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as candidate-list screening, not final product judgment.",
+      "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before human validation, not final product judgment.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -781,7 +781,9 @@
       "forbidden": [
         "Prompt asking GPT Web Chat to make final product selection.",
         "Prompt asking for procurement, sampling, inventory, launch, advertising, or profit conclusions.",
-        "Treating PASS as product approval or REJECT as a universal claim that every product has no value."
+        "Treating PASS as product approval or REJECT as a universal claim that every product has no value.",
+        "Prompt allowing obviously non-workable keyword product pools to pass into human validation.",
+        "Prompt using WATCH as a polite replacement for REJECT when the full package has enough evidence to reject."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 20

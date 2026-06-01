@@ -258,6 +258,7 @@ try {
   assert.equal(readFileSync(result.pdfReportPath!).subarray(0, 5).toString("utf8"), "%PDF-");
 
   const failureDataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-mining-all-failed-"));
+  const failureRuntimeLogPath = path.join(failureDataDir, "runtime-log.jsonl");
   const searchFailureBrowser = {
     ...browser,
     evaluateActiveTab: async <T,>({ description }: Parameters<BrowserController["evaluateActiveTab"]>[0]): Promise<T> => {
@@ -271,7 +272,7 @@ try {
       dataDir: failureDataDir,
       browser: searchFailureBrowser,
       aiInputGateway,
-      runtimeLogger: createRuntimeLogger({ terminalEnabled: false }),
+      runtimeLogger: createRuntimeLogger({ terminalEnabled: false, fileSink: { bundlePath: failureRuntimeLogPath, redact: false } }),
       providerKind: "gpt-web-chat",
       miningInput: {
         amazonMarketplace: "amazon.ae",
@@ -301,6 +302,14 @@ try {
     assert.equal(failurePackage.exceptions.length, 1);
     assert.equal(failurePackage.completeness.summary.failedCount, 3);
     assert.ok(failureEvidenceIndex.artifacts.some((artifact) => artifact.artifactId === "handoff-record" && artifact.fileRef === "05-ai-handoff/handoff-record.json"));
+    const failureRuntimeEvents = readFileSync(failureRuntimeLogPath, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { eventType?: string; status?: string; reason?: string });
+    const finalMissionEvent = [...failureRuntimeEvents].reverse().find((event) => event.eventType === "MISSION_COMPLETED");
+    assert.equal(finalMissionEvent?.status, "failed");
+    assert.equal(failureRuntimeEvents.some((event) => event.eventType === "RUNTIME_STAGE_FAILED" && event.reason?.includes("all_keywords_failed")), true);
+    assert.equal(failureRuntimeEvents.some((event) => event.eventType === "MISSION_COMPLETED" && event.status === "success"), false);
   } finally {
     rmSync(failureDataDir, { recursive: true, force: true });
   }

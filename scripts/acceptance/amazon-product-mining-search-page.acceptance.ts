@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
+import type { BrowserActionResult, BrowserController } from "../../src/lib/browser/browser-controller.js";
 import {
   runAmazonSearch,
   type SearchPageAdapter,
@@ -155,5 +156,97 @@ assert.equal(result7.ok, false, "Invalid extraction output must be a structured 
 if (result7.ok) throw new Error("Expected ok=false for invalid extraction output");
 assert.equal(result7.blockerKind, "page_structure_unsupported");
 assert.match(result7.reason, /amazon_search_extract_invalid_items/u);
+
+// --- Test 8: Sponsored click URLs must be normalized to canonical product URLs ---
+const sponsoredAction = (message: string): BrowserActionResult => ({
+  browserActionId: `${message}-${Date.now()}`,
+  ok: true,
+  message,
+  createdAt: new Date().toISOString(),
+});
+const sponsoredBrowser = {
+  getHealth: () => ({ ok: true, detail: "sponsored-url-normalization" }),
+  getSessionState: () => ({
+    open: true,
+    browserMode: "fixture" as const,
+    browserProfileRef: "acceptance",
+    browserExecutablePath: null,
+    profileStatus: "profile_ready" as const,
+    currentUrl: "https://www.amazon.ae/s?k=water+bottle",
+    currentTitle: "Amazon acceptance",
+    browserExecutable: null,
+    profileDirectory: "acceptance",
+    profileProvisioning: "managed_default" as const,
+    profileVerificationStatus: "default_unverified" as const,
+    profileVerificationReason: null,
+    loginState: "unknown" as const,
+    lastLoginCheckAt: null,
+    loginRequiredReason: null,
+    reviewRequiredReason: null,
+  }),
+  getGeometrySnapshot: async () => ({
+    windowX: 0,
+    windowY: 0,
+    viewportWidth: 1200,
+    viewportHeight: 900,
+    screenshotWidth: 1200,
+    screenshotHeight: 900,
+    scaleFactor: 1,
+    currentUrl: "https://www.amazon.ae/s?k=water+bottle",
+    pageTitle: "Amazon acceptance",
+    visibleContentBounds: { x: 0, y: 0, width: 1200, height: 900 },
+    capturedAt: new Date().toISOString(),
+  }),
+  open: async () => sponsoredAction("opened"),
+  scroll: async () => sponsoredAction("scrolled"),
+  click: async () => sponsoredAction("clicked"),
+  clickLocatedDomElement: async () => sponsoredAction("clicked-dom"),
+  textInput: async () => sponsoredAction("text-input"),
+  screenshotRegion: async () => ({
+    ...sponsoredAction("screenshot"),
+    pageUrl: "https://www.amazon.ae/s?k=water+bottle",
+    pageTitle: "Amazon acceptance",
+    regionLabel: "acceptance",
+    regionType: "viewport",
+    width: 1200,
+    height: 900,
+    viewportWidth: 1200,
+    viewportHeight: 900,
+    sourceFilePath: "/tmp/acceptance.png",
+  }),
+  evaluateActiveTab: async <T,>(): Promise<T> => ({
+    items: [{
+      asin: "B0SPONSOR1",
+      title: "Sponsored Bottle",
+      productUrl: "https://www.amazon.ae/sspa/click?url=%2FActual-Product%2Fdp%2FB0SPONSOR1%2Fref%3Dsr_1_1_sspa&spc=abc",
+      price: "AED 25.00",
+      rating: "4.4 out of 5 stars",
+      reviewCount: "500 ratings",
+      mainImageUrl: null,
+      isSponsored: true,
+      rankPosition: 1,
+      primeOrFba: "Prime",
+      couponText: null,
+      originalPriceOrDiscount: null,
+      deliveryText: null,
+    }],
+    rawText: "Sponsored Bottle AED 25.00 Prime",
+    totalCards: 1,
+  } as T),
+  setFileInputFiles: async () => sponsoredAction("files-set"),
+  wait: async () => sponsoredAction("waited"),
+  closeActiveTab: async () => sponsoredAction("closed-tab"),
+  close: async () => sponsoredAction("closed"),
+} satisfies BrowserController;
+const result8 = await runAmazonSearch({
+  marketplace: "amazon.ae",
+  keyword: "water bottle",
+  keywordId: randomUUID(),
+  taskId,
+  browser: sponsoredBrowser,
+});
+assert.equal(result8.ok, true, "Sponsored URL browser extraction should succeed");
+if (!result8.ok) throw new Error("Expected ok=true for sponsored URL browser extraction");
+assert.equal(result8.items[0]?.productUrl, "https://www.amazon.ae/Actual-Product/dp/B0SPONSOR1/ref=sr_1_1_sspa");
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-search-page\n");

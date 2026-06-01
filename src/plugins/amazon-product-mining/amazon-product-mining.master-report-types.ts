@@ -54,6 +54,7 @@ type ReportProduct = {
     currentPrice?: string | null;
     rating?: string | null;
     reviewCount?: string | null;
+    boughtInPastMonthIfVisible?: string | null;
     starDistribution?: string | null;
     bestSellersRankIfVisible?: string | null;
     categoryPathIfVisible?: string | null;

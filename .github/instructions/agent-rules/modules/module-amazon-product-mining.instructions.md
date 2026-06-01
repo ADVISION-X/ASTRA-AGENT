@@ -964,7 +964,7 @@ App 可保存最近 taskId，
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+acceptance+ast",
-  "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as candidate-list screening, not final product judgment.",
+  "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before human validation, not final product judgment.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -974,7 +974,9 @@ App 可保存最近 taskId，
   "forbidden": [
     "Prompt asking GPT Web Chat to make final product selection.",
     "Prompt asking for procurement, sampling, inventory, launch, advertising, or profit conclusions.",
-    "Treating PASS as product approval or REJECT as a universal claim that every product has no value."
+    "Treating PASS as product approval or REJECT as a universal claim that every product has no value.",
+    "Prompt allowing obviously non-workable keyword product pools to pass into human validation.",
+    "Prompt using WATCH as a polite replacement for REJECT when the full package has enough evidence to reject."
   ]
 }
 ```
@@ -985,6 +987,11 @@ App 可保存最近 taskId，
 - 关键词评审只判断该 keyword product pool 是否进入候选研究名单。
 - `PASS` 只表示进入下一阶段人工验证，不表示选品成功。
 - `REJECT` 只表示本次证据下该关键词不保留为候选池，不是全网产品终局裁决。
+- 关键词评审 prompt 必须把本阶段定义为人工验证前的筛选闸门：AI 承认的 keyword 才进入人工找产品、对比产品和后续核算阶段。
+- `PASS` 必须保守：只有当需求信号、数据可信度、可进入人工验证的竞争/改良/评论证据足够时，才允许进入人工候选池。
+- `REJECT` 必须主动：当 full package 已经显示该 keyword product pool 缺少可行动需求、评论健康差、价格天花板不成立、竞争封闭、改良空间弱，且数据可信度足以判断时，必须 `REJECT`，不得用 `WATCH` 逃避排除。
+- `WATCH` 只能用于有部分正向信号但证据混合、需要挖相关关键词或补证据的情况。
+- `INSUFFICIENT_DATA` 只能用于资料包不可读、核心证据缺失或数据可信度不足，不能替代基于充分证据的 `REJECT`。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-021-V1] Rejected Keyword Evidence Retention
 

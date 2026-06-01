@@ -72,6 +72,7 @@
     "@img/sharp-darwin-arm64": "^0.34.5",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.10.0",
+    "ffprobe-static": "^3.1.0",
     "playwright": "^1.59.1",
     "sharp": "^0.34.5",
     "yt-dlp-wrap": "^2.3.12",

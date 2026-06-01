@@ -41,7 +41,7 @@ const packageJson = JSON.parse(readFileSync(finalPackage.packageJsonPath, "utf8"
 	  products: Array<{
 	    detailId: string;
       images: { aPlusImageUrls: string[] };
-      commerce: { starDistribution: string | null };
+      commerce: { boughtInPastMonthIfVisible: string | null; starDistribution: string | null };
 	    sourceKeywords: Array<{ keywordId: string }>;
 	    reviews: { jsonlRef: string | null; summaryRef: string | null };
 	    completeness: {
@@ -76,6 +76,7 @@ assert.equal(Boolean(firstPackageProduct.reviews.jsonlRef), true);
 assert.equal(Boolean(firstPackageProduct.reviews.summaryRef), true);
 assert.equal(firstPackageProduct.completeness.score > 0, true);
 assert.equal(firstPackageProduct.images.aPlusImageUrls.includes("https://images.example.com/product-1-aplus.jpg"), true);
+assert.equal(firstPackageProduct.commerce.boughtInPastMonthIfVisible, "500+ bought in past month");
 assert.equal(firstPackageProduct.commerce.starDistribution, "5 star 78%");
 assert.equal(Boolean(firstPackageProduct.completeness.fieldDisclosures?.title), true);
 assert.equal(secondPackageProduct.completeness.notPresentFields?.includes("aPlusContentIfVisible"), true);

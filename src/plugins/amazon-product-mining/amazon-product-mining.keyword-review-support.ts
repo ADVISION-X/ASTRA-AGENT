@@ -50,6 +50,7 @@ export type KeywordReviewSlice = {
     currentPrice: string | null;
     rating: string | null;
     reviewCount: string | null;
+    boughtInPastMonthIfVisible: string | null;
     bestSellersRankIfVisible: string | null;
     categoryPathIfVisible: string | null;
     starDistribution: string | null;
@@ -143,6 +144,7 @@ const buildKeywordProductReviewSlice = (input: {
     currentPrice: input.product.currentPrice,
     rating: input.product.rating,
     reviewCount: input.product.reviewCount,
+    boughtInPastMonthIfVisible: input.product.boughtInPastMonthIfVisible,
     bestSellersRankIfVisible: input.product.bestSellersRankIfVisible,
     categoryPathIfVisible: input.product.categoryPathIfVisible,
     starDistribution: clipKeywordReviewText(input.product.starDistribution),
@@ -289,6 +291,42 @@ const unwrapJsonPayload = (rawResponse: string): string | null => {
   return trimmed.startsWith("{") && trimmed.endsWith("}") ? trimmed : null;
 };
 
+const escapeLooseQuotesInsideJsonStrings = (jsonPayload: string): string => {
+  let output = "";
+  let insideString = false;
+  let escaped = false;
+  for (let index = 0; index < jsonPayload.length; index++) {
+    const char = jsonPayload[index]!;
+    if (escaped) {
+      output += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      output += char;
+      escaped = insideString;
+      continue;
+    }
+    if (char !== '"') {
+      output += char;
+      continue;
+    }
+    if (!insideString) {
+      insideString = true;
+      output += char;
+      continue;
+    }
+    const nextNonSpace = jsonPayload.slice(index + 1).trimStart()[0] ?? "";
+    if ([",", "}", "]", ":"].includes(nextNonSpace)) {
+      insideString = false;
+      output += char;
+      continue;
+    }
+    output += '\\"';
+  }
+  return output;
+};
+
 export const parseKeywordReviewResponse = (rawResponse: string): AmazonKeywordOpportunityVerdict | null => {
   const jsonPayload = unwrapJsonPayload(rawResponse);
   if (!jsonPayload) {
@@ -298,7 +336,12 @@ export const parseKeywordReviewResponse = (rawResponse: string): AmazonKeywordOp
     const parsed = JSON.parse(jsonPayload) as unknown;
     return AmazonMiningSchemas.AmazonKeywordOpportunityVerdictSchema.parse(parsed);
   } catch {
-    return null;
+    try {
+      const repaired = JSON.parse(escapeLooseQuotesInsideJsonStrings(jsonPayload)) as unknown;
+      return AmazonMiningSchemas.AmazonKeywordOpportunityVerdictSchema.parse(repaired);
+    } catch {
+      return null;
+    }
   }
 };
 

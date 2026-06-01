@@ -43,6 +43,7 @@ type ProductCommerceFixture = Pick<AmazonProductDetail,
   | "originalPriceDiscountCouponIfVisible"
   | "rating"
   | "reviewCount"
+  | "boughtInPastMonthIfVisible"
   | "starDistribution"
   | "productInformation"
   | "technicalDetails"
@@ -113,6 +114,7 @@ const buildSummitLiteProductDetail = (): AmazonProductDetail => createProductDet
     originalPriceDiscountCouponIfVisible: "$39.99 / Save 10%",
     rating: "4.6",
     reviewCount: "1200",
+    boughtInPastMonthIfVisible: "500+ bought in past month",
     starDistribution: "5 star 78%",
     productInformation: "Weight: 73g",
     technicalDetails: "Material: Aluminum alloy",
@@ -133,6 +135,7 @@ const buildSummitLiteProductDetail = (): AmazonProductDetail => createProductDet
       currentPrice: { reason: "extracted", detail: null },
       rating: { reason: "extracted", detail: null },
       reviewCount: { reason: "extracted", detail: null },
+      boughtInPastMonthIfVisible: { reason: "extracted", detail: null },
       rawVisibleTextSnapshot: { reason: "extracted", detail: null },
     },
     rawVisibleTextSnapshot: "Full raw detail snapshot for SummitLite Backpacking Stove",
@@ -172,6 +175,7 @@ const buildTrailBurnProductDetail = (): AmazonProductDetail => createProductDeta
     originalPriceDiscountCouponIfVisible: null,
     rating: "4.4",
     reviewCount: "860",
+    boughtInPastMonthIfVisible: null,
     starDistribution: null,
     productInformation: "Weight: 89g",
     technicalDetails: "Fuel: isobutane",
@@ -193,6 +197,7 @@ const buildTrailBurnProductDetail = (): AmazonProductDetail => createProductDeta
       rating: { reason: "extracted", detail: null },
       reviewCount: { reason: "extracted", detail: null },
       rawVisibleTextSnapshot: { reason: "extracted", detail: null },
+      boughtInPastMonthIfVisible: { reason: "not_present", detail: "Bought-in-past-month social proof is not visible on this product page." },
       visibleVideoInfo: { reason: "not_present", detail: "No visible product video module is shown on the detail page." },
       aPlusContentIfVisible: { reason: "not_present", detail: "A+ content module is not visible on this product page." },
       aPlusImageUrls: { reason: "not_present", detail: "A+ image URLs are not visible on this product page." },

@@ -42,7 +42,7 @@ export type AmazonMiningLogger = {
   logPackageBuilt(input: { taskId: string; packageJsonPath: string; evidenceIndexPath: string; exceptionSummaryPath: string; }): void;
   logPdfBuilt(input: { taskId: string; pdfReportPath: string; }): void;
   logHandoffReady(input: { taskId: string; }): void;
-  logMissionComplete(input: { taskId: string; }): void;
+  logMissionComplete(input: { taskId: string; status?: "success" | "failed" | "review_required"; }): void;
   logFailure(input: { taskId: string; scope: string; scopeId?: string; reason: string; }): void;
   logManualRequired(input: { taskId: string; scope: string; scopeId?: string; reason: string; }): void;
 };
@@ -99,8 +99,8 @@ export const createAmazonMiningLogger = (runtimeLogger: RuntimeLogger): AmazonMi
   logHandoffReady({ taskId }) {
     emitAmazon({ logger: runtimeLogger, eventType: RuntimeLogEventType.RUNTIME_STAGE_COMPLETED, taskId, status: "success" });
   },
-  logMissionComplete({ taskId }) {
-    emitAmazon({ logger: runtimeLogger, eventType: RuntimeLogEventType.MISSION_COMPLETED, taskId, status: "success" });
+  logMissionComplete({ taskId, status = "success" }) {
+    emitAmazon({ logger: runtimeLogger, eventType: RuntimeLogEventType.MISSION_COMPLETED, taskId, status });
   },
   logFailure({ taskId, scope, scopeId, reason }) {
     emitAmazon({ logger: runtimeLogger, eventType: RuntimeLogEventType.RUNTIME_STAGE_FAILED, taskId, ...(scopeId !== undefined ? { roundId: scopeId } : {}), status: "failed", reason, refs: { scope } });
