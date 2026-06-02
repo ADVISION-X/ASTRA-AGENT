@@ -134,12 +134,15 @@ export const finalizeAmazonMiningPackaging = async (
     languagePreference: runtime.miningInput.languagePreference ?? "en",
     packageIntegrityStatus: artifacts.packageResult.integrityStatus,
     manualRequiredReasons: runtime.manualRequiredReasons,
+    failureReasons: runtime.failureReasons,
   });
   artifacts = { ...artifacts, packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, detailRankLimit)) };
   if (artifacts.packageResult.integrityStatus === "failed" && !runtime.manualRequiredReasons.includes("package_integrity_failed")) {
     runtime.manualRequiredReasons.push("package_integrity_failed");
   }
-  const shouldBeReady = runtime.manualRequiredReasons.length === 0 && artifacts.packageResult.integrityStatus === "pass";
+  const shouldBeReady = runtime.failureReasons.length === 0
+    && runtime.manualRequiredReasons.length === 0
+    && artifacts.packageResult.integrityStatus === "pass";
   let finalHandoffStatus = handoff.handoffStatus;
   if ((handoff.handoffStatus === "ready") !== shouldBeReady) {
     finalHandoffStatus = writeAmazonHandoffRecord({
@@ -159,6 +162,7 @@ export const finalizeAmazonMiningPackaging = async (
       languagePreference: runtime.miningInput.languagePreference ?? "en",
       packageIntegrityStatus: artifacts.packageResult.integrityStatus,
       manualRequiredReasons: runtime.manualRequiredReasons,
+      failureReasons: runtime.failureReasons,
     }).handoffStatus;
     artifacts = { ...artifacts, packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, detailRankLimit)) };
   }

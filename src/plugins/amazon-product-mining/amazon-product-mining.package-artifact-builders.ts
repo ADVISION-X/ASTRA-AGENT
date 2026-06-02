@@ -8,6 +8,7 @@ export type AmazonSearchResultItem = ReturnType<AmazonMiningStorage["getSearchRe
 export type AmazonProductDetail = ReturnType<AmazonMiningStorage["getProductDetailsForTask"]>[number];
 export type AmazonReviewRecord = ReturnType<AmazonMiningStorage["getReviewsForProduct"]>[number];
 export type AmazonExceptionRecord = ReturnType<AmazonMiningStorage["getExceptionsForTask"]>[number];
+export type AmazonKeywordOpportunityReviewRecord = ReturnType<AmazonMiningStorage["listKeywordOpportunityReviews"]>[number];
 
 export const writeJsonFile = (filePath: string, value: unknown): void => {
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");

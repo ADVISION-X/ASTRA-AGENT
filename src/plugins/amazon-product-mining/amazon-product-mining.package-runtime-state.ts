@@ -26,6 +26,7 @@ import {
   writeJsonFile,
   type AmazonExceptionRecord,
   type AmazonKeywordRecord,
+  type AmazonKeywordOpportunityReviewRecord,
   type AmazonProductDetail,
   type AmazonReviewRecord,
   type AmazonSearchResultItem,
@@ -39,6 +40,7 @@ export type PackageRuntimeState = {
   generatedAt: string;
   task: AmazonTaskRecord | null;
   keywords: readonly AmazonKeywordRecord[];
+  keywordReviews: readonly AmazonKeywordOpportunityReviewRecord[];
   aiKeywordRuns: ReturnType<AmazonMiningStorage["getAiKeywordRunsForTask"]>;
   exceptions: readonly AmazonExceptionRecord[];
   links: readonly AmazonSearchResultProductLink[];
@@ -102,6 +104,7 @@ export const loadPackageRuntimeState = (input: {
   const generatedAt = new Date().toISOString();
   const task = input.storage.getTask(input.taskId);
   const keywords = input.storage.getKeywordsForTask(input.taskId);
+  const keywordReviews = input.storage.listKeywordOpportunityReviews({ taskId: input.taskId });
   const aiKeywordRuns = input.storage.getAiKeywordRunsForTask(input.taskId);
   const exceptions = input.storage.getExceptionsForTask(input.taskId);
   const links = input.storage.getSearchResultProductLinksForTask(input.taskId);
@@ -117,6 +120,7 @@ export const loadPackageRuntimeState = (input: {
     generatedAt,
     task,
     keywords,
+    keywordReviews,
     aiKeywordRuns,
     exceptions,
     links,
@@ -161,6 +165,7 @@ export const buildPackageEvidenceState = (input: {
   const manualRequiredItems = buildStatusItems({
     task: input.runtime.task,
     keywords: input.runtime.keywords,
+    keywordReviews: input.runtime.keywordReviews,
     products: input.runtime.products,
     exceptions: input.runtime.exceptions,
     status: "manual_required",
@@ -168,6 +173,7 @@ export const buildPackageEvidenceState = (input: {
   const failedItems = buildStatusItems({
     task: input.runtime.task,
     keywords: input.runtime.keywords,
+    keywordReviews: input.runtime.keywordReviews,
     products: input.runtime.products,
     exceptions: input.runtime.exceptions,
     status: "failed",
@@ -183,6 +189,7 @@ export const buildPackageEvidenceState = (input: {
       taskId: input.runtime.task?.taskId ?? "unknown",
       task: input.runtime.task,
       keywords: input.runtime.keywords,
+      keywordReviews: input.runtime.keywordReviews,
       searchResults: input.runtime.allSearchResults,
       products: input.runtime.products,
       reviewsByDetailId: input.runtime.reviewsByDetailId,
@@ -228,15 +235,32 @@ export const buildTaskScopeArtifact = (input: {
 export const buildExceptionSummaryArtifact = (input: {
   taskId: string;
   exceptions: readonly AmazonExceptionRecord[];
+  keywordReviews: readonly AmazonKeywordOpportunityReviewRecord[];
   manualRequiredItems: ReturnType<typeof buildStatusItems>;
   failedItems: ReturnType<typeof buildStatusItems>;
-}) => ({
-  taskId: input.taskId,
-  totalExceptions: input.exceptions.length,
-  manualRequiredCount: input.manualRequiredItems.count,
-  failedCount: input.failedItems.count,
-  exceptions: input.exceptions,
-});
+}) => {
+  const keywordReviewIssues = input.keywordReviews
+    .filter((review) => review.status === "failed" || review.status === "manual_required")
+    .map((review) => ({
+      scope: "keyword_review",
+      scopeId: review.keywordId,
+      reviewId: review.reviewId,
+      keyword: review.keyword,
+      status: review.status,
+      reason: review.failureReason,
+      aiResponseRef: review.aiResponseRef,
+      packageRef: review.packageRef,
+    }));
+  return {
+    taskId: input.taskId,
+    totalExceptions: input.exceptions.length + keywordReviewIssues.length,
+    manualRequiredCount: input.manualRequiredItems.count,
+    failedCount: input.failedItems.count,
+    keywordReviewIssueCount: keywordReviewIssues.length,
+    exceptions: input.exceptions,
+    keywordReviewIssues,
+  };
+};
 
 export const writePackageSideArtifacts = (input: {
   layout: AmazonPackageLayout;

@@ -41,8 +41,9 @@ export type AmazonHandoffRecord = {
     reviewCount: number;
   };
   packageIntegrityStatus: "pass" | "failed";
-  handoffStatus: "ready" | "manual_required";
+  handoffStatus: "ready" | "manual_required" | "failed";
   manualRequiredReasons: string[];
+  failureReasons: string[];
   analysisBoundary: "external_advanced_ai_only";
   allowedOutputs: string[];
   forbiddenOutputs: string[];
@@ -166,6 +167,7 @@ type BuildAmazonHandoffRecordInput = {
   languagePreference?: string;
   packageIntegrityStatus: "pass" | "failed";
   manualRequiredReasons: string[];
+  failureReasons?: readonly string[];
 };
 
 const allowedHandoffOutputs = [
@@ -219,6 +221,7 @@ const buildHandoffTaskScope = (input: BuildAmazonHandoffRecordInput) => ({
 
 export const buildHandoffRecord = (input: BuildAmazonHandoffRecordInput): AmazonHandoffRecord => {
   const packageRootPath = resolveAmazonPackageRootPath({ dataDir: input.dataDir, taskId: input.taskId });
+  const failureReasons = [...(input.failureReasons ?? [])];
   return {
     taskId: input.taskId,
     packageRootPath,
@@ -233,8 +236,11 @@ export const buildHandoffRecord = (input: BuildAmazonHandoffRecordInput): Amazon
       reviewCount: input.reviewCount,
     },
     packageIntegrityStatus: input.packageIntegrityStatus,
-    handoffStatus: input.manualRequiredReasons.length > 0 || input.packageIntegrityStatus === "failed" ? "manual_required" : "ready",
+    handoffStatus: failureReasons.length > 0
+      ? "failed"
+      : input.manualRequiredReasons.length > 0 || input.packageIntegrityStatus === "failed" ? "manual_required" : "ready",
     manualRequiredReasons: [...input.manualRequiredReasons],
+    failureReasons,
     analysisBoundary: "external_advanced_ai_only",
     allowedOutputs: [...allowedHandoffOutputs],
     forbiddenOutputs: [...forbiddenHandoffOutputs],

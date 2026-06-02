@@ -1,6 +1,7 @@
 import type {
   AmazonExceptionRecord,
   AmazonKeywordRecord,
+  AmazonKeywordOpportunityReviewRecord,
   AmazonProductDetail,
   AmazonReviewRecord,
   AmazonSearchResultItem,
@@ -193,11 +194,11 @@ export const buildImageEvidenceIndex = (input: {
     }
   };
 
-  const appendKeywordStatusItems = (input: {
-    keywords: readonly AmazonKeywordRecord[];
-    status: "manual_required" | "failed";
-    exceptionScopeMap: Map<string, string[]>;
-    pushItem: (item: PackageStatusItem) => void;
+const appendKeywordStatusItems = (input: {
+  keywords: readonly AmazonKeywordRecord[];
+  status: "manual_required" | "failed";
+  exceptionScopeMap: Map<string, string[]>;
+  pushItem: (item: PackageStatusItem) => void;
   }): void => {
     for (const keyword of input.keywords) {
       if (keyword.status !== input.status) {
@@ -210,11 +211,30 @@ export const buildImageEvidenceIndex = (input: {
         reason: keyword.reason,
         exceptionRefs: input.exceptionScopeMap.get(keyword.keywordId) ?? [],
       });
-    }
-  };
+  }
+};
 
-  const appendProductStatusItems = (input: {
-    products: readonly AmazonProductDetail[];
+const appendKeywordReviewStatusItems = (input: {
+  keywordReviews: readonly AmazonKeywordOpportunityReviewRecord[];
+  status: "manual_required" | "failed";
+  pushItem: (item: PackageStatusItem) => void;
+}): void => {
+  for (const review of input.keywordReviews) {
+    if (review.status !== input.status) {
+      continue;
+    }
+    input.pushItem({
+      scope: "keyword_review",
+      scopeId: review.keywordId,
+      status: input.status,
+      reason: review.failureReason,
+      exceptionRefs: review.aiResponseRef ? [review.aiResponseRef] : [],
+    });
+  }
+};
+
+const appendProductStatusItems = (input: {
+  products: readonly AmazonProductDetail[];
     status: "manual_required" | "failed";
     exceptionScopeMap: Map<string, string[]>;
     pushItem: (item: PackageStatusItem) => void;
@@ -266,6 +286,7 @@ export const buildImageEvidenceIndex = (input: {
 export const buildStatusItems = (input: {
   task: AmazonTaskRecord | null;
   keywords: readonly AmazonKeywordRecord[];
+  keywordReviews?: readonly AmazonKeywordOpportunityReviewRecord[];
   products: readonly AmazonProductDetail[];
   exceptions: readonly AmazonExceptionRecord[];
   status: "manual_required" | "failed";
@@ -275,6 +296,7 @@ export const buildStatusItems = (input: {
   const pushItem = createStatusItemPusher(items);
   appendTaskStatusItem({ task: input.task, status: input.status, pushItem });
   appendKeywordStatusItems({ keywords: input.keywords, status: input.status, exceptionScopeMap, pushItem });
+  appendKeywordReviewStatusItems({ keywordReviews: input.keywordReviews ?? [], status: input.status, pushItem });
   appendProductStatusItems({ products: input.products, status: input.status, exceptionScopeMap, pushItem });
   appendExceptionStatusItems({ exceptions: input.exceptions, status: input.status, pushItem });
   return {
@@ -287,6 +309,7 @@ export const buildStatusItems = (input: {
 const buildCompletenessSummary = (input: {
   task: AmazonTaskRecord | null;
   keywords: readonly AmazonKeywordRecord[];
+  keywordReviews: readonly AmazonKeywordOpportunityReviewRecord[];
   searchResults: readonly AmazonSearchResultItem[];
   products: readonly AmazonProductDetail[];
   reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
@@ -298,6 +321,9 @@ const buildCompletenessSummary = (input: {
   keywordCountRequested: input.task?.requestedKeywordCount ?? input.keywords.length,
   keywordCountGenerated: input.keywords.length,
   keywordCountCompleted: input.keywords.filter((keyword) => keyword.status === "completed" || keyword.status === "completed_with_errors").length,
+  keywordReviewCount: input.keywordReviews.length,
+  keywordReviewFailedCount: input.keywordReviews.filter((review) => review.status === "failed").length,
+  keywordReviewManualRequiredCount: input.keywordReviews.filter((review) => review.status === "manual_required").length,
   searchResultCount: input.searchResults.length,
   uniqueProductDetailCount: input.products.length,
   reviewCount: [...input.reviewsByDetailId.values()].reduce((sum, reviews) => sum + reviews.length, 0),
@@ -379,6 +405,7 @@ export const buildCompletenessReport = (input: {
   taskId: string;
   task: AmazonTaskRecord | null;
   keywords: readonly AmazonKeywordRecord[];
+  keywordReviews: readonly AmazonKeywordOpportunityReviewRecord[];
   searchResults: readonly AmazonSearchResultItem[];
   products: readonly AmazonProductDetail[];
   reviewsByDetailId: Map<string, AmazonReviewRecord[]>;
