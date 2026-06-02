@@ -248,6 +248,7 @@ const writeAcceptanceHandoff = (input: {
   dataDir: string;
   packageResult: AcceptancePackageResult;
   reportPath: string;
+  failureReasons?: readonly string[];
 }) => writeAmazonHandoffRecord({
   dataDir: input.dataDir,
   taskId,
@@ -265,6 +266,7 @@ const writeAcceptanceHandoff = (input: {
   languagePreference: "en",
   packageIntegrityStatus: input.packageResult.integrityStatus,
   manualRequiredReasons: [],
+  ...(input.failureReasons !== undefined ? { failureReasons: input.failureReasons } : {}),
 });
 
 const markAcceptancePackageCompleted = (input: {
@@ -308,6 +310,80 @@ export const buildAmazonProductMiningPackageAcceptanceFixture = async () => {
     keywordRunId,
     layout,
     initialPackage,
+    initialReport,
+    handoff,
+    finalPackage,
+  };
+};
+
+export const buildAmazonProductMiningKeywordReviewFailurePackageFixture = async () => {
+  const dataDir = mkdtempSync(join(tmpdir(), "amazon-mining-package-review-failed-"));
+  const storage = seedAmazonProductMiningPackageAcceptanceStorage({
+    dataDir,
+    taskId,
+    keywordRunId,
+    products: [buildSummitLiteProductDetail(), buildTrailBurnProductDetail()],
+  });
+  const now = new Date().toISOString();
+  storage.saveKeywordOpportunityReview({
+    reviewId: "review-kw-2",
+    taskId,
+    keywordId: "kw-2",
+    keyword: "backpacking gas stove",
+    status: "failed",
+    decision: null,
+    demandSignal: null,
+    reviewHealth: null,
+    priceCeiling: null,
+    competitionOpenness: null,
+    improvementOpportunity: null,
+    dataConfidence: null,
+    evidenceRefs: [],
+    missingEvidence: ["keyword review AI response was not parseable"],
+    riskPoints: [],
+    humanNextStep: null,
+    aiPromptText: "Review keyword opportunity package.",
+    aiRawResponse: "",
+    aiResponseRef: join(dataDir, "kw-2-keyword-review-failed-response.json"),
+    packageRef: join(dataDir, "kw-2-full-evidence-package"),
+    keywordPackageSliceRef: join(dataDir, "kw-2-navigation.json"),
+    failureReason: "keyword_review_failed:kw-2",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  let packageResult = await buildAmazonProductMiningPackage({ taskId, dataDir, storage, reviewMaxPages: 2 });
+  const layout = createAmazonPackageLayout({ dataDir, taskId });
+  const initialReport = buildAcceptanceReport({ dataDir, packageResult });
+  writeAcceptanceHandoff({
+    dataDir,
+    packageResult,
+    reportPath: initialReport.pdfReportPath,
+    failureReasons: ["keyword_review_failed:kw-2"],
+  });
+  packageResult = await buildAmazonProductMiningPackage({ taskId, dataDir, storage, reviewMaxPages: 2 });
+  const handoff = writeAcceptanceHandoff({
+    dataDir,
+    packageResult,
+    reportPath: initialReport.pdfReportPath,
+    failureReasons: ["keyword_review_failed:kw-2"],
+  });
+  storage.updateTaskStatus({
+    taskId,
+    status: "failed",
+    failureReason: "keyword_review_failed:kw-2",
+    packageJsonPath: packageResult.packageJsonPath,
+    pdfReportPath: initialReport.pdfReportPath,
+    evidenceIndexPath: packageResult.evidenceIndexPath,
+    exceptionSummaryPath: packageResult.exceptionSummaryPath,
+    handoffStatus: "failed",
+  });
+  const finalPackage = await buildAmazonProductMiningPackage({ taskId, dataDir, storage, reviewMaxPages: 2 });
+
+  return {
+    dataDir,
+    taskId,
+    layout,
     initialReport,
     handoff,
     finalPackage,

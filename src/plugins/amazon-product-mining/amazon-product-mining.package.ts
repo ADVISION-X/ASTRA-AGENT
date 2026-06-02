@@ -24,9 +24,12 @@ import {
   type AmazonPackageReviewEvidence,
 } from "./amazon-product-mining.package-review-evidence.js";
 import {
+  attachKeywordReviewStatusToKeywordEntries,
+  buildKeywordReviewEntries,
+} from "./amazon-product-mining.package-keyword-review-entries.js";
+import {
   writeJsonFile,
   type AmazonExceptionRecord,
-  type AmazonKeywordOpportunityReviewRecord,
   type AmazonKeywordRecord,
   type AmazonProductDetail,
   type AmazonReviewRecord,
@@ -117,61 +120,6 @@ const buildPackageKeywordEntries = (input: {
     topProducts: keyword.topProducts,
     exceptionRefs: keyword.exceptionIds,
   }));
-};
-
-const buildKeywordReviewEntries = (reviews: readonly AmazonKeywordOpportunityReviewRecord[]) =>
-  reviews.map((review) => ({
-    reviewId: review.reviewId,
-    keywordId: review.keywordId,
-    keyword: review.keyword,
-    status: review.status,
-    decision: review.decision,
-    demandSignal: review.demandSignal,
-    reviewHealth: review.reviewHealth,
-    priceCeiling: review.priceCeiling,
-    competitionOpenness: review.competitionOpenness,
-    improvementOpportunity: review.improvementOpportunity,
-    dataConfidence: review.dataConfidence,
-    evidenceRefs: review.evidenceRefs,
-    missingEvidence: review.missingEvidence,
-    riskPoints: review.riskPoints,
-    humanNextStep: review.humanNextStep,
-    aiResponseRef: review.aiResponseRef,
-    packageRef: review.packageRef,
-    keywordPackageSliceRef: review.keywordPackageSliceRef,
-    failureReason: review.failureReason,
-    createdAt: review.createdAt,
-    updatedAt: review.updatedAt,
-  }));
-
-const buildPackageKeywordEntriesWithReviewStatus = (input: {
-  keywords: readonly AmazonKeywordRecord[];
-  keywordArtifacts: readonly AmazonPackageKeywordEvidence[];
-  keywordReviews: readonly AmazonKeywordOpportunityReviewRecord[];
-}) => {
-  const reviewByKeywordId = new Map<string, AmazonKeywordOpportunityReviewRecord>();
-  for (const review of input.keywordReviews) {
-    if (!reviewByKeywordId.has(review.keywordId)) {
-      reviewByKeywordId.set(review.keywordId, review);
-    }
-  }
-
-  return buildPackageKeywordEntries({
-    keywords: input.keywords,
-    keywordArtifacts: input.keywordArtifacts,
-  }).map((keyword) => {
-    const review = reviewByKeywordId.get(keyword.keywordId);
-    return {
-      ...keyword,
-      aiReviewStatus: review?.status ?? null,
-      aiReviewDecision: review?.decision ?? null,
-      aiReviewHumanNextStep: review?.humanNextStep ?? null,
-      aiReviewDataConfidence: review?.dataConfidence ?? null,
-      aiReviewResponseRef: review?.aiResponseRef ?? null,
-      aiReviewPackageRef: review?.packageRef ?? null,
-      aiReviewFailureReason: review?.failureReason ?? null,
-    };
-  });
 };
 
 const buildPackageSearchResultEntries = (input: {
@@ -328,11 +276,10 @@ const buildPackageJsonArtifact = (input: {
   task: input.taskScope,
   aiKeywordRuns: input.evidence.aiKeywordRunArtifacts,
   keywordOpportunityReviews: buildKeywordReviewEntries(input.runtime.keywordReviews),
-  keywords: buildPackageKeywordEntriesWithReviewStatus({
-    keywords: input.runtime.keywords,
-    keywordArtifacts: input.evidence.keywordArtifacts,
-    keywordReviews: input.runtime.keywordReviews,
-  }),
+  keywords: attachKeywordReviewStatusToKeywordEntries(
+    buildPackageKeywordEntries({ keywords: input.runtime.keywords, keywordArtifacts: input.evidence.keywordArtifacts }),
+    input.runtime.keywordReviews,
+  ),
   searchResults: buildPackageSearchResultEntries({
     allSearchResults: input.runtime.allSearchResults,
     detailIdsByItemId: input.runtime.detailIdsByItemId,

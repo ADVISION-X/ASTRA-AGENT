@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-06-01T22:24:16.534Z",
+  "generatedAt": "2026-06-02T11:01:36.950Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -99,6 +99,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
@@ -528,6 +529,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-shared.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-evidence.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-review-entries.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",
@@ -1181,9 +1183,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1717,
+  "liveExportCount": 1722,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 611,
+  "reachableFileCount": 613,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1195,9 +1197,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1717,
+    "liveExportCount": 1722,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 611,
+    "reachableFileCount": 613,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

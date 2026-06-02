@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T22:23:56.316Z",
+  "generatedAt": "2026-06-02T11:01:16.569Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -196,6 +196,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
@@ -628,6 +629,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-shared.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-evidence.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-review-entries.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",

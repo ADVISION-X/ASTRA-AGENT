@@ -25,6 +25,7 @@ import {
   inspectKeywordReviewLawAndBlueprint,
   inspectKeywordReviewSchemaAndStorage,
 } from "./inspector-keyword-review-governance.js";
+import { inspectKeywordReviewPackageAggregation } from "./inspector-keyword-review-package-aggregation.js";
 import { inspectKeywordFullPackageHandoff } from "./inspector-keyword-full-package.js";
 import { inspectPackageScript } from "./inspector-package-scripts.js";
 import {
@@ -120,6 +121,7 @@ const inspectKeywordReviewContracts = (
   inspectKeywordReviewPromptAndFlow(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectKeywordReviewEvidenceSliceDepth(context, findings, inspectedFiles, lawIds.keywordReviewEvidenceDepth);
   inspectKeywordFullPackageHandoff(context, findings, inspectedFiles, lawIds.keywordReviewFullPackage);
+  inspectKeywordReviewPackageAggregation(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectKeywordReviewAppSurface(context, findings, inspectedFiles, lawIds.keywordReviewSurface);
 };
 

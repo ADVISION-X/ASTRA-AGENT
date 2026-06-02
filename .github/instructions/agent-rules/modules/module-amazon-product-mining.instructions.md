@@ -646,17 +646,23 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+handoff-record+acceptance",
-  "summary": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when manual-required reasons are empty and package integrity passes.",
+  "summary": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when failure reasons and manual-required reasons are empty, keyword review issues are absent, and package integrity passes.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.flow-packaging.ts"
   ],
   "forbidden": [
     "image-evidence-index pretending to be downloaded binary proof instead of url_only evidence.",
     "Mixing all review rows into one task-wide file that loses per-product traceability.",
+    "handoffStatus=ready while failureReasons is non-empty.",
     "handoffStatus=ready while manualRequiredReasons is non-empty.",
     "handoffStatus=ready while packageIntegrityStatus is failed.",
+    "handoffStatus=ready while any keyword opportunity review is failed or manual_required.",
+    "Master package omitting keyword opportunity review status, decision, references, or failure reasons.",
+    "exception-summary or data-completeness-report omitting failed/manual_required keyword opportunity reviews.",
     "Hiding missing artifacts, missing fields, or partial review coverage."
   ]
 }
@@ -668,7 +674,9 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
 - `04-review-evidence/product-{detailId}/reviews.jsonl` 必须逐产品落地
 - `06-exception-and-completeness/data-completeness-report.json` 必须披露缺字段、评论限制、失败与人工接管
 - `06-exception-and-completeness/package-integrity-report.json` 必须先于 handoff readiness 生效
-- `05-ai-handoff/handoff-record.json` 只有在 `manualRequiredReasons=[]` 且 `packageIntegrityStatus=pass` 时才允许 `ready`
+- `amazon-product-mining-package.json` 必须汇总每个 keyword 的 keyword opportunity review 状态、decision、引用与 failure reason
+- `06-exception-and-completeness/exception-summary.json` 与 `data-completeness-report.json` 必须把 `failed` / `manual_required` keyword opportunity review 纳入账本
+- `05-ai-handoff/handoff-record.json` 只有在 `failureReasons=[]`、`manualRequiredReasons=[]`、无 failed/manual_required keyword opportunity review 且 `packageIntegrityStatus=pass` 时才允许 `ready`
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-015-V1] Zip Delivery Wrapper Sovereignty
 
@@ -723,6 +731,8 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+    "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts"
@@ -742,6 +752,8 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
 - 一个 task 可包含多个 keyword，每个 keyword 必须独立生成一条 keyword opportunity review 记录。
 - 研判输入必须来自该 keyword 对应的 search results、linked product details、linked reviews、image refs、completeness、exceptions。
 - 外部高级 AI 不可用时，review 只能进入 `manual_required` 或 `failed`，不得伪装完成。
+- task 级 master package 必须保留 keywordId 级 review 结果；人类打开总包时必须能直接看到每个 keyword 的 AI review status、decision、humanNextStep、confidence、artifact refs 与 failure reason。
+- `failed` / `manual_required` keyword opportunity review 是任务交接完整性信号，必须进入 exception/completeness/handoff readiness，不得只停留在 keyword review 数据库表。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-017-V1] Keyword Opportunity Verdict Schema
 

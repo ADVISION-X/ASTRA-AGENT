@@ -3,7 +3,10 @@ import { basename, join } from "node:path";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
-import { buildAmazonProductMiningPackageAcceptanceFixture } from "./amazon-product-mining-package-support.js";
+import {
+  buildAmazonProductMiningKeywordReviewFailurePackageFixture,
+  buildAmazonProductMiningPackageAcceptanceFixture,
+} from "./amazon-product-mining-package-support.js";
 
 const { dataDir, keywordRunId, layout, initialPackage, initialReport, handoff, finalPackage } = await buildAmazonProductMiningPackageAcceptanceFixture();
 
@@ -31,10 +34,11 @@ assert.equal(handoff.handoffStatus, "ready");
 assert.equal(finalPackage.integrityStatus, "pass");
 
 const packageJson = JSON.parse(readFileSync(finalPackage.packageJsonPath, "utf8")) as {
-  schemaVersion: string;
-  packageType: string;
-  aiKeywordRuns: Array<{ runId: string; promptTextRef: string; rawResponseRef: string }>;
-  keywords: Array<{ keywordId: string; searchEvidenceRef: string; searchResultsCsvRef: string }>;
+	  schemaVersion: string;
+	  packageType: string;
+	  aiKeywordRuns: Array<{ runId: string; promptTextRef: string; rawResponseRef: string }>;
+  keywordOpportunityReviews: Array<{ keywordId: string; status: string; decision: string | null }>;
+	  keywords: Array<{ keywordId: string; searchEvidenceRef: string; searchResultsCsvRef: string; aiReviewStatus: string | null; aiReviewDecision: string | null }>;
   searchResults: Array<{ itemId: string; detailRefs: string[] }>;
   searchResultProductLinks: Array<{ itemId: string; detailId: string }>;
   task: { productDetailRankLimit: number | null };
@@ -60,7 +64,11 @@ const packageJson = JSON.parse(readFileSync(finalPackage.packageJsonPath, "utf8"
 assert.equal(packageJson.schemaVersion, "2.0.0");
 assert.equal(packageJson.packageType, "amazon-product-mining-master-evidence-package");
 assert.equal(packageJson.aiKeywordRuns.length, 1);
+assert.equal(packageJson.keywordOpportunityReviews.length, 2);
+assert.equal(packageJson.keywordOpportunityReviews.every((review) => review.status === "completed"), true);
 assert.equal(packageJson.keywords.length, 2);
+assert.equal(packageJson.keywords.every((keyword) => keyword.aiReviewStatus === "completed"), true);
+assert.equal(packageJson.keywords.every((keyword) => keyword.aiReviewDecision === "PASS"), true);
 assert.equal(packageJson.searchResults.length, 2);
 assert.equal(packageJson.searchResultProductLinks.length, 2);
 assert.equal(packageJson.task.productDetailRankLimit, null);
@@ -119,7 +127,13 @@ assert.equal(imageEvidenceIndex.images.some((image) => image.url === "https://im
 assert.equal(imageEvidenceIndex.images.some((image) => image.imageType === "a_plus_image" && image.url === "https://images.example.com/product-1-aplus.jpg"), true);
 
 const completenessReport = JSON.parse(readFileSync(finalPackage.dataCompletenessReportPath, "utf8")) as {
-  summary: { packageCompletenessStatus: string; reviewMaxPagesConfigured: number | null; failedCount: number };
+  summary: {
+    packageCompletenessStatus: string;
+    reviewMaxPagesConfigured: number | null;
+    failedCount: number;
+    keywordReviewCount: number;
+    keywordReviewFailedCount: number;
+  };
   products: Array<{
     detailId: string;
     hasReviews: boolean;
@@ -131,6 +145,8 @@ const completenessReport = JSON.parse(readFileSync(finalPackage.dataCompleteness
 
 assert.equal(completenessReport.summary.packageCompletenessStatus, "incomplete");
 assert.equal(completenessReport.summary.failedCount, 1);
+assert.equal(completenessReport.summary.keywordReviewCount, 2);
+assert.equal(completenessReport.summary.keywordReviewFailedCount, 0);
 assert.equal(completenessReport.summary.reviewMaxPagesConfigured, 2);
 assert.equal(completenessReport.products.every((product) => product.hasReviews && product.hasRawDetailText), true);
 const trailBurnCompleteness = completenessReport.products.find((product) => product.detailId === "detail-2");
@@ -196,13 +212,56 @@ assert.equal(masterReportHtml.includes("portable camping stove"), true);
 const handoffRecord = JSON.parse(readFileSync(join(layout.aiHandoffDir, "handoff-record.json"), "utf8")) as {
   handoffStatus: string;
   packageIntegrityStatus: string;
+  failureReasons: string[];
   reportRef: string;
   packageJsonRef: string;
 };
 
 assert.equal(handoffRecord.handoffStatus, "ready");
 assert.equal(handoffRecord.packageIntegrityStatus, "pass");
+assert.deepEqual(handoffRecord.failureReasons, []);
 assert.equal(handoffRecord.reportRef, "00-master-report/Amazon-Product-Mining-Master-Evidence-Report.pdf");
 assert.equal(handoffRecord.packageJsonRef, "amazon-product-mining-package.json");
+
+const reviewFailureFixture = await buildAmazonProductMiningKeywordReviewFailurePackageFixture();
+assert.equal(reviewFailureFixture.handoff.handoffStatus, "failed");
+assert.deepEqual(reviewFailureFixture.handoff.failureReasons, ["keyword_review_failed:kw-2"]);
+
+const reviewFailurePackageJson = JSON.parse(readFileSync(reviewFailureFixture.finalPackage.packageJsonPath, "utf8")) as {
+  handoff: { status: string };
+  keywordOpportunityReviews: Array<{ keywordId: string; status: string; failureReason: string | null }>;
+  keywords: Array<{ keywordId: string; aiReviewStatus: string | null; aiReviewFailureReason: string | null }>;
+};
+assert.equal(reviewFailurePackageJson.handoff.status, "failed");
+assert.equal(reviewFailurePackageJson.keywordOpportunityReviews.some((review) => review.keywordId === "kw-2" && review.status === "failed"), true);
+assert.equal(reviewFailurePackageJson.keywords.some((keyword) => keyword.keywordId === "kw-2" && keyword.aiReviewStatus === "failed"), true);
+assert.equal(reviewFailurePackageJson.keywords.some((keyword) => keyword.keywordId === "kw-2" && keyword.aiReviewFailureReason === "keyword_review_failed:kw-2"), true);
+
+const reviewFailureExceptionSummary = JSON.parse(readFileSync(reviewFailureFixture.finalPackage.exceptionSummaryPath, "utf8")) as {
+  totalExceptions: number;
+  failedCount: number;
+  keywordReviewIssueCount: number;
+  keywordReviewIssues: Array<{ scope: string; scopeId: string; status: string; reason: string | null }>;
+};
+assert.equal(reviewFailureExceptionSummary.totalExceptions, 2);
+assert.equal(reviewFailureExceptionSummary.failedCount, 3);
+assert.equal(reviewFailureExceptionSummary.keywordReviewIssueCount, 1);
+assert.equal(reviewFailureExceptionSummary.keywordReviewIssues.some((issue) => issue.scope === "keyword_review" && issue.scopeId === "kw-2" && issue.status === "failed"), true);
+
+const reviewFailureCompletenessReport = JSON.parse(readFileSync(reviewFailureFixture.finalPackage.dataCompletenessReportPath, "utf8")) as {
+  summary: { packageCompletenessStatus: string; keywordReviewFailedCount: number; failedCount: number };
+};
+assert.equal(reviewFailureCompletenessReport.summary.packageCompletenessStatus, "incomplete");
+assert.equal(reviewFailureCompletenessReport.summary.keywordReviewFailedCount, 1);
+assert.equal(reviewFailureCompletenessReport.summary.failedCount, 3);
+
+const reviewFailureHandoffRecord = JSON.parse(readFileSync(join(reviewFailureFixture.layout.aiHandoffDir, "handoff-record.json"), "utf8")) as {
+  handoffStatus: string;
+  packageIntegrityStatus: string;
+  failureReasons: string[];
+};
+assert.equal(reviewFailureHandoffRecord.handoffStatus, "failed");
+assert.equal(reviewFailureHandoffRecord.packageIntegrityStatus, "pass");
+assert.deepEqual(reviewFailureHandoffRecord.failureReasons, ["keyword_review_failed:kw-2"]);
 
 console.log("amazon-product-mining-package.acceptance: ok");

@@ -1,4 +1,7 @@
+import { join } from "node:path";
+
 import type {
+  AmazonKeywordOpportunityReviewRecord,
   AmazonProductDetail,
   AmazonReviewRecord,
   AmazonSearchResultItem,
@@ -131,6 +134,41 @@ const buildAcceptanceReviews = (taskId: string): AmazonReviewRecord[] => [
   },
 ];
 
+const buildCompletedKeywordOpportunityReview = (input: {
+  dataDir: string;
+  taskId: string;
+  keywordId: string;
+  keyword: string;
+}): AmazonKeywordOpportunityReviewRecord => {
+  const now = new Date().toISOString();
+  return {
+    reviewId: `review-${input.keywordId}`,
+    taskId: input.taskId,
+    keywordId: input.keywordId,
+    keyword: input.keyword,
+    status: "completed",
+    decision: "PASS",
+    demandSignal: "strong",
+    reviewHealth: "medium",
+    priceCeiling: "medium",
+    competitionOpenness: "medium",
+    improvementOpportunity: "strong",
+    dataConfidence: "medium",
+    evidenceRefs: [`keyword-${input.keywordId}-evidence`],
+    missingEvidence: [],
+    riskPoints: ["validate landed cost later"],
+    humanNextStep: "enter_next_validation",
+    aiPromptText: "Review keyword opportunity package.",
+    aiRawResponse: "{\"decision\":\"PASS\"}",
+    aiResponseRef: join(input.dataDir, `${input.keywordId}-keyword-review-response.json`),
+    packageRef: join(input.dataDir, `${input.keywordId}-full-evidence-package`),
+    keywordPackageSliceRef: join(input.dataDir, `${input.keywordId}-navigation.json`),
+    failureReason: null,
+    createdAt: now,
+    updatedAt: null,
+  };
+};
+
 export const seedAmazonProductMiningPackageAcceptanceStorage = (input: {
   dataDir: string;
   taskId: string;
@@ -167,6 +205,14 @@ export const seedAmazonProductMiningPackageAcceptanceStorage = (input: {
     failureReason: null,
   });
   storage.saveKeywords(buildAcceptanceKeywords({ taskId: input.taskId, keywordRunId: input.keywordRunId }));
+  for (const keyword of buildAcceptanceKeywords({ taskId: input.taskId, keywordRunId: input.keywordRunId })) {
+    storage.saveKeywordOpportunityReview(buildCompletedKeywordOpportunityReview({
+      dataDir: input.dataDir,
+      taskId: input.taskId,
+      keywordId: keyword.keywordId,
+      keyword: keyword.keyword,
+    }));
+  }
   storage.persistSearchResults(buildAcceptanceSearchResults(input.taskId));
   input.products.forEach((product, index) => {
     storage.persistProductDetail(product, [`item-${index + 1}`]);

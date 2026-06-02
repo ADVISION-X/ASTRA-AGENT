@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T22:23:49.609Z",
+  "generatedAt": "2026-06-02T11:01:09.762Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -623,17 +623,23 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+handoff-record+acceptance",
-      "summary": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when manual-required reasons are empty and package integrity passes.",
+      "summary": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when failure reasons and manual-required reasons are empty, keyword review issues are absent, and package integrity passes.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-sections.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts"
+        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow-packaging.ts"
       ],
       "forbidden": [
         "image-evidence-index pretending to be downloaded binary proof instead of url_only evidence.",
         "Mixing all review rows into one task-wide file that loses per-product traceability.",
+        "handoffStatus=ready while failureReasons is non-empty.",
         "handoffStatus=ready while manualRequiredReasons is non-empty.",
         "handoffStatus=ready while packageIntegrityStatus is failed.",
+        "handoffStatus=ready while any keyword opportunity review is failed or manual_required.",
+        "Master package omitting keyword opportunity review status, decision, references, or failure reasons.",
+        "exception-summary or data-completeness-report omitting failed/manual_required keyword opportunity reviews.",
         "Hiding missing artifacts, missing fields, or partial review coverage."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -675,6 +681,8 @@
         "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts"

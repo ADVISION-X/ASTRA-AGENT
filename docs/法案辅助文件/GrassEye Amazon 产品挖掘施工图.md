@@ -756,7 +756,9 @@ amazon-product-mining-package-{taskId}/
 - `reviews.jsonl` 必须按产品落地，保证 review 证据可逐产品流式读取。
 - `package-file-hashes.json` 必须提供包内文件 hash 清单，支持 handoff 前后校验。
 - `data-completeness-report.json` 与 `package-integrity-report.json` 必须诚实披露缺口与缺失产物。
-- `handoff-record.json` 只在 package-integrity 通过且 manual_required 为空时进入 `ready`。
+- `amazon-product-mining-package.json` 必须汇总 `keywordOpportunityReviews`，且 `keywords[]` 必须暴露每个 keyword 的 AI review status、decision、humanNextStep、confidence、artifact refs 与 failure reason。
+- `exception-summary.json`、`manual-required.json`、`failed-items.json` 与 `data-completeness-report.json` 必须把 failed/manual_required keyword opportunity review 纳入同一账本。
+- `handoff-record.json` 只在 package-integrity 通过、`failureReasons=[]`、`manualRequiredReasons=[]` 且没有 failed/manual_required keyword opportunity review 时进入 `ready`。
 
 | owner | package.ts |
 | 必须可追溯 | keyword -> product -> review |
@@ -820,10 +822,11 @@ handoff record:
   taskScope
   dataCompletenessStatistics
   handoffStatus
+  failureReasons
 ```
 
 | owner | handoff.ts |
-| 禁止 | Agent 在 handoff 中输出最终选品建议 / 编造缺失证据 |
+| 禁止 | Agent 在 handoff 中输出最终选品建议 / 编造缺失证据 / 失败后仍标记 ready |
 | 完成 | task.status = package_completed 且 handoffStatus = ready |
 
 ---

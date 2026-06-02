@@ -495,6 +495,8 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 4. 数据包必须明确哪些数据成功、哪些失败、哪些受页面限制。
 5. 数据包必须保留原始证据索引，方便后续复查。
 6. 数据包生成后，任务进入任务级打包与交接准备阶段，此时还不等于 `package_completed`。
+7. 每个关键词的 keyword opportunity review 状态必须汇总到 master package 的 keyword 列表与 review 列表中，不能只存在于单独 response 文件或数据库表。
+8. `failed` / `manual_required` keyword opportunity review 必须进入异常摘要、完整性统计和 handoff readiness 账本。
 
 ---
 
@@ -549,8 +551,9 @@ PDF 和结构化数据包生成完成后，Agent 将其作为完整任务输入�
 1. 最终高级 AI 只基于完整任务数据包做决策，不应凭空补充不存在的数据。
 2. Agent 不在本流程中输出最终选品建议；关键词级机会筛选也不等于最终选品。
 3. 如果数据包不完整，高级 AI 必须能看到不完整原因。
-4. 上传完成并形成 task handoff summary 后，Amazon 产品挖掘流程结束。
-5. 后续选品评分、打样建议、产品矩阵判断属于下一阶段流程，不属于本文件范围。
+4. PDF 与结构化数据包生成不等于可交接；只有 `failureReasons=[]`、`manualRequiredReasons=[]`、无 failed/manual_required keyword opportunity review 且 package integrity pass 时，handoff 才能进入 `ready`。
+5. 如果 task 已 failed 或 keyword review failed，handoff record 必须明确 not handoff-ready，不得因为文件已生成而标记 `ready`。
+6. 后续选品评分、打样建议、产品矩阵判断属于下一阶段流程，不属于本文件范围。
 
 ---
 
@@ -915,6 +918,7 @@ flow:
       - "complete_product_detail_records"
       - "full_accessible_review_records"
       - "keyword_opportunity_review_records"
+      - "keyword_review_status_on_each_master_keyword"
       - "page_snapshot_indexes"
       - "failure_exception_manual_required_records"
       - "data_completeness_statistics"
@@ -928,6 +932,7 @@ flow:
       - "must_trace_review_to_product"
       - "must_trace_keyword_review_to_keywordId"
       - "must_disclose_failed_or_restricted_data"
+      - "failed_or_manual_required_keyword_reviews_must_enter_exception_and_completeness_ledgers"
       - "must_preserve_raw_evidence_index"
 
   - step_id: "S15"
@@ -971,6 +976,7 @@ flow:
       - "advanced_ai_must_decide_only_based_on_full_task_data_package"
       - "agent_must_not_output_final_product_selection_in_this_process"
       - "incomplete_data_must_be_visible_to_advanced_ai"
+      - "generated_pdf_or_package_files_do_not_make_handoff_ready_when_failureReasons_or_keyword_review_issues_exist"
       - "after_handoff_this_process_ends"
 
 status_values:
