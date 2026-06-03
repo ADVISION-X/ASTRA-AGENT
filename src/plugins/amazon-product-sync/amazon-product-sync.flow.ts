@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type {
   AmazonProductSyncInput,
+  AmazonProductSyncItemDiagnostic,
   AmazonProductSyncRequiredField,
   AmazonProductSyncResultItem,
   AmazonProductSyncTaskRecord,
@@ -8,6 +9,7 @@ import type {
 import {
   buildInventoryExtractionScript,
   buildInventorySearchProbeScript,
+  buildInventorySearchSubmitScript,
   buildVariationExpansionProbeScript,
 } from "./amazon-product-sync.dom-scripts.js";
 
@@ -64,10 +66,27 @@ type ExpansionProbe = {
   readonly points: readonly ExpanderPoint[];
 };
 
+type InventorySearchSubmitResult = {
+  readonly url: string;
+  readonly title: string;
+  readonly detectedState: PageState;
+  readonly ok: boolean;
+  readonly submittedValue: string | null;
+  readonly inputValue: string | null;
+  readonly clickedButton: boolean;
+  readonly topGlobalSearchExcluded: boolean;
+  readonly reason: string | null;
+};
+
 export type AmazonProductSyncFlowProgress = {
   readonly reachedStep: string;
   readonly items?: readonly AmazonProductSyncResultItem[];
   readonly reason?: string | null;
+  readonly authGate?: AmazonProductSyncItemDiagnostic["authGate"];
+  readonly detectedState?: string;
+  readonly diagnosticStage?: string;
+  readonly pageTitle?: string | null;
+  readonly pageUrlPath?: string | null;
 };
 
 type ProgressReporter = (progress: AmazonProductSyncFlowProgress) => Promise<void>;
@@ -97,11 +116,37 @@ const terminalTaskStatusFromPage = (state: PageState): AmazonProductSyncTaskReco
   return null;
 };
 
+const authGateFromState = (state: PageState): AmazonProductSyncItemDiagnostic["authGate"] =>
+  state === "ready" ? "none" : state;
+
+const pageUrlPath = (rawUrl: string): string | null => {
+  try {
+    const url = new URL(rawUrl);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return null;
+  }
+};
+
+const buildDiagnostic = (input: {
+  readonly detectedState: PageState;
+  readonly stageName: string;
+  readonly title: string;
+  readonly url: string;
+}): AmazonProductSyncItemDiagnostic => ({
+  authGate: authGateFromState(input.detectedState),
+  detectedState: input.detectedState,
+  diagnosticStage: input.stageName,
+  pageTitle: input.title || null,
+  pageUrlPath: pageUrlPath(input.url),
+});
+
 const buildMissingItem = (
   inputItem: AmazonProductSyncInput["items"][number],
   snapshotAt: string,
   reason: string,
   status: AmazonProductSyncResultItem["status"] = "not_found",
+  diagnostic?: AmazonProductSyncItemDiagnostic,
 ): AmazonProductSyncResultItem => ({
   sellerSku: inputItem.sellerSku,
   sourceKeyType: inputItem.sourceKeyType,
@@ -121,6 +166,7 @@ const buildMissingItem = (
   snapshotAt,
   rowEvidenceRef: null,
   reason,
+  ...(diagnostic ? { diagnostic } : {}),
 });
 
 const captureMainImageEvidenceRef = async (
@@ -273,15 +319,27 @@ const locateInventorySearch = async (
     description: "amazon-product-sync locate inventory filter SKU search and exclude top global search",
     script: buildInventorySearchProbeScript(),
   });
+  const diagnostic = buildDiagnostic({
+    detectedState: probe.detectedState,
+    stageName: "seller_central_inventory_filter_probe",
+    title: probe.title,
+    url: probe.url,
+  });
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_filter_probe_finished:${input.item.sellerSku}`,
+    reason: probe.reason ?? (probe.detectedState === "ready" ? "inventory_filter_probe_ready" : probe.detectedState),
+    authGate: diagnostic.authGate,
+    detectedState: diagnostic.detectedState,
+    diagnosticStage: diagnostic.diagnosticStage,
+    pageTitle: diagnostic.pageTitle,
+    pageUrlPath: diagnostic.pageUrlPath,
   });
   const terminalStatus = terminalTaskStatusFromPage(probe.detectedState);
   if (terminalStatus) {
-    return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked");
+    return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked", diagnostic);
   }
   if (!probe.inventorySearchInputPoint || !probe.inventorySearchButtonPoint || !probe.topGlobalSearchExcluded) {
-    return buildMissingItem(input.item, input.snapshotAt, probe.reason ?? "inventory_filter_search_not_found", "blocked");
+    return buildMissingItem(input.item, input.snapshotAt, probe.reason ?? "inventory_filter_search_not_found", "blocked", diagnostic);
   }
   return {
     ...probe,
@@ -292,45 +350,39 @@ const locateInventorySearch = async (
 
 const submitInventorySearch = async (
   input: SearchAndExtractInput,
-  probe: ReadyInventorySearchProbe,
-): Promise<void> => {
+): Promise<AmazonProductSyncResultItem | null> => {
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_filter_type_started:${input.item.sellerSku}`,
   });
-  await input.browser.click({
-    targetLabel: `Seller Central inventory filter SKU search input ${input.item.sellerSku}`,
-    point: probe.inventorySearchInputPoint,
-    coordinateSpace: "browserViewport",
-    button: "left",
-    clickCount: 1,
+  const submitResult = await input.browser.evaluateActiveTab<InventorySearchSubmitResult>({
+    description: `amazon-product-sync fill inventory filter SKU shadow input and submit search ${input.item.sellerSku}`,
+    script: buildInventorySearchSubmitScript(input.item.sellerSku),
   });
-  await input.browser.textInput({
-    targetLabel: `Seller Central inventory filter clear SKU search ${input.item.sellerSku}`,
-    action: "clear-input",
-  });
-  await input.browser.textInput({
-    targetLabel: `Seller Central inventory filter type SKU ${input.item.sellerSku}`,
-    action: "type-text",
-    text: input.item.sellerSku,
-  });
+  const terminalStatus = terminalTaskStatusFromPage(submitResult.detectedState);
+  if (terminalStatus) {
+    return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked");
+  }
+  if (!submitResult.ok || !submitResult.clickedButton || !submitResult.topGlobalSearchExcluded) {
+    return buildMissingItem(input.item, input.snapshotAt, submitResult.reason ?? "inventory_filter_shadow_input_submit_failed", "blocked");
+  }
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_filter_submit_started:${input.item.sellerSku}`,
   });
-  await input.browser.click({
-    targetLabel: `Seller Central inventory filter submit SKU search ${input.item.sellerSku}`,
-    point: probe.inventorySearchButtonPoint,
-    coordinateSpace: "browserViewport",
-    button: "left",
-    clickCount: 1,
-  });
   await input.browser.wait(1800);
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_filter_submit_finished:${input.item.sellerSku}`,
+  });
+  return null;
 };
 
 const revealInventoryVariations = async (input: SearchAndExtractInput): Promise<void> => {
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_variation_expand_started:${input.item.sellerSku}`,
   });
-  await expandSellerCentralParentRows(input.browser);
+  await expandSellerCentralParentRows(input);
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_variation_expand_finished:${input.item.sellerSku}`,
+  });
 };
 
 const extractInventoryPage = async (
@@ -343,15 +395,27 @@ const extractInventoryPage = async (
     description: `amazon-product-sync verify result DOM and read exact SKU row ${input.item.sellerSku}`,
     script: buildInventoryExtractionScript(input.item.sellerSku),
   });
+  const diagnostic = buildDiagnostic({
+    detectedState: page.detectedState,
+    stageName: "seller_central_inventory_dom_extract",
+    title: page.title,
+    url: page.url,
+  });
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_dom_extract_finished:${input.item.sellerSku}`,
+    reason: page.detectedState === "ready" ? "inventory_dom_extract_finished" : page.detectedState,
+    authGate: diagnostic.authGate,
+    detectedState: diagnostic.detectedState,
+    diagnosticStage: diagnostic.diagnosticStage,
+    pageTitle: diagnostic.pageTitle,
+    pageUrlPath: diagnostic.pageUrlPath,
   });
   const pageTerminalStatus = terminalTaskStatusFromPage(page.detectedState);
   if (pageTerminalStatus) {
-    return buildMissingItem(input.item, input.snapshotAt, pageTerminalStatus, "blocked");
+    return buildMissingItem(input.item, input.snapshotAt, pageTerminalStatus, "blocked", diagnostic);
   }
   if (!page.searchVerified) {
-    return buildMissingItem(input.item, input.snapshotAt, "inventory_search_result_dom_not_verified", "blocked");
+    return buildMissingItem(input.item, input.snapshotAt, "inventory_search_result_dom_not_verified", "blocked", diagnostic);
   }
   return page;
 };
@@ -373,42 +437,51 @@ const resolveExtractedSkuItem = async (
 const searchAndExtractSkuItem = async (input: SearchAndExtractInput): Promise<AmazonProductSyncResultItem> => {
   const probe = await locateInventorySearch(input);
   if ("status" in probe) return probe;
-  await submitInventorySearch(input, probe);
+  const failedSubmit = await submitInventorySearch(input);
+  if (failedSubmit) return failedSubmit;
+  const initialPage = await extractInventoryPage(input);
+  if ("status" in initialPage) return initialPage;
+  if (initialPage.rows.some((row) => normalizeSku(row.sellerSku) === normalizeSku(input.item.sellerSku))) {
+    return resolveExtractedSkuItem(input, initialPage);
+  }
   await revealInventoryVariations(input);
   const page = await extractInventoryPage(input);
   if ("status" in page) return page;
   return resolveExtractedSkuItem(input, page);
 };
 
-async function expandSellerCentralParentRows(browser: BrowserController): Promise<void> {
+async function expandSellerCentralParentRows(input: SearchAndExtractInput): Promise<void> {
   let stagnantPasses = 0;
   for (let pass = 0; pass < 16; pass += 1) {
-    const result = await browser.evaluateActiveTab<ExpansionProbe>({
+    const result = await input.browser.evaluateActiveTab<ExpansionProbe>({
       description: "amazon-product-sync locate collapsed Seller Central parent variation expanders",
       script: buildVariationExpansionProbeScript(),
+    });
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_variation_expand_pass_${pass}:${input.item.sellerSku}`,
     });
     if (result.collapsedCount === 0) return;
     const point = result.points[0];
     if (!point) {
-      await browser.scroll({
+      await input.browser.scroll({
         targetLabel: "Seller Central inventory variation expander discovery",
         deltaX: 0,
         deltaY: 720,
         coordinateSpace: "browserViewport",
       });
-      await browser.wait(900);
+      await input.browser.wait(900);
       stagnantPasses += 1;
       if (stagnantPasses >= 4) return;
       continue;
     }
     stagnantPasses = 0;
-    await browser.click({
+    await input.browser.click({
       targetLabel: `Seller Central read-only variation expander ${point.label}`,
       point: { x: point.x, y: point.y },
       coordinateSpace: "browserViewport",
       button: "left",
       clickCount: 1,
     });
-    await browser.wait(1500);
+    await input.browser.wait(1500);
   }
 }

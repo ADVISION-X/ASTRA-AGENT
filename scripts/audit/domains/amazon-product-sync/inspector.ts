@@ -42,6 +42,9 @@ const requiredFlowTokens = [
   "button.sc-search-button",
   "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN",
   "shadowRoot",
+  "input[type='text'], input",
+  "dispatchEvent",
+  "SearchBox-module__searchButton MouseEvent click",
   "searchTerm",
   "ProductDetails-module__container",
   "JanusSplitBox-module__row",
@@ -50,6 +53,7 @@ const requiredFlowTokens = [
   "SKU",
   "ASIN",
   "现货（亚马逊物流）",
+  "inventory_filter_shadow_input_submit_failed",
   "inventory_search_result_dom_not_verified",
 ] as const;
 
@@ -62,6 +66,8 @@ const requiredLogEvents = [
   "amazon_product_sync.flow_failed",
   "amazon_product_sync.stale_running_task_failed",
 ] as const;
+
+const requiredDiagnosticRefs = ["authGate", "detectedState", "diagnosticStage", "pageTitle", "pageUrlPath"] as const;
 
 const forbiddenFlowTokens = [
   "setFileInputFiles",
@@ -110,6 +116,12 @@ const objectLiteralProperty = (objectLiteral: ObjectLiteralExpression, name: str
   return initializer && Node.isObjectLiteralExpression(initializer) ? initializer : null;
 };
 
+const propertyInitializerText = (objectLiteral: ObjectLiteralExpression, name: string): string | null => {
+  const item = property(objectLiteral, name);
+  if (!item || !Node.isPropertyAssignment(item)) return null;
+  return item.getInitializer()?.getText() ?? null;
+};
+
 const arrayLiteralTexts = (objectLiteral: ObjectLiteralExpression, name: string): string[] => {
   const item = property(objectLiteral, name);
   if (!item || !Node.isPropertyAssignment(item)) return [];
@@ -126,6 +138,11 @@ const hasObjectProperty = (objectLiteral: ObjectLiteralExpression, name: string)
 const nestedLiteralText = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): string | null => {
   const nested = objectLiteralProperty(objectLiteral, parent);
   return nested ? literalText(nested, child) : null;
+};
+
+const nestedPropertyInitializerText = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): string | null => {
+  const nested = objectLiteralProperty(objectLiteral, parent);
+  return nested ? propertyInitializerText(nested, child) : null;
 };
 
 const hasNestedObjectProperty = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): boolean => {
@@ -237,6 +254,9 @@ const inspectSchema = (schema: SourceFile | undefined, findings: InspectorFindin
   for (const required of ["length", "Amazon product sync task must contain exactly one SKU item; website side owns the SKU queue."]) {
     if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema must reject multi-SKU AGENT tasks: ${required}`);
   }
+  for (const required of ["AmazonProductSyncItemDiagnostic", ...requiredDiagnosticRefs]) {
+    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing auth/page diagnostic contract token: ${required}`);
+  }
 };
 
 const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
@@ -246,15 +266,18 @@ const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[],
     }
   }
   if (hasCallName(flow, "fetch")) addFinding(findings, lawId, flowPath, "flow must not fetch website callbackUrl or any external callback");
-  for (const required of ["BrowserController", "buildInventorySearchProbeScript", "buildInventoryExtractionScript", "expandSellerCentralParentRows"]) {
+  for (const required of ["BrowserController", "buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventoryExtractionScript", "expandSellerCentralParentRows"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing required AST token: ${required}`);
   }
-  for (const required of ["open", "click", "textInput", "evaluateActiveTab", "screenshotRegion"]) {
+  for (const required of ["open", "click", "evaluateActiveTab", "screenshotRegion"]) {
     if (!hasCallName(flow, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
   }
   if (!hasStringToken(flow, "reuse-host-tab")) addFinding(findings, lawId, flowPath, "flow must reuse Seller Central host tab instead of the active website tab");
   for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
+  }
+  for (const required of ["AmazonProductSyncItemDiagnostic", "buildDiagnostic", "authGateFromState", "pageUrlPath", ...requiredDiagnosticRefs]) {
+    if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing auth/page diagnostic propagation token: ${required}`);
   }
 };
 
@@ -267,6 +290,9 @@ const inspectTaskService = (taskService: SourceFile | undefined, findings: Inspe
   }
   for (const required of ["runningProgressStaleMs", "runningProgressStaleReason", "flow_progress_stale"]) {
     if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must fail stale running progress: ${required}`);
+  }
+  for (const required of ["diagnosticValue", "itemAuthGate", "resolveFailureClass", "ACCOUNT_SECURITY_BLOCKER", ...requiredDiagnosticRefs]) {
+    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service missing auth/page diagnostic log token: ${required}`);
   }
 };
 
@@ -292,8 +318,12 @@ const inspectRequiredLogEvents = (taskService: SourceFile | undefined, findings:
 const inspectProgressLogRefs = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
   const progress = emitObjectsForEvent(taskService, "amazon_product_sync.progress")[0];
   if (!progress) return;
-  for (const refName of ["site", "marketplace", "reachedStep", "previousStep", "itemCount", "reason"]) {
+  for (const refName of ["site", "marketplace", "reachedStep", "previousStep", "itemCount", "reason", ...requiredDiagnosticRefs]) {
     if (!hasNestedObjectProperty(progress, "refs", refName)) addFinding(findings, lawId, taskServicePath, `progress log missing refs.${refName}`);
+  }
+  const reasonInitializer = nestedPropertyInitializerText(progress, "refs", "reason");
+  if (reasonInitializer?.includes('"none"') || reasonInitializer?.includes("'none'")) {
+    addFinding(findings, lawId, taskServicePath, "progress log refs.reason must not default to none; it must carry a bounded diagnostic reason");
   }
 };
 
@@ -307,8 +337,15 @@ const inspectItemSummaryLog = (taskService: SourceFile | undefined, findings: In
   }
   const reviewSummary = itemSummaries.find((itemSummary) => literalText(itemSummary, "status") === "review_required");
   if (!reviewSummary) return;
+  for (const refName of requiredDiagnosticRefs) {
+    if (!hasNestedObjectProperty(reviewSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `review item summary log missing refs.${refName}`);
+  }
   for (const payloadName of ["failureClass", "stageName", "retryable", "terminal", "recoveryPolicy"]) {
     if (!hasPropertyBelow(reviewSummary, payloadName)) addFinding(findings, lawId, taskServicePath, `item summary review log missing payload.${payloadName}`);
+  }
+  const failureClassInitializer = propertyInitializerText(objectLiteralProperty(reviewSummary, "payload") ?? reviewSummary, "failureClass");
+  if (failureClassInitializer !== null && !failureClassInitializer.includes("resolveFailureClass")) {
+    addFinding(findings, lawId, taskServicePath, "review item summary failureClass must be resolved from auth/page diagnostics");
   }
 };
 
@@ -346,16 +383,16 @@ const inspectDomScripts = (
       addFinding(findings, lawId, domScriptsPath, `DOM scripts must not use forbidden token: ${forbidden}`);
     }
   }
-  for (const required of ["buildInventorySearchProbeScript", "buildInventoryExtractionScript", "buildVariationExpansionProbeScript"]) {
+  for (const required of ["buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventoryExtractionScript", "buildVariationExpansionProbeScript"]) {
     if (!hasIdentifier(domScripts, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing exported builder: ${required}`);
   }
 };
 
 const inspectAcceptance = (acceptance: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["site", "requiredFields", "missingRequestedFields", "screenshotCalls", "clickLabels", "textInputLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
+  for (const required of ["site", "requiredFields", "missingRequestedFields", "screenshotCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
     if (!hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing website/search assertion token: ${required}`);
   }
-  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "searchTerm"]) {
+  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "input[type='text'], input", "dispatchEvent", "SearchBox-module__searchButton MouseEvent click", "searchTerm"]) {
     if (!hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing DOM exclusion assertion token: ${required}`);
   }
   for (const required of ["reuse-host-tab", "acceptance-amazon-product-sync-reject-partial-fields", "amazon_product_sync_flow_timeout_after_20ms"]) {
@@ -406,7 +443,12 @@ const runInspectorFromCli = async (): Promise<void> => {
   const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === domain);
   if (!planEntry) throw new Error("amazon-product-sync audit plan entry is missing.");
   const output = await inspectDomain({ project: createAuditProject(), planEntry, generatedPlan: [planEntry], completedReports: {} });
-  if (output.findings.length > 0) throw new Error(`amazon-product-sync failed with ${output.findings.length} finding(s).`);
+  if (output.findings.length > 0) {
+    for (const finding of output.findings.slice(0, 10)) {
+      process.stderr.write(`[AUDIT] amazon-product-sync finding ${finding.filePath}: ${finding.message}\n`);
+    }
+    throw new Error(`amazon-product-sync failed with ${output.findings.length} finding(s).`);
+  }
   process.stdout.write("[AUDIT] amazon-product-sync PASS\n");
 };
 

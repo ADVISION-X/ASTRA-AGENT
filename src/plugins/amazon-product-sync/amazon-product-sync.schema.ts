@@ -58,6 +58,14 @@ export type AmazonProductSyncItemStatus =
   | "parse_failed"
   | "skipped";
 
+export type AmazonProductSyncItemDiagnostic = {
+  readonly authGate: "none" | "login_required" | "captcha_or_2fa_required" | "review_required";
+  readonly detectedState: string;
+  readonly diagnosticStage: string;
+  readonly pageTitle: string | null;
+  readonly pageUrlPath: string | null;
+};
+
 export type AmazonProductSyncResultItem = {
   readonly sellerSku: string;
   readonly sourceKeyType: "sku" | "asin";
@@ -77,6 +85,7 @@ export type AmazonProductSyncResultItem = {
   readonly snapshotAt: string;
   readonly rowEvidenceRef: string | null;
   readonly reason: string | null;
+  readonly diagnostic?: AmazonProductSyncItemDiagnostic;
 };
 
 export type AmazonProductSyncTaskRecord = {

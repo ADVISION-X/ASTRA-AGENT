@@ -16,6 +16,7 @@ import {
 const flowTimeoutReasonPrefix = "amazon_product_sync_flow_timeout_after_";
 const runningProgressStaleMs = 3_000;
 const runningProgressStaleReason = `amazon_product_sync_running_progress_stale_after_${runningProgressStaleMs}ms`;
+const accountSecurityReasons = new Set(["login_required", "captcha_or_2fa_required", "review_required"]);
 
 export type AmazonProductSyncRuntime = {
   readonly dataDir: string;
@@ -133,13 +134,30 @@ const logFlowFinished = (runtime: AmazonProductSyncRuntime, result: AmazonProduc
       itemCount: String(result.items.length),
     },
     payload: {
-      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+      failureClass: resolveFailureClass(result.reason, result.items),
       stageName: "amazon_product_sync_flow",
       retryable: false,
       terminal: true,
       recoveryPolicy: "review_required",
     },
   });
+};
+
+const diagnosticValue = (value: string | null | undefined): string => value && value.length > 0 ? value : "unknown";
+
+const itemAuthGate = (item: AmazonProductSyncTaskRecord["items"][number]): string =>
+  item.diagnostic?.authGate
+  ?? (item.reason && accountSecurityReasons.has(item.reason) ? item.reason : "none");
+
+const resolveFailureClass = (
+  reason: string | null | undefined,
+  items: readonly AmazonProductSyncTaskRecord["items"][number][] = [],
+): RuntimeFailureClass => {
+  if (reason && accountSecurityReasons.has(reason)) return RuntimeFailureClass.ACCOUNT_SECURITY_BLOCKER;
+  if (items.some((item) => accountSecurityReasons.has(itemAuthGate(item)) || (item.reason && accountSecurityReasons.has(item.reason)))) {
+    return RuntimeFailureClass.ACCOUNT_SECURITY_BLOCKER;
+  }
+  return RuntimeFailureClass.DOM_PROBE_FAILURE;
 };
 
 const logProgress = (
@@ -167,7 +185,12 @@ const logProgress = (
       reachedStep: progress.reachedStep,
       previousStep: task.reachedStep,
       itemCount: String(progress.items?.length ?? task.items.length),
-      reason: progress.reason ?? "none",
+      reason: progress.reason ?? "progress_continues",
+      authGate: progress.authGate ?? "none",
+      detectedState: progress.detectedState ?? "unknown",
+      diagnosticStage: progress.diagnosticStage ?? progress.reachedStep,
+      pageTitle: diagnosticValue(progress.pageTitle),
+      pageUrlPath: diagnosticValue(progress.pageUrlPath),
     },
   });
 };
@@ -207,6 +230,7 @@ const logReviewItemSummary = (
   result: AmazonProductSyncTaskRecord,
   item: AmazonProductSyncTaskRecord["items"][number],
 ): void => {
+  const diagnostic = item.diagnostic;
   runtime.runtimeLogger.emit({
     traceId: result.taskId,
     level: "warn",
@@ -229,9 +253,14 @@ const logReviewItemSummary = (
       missingRequestedFields: item.missingRequestedFields.join(",") || "none",
       rowEvidenceRef: item.rowEvidenceRef ?? "none",
       mainImageEvidenceRef: item.sellerCentralMainImageEvidenceRef ?? "none",
+      authGate: itemAuthGate(item),
+      detectedState: diagnosticValue(diagnostic?.detectedState),
+      diagnosticStage: diagnosticValue(diagnostic?.diagnosticStage),
+      pageTitle: diagnosticValue(diagnostic?.pageTitle),
+      pageUrlPath: diagnosticValue(diagnostic?.pageUrlPath),
     },
     payload: {
-      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+      failureClass: resolveFailureClass(item.reason, [item]),
       stageName: "amazon_product_sync_item",
       retryable: false,
       terminal: true,

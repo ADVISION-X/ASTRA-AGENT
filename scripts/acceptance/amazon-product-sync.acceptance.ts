@@ -30,7 +30,6 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
   openedUrls: string[] = [];
   openReusePolicies: string[] = [];
   clickLabels: string[] = [];
-  textInputLabels: string[] = [];
   evaluateDescriptions: string[] = [];
   evaluateScripts: string[] = [];
   screenshotCalls = 0;
@@ -89,10 +88,7 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
 
   async clickLocatedDomElement(): Promise<BrowserActionResult> { return action("clickLocatedDomElement"); }
 
-  async textInput(input: { targetLabel: string }): Promise<BrowserActionResult> {
-    this.textInputLabels.push(input.targetLabel);
-    return action(input.targetLabel);
-  }
+  async textInput(input: { targetLabel: string }): Promise<BrowserActionResult> { return action(input.targetLabel); }
 
   async screenshotRegion(): Promise<BrowserCaptureResult> {
     this.screenshotCalls += 1;
@@ -125,6 +121,19 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
         inventorySearchUsesShadowInput: true,
         inventorySearchInputPoint: { x: 327, y: 310 },
         inventorySearchButtonPoint: { x: 604, y: 310 },
+        reason: null,
+      } as T;
+    }
+    if (input.description.includes("fill inventory filter SKU shadow input and submit search")) {
+      return {
+        url: "https://sellercentral.amazon.ae/myinventory/inventory",
+        title: "Manage Your Inventory",
+        detectedState: "ready",
+        ok: true,
+        submittedValue: "DL-UG6I-2OWL",
+        inputValue: "DL-UG6I-2OWL",
+        clickedButton: true,
+        topGlobalSearchExcluded: true,
         reason: null,
       } as T;
     }
@@ -224,17 +233,17 @@ assert.ok(terminal.items[0]?.rowEvidenceRef?.startsWith("evidence://amazon-produ
 
 assert.ok(browser.openedUrls[0]?.includes("/myinventory/inventory"));
 assert.ok(browser.openReusePolicies.includes("reuse-host-tab"));
-assert.ok(browser.clickLabels.some((label) => label.includes("inventory filter SKU search input")));
-assert.ok(browser.clickLabels.some((label) => label.includes("inventory filter submit SKU search")));
-assert.ok(browser.textInputLabels.some((label) => label.includes("clear SKU search")));
-assert.ok(browser.textInputLabels.some((label) => label.includes("type SKU DL-UG6I-2OWL")));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("exclude top global search")));
+assert.ok(browser.evaluateDescriptions.some((description) => description.includes("fill inventory filter SKU shadow input")));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("verify result DOM")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("form#sc-global-search-form")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("input#sc-search-field")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("button.sc-search-button")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("shadowRoot")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("input[type='text'], input")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("dispatchEvent")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("SearchBox-module__searchButton MouseEvent click")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("searchTerm")));
 
 await assert.rejects(

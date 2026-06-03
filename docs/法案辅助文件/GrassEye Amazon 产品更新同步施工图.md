@@ -13,7 +13,7 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 -> workbench-amazon-product-sync-routes.ts
 -> startAmazonProductSyncTask
 -> runAmazonProductSyncFlow
--> BrowserController open/click/textInput/evaluateActiveTab/screenshotRegion
+-> BrowserController open/evaluateActiveTab/click/screenshotRegion
 -> Seller Central inventory read-only evidence
 -> task status JSON
 -> ON-THE-WAY 同源 API `/api/apex/amazon-manage/products/sync/status/[taskId]`
@@ -71,12 +71,12 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 
 1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`；每个 SKU 必须固定请求 `mainImage`、`asin`、`availableInventory`。
 2. 打开对应 marketplace 的 Seller Central 库存管理页，例如 `https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all`。
-3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始输入、提交搜索、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
+3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始写入 shadow input、提交搜索、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
 4. `/status/:taskId` 和 `/latest` 读取 queued/running task 时，如果 `updatedAt` 超过 3 秒没有推进，AGENT 必须把同一个 task 固化为 `failed`，reason 为 `amazon_product_sync_running_progress_stale_after_3000ms`，`reachedStep` 为 `flow_progress_stale`。AGENT 重启后旧 running task 不得继续堵住网站按钮。
 5. 如果出现 login、captcha、2FA、权限页或 Seller Central 页面未就绪，不返回 success，按结构化 status 结束该 item 或 task。
 6. 运行搜索框 probe：必须定位库存筛选条内的 Katal 搜索输入，必须证明顶部全局搜索框被排除。
-7. 通过 BrowserController 点击库存搜索输入、清空输入、输入 SKU、点击库存搜索按钮。外部请求不得传 selector、坐标、命令或 action plan。
-8. 搜索提交后运行结果 DOM probe。成功证据必须来自 URL `searchTerm`、库存结果计数或目标 SKU 行；不能只看输入框 value。
+7. 通过 AGENT 内置 DOM 脚本定位库存筛选区 Katal host 的 open shadow input `input[type='text'], input`，同时写入 host value 与 shadow input value，派发 composed `input` / `change` 事件，然后只点击库存筛选区搜索按钮。外部请求不得传 selector、坐标、命令或 action plan。禁止用坐标 focus + OS textInput 作为 SKU 提交方式，因为实测会聚焦 Katal host 但不更新真实输入节点。
+8. 搜索提交后运行结果 DOM probe。成功证据必须来自 URL `searchTerm` 精确等于 SKU，或结果 DOM 出现目标 SKU 行；不能只看输入框 value，也不能只看库存结果计数。
 9. 如果页面展示父体/变体组，先执行只读 reveal：定位 `VariationExpander-module__expanderHeader svg` 中心点并点击，直到子 SKU 行进入 DOM。不得点击保存、提交、编辑、价格或库存写入控件。
 10. 在结果行中以结构化 label/value 匹配目标 SKU：目标行必须同时存在 `ProductDetails-module__container` 和 `JanusSplitBox-module__row`，且某个 label/value pair 精确等于 `SKU` / 请求 SKU。
 11. 从同一目标行读取：
@@ -89,7 +89,7 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 12. 读取目标行产品图节点和截图区域。`img[src]` 只能作为 DOM 定位证据；只有 BrowserController `screenshotRegion` 成功后，才能返回 `sellerCentralMainImageEvidenceRef`。
 13. 返回 task status JSON，per item 带 `requestedFields`、`missingRequestedFields`、`matched/not_found/ambiguous/blocked` 状态和 bounded row evidence。网站侧通过既有 status/latest 轮询链更新自己的产品记录。
 
-生产代码必须让 `evaluateActiveTab` 只负责读取 DOM、返回字段、候选点位和截图信号。点击、输入、展开和 screenshotRegion 必须走 BrowserController 批准动作。
+生产代码必须让 `evaluateActiveTab` 负责 DOM probe、库存 Katal shadow input 写入/提交、结果读取、候选点位和截图信号。只读变体展开点击和 screenshotRegion 必须走 BrowserController 批准动作。
 
 ## 日志矩阵
 
@@ -114,6 +114,15 @@ Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、
 - `previousStep`
 - `itemCount`
 - `reason`
+- `authGate`
+- `detectedState`
+- `diagnosticStage`
+- `pageTitle`
+- `pageUrlPath`
+
+`reason` 禁止默认为 `none`。无异常的普通推进只能使用有界语义值，例如 `progress_continues`、`inventory_filter_probe_ready`、`inventory_dom_extract_finished`；login、captcha、2FA、review 或页面未就绪时必须写真实 blocking reason。
+
+`authGate` 是防复发强制字段，只允许表达当前页面鉴权门状态：`none`、`login_required`、`captcha_or_2fa_required`、`review_required`。`detectedState` 必须来自 Seller Central DOM/page probe 的结构化页面状态。`diagnosticStage` 必须指向产生诊断的阶段。`pageTitle` 与 `pageUrlPath` 只用于定位页面状态，禁止写完整敏感 query 或 cookie/token；无法取得时写 `unknown`，不得省略字段。
 
 `amazon_product_sync.item_summary` 必须带：
 
@@ -124,6 +133,14 @@ Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、
 - `rowEvidenceRef`
 - `mainImageEvidenceRef`
 
+当 item 不是 `matched` 时，`amazon_product_sync.item_summary` 还必须带：
+
+- `authGate`
+- `detectedState`
+- `diagnosticStage`
+- `pageTitle`
+- `pageUrlPath`
+
 当 item 不是 `matched` 时，`amazon_product_sync.item_summary` 必须进入 review/failed 语义，并在 payload 带：
 
 - `failureClass`
@@ -132,9 +149,13 @@ Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、
 - `terminal`
 - `recoveryPolicy`
 
+login、captcha、2FA、review 或权限页面导致的 blocked/review item，payload.failureClass 必须归类为 `ACCOUNT_SECURITY_BLOCKER`，不得落到普通 `DOM_PROBE_FAILURE`。DOM 未命中、搜索结果未验证、库存行未找到等非鉴权问题才允许使用 DOM 类 failureClass。
+
 `amazon_product_sync.stale_running_task_failed` 必须带 stale reason，并在 payload 带 `failureClass`、`stageName`、`retryable`、`terminal`、`recoveryPolicy`。`/status/:taskId` 和 `/latest` 必须把 RuntimeLogger 传入 stale 固化路径，禁止只改 task JSON 而无运行日志。
 
 inspector 必须用 AST 检查上述矩阵与生产代码一致。防复发验证必须故意破坏一次生产代码日志事件或字段，观察 `npm run audit:amazon-product-sync` 失败，再恢复并观察通过。
+
+inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product_sync.item_summary` 的鉴权/页面诊断字段，必须禁止 `progress.reason ?? "none"` 这类不可分析默认值。该检查只能使用 ts-morph AST，不得用 grep、正则或全文字符串扫描作为执法依据。
 
 ## 实测 DOM 结构
 
@@ -158,7 +179,7 @@ inspector 必须用 AST 检查上述矩阵与生产代码一致。防复发验�
 - 搜索范围下拉：`kat-dropdown.SearchBox-module__searchDropdown--y7jts`，实测 value 为 `ALL`，显示文本为 `所有`
 - 输入 host：`kat-input.SearchBox-module__searchInput--T3Fdk[type="text"][placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]`
 - 真实输入节点在 open shadow DOM：`kat-input.SearchBox-module__searchInput--T3Fdk` -> `shadowRoot` -> `input#katal-id-4[type="text"]`
-- 搜索按钮区域：`.SearchBox-module__searchButton--5iHxx`，实测 rect `x=582 y=294 width=45 height=32`，内部 `kat-icon[name="search"]`
+- 搜索按钮区域：`.SearchBox-module__searchButton--5iHxx`，实测 rect `x=582 y=294 width=45 height=32`，内部 `kat-icon[name="search"]`；提交必须对该搜索按钮区域派发 `MouseEvent` 的 `mousedown` / `mouseup` / `click`，不能点顶部搜索，也不能用不存在的原生 `button.click()` 当成功证据。
 - 普通 `document.querySelectorAll("input")` 不足以发现该输入框；DOM probe 必须递归读取 open shadowRoot。
 
 ## 搜索框排他性规则
@@ -169,7 +190,9 @@ inspector 必须用 AST 检查上述矩阵与生产代码一致。防复发验�
 - `topGlobalSearchExcluded: true` 必须由 DOM probe 证明：目标 Katal input 不在 `form#sc-global-search-form` 内，且不是 `input#sc-search-field`。
 - `inventorySearchUsesShadowInput: true` 表示 probe 已观察到 Katal host 的 open shadow input。
 - `inventorySearchInputPoint` 和 `inventorySearchButtonPoint` 只能由 Agent 内置 DOM probe 产生，外部请求不能提供。
-- `searchVerified: true` 必须来自结果 DOM 或 URL search state：`url_searchTerm_exact`、`inventory_result_count_visible`、`exact_sku_row_visible` 至少一个成立。
+- 提交 SKU 时必须直接写入 `kat-input[placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]` 的 open `shadowRoot` 内部 `input[type='text'], input`，并对 host 与 shadow input 派发 composed `input` / `change` 事件。
+- `inputValue === sellerSku` 只能证明提交动作写入成功，不能作为搜索成功；它必须继续通过结果 DOM / URL / 精确 SKU 行验证。
+- `searchVerified: true` 必须来自结果 DOM 或 URL search state：`url_searchTerm_exact`、`exact_sku_row_visible` 至少一个成立。
 - 若只完成输入但结果 DOM 未验证，item 必须返回 `blocked`，reason 为 `inventory_search_result_dom_not_verified`。
 
 ## 结果行结构
@@ -185,7 +208,7 @@ https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pag
 结果状态：
 
 - 页面标题：`Manage Your Inventory`
-- 结果计数：`1 - 1 共 1`
+- 结果计数：`1 - 1 共 1`，只能作为辅助观察，不能单独作为 `searchVerified` 证据。
 - 行容器：`JanusTable-module__tableContentRow--MGDsi`
 - 产品详情容器：`ProductDetails-module__container--bVY-u`
 - 目标行 rect：`x=18 y=444 width=1568 height=194`
@@ -247,7 +270,8 @@ https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pag
 - Seller Central login/captcha/2FA/权限问题不得返回 success。
 - `matched/not_found/ambiguous/blocked` 必须有 per-item status。
 - SKU 搜索入口必须排除 `#sc-global-search-form #sc-search-field`，只允许库存筛选区 Katal 搜索框。
-- 搜索提交必须以结果 DOM 命中目标 SKU、结果计数或 URL `searchTerm` 为准，不能以输入框 value 为准。
+- SKU 提交必须写入库存 Katal open shadow input 并派发 composed input/change 事件；禁止退回坐标 focus + OS textInput 作为提交主链路。
+- 搜索提交必须以结果 DOM 命中目标 SKU 或 URL `searchTerm` 为准，不能以输入框 value 或结果计数为准。
 - 目标行必须用 `SKU` exact label/value 匹配，不能用整行 contains 作为主判定。
 - `availableInventory` 必须来自 exact label `现货（亚马逊物流）`。
 - mainImage 需求必须触发 BrowserController `screenshotRegion`，不能用公共图片 URL 伪造成 evidence。

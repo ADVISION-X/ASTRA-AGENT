@@ -14,7 +14,7 @@ Workbench API Boundary
 -> amazon-product-sync route
 -> amazon-product-sync task service
 -> amazon-product-sync explicit flow
--> BrowserController open/click/textInput/evaluateActiveTab/screenshotRegion
+-> BrowserController open/evaluateActiveTab/click/screenshotRegion
 -> bounded evidence/result contract
 ```
 
@@ -37,6 +37,7 @@ Workbench API Boundary
 - The flow may perform read-only page reveal actions, such as expanding Seller Central parent/variation rows, before evidence extraction.
 - The SKU search entry must be the inventory filter search control above the inventory table. It must identify the Katal search input whose placeholder is `搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN` and must support its open shadow DOM input.
 - The flow must explicitly exclude Seller Central top global search: `form#sc-global-search-form`, `input#sc-search-field`, and `button.sc-search-button`.
+- SKU search submission must write the requested SKU into the inventory Katal host's open shadow input `input[type='text'], input`, dispatch composed `input` and `change` events, and click only the inventory filter search button. Coordinate focus plus OS text input is not valid for this search because it can focus the Katal host without updating the inner input.
 - Search success must be verified from Seller Central result DOM, URL search state, result count, or exact target SKU row. A focused input value or typed text alone is not success evidence.
 - Target row selection must use structured label/value extraction. The row must contain a `SKU` pair exactly equal to the requested SKU and must expose `ASIN` and inventory labels from the same Seller Central row.
 
@@ -118,12 +119,13 @@ Workbench API Boundary
     "Flow probes the inventory filter Katal search input placeholder.",
     "Flow recursively handles open shadow DOM for the Katal input.",
     "Flow excludes form#sc-global-search-form and input#sc-search-field.",
-    "Flow submits SKU search through BrowserController actions.",
+    "Flow submits SKU search by writing the inventory Katal open shadow input and dispatching composed input/change events.",
     "Flow verifies search success from URL/result DOM/exact SKU row.",
     "Acceptance asserts the top global search is excluded."
   ],
   "forbidden": [
     "Top global Seller Central search for SKU lookup.",
+    "Coordinate focus or OS text input as the SKU search submission path.",
     "Input value only success evidence.",
     "Whole-row contains matching as the primary SKU match.",
     "Search selector provided by external caller."
