@@ -24,10 +24,11 @@ Workbench API Boundary
 - The user-facing label is `Amazon 产品更新`.
 - The plugin root is `src/plugins/amazon-product-sync/`.
 - The external route namespace is `/api/plugins/amazon-product-sync/**`.
-- The website-side request must contain the site identifier, requestId, marketplace, and exactly one SKU item with explicit requiredFields. Product update is fixed-scope: the item must request `mainImage`, `asin`, and `availableInventory` together.
+- The website-side request must contain the site identifier, requestId, marketplace, and exactly one SKU item with explicit requiredFields. Product update is fixed-scope: the item must request `mainImage`, `asin`, `availableInventory`, and `actualInventory` together.
 - AGENT task input must reject multi-SKU `items`. The website side owns the SKU queue and may call the existing start/status chain repeatedly, one SKU at a time.
 - The job input may contain site, marketplace, requestId, scope, and SKU/source-key items only. The website must not send selector/action/browser data, and neither side may narrow the field set from website missing-field state.
-- The job output may contain bounded Seller Central row evidence: site, seller SKU, requested fields, missing requested fields, ASIN snapshot, title snapshot, image evidence ref, listing status, available FBA units, inbound units, unfulfillable units, reserved units, 30-day sales snapshot, row evidence ref, and snapshot timestamp.
+- The job output may contain bounded Seller Central row evidence: site, seller SKU, requested fields, missing requested fields, ASIN snapshot, title snapshot, image evidence ref, listing status, available FBA units, actual inventory units, inbound units, unfulfillable units, reserved units, 30-day sales snapshot, row evidence ref, and snapshot timestamp.
+- `availableInventory` must be the exact `现货（亚马逊物流）` value. `actualInventory` must be derived from the same verified Seller Central row as `availableFbaUnits + reservedUnits + unfulfillableUnits`; if any source component is missing it must be `null`, and zero values must remain numeric `0`.
 - Login, captcha, 2FA, missing inventory search control, failed search submission, ambiguous rows, and missing rows must be represented as structured statuses.
 - The flow must persist observable task progress for key Seller Central actions, and a started background flow must reach a terminal persisted status instead of staying forever at `running` / `flow_started`.
 - Status reads must fail stale queued/running tasks that have not advanced recently; a restarted AGENT must not leave the website blocked by an old `running` task.
@@ -90,7 +91,7 @@ Workbench API Boundary
     "Input contains site.",
     "Input contains exactly one SKU item.",
     "The item contains requiredFields.",
-    "Every product update item requests mainImage, asin, and availableInventory together.",
+    "Every product update item requests mainImage, asin, availableInventory, and actualInventory together.",
     "Partial requiredFields are rejected.",
     "Multi-SKU AGENT tasks are rejected; website side owns the SKU queue.",
     "Main image evidence uses BrowserController screenshotRegion.",

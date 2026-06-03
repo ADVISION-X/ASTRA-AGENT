@@ -1,63 +1,55 @@
 {
-  "generatedAt": "2026-06-03T20:19:00.092Z",
+  "generatedAt": "2026-06-03T21:00:31.525Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
-    "phase": "domain-audit-runner",
-    "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
-    "lawId": "APEX-CODE-PURITY-017-V1",
-    "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
-    "message": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts keeps an orphan top-level variable named INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE.",
-    "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
+    "phase": "meta-quality",
+    "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
+    "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+    "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+    "message": "scripts/audit/domains/amazon-product-sync/inspector.ts uses source-text judgment node.getText().includes(value) on tracked ts-morph text.",
+    "minimalFixHint": "Repair the first audit-truth finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 263,
-      "endedAt": "2026-06-03T20:18:24.009Z",
+      "durationMs": 258,
+      "endedAt": "2026-06-03T21:00:29.602Z",
       "name": "codex-entry-gate",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-06-03T20:18:23.746Z",
+      "startedAt": "2026-06-03T21:00:29.344Z",
       "status": "PASS"
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 19,
-      "endedAt": "2026-06-03T20:18:24.029Z",
+      "durationMs": 20,
+      "endedAt": "2026-06-03T21:00:29.623Z",
       "name": "build-audit-artifacts",
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-06-03T20:18:24.010Z",
+      "startedAt": "2026-06-03T21:00:29.603Z",
       "status": "PASS"
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 1,
-      "endedAt": "2026-06-03T20:18:24.030Z",
+      "endedAt": "2026-06-03T21:00:29.624Z",
       "name": "active-law-full-coverage",
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-06-03T20:18:24.029Z",
-      "status": "PASS"
-    },
-    {
-      "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
-      "durationMs": 1742,
-      "endedAt": "2026-06-03T20:18:25.772Z",
-      "name": "meta-quality",
-      "phase": "meta-quality",
-      "startedAt": "2026-06-03T20:18:24.030Z",
-      "status": "PASS"
-    },
-    {
-      "command": "npm run typecheck",
-      "durationMs": 3395,
-      "endedAt": "2026-06-03T20:18:29.167Z",
-      "name": "typecheck",
-      "phase": "typecheck",
-      "startedAt": "2026-06-03T20:18:25.772Z",
+      "startedAt": "2026-06-03T21:00:29.623Z",
       "status": "PASS"
     }
   ],
   "skippedAfterFailure": [
+    {
+      "command": "npm run typecheck",
+      "name": "typecheck",
+      "phase": "typecheck"
+    },
+    {
+      "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
+      "name": "domain-audit-runner",
+      "phase": "domain-audit-runner"
+    },
     {
       "command": "npm run acceptance:constitutional-boundary-anti-escape",
       "name": "constitutional-boundary-anti-escape",
@@ -271,9 +263,9 @@
     "uncoveredLawIds": []
   },
   "metaQuality": {
-    "checked": true,
-    "findingCount": 0,
-    "reportPath": "scripts/audit/generated/audit-truth-report.generated.json"
+    "checked": false,
+    "findingCount": null,
+    "reportPath": null
   },
   "finalDecision": "FAIL"
 }

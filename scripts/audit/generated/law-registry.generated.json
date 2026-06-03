@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T20:18:24.028Z",
+  "generatedAt": "2026-06-03T21:00:29.621Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -965,7 +965,7 @@
         "Input contains site.",
         "Input contains exactly one SKU item.",
         "The item contains requiredFields.",
-        "Every product update item requests mainImage, asin, and availableInventory together.",
+        "Every product update item requests mainImage, asin, availableInventory, and actualInventory together.",
         "Partial requiredFields are rejected.",
         "Multi-SKU AGENT tasks are rejected; website side owns the SKU queue.",
         "Main image evidence uses BrowserController screenshotRegion.",

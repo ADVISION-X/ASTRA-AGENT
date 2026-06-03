@@ -25,7 +25,7 @@ type InventorySearchProbe = {
 type ExtractedRow = {
   readonly sellerSku: string; readonly asinSnapshot: string | null; readonly sellerCentralTitleSnapshot: string | null;
   readonly imagePresent: boolean; readonly listingStatus: string | null; readonly availableFbaUnits: number | null;
-  readonly inboundUnits: number | null; readonly unfulfillableUnits: number | null; readonly reservedUnits: number | null;
+  readonly actualInventoryUnits: number | null; readonly inboundUnits: number | null; readonly unfulfillableUnits: number | null; readonly reservedUnits: number | null;
   readonly sales30dSnapshot: number | null;
 };
 type ExtractedPage = {
@@ -120,6 +120,7 @@ const buildMissingItem = (
   sellerCentralMainImageEvidenceRef: null,
   listingStatus: null,
   availableFbaUnits: null,
+  actualInventoryUnits: null,
   inboundUnits: null,
   unfulfillableUnits: null,
   reservedUnits: null,
@@ -163,10 +164,12 @@ const buildMatchedItem = async (
     : null;
   const asinSnapshot = hasRequiredField(inputItem, "asin") ? row.asinSnapshot : null;
   const availableFbaUnits = hasRequiredField(inputItem, "availableInventory") ? row.availableFbaUnits : null;
+  const actualInventoryUnits = hasRequiredField(inputItem, "actualInventory") ? row.actualInventoryUnits : null;
   const missingRequestedFields = inputItem.requiredFields.filter((field) => {
     if (field === "mainImage") return !mainImageEvidenceRef;
     if (field === "asin") return !asinSnapshot;
-    return availableFbaUnits === null;
+    if (field === "availableInventory") return availableFbaUnits === null;
+    return actualInventoryUnits === null;
   });
 
   return {
@@ -181,6 +184,7 @@ const buildMatchedItem = async (
     sellerCentralMainImageEvidenceRef: mainImageEvidenceRef,
     listingStatus: row.listingStatus,
     availableFbaUnits,
+    actualInventoryUnits,
     inboundUnits: row.inboundUnits,
     unfulfillableUnits: row.unfulfillableUnits,
     reservedUnits: row.reservedUnits,

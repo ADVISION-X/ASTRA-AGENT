@@ -81,7 +81,7 @@ const productSyncBody = () => ({
     sourceKeyType: "sku",
     sourceKey: "DL-UG6I-2OWL",
     sellerSku: "DL-UG6I-2OWL",
-    requiredFields: ["mainImage", "asin", "availableInventory"],
+    requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
   }],
 });
 

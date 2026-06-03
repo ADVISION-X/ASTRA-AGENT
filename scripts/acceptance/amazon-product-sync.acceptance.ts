@@ -156,7 +156,8 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
           sellerCentralTitleSnapshot: "Acceptance Product Title",
           imagePresent: true,
           listingStatus: "active",
-          availableFbaUnits: 28,
+          availableFbaUnits: 0,
+          actualInventoryUnits: 0,
           inboundUnits: 0,
           unfulfillableUnits: 0,
           reservedUnits: 0,
@@ -219,7 +220,7 @@ const started = await startAmazonProductSyncTask({
     sourceKeyType: "sku",
     sourceKey: "DL-UG6I-2OWL",
     sellerSku: "DL-UG6I-2OWL",
-    requiredFields: ["mainImage", "asin", "availableInventory"],
+    requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
   }],
 }, { dataDir, browser, runtimeLogger });
 
@@ -230,10 +231,11 @@ const terminal = await waitForTerminal(dataDir, started.taskId);
 assert.equal(terminal.status, "success");
 assert.equal(terminal.site, "ontheway-amazon-manage");
 assert.equal(terminal.items[0]?.status, "matched");
-assert.deepEqual(terminal.items[0]?.requestedFields, ["mainImage", "asin", "availableInventory"]);
+assert.deepEqual(terminal.items[0]?.requestedFields, ["mainImage", "asin", "availableInventory", "actualInventory"]);
 assert.deepEqual(terminal.items[0]?.missingRequestedFields, []);
 assert.equal(terminal.items[0]?.asinSnapshot, "B012345678");
-assert.equal(terminal.items[0]?.availableFbaUnits, 28);
+assert.equal(terminal.items[0]?.availableFbaUnits, 0);
+assert.equal(terminal.items[0]?.actualInventoryUnits, 0);
 assert.ok(terminal.items[0]?.sellerCentralMainImageEvidenceRef?.startsWith("evidence://amazon-product-sync/"));
 assert.equal(browser.screenshotCalls, 1);
 assert.equal(browser.closeActiveTabCalls, 1);
@@ -269,7 +271,7 @@ await assert.rejects(
       requiredFields: ["availableInventory"],
     }],
   }, { dataDir, browser, runtimeLogger }),
-  /mainImage, asin, and availableInventory/u,
+  /mainImage, asin, availableInventory, and actualInventory/u,
 );
 
 await assert.rejects(
@@ -283,13 +285,13 @@ await assert.rejects(
         sourceKeyType: "sku",
         sourceKey: "DL-UG6I-2OWL",
         sellerSku: "DL-UG6I-2OWL",
-        requiredFields: ["mainImage", "asin", "availableInventory"],
+          requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
       },
       {
         sourceKeyType: "sku",
         sourceKey: "CB-T02I-5X78",
         sellerSku: "CB-T02I-5X78",
-        requiredFields: ["mainImage", "asin", "availableInventory"],
+        requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
       },
     ],
   }, { dataDir, browser, runtimeLogger }),
@@ -308,7 +310,7 @@ const timedOut = await startAmazonProductSyncTask({
     sourceKeyType: "sku",
     sourceKey: "DL-UG6I-2OWL",
     sellerSku: "DL-UG6I-2OWL",
-    requiredFields: ["mainImage", "asin", "availableInventory"],
+    requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
   }],
 }, { dataDir: timeoutDataDir, browser: timeoutBrowser, runtimeLogger, flowTimeoutMs: 20 });
 const timeoutTerminal = await waitForTerminal(timeoutDataDir, timedOut.taskId);

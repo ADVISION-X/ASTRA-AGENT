@@ -183,7 +183,14 @@ const functionHasCall = (sourceFile: SourceFile | undefined, functionName: strin
 
 const hasStringToken = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendants().some((node) =>
-    (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) && node.getLiteralText().includes(value),
+    ((Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) && node.getLiteralText().includes(value))
+    || (
+      Node.isTemplateExpression(node)
+      && (
+        node.getHead().getLiteralText().includes(value)
+        || node.getTemplateSpans().some((span) => span.getLiteral().getLiteralText().includes(value))
+      )
+    ),
   ));
 
 const hasIdentifier = (sourceFile: SourceFile | undefined, name: string): boolean =>
@@ -244,10 +251,10 @@ const inspectSchema = (schema: SourceFile | undefined, findings: InspectorFindin
   for (const required of ["site", "requiredFields", "AmazonProductSyncRequiredFieldSchema", "missingRequestedFields", "blocked"]) {
     if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing website request/status contract token: ${required}`);
   }
-  for (const required of ["mainImage", "asin", "availableInventory"]) {
-    if (!hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing required field literal: ${required}`);
+  for (const required of ["mainImage", "asin", "availableInventory", "actualInventory", "actualInventoryUnits"]) {
+    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing required field token: ${required}`);
   }
-  for (const required of ["AmazonProductSyncAllRequiredFields", "containsAllProductUpdateFields", "Amazon product update must request mainImage, asin, and availableInventory."]) {
+  for (const required of ["AmazonProductSyncAllRequiredFields", "containsAllProductUpdateFields", "Amazon product update must request mainImage, asin, availableInventory, and actualInventory."]) {
     if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema must enforce fixed product update requiredFields: ${required}`);
   }
   for (const required of ["length", "Amazon product sync task must contain exactly one SKU item; website side owns the SKU queue."]) {
@@ -272,7 +279,7 @@ const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[],
     if (!hasCallName(flow, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
   }
   if (!hasStringToken(flow, "reuse-host-tab")) addFinding(findings, lawId, flowPath, "flow must reuse Seller Central host tab instead of the active website tab");
-  for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef"]) {
+  for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef", "actualInventoryUnits"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
   }
   for (const required of ["AmazonProductSyncItemDiagnostic", "buildDiagnostic", "authGateFromState", "pageUrlPath", ...requiredDiagnosticRefs]) {
@@ -369,7 +376,7 @@ const inspectItemSummaryLog = (taskService: SourceFile | undefined, findings: In
   const itemSummaries = emitObjectsForEvent(taskService, "amazon_product_sync.item_summary");
   if (itemSummaries.length === 0) return;
   for (const itemSummary of itemSummaries) {
-    for (const refName of ["sellerSku", "itemStatus", "requestedFields", "missingRequestedFields", "rowEvidenceRef", "mainImageEvidenceRef"]) {
+    for (const refName of ["sellerSku", "itemStatus", "requestedFields", "missingRequestedFields", "availableFbaUnits", "actualInventoryUnits", "rowEvidenceRef", "mainImageEvidenceRef"]) {
       if (!hasNestedObjectProperty(itemSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `item summary log missing refs.${refName}`);
     }
   }
@@ -424,10 +431,11 @@ const inspectDomScripts = (
   for (const required of ["buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventoryExtractionScript", "buildVariationExpansionProbeScript"]) {
     if (!hasIdentifier(domScripts, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing exported builder: ${required}`);
   }
+  if (!hasIdentifier(domScripts, "actualInventoryUnits") && !hasStringToken(domScripts, "actualInventoryUnits")) addFinding(findings, lawId, domScriptsPath, "DOM scripts missing actualInventoryUnits extraction token");
 };
 
 const inspectAcceptance = (acceptance: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["site", "requiredFields", "missingRequestedFields", "screenshotCalls", "closeActiveTabCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
+  for (const required of ["site", "requiredFields", "missingRequestedFields", "actualInventoryUnits", "screenshotCalls", "closeActiveTabCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
     if (!hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing website/search assertion token: ${required}`);
   }
   for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "input[type='text'], input", "dispatchEvent", "SearchBox-module__searchButton MouseEvent click", "searchClickDelayMs"]) {

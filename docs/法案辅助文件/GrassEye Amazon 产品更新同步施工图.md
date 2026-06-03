@@ -35,7 +35,7 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
       "sourceKeyType": "sku",
       "sourceKey": "site-product-id-or-row-id",
       "sellerSku": "7Y-PMQW-FOAE",
-      "requiredFields": ["mainImage", "asin", "availableInventory"]
+      "requiredFields": ["mainImage", "asin", "availableInventory", "actualInventory"]
     }
   ]
 }
@@ -63,13 +63,13 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 5. 当前 SKU terminal 后，ON server 将 matched result 写入 `amazon_product_external_snapshot`，页面刷新产品数据。
 6. 若状态为 login/captcha/failed，队列停止并展示状态；否则继续下一个 SKU。
 
-`requiredFields` 只允许并且必须同时包含 `mainImage`、`asin`、`availableInventory`。这是产品信息更新固定范围，不再按网站侧“缺什么字段”裁剪。Agent 不反向猜网站状态，也不接受 partial requiredFields。
+`requiredFields` 只允许并且必须同时包含 `mainImage`、`asin`、`availableInventory`、`actualInventory`。这是产品信息更新固定范围，不再按网站侧“缺什么字段”裁剪。Agent 不反向猜网站状态，也不接受 partial requiredFields。
 
 ## Phase 1
 
 第一阶段只做 Seller Central 库存页只读同步：
 
-1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`；每个 SKU 必须固定请求 `mainImage`、`asin`、`availableInventory`。
+1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`；每个 SKU 必须固定请求 `mainImage`、`asin`、`availableInventory`、`actualInventory`。
 2. 打开对应 marketplace 的 Seller Central 库存管理页，例如 `https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all`。
 3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始写入 shadow input、提交搜索、等待搜索结果 DOM 落地、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
 4. `/status/:taskId` 和 `/latest` 读取 queued/running task 时，如果 `updatedAt` 超过 3 秒没有推进，AGENT 必须把同一个 task 固化为 `failed`，reason 为 `amazon_product_sync_running_progress_stale_after_3000ms`，`reachedStep` 为 `flow_progress_stale`。AGENT 重启后旧 running task 不得继续堵住网站按钮。
@@ -85,6 +85,7 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
    - `入库` -> inbound snapshot
    - `不可售` -> unfulfillable snapshot
    - `预留` -> reserved snapshot
+   - `availableFbaUnits + reservedUnits + unfulfillableUnits` -> `actualInventory`
    - `售出件数` -> 30-day sales snapshot
 12. 读取目标行产品图节点和截图区域。`img[src]` 只能作为 DOM 定位证据；只有 BrowserController `screenshotRegion` 成功后，才能返回 `sellerCentralMainImageEvidenceRef`。
 13. 返回 task status JSON，per item 带 `requestedFields`、`missingRequestedFields`、`matched/not_found/ambiguous/blocked` 状态和 bounded row evidence。网站侧通过既有 status/latest 轮询链更新自己的产品记录。
@@ -130,6 +131,8 @@ Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、
 - `itemStatus`
 - `requestedFields`
 - `missingRequestedFields`
+- `availableFbaUnits`
+- `actualInventoryUnits`
 - `rowEvidenceRef`
 - `mainImageEvidenceRef`
 
@@ -234,6 +237,7 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 
 - `asin`: `B0DB6K6WJ5`
 - `availableInventory`: `76`
+- `actualInventory`: `77`
 - `inboundUnits`: `0`
 - `unfulfillableUnits`: `1`
 - `reservedUnits`: `0`
@@ -262,7 +266,7 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - route 只接受安全 JSON。
 - 请求必须包含站点、requestId、marketplace、SKU、requiredFields。
 - AGENT start request 必须 exactly one SKU item；网站侧负责 SKU queue，禁止把多个 SKU 合成一个 AGENT task。
-- `requiredFields` 必须同时包含 `mainImage`、`asin`、`availableInventory`；禁止只请求库存或只请求缺口字段。
+- `requiredFields` 必须同时包含 `mainImage`、`asin`、`availableInventory`、`actualInventory`；禁止只请求库存或只请求缺口字段。
 - AGENT 自己拥有 DOM 解析脚本，不接受外部 selector、browser command、tab id、cookie、action plan 或 expected output override。
 - Seller Central login/captcha/2FA/权限问题不得返回 success。
 - `matched/not_found/ambiguous/blocked` 必须有 per-item status。
@@ -271,6 +275,7 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - 搜索提交必须以结果 DOM 命中目标 SKU 为准，不能以输入框 value、URL search state 或结果计数为准。
 - 目标行必须用 `SKU` exact label/value 匹配，不能用整行 contains 作为主判定。
 - `availableInventory` 必须来自 exact label `现货（亚马逊物流）`。
+- `actualInventory` 必须来自同一目标行的 `availableFbaUnits + reservedUnits + unfulfillableUnits`；任一来源缺失则返回 `null`，来源为 `0` 时必须写入数字 `0`。
 - mainImage 需求必须触发 BrowserController `screenshotRegion`，不能用公共图片 URL 伪造成 evidence。
 - AGENT 必须复用 Seller Central host tab，禁止把网站当前 active tab 当作 Seller Central 执行页。
 - background task 必须有可观察运行进度和终态；浏览器打开、点击、DOM 读取挂起时必须落到 `failed`，不能永久停在 `running` / `flow_started`。

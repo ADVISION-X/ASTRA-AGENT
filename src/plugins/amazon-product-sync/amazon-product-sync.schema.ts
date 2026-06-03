@@ -1,12 +1,13 @@
 import { z } from "zod";
 
-export const AmazonProductSyncRequiredFieldSchema = z.enum(["mainImage", "asin", "availableInventory"]);
+export const AmazonProductSyncRequiredFieldSchema = z.enum(["mainImage", "asin", "availableInventory", "actualInventory"]);
 export type AmazonProductSyncRequiredField = z.infer<typeof AmazonProductSyncRequiredFieldSchema>;
 
 export const AmazonProductSyncAllRequiredFields = [
   "mainImage",
   "asin",
   "availableInventory",
+  "actualInventory",
 ] as const;
 
 const containsAllProductUpdateFields = (fields: readonly AmazonProductSyncRequiredField[]): boolean =>
@@ -16,7 +17,7 @@ export const AmazonProductSyncItemSchema = z.object({
   sourceKeyType: z.enum(["sku", "asin"]),
   sourceKey: z.string().min(1).max(128),
   sellerSku: z.string().min(1).max(128),
-  requiredFields: z.array(AmazonProductSyncRequiredFieldSchema).min(1).max(3),
+  requiredFields: z.array(AmazonProductSyncRequiredFieldSchema).min(1).max(4),
 }).strict().superRefine((item, context) => {
   if (
     item.requiredFields.length !== AmazonProductSyncAllRequiredFields.length
@@ -25,7 +26,7 @@ export const AmazonProductSyncItemSchema = z.object({
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["requiredFields"],
-      message: "Amazon product update must request mainImage, asin, and availableInventory.",
+      message: "Amazon product update must request mainImage, asin, availableInventory, and actualInventory.",
     });
   }
 });
@@ -79,6 +80,7 @@ export type AmazonProductSyncResultItem = {
   readonly sellerCentralMainImageEvidenceRef: string | null;
   readonly listingStatus: string | null;
   readonly availableFbaUnits: number | null;
+  readonly actualInventoryUnits: number | null;
   readonly inboundUnits: number | null;
   readonly unfulfillableUnits: number | null;
   readonly reservedUnits: number | null;

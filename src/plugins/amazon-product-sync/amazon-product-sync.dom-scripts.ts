@@ -303,16 +303,23 @@ return (() => {
     const titleNode = productDetails.querySelector('[class*="ProductDetails-module__titleContainer"] a')
       || productDetails.querySelector('[class*="ProductDetails-module__titleContainer"]');
     const image = productDetails.querySelector('img[alt="商品图片"], img[src]');
+    const availableFbaUnits = parseInteger(readPair(pairs, ${AVAILABLE_FBA_LABEL_TOKEN}));
+    const unfulfillableUnits = parseInteger(readPair(pairs, "不可售"));
+    const reservedUnits = parseInteger(readPair(pairs, "预留"));
+    const actualInventoryUnits = availableFbaUnits === null || unfulfillableUnits === null || reservedUnits === null
+      ? null
+      : availableFbaUnits + unfulfillableUnits + reservedUnits;
     return {
       sellerSku,
       asinSnapshot: asin ? normalize(asin) : null,
       sellerCentralTitleSnapshot: clean(titleNode ? (titleNode.innerText || titleNode.textContent) : "").slice(0, 240) || null,
       imagePresent: Boolean(image && image.getAttribute("src")),
       listingStatus: readStatus(row),
-      availableFbaUnits: parseInteger(readPair(pairs, ${AVAILABLE_FBA_LABEL_TOKEN})),
+      availableFbaUnits,
+      actualInventoryUnits,
       inboundUnits: parseInteger(readPair(pairs, "入库")),
-      unfulfillableUnits: parseInteger(readPair(pairs, "不可售")),
-      reservedUnits: parseInteger(readPair(pairs, "预留")),
+      unfulfillableUnits,
+      reservedUnits,
       sales30dSnapshot: parseInteger(readPair(pairs, "售出件数")),
     };
   }).filter(Boolean);
