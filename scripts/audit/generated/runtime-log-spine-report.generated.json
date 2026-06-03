@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-03T06:52:41.001Z",
+  "generatedAt": "2026-06-03T13:29:40.849Z",
   "status": "PASS",
-  "scannedFiles": 343,
+  "scannedFiles": 349,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -26,6 +26,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
+    "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
@@ -276,6 +277,11 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
+    "src/plugins/amazon-product-sync/index.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
@@ -365,7 +371,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 343,
+    "scannedFiles": 349,
     "emitCallCount": 22,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -376,7 +382,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 338,
+      "scannedFiles": 344,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -385,13 +391,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 264
+      "scannedFiles": 269
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 260,
+      "scannedFiles": 265,
       "metrics": {
         "emitCallCount": 11
       }
@@ -400,13 +406,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 260
+      "scannedFiles": 265
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 265,
+      "scannedFiles": 270,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -421,7 +427,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 265,
+      "scannedFiles": 270,
       "metrics": {
         "failureWithoutClassCount": 0
       }

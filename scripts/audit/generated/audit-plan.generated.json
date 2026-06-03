@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T06:52:09.648Z",
+  "generatedAt": "2026-06-03T13:29:09.656Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -113,6 +113,32 @@
         "storage+flow+package+acceptance+ast"
       ],
       "blueprintRefs": []
+    },
+    {
+      "capabilityDomain": "amazon-product-sync",
+      "manifestPath": "scripts/audit/domains/amazon-product-sync/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast+fs+acceptance"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Amazon 产品更新同步施工图.md",
+          "requiredAnchors": [
+            "## 单链路",
+            "## Phase 1",
+            "## 实测 DOM 结构",
+            "## 验收"
+          ]
+        }
+      ]
     },
     {
       "capabilityDomain": "app-shell-ui",

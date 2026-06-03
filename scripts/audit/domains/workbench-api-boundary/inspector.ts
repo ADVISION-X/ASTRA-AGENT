@@ -18,10 +18,12 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
+import { inspectExternalIngressIdentity } from "./external-ingress-identity-inspector.js";
 
 type Summary = {
   wildcardCorsViolations: number;
   guardMissingViolations: number;
+  ingressIdentityViolations: number;
   unauthenticatedExternalRouteViolations: number;
   broadExternalRouteViolations: number;
   secondServerViolations: number;
@@ -63,6 +65,7 @@ const requiredForbiddenKeys = [
 const initialSummary = (): Summary => ({
   wildcardCorsViolations: 0,
   guardMissingViolations: 0,
+  ingressIdentityViolations: 0,
   unauthenticatedExternalRouteViolations: 0,
   broadExternalRouteViolations: 0,
   secondServerViolations: 0,
@@ -445,6 +448,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   if (boundaryFile) {
     inspectRouteRules(boundaryFile, findings, summary, lawIds);
     inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape);
+    inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary });
   }
   inspectSecondServers(context.project, findings, summary, lawIds.ingress);
   inspectCallbackEscapes(context.project, findings, summary, lawIds.callback);

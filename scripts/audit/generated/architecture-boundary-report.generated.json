@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T06:52:16.810Z",
+  "generatedAt": "2026-06-03T13:29:16.294Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -17,6 +17,7 @@
   "actualPluginIds": [
     "amazon-invoice-upload",
     "amazon-product-mining",
+    "amazon-product-sync",
     "deep-research-analysis",
     "facebook-product-video-mining",
     "video-download-artifact"
@@ -73,6 +74,30 @@
       ],
       "lawSourceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "amazon-product-sync",
+      "status": "active",
+      "owner": "plugin:amazon-product-sync",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-product-sync-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-product-sync"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-product-sync",
+        "audit:amazon-product-sync"
+      ],
+      "exposureTokens": [
+        "amazon-product-sync"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md"
       ]
     },
     {
@@ -154,6 +179,10 @@
       "src/app/workbench-amazon-product-mining-routes.ts",
       "src/lib/local-runtime/workbench.ts"
     ],
+    "amazon-product-sync": [
+      "src/app/workbench-amazon-product-sync-routes.ts",
+      "src/lib/local-runtime/workbench.ts"
+    ],
     "deep-research-analysis": [
       "src/app/workbench-deep-research-routes.ts",
       "src/lib/local-runtime/workbench-handle.ts",
@@ -173,6 +202,7 @@
     "acceptance:amazon-invoice-upload-download",
     "acceptance:amazon-invoice-upload-smoke",
     "acceptance:amazon-product-mining",
+    "acceptance:amazon-product-sync",
     "acceptance:app-shell-ui",
     "acceptance:audit-truth-coverage",
     "acceptance:ci-summary-truth",
@@ -215,6 +245,7 @@
   "inspectedFiles": [
     ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+    ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
     ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
     ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
     ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
@@ -239,6 +270,7 @@
     "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
+    "scripts/acceptance/amazon-product-sync.acceptance.ts",
     "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
     "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
@@ -346,6 +378,8 @@
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
+    "scripts/acceptance/workbench-api-boundary-fixture.ts",
+    "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -382,6 +416,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
+    "scripts/audit/domains/amazon-product-sync/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
     "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
@@ -530,6 +565,7 @@
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
+    "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
@@ -577,6 +613,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
+    "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
@@ -827,6 +864,11 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
+    "src/plugins/amazon-product-sync/index.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",

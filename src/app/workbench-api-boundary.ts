@@ -243,17 +243,18 @@ const decideLocalWorkbenchApiBoundary = (input: {
   ? { kind: "allowed", corsHeaders: input.corsHeaders, routeRule: input.routeRule, originCategory: input.originCategory }
   : block(403, "route_not_local_allowed", "route_not_local_allowed", input.corsHeaders);
 
-const decideExternalWorkbenchApiBoundary = (input: {
+type ExternalWorkbenchApiBoundaryInput = {
   bodyPreview?: unknown;
   corsHeaders: Record<string, string>;
   headers: IncomingHttpHeaders;
   origin: string | undefined;
   originCategory: "external-website";
   routeRule: WorkbenchApiRouteRule;
-}): WorkbenchApiBoundaryDecision => {
+};
+
+const inspectExternalAvailability = (input: ExternalWorkbenchApiBoundaryInput): WorkbenchApiBoundaryDecision | null => {
   const externalEnabled = process.env.GRASSEYE_EXTERNAL_API_ENABLED === "true";
   const allowedOrigins = splitCsv(process.env.GRASSEYE_EXTERNAL_ALLOWED_ORIGINS);
-  const apiKey = process.env.GRASSEYE_EXTERNAL_API_KEY ?? "";
   if (!externalEnabled) return block(403, "external_api_disabled", "external_api_disabled", input.corsHeaders);
   if (!input.origin || !allowedOrigins.some((allowedOrigin) => allowedOrigin === input.origin)) {
     return block(403, "origin_not_allowed", "origin_not_allowed", buildCorsHeaders(undefined));
@@ -261,16 +262,40 @@ const decideExternalWorkbenchApiBoundary = (input: {
   if (!input.routeRule.externalApiAllowed) {
     return block(403, "route_not_external_allowed", "route_not_external_allowed", input.corsHeaders);
   }
+  return null;
+};
+
+const inspectExternalAuthHeaders = (input: ExternalWorkbenchApiBoundaryInput): WorkbenchApiBoundaryDecision | null => {
+  const apiKey = process.env.GRASSEYE_EXTERNAL_API_KEY ?? "";
   const requestKey = readHeader(input.headers, "x-grasseye-agent-key");
   if (input.routeRule.requiresApiKey && !requestKey) return block(403, "missing_api_key", "missing_api_key", input.corsHeaders);
   if (input.routeRule.requiresApiKey && (apiKey.length === 0 || requestKey !== apiKey)) {
     return block(403, "invalid_api_key", "invalid_api_key", input.corsHeaders);
   }
-  if (input.bodyPreview === undefined) return { kind: "allowed", corsHeaders: input.corsHeaders, routeRule: input.routeRule, originCategory: input.originCategory };
+  if (!readHeader(input.headers, "x-grasseye-source-system")) {
+    return block(403, "missing_source_system", "missing_source_system", input.corsHeaders);
+  }
+  if (!readHeader(input.headers, "x-grasseye-request-id")) {
+    return block(403, "missing_request_id", "missing_request_id", input.corsHeaders);
+  }
+  return null;
+};
+
+const allowExternal = (input: ExternalWorkbenchApiBoundaryInput): WorkbenchApiBoundaryDecision => ({
+  kind: "allowed",
+  corsHeaders: input.corsHeaders,
+  routeRule: input.routeRule,
+  originCategory: input.originCategory,
+});
+
+const decideExternalWorkbenchApiBoundary = (input: ExternalWorkbenchApiBoundaryInput): WorkbenchApiBoundaryDecision => {
+  const boundaryFailure = inspectExternalAvailability(input) ?? inspectExternalAuthHeaders(input);
+  if (boundaryFailure) return boundaryFailure;
+  if (input.bodyPreview === undefined) return allowExternal(input);
   const bodyFailure = inspectExternalBodyPreview(input.bodyPreview);
   return bodyFailure
     ? block(403, bodyFailure.error, bodyFailure.reason, input.corsHeaders)
-    : { kind: "allowed", corsHeaders: input.corsHeaders, routeRule: input.routeRule, originCategory: input.originCategory };
+    : allowExternal(input);
 };
 
 export function handleWorkbenchApiBoundary(input: {

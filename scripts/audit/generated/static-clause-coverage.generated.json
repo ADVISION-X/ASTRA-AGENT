@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-03T06:52:09.648Z",
+  "generatedAt": "2026-06-03T13:29:09.656Z",
   "summary": {
-    "activeLawCount": 197,
-    "coveredLawCount": 197,
+    "activeLawCount": 198,
+    "coveredLawCount": 198,
     "coveragePercent": 100
   },
   "coverage": [
@@ -383,6 +383,16 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/amazon-product-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
+      "capabilityDomain": "amazon-product-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
         }
       ]
     },

@@ -134,7 +134,6 @@ const started = await startAmazonProductSyncTask({
   requestId: "acceptance-amazon-product-sync-1",
   marketplace: "amazon.ae",
   scope: "selected-skus",
-  requestedAt: now(),
   items: [{ sourceKeyType: "sku", sourceKey: "DL-UG6I-2OWL", sellerSku: "DL-UG6I-2OWL" }],
 }, { dataDir, browser });
 

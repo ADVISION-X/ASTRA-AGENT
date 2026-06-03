@@ -1,0 +1,23 @@
+{
+  "capabilityDomain": "amazon-product-sync",
+  "ownerInspectorPath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Amazon 产品更新同步施工图.md",
+      "requiredAnchors": [
+        "## 单链路",
+        "## Phase 1",
+        "## 实测 DOM 结构",
+        "## 验收"
+      ]
+    }
+  ],
+  "description": "Amazon product sync read-only Seller Central evidence owner audit."
+}

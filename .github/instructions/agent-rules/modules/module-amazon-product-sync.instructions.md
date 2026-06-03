@@ -45,9 +45,14 @@ Workbench API Boundary
 
 ## Law IDs
 
-```json
+```apex-law
 {
-  "lawId": "AGENT-AMAZON-PRODUCT-SYNC-001",
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-sync",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+fs+acceptance",
   "summary": "Amazon product sync must be a single read-only job flow with bounded Seller Central evidence.",
   "forbidden": [
     "Seller Central write-back",

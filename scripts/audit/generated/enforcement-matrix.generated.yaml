@@ -1,4 +1,4 @@
-generatedAt: "2026-06-03T06:52:09.648Z"
+generatedAt: "2026-06-03T13:29:09.656Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
@@ -46,6 +46,11 @@ rows:
       - "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1"
       - "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
+  - capabilityDomain: "amazon-product-sync"
+    manifestPath: "scripts/audit/domains/amazon-product-sync/manifest.json"
+    ownerInspectorPath: "scripts/audit/domains/amazon-product-sync/inspector.ts"
+    lawIds:
+      - "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1"
   - capabilityDomain: "app-shell-ui"
     manifestPath: "scripts/audit/domains/app-shell-ui/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/app-shell-ui/inspector.ts"

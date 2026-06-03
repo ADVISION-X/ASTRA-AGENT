@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T06:52:09.648Z",
+  "generatedAt": "2026-06-03T13:29:09.656Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -935,6 +935,23 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 25
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs+acceptance",
+      "summary": "Amazon product sync must be a single read-only job flow with bounded Seller Central evidence.",
+      "forbidden": [
+        "Seller Central write-back",
+        "DOM selector control by external callers",
+        "second Amazon product sync owner",
+        "raw HTML/cookie/credential evidence leakage"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
+      "blockIndex": 0
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",

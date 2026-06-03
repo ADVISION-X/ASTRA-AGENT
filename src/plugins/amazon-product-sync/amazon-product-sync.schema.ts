@@ -10,7 +10,6 @@ export const AmazonProductSyncInputSchema = z.object({
   requestId: z.string().min(1).max(160),
   marketplace: z.enum(["amazon.ae", "amazon.sa", "amazon.com", "amazon.co.uk", "amazon.co.jp"]).default("amazon.ae"),
   scope: z.string().min(1).max(80).default("selected-skus"),
-  requestedAt: z.string().min(1),
   items: z.array(AmazonProductSyncItemSchema).min(1).max(250),
 }).strict();
 
@@ -64,4 +63,3 @@ export type AmazonProductSyncTaskRecord = {
   readonly createdAt: string;
   readonly updatedAt: string;
 };
-

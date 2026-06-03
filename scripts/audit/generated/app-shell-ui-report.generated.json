@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T06:52:42.309Z",
+  "generatedAt": "2026-06-03T13:29:42.004Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -38,6 +38,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
+    "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",

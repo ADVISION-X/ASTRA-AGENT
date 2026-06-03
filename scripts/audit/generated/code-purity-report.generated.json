@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-06-03T06:52:37.364Z",
+  "generatedAt": "2026-06-03T13:29:37.124Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -28,6 +28,7 @@
     "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
+    "scripts/acceptance/amazon-product-sync.acceptance.ts",
     "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
     "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
@@ -74,6 +75,8 @@
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
+    "scripts/acceptance/workbench-api-boundary-fixture.ts",
+    "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -109,6 +112,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
+    "scripts/audit/domains/amazon-product-sync/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
     "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
@@ -257,6 +261,7 @@
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
+    "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
@@ -304,6 +309,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
+    "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
@@ -551,6 +557,11 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
+    "src/plugins/amazon-product-sync/index.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
@@ -762,6 +773,12 @@
       "filePath": "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
       "reason": "package.json script acceptance:amazon-product-mining",
       "scriptName": "acceptance:amazon-product-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-product-sync.acceptance.ts",
+      "reason": "package.json script acceptance:amazon-product-sync",
+      "scriptName": "acceptance:amazon-product-sync"
     },
     {
       "entryKind": "package-script",
@@ -1029,6 +1046,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
+      "reason": "package.json script acceptance:workbench-api-boundary",
+      "scriptName": "acceptance:workbench-api-boundary"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/workbench-api-boundary.acceptance.ts",
       "reason": "package.json script acceptance:workbench-api-boundary",
       "scriptName": "acceptance:workbench-api-boundary"
@@ -1056,6 +1079,12 @@
       "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
       "reason": "package.json script audit:amazon-product-mining",
       "scriptName": "audit:amazon-product-mining"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+      "reason": "package.json script audit:amazon-product-sync",
+      "scriptName": "audit:amazon-product-sync"
     },
     {
       "entryKind": "package-script",
@@ -1184,9 +1213,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1717,
+  "liveExportCount": 1750,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 614,
+  "reachableFileCount": 625,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1198,9 +1227,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1717,
+    "liveExportCount": 1750,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 614,
+    "reachableFileCount": 625,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

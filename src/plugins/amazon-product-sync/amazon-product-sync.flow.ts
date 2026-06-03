@@ -266,10 +266,8 @@ return (() => {
 `;
 }
 
-function buildInventoryExtractionScript(requestedSkus: readonly string[]): string {
-  return `
+const inventoryExtractionStateScript = `
 return (() => {
-  const requestedSkus = ${JSON.stringify(requestedSkus.map(normalizeSku))};
   const text = String((document.body && document.body.innerText) || "");
   const lower = text.toLowerCase();
   const title = document.title || "";
@@ -293,6 +291,9 @@ return (() => {
     const parsed = Number(cleaned);
     return Number.isInteger(parsed) ? parsed : null;
   };
+`;
+
+const inventoryExtractionPairScript = `
   const readPairs = (scope) => {
     const pairs = [];
     if (!scope) return pairs;
@@ -317,6 +318,9 @@ return (() => {
     if (statusText.includes("停用") || statusLower.includes("inactive")) return "inactive";
     return statusText ? statusText.slice(0, 80) : null;
   };
+`;
+
+const inventoryExtractionRowsScript = `
   const rowCandidates = Array.from(document.querySelectorAll('[class*="JanusTable-module__tableContentRow"], tr, [role="row"]')).filter(visible);
   const rows = rowCandidates.map((row) => {
     const productDetails = row.querySelector('[class*="ProductDetails-module__container"]');
@@ -344,4 +348,10 @@ return (() => {
   return { url, title, detectedState: detect(), rows };
 })()
 `;
+function buildInventoryExtractionScript(requestedSkus: readonly string[]): string {
+  const requestedSkuJson = JSON.stringify(requestedSkus.map(normalizeSku));
+  return `${inventoryExtractionStateScript}
+  const requestedSkus = ${requestedSkuJson};
+${inventoryExtractionPairScript}
+${inventoryExtractionRowsScript}`;
 }

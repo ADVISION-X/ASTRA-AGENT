@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-03T06:52:11.328Z",
+  "generatedAt": "2026-06-03T13:29:11.257Z",
   "status": "PASS",
-  "inspectorFileCount": 19,
-  "generatedPlanEntryCount": 19,
+  "inspectorFileCount": 20,
+  "generatedPlanEntryCount": 20,
   "inspectedFiles": [
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
@@ -34,6 +34,8 @@
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/manifest.json",
+    "scripts/audit/domains/amazon-product-sync/inspector.ts",
+    "scripts/audit/domains/amazon-product-sync/manifest.json",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
     "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
@@ -198,6 +200,7 @@
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/video-download-capability/manifest.json",
+    "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/manifest.json",
     "scripts/audit/shared/finding-utils.ts",
