@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T11:01:09.762Z",
+  "generatedAt": "2026-06-03T06:52:09.648Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -514,7 +514,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "runtime-log+failure-record",
-      "summary": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or manual_required records; bypassing restrictions is forbidden.",
+      "summary": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or completed_with_errors records; bypassing restrictions and delegating recovery to humans are forbidden.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
       ],
@@ -676,7 +676,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "flow+prompt+persisted-record",
-      "summary": "Keyword opportunity review is a keywordId-scoped screening stage that judges whether a keyword product pool deserves more human research; it is not final product adjudication, procurement, profit, or launch guidance.",
+      "summary": "Keyword opportunity review is a keywordId-scoped automated screening stage that judges whether a keyword product pool deserves downstream validation; it is not final product adjudication, procurement, profit, launch guidance, or a manual recovery queue.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
@@ -691,7 +691,9 @@
         "Keyword review deciding final product selection.",
         "Keyword review outputting procurement, sampling, place-order, inventory, launch-listing, or ad-budget advice.",
         "Automatically entering procurement, sampling, listing, or launch stages from keyword verdict.",
-        "Treating one keyword review as task-global product adjudication."
+        "Treating one keyword review as task-global product adjudication.",
+        "Persisting manual_required keyword review records.",
+        "Exposing manual-ingest routes, schemas, or public facade methods for keyword review."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 16
@@ -746,7 +748,8 @@
         "App surfacing only natural-language review text without structured verdict fields.",
         "Route-level auto-progression into downstream business stages based on verdict.",
         "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
-        "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts."
+        "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts.",
+        "App exposing manual keyword review ingest or task pause/continue/terminate controls for Amazon Product Mining."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 18
@@ -779,7 +782,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+acceptance+ast",
-      "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before human validation, not final product judgment.",
+      "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before downstream validation, not final product judgment.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -877,7 +880,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "storage+flow+app-surface+ast+acceptance",
-      "summary": "Amazon Product Mining must be restart-resumable from persisted task evidence and expose Pause, Continue, and Terminate controls in the skill UI; non-terminal interrupted tasks auto-continue on system startup while paused and terminated tasks do not.",
+      "summary": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
@@ -894,10 +897,9 @@
       ],
       "forbidden": [
         "Restarting an interrupted task from the beginning when persisted keyword/search/detail/review evidence exists.",
-        "Auto-continuing tasks that were explicitly paused or terminated by an operator.",
         "Running two active executions for the same taskId.",
-        "Forcing operators to kill the app port as the only way to stop a task.",
-        "App control buttons that only mutate frontend state without calling persisted backend routes.",
+        "Exposing Pause, Continue, or Terminate Amazon Product Mining routes, UI buttons, workbench handle methods, or plugin facade exports.",
+        "Requiring a human action to move an interrupted Amazon Product Mining task forward.",
         "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T11:01:11.445Z",
+  "generatedAt": "2026-06-03T06:52:11.328Z",
   "status": "PASS",
   "inspectorFileCount": 19,
   "generatedPlanEntryCount": 19,
@@ -22,6 +22,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-automation.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",

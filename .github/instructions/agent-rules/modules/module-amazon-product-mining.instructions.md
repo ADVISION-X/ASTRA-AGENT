@@ -473,7 +473,7 @@ AI keyword raw response / keyword parse result / search page raw visible text / 
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "runtime-log+failure-record",
-  "summary": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or manual_required records; bypassing restrictions is forbidden.",
+  "summary": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or completed_with_errors records; bypassing restrictions and delegating recovery to humans are forbidden.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/**/*.{ts,tsx,js,jsx,mjs}"
   ],
@@ -490,7 +490,7 @@ AI keyword raw response / keyword parse result / search page raw visible text / 
 
 `loginRequired, captcha, twoFactorOrAccountSecurity, rateLimited, accountRisk, regionRestricted, productUnavailable, reviewUnavailable, pageStructureUnsupported, paginationStoppedByRestriction`
 
-允许的失败状态：`failed`、`manual_required`、`completed_with_errors`。
+允许的自动化异常状态：`failed`、`completed_with_errors`。Amazon Product Mining 生产链路不得新增 `manual_required` 任务、关键词、产品或 keyword review 写入。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-010-V1] Fixed Final Artifacts: Data Package + PDF
 
@@ -726,7 +726,7 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "flow+prompt+persisted-record",
-  "summary": "Keyword opportunity review is a keywordId-scoped screening stage that judges whether a keyword product pool deserves more human research; it is not final product adjudication, procurement, profit, or launch guidance.",
+  "summary": "Keyword opportunity review is a keywordId-scoped automated screening stage that judges whether a keyword product pool deserves downstream validation; it is not final product adjudication, procurement, profit, launch guidance, or a manual recovery queue.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
@@ -741,7 +741,9 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
     "Keyword review deciding final product selection.",
     "Keyword review outputting procurement, sampling, place-order, inventory, launch-listing, or ad-budget advice.",
     "Automatically entering procurement, sampling, listing, or launch stages from keyword verdict.",
-    "Treating one keyword review as task-global product adjudication."
+    "Treating one keyword review as task-global product adjudication.",
+    "Persisting manual_required keyword review records.",
+    "Exposing manual-ingest routes, schemas, or public facade methods for keyword review."
   ]
 }
 ```
@@ -751,9 +753,9 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
 - 研判单位是 `keywordId`，不是单个产品最终裁决。
 - 一个 task 可包含多个 keyword，每个 keyword 必须独立生成一条 keyword opportunity review 记录。
 - 研判输入必须来自该 keyword 对应的 search results、linked product details、linked reviews、image refs、completeness、exceptions。
-- 外部高级 AI 不可用时，review 只能进入 `manual_required` 或 `failed`，不得伪装完成。
-- task 级 master package 必须保留 keywordId 级 review 结果；人类打开总包时必须能直接看到每个 keyword 的 AI review status、decision、humanNextStep、confidence、artifact refs 与 failure reason。
-- `failed` / `manual_required` keyword opportunity review 是任务交接完整性信号，必须进入 exception/completeness/handoff readiness，不得只停留在 keyword review 数据库表。
+- 外部高级 AI 或 provider composer 暂不可用时，Amazon 域必须在同一 GPT Web Chat handoff 链路内有界重试；重试耗尽后 review 只能进入 `failed`，不得伪装完成，不得要求人工导入。
+- task 级 master package 必须保留 keywordId 级 review 结果；打开总包时必须能直接看到每个 keyword 的 AI review status、decision、humanNextStep、confidence、artifact refs 与 failure reason。
+- `failed` keyword opportunity review 是任务交接完整性信号，必须进入 exception/completeness/handoff readiness，不得只停留在 keyword review 数据库表。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-017-V1] Keyword Opportunity Verdict Schema
 
@@ -854,8 +856,9 @@ updatedAt
     "App exposing procurement, sampling, place-order, run-ads, or final-selection buttons for keyword review.",
     "App surfacing only natural-language review text without structured verdict fields.",
     "Route-level auto-progression into downstream business stages based on verdict.",
-    "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
-    "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts."
+	    "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
+	    "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts.",
+	    "App exposing manual keyword review ingest or task pause/continue/terminate controls for Amazon Product Mining."
   ]
 }
 ```
@@ -873,10 +876,9 @@ Keyword Opportunity Review History
 按 keyword 搜索
 按 marketplace 过滤
 默认 Created At desc 排序
-打开 package ref
-打开 AI review ref
-POST /api/amazon-product-mining/keyword-review/manual-ingest
-```
+	打开 package ref
+	打开 AI review ref
+	```
 
 历史表最少必须显示：
 
@@ -976,7 +978,7 @@ App 可保存最近 taskId，
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+acceptance+ast",
-  "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before human validation, not final product judgment.",
+  "summary": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before downstream validation, not final product judgment.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
@@ -997,10 +999,10 @@ App 可保存最近 taskId，
 
 - 高级 AI 默认走 `gpt-web-chat` provider。
 - 关键词评审只判断该 keyword product pool 是否进入候选研究名单。
-- `PASS` 只表示进入下一阶段人工验证，不表示选品成功。
+- `PASS` 只表示进入下一阶段验证，不表示选品成功。
 - `REJECT` 只表示本次证据下该关键词不保留为候选池，不是全网产品终局裁决。
-- 关键词评审 prompt 必须把本阶段定义为人工验证前的筛选闸门：AI 承认的 keyword 才进入人工找产品、对比产品和后续核算阶段。
-- `PASS` 必须保守：只有当需求信号、数据可信度、可进入人工验证的竞争/改良/评论证据足够时，才允许进入人工候选池。
+- 关键词评审 prompt 必须把本阶段定义为后续验证前的筛选闸门：AI 承认的 keyword 才进入找产品、对比产品和后续核算阶段。
+- `PASS` 必须保守：只有当需求信号、数据可信度、可进入后续验证的竞争/改良/评论证据足够时，才允许进入候选池。
 - `REJECT` 必须主动：当 full package 已经显示该 keyword product pool 缺少可行动需求、评论健康差、价格天花板不成立、竞争封闭、改良空间弱，且数据可信度足以判断时，必须 `REJECT`，不得用 `WATCH` 逃避排除。
 - `WATCH` 只能用于有部分正向信号但证据混合、需要挖相关关键词或补证据的情况。
 - `INSUFFICIENT_DATA` 只能用于资料包不可读、核心证据缺失或数据可信度不足，不能替代基于充分证据的 `REJECT`。
@@ -1112,7 +1114,7 @@ App 可保存最近 taskId，
 - keyword opportunity review 的 GPT Web Chat `maxInputChars` 必须不低于 `900_000`，避免导航与 prompt 被旧上限挡住。
 - AST 级执法必须证明上述字段进入生产 navigation input，并由 acceptance 读取实际生成的 review input 校验。
 
-## [GRASSEYE-AMAZON-PRODUCT-MINING-024-V1] Breakpoint Resume And Operator Controls
+## [GRASSEYE-AMAZON-PRODUCT-MINING-024-V1] Automatic Breakpoint Resume Without Manual Controls
 
 ```apex-law
 {
@@ -1122,7 +1124,7 @@ App 可保存最近 taskId，
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "storage+flow+app-surface+ast+acceptance",
-  "summary": "Amazon Product Mining must be restart-resumable from persisted task evidence and expose Pause, Continue, and Terminate controls in the skill UI; non-terminal interrupted tasks auto-continue on system startup while paused and terminated tasks do not.",
+  "summary": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
@@ -1139,11 +1141,10 @@ App 可保存最近 taskId，
   ],
   "forbidden": [
     "Restarting an interrupted task from the beginning when persisted keyword/search/detail/review evidence exists.",
-    "Auto-continuing tasks that were explicitly paused or terminated by an operator.",
-    "Running two active executions for the same taskId.",
-    "Forcing operators to kill the app port as the only way to stop a task.",
-    "App control buttons that only mutate frontend state without calling persisted backend routes.",
-    "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
+	    "Running two active executions for the same taskId.",
+	    "Exposing Pause, Continue, or Terminate Amazon Product Mining routes, UI buttons, workbench handle methods, or plugin facade exports.",
+	    "Requiring a human action to move an interrupted Amazon Product Mining task forward.",
+	    "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
   ]
 }
 ```
@@ -1151,13 +1152,10 @@ App 可保存最近 taskId，
 ### 法条
 
 - `created | keyword_generating | keyword_ready | mining | packaging` 都属于可自动续跑状态。
-- `paused` 是人工暂停状态，系统重启后不得自动继续，必须由 Continue 控制恢复。
-- `terminated` 是人工终止状态，系统重启后不得自动继续，也不得进入 packaging。
-- Continue 必须复用同一个 `taskId` 与同一套持久化证据，从已入库的 keyword/search/detail/review/keyword review 位置继续。
-- flow 每个关键词、每个产品、评论分页和打包前都必须检查持久化控制状态。
-- App 必须显示并调用真实后端 `pause / continue / terminate` routes。
+- 自动续跑必须复用同一个 `taskId` 与同一套持久化证据，从已入库的 keyword/search/detail/review/keyword review 位置继续。
 - Workbench 启动必须扫描可自动续跑任务并启动同一生产 flow 继续执行。
-- Acceptance 与 AST audit 必须证明：持久化状态存在、公开 facade 存在、routes 存在、UI 按钮存在、flow 有控制检查、自动续跑不会覆盖已有证据。
+- App、routes、workbench handle 与 plugin facade 不得暴露 Amazon Product Mining `pause / continue / terminate` 人工控制入口。
+- Acceptance 与 AST audit 必须证明：持久化状态存在、自动续跑 facade 存在、人工控制 routes/UI/handle/export 不存在、自动续跑不会覆盖已有证据。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-025-V1] Keyword Full Package Deep Research Handoff Governance
 
@@ -1211,7 +1209,7 @@ App 可保存最近 taskId，
 
 - inline evidence slice 只能作为 AI 快速目录、摘要、导航和 handoff prompt 概览，不得作为高级 AI 深度研判唯一资料源。
 - GPT Web Chat 文件上传能力可用时，必须上传 keyword full package 的 transport zip；zip 只作为运输壳，目录内 full package 文件仍是唯一证据真相源，`inputRefs` 必须持有真实 `filePath`。
-- GPT Web Chat 文件上传能力不可用时，keyword review 必须进入 `manual_required`，不得自动降级成 inline-only completed verdict。
+- GPT Web Chat 文件上传能力不可用时，keyword review 必须进入 `failed`，不得自动降级成 inline-only completed verdict，不得要求人工导入。
 - keyword full package integrity 不通过时，不得进入 AI 研判。
 - 如果 AI 只读取了 slice，没有读取 full package，verdict 不得作为最终 keyword review。
 - `REJECT` 只表示该 keyword product pool 不进入候选名单；证据必须保留可复核链。

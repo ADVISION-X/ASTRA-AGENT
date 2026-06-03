@@ -68,7 +68,7 @@ export const recordSearchFailure = (
     logger: {
       logFailure(input: { taskId: string; scope: string; scopeId: string; reason: string }): void;
     };
-    manualRequiredReasons: string[];
+    failureReasons: string[];
     storage: {
       persistException(input: {
         exceptionId: string;
@@ -97,6 +97,6 @@ export const recordSearchFailure = (
   });
   runtime.logger.logFailure({ taskId: runtime.taskId, scope: "search", scopeId: keywordId, reason });
   if (blockerKind === "login_required" || blockerKind === "captcha") {
-    runtime.manualRequiredReasons.push(`search_blocked:${blockerKind}`);
+    runtime.failureReasons.push(`search_blocked:${blockerKind}`);
   }
 };

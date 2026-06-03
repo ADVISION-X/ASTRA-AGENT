@@ -239,8 +239,8 @@ export const buildExceptionSummaryArtifact = (input: {
   manualRequiredItems: ReturnType<typeof buildStatusItems>;
   failedItems: ReturnType<typeof buildStatusItems>;
 }) => {
-  const keywordReviewIssues = input.keywordReviews
-    .filter((review) => review.status === "failed" || review.status === "manual_required")
+	  const keywordReviewIssues = input.keywordReviews
+	    .filter((review) => review.status === "failed")
     .map((review) => ({
       scope: "keyword_review",
       scopeId: review.keywordId,

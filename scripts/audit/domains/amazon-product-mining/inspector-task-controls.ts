@@ -5,11 +5,10 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import {
   getRequiredSourceFile,
   hasCallToLocalIdentifier,
-  hasIdentifier,
-  fileIncludesText,
-  hasStringLiteral,
-  trackSourceFile,
-} from "./inspector-ast-shared.js";
+	  hasIdentifier,
+	  fileIncludesText,
+	  trackSourceFile,
+	} from "./inspector-ast-shared.js";
 
 const sourceExports = (sourceFile: SourceFile, exportName: string): boolean =>
   sourceFile.getExportedDeclarations().has(exportName);
@@ -79,35 +78,29 @@ const loadTaskControlFiles = (
 
 const inspectTaskControlSchema = (schema: SourceFile | undefined): boolean =>
   Boolean(schema
-    && hasStringLiteral(schema, "paused")
-    && hasStringLiteral(schema, "terminated")
     && hasIdentifier(schema, "AmazonKeywordProviderKindSchema"));
 
 const inspectTaskControlFlow = (flow: SourceFile | undefined): boolean =>
-  Boolean(flow
-    && hasCallToLocalIdentifier(flow, "ensureTaskRecord")
-    && hasCallToLocalIdentifier(flow, "haltIfAmazonOperatorControlled")
-    && hasCallToLocalIdentifier(flow, "getAmazonLinkedProductDetail")
-    && hasCallToLocalIdentifier(flow, "hasAmazonKeywordOpportunityReview"));
+	  Boolean(flow
+	    && hasCallToLocalIdentifier(flow, "ensureTaskRecord")
+	    && hasCallToLocalIdentifier(flow, "getAmazonLinkedProductDetail")
+	    && hasCallToLocalIdentifier(flow, "hasAmazonKeywordOpportunityReview"));
 
 const inspectTaskControlStorage = (
   storage: SourceFile | undefined,
   storageSchema: SourceFile | undefined,
-): boolean => Boolean(storage
-    && storageSchema
-    && hasIdentifier(storage, "listTasksByStatuses")
-    && hasIdentifier(storage, "operatorOverride")
-    && hasStringLiteral(storage, "paused")
-    && hasStringLiteral(storage, "terminated")
-    && fileIncludesText(storageSchema, "provider_kind"));
+	): boolean => Boolean(storage
+	    && storageSchema
+	    && hasIdentifier(storage, "listTasksByStatuses")
+	    && fileIncludesText(storageSchema, "provider_kind"));
 
 const inspectTaskControlIndex = (pluginIndex: SourceFile | undefined): boolean =>
-  Boolean(pluginIndex
-    && sourceExports(pluginIndex, "pauseAmazonProductMiningTask")
-    && sourceExports(pluginIndex, "continueAmazonProductMiningTask")
-    && sourceExports(pluginIndex, "terminateAmazonProductMiningTask")
-    && sourceExports(pluginIndex, "continueInterruptedAmazonProductMiningTasks")
-    && enumArrayHasValues(pluginIndex, "RUNNING_TASK_STATUSES", ["created", "keyword_generating", "keyword_ready", "mining", "packaging"]));
+	  Boolean(pluginIndex
+	    && sourceExports(pluginIndex, "continueInterruptedAmazonProductMiningTasks")
+	    && !sourceExports(pluginIndex, "pauseAmazonProductMiningTask")
+	    && !sourceExports(pluginIndex, "continueAmazonProductMiningTask")
+	    && !sourceExports(pluginIndex, "terminateAmazonProductMiningTask")
+	    && enumArrayHasValues(pluginIndex, "RUNNING_TASK_STATUSES", ["created", "keyword_generating", "keyword_ready", "mining", "packaging"]));
 
 const inspectTaskControlCore = (files: TaskControlFiles) => {
   const schema = files["src/plugins/amazon-product-mining/amazon-product-mining.schema.ts"];
@@ -129,25 +122,25 @@ const inspectTaskControlSurface = (files: TaskControlFiles) => {
   const reviewClient = files["src/app/workbench-home-amazon-product-mining-review-client.ts"];
   const workbench = files["src/lib/local-runtime/workbench.ts"];
   const workbenchHandle = files["src/lib/local-runtime/workbench-handle.ts"];
-  return {
-    routesOk: Boolean(routes
-      && objectHasRouteKey(routes, "POST:/api/amazon-product-mining/pause")
-      && objectHasRouteKey(routes, "POST:/api/amazon-product-mining/continue")
-      && objectHasRouteKey(routes, "POST:/api/amazon-product-mining/terminate")),
-    appOk: Boolean(workspace
-      && reviewClient
-      && fileIncludesText(workspace, "data-amazon-product-mining-task-controls")
-      && fileIncludesText(workspace, "data-amazon-product-mining-pause")
-      && fileIncludesText(workspace, "data-amazon-product-mining-continue")
-      && fileIncludesText(workspace, "data-amazon-product-mining-terminate")
-      && fileIncludesText(reviewClient, "sendAmazonProductMiningControl")),
-    workbenchOk: Boolean(workbench
-      && workbenchHandle
-      && hasCallToLocalIdentifier(workbench, "continueInterruptedAmazonProductMiningTasks")
-      && hasIdentifier(workbenchHandle, "pauseAmazonProductMiningTask")
-      && hasIdentifier(workbenchHandle, "continueAmazonProductMiningTask")
-      && hasIdentifier(workbenchHandle, "terminateAmazonProductMiningTask")),
-  };
+	  return {
+	    routesOk: Boolean(routes
+	      && !objectHasRouteKey(routes, "POST:/api/amazon-product-mining/pause")
+	      && !objectHasRouteKey(routes, "POST:/api/amazon-product-mining/continue")
+	      && !objectHasRouteKey(routes, "POST:/api/amazon-product-mining/terminate")),
+	    appOk: Boolean(workspace
+	      && reviewClient
+	      && !fileIncludesText(workspace, "data-amazon-product-mining-task-controls")
+	      && !fileIncludesText(workspace, "data-amazon-product-mining-pause")
+	      && !fileIncludesText(workspace, "data-amazon-product-mining-continue")
+	      && !fileIncludesText(workspace, "data-amazon-product-mining-terminate")
+	      && !fileIncludesText(reviewClient, "sendAmazonProductMiningControl")),
+	    workbenchOk: Boolean(workbench
+	      && workbenchHandle
+	      && hasCallToLocalIdentifier(workbench, "continueInterruptedAmazonProductMiningTasks")
+	      && !hasIdentifier(workbenchHandle, "pauseAmazonProductMiningTask")
+	      && !hasIdentifier(workbenchHandle, "continueAmazonProductMiningTask")
+	      && !hasIdentifier(workbenchHandle, "terminateAmazonProductMiningTask")),
+	  };
 };
 
 const inspectTaskControlFiles = (files: TaskControlFiles): TaskControlChecks => ({
@@ -169,11 +162,11 @@ export const inspectAmazonTaskResumeAndControls = (
     return;
   }
 
-  findings.push(createFinding({
-    checkId: "amazon-mining/task-resume-and-controls",
-    lawId,
-    filePath: "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-    message: "Amazon Product Mining must provide persisted breakpoint continuation plus real Pause, Continue, and Terminate controls across plugin, routes, App UI, and startup.",
+	  findings.push(createFinding({
+	    checkId: "amazon-mining/task-resume-and-controls",
+	    lawId,
+	    filePath: "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+	    message: "Amazon Product Mining must provide automatic persisted breakpoint continuation and must not expose Pause, Continue, or Terminate manual control surfaces.",
     evidence: JSON.stringify({
       ...checks,
     }),

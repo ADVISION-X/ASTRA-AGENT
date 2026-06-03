@@ -83,13 +83,17 @@ const requiredExports = [
   "getLatestAmazonProductMiningTask",
   "exportAmazonProductMiningResult",
   "AmazonMiningSchemas",
-  "pauseAmazonProductMiningTask",
-  "continueAmazonProductMiningTask",
-  "terminateAmazonProductMiningTask",
   "continueInterruptedAmazonProductMiningTasks",
 ];
 for (const exported of requiredExports) {
   assert.ok(indexSrc.includes(exported), `index.ts must export '${exported}'`);
+}
+for (const forbiddenExport of [
+  "pauseAmazonProductMiningTask",
+  "continueAmazonProductMiningTask",
+  "terminateAmazonProductMiningTask",
+]) {
+  assert.equal(indexSrc.includes(forbiddenExport), false, `index.ts must not export manual control '${forbiddenExport}'`);
 }
 
 // --- Test 7: flow.ts uses correct AI interface (execute, not sendTextPromptAndCaptureResponse) ---

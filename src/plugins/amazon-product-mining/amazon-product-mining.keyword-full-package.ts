@@ -181,7 +181,7 @@ const buildReviewPagesIndex = (state: KeywordPackageState) =>
   }));
 
 const buildCompletenessReport = (state: KeywordPackageState) => ({
-  status: state.searchResults.length > 0 && state.linkedProducts.length > 0 ? "extracted" : "manual_required",
+  status: state.searchResults.length > 0 && state.linkedProducts.length > 0 ? "extracted" : "failed",
   counts: {
     searchResults: state.searchResults.length,
     productDetails: state.linkedProducts.length,
@@ -228,7 +228,7 @@ const buildAiReadingContract = (): string => `# AI Reading Contract
 You must base the keyword opportunity review on the attached keyword full evidence package archive.
 The archive is only a transport wrapper; the package files inside it are the evidence source.
 The inline navigation is only a table of contents and cannot be the sole evidence source.
-If the package files are unavailable or unreadable, return INSUFFICIENT_DATA or require manual review.
+If the package files are unavailable or unreadable, return INSUFFICIENT_DATA with concrete missing evidence refs.
 Do not output final product selection, procurement advice, inventory advice, advertising advice, profit conclusions, or deterministic marketing claims.`;
 
 export const buildKeywordFullPackagePrompt = (input: {

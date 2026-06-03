@@ -73,28 +73,26 @@ INTAKE
   -> COMPLETE
 ```
 
-## 1.0.1 断点续跑与人工控制
+## 1.0.1 自动断点续跑与禁止人工控制
 
 ```txt
 TASK_CONTROL_CHECK
   -> 每个 keyword / product / review / packaging 安全点读取持久化 task.status
-  -> paused: 停在当前持久化证据位置，不进入后续步骤
-  -> terminated: 停在当前持久化证据位置，不进入 packaging
+  -> failed: 停在当前持久化证据位置，阻断 handoff ready
   -> running states: 继续单一生产 flow
 
 WORKBENCH_STARTUP
   -> 扫描 created / keyword_generating / keyword_ready / mining / packaging
-  -> 对每个非终态、非 paused、非 terminated task 自动继续同一 flow
+  -> 对每个非终态 task 自动继续同一 flow
 ```
 
 冻结细则：
 
 - 断点真相只能来自 SQLite 与已落地 evidence，不得来自前端缓存、zip、手工重包或第二执行链。
-- Continue 必须复用同一个 `taskId`，并跳过已完成的 keyword/search/detail/review/keyword review。
-- Pause 是人工暂停，系统重启后不自动继续。
-- Terminate 是人工终止，系统重启后不自动继续，也不得生成新的 package。
+- 自动续跑必须复用同一个 `taskId`，并跳过已完成的 keyword/search/detail/review/keyword review。
+- Amazon Product Mining 不暴露 Pause / Continue / Terminate 人工控制按钮、routes、workbench handle 或 plugin facade。
 - 同一 `taskId` 任意时刻只能有一个活动执行。
-- App surface 必须提供 Pause / Continue / Terminate 三个真实后端控制按钮，不能只改 UI 状态。
+- 需要恢复时只能由系统启动恢复链扫描非终态任务并进入同一生产 flow。
 
 ## 1.1 浏览器标签生命周期
 
@@ -166,11 +164,7 @@ GET  /api/amazon-product-mining/run?taskId=   # 查询任务
 GET  /api/amazon-product-mining/latest        # 读取最新任务
 GET  /api/amazon-product-mining/keyword-reviews?taskId=
 GET  /api/amazon-product-mining/keyword-review?reviewId=
-POST /api/amazon-product-mining/keyword-review/manual-ingest
 GET  /api/amazon-product-mining/export?taskId=# 下载导出
-POST /api/amazon-product-mining/pause          # 暂停当前 task
-POST /api/amazon-product-mining/continue       # 从持久化断点继续 task
-POST /api/amazon-product-mining/terminate      # 终止当前 task
 ```
 
 禁止：直接写业务步骤 / 直接读 DOM / 直接判断产品好坏 / 直接调用能力组私有实现。
@@ -636,11 +630,11 @@ Deep Research / Facebook / invoice upload / other prompt contract 仍 fail close
 异常：
 
 ```txt
-AI 不可用 -> review.status = manual_required
+AI 不可用 -> 同一 GPT Web Chat 链路有界重试；重试耗尽后 review.status = failed
 AI 输出越权或非结构化 -> review.status = failed
-keyword full package integrity failed -> review.status = manual_required
-文件上传不可用 -> review.status = manual_required
-资料包不完整 -> decision = INSUFFICIENT_DATA 或 review.status = manual_required
+keyword full package integrity failed -> review.status = failed
+文件上传不可用 -> review.status = failed
+资料包不完整 -> decision = INSUFFICIENT_DATA 或 review.status = failed
 ```
 
 ### REJECT 后证据保留
@@ -757,8 +751,8 @@ amazon-product-mining-package-{taskId}/
 - `package-file-hashes.json` 必须提供包内文件 hash 清单，支持 handoff 前后校验。
 - `data-completeness-report.json` 与 `package-integrity-report.json` 必须诚实披露缺口与缺失产物。
 - `amazon-product-mining-package.json` 必须汇总 `keywordOpportunityReviews`，且 `keywords[]` 必须暴露每个 keyword 的 AI review status、decision、humanNextStep、confidence、artifact refs 与 failure reason。
-- `exception-summary.json`、`manual-required.json`、`failed-items.json` 与 `data-completeness-report.json` 必须把 failed/manual_required keyword opportunity review 纳入同一账本。
-- `handoff-record.json` 只在 package-integrity 通过、`failureReasons=[]`、`manualRequiredReasons=[]` 且没有 failed/manual_required keyword opportunity review 时进入 `ready`。
+- `exception-summary.json`、`failed-items.json` 与 `data-completeness-report.json` 必须把 failed keyword opportunity review 纳入同一账本。
+- `handoff-record.json` 只在 package-integrity 通过、`failureReasons=[]`、`manualRequiredReasons=[]` 且没有 failed keyword opportunity review 时进入 `ready`；否则必须 `failed`。
 
 | owner | package.ts |
 | 必须可追溯 | keyword -> product -> review |
@@ -986,7 +980,6 @@ App 允许读取：
 ```txt
 GET /api/amazon-product-mining/keyword-reviews?taskId=
 GET /api/amazon-product-mining/keyword-review?reviewId=
-POST /api/amazon-product-mining/keyword-review/manual-ingest
 ```
 
 owner read model 必须从持久化记录组装：
@@ -1127,9 +1120,9 @@ schema 有字段但无 extractor = extractor_missing = FAIL
 11. 评论分页逐页保存（reviews.ts 调用 storage.persistReviewPage 在 paginate loop 内）
 12. PDF 不替代结构化数据包（package.ts 必须产出 JSON）
 13. 固定最终产物 (package.json / report.pdf / evidence-index.json / exception-summary.json) 存在路径声明
-14. failed / manual_required / completed_with_errors 状态存在
+14. failed / completed_with_errors 状态存在，生产链路不写 manual_required
 15. exception summary 在 package.ts 中被构建
-16. keyword review 表、schema、prompt、manual-ingest route、app history table 存在并受控
+16. keyword review 表、schema、prompt、app history table 存在并受控，manual-ingest route 不存在
 17. keyword review decision 与 humanNextStep enum 固定且无越权值
 18. keyword 完成后先 review 再进入下一 keyword
 16. 不读取 cookie / token / localStorage / sessionStorage（AST 字符串扫描 + property access 扫描）

@@ -21,17 +21,11 @@ const renderAmazonProductMiningLatestTaskSurface = (): string => `
     <div><b data-amazon-product-mining-keyword-review-count>-</b><span>keyword reviews</span></div>
     <div><b data-amazon-product-mining-package>-</b><span>package/pdf ref</span></div>
   </div>
-  <div class="task-control-row" data-amazon-product-mining-task-controls>
-    <button class="btn secondary compact-button" type="button" data-amazon-product-mining-pause>Pause</button>
-    <button class="btn secondary compact-button" type="button" data-amazon-product-mining-continue>Continue</button>
-    <button class="btn secondary compact-button" type="button" data-amazon-product-mining-terminate>Terminate</button>
-  </div>
   <div class="state-stack">
     <div class="empty-state" data-amazon-product-mining-latest-state="empty">No latest task loaded.</div>
     <div class="loaded-state hidden" data-amazon-product-mining-latest-state="loaded">Live task read model loaded.</div>
     <div class="loading-state hidden" data-amazon-product-mining-latest-state="loading">Loading latest task...</div>
     <div class="error-state hidden" data-amazon-product-mining-latest-state="error">Latest task failed to load. Retry from the command bar or task card.</div>
-    <div class="manual-required-state hidden" data-amazon-product-mining-latest-state="manual_required">manual_required task state will appear here.</div>
     <div class="failed-state hidden" data-amazon-product-mining-latest-state="failed">failed task state will appear here.</div>
   </div>
 </section>`;

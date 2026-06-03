@@ -323,7 +323,7 @@ const buildCompletenessSummary = (input: {
   keywordCountCompleted: input.keywords.filter((keyword) => keyword.status === "completed" || keyword.status === "completed_with_errors").length,
   keywordReviewCount: input.keywordReviews.length,
   keywordReviewFailedCount: input.keywordReviews.filter((review) => review.status === "failed").length,
-  keywordReviewManualRequiredCount: input.keywordReviews.filter((review) => review.status === "manual_required").length,
+  keywordReviewAutomationBlockedCount: input.keywordReviews.filter((review) => review.status === "failed").length,
   searchResultCount: input.searchResults.length,
   uniqueProductDetailCount: input.products.length,
   reviewCount: [...input.reviewsByDetailId.values()].reduce((sum, reviews) => sum + reviews.length, 0),

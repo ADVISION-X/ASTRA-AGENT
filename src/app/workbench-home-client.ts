@@ -443,9 +443,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
   qs("[data-amazon-product-mining-export]")?.addEventListener("click", exportAmazonProductMining);
-  qs("[data-amazon-product-mining-pause]")?.addEventListener("click", () => pauseAmazonProductMining().catch((error) => writeActivity("amazon product mining pause failed: " + error.message, "failed")));
-  qs("[data-amazon-product-mining-continue]")?.addEventListener("click", () => continueAmazonProductMining().catch((error) => writeActivity("amazon product mining continue failed: " + error.message, "failed")));
-  qs("[data-amazon-product-mining-terminate]")?.addEventListener("click", () => terminateAmazonProductMining().catch((error) => writeActivity("amazon product mining terminate failed: " + error.message, "failed")));
   document.querySelectorAll("[data-amazon-product-mining-refresh-reviews]").forEach((button) => {
     button.addEventListener("click", () => refreshAmazonProductMiningKeywordReviews().catch(() => undefined));
   });

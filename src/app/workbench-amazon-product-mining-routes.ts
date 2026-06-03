@@ -70,16 +70,6 @@ const handleAmazonKeywordReviewRequest = async (
   return true;
 };
 
-const handleAmazonKeywordReviewManualIngestRequest = async (
-  request: IncomingMessage,
-  response: ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  const input = await readJsonBody(request);
-  writeJson(response, 200, { review: workbench.ingestAmazonProductMiningKeywordReview(input) });
-  return true;
-};
-
 const handleAmazonExportRequest = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -99,57 +89,6 @@ const handleAmazonExportRequest = async (
   return true;
 };
 
-const readTaskIdFromControlRequest = async (
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<string | null> => {
-  const input = await readJsonBody(request);
-  const taskId = typeof input === "object" && input !== null && "taskId" in input
-    ? (input as { taskId?: unknown }).taskId
-    : null;
-  if (typeof taskId !== "string" || taskId.trim().length === 0) {
-    writeJson(response, 400, { error: "missing_task_id" });
-    return null;
-  }
-  return taskId;
-};
-
-const handleAmazonPauseRequest = async (
-  request: IncomingMessage,
-  response: ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  const taskId = await readTaskIdFromControlRequest(request, response);
-  if (!taskId) return true;
-  const result = workbench.pauseAmazonProductMiningTask(taskId);
-  writeJson(response, result ? 200 : 404, result ?? { error: "task_not_found" });
-  return true;
-};
-
-const handleAmazonContinueRequest = async (
-  request: IncomingMessage,
-  response: ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  const taskId = await readTaskIdFromControlRequest(request, response);
-  if (!taskId) return true;
-  const result = workbench.continueAmazonProductMiningTask(taskId);
-  writeJson(response, result ? 200 : 404, result ?? { error: "task_not_continuable" });
-  return true;
-};
-
-const handleAmazonTerminateRequest = async (
-  request: IncomingMessage,
-  response: ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  const taskId = await readTaskIdFromControlRequest(request, response);
-  if (!taskId) return true;
-  const result = workbench.terminateAmazonProductMiningTask(taskId);
-  writeJson(response, result ? 200 : 404, result ?? { error: "task_not_found" });
-  return true;
-};
-
 export const handleAmazonProductMiningRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -165,11 +104,7 @@ export const handleAmazonProductMiningRequest = async (
     "GET:/api/amazon-product-mining/latest": () => handleAmazonLatestRequest(response, workbench),
     "GET:/api/amazon-product-mining/keyword-reviews": () => handleAmazonKeywordReviewsRequest(response, workbench, url),
     "GET:/api/amazon-product-mining/keyword-review": () => handleAmazonKeywordReviewRequest(response, workbench, url),
-    "POST:/api/amazon-product-mining/keyword-review/manual-ingest": () => handleAmazonKeywordReviewManualIngestRequest(request, response, workbench),
     "GET:/api/amazon-product-mining/export": () => handleAmazonExportRequest(response, workbench, url),
-    "POST:/api/amazon-product-mining/pause": () => handleAmazonPauseRequest(request, response, workbench),
-    "POST:/api/amazon-product-mining/continue": () => handleAmazonContinueRequest(request, response, workbench),
-    "POST:/api/amazon-product-mining/terminate": () => handleAmazonTerminateRequest(request, response, workbench),
   };
   const routeHandler = routeHandlers[`${request.method}:${url.pathname}`];
   return routeHandler ? routeHandler() : false;

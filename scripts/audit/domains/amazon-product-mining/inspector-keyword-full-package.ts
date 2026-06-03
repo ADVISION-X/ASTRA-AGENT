@@ -45,10 +45,10 @@ const inspectKeywordPackageBuilder = (packageFile: SourceFile | undefined): bool
 const inspectKeywordReviewRuntime = (reviewFile: SourceFile | undefined): boolean =>
   Boolean(reviewFile
     && hasIdentifier(reviewFile, "buildKeywordFullEvidencePackage")
-    && hasIdentifier(reviewFile, "providerProofContainsKeywordPackageFiles")
-    && !fileIncludesText(reviewFile, "maxFileCount: 0")
-    && hasStringLiteral(reviewFile, "keyword_full_package_integrity_failed")
-    && hasStringLiteral(reviewFile, "keyword_full_package_files_not_confirmed_by_provider_proof"));
+	    && hasIdentifier(reviewFile, "providerProofContainsKeywordPackageFiles")
+	    && !fileIncludesText(reviewFile, "maxFileCount: 0")
+	    && fileIncludesText(reviewFile, "keyword_full_package_integrity_failed")
+	    && fileIncludesText(reviewFile, "keyword_full_package_files_not_confirmed_by_provider_proof"));
 
 const inspectKeywordPackageGateway = (aiPackageFile: SourceFile | undefined): boolean =>
   Boolean(aiPackageFile

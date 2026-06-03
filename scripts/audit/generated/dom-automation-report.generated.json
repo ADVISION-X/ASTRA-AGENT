@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T11:01:42.645Z",
+  "generatedAt": "2026-06-03T06:52:43.113Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -172,6 +172,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
+    "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-automation.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",

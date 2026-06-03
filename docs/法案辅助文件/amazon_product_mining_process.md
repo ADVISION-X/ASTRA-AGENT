@@ -66,8 +66,8 @@ flowchart TD
 3. 开始任务前必须读取历史已挖掘关键词，避免重复挖掘。
 4. 每次任务必须生成唯一任务编号，方便后续追踪。
 5. 如果用户没有选择市场或站点，任务不得开始。
-6. 任务一旦创建，必须持久化断点；系统重启后，非终态且非人工暂停/终止的任务必须自动继续。
-7. 操作界面必须提供暂停、继续、终止按钮，不能要求用户通过杀端口来控制任务。
+6. 任务一旦创建，必须持久化断点；系统重启后，非终态任务必须自动继续。
+7. 操作界面不得提供暂停、继续、终止等要求人工介入的 Amazon Product Mining 控制按钮。
 
 ## 1.1 断点续跑与任务控制
 
@@ -78,9 +78,8 @@ flowchart TD
 状态规则：
 
 1. `created`、`keyword_generating`、`keyword_ready`、`mining`、`packaging`：系统重启后自动继续。
-2. `paused`：人工暂停，系统重启后不自动继续，必须点击继续。
-3. `terminated`：人工终止，系统重启后不自动继续，也不得继续打包。
-4. `package_completed`、`failed`、`manual_required`：终态或待人工处理，不自动重跑。
+2. `package_completed`、`failed`：终态，不自动重跑。
+3. `created`、`keyword_generating`、`keyword_ready`、`mining`、`packaging`：非终态，系统启动后自动续跑同一生产 flow。
 
 ### 注意事项
 
@@ -166,7 +165,7 @@ Agent 从待挖掘关键词队列中取出第一个关键词，进入 Amazon 搜
 2. 每个关键词都要有独立搜索记录。
 3. 如果页面打不开、加载失败、出现验证码或风控页面，应标记该关键词为异常状态。
 4. 遇到异常时不得绕过验证码、登录限制或平台风控。
-5. 异常关键词可以进入 `failed` 或 `manual_required` 状态，之后继续下一个关键词。
+5. 异常关键词进入 `failed` 状态，之后继续下一个关键词；不得要求人工接管。
 
 ---
 
@@ -456,9 +455,9 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 1. 这一步是 `keywordId` 级垃圾过滤，不是最终选品。
 2. 这一步只能判断“该 keyword product pool 是否值得继续研究”，不能输出采购、打样、下单、上架、广告投放或最终产品选择建议。
 3. 每个关键词都必须独立生成一条 keyword opportunity review 记录，不能把某个关键词 verdict 扩大为整个任务的全局结论。
-4. 如果高级 AI 不可用、返回不合规或无法结构化校验，review 只能进入 `manual_required` 或 `failed`，不得伪装为完成。
+4. 如果高级 AI 不可用、返回不合规或无法结构化校验，review 必须在同一 GPT Web Chat 链路内有界重试；重试耗尽后只能进入 `failed`，不得伪装为完成。
 5. App 历史表只能读取已持久化的 keyword review 记录，不能用本地缓存、demo row 或扫描资料包代替。
-6. 如果 package transport zip 上传能力不可用，review 必须进入 `manual_required`，不得自动降级成 inline-only verdict。
+6. 如果 package transport zip 上传能力不可用，review 必须进入 `failed`，不得自动降级成 inline-only verdict，不得要求人工导入。
 7. 如果 AI 只读取了 slice，没有读取 full package，verdict 不得作为最终 keyword review。
 8. 如果 AI 返回 `REJECT`，只能标记该关键词不进入候选名单，不能物理删除该关键词 evidence。
 
@@ -496,7 +495,7 @@ Agent 需要从评论第一页开始，分页提取当前环境下可访问的�
 5. 数据包必须保留原始证据索引，方便后续复查。
 6. 数据包生成后，任务进入任务级打包与交接准备阶段，此时还不等于 `package_completed`。
 7. 每个关键词的 keyword opportunity review 状态必须汇总到 master package 的 keyword 列表与 review 列表中，不能只存在于单独 response 文件或数据库表。
-8. `failed` / `manual_required` keyword opportunity review 必须进入异常摘要、完整性统计和 handoff readiness 账本。
+8. `failed` keyword opportunity review 必须进入异常摘要、完整性统计和 handoff readiness 账本。
 
 ---
 
@@ -551,7 +550,7 @@ PDF 和结构化数据包生成完成后，Agent 将其作为完整任务输入�
 1. 最终高级 AI 只基于完整任务数据包做决策，不应凭空补充不存在的数据。
 2. Agent 不在本流程中输出最终选品建议；关键词级机会筛选也不等于最终选品。
 3. 如果数据包不完整，高级 AI 必须能看到不完整原因。
-4. PDF 与结构化数据包生成不等于可交接；只有 `failureReasons=[]`、`manualRequiredReasons=[]`、无 failed/manual_required keyword opportunity review 且 package integrity pass 时，handoff 才能进入 `ready`。
+4. PDF 与结构化数据包生成不等于可交接；只有 `failureReasons=[]`、`manualRequiredReasons=[]`、无 failed keyword opportunity review 且 package integrity pass 时，handoff 才能进入 `ready`；否则必须 `failed`。
 5. 如果 task 已 failed 或 keyword review failed，handoff record 必须明确 not handoff-ready，不得因为文件已生成而标记 `ready`。
 6. 后续选品评分、打样建议、产品矩阵判断属于下一阶段流程，不属于本文件范围。
 

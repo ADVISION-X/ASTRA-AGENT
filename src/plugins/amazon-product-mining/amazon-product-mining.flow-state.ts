@@ -1,7 +1,7 @@
 import type { AmazonMiningInput, AmazonTaskRecord } from "./amazon-product-mining.schema.js";
 
 export type FinalTaskResolution = {
-  finalTaskStatus: "failed" | "manual_required" | "package_completed";
+  finalTaskStatus: "failed" | "package_completed";
   finalHandoffStatus: "ready" | "failed";
   finalFailureReason: string | null;
 };
@@ -13,13 +13,13 @@ export const resolveFinalTaskState = (input: {
   failureReasons?: readonly string[];
 }): FinalTaskResolution => {
   const failureReasons = input.failureReasons ?? [];
-  const finalTaskStatus = input.allKeywordsFailed || failureReasons.length > 0
+  const finalTaskStatus = input.allKeywordsFailed || failureReasons.length > 0 || input.manualRequiredReasons.length > 0
     ? "failed"
-    : input.manualRequiredReasons.length > 0 ? "manual_required" : "package_completed";
-  const finalHandoffStatus = finalTaskStatus === "package_completed" && input.handoffStatus !== "manual_required"
+    : "package_completed";
+  const finalHandoffStatus = finalTaskStatus === "package_completed"
     ? "ready"
     : "failed";
-  const finalFailureReason = finalTaskStatus === "failed" || finalTaskStatus === "manual_required"
+  const finalFailureReason = finalTaskStatus === "failed"
     ? [...failureReasons, ...input.manualRequiredReasons].join("; ")
     : null;
 

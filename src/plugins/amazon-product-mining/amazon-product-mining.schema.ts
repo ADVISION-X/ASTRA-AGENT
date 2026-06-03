@@ -90,7 +90,6 @@ const AmazonKeywordOpportunityHumanNextStepSchema = z.enum([
 
 const AmazonKeywordOpportunityReviewStatusSchema = z.enum([
   "completed",
-  "manual_required",
   "failed",
 ]);
 
@@ -290,11 +289,6 @@ const AmazonKeywordOpportunityReviewRecordSchema = z.object({
   updatedAt: z.string().min(1).nullable().default(null),
 }).strict();
 
-const AmazonKeywordOpportunityManualIngestSchema = AmazonKeywordOpportunityVerdictSchema.extend({
-  reviewId: z.string().min(1),
-  aiRawResponse: z.string().min(1).optional(),
-}).strict();
-
 export const AmazonMiningSchemas = {
   AmazonMiningInputSchema,
   AmazonMarketplaceSchema,
@@ -317,7 +311,6 @@ export const AmazonMiningSchemas = {
   AmazonTaskRecordSchema,
   AmazonKeywordOpportunityVerdictSchema,
   AmazonKeywordOpportunityReviewRecordSchema,
-  AmazonKeywordOpportunityManualIngestSchema,
 } as const;
 
 export type AmazonMiningInput = z.infer<typeof AmazonMiningInputSchema>;
@@ -336,5 +329,4 @@ export type AmazonKeywordOpportunityHumanNextStep = z.infer<typeof AmazonKeyword
 export type AmazonKeywordOpportunityReviewStatus = z.infer<typeof AmazonKeywordOpportunityReviewStatusSchema>;
 export type AmazonKeywordOpportunityVerdict = z.infer<typeof AmazonKeywordOpportunityVerdictSchema>;
 export type AmazonKeywordOpportunityReviewRecord = z.infer<typeof AmazonKeywordOpportunityReviewRecordSchema>;
-export type AmazonKeywordOpportunityManualIngestInput = z.infer<typeof AmazonKeywordOpportunityManualIngestSchema>;
 export type AmazonKeywordProviderKind = z.infer<typeof AmazonKeywordProviderKindSchema>;

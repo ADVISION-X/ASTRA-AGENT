@@ -41,7 +41,7 @@ export type AmazonHandoffRecord = {
     reviewCount: number;
   };
   packageIntegrityStatus: "pass" | "failed";
-  handoffStatus: "ready" | "manual_required" | "failed";
+  handoffStatus: "ready" | "failed";
   manualRequiredReasons: string[];
   failureReasons: string[];
   analysisBoundary: "external_advanced_ai_only";
@@ -238,7 +238,7 @@ export const buildHandoffRecord = (input: BuildAmazonHandoffRecordInput): Amazon
     packageIntegrityStatus: input.packageIntegrityStatus,
     handoffStatus: failureReasons.length > 0
       ? "failed"
-      : input.manualRequiredReasons.length > 0 || input.packageIntegrityStatus === "failed" ? "manual_required" : "ready",
+      : input.manualRequiredReasons.length > 0 || input.packageIntegrityStatus === "failed" ? "failed" : "ready",
     manualRequiredReasons: [...input.manualRequiredReasons],
     failureReasons,
     analysisBoundary: "external_advanced_ai_only",

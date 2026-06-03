@@ -36,11 +36,7 @@ import {
   getLatestAmazonProductMiningTask,
   listAmazonProductMiningKeywordReviews,
   getAmazonProductMiningKeywordReview,
-  ingestAmazonProductMiningKeywordReview,
   exportAmazonProductMiningResult,
-  pauseAmazonProductMiningTask,
-  continueAmazonProductMiningTask,
-  terminateAmazonProductMiningTask,
   continueInterruptedAmazonProductMiningTasks,
 } from "../../plugins/amazon-product-mining/index.js";
 import {
@@ -232,27 +228,12 @@ const buildAmazonMiningReviewHandle = (dataDir: string) => ({
   getAmazonProductMiningKeywordReview(reviewId: string) {
     return getAmazonProductMiningKeywordReview({ dataDir, reviewId });
   },
-  ingestAmazonProductMiningKeywordReview(rawInput: unknown) {
-    return ingestAmazonProductMiningKeywordReview({ dataDir, rawInput });
-  },
 });
 
 const buildAmazonMiningControlHandle = (
   assembly: WorkbenchAssembly,
   dataDir: string,
 ) => ({
-  pauseAmazonProductMiningTask(taskId: string) {
-    return pauseAmazonProductMiningTask({ dataDir, taskId });
-  },
-  continueAmazonProductMiningTask(taskId: string) {
-    return continueAmazonProductMiningTask({
-      taskId,
-      ...buildAmazonMiningRuntime(assembly, dataDir),
-    });
-  },
-  terminateAmazonProductMiningTask(taskId: string) {
-    return terminateAmazonProductMiningTask({ dataDir, taskId });
-  },
   continueInterruptedAmazonProductMiningTasks() {
     return continueInterruptedAmazonProductMiningTasks(
       buildAmazonMiningRuntime(assembly, dataDir),

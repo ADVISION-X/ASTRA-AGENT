@@ -26,10 +26,10 @@ assert(workspace.includes("Latest Task Summary Card"), "Amazon Product Mining wo
 assert(workspace.includes('data-amazon-product-mining-latest-state="empty"'), "Latest Task Summary must expose a controllable empty state.");
 assert(workspace.includes('data-amazon-product-mining-latest-state="loading"'), "Latest Task Summary must expose a controllable loading state.");
 assert(workspace.includes('data-amazon-product-mining-latest-state="error"'), "Latest Task Summary must expose a controllable error state.");
-assert(workspace.includes("data-amazon-product-mining-task-controls"), "Latest Task Summary must expose task control buttons.");
-assert(workspace.includes("data-amazon-product-mining-pause"), "Latest Task Summary must expose Pause control.");
-assert(workspace.includes("data-amazon-product-mining-continue"), "Latest Task Summary must expose Continue control.");
-assert(workspace.includes("data-amazon-product-mining-terminate"), "Latest Task Summary must expose Terminate control.");
+assert(!workspace.includes("data-amazon-product-mining-task-controls"), "Latest Task Summary must not expose manual task control buttons.");
+assert(!workspace.includes("data-amazon-product-mining-pause"), "Latest Task Summary must not expose Pause control.");
+assert(!workspace.includes("data-amazon-product-mining-continue"), "Latest Task Summary must not expose Continue control.");
+assert(!workspace.includes("data-amazon-product-mining-terminate"), "Latest Task Summary must not expose Terminate control.");
 assert(history.includes("Keyword Opportunity Review History"), "Amazon Product Mining history module must render Keyword Opportunity Review History.");
 assert(publish.includes("data-amazon-product-mining-publish-area"), "Publish Task Area must remain available.");
 assert(history.includes("data-primary-history-surface"), "Keyword History must be the primary history surface.");
@@ -44,11 +44,11 @@ assert(client.includes("amazonProductMiningPoll"), "Client must keep an Amazon P
 assert(client.includes("startAmazonProductMiningPolling"), "Client must start Amazon Product Mining polling after task creation or latest refresh.");
 assert(client.includes("stopAmazonProductMiningPolling"), "Client must stop Amazon Product Mining polling when the task reaches a terminal status.");
 assert(client.includes("pollAmazonProductMiningTask"), "Client must poll /api/amazon-product-mining/run for persisted task status.");
-assert(reviewClient.includes("sendAmazonProductMiningControl"), "Client must call backend task-control routes.");
-assert(reviewClient.includes("/api/amazon-product-mining/\" + controlName"), "Client task controls must call Amazon Product Mining backend control routes.");
+assert(!reviewClient.includes("sendAmazonProductMiningControl"), "Client must not call backend manual task-control routes.");
+assert(!reviewClient.includes("/api/amazon-product-mining/\" + controlName"), "Client task controls must not call Amazon Product Mining backend control routes.");
 assert(reviewClient.includes("setAmazonProductMiningLatestSummaryState"), "Review client must control Latest Task Summary state visibility.");
 assert(
-  reviewClient.includes('setAmazonProductMiningLatestSummaryState(status === "manual_required" || status === "failed" ? status : "loaded")'),
+  reviewClient.includes('setAmazonProductMiningLatestSummaryState(status === "failed" ? status : "loaded")'),
   "Rendering a real Amazon Product Mining task must hide the stale empty-state from Latest Task Summary.",
 );
 assert(

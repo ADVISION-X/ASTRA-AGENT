@@ -232,16 +232,15 @@ export const inspectPluginPublicSurface = (
   const resultFile = getRequiredSourceFile(context, resultRepoPath);
   trackSourceFile(inspectedFiles, pluginIndex);
   trackSourceFile(inspectedFiles, resultFile);
-  const requiredExports = [
-    "startAmazonProductMiningMission",
-    "getAmazonProductMiningTaskStatus",
-    "getLatestAmazonProductMiningTask",
-    "listAmazonProductMiningKeywordReviews",
-    "getAmazonProductMiningKeywordReview",
-    "ingestAmazonProductMiningKeywordReview",
-    "exportAmazonProductMiningResult",
-    "AmazonMiningSchemas",
-  ];
+	  const requiredExports = [
+	    "startAmazonProductMiningMission",
+	    "getAmazonProductMiningTaskStatus",
+	    "getLatestAmazonProductMiningTask",
+	    "listAmazonProductMiningKeywordReviews",
+	    "getAmazonProductMiningKeywordReview",
+	    "exportAmazonProductMiningResult",
+	    "AmazonMiningSchemas",
+	  ];
   const requiredReadModelSymbols = [
     "buildTaskReadModel",
     "createKeywordProgress",
@@ -284,15 +283,14 @@ export const inspectWorkbenchHandle = (
   const repoPath = "src/lib/local-runtime/workbench.ts";
   const workbench = getRequiredSourceFile(context, repoPath);
   trackSourceFile(inspectedFiles, workbench);
-  const requiredNames = [
-    "startAmazonProductMiningMission",
-    "getAmazonProductMiningTaskStatus",
-    "getLatestAmazonProductMiningTask",
-    "listAmazonProductMiningKeywordReviews",
-    "getAmazonProductMiningKeywordReview",
-    "ingestAmazonProductMiningKeywordReview",
-    "exportAmazonProductMiningResult",
-  ];
+	  const requiredNames = [
+	    "startAmazonProductMiningMission",
+	    "getAmazonProductMiningTaskStatus",
+	    "getLatestAmazonProductMiningTask",
+	    "listAmazonProductMiningKeywordReviews",
+	    "getAmazonProductMiningKeywordReview",
+	    "exportAmazonProductMiningResult",
+	  ];
   if (workbench && requiredNames.every((name) => hasIdentifier(workbench, name))) {
     return;
   }
@@ -313,15 +311,14 @@ export const inspectAppShellRoutes = (
   const repoPath = "src/app/workbench-amazon-product-mining-routes.ts";
   const routesFile = getRequiredSourceFile(context, repoPath);
   trackSourceFile(inspectedFiles, routesFile);
-  const requiredRoutes = [
-    "POST:/api/amazon-product-mining/mission",
-    "GET:/api/amazon-product-mining/run",
-    "GET:/api/amazon-product-mining/latest",
-    "GET:/api/amazon-product-mining/keyword-reviews",
-    "GET:/api/amazon-product-mining/keyword-review",
-    "POST:/api/amazon-product-mining/keyword-review/manual-ingest",
-    "GET:/api/amazon-product-mining/export",
-  ];
+	  const requiredRoutes = [
+	    "POST:/api/amazon-product-mining/mission",
+	    "GET:/api/amazon-product-mining/run",
+	    "GET:/api/amazon-product-mining/latest",
+	    "GET:/api/amazon-product-mining/keyword-reviews",
+	    "GET:/api/amazon-product-mining/keyword-review",
+	    "GET:/api/amazon-product-mining/export",
+	  ];
   if (!routesFile || !requiredRoutes.every((route) => hasStringLiteral(routesFile, route))) {
     findings.push(createFinding({
       checkId: "amazon-mining/app-shell-routes",

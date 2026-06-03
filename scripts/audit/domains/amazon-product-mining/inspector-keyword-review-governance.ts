@@ -14,7 +14,8 @@ import {
   hasStringLiteral,
   literalText,
   trackSourceFile,
-} from "./inspector-ast-shared.js";
+	} from "./inspector-ast-shared.js";
+import { inspectKeywordReviewAutomationOnlyGuards } from "./inspector-keyword-review-automation.js";
 
 const LAW_PATH = ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md";
 const BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md";
@@ -84,12 +85,11 @@ const inspectKeywordReviewSchemaSurface = (input: {
   schemaFile: SourceFile | undefined;
 }): void => {
   const schemaFile = input.schemaFile;
-  const schemaIdentifiers = [
-    "AmazonKeywordOpportunityDecisionSchema",
-    "AmazonKeywordOpportunityHumanNextStepSchema",
-    "AmazonKeywordOpportunityReviewRecordSchema",
-    "AmazonKeywordOpportunityManualIngestSchema",
-  ];
+	  const schemaIdentifiers = [
+	    "AmazonKeywordOpportunityDecisionSchema",
+	    "AmazonKeywordOpportunityHumanNextStepSchema",
+	    "AmazonKeywordOpportunityReviewRecordSchema",
+	  ];
   const hasSchemaSurface = schemaFile
     ? schemaIdentifiers.every((identifier) => hasIdentifier(schemaFile, identifier))
     : false;
@@ -98,7 +98,7 @@ const inspectKeywordReviewSchemaSurface = (input: {
       checkId: "amazon-mining/keyword-review-schema-surface",
       lawId: input.lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-      message: "Amazon keyword review schema must expose fixed decision, humanNextStep, review record, and manual-ingest contracts.",
+	      message: "Amazon keyword review schema must expose fixed decision, humanNextStep, and review record contracts.",
     }));
   }
 
@@ -136,14 +136,14 @@ const inspectKeywordReviewOwnerSurface = (input: {
   keywordReviewSupportFile: SourceFile | undefined;
   lawId: string;
 }): void => {
-  if (!input.keywordReviewFile || !hasIdentifier(input.keywordReviewFile, "runKeywordOpportunityReview") || !hasIdentifier(input.keywordReviewFile, "ingestManualKeywordOpportunityReview")) {
-    input.findings.push(createFinding({
-      checkId: "amazon-mining/keyword-review-owner-module",
-      lawId: input.lawId,
-      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-      message: "Amazon mining must expose a keyword review owner module with runtime review execution and manual ingest.",
-    }));
-  }
+	  if (!input.keywordReviewFile || !hasIdentifier(input.keywordReviewFile, "runKeywordOpportunityReview")) {
+	    input.findings.push(createFinding({
+	      checkId: "amazon-mining/keyword-review-owner-module",
+	      lawId: input.lawId,
+	      filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+	      message: "Amazon mining must expose a keyword review owner module with automated runtime review execution.",
+	    }));
+	  }
 
   const hasReviewInputContract = input.keywordReviewFile
     && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS")
@@ -258,21 +258,20 @@ const inspectKeywordReviewAppRouteSurface = (input: {
   routesFile: SourceFile | undefined;
 }): void => {
   const routesFile = input.routesFile;
-  const routeTokens = [
-    "GET:/api/amazon-product-mining/keyword-reviews",
-    "GET:/api/amazon-product-mining/keyword-review",
-    "POST:/api/amazon-product-mining/keyword-review/manual-ingest",
-  ];
+	  const routeTokens = [
+	    "GET:/api/amazon-product-mining/keyword-reviews",
+	    "GET:/api/amazon-product-mining/keyword-review",
+	  ];
   const hasRouteSurface = routesFile ? routeTokens.every((token) => hasStringLiteral(routesFile, token)) : false;
   if (!hasRouteSurface) {
     input.findings.push(createFinding({
-      checkId: "amazon-mining/keyword-review-routes",
-      lawId: input.lawId,
-      filePath: "src/app/workbench-amazon-product-mining-routes.ts",
-      message: "Amazon routes must expose keyword review list, detail, and manual-ingest endpoints.",
-    }));
-  }
-};
+	      checkId: "amazon-mining/keyword-review-routes",
+	      lawId: input.lawId,
+	      filePath: "src/app/workbench-amazon-product-mining-routes.ts",
+	      message: "Amazon routes must expose keyword review list and detail endpoints.",
+	    }));
+	  }
+	};
 
 const inspectKeywordReviewAppForbiddenSurface = (input: {
   clientFiles: SourceFile[];
@@ -349,19 +348,34 @@ export const inspectKeywordReviewSchemaAndStorage = (
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  const schemaFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts");
-  const storageSchemaFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts");
-  const keywordReviewFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts");
-  const keywordReviewSupportFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts");
-  trackSourceFile(inspectedFiles, schemaFile);
-  trackSourceFile(inspectedFiles, storageSchemaFile);
-  trackSourceFile(inspectedFiles, keywordReviewFile);
-  trackSourceFile(inspectedFiles, keywordReviewSupportFile);
-
-  inspectKeywordReviewSchemaSurface({ findings, lawId, schemaFile });
-  inspectKeywordReviewStorageSurface({ findings, lawId, storageSchemaFile });
-  inspectKeywordReviewOwnerSurface({ findings, lawId, keywordReviewFile, keywordReviewSupportFile });
-};
+	  const schemaFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts");
+	  const storageSchemaFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts");
+	  const keywordReviewFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts");
+	  const keywordReviewSupportFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts");
+	  const pluginIndexFile = getRequiredSourceFile(context, "src/plugins/amazon-product-mining/index.ts");
+	  const routesFile = getRequiredSourceFile(context, "src/app/workbench-amazon-product-mining-routes.ts");
+	  const apiBoundaryFile = getRequiredSourceFile(context, "src/app/workbench-api-boundary.ts");
+	  trackSourceFile(inspectedFiles, schemaFile);
+	  trackSourceFile(inspectedFiles, storageSchemaFile);
+	  trackSourceFile(inspectedFiles, keywordReviewFile);
+	  trackSourceFile(inspectedFiles, keywordReviewSupportFile);
+	  trackSourceFile(inspectedFiles, pluginIndexFile);
+	  trackSourceFile(inspectedFiles, routesFile);
+	  trackSourceFile(inspectedFiles, apiBoundaryFile);
+	
+	  inspectKeywordReviewSchemaSurface({ findings, lawId, schemaFile });
+	  inspectKeywordReviewStorageSurface({ findings, lawId, storageSchemaFile });
+	  inspectKeywordReviewOwnerSurface({ findings, lawId, keywordReviewFile, keywordReviewSupportFile });
+	  inspectKeywordReviewAutomationOnlyGuards({
+	    findings,
+	    lawId,
+	    keywordReviewFile,
+	    pluginIndexFile,
+	    routesFile,
+	    apiBoundaryFile,
+	    schemaFile,
+	  });
+	};
 
 export const inspectKeywordReviewPromptAndFlow = (
   context: InspectorContext,

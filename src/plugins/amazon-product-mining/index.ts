@@ -13,7 +13,6 @@ import {
   listAmazonProductMiningKeywordReviewHistory,
 } from "./amazon-product-mining.keyword-review-history.js";
 import { createAmazonProductMiningPackageZip } from "./amazon-product-mining.package-zip.js";
-import { ingestManualKeywordOpportunityReview } from "./amazon-product-mining.keyword-review.js";
 import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import type { AmazonMiningStorage } from "./amazon-product-mining.storage.js";
 
@@ -113,61 +112,6 @@ export const startAmazonProductMiningMission = (input: {
   return { taskId };
 };
 
-export const pauseAmazonProductMiningTask = (input: {
-  dataDir: string;
-  taskId: string;
-}): AmazonFlowResult | null => {
-  const storage = createAmazonMiningStorage(input.dataDir);
-  try {
-    const task = storage.getTask(input.taskId);
-    if (!task) return null;
-    if (task.status === "package_completed" || task.status === "failed" || task.status === "manual_required" || task.status === "terminated") {
-      return buildTaskReadModel(storage, task);
-    }
-    const updated = storage.updateTaskStatus({ taskId: input.taskId, status: "paused" });
-    return updated ? buildTaskReadModel(storage, updated) : null;
-  } finally {
-    storage.close();
-  }
-};
-
-export const terminateAmazonProductMiningTask = (input: {
-  dataDir: string;
-  taskId: string;
-}): AmazonFlowResult | null => {
-  const storage = createAmazonMiningStorage(input.dataDir);
-  try {
-    const task = storage.getTask(input.taskId);
-    if (!task) return null;
-    if (task.status === "package_completed" || task.status === "failed" || task.status === "manual_required") {
-      return buildTaskReadModel(storage, task);
-    }
-    const updated = storage.updateTaskStatus({ taskId: input.taskId, status: "terminated" });
-    return updated ? buildTaskReadModel(storage, updated) : null;
-  } finally {
-    storage.close();
-  }
-};
-
-export const continueAmazonProductMiningTask = (input: {
-  taskId: string;
-} & AmazonProductMiningRuntimeInput): { taskId: string } | null => {
-  const storage = createAmazonMiningStorage(input.dataDir);
-  try {
-    const task = storage.getTask(input.taskId);
-    if (!task || task.status === "terminated" || task.status === "package_completed") {
-      return null;
-    }
-    if (task.status === "paused") {
-      storage.updateTaskStatus({ taskId: input.taskId, status: "mining", operatorOverride: true });
-    }
-    const taskId = runAmazonProductMiningTaskOnce(taskRecordToMiningInput(task), input);
-    return { taskId };
-  } finally {
-    storage.close();
-  }
-};
-
 export const continueInterruptedAmazonProductMiningTasks = (
   input: AmazonProductMiningRuntimeInput,
 ): { taskIds: string[] } => {
@@ -225,22 +169,6 @@ export const getAmazonProductMiningKeywordReview = (input: {
   const storage = createAmazonMiningStorage(input.dataDir);
   try {
     return getAmazonProductMiningKeywordReviewHistoryEntry(storage, input.reviewId);
-  } finally {
-    storage.close();
-  }
-};
-
-export const ingestAmazonProductMiningKeywordReview = (input: {
-  dataDir: string;
-  rawInput: unknown;
-}) => {
-  const storage = createAmazonMiningStorage(input.dataDir);
-  try {
-    return ingestManualKeywordOpportunityReview({
-      dataDir: input.dataDir,
-      storage,
-      rawInput: input.rawInput,
-    });
   } finally {
     storage.close();
   }

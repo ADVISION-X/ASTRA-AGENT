@@ -203,7 +203,7 @@ const extractAndPersistReviews = async (
   detailId: string,
   asin: string,
 ): Promise<void> => {
-  const { ctx, storage, logger, taskId, miningInput, manualRequiredReasons } = runtime;
+  const { ctx, storage, logger, taskId, miningInput } = runtime;
   const reviewsUrl = `https://www.${miningInput.amazonMarketplace}/product-reviews/${asin}`;
   storage.updateProductStatus({ detailId, status: "review_extracting" });
   await waitForReviewPageOpenPacingDelay(runtime);
@@ -224,22 +224,28 @@ const extractAndPersistReviews = async (
     },
   });
 
-  if (paginationResult.restriction === "manual_required") {
-    manualRequiredReasons.push(`reviews_restricted:detailId=${detailId}`);
-    storage.updateProductStatus({ detailId, status: "manual_required" });
-    logger.logManualRequired({ taskId, scope: "reviews", scopeId: detailId, reason: "review_page_blocked" });
+  if (paginationResult.restriction === "blocked") {
+    runtime.failureReasons.push(`reviews_restricted:detailId=${detailId}`);
+    storage.updateProductStatus({ detailId, status: "completed_with_errors" });
+    logger.logFailure({ taskId, scope: "reviews", scopeId: detailId, reason: "review_page_blocked" });
     return;
   }
 
   storage.updateProductStatus({ detailId, status: "completed" });
 };
 
+const shouldSkipLinkedDetail = (detail: AmazonProductDetail): boolean =>
+  detail.status === "completed"
+  || detail.status === "completed_with_errors"
+  || detail.status === "manual_required"
+  || detail.status === "failed";
+
 const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: string; productUrl: string | null; asinIfAvailable: string | null }): Promise<KeywordWorkResult> => {
   if (haltIfAmazonOperatorControlled(runtime)) return "halted";
   if (!item.productUrl) return "active";
   const linkedDetail = getAmazonLinkedProductDetail(runtime, item.itemId);
   if (linkedDetail) {
-    if (linkedDetail.status === "completed" || linkedDetail.status === "manual_required" || linkedDetail.status === "failed") {
+    if (shouldSkipLinkedDetail(linkedDetail)) {
       return "active";
     }
     if (linkedDetail.asin && (linkedDetail.status === "pending_detail" || linkedDetail.status === "detail_completed" || linkedDetail.status === "review_extracting")) {
@@ -344,7 +350,6 @@ const runKeywordReviewIfNeeded = async (
     storage,
     aiInputGateway: ctx.aiInputGateway,
   });
-  if (keywordReview.status === "manual_required") runtime.manualRequiredReasons.push(`keyword_review_manual_required:${keywordRecord.keywordId}`);
   if (keywordReview.status === "failed") runtime.failureReasons.push(`keyword_review_failed:${keywordRecord.keywordId}`);
   persistRejectedKeywordRetentionNote(runtime, keywordReview);
 };

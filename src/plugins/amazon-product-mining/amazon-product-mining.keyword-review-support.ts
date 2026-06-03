@@ -345,9 +345,6 @@ export const parseKeywordReviewResponse = (rawResponse: string): AmazonKeywordOp
   }
 };
 
-export const validateKeywordReviewVerdict = (verdict: unknown): AmazonKeywordOpportunityVerdict =>
-  AmazonMiningSchemas.AmazonKeywordOpportunityVerdictSchema.parse(verdict);
-
 export const writeKeywordReviewResponseArtifact = (input: {
   reviewId: string;
   status: string;

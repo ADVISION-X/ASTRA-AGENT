@@ -2,9 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import type { AiFeedInput, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
 import type {
-  AmazonKeywordOpportunityManualIngestInput,
   AmazonKeywordOpportunityReviewRecord,
   AmazonKeywordOpportunityVerdict,
   AmazonKeywordProviderKind,
@@ -13,7 +11,6 @@ import type {
 import type { AmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import {
   parseKeywordReviewResponse,
-  validateKeywordReviewVerdict,
   writeKeywordReviewResponseArtifact,
 } from "./amazon-product-mining.keyword-review-support.js";
 import {
@@ -23,6 +20,7 @@ import {
 
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 900_000;
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND: AmazonKeywordProviderKind = "gpt-web-chat";
+export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_RETRY_LIMIT = 3;
 
 const buildKeywordOpportunityReviewInputRefs = (input: {
   keyword: AmazonKeywordRecord;
@@ -165,14 +163,15 @@ const finalizeKeywordOpportunityReview = (input: {
   storage: AmazonMiningStorage;
   context: KeywordOpportunityReviewRuntimeContext;
   aiResult: KeywordOpportunityReviewAiResult;
+  attemptCount: number;
 }): AmazonKeywordOpportunityReviewRecord => {
   const aiRawResponse = input.aiResult.normalizedText ?? "";
   if (input.aiResult.status === "review_required") {
     return persistKeywordOpportunityReviewOutcome({
       storage: input.storage,
       context: input.context,
-      status: "manual_required",
-      failureReason: input.aiResult.reviewRequiredReason ?? "keyword_review_manual_required",
+      status: "failed",
+      failureReason: `keyword_review_provider_not_ready_after_retries:attempts=${input.attemptCount}; reason=${input.aiResult.reviewRequiredReason ?? "keyword_review_provider_not_ready"}`,
       verdict: null,
       aiRawResponse,
     });
@@ -193,8 +192,8 @@ const finalizeKeywordOpportunityReview = (input: {
     return persistKeywordOpportunityReviewOutcome({
       storage: input.storage,
       context: input.context,
-      status: "manual_required",
-      failureReason: "keyword_full_package_files_not_confirmed_by_provider_proof",
+      status: "failed",
+      failureReason: `keyword_full_package_files_not_confirmed_by_provider_proof:attempts=${input.attemptCount}`,
       verdict: null,
       aiRawResponse,
     });
@@ -220,6 +219,27 @@ const finalizeKeywordOpportunityReview = (input: {
     verdict,
     aiRawResponse,
   });
+};
+
+const requestKeywordOpportunityReviewWithRetries = async (input: {
+  aiInputGateway: AiInputGatewayAbilityGroup;
+  context: KeywordOpportunityReviewRuntimeContext;
+}): Promise<{ aiResult: KeywordOpportunityReviewAiResult; attemptCount: number }> => {
+  let lastResult: KeywordOpportunityReviewAiResult | null = null;
+  for (let attempt = 1; attempt <= AMAZON_KEYWORD_OPPORTUNITY_REVIEW_RETRY_LIMIT; attempt++) {
+    const aiResult = await requestKeywordOpportunityReview(input);
+    lastResult = aiResult;
+    if (aiResult.status !== "review_required") {
+      return { aiResult, attemptCount: attempt };
+    }
+  }
+  if (!lastResult) {
+    throw new Error("keyword_review_retry_exhausted_without_provider_result");
+  }
+  return {
+    aiResult: lastResult,
+    attemptCount: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_RETRY_LIMIT,
+  };
 };
 
 export const runKeywordOpportunityReview = async (input: {
@@ -250,7 +270,7 @@ export const runKeywordOpportunityReview = async (input: {
     return persistKeywordOpportunityReviewOutcome({
       storage: input.storage,
       context,
-      status: "manual_required",
+      status: "failed",
       failureReason: "keyword_full_package_integrity_failed",
       verdict: null,
       aiRawResponse: "",
@@ -261,7 +281,7 @@ export const runKeywordOpportunityReview = async (input: {
     return persistKeywordOpportunityReviewOutcome({
       storage: input.storage,
       context,
-      status: "manual_required",
+      status: "failed",
       failureReason: "keyword_full_package_upload_unavailable",
       verdict: null,
       aiRawResponse: "",
@@ -269,7 +289,7 @@ export const runKeywordOpportunityReview = async (input: {
   }
 
   try {
-    const aiResult = await requestKeywordOpportunityReview({
+    const { aiResult, attemptCount } = await requestKeywordOpportunityReviewWithRetries({
       aiInputGateway: input.aiInputGateway,
       context,
     });
@@ -277,6 +297,7 @@ export const runKeywordOpportunityReview = async (input: {
       storage: input.storage,
       context,
       aiResult,
+      attemptCount,
     });
   } catch (error) {
     const failureReason = error instanceof Error ? error.message : String(error);
@@ -289,54 +310,4 @@ export const runKeywordOpportunityReview = async (input: {
       aiRawResponse: "",
     });
   }
-};
-
-export const ingestManualKeywordOpportunityReview = (input: {
-  dataDir: string;
-  storage: AmazonMiningStorage;
-  rawInput: unknown;
-}): AmazonKeywordOpportunityReviewRecord => {
-  const manualInput = AmazonMiningSchemas.AmazonKeywordOpportunityManualIngestSchema.parse(input.rawInput) as AmazonKeywordOpportunityManualIngestInput;
-  const existing = input.storage.getKeywordOpportunityReview(manualInput.reviewId);
-  if (!existing) {
-    throw new Error("keyword_review_not_found");
-  }
-  const { reviewId: _reviewId, aiRawResponse: manualRawResponse, ...verdictInput } = manualInput;
-  const verdict = validateKeywordReviewVerdict(verdictInput);
-  const responsePath = existing.aiResponseRef;
-  if (!responsePath) {
-    throw new Error("manual_keyword_review_response_ref_missing");
-  }
-  const aiRawResponse = manualRawResponse ?? JSON.stringify(verdict, null, 2);
-  const updatedAt = new Date().toISOString();
-  writeKeywordReviewResponseArtifact({
-    reviewId: existing.reviewId,
-    status: "completed",
-    failureReason: null,
-    rawResponse: aiRawResponse,
-    verdict,
-    responsePath,
-  });
-  return persistKeywordOpportunityReview({
-    storage: input.storage,
-    review: {
-      ...existing,
-      status: "completed",
-      decision: verdict.decision,
-      demandSignal: verdict.demandSignal,
-      reviewHealth: verdict.reviewHealth,
-      priceCeiling: verdict.priceCeiling,
-      competitionOpenness: verdict.competitionOpenness,
-      improvementOpportunity: verdict.improvementOpportunity,
-      dataConfidence: verdict.dataConfidence,
-      evidenceRefs: verdict.evidenceRefs,
-      missingEvidence: verdict.missingEvidence,
-      riskPoints: verdict.riskPoints,
-      humanNextStep: verdict.humanNextStep,
-      aiRawResponse,
-      aiResponseRef: responsePath,
-      failureReason: null,
-      updatedAt,
-    },
-  });
 };

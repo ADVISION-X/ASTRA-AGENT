@@ -14,12 +14,12 @@ export type ReviewPageAdapter = {
     detailId: string;
     taskId: string;
     asin: string | null;
-  }): Promise<{
-    reviews: AmazonReviewRecord[];
-    hasNextPage: boolean;
-    restriction: "manual_required" | null;
-  }>;
-};
+	  }): Promise<{
+	    reviews: AmazonReviewRecord[];
+	    hasNextPage: boolean;
+	    restriction: "blocked" | null;
+	  }>;
+	};
 
 const AMAZON_REVIEWS_EXTRACT_SCRIPT = String.raw`
 return (function() {
@@ -205,7 +205,7 @@ const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapte
     );
 
     if ("blocker" in result) {
-      return { reviews: [], hasNextPage: false, restriction: "manual_required" };
+      return { reviews: [], hasNextPage: false, restriction: "blocked" };
     }
 
     const now = new Date().toISOString();
@@ -255,7 +255,7 @@ const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapte
 export type ReviewPaginationResult = {
   totalReviewsCollected: number;
   totalPagesVisited: number;
-  restriction: "manual_required" | null;
+  restriction: "blocked" | null;
 };
 
 export const runReviewPagination = async (input: {
@@ -277,7 +277,7 @@ export const runReviewPagination = async (input: {
   let pageIndex = 0;
   let totalPagesVisited = 0;
   let totalReviewsCollected = 0;
-  let finalRestriction: "manual_required" | null = null;
+  let finalRestriction: "blocked" | null = null;
 
   while (pageIndex < safetyLimitPages && (hardLimitPages === undefined || pageIndex < hardLimitPages)) {
     const { reviews, hasNextPage, restriction } = await adapter.extractReviewsFromPage({
@@ -293,8 +293,8 @@ export const runReviewPagination = async (input: {
     totalPagesVisited++;
     totalReviewsCollected += reviews.length;
 
-    if (restriction === "manual_required") {
-      finalRestriction = "manual_required";
+    if (restriction === "blocked") {
+      finalRestriction = "blocked";
       break;
     }
 

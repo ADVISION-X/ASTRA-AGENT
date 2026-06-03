@@ -76,13 +76,13 @@ assert.equal(persistedPerPage[0]![0]!.pageIndex, 0);
 assert.equal(persistedPerPage[1]![0]!.pageIndex, 1);
 assert.equal(persistedPerPage[2]![0]!.pageIndex, 2);
 
-// --- Test 2: Restriction on 4th page triggers manual_required ---
+// --- Test 2: Restriction on 4th page triggers an automated blocked outcome ---
 let callCount2 = 0;
 const restrictionAdapter: ReviewPageAdapter = {
-  async extractReviewsFromPage({ pageIndex }) {
-    if (pageIndex >= 3) {
-      return { reviews: [], hasNextPage: false, restriction: "manual_required" };
-    }
+	  async extractReviewsFromPage({ pageIndex }) {
+	    if (pageIndex >= 3) {
+	      return { reviews: [], hasNextPage: false, restriction: "blocked" };
+	    }
     return {
       reviews: [buildFixtureReview(pageIndex, 1)],
       hasNextPage: true,
@@ -102,7 +102,7 @@ const result2 = await runReviewPagination({
 });
 
 assert.equal(callCount2, 4, "onPageExtracted called 4 times (pages 0-3), page 3 triggers restriction");
-assert.equal(result2.restriction, "manual_required");
+assert.equal(result2.restriction, "blocked");
 assert.equal(result2.totalPagesVisited, 4);
 
 // --- Test 3: maxPages cap respected ---

@@ -25,7 +25,6 @@ type AmazonPackagingStorage = {
 type AmazonPackagingLogger = {
   logHandoffReady(input: { taskId: string }): void;
   logFailure(input: { taskId: string; scope: string; reason: string }): void;
-  logManualRequired(input: { taskId: string; scope: string; reason: string }): void;
   logMissionComplete(input: { taskId: string; status?: "success" | "failed" | "review_required" }): void;
   logPackageBuilt(input: { taskId: string; packageJsonPath: string; evidenceIndexPath: string; exceptionSummaryPath: string }): void;
   logPdfBuilt(input: { taskId: string; pdfReportPath: string }): void;
@@ -49,7 +48,7 @@ const buildPackagingArtifacts = async (
   runtime: AmazonPackagingRuntime,
   detailRankLimit: number,
 ): Promise<PackagingArtifacts> => {
-  const { storage, logger, taskId, miningInput, dataDir, manualRequiredReasons } = runtime;
+  const { storage, logger, taskId, miningInput, dataDir } = runtime;
   storage.updateTaskStatus({ taskId, status: "packaging" });
   const packageResult = await buildAmazonProductMiningPackage(buildPackageInput(runtime, detailRankLimit));
   logger.logPackageBuilt({ taskId, packageJsonPath: packageResult.packageJsonPath, evidenceIndexPath: packageResult.evidenceIndexPath, exceptionSummaryPath: packageResult.exceptionSummaryPath });
@@ -65,7 +64,7 @@ const buildPackagingArtifacts = async (
     targetMarket: miningInput.targetMarket,
   });
   if (!reportResult.ok) {
-    manualRequiredReasons.push(`report_build_failed:${reportResult.reason}`);
+    runtime.failureReasons.push(`report_build_failed:${reportResult.reason}`);
     return { packageResult, pdfPath: null };
   }
   logger.logPdfBuilt({ taskId, pdfReportPath: reportResult.pdfReportPath });
@@ -79,7 +78,7 @@ const persistFinalPackagingState = async (
   detailRankLimit: number,
 ): Promise<void> => {
   const allKeywordsFailed = didAllKeywordsFail(runtime);
-  if (allKeywordsFailed) runtime.manualRequiredReasons.push("all_keywords_failed");
+  if (allKeywordsFailed) runtime.failureReasons.push("all_keywords_failed");
   const resolution = resolveFinalTaskState({
     allKeywordsFailed,
     handoffStatus,
@@ -99,16 +98,12 @@ const persistFinalPackagingState = async (
   await buildAmazonProductMiningPackage(buildPackageInput(runtime, detailRankLimit));
   if (resolution.finalHandoffStatus === "ready") {
     runtime.logger.logHandoffReady({ taskId: runtime.taskId });
-  } else if (resolution.finalTaskStatus === "failed") {
-    runtime.logger.logFailure({ taskId: runtime.taskId, scope: "handoff", reason: resolution.finalFailureReason ?? "amazon_product_mining_failed" });
   } else {
-    runtime.logger.logManualRequired({ taskId: runtime.taskId, scope: "handoff", reason: resolution.finalFailureReason ?? runtime.manualRequiredReasons.join("; ") });
+    runtime.logger.logFailure({ taskId: runtime.taskId, scope: "handoff", reason: resolution.finalFailureReason ?? "amazon_product_mining_failed" });
   }
   runtime.logger.logMissionComplete({
     taskId: runtime.taskId,
-    status: resolution.finalTaskStatus === "package_completed"
-      ? "success"
-      : resolution.finalTaskStatus === "manual_required" ? "review_required" : "failed",
+    status: resolution.finalTaskStatus === "package_completed" ? "success" : "failed",
   });
 };
 
@@ -137,8 +132,8 @@ export const finalizeAmazonMiningPackaging = async (
     failureReasons: runtime.failureReasons,
   });
   artifacts = { ...artifacts, packageResult: await buildAmazonProductMiningPackage(buildPackageInput(runtime, detailRankLimit)) };
-  if (artifacts.packageResult.integrityStatus === "failed" && !runtime.manualRequiredReasons.includes("package_integrity_failed")) {
-    runtime.manualRequiredReasons.push("package_integrity_failed");
+  if (artifacts.packageResult.integrityStatus === "failed" && !runtime.failureReasons.includes("package_integrity_failed")) {
+    runtime.failureReasons.push("package_integrity_failed");
   }
   const shouldBeReady = runtime.failureReasons.length === 0
     && runtime.manualRequiredReasons.length === 0

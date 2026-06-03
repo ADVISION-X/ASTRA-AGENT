@@ -61,35 +61,12 @@ const renderAmazonProductMiningSummary = (record) => {
   setAmazonProductMiningText("[data-amazon-product-mining-product-detail-count]", summary.productDetailCount ?? "-");
   setAmazonProductMiningText("[data-amazon-product-mining-review-count]", summary.reviewCount ?? "-");
   setAmazonProductMiningText("[data-amazon-product-mining-keyword-review-count]", summary.keywordReviewCount ?? "-");
-  setAmazonProductMiningText("[data-amazon-product-mining-package]", packageRef);
-  if (taskId && taskId !== "-") setAmazonProductMiningReviewTaskFilter(taskId);
-  const status = normalizeAmazonProductMiningReviewValue(record.status);
-  setAmazonProductMiningLatestSummaryState(status === "manual_required" || status === "failed" ? status : "loaded");
-  if (status === "manual_required") setRegionState("manual-required");
-  if (status === "failed") setRegionState("failed");
-};
-const sendAmazonProductMiningControl = async (controlName) => {
-  const taskId = state.amazonProductMiningTaskId;
-  if (!taskId) return writeActivity("amazon product mining task id is required", "manual-required");
-  const result = await readJson("/api/amazon-product-mining/" + controlName, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ taskId }),
-  });
-  writeActivity("amazon product mining " + controlName + " accepted", controlName === "terminate" ? "manual-required" : "running");
-  if (controlName === "pause" || controlName === "terminate") stopAmazonProductMiningPolling();
-  if (controlName === "continue") startAmazonProductMiningPolling(taskId);
-  if (result?.taskId && !result.status) {
-    const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(result.taskId));
-    renderLedger(current, { job: "amazon-product-mining" });
-    return result;
-  }
-  renderLedger(result, { job: "amazon-product-mining" });
-  return result;
-};
-const pauseAmazonProductMining = async () => { await sendAmazonProductMiningControl("pause"); };
-const continueAmazonProductMining = async () => { await sendAmazonProductMiningControl("continue"); };
-const terminateAmazonProductMining = async () => { await sendAmazonProductMiningControl("terminate"); };
+	  setAmazonProductMiningText("[data-amazon-product-mining-package]", packageRef);
+	  if (taskId && taskId !== "-") setAmazonProductMiningReviewTaskFilter(taskId);
+	  const status = normalizeAmazonProductMiningReviewValue(record.status);
+	  setAmazonProductMiningLatestSummaryState(status === "failed" ? status : "loaded");
+	  if (status === "failed") setRegionState("failed");
+	};
 const createReviewPill = (value, variant) => {
   const pill = document.createElement("span");
   const normalizedValue = normalizeAmazonProductMiningReviewValue(value);
@@ -313,7 +290,7 @@ const renderAmazonProductMiningReviewTable = (reviews) => {
     const emptyMessage = (reviews || []).length > 0
       ? "No keyword opportunity reviews match the current filters."
       : "No keyword opportunity reviews yet. Run an Amazon product mining task and complete AI keyword review to populate this table.";
-    setAmazonProductMiningReviewState(emptyMessage, (reviews || []).length > 0 ? "manual-required" : "empty");
+	    setAmazonProductMiningReviewState(emptyMessage, (reviews || []).length > 0 ? "failed" : "empty");
     setAmazonProductMiningReviewTableVisible(false);
     setAmazonProductMiningReviewEmptyPanel(emptyMessage, false);
     const emptyRow = document.createElement("tr");
