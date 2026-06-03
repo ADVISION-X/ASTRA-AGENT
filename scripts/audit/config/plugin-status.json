@@ -54,6 +54,30 @@
       ]
     },
     {
+      "pluginId": "amazon-product-sync",
+      "status": "active",
+      "owner": "plugin:amazon-product-sync",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-product-sync-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-product-sync"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-product-sync",
+        "audit:amazon-product-sync"
+      ],
+      "exposureTokens": [
+        "amazon-product-sync"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md"
+      ]
+    },
+    {
       "pluginId": "deep-research-analysis",
       "status": "active",
       "owner": "plugin:deep-research-analysis",

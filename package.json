@@ -66,7 +66,9 @@
     "acceptance:app-shell-ui": "node --import tsx scripts/acceptance/app-shell-ui.acceptance.ts && node --import tsx scripts/acceptance/app-shell-skill-registry.acceptance.ts && node --import tsx scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
     "audit:app-shell-ui": "node --import tsx scripts/audit/domains/app-shell-ui/inspector.ts",
     "audit:workbench-api-boundary": "node --import tsx scripts/audit/domains/workbench-api-boundary/inspector.ts",
-    "acceptance:workbench-api-boundary": "node --import tsx scripts/acceptance/workbench-api-boundary.acceptance.ts"
+    "acceptance:workbench-api-boundary": "node --import tsx scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "acceptance:amazon-product-sync": "node --import tsx scripts/acceptance/amazon-product-sync.acceptance.ts",
+    "audit:amazon-product-sync": "node --import tsx scripts/audit/domains/amazon-product-sync/inspector.ts"
   },
   "dependencies": {
     "@img/sharp-darwin-arm64": "^0.34.5",

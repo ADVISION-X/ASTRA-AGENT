@@ -39,6 +39,9 @@ type ListAmazonProductMiningKeywordReviews = typeof import("../../plugins/amazon
 type GetAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningKeywordReview;
 type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
 type ContinueInterruptedAmazonProductMiningTasks = typeof import("../../plugins/amazon-product-mining/index.js").continueInterruptedAmazonProductMiningTasks;
+type StartAmazonProductSyncTask = typeof import("../../plugins/amazon-product-sync/index.js").startAmazonProductSyncTask;
+type GetAmazonProductSyncTaskStatus = typeof import("../../plugins/amazon-product-sync/index.js").getAmazonProductSyncTaskStatus;
+type GetLatestAmazonProductSyncTask = typeof import("../../plugins/amazon-product-sync/index.js").getLatestAmazonProductSyncTask;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -62,6 +65,9 @@ type AmazonProductMiningKeywordReviewsResult = ReturnType<ListAmazonProductMinin
 type AmazonProductMiningKeywordReviewResult = ReturnType<GetAmazonProductMiningKeywordReview>;
 type AmazonProductMiningExportResult = ReturnType<ExportAmazonProductMiningResult>;
 type AmazonProductMiningAutoContinueResult = ReturnType<ContinueInterruptedAmazonProductMiningTasks>;
+type AmazonProductSyncStartInput = Parameters<StartAmazonProductSyncTask>[0];
+type AmazonProductSyncTaskRecord = Awaited<ReturnType<GetAmazonProductSyncTaskStatus>>;
+type AmazonProductSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductSyncTask>>;
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -185,4 +191,11 @@ export type GrassEyeWorkbenchHandle = {
     taskId: string,
   ) => AmazonProductMiningExportResult;
   continueInterruptedAmazonProductMiningTasks: () => AmazonProductMiningAutoContinueResult;
+  startAmazonProductSyncTask: (
+    input: AmazonProductSyncStartInput,
+  ) => Promise<NonNullable<AmazonProductSyncTaskRecord>>;
+  getAmazonProductSyncTaskStatus: (
+    taskId: string,
+  ) => Promise<AmazonProductSyncTaskRecord>;
+  getLatestAmazonProductSyncTask: () => Promise<AmazonProductSyncLatestTaskRecord>;
 };

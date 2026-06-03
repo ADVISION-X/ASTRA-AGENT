@@ -40,6 +40,11 @@ import {
   continueInterruptedAmazonProductMiningTasks,
 } from "../../plugins/amazon-product-mining/index.js";
 import {
+  getAmazonProductSyncTaskStatus,
+  getLatestAmazonProductSyncTask,
+  startAmazonProductSyncTask,
+} from "../../plugins/amazon-product-sync/index.js";
+import {
   deepResearchAnalysisPublicFacade,
   type DeepResearchAnalysisStartInput,
   type DeepResearchHistorySnapshot,
@@ -250,6 +255,24 @@ const buildAmazonMiningHandle = (
   ...buildAmazonMiningControlHandle(assembly, dataDir),
 });
 
+const buildAmazonProductSyncHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  async startAmazonProductSyncTask(rawInput: unknown) {
+    return startAmazonProductSyncTask(rawInput, {
+      dataDir,
+      browser: assembly.browserController,
+    });
+  },
+  async getAmazonProductSyncTaskStatus(taskId: string) {
+    return getAmazonProductSyncTaskStatus({ dataDir, taskId });
+  },
+  async getLatestAmazonProductSyncTask() {
+    return getLatestAmazonProductSyncTask({ dataDir });
+  },
+});
+
 const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
   async startDeepResearchAnalysis(input: DeepResearchAnalysisStartInput) {
     const previousLatest = context.loadLatestSnapshot();
@@ -377,6 +400,7 @@ const buildWorkbenchHandle = (
     ...buildAmazonInvoiceHandle(assembly, dataDir),
     ...buildFacebookMiningHandle(assembly, dataDir),
     ...buildAmazonMiningHandle(assembly, dataDir),
+    ...buildAmazonProductSyncHandle(assembly, dataDir),
     ...buildDeepResearchAnalysisHandle(assembly, dataDir),
   };
 };
