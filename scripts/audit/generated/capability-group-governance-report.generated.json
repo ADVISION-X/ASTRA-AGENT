@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T13:29:16.323Z",
+  "generatedAt": "2026-06-03T17:09:24.682Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -658,6 +658,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",

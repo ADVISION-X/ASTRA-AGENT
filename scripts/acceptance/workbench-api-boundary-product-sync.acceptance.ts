@@ -23,6 +23,7 @@ const withExternalEnv = (): void => {
 
 const createProductSyncRecord = () => ({
   taskId: "product_sync_task_test",
+  site: "ontheway-amazon-manage",
   requestId: "product-sync-request-test-1",
   marketplace: "amazon.ae" as const,
   ok: false,
@@ -72,10 +73,16 @@ const withServer = async (
 };
 
 const productSyncBody = () => ({
+  site: "ontheway-amazon-manage",
   requestId: "product-sync-request-test-1",
   marketplace: "amazon.ae",
   scope: "selected-skus",
-  items: [{ sourceKeyType: "sku", sourceKey: "DL-UG6I-2OWL", sellerSku: "DL-UG6I-2OWL" }],
+  items: [{
+    sourceKeyType: "sku",
+    sourceKey: "DL-UG6I-2OWL",
+    sellerSku: "DL-UG6I-2OWL",
+    requiredFields: ["mainImage", "asin", "availableInventory"],
+  }],
 });
 
 const postExternalProductSyncStart = (

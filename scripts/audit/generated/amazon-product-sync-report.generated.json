@@ -1,11 +1,13 @@
 {
-  "generatedAt": "2026-06-03T13:29:41.677Z",
+  "generatedAt": "2026-06-03T17:09:50.169Z",
   "status": "PASS",
   "findings": [],
   "capabilityDomain": "amazon-product-sync",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1"
+    "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
+    "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
+    "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1"
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
@@ -18,6 +20,7 @@
     "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",

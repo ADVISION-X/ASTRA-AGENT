@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T13:29:09.656Z",
+  "generatedAt": "2026-06-03T17:09:17.802Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -952,6 +952,55 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
       "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+flow+acceptance",
+      "summary": "Amazon product sync must honor the website request contract: site + SKU + required fields, and must return only evidence-backed requested product update data.",
+      "required": [
+        "Input contains site.",
+        "Each item contains requiredFields.",
+        "Allowed requiredFields are mainImage, asin, availableInventory.",
+        "Main image evidence uses BrowserController screenshotRegion.",
+        "Task status JSON contains requestedFields and missingRequestedFields."
+      ],
+      "forbidden": [
+        "Agent infers website missing fields without requiredFields.",
+        "Main image evidence fabricated from public img src.",
+        "Plugin directly fetches website callbackUrl.",
+        "External caller controls selectors, browser commands, or output overrides."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "chrome+ast+acceptance",
+      "summary": "Amazon product sync SKU lookup must use the inventory filter search box, explicitly exclude the top global search box, and verify search by result DOM.",
+      "required": [
+        "Flow probes the inventory filter Katal search input placeholder.",
+        "Flow recursively handles open shadow DOM for the Katal input.",
+        "Flow excludes form#sc-global-search-form and input#sc-search-field.",
+        "Flow submits SKU search through BrowserController actions.",
+        "Flow verifies search success from URL/result DOM/exact SKU row.",
+        "Acceptance asserts the top global search is excluded."
+      ],
+      "forbidden": [
+        "Top global Seller Central search for SKU lookup.",
+        "Input value only success evidence.",
+        "Whole-row contains matching as the primary SKU match.",
+        "Search selector provided by external caller."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",

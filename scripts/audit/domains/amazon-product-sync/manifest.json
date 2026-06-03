@@ -5,7 +5,8 @@
   "coverage": {
     "mode": "domain-wide",
     "clauseIds": [
-      "primary"
+      "primary",
+      "inventory-filter-search"
     ]
   },
   "blueprintRefs": [
@@ -15,9 +16,10 @@
         "## 单链路",
         "## Phase 1",
         "## 实测 DOM 结构",
+        "## 搜索框排他性规则",
         "## 验收"
       ]
     }
   ],
-  "description": "Amazon product sync read-only Seller Central evidence owner audit."
+  "description": "Amazon product sync read-only Seller Central inventory-filter search evidence owner audit."
 }

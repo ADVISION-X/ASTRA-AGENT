@@ -18,6 +18,8 @@ const boundaryPath = "src/app/workbench-api-boundary.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const schemaPath = "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts";
 const flowPath = "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts";
+const domScriptsPath = "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts";
+const acceptancePath = "scripts/acceptance/amazon-product-sync.acceptance.ts";
 
 const requiredFiles = [
   ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
@@ -25,18 +27,40 @@ const requiredFiles = [
   "scripts/audit/domains/amazon-product-sync/manifest.json",
   schemaPath,
   flowPath,
+  domScriptsPath,
   "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
   "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
   "src/plugins/amazon-product-sync/index.ts",
   "src/app/workbench-amazon-product-sync-routes.ts",
-  "scripts/acceptance/amazon-product-sync.acceptance.ts",
+  acceptancePath,
 ] as const;
 
-const structuralDomTokens = [
-  "VariationExpander-module__expanderHeader",
+const requiredFlowTokens = [
+  "form#sc-global-search-form",
+  "input#sc-search-field",
+  "button.sc-search-button",
+  "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN",
+  "shadowRoot",
+  "searchTerm",
   "ProductDetails-module__container",
   "JanusSplitBox-module__row",
   "JanusSplitBox-module__panel",
+  "JanusTable-module__tableContentRow",
+  "SKU",
+  "ASIN",
+  "现货（亚马逊物流）",
+  "inventory_search_result_dom_not_verified",
+] as const;
+
+const forbiddenFlowTokens = [
+  "setFileInputFiles",
+  "callbackUrl",
+  "XMLHttpRequest",
+  "rowMatchScore",
+  "pickBestSkuRow",
+  "findAfter",
+  "readFieldAfter",
+  "expectedOutputOverride",
 ] as const;
 
 const addFinding = (findings: InspectorFinding[], lawId: string, filePath: string, message: string): void => {
@@ -73,6 +97,9 @@ const hasStringToken = (sourceFile: SourceFile | undefined, value: string): bool
     (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) && node.getLiteralText().includes(value),
   ));
 
+const hasStringTokenInAny = (sourceFiles: readonly (SourceFile | undefined)[], value: string): boolean =>
+  sourceFiles.some((sourceFile) => hasStringToken(sourceFile, value));
+
 const hasIdentifier = (sourceFile: SourceFile | undefined, name: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === name));
 
@@ -107,14 +134,6 @@ const pluginStatusCount = (): number => {
   return visit(raw);
 };
 
-const usesTextFallback = (sourceFile: SourceFile | undefined): boolean =>
-  Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (!Node.isPropertyAccessExpression(expression)) return false;
-    if (expression.getName() === "includes" && callExpression.getArguments().some((arg) => Node.isIdentifier(arg) && arg.getText() === "normalized")) return true;
-    return expression.getName() === "toUpperCase" && expression.getExpression().getText() === "row.text";
-  }));
-
 const inspectRequiredFiles = (findings: InspectorFinding[], lawId: string): void => {
   for (const file of requiredFiles) {
     if (!existsSync(resolveFromRepo(file))) {
@@ -133,34 +152,78 @@ const inspectSchema = (schema: SourceFile | undefined, findings: InspectorFindin
   if (hasIdentifier(schema, "requestedAt")) {
     addFinding(findings, lawId, schemaPath, "Amazon product sync input must not require requestedAt outside the law-approved input shape");
   }
+  for (const required of ["site", "requiredFields", "AmazonProductSyncRequiredFieldSchema", "missingRequestedFields", "blocked"]) {
+    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing website request/status contract token: ${required}`);
+  }
+  for (const required of ["mainImage", "asin", "availableInventory"]) {
+    if (!hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing required field literal: ${required}`);
+  }
 };
 
 const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
-  for (const forbidden of ["setFileInputFiles", "textInput", "rowMatchScore", "pickBestSkuRow", "findAfter", "readFieldAfter"]) {
-    if (hasIdentifier(flow, forbidden) || hasCallName(flow, forbidden)) addFinding(findings, lawId, flowPath, `flow must not use forbidden token: ${forbidden}`);
+  for (const forbidden of forbiddenFlowTokens) {
+    if (hasIdentifier(flow, forbidden) || hasCallName(flow, forbidden) || hasStringToken(flow, forbidden)) {
+      addFinding(findings, lawId, flowPath, `flow must not use forbidden token: ${forbidden}`);
+    }
   }
-  if (usesTextFallback(flow)) addFinding(findings, lawId, flowPath, "flow must not use normalized includes or row.text uppercase fallback matching");
-  for (const required of ["BrowserController", "expandSellerCentralParentRows", "buildVariationExpansionProbeScript"]) {
+  if (hasCallName(flow, "fetch")) addFinding(findings, lawId, flowPath, "flow must not fetch website callbackUrl or any external callback");
+  for (const required of ["BrowserController", "buildInventorySearchProbeScript", "buildInventoryExtractionScript", "expandSellerCentralParentRows"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing required AST token: ${required}`);
   }
-  if (!hasCallName(flow, "click")) addFinding(findings, lawId, flowPath, "flow missing read-only parent variation expansion click");
-  for (const required of structuralDomTokens) {
-    if (!hasStringToken(flow, required)) addFinding(findings, lawId, flowPath, `flow missing verified structural DOM token: ${required}`);
+  for (const required of ["open", "click", "textInput", "evaluateActiveTab", "screenshotRegion"]) {
+    if (!hasCallName(flow, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
+  }
+  for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef"]) {
+    if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
   }
 };
 
+const inspectDomScripts = (
+  flow: SourceFile | undefined,
+  domScripts: SourceFile | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const scriptSources = [flow, domScripts] as const;
+  for (const required of requiredFlowTokens) {
+    if (!hasStringTokenInAny(scriptSources, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing verified DOM/search token: ${required}`);
+  }
+  for (const forbidden of forbiddenFlowTokens) {
+    if (hasIdentifier(domScripts, forbidden) || hasCallName(domScripts, forbidden) || hasStringToken(domScripts, forbidden)) {
+      addFinding(findings, lawId, domScriptsPath, `DOM scripts must not use forbidden token: ${forbidden}`);
+    }
+  }
+  for (const required of ["buildInventorySearchProbeScript", "buildInventoryExtractionScript", "buildVariationExpansionProbeScript"]) {
+    if (!hasIdentifier(domScripts, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing exported builder: ${required}`);
+  }
+};
+
+const inspectAcceptance = (acceptance: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  for (const required of ["site", "requiredFields", "missingRequestedFields", "screenshotCalls", "clickLabels", "textInputLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
+    if (!hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing website/search assertion token: ${required}`);
+  }
+  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "searchTerm"]) {
+    if (!hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing DOM exclusion assertion token: ${required}`);
+  }
+  if (!hasIdentifier(acceptance, "screenshotRegion")) addFinding(findings, lawId, acceptancePath, "acceptance must exercise screenshotRegion for main image evidence");
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1");
+  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1");
   const findings: InspectorFinding[] = [];
   const boundary = source(context.project, boundaryPath);
   const server = source(context.project, serverPath);
   const schema = source(context.project, schemaPath);
   const flow = source(context.project, flowPath);
+  const domScripts = source(context.project, domScriptsPath);
+  const acceptance = source(context.project, acceptancePath);
 
   inspectRequiredFiles(findings, lawId);
   inspectBoundary(boundary, findings, lawId);
   inspectSchema(schema, findings, lawId);
   inspectFlow(flow, findings, lawId);
+  inspectDomScripts(flow, domScripts, findings, lawId);
+  inspectAcceptance(acceptance, findings, lawId);
   if (!hasIdentifier(server, "handleAmazonProductSyncRequest")) addFinding(findings, lawId, serverPath, "server must route through handleAmazonProductSyncRequest");
   if (pluginStatusCount() !== 1) addFinding(findings, lawId, pluginStatusPath, "plugin-status must register amazon-product-sync exactly once");
 

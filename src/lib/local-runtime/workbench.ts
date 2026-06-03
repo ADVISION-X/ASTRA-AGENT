@@ -263,6 +263,7 @@ const buildAmazonProductSyncHandle = (
     return startAmazonProductSyncTask(rawInput, {
       dataDir,
       browser: assembly.browserController,
+      runtimeLogger: assembly.runtimeLogger,
     });
   },
   async getAmazonProductSyncTaskStatus(taskId: string) {

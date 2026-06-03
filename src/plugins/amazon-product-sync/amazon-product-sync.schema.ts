@@ -1,12 +1,17 @@
 import { z } from "zod";
 
+export const AmazonProductSyncRequiredFieldSchema = z.enum(["mainImage", "asin", "availableInventory"]);
+export type AmazonProductSyncRequiredField = z.infer<typeof AmazonProductSyncRequiredFieldSchema>;
+
 export const AmazonProductSyncItemSchema = z.object({
   sourceKeyType: z.enum(["sku", "asin"]),
   sourceKey: z.string().min(1).max(128),
   sellerSku: z.string().min(1).max(128),
+  requiredFields: z.array(AmazonProductSyncRequiredFieldSchema).min(1).max(3),
 }).strict();
 
 export const AmazonProductSyncInputSchema = z.object({
+  site: z.string().min(1).max(120),
   requestId: z.string().min(1).max(160),
   marketplace: z.enum(["amazon.ae", "amazon.sa", "amazon.com", "amazon.co.uk", "amazon.co.jp"]).default("amazon.ae"),
   scope: z.string().min(1).max(80).default("selected-skus"),
@@ -29,6 +34,7 @@ export type AmazonProductSyncItemStatus =
   | "matched"
   | "not_found"
   | "ambiguous"
+  | "blocked"
   | "parse_failed"
   | "skipped";
 
@@ -36,6 +42,8 @@ export type AmazonProductSyncResultItem = {
   readonly sellerSku: string;
   readonly sourceKeyType: "sku" | "asin";
   readonly sourceKey: string;
+  readonly requestedFields: readonly AmazonProductSyncRequiredField[];
+  readonly missingRequestedFields: readonly AmazonProductSyncRequiredField[];
   readonly status: AmazonProductSyncItemStatus;
   readonly asinSnapshot: string | null;
   readonly sellerCentralTitleSnapshot: string | null;
@@ -53,6 +61,7 @@ export type AmazonProductSyncResultItem = {
 
 export type AmazonProductSyncTaskRecord = {
   readonly taskId: string;
+  readonly site: string;
   readonly requestId: string;
   readonly marketplace: AmazonProductSyncInput["marketplace"];
   readonly ok: boolean;

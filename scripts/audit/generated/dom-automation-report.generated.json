@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T13:29:42.821Z",
+  "generatedAt": "2026-06-03T17:09:51.467Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -635,6 +635,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",

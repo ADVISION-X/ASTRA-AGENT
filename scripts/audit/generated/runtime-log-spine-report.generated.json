@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-03T13:29:40.849Z",
+  "generatedAt": "2026-06-03T17:09:49.253Z",
   "status": "PASS",
-  "scannedFiles": 349,
+  "scannedFiles": 350,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -278,6 +278,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
@@ -353,7 +354,7 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 22,
+  "emitCallCount": 27,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
@@ -361,7 +362,7 @@
   "missingTraceContractCount": 0,
   "catchBranchCount": 1,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 33,
+  "failureBranchCount": 35,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 39,
@@ -371,8 +372,8 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 349,
-    "emitCallCount": 22,
+    "scannedFiles": 350,
+    "emitCallCount": 27,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -382,7 +383,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 344,
+      "scannedFiles": 345,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -391,28 +392,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 269
+      "scannedFiles": 270
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 265,
+      "scannedFiles": 266,
       "metrics": {
-        "emitCallCount": 11
+        "emitCallCount": 16
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 265
+      "scannedFiles": 266
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 270,
+      "scannedFiles": 271,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -421,13 +422,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 23
+      "scannedFiles": 24
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 270,
+      "scannedFiles": 271,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -460,12 +461,12 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 23,
+      "scannedFiles": 24,
       "metrics": {
-        "emitCallCount": 22,
+        "emitCallCount": 27,
         "stageStartCount": 19,
         "stageTerminalCount": 39,
-        "failureBranchCount": 33
+        "failureBranchCount": 35
       }
     },
     {
