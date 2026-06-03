@@ -1,4 +1,4 @@
-generatedAt: "2026-06-03T17:09:17.802Z"
+generatedAt: "2026-06-03T18:27:27.819Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
@@ -53,6 +53,7 @@ rows:
       - "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1"
       - "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1"
       - "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1"
+      - "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
   - capabilityDomain: "app-shell-ui"
     manifestPath: "scripts/audit/domains/app-shell-ui/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/app-shell-ui/inspector.ts"

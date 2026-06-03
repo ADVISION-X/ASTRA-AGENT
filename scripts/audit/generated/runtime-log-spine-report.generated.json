@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T17:09:49.253Z",
+  "generatedAt": "2026-06-03T18:28:01.004Z",
   "status": "PASS",
   "scannedFiles": 350,
   "inspectedFiles": [
@@ -354,7 +354,7 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 27,
+  "emitCallCount": 31,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
@@ -362,7 +362,7 @@
   "missingTraceContractCount": 0,
   "catchBranchCount": 1,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 35,
+  "failureBranchCount": 37,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 39,
@@ -373,7 +373,7 @@
     "totalFindings": 0,
     "fatalFindings": 0,
     "scannedFiles": 350,
-    "emitCallCount": 27,
+    "emitCallCount": 31,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -400,7 +400,7 @@
       "findingCount": 0,
       "scannedFiles": 266,
       "metrics": {
-        "emitCallCount": 16
+        "emitCallCount": 20
       }
     },
     {
@@ -463,10 +463,10 @@
       "findingCount": 0,
       "scannedFiles": 24,
       "metrics": {
-        "emitCallCount": 27,
+        "emitCallCount": 31,
         "stageStartCount": 19,
         "stageTerminalCount": 39,
-        "failureBranchCount": 35
+        "failureBranchCount": 37
       }
     },
     {

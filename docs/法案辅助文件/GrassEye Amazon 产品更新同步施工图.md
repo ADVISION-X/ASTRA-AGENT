@@ -6,6 +6,8 @@
 
 ```text
 ON-THE-WAY Amazon Manage 或已授权 App 页面
+-> 网站侧 SKU 队列选择当前 1 个 SKU
+-> ON-THE-WAY 同源 API `/api/apex/amazon-manage/products/sync/start`
 -> /api/plugins/amazon-product-sync/start
 -> Workbench API Boundary
 -> workbench-amazon-product-sync-routes.ts
@@ -14,12 +16,14 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 -> BrowserController open/click/textInput/evaluateActiveTab/screenshotRegion
 -> Seller Central inventory read-only evidence
 -> task status JSON
+-> ON-THE-WAY 同源 API `/api/apex/amazon-manage/products/sync/status/[taskId]`
 -> ON-THE-WAY Amazon Manage polls status/latest and updates its own product record
+-> 网站侧队列在当前 SKU 终态后发送下一个 SKU
 ```
 
 网站侧和 App 页面只能发起同一条既有 task 链路。禁止新增 callbackUrl、第二 API server、第二 browser controller、第二 route bus 或插件直接 fetch 网站回调。
 
-请求必须显式带：
+请求必须显式带，并且 AGENT start request 必须 exactly one SKU item。多 SKU 队列归网站侧所有；网站侧可以循环调用同一个 start/status 链路，但每次 start 只能包含一个 item。
 
 ```json
 {
@@ -37,31 +41,100 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 }
 ```
 
-`requiredFields` 只允许 `mainImage`、`asin`、`availableInventory`。缺什么由网站侧显式声明，Agent 不反向猜网站状态。
+禁止形态：
+
+```json
+{
+  "items": [
+    { "sellerSku": "SKU-1" },
+    { "sellerSku": "SKU-2" }
+  ]
+}
+```
+
+该形态必须由 schema 拒绝，原因是 AGENT 侧没有 product-sync 批量 ledger；如果让 AGENT 在一个 task 内长循环多个 SKU，网站侧无法逐项写回和推进，会造成按钮长期 `更新中`。
+
+网站侧队列步骤：
+
+1. 点击 `更新产品信息`。
+2. 网站侧从当前产品源 rows 建立 SKU 队列。
+3. 取队首 SKU，POST `/api/apex/amazon-manage/products/sync/start`，body 只包含该 SKU。
+4. 网站侧轮询 `/api/apex/amazon-manage/products/sync/status/[taskId]`。
+5. 当前 SKU terminal 后，ON server 将 matched result 写入 `amazon_product_external_snapshot`，页面刷新产品数据。
+6. 若状态为 login/captcha/failed，队列停止并展示状态；否则继续下一个 SKU。
+
+`requiredFields` 只允许并且必须同时包含 `mainImage`、`asin`、`availableInventory`。这是产品信息更新固定范围，不再按网站侧“缺什么字段”裁剪。Agent 不反向猜网站状态，也不接受 partial requiredFields。
 
 ## Phase 1
 
 第一阶段只做 Seller Central 库存页只读同步：
 
-1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`。
+1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`；每个 SKU 必须固定请求 `mainImage`、`asin`、`availableInventory`。
 2. 打开对应 marketplace 的 Seller Central 库存管理页，例如 `https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all`。
-3. 如果出现 login、captcha、2FA、权限页或 Seller Central 页面未就绪，不返回 success，按结构化 status 结束该 item 或 task。
-4. 运行搜索框 probe：必须定位库存筛选条内的 Katal 搜索输入，必须证明顶部全局搜索框被排除。
-5. 通过 BrowserController 点击库存搜索输入、清空输入、输入 SKU、点击库存搜索按钮。外部请求不得传 selector、坐标、命令或 action plan。
-6. 搜索提交后运行结果 DOM probe。成功证据必须来自 URL `searchTerm`、库存结果计数或目标 SKU 行；不能只看输入框 value。
-7. 如果页面展示父体/变体组，先执行只读 reveal：定位 `VariationExpander-module__expanderHeader svg` 中心点并点击，直到子 SKU 行进入 DOM。不得点击保存、提交、编辑、价格或库存写入控件。
-8. 在结果行中以结构化 label/value 匹配目标 SKU：目标行必须同时存在 `ProductDetails-module__container` 和 `JanusSplitBox-module__row`，且某个 label/value pair 精确等于 `SKU` / 请求 SKU。
-9. 从同一目标行读取：
+3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始输入、提交搜索、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
+4. `/status/:taskId` 和 `/latest` 读取 queued/running task 时，如果 `updatedAt` 超过 3 秒没有推进，AGENT 必须把同一个 task 固化为 `failed`，reason 为 `amazon_product_sync_running_progress_stale_after_3000ms`，`reachedStep` 为 `flow_progress_stale`。AGENT 重启后旧 running task 不得继续堵住网站按钮。
+5. 如果出现 login、captcha、2FA、权限页或 Seller Central 页面未就绪，不返回 success，按结构化 status 结束该 item 或 task。
+6. 运行搜索框 probe：必须定位库存筛选条内的 Katal 搜索输入，必须证明顶部全局搜索框被排除。
+7. 通过 BrowserController 点击库存搜索输入、清空输入、输入 SKU、点击库存搜索按钮。外部请求不得传 selector、坐标、命令或 action plan。
+8. 搜索提交后运行结果 DOM probe。成功证据必须来自 URL `searchTerm`、库存结果计数或目标 SKU 行；不能只看输入框 value。
+9. 如果页面展示父体/变体组，先执行只读 reveal：定位 `VariationExpander-module__expanderHeader svg` 中心点并点击，直到子 SKU 行进入 DOM。不得点击保存、提交、编辑、价格或库存写入控件。
+10. 在结果行中以结构化 label/value 匹配目标 SKU：目标行必须同时存在 `ProductDetails-module__container` 和 `JanusSplitBox-module__row`，且某个 label/value pair 精确等于 `SKU` / 请求 SKU。
+11. 从同一目标行读取：
    - `ASIN` -> `asin`
    - `现货（亚马逊物流）` -> `availableInventory`
    - `入库` -> inbound snapshot
    - `不可售` -> unfulfillable snapshot
    - `预留` -> reserved snapshot
    - `售出件数` -> 30-day sales snapshot
-10. 读取目标行产品图节点和截图区域。`img[src]` 只能作为 DOM 定位证据；只有 BrowserController `screenshotRegion` 成功后，才能返回 `sellerCentralMainImageEvidenceRef`。
-11. 返回 task status JSON，per item 带 `requestedFields`、`missingRequestedFields`、`matched/not_found/ambiguous/blocked` 状态和 bounded row evidence。网站侧通过既有 status/latest 轮询链更新自己的产品记录。
+12. 读取目标行产品图节点和截图区域。`img[src]` 只能作为 DOM 定位证据；只有 BrowserController `screenshotRegion` 成功后，才能返回 `sellerCentralMainImageEvidenceRef`。
+13. 返回 task status JSON，per item 带 `requestedFields`、`missingRequestedFields`、`matched/not_found/ambiguous/blocked` 状态和 bounded row evidence。网站侧通过既有 status/latest 轮询链更新自己的产品记录。
 
 生产代码必须让 `evaluateActiveTab` 只负责读取 DOM、返回字段、候选点位和截图信号。点击、输入、展开和 screenshotRegion 必须走 BrowserController 批准动作。
+
+## 日志矩阵
+
+Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、console 或 task JSON 代替诊断日志。task JSON 只承担网站轮询状态；Runtime Log Spine 承担跨任务追溯。
+
+日志必须有界，禁止日志爆炸：
+
+- 每次 start 写 1 条 `amazon_product_sync.start_received`。
+- 每次排队写 1 条 `amazon_product_sync.queued`。
+- 每次已有 `persistProgress` 进度推进写 1 条 `amazon_product_sync.progress`，不额外轮询刷日志。
+- 每个 terminal item 写 1 条 `amazon_product_sync.item_summary`。
+- 每个 task terminal 写 1 条 `amazon_product_sync.flow_finished` 或 `amazon_product_sync.flow_failed`。
+- `/status/:taskId` 或 `/latest` 发现 queued/running stale 并固化 failed 前，写 1 条 `amazon_product_sync.stale_running_task_failed`。
+
+所有事件必须 `modeVisibility` 包含 `FLOW`，`owner` 使用既有 `local-runtime`，并在 `refs.module` 标明 `amazon-product-sync`。
+
+`amazon_product_sync.progress` 必须带：
+
+- `site`
+- `marketplace`
+- `reachedStep`
+- `previousStep`
+- `itemCount`
+- `reason`
+
+`amazon_product_sync.item_summary` 必须带：
+
+- `sellerSku`
+- `itemStatus`
+- `requestedFields`
+- `missingRequestedFields`
+- `rowEvidenceRef`
+- `mainImageEvidenceRef`
+
+当 item 不是 `matched` 时，`amazon_product_sync.item_summary` 必须进入 review/failed 语义，并在 payload 带：
+
+- `failureClass`
+- `stageName`
+- `retryable`
+- `terminal`
+- `recoveryPolicy`
+
+`amazon_product_sync.stale_running_task_failed` 必须带 stale reason，并在 payload 带 `failureClass`、`stageName`、`retryable`、`terminal`、`recoveryPolicy`。`/status/:taskId` 和 `/latest` 必须把 RuntimeLogger 传入 stale 固化路径，禁止只改 task JSON 而无运行日志。
+
+inspector 必须用 AST 检查上述矩阵与生产代码一致。防复发验证必须故意破坏一次生产代码日志事件或字段，观察 `npm run audit:amazon-product-sync` 失败，再恢复并观察通过。
 
 ## 实测 DOM 结构
 
@@ -168,7 +241,8 @@ https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pag
 
 - route 只接受安全 JSON。
 - 请求必须包含站点、requestId、marketplace、SKU、requiredFields。
-- `requiredFields` 只能是 `mainImage`、`asin`、`availableInventory`。
+- AGENT start request 必须 exactly one SKU item；网站侧负责 SKU queue，禁止把多个 SKU 合成一个 AGENT task。
+- `requiredFields` 必须同时包含 `mainImage`、`asin`、`availableInventory`；禁止只请求库存或只请求缺口字段。
 - AGENT 自己拥有 DOM 解析脚本，不接受外部 selector、browser command、tab id、cookie、action plan 或 expected output override。
 - Seller Central login/captcha/2FA/权限问题不得返回 success。
 - `matched/not_found/ambiguous/blocked` 必须有 per-item status。
@@ -177,6 +251,9 @@ https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pag
 - 目标行必须用 `SKU` exact label/value 匹配，不能用整行 contains 作为主判定。
 - `availableInventory` 必须来自 exact label `现货（亚马逊物流）`。
 - mainImage 需求必须触发 BrowserController `screenshotRegion`，不能用公共图片 URL 伪造成 evidence。
+- AGENT 必须复用 Seller Central host tab，禁止把网站当前 active tab 当作 Seller Central 执行页。
+- background task 必须有可观察运行进度和终态；浏览器打开、点击、DOM 读取挂起时必须落到 `failed`，不能永久停在 `running` / `flow_started`。
+- status/latest 必须把 3 秒未推进的 queued/running task 固化为 failed，避免 AGENT 重启或浏览器卡死后网站按钮永久 `更新中`。
 - `/status/:taskId` 可轮询 terminal result；第一阶段网站回传使用既有 task status JSON 轮询链，不允许插件直接 fetch 网站 callbackUrl。
 - audit 必须阻断旧的全文兜底抽取、SKU contains 主匹配、Seller Central 写入动作和第二链路。
 - Chrome 验收报告必须写明 `CHROME_VERIFIED`、入口 URL、实际步骤、观察结果和主图 evidence ref。

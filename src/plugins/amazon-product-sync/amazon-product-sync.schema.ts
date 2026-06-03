@@ -3,19 +3,39 @@ import { z } from "zod";
 export const AmazonProductSyncRequiredFieldSchema = z.enum(["mainImage", "asin", "availableInventory"]);
 export type AmazonProductSyncRequiredField = z.infer<typeof AmazonProductSyncRequiredFieldSchema>;
 
+export const AmazonProductSyncAllRequiredFields = [
+  "mainImage",
+  "asin",
+  "availableInventory",
+] as const;
+
+const containsAllProductUpdateFields = (fields: readonly AmazonProductSyncRequiredField[]): boolean =>
+  AmazonProductSyncAllRequiredFields.every((field) => fields.includes(field));
+
 export const AmazonProductSyncItemSchema = z.object({
   sourceKeyType: z.enum(["sku", "asin"]),
   sourceKey: z.string().min(1).max(128),
   sellerSku: z.string().min(1).max(128),
   requiredFields: z.array(AmazonProductSyncRequiredFieldSchema).min(1).max(3),
-}).strict();
+}).strict().superRefine((item, context) => {
+  if (
+    item.requiredFields.length !== AmazonProductSyncAllRequiredFields.length
+    || !containsAllProductUpdateFields(item.requiredFields)
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["requiredFields"],
+      message: "Amazon product update must request mainImage, asin, and availableInventory.",
+    });
+  }
+});
 
 export const AmazonProductSyncInputSchema = z.object({
   site: z.string().min(1).max(120),
   requestId: z.string().min(1).max(160),
   marketplace: z.enum(["amazon.ae", "amazon.sa", "amazon.com", "amazon.co.uk", "amazon.co.jp"]).default("amazon.ae"),
   scope: z.string().min(1).max(80).default("selected-skus"),
-  items: z.array(AmazonProductSyncItemSchema).min(1).max(250),
+  items: z.array(AmazonProductSyncItemSchema).length(1, "Amazon product sync task must contain exactly one SKU item; website side owns the SKU queue."),
 }).strict();
 
 export type AmazonProductSyncInput = z.infer<typeof AmazonProductSyncInputSchema>;

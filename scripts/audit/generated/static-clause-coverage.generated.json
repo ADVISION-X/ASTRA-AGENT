@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T17:09:17.802Z",
+  "generatedAt": "2026-06-03T18:27:27.819Z",
   "summary": {
     "activeLawCount": 200,
     "coveredLawCount": 200,
@@ -397,6 +397,10 @@
         {
           "clauseId": "inventory-filter-search",
           "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
+        },
+        {
+          "clauseId": "runtime-log-matrix",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
         }
       ]
     },
@@ -411,6 +415,10 @@
         {
           "clauseId": "inventory-filter-search",
           "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
+        },
+        {
+          "clauseId": "runtime-log-matrix",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
         }
       ]
     },
@@ -424,6 +432,28 @@
         },
         {
           "clauseId": "inventory-filter-search",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
+        },
+        {
+          "clauseId": "runtime-log-matrix",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "capabilityDomain": "amazon-product-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
+        },
+        {
+          "clauseId": "inventory-filter-search",
+          "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
+        },
+        {
+          "clauseId": "runtime-log-matrix",
           "source": "scripts/audit/domains/amazon-product-sync/manifest.json"
         }
       ]

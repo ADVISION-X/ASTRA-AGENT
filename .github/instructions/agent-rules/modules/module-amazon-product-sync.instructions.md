@@ -24,11 +24,13 @@ Workbench API Boundary
 - The user-facing label is `Amazon 产品更新`.
 - The plugin root is `src/plugins/amazon-product-sync/`.
 - The external route namespace is `/api/plugins/amazon-product-sync/**`.
-- The website-side request must contain the site identifier, requestId, marketplace, and SKU items with explicit requiredFields. The only approved requiredFields are `mainImage`, `asin`, and `availableInventory`.
-- The job input may contain site, marketplace, requestId, scope, and SKU/source-key items only. Each item must declare the fields the website is missing instead of asking the agent to infer website state.
+- The website-side request must contain the site identifier, requestId, marketplace, and exactly one SKU item with explicit requiredFields. Product update is fixed-scope: the item must request `mainImage`, `asin`, and `availableInventory` together.
+- AGENT task input must reject multi-SKU `items`. The website side owns the SKU queue and may call the existing start/status chain repeatedly, one SKU at a time.
+- The job input may contain site, marketplace, requestId, scope, and SKU/source-key items only. The website must not send selector/action/browser data, and neither side may narrow the field set from website missing-field state.
 - The job output may contain bounded Seller Central row evidence: site, seller SKU, requested fields, missing requested fields, ASIN snapshot, title snapshot, image evidence ref, listing status, available FBA units, inbound units, unfulfillable units, reserved units, 30-day sales snapshot, row evidence ref, and snapshot timestamp.
 - Login, captcha, 2FA, missing inventory search control, failed search submission, ambiguous rows, and missing rows must be represented as structured statuses.
-- The flow must persist task status so the caller can poll.
+- The flow must persist observable task progress for key Seller Central actions, and a started background flow must reach a terminal persisted status instead of staying forever at `running` / `flow_started`.
+- Status reads must fail stale queued/running tasks that have not advanced recently; a restarted AGENT must not leave the website blocked by an old `running` task.
 - Evidence refs must be opaque local refs, not public URLs and not raw HTML.
 - Main image evidence refs must be backed by a real BrowserController screenshot capture for that task. A public image URL or string fabricated from `img[src]` is not valid evidence.
 - The flow must use the existing BrowserController and Workbench runtime.
@@ -84,13 +86,18 @@ Workbench API Boundary
   "summary": "Amazon product sync must honor the website request contract: site + SKU + required fields, and must return only evidence-backed requested product update data.",
   "required": [
     "Input contains site.",
-    "Each item contains requiredFields.",
-    "Allowed requiredFields are mainImage, asin, availableInventory.",
+    "Input contains exactly one SKU item.",
+    "The item contains requiredFields.",
+    "Every product update item requests mainImage, asin, and availableInventory together.",
+    "Partial requiredFields are rejected.",
+    "Multi-SKU AGENT tasks are rejected; website side owns the SKU queue.",
     "Main image evidence uses BrowserController screenshotRegion.",
     "Task status JSON contains requestedFields and missingRequestedFields."
   ],
   "forbidden": [
-    "Agent infers website missing fields without requiredFields.",
+    "Agent or website narrows the product update field set based on local missing-field inference.",
+    "Agent accepts multiple SKU items in one product sync task.",
+    "Browser flow remains running indefinitely without observable progress or a terminal task status.",
     "Main image evidence fabricated from public img src.",
     "Plugin directly fetches website callbackUrl.",
     "External caller controls selectors, browser commands, or output overrides."

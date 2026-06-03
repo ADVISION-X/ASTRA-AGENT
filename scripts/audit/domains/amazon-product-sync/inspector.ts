@@ -18,6 +18,7 @@ const boundaryPath = "src/app/workbench-api-boundary.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const schemaPath = "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts";
 const flowPath = "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts";
+const taskServicePath = "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts";
 const domScriptsPath = "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts";
 const acceptancePath = "scripts/acceptance/amazon-product-sync.acceptance.ts";
 
@@ -28,7 +29,7 @@ const requiredFiles = [
   schemaPath,
   flowPath,
   domScriptsPath,
-  "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+  taskServicePath,
   "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
   "src/plugins/amazon-product-sync/index.ts",
   "src/app/workbench-amazon-product-sync-routes.ts",
@@ -50,6 +51,16 @@ const requiredFlowTokens = [
   "ASIN",
   "现货（亚马逊物流）",
   "inventory_search_result_dom_not_verified",
+] as const;
+
+const requiredLogEvents = [
+  "amazon_product_sync.start_received",
+  "amazon_product_sync.queued",
+  "amazon_product_sync.progress",
+  "amazon_product_sync.item_summary",
+  "amazon_product_sync.flow_finished",
+  "amazon_product_sync.flow_failed",
+  "amazon_product_sync.stale_running_task_failed",
 ] as const;
 
 const forbiddenFlowTokens = [
@@ -90,6 +101,68 @@ const booleanLiteral = (objectLiteral: ObjectLiteralExpression, name: string): b
   if (initializer.getKind() === SyntaxKind.TrueKeyword) return true;
   if (initializer.getKind() === SyntaxKind.FalseKeyword) return false;
   return null;
+};
+
+const objectLiteralProperty = (objectLiteral: ObjectLiteralExpression, name: string): ObjectLiteralExpression | null => {
+  const item = property(objectLiteral, name);
+  if (!item || !Node.isPropertyAssignment(item)) return null;
+  const initializer = item.getInitializer();
+  return initializer && Node.isObjectLiteralExpression(initializer) ? initializer : null;
+};
+
+const arrayLiteralTexts = (objectLiteral: ObjectLiteralExpression, name: string): string[] => {
+  const item = property(objectLiteral, name);
+  if (!item || !Node.isPropertyAssignment(item)) return [];
+  const initializer = item.getInitializer();
+  if (!initializer || !Node.isArrayLiteralExpression(initializer)) return [];
+  return initializer.getElements().flatMap((element) =>
+    (Node.isStringLiteral(element) || Node.isNoSubstitutionTemplateLiteral(element)) ? [element.getLiteralText()] : [],
+  );
+};
+
+const hasObjectProperty = (objectLiteral: ObjectLiteralExpression, name: string): boolean =>
+  Boolean(property(objectLiteral, name));
+
+const nestedLiteralText = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): string | null => {
+  const nested = objectLiteralProperty(objectLiteral, parent);
+  return nested ? literalText(nested, child) : null;
+};
+
+const hasNestedObjectProperty = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): boolean => {
+  const nested = objectLiteralProperty(objectLiteral, parent);
+  return nested ? hasObjectProperty(nested, child) : false;
+};
+
+const hasPropertyBelow = (objectLiteral: ObjectLiteralExpression, name: string): boolean =>
+  objectLiteral.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((child) => hasObjectProperty(child, name));
+
+const runtimeEmitObjects = (sourceFile: SourceFile | undefined): ObjectLiteralExpression[] =>
+  sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "emit") return [];
+    const firstArg = callExpression.getArguments()[0];
+    return firstArg && Node.isObjectLiteralExpression(firstArg) ? [firstArg] : [];
+  }) ?? [];
+
+const emitObjectsForEvent = (
+  sourceFile: SourceFile | undefined,
+  eventName: string,
+): ObjectLiteralExpression[] =>
+  runtimeEmitObjects(sourceFile).filter((objectLiteral) => nestedLiteralText(objectLiteral, "refs", "event") === eventName);
+
+const hasFlowVisibility = (objectLiteral: ObjectLiteralExpression): boolean =>
+  arrayLiteralTexts(objectLiteral, "modeVisibility").includes("FLOW");
+
+const functionHasCall = (sourceFile: SourceFile | undefined, functionName: string, callName: string): boolean => {
+  const declaration = sourceFile?.getFunctions().find((item) => item.getName() === functionName)
+    ?? sourceFile?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+      .find((item) => item.getName() === functionName)
+      ?.getInitializer();
+  return Boolean(declaration?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return (Node.isIdentifier(expression) && expression.getText() === callName)
+      || (Node.isPropertyAccessExpression(expression) && expression.getName() === callName);
+  }));
 };
 
 const hasStringToken = (sourceFile: SourceFile | undefined, value: string): boolean =>
@@ -158,6 +231,12 @@ const inspectSchema = (schema: SourceFile | undefined, findings: InspectorFindin
   for (const required of ["mainImage", "asin", "availableInventory"]) {
     if (!hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing required field literal: ${required}`);
   }
+  for (const required of ["AmazonProductSyncAllRequiredFields", "containsAllProductUpdateFields", "Amazon product update must request mainImage, asin, and availableInventory."]) {
+    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema must enforce fixed product update requiredFields: ${required}`);
+  }
+  for (const required of ["length", "Amazon product sync task must contain exactly one SKU item; website side owns the SKU queue."]) {
+    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema must reject multi-SKU AGENT tasks: ${required}`);
+  }
 };
 
 const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
@@ -173,9 +252,83 @@ const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[],
   for (const required of ["open", "click", "textInput", "evaluateActiveTab", "screenshotRegion"]) {
     if (!hasCallName(flow, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
   }
+  if (!hasStringToken(flow, "reuse-host-tab")) addFinding(findings, lawId, flowPath, "flow must reuse Seller Central host tab instead of the active website tab");
   for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
   }
+};
+
+const inspectTaskService = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  for (const required of ["flowTimeoutMs", "resolveFlowTimeoutMs", "amazon_product_sync_flow_timeout_after_"]) {
+    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service missing bounded terminal timeout token: ${required}`);
+  }
+  for (const required of ["AmazonProductSyncFlowProgress", "persistProgress", "latestProgress"]) {
+    if (!hasIdentifier(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must persist observable running progress: ${required}`);
+  }
+  for (const required of ["runningProgressStaleMs", "runningProgressStaleReason", "flow_progress_stale"]) {
+    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must fail stale running progress: ${required}`);
+  }
+};
+
+const inspectRequiredLogEvents = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  const emitObjects = runtimeEmitObjects(taskService);
+  if (emitObjects.length < requiredLogEvents.length) {
+    addFinding(findings, lawId, taskServicePath, `runtime log matrix has only ${emitObjects.length} emit object(s); expected at least ${requiredLogEvents.length}`);
+  }
+  for (const eventName of requiredLogEvents) {
+    const matches = emitObjectsForEvent(taskService, eventName);
+    if (matches.length === 0) {
+      addFinding(findings, lawId, taskServicePath, `runtime log matrix missing event: ${eventName}`);
+      continue;
+    }
+    for (const objectLiteral of matches) {
+      if (!hasFlowVisibility(objectLiteral)) addFinding(findings, lawId, taskServicePath, `runtime log event ${eventName} must be FLOW-visible`);
+      if (literalText(objectLiteral, "owner") !== "local-runtime") addFinding(findings, lawId, taskServicePath, `runtime log event ${eventName} must use local-runtime owner`);
+      if (nestedLiteralText(objectLiteral, "refs", "module") !== "amazon-product-sync") addFinding(findings, lawId, taskServicePath, `runtime log event ${eventName} must set refs.module=amazon-product-sync`);
+    }
+  }
+};
+
+const inspectProgressLogRefs = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  const progress = emitObjectsForEvent(taskService, "amazon_product_sync.progress")[0];
+  if (!progress) return;
+  for (const refName of ["site", "marketplace", "reachedStep", "previousStep", "itemCount", "reason"]) {
+    if (!hasNestedObjectProperty(progress, "refs", refName)) addFinding(findings, lawId, taskServicePath, `progress log missing refs.${refName}`);
+  }
+};
+
+const inspectItemSummaryLog = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  const itemSummaries = emitObjectsForEvent(taskService, "amazon_product_sync.item_summary");
+  if (itemSummaries.length === 0) return;
+  for (const itemSummary of itemSummaries) {
+    for (const refName of ["sellerSku", "itemStatus", "requestedFields", "missingRequestedFields", "rowEvidenceRef", "mainImageEvidenceRef"]) {
+      if (!hasNestedObjectProperty(itemSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `item summary log missing refs.${refName}`);
+    }
+  }
+  const reviewSummary = itemSummaries.find((itemSummary) => literalText(itemSummary, "status") === "review_required");
+  if (!reviewSummary) return;
+  for (const payloadName of ["failureClass", "stageName", "retryable", "terminal", "recoveryPolicy"]) {
+    if (!hasPropertyBelow(reviewSummary, payloadName)) addFinding(findings, lawId, taskServicePath, `item summary review log missing payload.${payloadName}`);
+  }
+};
+
+const inspectStaleRunningLog = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  const staleFailed = emitObjectsForEvent(taskService, "amazon_product_sync.stale_running_task_failed")[0];
+  if (!staleFailed) return;
+  if (!hasObjectProperty(staleFailed, "reason")) addFinding(findings, lawId, taskServicePath, "stale running task log missing stale reason");
+  for (const payloadName of ["failureClass", "stageName", "retryable", "terminal", "recoveryPolicy"]) {
+    if (!hasPropertyBelow(staleFailed, payloadName)) addFinding(findings, lawId, taskServicePath, `stale running task log missing payload.${payloadName}`);
+  }
+};
+
+const inspectLogMatrix = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  inspectRequiredLogEvents(taskService, findings, lawId);
+  inspectProgressLogRefs(taskService, findings, lawId);
+  inspectItemSummaryLog(taskService, findings, lawId);
+  inspectStaleRunningLog(taskService, findings, lawId);
+  if (!functionHasCall(taskService, "persistProgress", "logProgress")) addFinding(findings, lawId, taskServicePath, "persistProgress must emit amazon_product_sync.progress before persisting task progress");
+  if (!functionHasCall(taskService, "failStaleRunningTask", "logStaleRunningTask")) addFinding(findings, lawId, taskServicePath, "stale task failure path must emit amazon_product_sync.stale_running_task_failed");
+  if (!hasCallName(taskService, "logItemSummary")) addFinding(findings, lawId, taskServicePath, "terminal flow success path must emit per-item amazon_product_sync.item_summary");
 };
 
 const inspectDomScripts = (
@@ -205,16 +358,26 @@ const inspectAcceptance = (acceptance: SourceFile | undefined, findings: Inspect
   for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "searchTerm"]) {
     if (!hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing DOM exclusion assertion token: ${required}`);
   }
+  for (const required of ["reuse-host-tab", "acceptance-amazon-product-sync-reject-partial-fields", "amazon_product_sync_flow_timeout_after_20ms"]) {
+    if (!hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing fixed-field/tab/timeout assertion token: ${required}`);
+  }
+  if (!hasStringToken(acceptance, "acceptance-amazon-product-sync-reject-multi-sku-agent-task")) addFinding(findings, lawId, acceptancePath, "acceptance missing single-SKU AGENT task rejection assertion");
+  for (const required of ["waitForRunningProgress", "seller_central_inventory_"]) {
+    if (!hasIdentifier(acceptance, required) && !hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing observable progress assertion token: ${required}`);
+  }
+  if (!hasStringToken(acceptance, "amazon_product_sync_running_progress_stale_after_3000ms")) addFinding(findings, lawId, acceptancePath, "acceptance missing stale running progress failure assertion");
   if (!hasIdentifier(acceptance, "screenshotRegion")) addFinding(findings, lawId, acceptancePath, "acceptance must exercise screenshotRegion for main image evidence");
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1");
+  const logLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-RUNTIME-LOG-SPINE-016-V1");
   const findings: InspectorFinding[] = [];
   const boundary = source(context.project, boundaryPath);
   const server = source(context.project, serverPath);
   const schema = source(context.project, schemaPath);
   const flow = source(context.project, flowPath);
+  const taskService = source(context.project, taskServicePath);
   const domScripts = source(context.project, domScriptsPath);
   const acceptance = source(context.project, acceptancePath);
 
@@ -222,6 +385,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectBoundary(boundary, findings, lawId);
   inspectSchema(schema, findings, lawId);
   inspectFlow(flow, findings, lawId);
+  inspectTaskService(taskService, findings, lawId);
+  inspectLogMatrix(taskService, findings, logLawId);
   inspectDomScripts(flow, domScripts, findings, lawId);
   inspectAcceptance(acceptance, findings, lawId);
   if (!hasIdentifier(server, "handleAmazonProductSyncRequest")) addFinding(findings, lawId, serverPath, "server must route through handleAmazonProductSyncRequest");

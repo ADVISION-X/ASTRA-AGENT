@@ -64,6 +64,14 @@ type ExpansionProbe = {
   readonly points: readonly ExpanderPoint[];
 };
 
+export type AmazonProductSyncFlowProgress = {
+  readonly reachedStep: string;
+  readonly items?: readonly AmazonProductSyncResultItem[];
+  readonly reason?: string | null;
+};
+
+type ProgressReporter = (progress: AmazonProductSyncFlowProgress) => Promise<void>;
+
 const MARKETPLACE_INVENTORY_URL: Record<AmazonProductSyncInput["marketplace"], string> = {
   "amazon.ae": "https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
   "amazon.sa": "https://sellercentral.amazon.sa/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
@@ -195,23 +203,34 @@ export const runAmazonProductSyncFlow = async (input: {
   mission: AmazonProductSyncInput;
   taskId: string;
   createdAt: string;
+  onProgress?: ProgressReporter;
 }): Promise<AmazonProductSyncTaskRecord> => {
   const now = new Date().toISOString();
   await input.browser.open({
     url: MARKETPLACE_INVENTORY_URL[input.mission.marketplace],
     title: "Seller Central inventory",
-    reusePolicy: "reuse-active-tab",
+    reusePolicy: "reuse-host-tab",
   });
+  await input.onProgress?.({ reachedStep: "seller_central_inventory_page_opened" });
   await input.browser.wait(2200);
 
   const items: AmazonProductSyncResultItem[] = [];
   for (const item of input.mission.items) {
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_search_started:${item.sellerSku}`,
+      items,
+    });
     items.push(await searchAndExtractSkuItem({
       browser: input.browser,
       taskId: input.taskId,
       item,
       snapshotAt: now,
+      ...(input.onProgress ? { onProgress: input.onProgress } : {}),
     }));
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_search_item_finished:${item.sellerSku}`,
+      items,
+    });
   }
 
   const terminalStatus = resolveTerminalStatus(items);
@@ -231,15 +250,31 @@ export const runAmazonProductSyncFlow = async (input: {
   };
 };
 
-const searchAndExtractSkuItem = async (input: {
+type SearchAndExtractInput = {
   browser: BrowserController;
   taskId: string;
   item: AmazonProductSyncInput["items"][number];
   snapshotAt: string;
-}): Promise<AmazonProductSyncResultItem> => {
+  onProgress?: ProgressReporter;
+};
+
+type ReadyInventorySearchProbe = InventorySearchProbe & {
+  inventorySearchButtonPoint: { x: number; y: number };
+  inventorySearchInputPoint: { x: number; y: number };
+};
+
+const locateInventorySearch = async (
+  input: SearchAndExtractInput,
+): Promise<ReadyInventorySearchProbe | AmazonProductSyncResultItem> => {
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_filter_probe_started:${input.item.sellerSku}`,
+  });
   const probe = await input.browser.evaluateActiveTab<InventorySearchProbe>({
     description: "amazon-product-sync locate inventory filter SKU search and exclude top global search",
     script: buildInventorySearchProbeScript(),
+  });
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_filter_probe_finished:${input.item.sellerSku}`,
   });
   const terminalStatus = terminalTaskStatusFromPage(probe.detectedState);
   if (terminalStatus) {
@@ -248,7 +283,20 @@ const searchAndExtractSkuItem = async (input: {
   if (!probe.inventorySearchInputPoint || !probe.inventorySearchButtonPoint || !probe.topGlobalSearchExcluded) {
     return buildMissingItem(input.item, input.snapshotAt, probe.reason ?? "inventory_filter_search_not_found", "blocked");
   }
+  return {
+    ...probe,
+    inventorySearchButtonPoint: probe.inventorySearchButtonPoint,
+    inventorySearchInputPoint: probe.inventorySearchInputPoint,
+  };
+};
 
+const submitInventorySearch = async (
+  input: SearchAndExtractInput,
+  probe: ReadyInventorySearchProbe,
+): Promise<void> => {
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_filter_type_started:${input.item.sellerSku}`,
+  });
   await input.browser.click({
     targetLabel: `Seller Central inventory filter SKU search input ${input.item.sellerSku}`,
     point: probe.inventorySearchInputPoint,
@@ -265,6 +313,9 @@ const searchAndExtractSkuItem = async (input: {
     action: "type-text",
     text: input.item.sellerSku,
   });
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_filter_submit_started:${input.item.sellerSku}`,
+  });
   await input.browser.click({
     targetLabel: `Seller Central inventory filter submit SKU search ${input.item.sellerSku}`,
     point: probe.inventorySearchButtonPoint,
@@ -273,11 +324,27 @@ const searchAndExtractSkuItem = async (input: {
     clickCount: 1,
   });
   await input.browser.wait(1800);
-  await expandSellerCentralParentRows(input.browser);
+};
 
+const revealInventoryVariations = async (input: SearchAndExtractInput): Promise<void> => {
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_variation_expand_started:${input.item.sellerSku}`,
+  });
+  await expandSellerCentralParentRows(input.browser);
+};
+
+const extractInventoryPage = async (
+  input: SearchAndExtractInput,
+): Promise<ExtractedPage | AmazonProductSyncResultItem> => {
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_dom_extract_started:${input.item.sellerSku}`,
+  });
   const page = await input.browser.evaluateActiveTab<ExtractedPage>({
     description: `amazon-product-sync verify result DOM and read exact SKU row ${input.item.sellerSku}`,
     script: buildInventoryExtractionScript(input.item.sellerSku),
+  });
+  await input.onProgress?.({
+    reachedStep: `seller_central_inventory_dom_extract_finished:${input.item.sellerSku}`,
   });
   const pageTerminalStatus = terminalTaskStatusFromPage(page.detectedState);
   if (pageTerminalStatus) {
@@ -286,7 +353,13 @@ const searchAndExtractSkuItem = async (input: {
   if (!page.searchVerified) {
     return buildMissingItem(input.item, input.snapshotAt, "inventory_search_result_dom_not_verified", "blocked");
   }
+  return page;
+};
 
+const resolveExtractedSkuItem = async (
+  input: SearchAndExtractInput,
+  page: ExtractedPage,
+): Promise<AmazonProductSyncResultItem> => {
   const normalizedSku = normalizeSku(input.item.sellerSku);
   const matches = page.rows.filter((row) => normalizeSku(row.sellerSku) === normalizedSku);
   if (matches.length === 0) return buildMissingItem(input.item, input.snapshotAt, "sku_not_found");
@@ -295,6 +368,16 @@ const searchAndExtractSkuItem = async (input: {
   return row
     ? buildMatchedItem(input.browser, input.taskId, input.item, row, input.snapshotAt)
     : buildMissingItem(input.item, input.snapshotAt, "sku_not_found");
+};
+
+const searchAndExtractSkuItem = async (input: SearchAndExtractInput): Promise<AmazonProductSyncResultItem> => {
+  const probe = await locateInventorySearch(input);
+  if ("status" in probe) return probe;
+  await submitInventorySearch(input, probe);
+  await revealInventoryVariations(input);
+  const page = await extractInventoryPage(input);
+  if ("status" in page) return page;
+  return resolveExtractedSkuItem(input, page);
 };
 
 async function expandSellerCentralParentRows(browser: BrowserController): Promise<void> {

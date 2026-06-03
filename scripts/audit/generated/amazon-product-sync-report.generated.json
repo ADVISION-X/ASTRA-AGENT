@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T17:09:50.169Z",
+  "generatedAt": "2026-06-03T18:28:01.992Z",
   "status": "PASS",
   "findings": [],
   "capabilityDomain": "amazon-product-sync",
@@ -7,7 +7,8 @@
   "lawIds": [
     "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
     "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
-    "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1"
+    "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",

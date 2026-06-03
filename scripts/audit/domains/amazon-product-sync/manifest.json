@@ -6,15 +6,20 @@
     "mode": "domain-wide",
     "clauseIds": [
       "primary",
-      "inventory-filter-search"
+      "inventory-filter-search",
+      "runtime-log-matrix"
     ]
   },
+  "lawIdRefs": [
+    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
+  ],
   "blueprintRefs": [
     {
       "filePath": "docs/法案辅助文件/GrassEye Amazon 产品更新同步施工图.md",
       "requiredAnchors": [
         "## 单链路",
         "## Phase 1",
+        "## 日志矩阵",
         "## 实测 DOM 结构",
         "## 搜索框排他性规则",
         "## 验收"

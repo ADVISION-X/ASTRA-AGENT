@@ -1,7 +1,7 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import { createId } from "../../lib/local-runtime/ids.js";
 import { RuntimeFailureClass, RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { runAmazonProductSyncFlow } from "./amazon-product-sync.flow.js";
+import { runAmazonProductSyncFlow, type AmazonProductSyncFlowProgress } from "./amazon-product-sync.flow.js";
 import {
   AmazonProductSyncInputSchema,
   type AmazonProductSyncInput,
@@ -13,10 +13,15 @@ import {
   readLatestAmazonProductSyncTask,
 } from "./amazon-product-sync.storage.js";
 
+const flowTimeoutReasonPrefix = "amazon_product_sync_flow_timeout_after_";
+const runningProgressStaleMs = 3_000;
+const runningProgressStaleReason = `amazon_product_sync_running_progress_stale_after_${runningProgressStaleMs}ms`;
+
 export type AmazonProductSyncRuntime = {
   readonly dataDir: string;
   readonly browser: BrowserController;
   readonly runtimeLogger: RuntimeLogger;
+  readonly flowTimeoutMs?: number;
 };
 
 const initialTask = (mission: AmazonProductSyncInput, taskId = createId("amazon_product_sync")): AmazonProductSyncTaskRecord => {
@@ -137,6 +142,114 @@ const logFlowFinished = (runtime: AmazonProductSyncRuntime, result: AmazonProduc
   });
 };
 
+const logProgress = (
+  runtime: AmazonProductSyncRuntime,
+  mission: AmazonProductSyncInput,
+  task: AmazonProductSyncTaskRecord,
+  progress: AmazonProductSyncFlowProgress,
+): void => {
+  runtime.runtimeLogger.emit({
+    traceId: task.taskId,
+    level: "info",
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_STARTED,
+    owner: "local-runtime",
+    missionId: task.taskId,
+    runId: mission.requestId,
+    stepId: progress.reachedStep,
+    status: "started",
+    refs: {
+      module: "amazon-product-sync",
+      source: "grasseye-agent",
+      event: "amazon_product_sync.progress",
+      site: mission.site,
+      marketplace: mission.marketplace,
+      reachedStep: progress.reachedStep,
+      previousStep: task.reachedStep,
+      itemCount: String(progress.items?.length ?? task.items.length),
+      reason: progress.reason ?? "none",
+    },
+  });
+};
+
+const logMatchedItemSummary = (
+  runtime: AmazonProductSyncRuntime,
+  result: AmazonProductSyncTaskRecord,
+  item: AmazonProductSyncTaskRecord["items"][number],
+): void => {
+  runtime.runtimeLogger.emit({
+    traceId: result.taskId,
+    level: "info",
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_COMPLETED,
+    owner: "local-runtime",
+    missionId: result.taskId,
+    runId: result.requestId,
+    stepId: `amazon_product_sync_item:${item.sellerSku}`,
+    status: "success",
+    refs: {
+      module: "amazon-product-sync",
+      source: "grasseye-agent",
+      event: "amazon_product_sync.item_summary",
+      site: result.site,
+      sellerSku: item.sellerSku,
+      itemStatus: item.status,
+      requestedFields: item.requestedFields.join(","),
+      missingRequestedFields: item.missingRequestedFields.join(",") || "none",
+      rowEvidenceRef: item.rowEvidenceRef ?? "none",
+      mainImageEvidenceRef: item.sellerCentralMainImageEvidenceRef ?? "none",
+    },
+  });
+};
+
+const logReviewItemSummary = (
+  runtime: AmazonProductSyncRuntime,
+  result: AmazonProductSyncTaskRecord,
+  item: AmazonProductSyncTaskRecord["items"][number],
+): void => {
+  runtime.runtimeLogger.emit({
+    traceId: result.taskId,
+    level: "warn",
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_REVIEW_REQUIRED,
+    owner: "local-runtime",
+    missionId: result.taskId,
+    runId: result.requestId,
+    stepId: `amazon_product_sync_item:${item.sellerSku}`,
+    status: "review_required",
+    reason: item.reason ?? "item_not_matched",
+    refs: {
+      module: "amazon-product-sync",
+      source: "grasseye-agent",
+      event: "amazon_product_sync.item_summary",
+      site: result.site,
+      sellerSku: item.sellerSku,
+      itemStatus: item.status,
+      requestedFields: item.requestedFields.join(","),
+      missingRequestedFields: item.missingRequestedFields.join(",") || "none",
+      rowEvidenceRef: item.rowEvidenceRef ?? "none",
+      mainImageEvidenceRef: item.sellerCentralMainImageEvidenceRef ?? "none",
+    },
+    payload: {
+      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+      stageName: "amazon_product_sync_item",
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "review_required",
+    },
+  });
+};
+
+const logItemSummary = (runtime: AmazonProductSyncRuntime, result: AmazonProductSyncTaskRecord): void => {
+  for (const item of result.items) {
+    if (item.status === "matched") {
+      logMatchedItemSummary(runtime, result, item);
+    } else {
+      logReviewItemSummary(runtime, result, item);
+    }
+  }
+};
+
 const logFlowFailed = (
   runtime: AmazonProductSyncRuntime,
   mission: AmazonProductSyncInput,
@@ -170,6 +283,97 @@ const logFlowFailed = (
   });
 };
 
+const logStaleRunningTask = (
+  runtimeLogger: RuntimeLogger | undefined,
+  task: AmazonProductSyncTaskRecord,
+): void => {
+  runtimeLogger?.emit({
+    traceId: task.taskId,
+    level: "error",
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_FAILED,
+    owner: "local-runtime",
+    missionId: task.taskId,
+    runId: task.requestId,
+    stepId: "flow_progress_stale",
+    status: "failed",
+    reason: runningProgressStaleReason,
+    refs: {
+      module: "amazon-product-sync",
+      source: "grasseye-agent",
+      event: "amazon_product_sync.stale_running_task_failed",
+      site: task.site,
+      taskStatus: task.status,
+      reachedStep: task.reachedStep,
+      updatedAt: task.updatedAt,
+    },
+    payload: {
+      failureClass: RuntimeFailureClass.TRANSIENT_RETRYABLE,
+      stageName: "amazon_product_sync_status_read",
+      retryable: true,
+      terminal: true,
+      recoveryPolicy: "terminal",
+    },
+  });
+};
+
+const resolveFlowTimeoutMs = (runtime: AmazonProductSyncRuntime, mission: AmazonProductSyncInput): number =>
+  runtime.flowTimeoutMs ?? Math.min(720_000, 45_000 + mission.items.length * 15_000);
+
+const isRunningTaskStale = (task: AmazonProductSyncTaskRecord, nowMs = Date.now()): boolean => {
+  if (task.status !== "queued" && task.status !== "running") return false;
+  const updatedAtMs = Date.parse(task.updatedAt);
+  if (!Number.isFinite(updatedAtMs)) return true;
+  return nowMs - updatedAtMs > runningProgressStaleMs;
+};
+
+const failStaleRunningTask = (
+  dataDir: string,
+  task: AmazonProductSyncTaskRecord,
+  runtimeLogger?: RuntimeLogger,
+): Promise<AmazonProductSyncTaskRecord> => {
+  logStaleRunningTask(runtimeLogger, task);
+  return persistAmazonProductSyncTask(dataDir, {
+    ...task,
+    ok: false,
+    status: "failed",
+    reason: runningProgressStaleReason,
+    reachedStep: "flow_progress_stale",
+    updatedAt: new Date().toISOString(),
+  });
+};
+
+const runFlowWithTimeout = (
+  runtime: AmazonProductSyncRuntime,
+  mission: AmazonProductSyncInput,
+  queued: AmazonProductSyncTaskRecord,
+  onProgress: (progress: AmazonProductSyncFlowProgress) => Promise<void>,
+): Promise<AmazonProductSyncTaskRecord> => {
+  const timeoutMs = resolveFlowTimeoutMs(runtime, mission);
+  let acceptingProgress = true;
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      acceptingProgress = false;
+      reject(new Error(`${flowTimeoutReasonPrefix}${timeoutMs}ms`));
+    }, timeoutMs);
+    void runAmazonProductSyncFlow({
+      browser: runtime.browser,
+      mission,
+      taskId: queued.taskId,
+      createdAt: queued.createdAt,
+      onProgress: (progress) => acceptingProgress ? onProgress(progress) : Promise.resolve(),
+    }).then((result) => {
+      acceptingProgress = false;
+      clearTimeout(timeout);
+      resolve(result);
+    }).catch((error) => {
+      acceptingProgress = false;
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+};
+
 export const startAmazonProductSyncTask = async (
   rawInput: unknown,
   runtime: AmazonProductSyncRuntime,
@@ -184,20 +388,29 @@ export const startAmazonProductSyncTask = async (
     reachedStep: "flow_started",
     updatedAt: new Date().toISOString(),
   });
-  void runAmazonProductSyncFlow({
-    browser: runtime.browser,
-    mission,
-    taskId: queued.taskId,
-    createdAt: queued.createdAt,
-  })
+  let latestProgress = running;
+  const persistProgress = async (progress: AmazonProductSyncFlowProgress): Promise<void> => {
+    logProgress(runtime, mission, latestProgress, progress);
+    latestProgress = await persistAmazonProductSyncTask(runtime.dataDir, {
+      ...latestProgress,
+      ok: false,
+      status: "running",
+      reason: progress.reason ?? null,
+      reachedStep: progress.reachedStep,
+      items: [...(progress.items ?? latestProgress.items)],
+      updatedAt: new Date().toISOString(),
+    });
+  };
+  void runFlowWithTimeout(runtime, mission, queued, persistProgress)
     .then((result) => {
+      logItemSummary(runtime, result);
       logFlowFinished(runtime, result);
       return persistAmazonProductSyncTask(runtime.dataDir, result);
     })
     .catch((error) => {
       logFlowFailed(runtime, mission, running, error);
       return persistAmazonProductSyncTask(runtime.dataDir, {
-        ...running,
+        ...latestProgress,
         ok: false,
         status: "failed",
         reason: error instanceof Error ? error.message : String(error),
@@ -209,13 +422,19 @@ export const startAmazonProductSyncTask = async (
 };
 
 export const getAmazonProductSyncTaskStatus = async (
-  input: { readonly dataDir: string; readonly taskId: string },
+  input: { readonly dataDir: string; readonly taskId: string; readonly runtimeLogger?: RuntimeLogger },
 ): Promise<AmazonProductSyncTaskRecord | null> => {
   const task = await readAmazonProductSyncTask(input.dataDir, input.taskId);
+  if (!task) return null;
+  if (isRunningTaskStale(task)) return failStaleRunningTask(input.dataDir, task, input.runtimeLogger);
   return task;
 };
 
 export const getLatestAmazonProductSyncTask = (
-  input: { readonly dataDir: string },
+  input: { readonly dataDir: string; readonly runtimeLogger?: RuntimeLogger },
 ): Promise<AmazonProductSyncTaskRecord | null> =>
-  readLatestAmazonProductSyncTask(input.dataDir);
+  readLatestAmazonProductSyncTask(input.dataDir).then((task) => {
+    if (!task) return null;
+    if (isRunningTaskStale(task)) return failStaleRunningTask(input.dataDir, task, input.runtimeLogger);
+    return task;
+  });

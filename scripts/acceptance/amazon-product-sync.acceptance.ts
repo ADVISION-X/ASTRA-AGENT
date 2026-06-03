@@ -15,6 +15,7 @@ import {
   startAmazonProductSyncTask,
 } from "../../src/plugins/amazon-product-sync/index.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { persistAmazonProductSyncTask } from "../../src/plugins/amazon-product-sync/amazon-product-sync.storage.js";
 
 const now = (): string => new Date().toISOString();
 
@@ -27,6 +28,7 @@ const action = (message: string): BrowserActionResult => ({
 
 class AmazonProductSyncFakeBrowser implements BrowserController {
   openedUrls: string[] = [];
+  openReusePolicies: string[] = [];
   clickLabels: string[] = [];
   textInputLabels: string[] = [];
   evaluateDescriptions: string[] = [];
@@ -72,8 +74,9 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
     };
   }
 
-  async open(input: { url: string }): Promise<BrowserActionResult> {
+  async open(input: { url: string; reusePolicy?: string }): Promise<BrowserActionResult> {
     this.openedUrls.push(input.url);
+    if (input.reusePolicy) this.openReusePolicies.push(input.reusePolicy);
     return action("opened seller central inventory");
   }
 
@@ -152,9 +155,18 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
   }
 
   async setFileInputFiles(): Promise<BrowserActionResult> { return action("setFileInputFiles"); }
-  async wait(): Promise<BrowserActionResult> { return action("wait"); }
+  async wait(): Promise<BrowserActionResult> {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return action("wait");
+  }
   async closeActiveTab(): Promise<BrowserActionResult> { return action("closeActiveTab"); }
   async close(): Promise<BrowserActionResult> { return action("close"); }
+}
+
+class AmazonProductSyncHangingBrowser extends AmazonProductSyncFakeBrowser {
+  override async open(): Promise<BrowserActionResult> {
+    return new Promise<BrowserActionResult>(() => undefined);
+  }
 }
 
 const waitForTerminal = async (dataDir: string, taskId: string) => {
@@ -166,6 +178,17 @@ const waitForTerminal = async (dataDir: string, taskId: string) => {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   throw new Error("amazon product sync task did not reach terminal status");
+};
+
+const waitForRunningProgress = async (dataDir: string, taskId: string) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const task = await getAmazonProductSyncTaskStatus({ dataDir, taskId });
+    if (task?.status === "running" && task.reachedStep !== "flow_started") {
+      return task;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error("amazon product sync task did not persist observable running progress");
 };
 
 const dataDir = mkdtempSync(join(tmpdir(), "amazon-product-sync-acceptance-"));
@@ -185,6 +208,8 @@ const started = await startAmazonProductSyncTask({
 }, { dataDir, browser, runtimeLogger });
 
 assert.equal(started.status, "running");
+const runningProgress = await waitForRunningProgress(dataDir, started.taskId);
+assert.ok(runningProgress.reachedStep.startsWith("seller_central_inventory_"));
 const terminal = await waitForTerminal(dataDir, started.taskId);
 assert.equal(terminal.status, "success");
 assert.equal(terminal.site, "ontheway-amazon-manage");
@@ -198,6 +223,7 @@ assert.equal(browser.screenshotCalls, 1);
 assert.ok(terminal.items[0]?.rowEvidenceRef?.startsWith("evidence://amazon-product-sync/"));
 
 assert.ok(browser.openedUrls[0]?.includes("/myinventory/inventory"));
+assert.ok(browser.openReusePolicies.includes("reuse-host-tab"));
 assert.ok(browser.clickLabels.some((label) => label.includes("inventory filter SKU search input")));
 assert.ok(browser.clickLabels.some((label) => label.includes("inventory filter submit SKU search")));
 assert.ok(browser.textInputLabels.some((label) => label.includes("clear SKU search")));
@@ -210,5 +236,85 @@ assert.ok(browser.evaluateScripts.some((script) => script.includes("button.sc-se
 assert.ok(browser.evaluateScripts.some((script) => script.includes("搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("shadowRoot")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("searchTerm")));
+
+await assert.rejects(
+  () => startAmazonProductSyncTask({
+    site: "ontheway-amazon-manage",
+    requestId: "acceptance-amazon-product-sync-reject-partial-fields",
+    marketplace: "amazon.ae",
+    scope: "selected-skus",
+    items: [{
+      sourceKeyType: "sku",
+      sourceKey: "DL-UG6I-2OWL",
+      sellerSku: "DL-UG6I-2OWL",
+      requiredFields: ["availableInventory"],
+    }],
+  }, { dataDir, browser, runtimeLogger }),
+  /mainImage, asin, and availableInventory/u,
+);
+
+await assert.rejects(
+  () => startAmazonProductSyncTask({
+    site: "ontheway-amazon-manage",
+    requestId: "acceptance-amazon-product-sync-reject-multi-sku-agent-task",
+    marketplace: "amazon.ae",
+    scope: "selected-skus",
+    items: [
+      {
+        sourceKeyType: "sku",
+        sourceKey: "DL-UG6I-2OWL",
+        sellerSku: "DL-UG6I-2OWL",
+        requiredFields: ["mainImage", "asin", "availableInventory"],
+      },
+      {
+        sourceKeyType: "sku",
+        sourceKey: "CB-T02I-5X78",
+        sellerSku: "CB-T02I-5X78",
+        requiredFields: ["mainImage", "asin", "availableInventory"],
+      },
+    ],
+  }, { dataDir, browser, runtimeLogger }),
+  /exactly one SKU item/u,
+);
+
+const timeoutDataDir = mkdtempSync(join(tmpdir(), "amazon-product-sync-timeout-acceptance-"));
+const timeoutBrowser = new AmazonProductSyncHangingBrowser();
+const expectedTimeoutReason = "amazon_product_sync_flow_timeout_after_20ms";
+const timedOut = await startAmazonProductSyncTask({
+  site: "ontheway-amazon-manage",
+  requestId: "acceptance-amazon-product-sync-timeout",
+  marketplace: "amazon.ae",
+  scope: "selected-skus",
+  items: [{
+    sourceKeyType: "sku",
+    sourceKey: "DL-UG6I-2OWL",
+    sellerSku: "DL-UG6I-2OWL",
+    requiredFields: ["mainImage", "asin", "availableInventory"],
+  }],
+}, { dataDir: timeoutDataDir, browser: timeoutBrowser, runtimeLogger, flowTimeoutMs: 20 });
+const timeoutTerminal = await waitForTerminal(timeoutDataDir, timedOut.taskId);
+assert.equal(timeoutTerminal.status, "failed");
+assert.equal(timeoutTerminal.reason, expectedTimeoutReason);
+
+const staleDataDir = mkdtempSync(join(tmpdir(), "amazon-product-sync-stale-acceptance-"));
+await persistAmazonProductSyncTask(staleDataDir, {
+  taskId: "amazon_product_sync_stale_acceptance",
+  site: "ontheway-amazon-manage",
+  requestId: "acceptance-amazon-product-sync-stale",
+  marketplace: "amazon.ae",
+  ok: false,
+  status: "running",
+  reason: null,
+  reachedStep: "flow_started",
+  items: [],
+  createdAt: new Date(Date.now() - 10_000).toISOString(),
+  updatedAt: new Date(Date.now() - 10_000).toISOString(),
+});
+const staleStatus = await getAmazonProductSyncTaskStatus({
+  dataDir: staleDataDir,
+  taskId: "amazon_product_sync_stale_acceptance",
+});
+assert.equal(staleStatus?.status, "failed");
+assert.equal(staleStatus?.reason, "amazon_product_sync_running_progress_stale_after_3000ms");
 
 process.stdout.write("[AMAZON-PRODUCT-SYNC][PASS] inventory filter SKU search acceptance passed\n");

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T17:09:17.802Z",
+  "generatedAt": "2026-06-03T18:27:27.819Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -122,15 +122,18 @@
       "lawIds": [
         "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
         "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
-        "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1"
+        "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
       ],
       "clauseIds": [
         "primary",
-        "inventory-filter-search"
+        "inventory-filter-search",
+        "runtime-log-matrix"
       ],
       "evidenceModes": [
         "ast+fs+acceptance",
         "chrome+ast+acceptance",
+        "law+blueprint+ast+runtime-contract",
         "schema+flow+acceptance"
       ],
       "blueprintRefs": [
@@ -139,6 +142,7 @@
           "requiredAnchors": [
             "## 单链路",
             "## Phase 1",
+            "## 日志矩阵",
             "## 实测 DOM 结构",
             "## 搜索框排他性规则",
             "## 验收"

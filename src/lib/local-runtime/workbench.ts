@@ -267,10 +267,17 @@ const buildAmazonProductSyncHandle = (
     });
   },
   async getAmazonProductSyncTaskStatus(taskId: string) {
-    return getAmazonProductSyncTaskStatus({ dataDir, taskId });
+    return getAmazonProductSyncTaskStatus({
+      dataDir,
+      taskId,
+      runtimeLogger: assembly.runtimeLogger,
+    });
   },
   async getLatestAmazonProductSyncTask() {
-    return getLatestAmazonProductSyncTask({ dataDir });
+    return getLatestAmazonProductSyncTask({
+      dataDir,
+      runtimeLogger: assembly.runtimeLogger,
+    });
   },
 });
 
