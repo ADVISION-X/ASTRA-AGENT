@@ -33,6 +33,7 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
   evaluateDescriptions: string[] = [];
   evaluateScripts: string[] = [];
   screenshotCalls = 0;
+  closeActiveTabCalls = 0;
 
   getHealth() { return { ok: true, detail: "amazon product sync fake browser" }; }
 
@@ -132,7 +133,9 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
         ok: true,
         submittedValue: "DL-UG6I-2OWL",
         inputValue: "DL-UG6I-2OWL",
-        clickedButton: true,
+        clickedButton: false,
+        searchClickDelayMs: 1200,
+        inventorySearchButtonPoint: { x: 604, y: 310 },
         topGlobalSearchExcluded: true,
         reason: null,
       } as T;
@@ -141,11 +144,11 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
       return { collapsedCount: 0, points: [] } as T;
     }
     return {
-      url: "https://sellercentral.amazon.ae/myinventory/inventory?searchField=all&searchTerm=DL-UG6I-2OWL",
+      url: "https://sellercentral.amazon.ae/myinventory/inventory",
       title: "Manage Your Inventory",
       detectedState: "ready",
       searchVerified: true,
-      searchVerificationEvidence: ["url_searchTerm_exact", "exact_sku_row_visible"],
+      searchVerificationEvidence: ["exact_sku_row_visible"],
       rows: [
         {
           sellerSku: "DL-UG6I-2OWL",
@@ -168,7 +171,10 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
     await new Promise((resolve) => setTimeout(resolve, 10));
     return action("wait");
   }
-  async closeActiveTab(): Promise<BrowserActionResult> { return action("closeActiveTab"); }
+  async closeActiveTab(): Promise<BrowserActionResult> {
+    this.closeActiveTabCalls += 1;
+    return action("closeActiveTab");
+  }
   async close(): Promise<BrowserActionResult> { return action("close"); }
 }
 
@@ -208,6 +214,7 @@ const started = await startAmazonProductSyncTask({
   requestId: "acceptance-amazon-product-sync-1",
   marketplace: "amazon.ae",
   scope: "selected-skus",
+  closeAmazonTabOnCompletion: true,
   items: [{
     sourceKeyType: "sku",
     sourceKey: "DL-UG6I-2OWL",
@@ -229,13 +236,16 @@ assert.equal(terminal.items[0]?.asinSnapshot, "B012345678");
 assert.equal(terminal.items[0]?.availableFbaUnits, 28);
 assert.ok(terminal.items[0]?.sellerCentralMainImageEvidenceRef?.startsWith("evidence://amazon-product-sync/"));
 assert.equal(browser.screenshotCalls, 1);
+assert.equal(browser.closeActiveTabCalls, 1);
 assert.ok(terminal.items[0]?.rowEvidenceRef?.startsWith("evidence://amazon-product-sync/"));
 
 assert.ok(browser.openedUrls[0]?.includes("/myinventory/inventory"));
+assert.equal(browser.openedUrls.filter((url) => url.includes("/myinventory/inventory")).length, 1);
 assert.ok(browser.openReusePolicies.includes("reuse-host-tab"));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("exclude top global search")));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("fill inventory filter SKU shadow input")));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("verify result DOM")));
+assert.ok(browser.clickLabels.includes("Seller Central inventory filter search button"));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("form#sc-global-search-form")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("input#sc-search-field")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("button.sc-search-button")));
@@ -244,7 +254,7 @@ assert.ok(browser.evaluateScripts.some((script) => script.includes("shadowRoot")
 assert.ok(browser.evaluateScripts.some((script) => script.includes("input[type='text'], input")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("dispatchEvent")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("SearchBox-module__searchButton MouseEvent click")));
-assert.ok(browser.evaluateScripts.some((script) => script.includes("searchTerm")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("searchClickDelayMs")));
 
 await assert.rejects(
   () => startAmazonProductSyncTask({

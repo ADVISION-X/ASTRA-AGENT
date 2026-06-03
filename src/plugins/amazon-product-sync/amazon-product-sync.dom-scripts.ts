@@ -1,12 +1,12 @@
-const INVENTORY_SEARCH_TERM_PARAM = "searchTerm";
 const AVAILABLE_FBA_UNITS_LABEL_ZH = "现货（亚马逊物流）";
 const REQUESTED_SKU_TOKEN = "__AMAZON_PRODUCT_SYNC_REQUESTED_SKU__";
-const SEARCH_TERM_PARAM_TOKEN = "__AMAZON_PRODUCT_SYNC_SEARCH_TERM_PARAM__";
 const AVAILABLE_FBA_LABEL_TOKEN = "__AMAZON_PRODUCT_SYNC_AVAILABLE_FBA_LABEL__";
 const SUBMIT_SKU_TOKEN = "__AMAZON_PRODUCT_SYNC_SUBMIT_SKU__";
 const SHADOW_TEXT_INPUT_SELECTOR = "input[type='text'], input";
 const COMPOSED_INPUT_CHANGE_DISPATCH = "dispatchEvent";
 const INVENTORY_SEARCH_BUTTON_MOUSE_EVENT = "SearchBox-module__searchButton MouseEvent click";
+const INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE = "searchClickDelayMs";
+const INVENTORY_SEARCH_DELAY_TIMER_API = "setTimeout";
 
 const normalizeSku = (value: string): string => value.trim().toUpperCase();
 
@@ -103,13 +103,38 @@ return (() => {
   const shadowTextInputSelector = ${JSON.stringify(SHADOW_TEXT_INPUT_SELECTOR)};
   const dispatchEventMethod = ${JSON.stringify(COMPOSED_INPUT_CHANGE_DISPATCH)};
   const submitAction = ${JSON.stringify(INVENTORY_SEARCH_BUTTON_MOUSE_EVENT)};
+  const findMethod = (obj, name) => {
+    for (let proto = obj; proto; proto = Object.getPrototypeOf(proto)) {
+      const value = proto[name];
+      if (typeof value === "function") return value;
+    }
+    return null;
+  };
+  const call = (obj, name, ...args) => {
+    const fn = obj ? findMethod(obj, name) : null;
+    return fn ? fn.call(obj, ...args) : null;
+  };
+  const querySelector = (root, selector) => call(root, "querySelector", selector);
+  const getAttribute = (el, name) => call(el, "getAttribute", name);
+  const setAttribute = (el, name, value) => call(el, "setAttribute", name, value);
+  const dispatch = (target, event) => call(target, dispatchEventMethod, event);
+  const setInputValue = (input, value) => {
+    for (let proto = input; proto; proto = Object.getPrototypeOf(proto)) {
+      const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+      if (descriptor && typeof descriptor.set === "function") {
+        descriptor.set.call(input, value);
+        return;
+      }
+    }
+    input.value = value;
+  };
   const searchHost = Array.from(document.querySelectorAll("kat-input"))
-    .find((el) => el.getAttribute("placeholder") === inventorySearchPlaceholder);
+    .find((el) => getAttribute(el, "placeholder") === inventorySearchPlaceholder);
   const shadowInput = searchHost && searchHost.shadowRoot
-    ? searchHost.shadowRoot.querySelector(shadowTextInputSelector)
+    ? querySelector(searchHost.shadowRoot, shadowTextInputSelector)
     : null;
-  const group = searchHost ? searchHost.closest("kat-input-group") : null;
-  const button = group ? group.querySelector('[class*="SearchBox-module__searchButton"], button, kat-button') : null;
+  const group = searchHost ? call(searchHost, "closest", "kat-input-group") : null;
+  const button = group ? querySelector(group, '[class*="SearchBox-module__searchButton"], button, kat-button') : null;
   const topGlobalSearchExcluded = Boolean(searchHost && !(topForm && topForm.contains(searchHost)));
   if (!searchHost || !shadowInput || !button || !topGlobalSearchExcluded || !visible(searchHost) || !visible(button)) {
     return {
@@ -124,26 +149,17 @@ return (() => {
       reason: "inventory_filter_shadow_input_not_ready",
     };
   }
-  const dispatchKeyboard = (target, type) => {
-    target[dispatchEventMethod](new KeyboardEvent(type, { key: "Enter", code: "Enter", bubbles: true, cancelable: true, composed: true }));
-  };
-  const dispatchMouse = (target, type) => {
-    target[dispatchEventMethod](new MouseEvent(type, { bubbles: true, cancelable: true, composed: true, view: window, button: 0 }));
-  };
-  if (typeof searchHost.click === "function") searchHost.click();
-  searchHost.value = sellerSku;
-  searchHost.setAttribute("value", sellerSku);
-  searchHost[dispatchEventMethod](new Event("input", { bubbles: true, composed: true }));
-  searchHost[dispatchEventMethod](new Event("change", { bubbles: true, composed: true }));
-  if (typeof shadowInput.focus === "function") shadowInput.focus();
-  shadowInput.value = sellerSku;
-  shadowInput[dispatchEventMethod](new Event("input", { bubbles: true, composed: true }));
-  shadowInput[dispatchEventMethod](new Event("change", { bubbles: true, composed: true }));
-  dispatchKeyboard(shadowInput, "keydown");
-  dispatchKeyboard(shadowInput, "keyup");
-  dispatchMouse(button, "mousedown");
-  dispatchMouse(button, "mouseup");
-  dispatchMouse(button, "click");
+  call(searchHost, "click");
+  setAttribute(searchHost, "value", sellerSku);
+  dispatch(searchHost, new Event("input", { bubbles: true, composed: true }));
+  dispatch(searchHost, new Event("change", { bubbles: true, composed: true }));
+  call(shadowInput, "focus");
+  setInputValue(shadowInput, sellerSku);
+  dispatch(shadowInput, new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: sellerSku }));
+  dispatch(shadowInput, new Event("change", { bubbles: true, composed: true }));
+  const searchClickDelayMs = 1000 + Math.floor(Math.random() * 1001);
+  const searchDelayTimerApi = ${JSON.stringify(INVENTORY_SEARCH_DELAY_TIMER_API)};
+  const rect = button.getBoundingClientRect();
   return {
     url: location.href,
     title: document.title || "",
@@ -151,7 +167,10 @@ return (() => {
     ok: shadowInput.value === sellerSku,
     submittedValue: sellerSku,
     inputValue: shadowInput.value,
-    clickedButton: true,
+    clickedButton: false,
+    searchClickDelayMs,
+    searchDelayTimerApi,
+    inventorySearchButtonPoint: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) },
     submitAction,
     topGlobalSearchExcluded,
     reason: shadowInput.value === sellerSku ? null : "inventory_filter_shadow_input_value_mismatch",
@@ -270,6 +289,9 @@ return (() => {
     if (statusText.includes("停用") || statusLower.includes("inactive")) return "inactive";
     return statusText ? statusText.slice(0, 80) : null;
   };
+  const inventorySearchPlaceholder = "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN";
+  const inventorySearchHost = Array.from(document.querySelectorAll("kat-input"))
+    .find((el) => el.getAttribute("placeholder") === inventorySearchPlaceholder);
   const rowCandidates = Array.from(document.querySelectorAll('[class*="JanusTable-module__tableContentRow"], tr, [role="row"]')).filter(visible);
   const rows = rowCandidates.map((row) => {
     const productDetails = row.querySelector('[class*="ProductDetails-module__container"]');
@@ -294,10 +316,7 @@ return (() => {
       sales30dSnapshot: parseInteger(readPair(pairs, "售出件数")),
     };
   }).filter(Boolean);
-  const params = new URL(location.href).searchParams;
-  const urlSearchTerm = normalize(params.get(${SEARCH_TERM_PARAM_TOKEN}) || "");
   const evidence = [];
-  if (urlSearchTerm === requestedSku) evidence.push("url_searchTerm_exact");
   if (rows.length > 0) evidence.push("exact_sku_row_visible");
   return { url, title, detectedState: detect(), searchVerified: evidence.length > 0, searchVerificationEvidence: evidence, rows };
 })()
@@ -305,6 +324,5 @@ return (() => {
 export function buildInventoryExtractionScript(sellerSku: string): string {
   return INVENTORY_EXTRACTION_SCRIPT_TEMPLATE
     .replace(REQUESTED_SKU_TOKEN, JSON.stringify(normalizeSku(sellerSku)))
-    .replace(SEARCH_TERM_PARAM_TOKEN, JSON.stringify(INVENTORY_SEARCH_TERM_PARAM))
     .replace(AVAILABLE_FBA_LABEL_TOKEN, JSON.stringify(AVAILABLE_FBA_UNITS_LABEL_ZH));
 }

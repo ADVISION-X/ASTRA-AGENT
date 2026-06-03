@@ -4,8 +4,18 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-06-03T19:05:21.820Z",
+  "findings": [
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts keeps an orphan top-level variable named INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"plugin:amazon-product-sync\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"job-step\",\"symbolName\":\"INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-06-03T20:18:53.162Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -1215,11 +1225,20 @@
     }
   ],
   "liveExportCount": 1759,
-  "orphanDeclarationCount": 0,
+  "orphanDeclarationCount": 1,
   "reachableFileCount": 626,
-  "status": "PASS",
+  "status": "FAIL",
   "unreachableFileCount": 0,
-  "uselessCodeInventory": [],
+  "uselessCodeInventory": [
+    {
+      "category": "unused-top-level",
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts keeps an orphan top-level variable named INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE."
+    }
+  ],
   "unprovenPublicExports": [],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
@@ -1229,10 +1248,10 @@
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
     "liveExportCount": 1759,
-    "orphanDeclarationCount": 0,
+    "orphanDeclarationCount": 1,
     "reachableFileCount": 626,
     "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 0,
+    "uselessCodeInventoryCount": 1,
     "zombieExportCount": 0
   }
 }

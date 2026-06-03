@@ -45,7 +45,10 @@ const requiredFlowTokens = [
   "input[type='text'], input",
   "dispatchEvent",
   "SearchBox-module__searchButton MouseEvent click",
-  "searchTerm",
+  "searchClickDelayMs",
+  "setTimeout",
+  "closeAmazonTabOnCompletion",
+  "closeActiveTab",
   "ProductDetails-module__container",
   "JanusSplitBox-module__row",
   "JanusSplitBox-module__panel",
@@ -84,9 +87,7 @@ const addFinding = (findings: InspectorFinding[], lawId: string, filePath: strin
   findings.push(createFinding({ checkId: "amazon-product-sync/contract", filePath, lawId, message }));
 };
 
-const source = (project: Project, repoPath: string): SourceFile | undefined =>
-  project.getSourceFile(resolveFromRepo(repoPath));
-
+const source = (project: Project, repoPath: string): SourceFile | undefined => project.getSourceFile(resolveFromRepo(repoPath));
 const property = (objectLiteral: ObjectLiteralExpression, name: string) =>
   objectLiteral.getProperties().find((item) => Node.isPropertyAssignment(item) && item.getName() === name);
 
@@ -132,9 +133,7 @@ const arrayLiteralTexts = (objectLiteral: ObjectLiteralExpression, name: string)
   );
 };
 
-const hasObjectProperty = (objectLiteral: ObjectLiteralExpression, name: string): boolean =>
-  Boolean(property(objectLiteral, name));
-
+const hasObjectProperty = (objectLiteral: ObjectLiteralExpression, name: string): boolean => Boolean(property(objectLiteral, name));
 const nestedLiteralText = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): string | null => {
   const nested = objectLiteralProperty(objectLiteral, parent);
   return nested ? literalText(nested, child) : null;
@@ -187,9 +186,6 @@ const hasStringToken = (sourceFile: SourceFile | undefined, value: string): bool
     (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) && node.getLiteralText().includes(value),
   ));
 
-const hasStringTokenInAny = (sourceFiles: readonly (SourceFile | undefined)[], value: string): boolean =>
-  sourceFiles.some((sourceFile) => hasStringToken(sourceFile, value));
-
 const hasIdentifier = (sourceFile: SourceFile | undefined, name: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === name));
 
@@ -199,6 +195,9 @@ const hasCallName = (sourceFile: SourceFile | undefined, name: string): boolean 
     return (Node.isIdentifier(expression) && expression.getText() === name)
       || (Node.isPropertyAccessExpression(expression) && expression.getName() === name);
   }));
+
+const hasTokenInAny = (sourceFiles: readonly (SourceFile | undefined)[], value: string): boolean =>
+  sourceFiles.some((sourceFile) => hasStringToken(sourceFile, value) || hasIdentifier(sourceFile, value) || hasCallName(sourceFile, value));
 
 const hasRouteRule = (sourceFile: SourceFile | undefined, path: string, method: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((objectLiteral) =>
@@ -278,6 +277,45 @@ const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[],
   }
   for (const required of ["AmazonProductSyncItemDiagnostic", "buildDiagnostic", "authGateFromState", "pageUrlPath", ...requiredDiagnosticRefs]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing auth/page diagnostic propagation token: ${required}`);
+  }
+  inspectSubmitSearchDiagnostic(flow, findings, lawId);
+};
+
+const inspectSubmitSearchDiagnostic = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+  const declaration = flow?.getFunctions().find((item) => item.getName() === "submitInventorySearch")
+    ?? flow?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+      .find((item) => item.getName() === "submitInventorySearch")
+      ?.getInitializer();
+  if (!declaration) {
+    addFinding(findings, lawId, flowPath, "flow missing submitInventorySearch diagnostic owner function");
+    return;
+  }
+  const buildMissingItemCalls = declaration.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "buildMissingItem";
+  });
+  for (const callExpression of buildMissingItemCalls) {
+    if (callExpression.getArguments().length < 5) {
+      addFinding(findings, lawId, flowPath, "submitInventorySearch failure item must pass submitResult diagnostic into buildMissingItem");
+    }
+  }
+  const diagnosticDeclaration = declaration.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((item) => item.getName() === "diagnostic");
+  const diagnosticInitializer = diagnosticDeclaration?.getInitializer();
+  const diagnosticObject = diagnosticInitializer?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)[0];
+  if (!diagnosticInitializer || !hasCallName(flow, "buildDiagnostic")) {
+    addFinding(findings, lawId, flowPath, "submitInventorySearch must build auth/page diagnostic from submitResult");
+    return;
+  }
+  if (!diagnosticObject) {
+    addFinding(findings, lawId, flowPath, "submitInventorySearch diagnostic must use a structured object literal");
+    return;
+  }
+  for (const field of ["detectedState", "title", "url"]) {
+    const initializer = propertyInitializerText(diagnosticObject, field);
+    if (!initializer?.startsWith(`submitResult.${field}`)) addFinding(findings, lawId, flowPath, `submitInventorySearch diagnostic must derive ${field} from submitResult.${field}`);
+  }
+  if (literalText(diagnosticObject, "stageName") !== "seller_central_inventory_filter_submit") {
+    addFinding(findings, lawId, flowPath, "submitInventorySearch diagnostic must classify seller_central_inventory_filter_submit stage");
   }
 };
 
@@ -376,7 +414,7 @@ const inspectDomScripts = (
 ): void => {
   const scriptSources = [flow, domScripts] as const;
   for (const required of requiredFlowTokens) {
-    if (!hasStringTokenInAny(scriptSources, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing verified DOM/search token: ${required}`);
+    if (!hasTokenInAny(scriptSources, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing verified DOM/search token: ${required}`);
   }
   for (const forbidden of forbiddenFlowTokens) {
     if (hasIdentifier(domScripts, forbidden) || hasCallName(domScripts, forbidden) || hasStringToken(domScripts, forbidden)) {
@@ -389,10 +427,10 @@ const inspectDomScripts = (
 };
 
 const inspectAcceptance = (acceptance: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["site", "requiredFields", "missingRequestedFields", "screenshotCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
+  for (const required of ["site", "requiredFields", "missingRequestedFields", "screenshotCalls", "closeActiveTabCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
     if (!hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing website/search assertion token: ${required}`);
   }
-  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "input[type='text'], input", "dispatchEvent", "SearchBox-module__searchButton MouseEvent click", "searchTerm"]) {
+  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "input[type='text'], input", "dispatchEvent", "SearchBox-module__searchButton MouseEvent click", "searchClickDelayMs"]) {
     if (!hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing DOM exclusion assertion token: ${required}`);
   }
   for (const required of ["reuse-host-tab", "acceptance-amazon-product-sync-reject-partial-fields", "amazon_product_sync_flow_timeout_after_20ms"]) {
@@ -456,7 +494,4 @@ const isEntrypoint = (): boolean => {
   const invokedPath = process.argv[1];
   return invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url);
 };
-
-if (isEntrypoint()) {
-  await runInspectorFromCli();
-}
+if (isEntrypoint()) await runInspectorFromCli();

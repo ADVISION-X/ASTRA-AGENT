@@ -35,6 +35,7 @@ export const AmazonProductSyncInputSchema = z.object({
   requestId: z.string().min(1).max(160),
   marketplace: z.enum(["amazon.ae", "amazon.sa", "amazon.com", "amazon.co.uk", "amazon.co.jp"]).default("amazon.ae"),
   scope: z.string().min(1).max(80).default("selected-skus"),
+  closeAmazonTabOnCompletion: z.boolean().default(false),
   items: z.array(AmazonProductSyncItemSchema).length(1, "Amazon product sync task must contain exactly one SKU item; website side owns the SKU queue."),
 }).strict();
 

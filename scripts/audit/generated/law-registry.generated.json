@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T19:04:55.143Z",
+  "generatedAt": "2026-06-03T20:18:24.028Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -994,14 +994,15 @@
         "Flow probes the inventory filter Katal search input placeholder.",
         "Flow recursively handles open shadow DOM for the Katal input.",
         "Flow excludes form#sc-global-search-form and input#sc-search-field.",
-        "Flow submits SKU search by writing the inventory Katal open shadow input and dispatching composed input/change events.",
-        "Flow verifies search success from URL/result DOM/exact SKU row.",
+        "Flow submits SKU search by writing the inventory Katal open shadow input, dispatching composed input/change events, waiting 1000-2000 ms, and clicking the inventory search button.",
+        "Flow waits for and verifies search success from an exact SKU row in Seller Central result DOM.",
+        "Flow closes the active Seller Central tab after a successful closeAmazonTabOnCompletion task.",
         "Acceptance asserts the top global search is excluded."
       ],
       "forbidden": [
         "Top global Seller Central search for SKU lookup.",
         "Coordinate focus or OS text input as the SKU search submission path.",
-        "Input value only success evidence.",
+        "Input value, Enter keypress, or search-button click event only success evidence.",
         "Whole-row contains matching as the primary SKU match.",
         "Search selector provided by external caller."
       ],

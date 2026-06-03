@@ -71,12 +71,12 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 
 1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`；每个 SKU 必须固定请求 `mainImage`、`asin`、`availableInventory`。
 2. 打开对应 marketplace 的 Seller Central 库存管理页，例如 `https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all`。
-3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始写入 shadow input、提交搜索、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
+3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始写入 shadow input、提交搜索、等待搜索结果 DOM 落地、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
 4. `/status/:taskId` 和 `/latest` 读取 queued/running task 时，如果 `updatedAt` 超过 3 秒没有推进，AGENT 必须把同一个 task 固化为 `failed`，reason 为 `amazon_product_sync_running_progress_stale_after_3000ms`，`reachedStep` 为 `flow_progress_stale`。AGENT 重启后旧 running task 不得继续堵住网站按钮。
 5. 如果出现 login、captcha、2FA、权限页或 Seller Central 页面未就绪，不返回 success，按结构化 status 结束该 item 或 task。
 6. 运行搜索框 probe：必须定位库存筛选条内的 Katal 搜索输入，必须证明顶部全局搜索框被排除。
 7. 通过 AGENT 内置 DOM 脚本定位库存筛选区 Katal host 的 open shadow input `input[type='text'], input`，同时写入 host value 与 shadow input value，派发 composed `input` / `change` 事件，然后只点击库存筛选区搜索按钮。外部请求不得传 selector、坐标、命令或 action plan。禁止用坐标 focus + OS textInput 作为 SKU 提交方式，因为实测会聚焦 Katal host 但不更新真实输入节点。
-8. 搜索提交后运行结果 DOM probe。成功证据必须来自 URL `searchTerm` 精确等于 SKU，或结果 DOM 出现目标 SKU 行；不能只看输入框 value，也不能只看库存结果计数。
+8. 写入 SKU 后必须随机等待 1000-2000 ms，再点击库存筛选区搜索符号。随后循环运行结果 DOM probe，直到结果 DOM 出现目标 SKU 行。等待期间必须持续写入可观察进度；不能只看输入框 value、Enter、按钮 click event、URL search state，也不能只看库存结果计数。
 9. 如果页面展示父体/变体组，先执行只读 reveal：定位 `VariationExpander-module__expanderHeader svg` 中心点并点击，直到子 SKU 行进入 DOM。不得点击保存、提交、编辑、价格或库存写入控件。
 10. 在结果行中以结构化 label/value 匹配目标 SKU：目标行必须同时存在 `ProductDetails-module__container` 和 `JanusSplitBox-module__row`，且某个 label/value pair 精确等于 `SKU` / 请求 SKU。
 11. 从同一目标行读取：
@@ -191,19 +191,16 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - `inventorySearchUsesShadowInput: true` 表示 probe 已观察到 Katal host 的 open shadow input。
 - `inventorySearchInputPoint` 和 `inventorySearchButtonPoint` 只能由 Agent 内置 DOM probe 产生，外部请求不能提供。
 - 提交 SKU 时必须直接写入 `kat-input[placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]` 的 open `shadowRoot` 内部 `input[type='text'], input`，并对 host 与 shadow input 派发 composed `input` / `change` 事件。
-- `inputValue === sellerSku` 只能证明提交动作写入成功，不能作为搜索成功；它必须继续通过结果 DOM / URL / 精确 SKU 行验证。
-- `searchVerified: true` 必须来自结果 DOM 或 URL search state：`url_searchTerm_exact`、`exact_sku_row_visible` 至少一个成立。
+- 写入 SKU 后必须随机等待 1000-2000 ms，再点击产品搜索框右侧搜索符号 `.SearchBox-module__searchButton--*`；不得用 URL 刷新 / URL 拼 `searchTerm` 替代点击。
+- `inputValue === sellerSku` 只能证明提交动作写入成功，不能作为搜索成功；Enter、搜索按钮 click event、URL search state、结果数量也不能作为搜索成功。确认搜索必须继续轮询结果 DOM，直到精确 SKU 行落地。
+- `searchVerified: true` 必须来自结果 DOM：`exact_sku_row_visible` 成立；只有 URL 上有 `searchTerm` 但库存表格 / 精确 SKU 行未加载，必须继续等待或失败，不得读取。
 - 若只完成输入但结果 DOM 未验证，item 必须返回 `blocked`，reason 为 `inventory_search_result_dom_not_verified`。
+
+2026-06-03 Chrome 插件复测结论：顶部搜索框属于排除项；正确入口是库存筛选区第二搜索框。生产流程固定为写入 Katal shadow input、随机等待 1000-2000 ms、点击库存筛选区搜索符号、轮询结果 DOM。URL 刷新 / 拼 `searchTerm` 属于错误方向，禁止作为提交搜索方式。
 
 ## 结果行结构
 
 目标 SKU 实测：`7Y-PMQW-FOAE`
-
-实测可复现搜索状态 URL：
-
-```text
-https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&searchField=all&searchTerm=7Y-PMQW-FOAE&sort=date_created_desc&status=all
-```
 
 结果状态：
 
@@ -271,7 +268,7 @@ https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pag
 - `matched/not_found/ambiguous/blocked` 必须有 per-item status。
 - SKU 搜索入口必须排除 `#sc-global-search-form #sc-search-field`，只允许库存筛选区 Katal 搜索框。
 - SKU 提交必须写入库存 Katal open shadow input 并派发 composed input/change 事件；禁止退回坐标 focus + OS textInput 作为提交主链路。
-- 搜索提交必须以结果 DOM 命中目标 SKU 或 URL `searchTerm` 为准，不能以输入框 value 或结果计数为准。
+- 搜索提交必须以结果 DOM 命中目标 SKU 为准，不能以输入框 value、URL search state 或结果计数为准。
 - 目标行必须用 `SKU` exact label/value 匹配，不能用整行 contains 作为主判定。
 - `availableInventory` 必须来自 exact label `现货（亚马逊物流）`。
 - mainImage 需求必须触发 BrowserController `screenshotRegion`，不能用公共图片 URL 伪造成 evidence。

@@ -37,9 +37,10 @@ Workbench API Boundary
 - The flow may perform read-only page reveal actions, such as expanding Seller Central parent/variation rows, before evidence extraction.
 - The SKU search entry must be the inventory filter search control above the inventory table. It must identify the Katal search input whose placeholder is `搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN` and must support its open shadow DOM input.
 - The flow must explicitly exclude Seller Central top global search: `form#sc-global-search-form`, `input#sc-search-field`, and `button.sc-search-button`.
-- SKU search submission must write the requested SKU into the inventory Katal host's open shadow input `input[type='text'], input`, dispatch composed `input` and `change` events, and click only the inventory filter search button. Coordinate focus plus OS text input is not valid for this search because it can focus the Katal host without updating the inner input.
-- Search success must be verified from Seller Central result DOM, URL search state, result count, or exact target SKU row. A focused input value or typed text alone is not success evidence.
+- SKU search submission must write the requested SKU into the inventory Katal host's open shadow input `input[type='text'], input`, dispatch composed `input` and `change` events, wait a randomized 1000-2000 ms, and click only the inventory filter search button. Coordinate focus plus OS text input is not valid for this search because it can focus the Katal host without updating the inner input.
+- After SKU search submission, the flow must keep probing Seller Central result DOM until an exact target SKU row proves the search result has landed. A focused input value, typed text, Enter keypress, click event, URL search state, or result count alone is not success evidence.
 - Target row selection must use structured label/value extraction. The row must contain a `SKU` pair exactly equal to the requested SKU and must expose `ASIN` and inventory labels from the same Seller Central row.
+- When the website marks the current one-SKU task as `closeAmazonTabOnCompletion`, the flow must close the active Seller Central tab only after that SKU reaches `success`. It must not close the tab on blocked, review, login, captcha, or failed outcomes.
 
 ## Forbidden
 
@@ -119,14 +120,15 @@ Workbench API Boundary
     "Flow probes the inventory filter Katal search input placeholder.",
     "Flow recursively handles open shadow DOM for the Katal input.",
     "Flow excludes form#sc-global-search-form and input#sc-search-field.",
-    "Flow submits SKU search by writing the inventory Katal open shadow input and dispatching composed input/change events.",
-    "Flow verifies search success from URL/result DOM/exact SKU row.",
+    "Flow submits SKU search by writing the inventory Katal open shadow input, dispatching composed input/change events, waiting 1000-2000 ms, and clicking the inventory search button.",
+    "Flow waits for and verifies search success from an exact SKU row in Seller Central result DOM.",
+    "Flow closes the active Seller Central tab after a successful closeAmazonTabOnCompletion task.",
     "Acceptance asserts the top global search is excluded."
   ],
   "forbidden": [
     "Top global Seller Central search for SKU lookup.",
     "Coordinate focus or OS text input as the SKU search submission path.",
-    "Input value only success evidence.",
+    "Input value, Enter keypress, or search-button click event only success evidence.",
     "Whole-row contains matching as the primary SKU match.",
     "Search selector provided by external caller."
   ]

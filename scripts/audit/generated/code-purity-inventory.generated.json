@@ -1,5 +1,18 @@
 {
-  "generatedAt": "2026-06-03T19:05:21.819Z",
-  "itemCount": 0,
-  "items": []
+  "generatedAt": "2026-06-03T20:18:53.161Z",
+  "itemCount": 1,
+  "items": [
+    {
+      "checkId": "code-purity/zombie-top-level-declaration",
+      "declarationKind": "variable",
+      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:amazon-product-sync",
+      "reason": "Top-level variable INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE has no live runtime-rooted reference in the reachable graph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "job-step",
+      "symbolName": "INVENTORY_SEARCH_CLICK_DELAY_EVIDENCE",
+      "verificationCommand": "npm run ci:full"
+    }
+  ]
 }

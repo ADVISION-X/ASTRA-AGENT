@@ -15,67 +15,30 @@ import {
 
 type PageState = "ready" | "login_required" | "captcha_or_2fa_required" | "review_required";
 
-type ViewportPoint = {
-  readonly x: number;
-  readonly y: number;
-};
-
+type ViewportPoint = { readonly x: number; readonly y: number };
 type InventorySearchProbe = {
-  readonly url: string;
-  readonly title: string;
-  readonly detectedState: PageState;
-  readonly topGlobalSearchPresent: boolean;
-  readonly topGlobalSearchExcluded: boolean;
-  readonly inventorySearchPlaceholder: string | null;
-  readonly inventorySearchUsesShadowInput: boolean;
-  readonly inventorySearchInputPoint: ViewportPoint | null;
-  readonly inventorySearchButtonPoint: ViewportPoint | null;
-  readonly reason: string | null;
+  readonly url: string; readonly title: string; readonly detectedState: PageState; readonly topGlobalSearchPresent: boolean;
+  readonly topGlobalSearchExcluded: boolean; readonly inventorySearchPlaceholder: string | null;
+  readonly inventorySearchUsesShadowInput: boolean; readonly inventorySearchInputPoint: ViewportPoint | null;
+  readonly inventorySearchButtonPoint: ViewportPoint | null; readonly reason: string | null;
 };
-
 type ExtractedRow = {
-  readonly sellerSku: string;
-  readonly asinSnapshot: string | null;
-  readonly sellerCentralTitleSnapshot: string | null;
-  readonly imagePresent: boolean;
-  readonly listingStatus: string | null;
-  readonly availableFbaUnits: number | null;
-  readonly inboundUnits: number | null;
-  readonly unfulfillableUnits: number | null;
-  readonly reservedUnits: number | null;
+  readonly sellerSku: string; readonly asinSnapshot: string | null; readonly sellerCentralTitleSnapshot: string | null;
+  readonly imagePresent: boolean; readonly listingStatus: string | null; readonly availableFbaUnits: number | null;
+  readonly inboundUnits: number | null; readonly unfulfillableUnits: number | null; readonly reservedUnits: number | null;
   readonly sales30dSnapshot: number | null;
 };
-
 type ExtractedPage = {
-  readonly url: string;
-  readonly title: string;
-  readonly detectedState: PageState;
-  readonly searchVerified: boolean;
-  readonly searchVerificationEvidence: readonly string[];
-  readonly rows: readonly ExtractedRow[];
+  readonly url: string; readonly title: string; readonly detectedState: PageState; readonly searchVerified: boolean;
+  readonly searchVerificationEvidence: readonly string[]; readonly rows: readonly ExtractedRow[];
 };
-
-type ExpanderPoint = {
-  readonly x: number;
-  readonly y: number;
-  readonly label: string;
-};
-
-type ExpansionProbe = {
-  readonly collapsedCount: number;
-  readonly points: readonly ExpanderPoint[];
-};
-
+type ExpanderPoint = { readonly x: number; readonly y: number; readonly label: string };
+type ExpansionProbe = { readonly collapsedCount: number; readonly points: readonly ExpanderPoint[] };
 type InventorySearchSubmitResult = {
-  readonly url: string;
-  readonly title: string;
-  readonly detectedState: PageState;
-  readonly ok: boolean;
-  readonly submittedValue: string | null;
-  readonly inputValue: string | null;
-  readonly clickedButton: boolean;
-  readonly topGlobalSearchExcluded: boolean;
-  readonly reason: string | null;
+  readonly url: string; readonly title: string; readonly detectedState: PageState; readonly ok: boolean;
+  readonly submittedValue: string | null; readonly inputValue: string | null; readonly clickedButton: boolean;
+  readonly searchClickDelayMs?: number; readonly inventorySearchButtonPoint?: ViewportPoint | null;
+  readonly topGlobalSearchExcluded: boolean; readonly reason: string | null;
 };
 
 export type AmazonProductSyncFlowProgress = {
@@ -104,10 +67,8 @@ const normalizeSku = (value: string): string => value.trim().toUpperCase();
 const redactedEvidenceRef = (taskId: string, sku: string): string =>
   `evidence://amazon-product-sync/${taskId}/${encodeURIComponent(normalizeSku(sku))}`;
 
-const hasRequiredField = (
-  inputItem: AmazonProductSyncInput["items"][number],
-  field: AmazonProductSyncRequiredField,
-): boolean => inputItem.requiredFields.includes(field);
+const hasRequiredField = (inputItem: AmazonProductSyncInput["items"][number], field: AmazonProductSyncRequiredField): boolean =>
+  inputItem.requiredFields.includes(field);
 
 const terminalTaskStatusFromPage = (state: PageState): AmazonProductSyncTaskRecord["status"] | null => {
   if (state === "login_required") return "login_required";
@@ -270,6 +231,7 @@ export const runAmazonProductSyncFlow = async (input: {
       browser: input.browser,
       taskId: input.taskId,
       item,
+      inventoryUrl: MARKETPLACE_INVENTORY_URL[input.mission.marketplace],
       snapshotAt: now,
       ...(input.onProgress ? { onProgress: input.onProgress } : {}),
     }));
@@ -281,6 +243,11 @@ export const runAmazonProductSyncFlow = async (input: {
 
   const terminalStatus = resolveTerminalStatus(items);
   const status = terminalStatus ?? resolveOverallStatus(items);
+  if (input.mission.closeAmazonTabOnCompletion && status === "success") {
+    await input.browser.closeActiveTab({
+      reason: `amazon_product_sync_completed_last_sku:${input.taskId}`,
+    });
+  }
   return {
     taskId: input.taskId,
     site: input.mission.site,
@@ -300,6 +267,7 @@ type SearchAndExtractInput = {
   browser: BrowserController;
   taskId: string;
   item: AmazonProductSyncInput["items"][number];
+  inventoryUrl: string;
   snapshotAt: string;
   onProgress?: ProgressReporter;
 };
@@ -358,17 +326,32 @@ const submitInventorySearch = async (
     description: `amazon-product-sync fill inventory filter SKU shadow input and submit search ${input.item.sellerSku}`,
     script: buildInventorySearchSubmitScript(input.item.sellerSku),
   });
+  const diagnostic = buildDiagnostic({
+    detectedState: submitResult.detectedState,
+    stageName: "seller_central_inventory_filter_submit",
+    title: submitResult.title,
+    url: submitResult.url,
+  });
   const terminalStatus = terminalTaskStatusFromPage(submitResult.detectedState);
   if (terminalStatus) {
-    return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked");
+    return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked", diagnostic);
   }
-  if (!submitResult.ok || !submitResult.clickedButton || !submitResult.topGlobalSearchExcluded) {
-    return buildMissingItem(input.item, input.snapshotAt, submitResult.reason ?? "inventory_filter_shadow_input_submit_failed", "blocked");
+  if (!submitResult.ok || !submitResult.inventorySearchButtonPoint || !submitResult.topGlobalSearchExcluded) {
+    return buildMissingItem(input.item, input.snapshotAt, submitResult.reason ?? "inventory_filter_shadow_input_submit_failed", "blocked", diagnostic);
   }
+  const searchClickDelayMs = Math.min(Math.max(submitResult.searchClickDelayMs ?? 1000, 1000), 2000);
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_filter_submit_started:${input.item.sellerSku}`,
   });
-  await input.browser.wait(1800);
+  await input.browser.wait(searchClickDelayMs);
+  await input.browser.click({
+    targetLabel: "Seller Central inventory filter search button",
+    point: submitResult.inventorySearchButtonPoint,
+    coordinateSpace: "browserViewport",
+    button: "left",
+    clickCount: 1,
+  });
+  await input.browser.wait(900);
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_filter_submit_finished:${input.item.sellerSku}`,
   });
@@ -387,6 +370,7 @@ const revealInventoryVariations = async (input: SearchAndExtractInput): Promise<
 
 const extractInventoryPage = async (
   input: SearchAndExtractInput,
+  options: { readonly requireSearchVerified: boolean } = { requireSearchVerified: true },
 ): Promise<ExtractedPage | AmazonProductSyncResultItem> => {
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_dom_extract_started:${input.item.sellerSku}`,
@@ -414,10 +398,36 @@ const extractInventoryPage = async (
   if (pageTerminalStatus) {
     return buildMissingItem(input.item, input.snapshotAt, pageTerminalStatus, "blocked", diagnostic);
   }
-  if (!page.searchVerified) {
+  if (options.requireSearchVerified && !page.searchVerified) {
     return buildMissingItem(input.item, input.snapshotAt, "inventory_search_result_dom_not_verified", "blocked", diagnostic);
   }
   return page;
+};
+
+const waitForInventorySearchResult = async (
+  input: SearchAndExtractInput,
+): Promise<ExtractedPage | AmazonProductSyncResultItem> => {
+  let lastPage: ExtractedPage | null = null;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const page = await extractInventoryPage(input, { requireSearchVerified: false });
+    if ("status" in page) return page;
+    if (page.searchVerified) return page;
+    lastPage = page;
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_search_result_wait_${attempt}:${input.item.sellerSku}`,
+      reason: "inventory_search_result_dom_pending",
+    });
+    await input.browser.wait(750);
+  }
+  const diagnostic = lastPage
+    ? buildDiagnostic({
+      detectedState: lastPage.detectedState,
+      stageName: "seller_central_inventory_search_result_wait",
+      title: lastPage.title,
+      url: lastPage.url,
+    })
+    : undefined;
+  return buildMissingItem(input.item, input.snapshotAt, "inventory_search_result_dom_not_verified", "blocked", diagnostic);
 };
 
 const resolveExtractedSkuItem = async (
@@ -439,7 +449,7 @@ const searchAndExtractSkuItem = async (input: SearchAndExtractInput): Promise<Am
   if ("status" in probe) return probe;
   const failedSubmit = await submitInventorySearch(input);
   if (failedSubmit) return failedSubmit;
-  const initialPage = await extractInventoryPage(input);
+  const initialPage = await waitForInventorySearchResult(input);
   if ("status" in initialPage) return initialPage;
   if (initialPage.rows.some((row) => normalizeSku(row.sellerSku) === normalizeSku(input.item.sellerSku))) {
     return resolveExtractedSkuItem(input, initialPage);
