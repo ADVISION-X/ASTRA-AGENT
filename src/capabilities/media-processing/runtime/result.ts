@@ -60,7 +60,7 @@ export const buildMediaProcessingFailure = async (
     status === "review_required" ? reason : null,
     endedAt,
   );
-  await writeMediaProcessingProof(base.dataDir, base.input, runtimeProof);
+  const proofRef = await writeMediaProcessingProof(base.dataDir, base.input, runtimeProof);
   return MediaProcessingResultSchema.parse({
     abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
     childCapabilityId: base.input.childCapabilityId,
@@ -71,7 +71,7 @@ export const buildMediaProcessingFailure = async (
       status,
       errorCode,
       reason,
-      proofRef: runtimeProof.proofId,
+      proofRef,
     },
     runtimeProof,
   });
@@ -82,7 +82,7 @@ export const buildMediaProcessingSuccess = async (
 ): Promise<MediaProcessingResult> => {
   const endedAt = new Date().toISOString();
   const runtimeProof = buildRuntimeProof(base, "success", null, null, endedAt);
-  await writeMediaProcessingProof(base.dataDir, base.input, runtimeProof);
+  const proofRef = await writeMediaProcessingProof(base.dataDir, base.input, runtimeProof);
   return MediaProcessingResultSchema.parse({
     abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
     childCapabilityId: base.input.childCapabilityId,
@@ -92,7 +92,7 @@ export const buildMediaProcessingSuccess = async (
     output: {
       status: "success",
       outputArtifacts: [...base.outputArtifacts],
-      proofRef: runtimeProof.proofId,
+      proofRef,
     },
     runtimeProof,
   });

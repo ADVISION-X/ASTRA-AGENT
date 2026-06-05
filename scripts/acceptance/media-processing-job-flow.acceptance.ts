@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -9,7 +9,9 @@ import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capab
 import { runMediaProcessingArtifactFlow } from "../../src/plugins/media-processing-artifact/index.js";
 
 const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-media-processing-flow-"));
-const inputFilePath = path.join(dataDir, "source.png");
+const uploadDir = path.join(dataDir, "runtime-data", "media-processing-uploads", "acceptance");
+await mkdir(uploadDir, { recursive: true });
+const inputFilePath = path.join(uploadDir, "source.png");
 await sharp({
   create: {
     width: 320,

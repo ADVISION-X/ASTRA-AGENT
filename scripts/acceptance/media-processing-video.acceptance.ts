@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -29,7 +29,9 @@ const minimalMp4Header = new Uint8Array([
 
 const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-media-processing-video-"));
 const readiness = await prepareMediaProcessingRuntimeDependencies();
-const inputFilePath = path.join(dataDir, "source.mp4");
+const uploadDir = path.join(dataDir, "runtime-data", "media-processing-uploads", "acceptance");
+await mkdir(uploadDir, { recursive: true });
+const inputFilePath = path.join(uploadDir, "source.mp4");
 
 if (readiness.video.available && readiness.video.ffmpegPath) {
   await runCommand(readiness.video.ffmpegPath, [
@@ -68,8 +70,14 @@ if (readiness.video.available) {
   assert.ok(artifact, "Video processing must produce an artifact when ffmpeg is available.");
   assert.equal(artifact.derivativeKind, "video_optimized");
   assert.equal(artifact.format, "mp4");
+  assert.ok(artifact.width !== null && artifact.width > 0, "Video artifact must include ffprobe width.");
+  assert.ok(artifact.height !== null && artifact.height > 0, "Video artifact must include ffprobe height.");
+  assert.ok(artifact.durationMs !== null && artifact.durationMs > 0, "Video artifact must include ffprobe duration.");
+  assert.ok(artifact.videoCodec, "Video artifact must include ffprobe video codec.");
+  assert.equal(typeof artifact.fastStart, "boolean", "Video artifact must include fastStart readiness proof.");
   await stat(artifact.filePath);
-  await stat(path.join(path.dirname(artifact.filePath), "proof.json"));
+  await stat(result.output.proofRef);
+  assert.equal(result.output.proofRef, path.join(path.dirname(artifact.filePath), "proof.json"));
 } else {
   assert.equal(result.status, "review_required");
   assert.equal(result.reviewRequiredReason, "Video processing requires the governed ffmpeg runtime before production transcode can run.");

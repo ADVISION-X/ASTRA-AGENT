@@ -74,13 +74,15 @@ const applyMediaOptimizerPreset = (presetId) => {
   form.variantWidths.value = preset.variants;
   qs("[data-media-optimizer-variant-field]")?.classList.toggle("hidden", preset.childCapabilityId !== "generate-responsive-image-variants-once");
 };
-const renderMediaOptimizerArtifacts = (result, downloadsPath) => {
+const renderMediaOptimizerArtifacts = (result, downloadsPath, downloadsPaths = []) => {
   const list = qs("[data-media-optimizer-artifact-list]");
   const empty = qs("[data-media-optimizer-empty-artifacts]");
   const count = qs("[data-media-optimizer-artifact-count]");
   if (!list) return;
   list.innerHTML = "";
-  const artifacts = Array.isArray(result?.artifacts) ? result.artifacts : [];
+  const output = result?.output?.status === "success" ? result.output : null;
+  const artifacts = Array.isArray(output?.outputArtifacts) ? output.outputArtifacts : [];
+  const proofRef = output?.proofRef || result?.runtimeProof?.proofId || "";
   if (count) count.textContent = String(artifacts.length);
   if (empty) empty.classList.toggle("hidden", artifacts.length > 0);
   for (const artifact of artifacts) {
@@ -88,21 +90,33 @@ const renderMediaOptimizerArtifacts = (result, downloadsPath) => {
     item.type = "button";
     item.className = "record-item";
     const title = document.createElement("strong");
-    title.textContent = artifact.kind + " · " + (artifact.outputFormat || "-");
+    title.textContent = (artifact.derivativeKind || "artifact") + " · " + (artifact.format || "-");
     const meta = document.createElement("div");
     meta.className = "record-meta";
-    meta.textContent = [formatMediaOptimizerBytes(artifact.byteSize), artifact.width && artifact.height ? artifact.width + "x" + artifact.height : "", artifact.proofRef || ""].filter(Boolean).join(" | ");
-    const path = document.createElement("div");
-    path.textContent = artifact.filePath || artifact.artifactRef || "-";
-    item.append(title, meta, path);
-    item.addEventListener("click", () => openInspector({ kind: "media artifact", title: title.textContent, payload: artifact }));
+    meta.textContent = [
+      formatMediaOptimizerBytes(artifact.byteSize),
+      artifact.width && artifact.height ? artifact.width + "x" + artifact.height : "",
+      artifact.durationMs ? Math.round(artifact.durationMs) + "ms" : "",
+      artifact.format || "",
+      artifact.sha256 ? "sha256 " + artifact.sha256 : "",
+      proofRef ? "proof " + proofRef : "",
+    ].filter(Boolean).join(" | ");
+    const filePath = document.createElement("div");
+    filePath.textContent = artifact.filePath || artifact.artifactRef || "-";
+    item.append(title, meta, filePath);
+    item.addEventListener("click", () => openInspector({ kind: "media artifact", title: title.textContent, payload: { ...artifact, proofRef } }));
     list.append(item);
   }
   const primary = artifacts[0];
-  const savedPath = downloadsPath || primary?.filePath || primary?.artifactRef || "-";
+  const savedPaths = Array.isArray(downloadsPaths) && downloadsPaths.length > 0
+    ? downloadsPaths
+    : downloadsPath
+      ? [downloadsPath]
+      : [];
+  const savedPath = savedPaths.length > 0 ? savedPaths.join(", ") : primary?.filePath || primary?.artifactRef || "-";
   if (result?.status === "success") {
     setMediaOptimizerResult(
-      "<b>Artifact ready</b><span>File: " + escapeMediaOptimizerHtml(savedPath) + "</span><span>Size: " + escapeMediaOptimizerHtml(formatMediaOptimizerBytes(primary?.byteSize)) + "</span><span>SHA-256: " + escapeMediaOptimizerHtml(primary?.sha256 || "-") + "</span><span>Proof: " + escapeMediaOptimizerHtml(result?.runtimeProof?.proofRef || primary?.proofRef || "-") + "</span>",
+      "<b>Artifact ready</b><span>File: " + escapeMediaOptimizerHtml(savedPath) + "</span><span>Size: " + escapeMediaOptimizerHtml(formatMediaOptimizerBytes(primary?.byteSize)) + "</span><span>Format: " + escapeMediaOptimizerHtml(primary?.format || "-") + "</span><span>SHA-256: " + escapeMediaOptimizerHtml(primary?.sha256 || "-") + "</span><span>Proof: " + escapeMediaOptimizerHtml(proofRef || "-") + "</span>",
       "ok",
     );
     return;
@@ -150,7 +164,7 @@ const startMediaOptimizer = async (event) => {
     updateMediaOptimizerProgress(payload.status, payload.status === "success" ? "Processing complete" : "Processing needs review");
     if (!payload.record) throw new Error(payload.failureReason || "media processing ended without result record");
     renderLedger(payload.record, { job: "media-processing" });
-    renderMediaOptimizerArtifacts(payload.record?.result, payload.downloadsPath ?? null);
+    renderMediaOptimizerArtifacts(payload.record?.result, payload.downloadsPath ?? null, payload.downloadsPaths ?? []);
     writeActivity("media processing stopped with status " + payload.status, payload.status === "success" ? "completed" : "manual-required");
   } catch (error) {
     updateMediaOptimizerProgress("failed", "Processing failed");

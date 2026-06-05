@@ -45,22 +45,42 @@ const resolveFfprobeStaticPath = (): string | null => {
   }
 };
 
+const resolveFfmpegStaticPath = (): string | null => {
+  try {
+    const loaded = require("ffmpeg-static") as unknown;
+    return typeof loaded === "string" ? loaded : null;
+  } catch {
+    return null;
+  }
+};
+
 export const prepareMediaProcessingRuntimeDependencies = async (): Promise<MediaProcessingRuntimeReadiness> => {
   const imageAvailable = await import("sharp")
     .then(() => true)
     .catch(() => false);
-  const envFfmpegPath = process.env.GRASSEYE_FFMPEG_PATH;
-  const ffmpegPath = envFfmpegPath && await executableFile(envFfmpegPath)
+  const envFfmpegPath = process.env.GRASSEYE_FFMPEG_PATH ?? null;
+  const ffmpegStaticPath = resolveFfmpegStaticPath();
+  const ffmpegStaticReady = ffmpegStaticPath !== null && await executableFile(ffmpegStaticPath);
+  const envFfmpegReady = envFfmpegPath !== null && await executableFile(envFfmpegPath);
+  const ffmpegPath = envFfmpegReady
     ? envFfmpegPath
-    : await commandRuns("ffmpeg", ["-version"])
-      ? "ffmpeg"
-      : null;
+    : ffmpegStaticReady
+      ? ffmpegStaticPath
+      : await commandRuns("ffmpeg", ["-version"])
+        ? "ffmpeg"
+        : null;
   const ffprobeStaticPath = resolveFfprobeStaticPath();
   const ffprobePath = ffprobeStaticPath && await executableFile(ffprobeStaticPath)
     ? ffprobeStaticPath
     : await commandRuns("ffprobe", ["-version"])
       ? "ffprobe"
       : null;
+  const videoAvailable = ffmpegPath !== null && ffprobePath !== null;
+  const videoReason = videoAvailable
+    ? null
+    : ffmpegPath === null
+      ? "ffmpeg_runtime_unavailable"
+      : "ffprobe_runtime_unavailable";
   return {
     image: {
       available: imageAvailable,
@@ -68,11 +88,11 @@ export const prepareMediaProcessingRuntimeDependencies = async (): Promise<Media
       reason: imageAvailable ? null : "sharp_runtime_unavailable",
     },
     video: {
-      available: ffmpegPath !== null,
+      available: videoAvailable,
       engine: "ffmpeg",
       ffmpegPath,
       ffprobePath,
-      reason: ffmpegPath ? null : "ffmpeg_runtime_unavailable",
+      reason: videoReason,
     },
   };
 };

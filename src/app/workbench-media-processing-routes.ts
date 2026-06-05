@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { homedir } from "node:os";
@@ -58,6 +58,7 @@ type MediaProcessingTaskSnapshot = {
   sourceFileName: string;
   record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>> | null;
   downloadsPath: string | null;
+  downloadsPaths: string[];
   failureReason: string | null;
 };
 
@@ -124,14 +125,18 @@ const readPersistedMediaProcessingTask = async (
   try {
     const parsed = JSON.parse(await readFile(taskStorePath(workbench, taskId), "utf8")) as MediaProcessingTaskSnapshot;
     if (parsed.taskId !== taskId) return null;
+    const task = {
+      ...parsed,
+      downloadsPaths: Array.isArray(parsed.downloadsPaths) ? parsed.downloadsPaths : [],
+    };
     return parsed.status === "running"
       ? {
-          ...parsed,
+          ...task,
           status: "failed",
           updatedAt: new Date().toISOString(),
           failureReason: "media_processing_task_interrupted_before_completion",
         }
-      : parsed;
+      : task;
   } catch {
     return null;
   }
@@ -169,6 +174,7 @@ const persistTerminalMediaProcessingTask = async (
       updatedAt: new Date().toISOString(),
       record: null,
       downloadsPath: null,
+      downloadsPaths: [],
       failureReason: persistenceFailureReason(error),
     };
     mediaProcessingTasks.set(taskId, failed);
@@ -201,6 +207,30 @@ const stageUploadedMediaFile = async (
   return filePath;
 };
 
+const mediaProcessingAllowedInputRoots = (workbench: GrassEyeWorkbenchHandle): readonly string[] => [
+  path.join(workbench.getDataDir(), "runtime-data", "media-processing-uploads"),
+  path.join(workbench.getDataDir(), "runtime-data", "media-processing-artifacts"),
+];
+
+const pathInsideRoot = (filePath: string, root: string): boolean => {
+  const relative = path.relative(root, filePath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+};
+
+const assertAllowedMediaProcessingInputPath = async (
+  workbench: GrassEyeWorkbenchHandle,
+  inputFilePath: string,
+): Promise<string> => {
+  const resolvedInput = await realpath(inputFilePath);
+  const roots = await Promise.all(
+    mediaProcessingAllowedInputRoots(workbench).map(async (root) => realpath(root).catch(() => root)),
+  );
+  if (!roots.some((root) => pathInsideRoot(resolvedInput, root))) {
+    throw new Error("media_processing_input_outside_allowed_roots");
+  }
+  return resolvedInput;
+};
+
 const buildMediaProcessingJobInput = async (
   body: MediaProcessingRequestBody,
   workbench: GrassEyeWorkbenchHandle,
@@ -213,7 +243,10 @@ const buildMediaProcessingJobInput = async (
     return null;
   }
   const stagedPath = await stageUploadedMediaFile(workbench, taskId, body);
-  const inputFilePath = stagedPath ?? readString(body.inputFilePath);
+  const requestedInputPath = stagedPath ?? readString(body.inputFilePath);
+  const inputFilePath = requestedInputPath
+    ? await assertAllowedMediaProcessingInputPath(workbench, requestedInputPath)
+    : null;
   if (!inputFilePath) {
     return null;
   }
@@ -262,30 +295,31 @@ const copyResultToDownloads = async (
   result: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>>,
   workbench: GrassEyeWorkbenchHandle,
   saveToDownloads: boolean,
-): Promise<string | null> => {
+): Promise<string[]> => {
   if (result.status !== "success" || !saveToDownloads) {
-    return null;
+    return [];
   }
   const output = result.result.output.status === "success" ? result.result.output : null;
-  const firstArtifact = output?.outputArtifacts[0];
-  if (!firstArtifact) {
-    return null;
+  const artifacts = output?.outputArtifacts ?? [];
+  const copiedPaths: string[] = [];
+  for (const artifact of artifacts) {
+    assertWorkbenchDataFile(workbench, artifact.filePath);
+    const dest = buildUserDownloadPath(artifact.filePath);
+    await mkdir(path.dirname(dest), { recursive: true });
+    await copyFile(artifact.filePath, dest);
+    copiedPaths.push(dest);
   }
-  assertWorkbenchDataFile(workbench, firstArtifact.filePath);
-  const dest = buildUserDownloadPath(firstArtifact.filePath);
-  await mkdir(path.dirname(dest), { recursive: true });
-  await copyFile(firstArtifact.filePath, dest);
-  return dest;
+  return copiedPaths;
 };
 
 const runMediaProcessingJob = async (
   input: Parameters<typeof routeMediaProcessingArtifactJob>[0],
   body: MediaProcessingRequestBody,
   workbench: GrassEyeWorkbenchHandle,
-): Promise<{ record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>>; downloadsPath: string | null }> => {
+): Promise<{ record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>>; downloadsPath: string | null; downloadsPaths: string[] }> => {
   const result = await routeMediaProcessingArtifactJob(input, workbench);
-  const downloadsPath = await copyResultToDownloads(result, workbench, body.saveToDownloads === true);
-  return { record: result, downloadsPath };
+  const downloadsPaths = await copyResultToDownloads(result, workbench, body.saveToDownloads === true);
+  return { record: result, downloadsPath: downloadsPaths[0] ?? null, downloadsPaths };
 };
 
 const handleMediaProcessingPresetsRequest = (
@@ -345,7 +379,15 @@ const handleMediaProcessingAsyncStartRequest = async (
   }
   const body = await readJsonBody(request) as MediaProcessingRequestBody;
   const taskId = `media_processing_${randomUUID()}`;
-  const input = await buildMediaProcessingJobInput(body, workbench, taskId);
+  let input: Parameters<typeof routeMediaProcessingArtifactJob>[0] | null;
+  try {
+    input = await buildMediaProcessingJobInput(body, workbench, taskId);
+  } catch (error) {
+    writeJson(response, 400, {
+      error: error instanceof Error ? error.message : "invalid_media_processing_input",
+    });
+    return true;
+  }
   if (!input) {
     writeJson(response, 400, { error: "invalid_media_processing_input" });
     return true;
@@ -360,6 +402,7 @@ const handleMediaProcessingAsyncStartRequest = async (
     sourceFileName: path.basename(input.inputFilePath),
     record: null,
     downloadsPath: null,
+    downloadsPaths: [],
     failureReason: null,
   };
   mediaProcessingTasks.set(taskId, initialTask);
@@ -377,7 +420,7 @@ const handleMediaProcessingAsyncStartRequest = async (
     return true;
   }
   void runMediaProcessingJob(input, body, workbench)
-    .then(async ({ record, downloadsPath }) => {
+    .then(async ({ record, downloadsPath, downloadsPaths }) => {
       const current = mediaProcessingTasks.get(taskId);
       if (!current) return;
       const completed: MediaProcessingTaskSnapshot = {
@@ -386,6 +429,7 @@ const handleMediaProcessingAsyncStartRequest = async (
         updatedAt: new Date().toISOString(),
         record,
         downloadsPath,
+        downloadsPaths,
         failureReason: record.result.failureReason ?? record.result.reviewRequiredReason ?? null,
       };
       await persistTerminalMediaProcessingTask(workbench, taskId, completed);

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { MediaProcessingResultSchema } from "../../capabilities/media-processing/schema.js";
+import { MediaProcessingResultSchema } from "../../capabilities/media-processing/index.js";
 
 export const MediaProcessingArtifactJobResultSchema = z.object({
   jobType: z.literal("media-processing-artifact"),

@@ -21,6 +21,7 @@ const governedFiles = [
   "src/capabilities/media-processing/children/image-children.ts",
   "src/capabilities/media-processing/children/video-children.ts",
   "src/capabilities/media-processing/runtime/artifact-storage.ts",
+  "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
   "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
   "src/capabilities/media-processing/runtime/hash-stream.ts",
   "src/capabilities/media-processing/runtime/media-source.ts",
@@ -134,6 +135,32 @@ const exportedSpecifiers = (source: SourceFile): Set<string> =>
 const projectRepoPath = (file: SourceFile): string =>
   relative(repoRoot, file.getFilePath());
 
+const initializerIsNull = (node: Node): boolean =>
+  node.getKind() === SyntaxKind.NullKeyword;
+
+const buildArtifactCallsInsideFunction = (source: SourceFile, functionName: string): CallExpression[] => {
+  const declaration = source.getVariableDeclaration(functionName);
+  const initializer = declaration?.getInitializer();
+  if (!initializer) return [];
+  return initializer.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => callExpressionName(call) === "buildMediaProcessingArtifact");
+};
+
+const objectPropertyInitializers = (call: CallExpression): Map<string, Node> => {
+  const firstArgument = call.getArguments()[0];
+  if (!Node.isObjectLiteralExpression(firstArgument)) return new Map();
+  return new Map(firstArgument.getProperties().flatMap((property) => {
+    if (!Node.isPropertyAssignment(property)) return [];
+    const nameNode = property.getNameNode();
+    const name = Node.isIdentifier(nameNode)
+      ? nameNode.getText()
+      : Node.isStringLiteral(nameNode)
+        ? nameNode.getLiteralText()
+        : null;
+    return name ? [[name, property.getInitializer() ?? property]] : [];
+  }));
+};
+
 const inspectAuthorityFiles = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   if (!existsSync(resolveFromRepo(lawPath))) {
     pushFinding(findings, lawId, lawPath, "media-processing/law-file", "Media-processing law file must exist.");
@@ -177,7 +204,8 @@ const inspectSchemaAndRegistry = (context: InspectorContext, findings: Finding[]
 const inspectPublicFacade = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const index = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/index.ts");
   const abilityGroup = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/ability-group.ts");
-  if (!index || !abilityGroup) return;
+  const pluginResult = requiredSourceFile(context, findings, lawId, "src/plugins/media-processing-artifact/media-processing-artifact.result.ts");
+  if (!index || !abilityGroup || !pluginResult) return;
 
   for (const specifier of exportedSpecifiers(index)) {
     if (specifier === "./registry.js" || specifier === "./children/image-children.js" || specifier === "./children/video-children.js" || specifier === "./runtime/ffmpeg-runner.js" || specifier === "./runtime/sharp-runner.js") {
@@ -186,6 +214,12 @@ const inspectPublicFacade = (context: InspectorContext, findings: Finding[], law
   }
   if (!callNames(abilityGroup).has("createMediaProcessingCapabilityRegistry")) {
     pushFinding(findings, lawId, "src/capabilities/media-processing/ability-group.ts", "media-processing/facade-registry-owner", "Ability group factory must own the private child registry.");
+  }
+  if (!exportedSpecifiers(index).has("./schema.js")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/index.ts", "media-processing/public-result-schema-export", "Public facade must export MediaProcessingResultSchema through index.ts.");
+  }
+  if (importSpecifiers(pluginResult).has("../../capabilities/media-processing/schema.js")) {
+    pushFinding(findings, lawId, "src/plugins/media-processing-artifact/media-processing-artifact.result.ts", "media-processing/plugin-no-direct-schema-import", "Plugin result schema must import media-processing result schema from the public facade.");
   }
 };
 
@@ -204,6 +238,9 @@ const inspectJobFlowBoundary = (context: InspectorContext, findings: Finding[], 
   }
   if (!callNames(route).has("routeMediaProcessingArtifactJob")) {
     pushFinding(findings, lawId, "src/app/workbench-media-processing-routes.ts", "media-processing/app-route-mediator", "App API route must enter through the mediator route.");
+  }
+  if (!callNames(route).has("assertAllowedMediaProcessingInputPath")) {
+    pushFinding(findings, lawId, "src/app/workbench-media-processing-routes.ts", "media-processing/app-route-input-root-guard", "App API route must guard direct inputFilePath with the governed media-processing input roots.");
   }
   for (const forbiddenImport of ["sharp", "node:child_process"]) {
     if (importSpecifiers(route).has(forbiddenImport)) {
@@ -230,11 +267,52 @@ const inspectAppShellSkillBoundary = (context: InspectorContext, findings: Findi
       pushFinding(findings, lawId, "src/app/app-shell/skill-registry.ts", "media-processing/app-shell-registry", `Skill registry must include ${literal}.`);
     }
   }
-  if (!hasStringLiteral(workspace, "media-optimizer")) {
-    pushFinding(findings, lawId, "src/app/skills/media-optimizer/media-optimizer-workspace.ts", "media-processing/app-shell-workspace", "Media Optimizer workspace must declare the media-optimizer skill surface.");
+  for (const renderer of ["renderMediaSourceSurface", "renderMediaArtifactSurface", "renderMediaSettingsSurface", "renderMediaOptimizerWorkspace"]) {
+    if (!workspace.getVariableDeclaration(renderer)) {
+      pushFinding(findings, lawId, "src/app/skills/media-optimizer/media-optimizer-workspace.ts", "media-processing/app-shell-workspace", `Media Optimizer workspace must declare ${renderer}.`);
+    }
   }
-  if (!hasStringLiteral(client, "/api/media-processing/start-async") || !hasStringLiteral(client, "/api/media-processing/status")) {
-    pushFinding(findings, lawId, "src/app/skills/media-optimizer/media-optimizer-client.ts", "media-processing/app-shell-async-route", "Media Optimizer client must use the approved async API route.");
+  if (!client.getVariableDeclaration("MEDIA_OPTIMIZER_CLIENT") || !client.getVariableDeclaration("renderMediaOptimizerClient")) {
+    pushFinding(findings, lawId, "src/app/skills/media-optimizer/media-optimizer-client.ts", "media-processing/app-shell-client-functions", "Media Optimizer client must expose the approved client renderer.");
+  }
+};
+
+const inspectGeneratedPlanVisibility = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  if (!context.generatedPlan.some((entry) => entry.capabilityDomain === "media-processing-capability")) {
+    pushFinding(findings, lawId, "scripts/audit/generated/audit-plan.generated.json", "media-processing/generated-plan-visible", "Generated audit plan must include media-processing-capability.");
+  }
+};
+
+const inspectFfprobeAndMetadataProof = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const runner = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/ffmpeg-runner.ts");
+  const ffprobe = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/ffprobe-metadata.ts");
+  const dependencies = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/runtime-dependencies.ts");
+  const result = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/result.ts");
+  if (!runner || !ffprobe || !dependencies || !result) return;
+
+  if (!callNames(runner).has("probeVideoOutputMetadata")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/ffmpeg-runner.ts", "media-processing/video-ffprobe-metadata", "Video ffmpeg runner must validate output with ffprobe before success.");
+  }
+  if (!callNames(ffprobe).has("spawn") || !hasStringLiteral(ffprobe, "ffprobe_missing_required_video_metadata")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/ffprobe-metadata.ts", "media-processing/ffprobe-required-metadata", "ffprobe metadata adapter must fail when required video metadata is missing.");
+  }
+  for (const call of buildArtifactCallsInsideFunction(runner, "runFfmpegVideoForWeb")) {
+    const properties = objectPropertyInitializers(call);
+    for (const field of ["width", "height", "durationMs", "format"]) {
+      const initializer = properties.get(field);
+      if (!initializer || initializerIsNull(initializer)) {
+        pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/ffmpeg-runner.ts", "media-processing/video-success-no-null-metadata", `Video success artifact must populate ${field} from ffprobe metadata.`);
+      }
+    }
+  }
+  if (!callNames(dependencies).has("resolveFfprobeStaticPath") || !hasStringLiteral(dependencies, "ffprobe_runtime_unavailable")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/runtime-dependencies.ts", "media-processing/ffprobe-readiness-proof", "Runtime readiness must prove ffprobePath as part of video availability.");
+  }
+  if (!callNames(dependencies).has("resolveFfmpegStaticPath") || !hasStringLiteral(dependencies, "ffmpeg-static")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/runtime-dependencies.ts", "media-processing/ffmpeg-packaged-readiness", "Runtime readiness must prefer packaged ffmpeg-static before PATH ffmpeg for production video closure.");
+  }
+  if (!callNames(result).has("writeMediaProcessingProof")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/result.ts", "media-processing/proof-ref-file-path", "Result builder must write a media-processing proof file before returning proofRef.");
   }
 };
 
@@ -277,6 +355,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectPublicFacade(context, findings, lawId);
   inspectJobFlowBoundary(context, findings, lawId);
   inspectAppShellSkillBoundary(context, findings, lawId);
+  inspectGeneratedPlanVisibility(context, findings, lawId);
+  inspectFfprobeAndMetadataProof(context, findings, lawId);
   inspectNoVideoDownloadOwnerLeak(context, findings, lawId);
   inspectNoParallelMediaOwner(context, findings, lawId);
 

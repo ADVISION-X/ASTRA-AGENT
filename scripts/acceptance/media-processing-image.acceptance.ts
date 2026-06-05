@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -8,7 +8,9 @@ import sharp from "sharp";
 import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
 
 const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-media-processing-image-"));
-const inputFilePath = path.join(dataDir, "source.png");
+const uploadDir = path.join(dataDir, "runtime-data", "media-processing-uploads", "acceptance");
+await mkdir(uploadDir, { recursive: true });
+const inputFilePath = path.join(uploadDir, "source.png");
 
 await sharp({
   create: {
@@ -45,6 +47,7 @@ assert.equal(artifact.format, "webp");
 assert.ok(artifact.byteSize > 0, "Image artifact must have byte size.");
 assert.equal(artifact.sha256.length, 64, "Image artifact must include sha256.");
 await stat(artifact.filePath);
-await stat(path.join(path.dirname(artifact.filePath), "proof.json"));
+await stat(result.output.proofRef);
+assert.equal(result.output.proofRef, path.join(path.dirname(artifact.filePath), "proof.json"));
 
 process.stdout.write("[ACCEPTANCE][media-processing-image] PASS\n");
