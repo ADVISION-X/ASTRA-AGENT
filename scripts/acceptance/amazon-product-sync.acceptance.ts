@@ -26,6 +26,84 @@ const action = (message: string): BrowserActionResult => ({
   createdAt: now(),
 });
 
+const fixtureInventoryUrl = "https://sellercentral.amazon.ae/myinventory/inventory";
+const fixtureSku = "DL-UG6I-2OWL";
+
+const inventorySearchProbeFixture = <T>(): T => ({
+  url: fixtureInventoryUrl,
+  title: "Manage Your Inventory",
+  detectedState: "ready",
+  topGlobalSearchPresent: true,
+  topGlobalSearchExcluded: true,
+  inventorySearchPlaceholder: "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN",
+  inventorySearchUsesShadowInput: true,
+  inventorySearchInputPoint: { x: 327, y: 310 },
+  inventorySearchButtonPoint: { x: 604, y: 310 },
+  reason: null,
+}) as T;
+
+const inventorySearchSubmitFixture = <T>(): T => ({
+  url: fixtureInventoryUrl,
+  title: "Manage Your Inventory",
+  detectedState: "ready",
+  ok: true,
+  submittedValue: fixtureSku,
+  inputValue: fixtureSku,
+  hostValue: fixtureSku,
+  hostValueGetterDefined: true,
+  shadowValueReady: true,
+  searchEventsReady: true,
+  hostAttributeValue: fixtureSku,
+  clickedButton: false,
+  searchClickDelayMs: 1200,
+  inventorySearchButtonPoint: { x: 604, y: 310 },
+  hostValueAction: "kat-input host own value getter for React onInput target",
+  topGlobalSearchExcluded: true,
+  reason: null,
+}) as T;
+
+const inventorySearchButtonClickFixture = <T>(): T => ({
+  url: fixtureInventoryUrl,
+  title: "Manage Your Inventory",
+  detectedState: "ready",
+  ok: true,
+  clickedButton: true,
+  hostValue: fixtureSku,
+  inputValue: fixtureSku,
+  pointerDownDispatched: true,
+  mouseDownDispatched: true,
+  pointerUpDispatched: true,
+  mouseUpDispatched: true,
+  clickEventDispatched: true,
+  topGlobalSearchExcluded: true,
+  submitAction: "SearchBox-module__searchButton DOM MouseEvent submit click",
+  reason: null,
+}) as T;
+
+const inventorySearchResultFixture = <T>(): T => ({
+  url: fixtureInventoryUrl,
+  title: "Manage Your Inventory",
+  detectedState: "ready",
+  searchVerified: true,
+  searchVerificationEvidence: ["exact_sku_row_visible"],
+  rows: [
+    {
+      sellerSku: fixtureSku,
+      asinSnapshot: "B012345678",
+      sellerCentralTitleSnapshot: "Acceptance Product Title",
+      imagePresent: true,
+      imageSrc: "https://m.media-amazon.com/images/I/acceptance-product.png",
+      listingStatus: "active",
+      availableFbaUnits: 0,
+      actualInventoryUnits: 0,
+      inboundUnits: 0,
+      unfulfillableUnits: 0,
+      reservedUnits: 0,
+      sales30dSnapshot: 4,
+    },
+  ],
+}) as T;
+
 class AmazonProductSyncFakeBrowser implements BrowserController {
   openedUrls: string[] = [];
   openReusePolicies: string[] = [];
@@ -112,59 +190,18 @@ class AmazonProductSyncFakeBrowser implements BrowserController {
     this.evaluateDescriptions.push(input.description);
     this.evaluateScripts.push(input.script);
     if (input.description.includes("locate inventory filter SKU search")) {
-      return {
-        url: "https://sellercentral.amazon.ae/myinventory/inventory",
-        title: "Manage Your Inventory",
-        detectedState: "ready",
-        topGlobalSearchPresent: true,
-        topGlobalSearchExcluded: true,
-        inventorySearchPlaceholder: "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN",
-        inventorySearchUsesShadowInput: true,
-        inventorySearchInputPoint: { x: 327, y: 310 },
-        inventorySearchButtonPoint: { x: 604, y: 310 },
-        reason: null,
-      } as T;
+      return inventorySearchProbeFixture<T>();
     }
     if (input.description.includes("fill inventory filter SKU shadow input and submit search")) {
-      return {
-        url: "https://sellercentral.amazon.ae/myinventory/inventory",
-        title: "Manage Your Inventory",
-        detectedState: "ready",
-        ok: true,
-        submittedValue: "DL-UG6I-2OWL",
-        inputValue: "DL-UG6I-2OWL",
-        clickedButton: false,
-        searchClickDelayMs: 1200,
-        inventorySearchButtonPoint: { x: 604, y: 310 },
-        topGlobalSearchExcluded: true,
-        reason: null,
-      } as T;
+      return inventorySearchSubmitFixture<T>();
+    }
+    if (input.description.includes("click inventory filter search button DOM")) {
+      return inventorySearchButtonClickFixture<T>();
     }
     if (input.description.includes("variation expanders")) {
       return { collapsedCount: 0, points: [] } as T;
     }
-    return {
-      url: "https://sellercentral.amazon.ae/myinventory/inventory",
-      title: "Manage Your Inventory",
-      detectedState: "ready",
-      searchVerified: true,
-      searchVerificationEvidence: ["exact_sku_row_visible"],
-      rows: [
-        {
-          sellerSku: "DL-UG6I-2OWL",
-          asinSnapshot: "B012345678",
-          sellerCentralTitleSnapshot: "Acceptance Product Title",
-          imagePresent: true,
-          listingStatus: "active",
-          availableFbaUnits: 0,
-          actualInventoryUnits: 0,
-          inboundUnits: 0,
-          unfulfillableUnits: 0,
-          reservedUnits: 0,
-          sales30dSnapshot: 4,
-        },
-      ],
-    } as T;
+    return inventorySearchResultFixture<T>();
   }
 
   async setFileInputFiles(): Promise<BrowserActionResult> { return action("setFileInputFiles"); }
@@ -210,6 +247,31 @@ const waitForRunningProgress = async (dataDir: string, taskId: string) => {
 const dataDir = mkdtempSync(join(tmpdir(), "amazon-product-sync-acceptance-"));
 const browser = new AmazonProductSyncFakeBrowser();
 const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
+const originalFetch = globalThis.fetch;
+const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const fetchCalls: string[] = [];
+globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const url = String(input);
+  fetchCalls.push(url);
+  if (url.includes("m.media-amazon.com")) {
+    return new Response(pngBytes, { status: 200, headers: { "content-type": "image/png" } });
+  }
+  if (url.includes("/api/apex/amazon-manage/products/images/sku/")) {
+    assert.equal(init?.method, "POST");
+    assert.equal((init?.headers as Record<string, string>)["x-amzmgr-agent-product-image-token"], "acceptance-image-token");
+    const body = JSON.parse(String(init?.body)) as { readonly imageBase64: string; readonly imageMimeType: string; readonly agentTaskId: string };
+    assert.equal(body.imageMimeType, "image/png");
+    assert.ok(body.imageBase64.length > 0);
+    assert.ok(body.agentTaskId.startsWith("amazon_product_sync_"));
+    return Response.json({
+      ok: true,
+      imageUrl: `/api/apex/amazon-manage/products/images/sku/${fixtureSku}?v=acceptance-sha`,
+      mediaId: "acceptance-sha",
+      imageSha256: "acceptance-sha",
+    });
+  }
+  return new Response("not found", { status: 404 });
+}) as typeof fetch;
 const started = await startAmazonProductSyncTask({
   site: "ontheway-amazon-manage",
   requestId: "acceptance-amazon-product-sync-1",
@@ -221,6 +283,10 @@ const started = await startAmazonProductSyncTask({
     sourceKey: "DL-UG6I-2OWL",
     sellerSku: "DL-UG6I-2OWL",
     requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
+    mainImageUpload: {
+      endpoint: `http://127.0.0.1:3000/api/apex/amazon-manage/products/images/sku/${fixtureSku}`,
+      token: "acceptance-image-token",
+    },
   }],
 }, { dataDir, browser, runtimeLogger });
 
@@ -237,6 +303,11 @@ assert.equal(terminal.items[0]?.asinSnapshot, "B012345678");
 assert.equal(terminal.items[0]?.availableFbaUnits, 0);
 assert.equal(terminal.items[0]?.actualInventoryUnits, 0);
 assert.ok(terminal.items[0]?.sellerCentralMainImageEvidenceRef?.startsWith("evidence://amazon-product-sync/"));
+assert.equal(terminal.items[0]?.mainImageUpload?.status, "uploaded");
+assert.equal(terminal.items[0]?.mainImageUpload?.mediaId, "acceptance-sha");
+assert.ok(terminal.items[0]?.mainImageUpload?.imageUrl?.includes("/api/apex/amazon-manage/products/images/sku/"));
+assert.ok(fetchCalls.some((url) => url.includes("m.media-amazon.com")));
+assert.ok(fetchCalls.some((url) => url.includes("/api/apex/amazon-manage/products/images/sku/")));
 assert.equal(browser.screenshotCalls, 1);
 assert.equal(browser.closeActiveTabCalls, 1);
 assert.ok(terminal.items[0]?.rowEvidenceRef?.startsWith("evidence://amazon-product-sync/"));
@@ -246,8 +317,9 @@ assert.equal(browser.openedUrls.filter((url) => url.includes("/myinventory/inven
 assert.ok(browser.openReusePolicies.includes("reuse-host-tab"));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("exclude top global search")));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("fill inventory filter SKU shadow input")));
+assert.ok(browser.evaluateDescriptions.some((description) => description.includes("click inventory filter search button DOM")));
 assert.ok(browser.evaluateDescriptions.some((description) => description.includes("verify result DOM")));
-assert.ok(browser.clickLabels.includes("Seller Central inventory filter search button"));
+assert.equal(browser.clickLabels.includes("Seller Central inventory filter search button"), false);
 assert.ok(browser.evaluateScripts.some((script) => script.includes("form#sc-global-search-form")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("input#sc-search-field")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("button.sc-search-button")));
@@ -255,7 +327,16 @@ assert.ok(browser.evaluateScripts.some((script) => script.includes("搜索 SKU�
 assert.ok(browser.evaluateScripts.some((script) => script.includes("shadowRoot")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("input[type='text'], input")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("dispatchEvent")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("document.createEvent")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("Object.defineProperty")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("hostValueGetterDefined")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("shadowValueReady")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("searchEventsReady")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("kat-input host own value getter for React onInput target")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("SearchBox-module__searchButton MouseEvent click")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("SearchBox-module__searchButton DOM MouseEvent submit click")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("pointerdown")));
+assert.ok(browser.evaluateScripts.some((script) => script.includes("clickEventDispatched")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("searchClickDelayMs")));
 
 await assert.rejects(
@@ -338,4 +419,5 @@ const staleStatus = await getAmazonProductSyncTaskStatus({
 assert.equal(staleStatus?.status, "failed");
 assert.equal(staleStatus?.reason, "amazon_product_sync_running_progress_stale_after_3000ms");
 
+globalThis.fetch = originalFetch;
 process.stdout.write("[AMAZON-PRODUCT-SYNC][PASS] inventory filter SKU search acceptance passed\n");

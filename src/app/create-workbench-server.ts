@@ -4,12 +4,14 @@ import { URL } from "node:url";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
 import { handleAmazonProductMiningRequest } from "./workbench-amazon-product-mining-routes.js";
+import { handleAmazonProductFeeSyncRequest } from "./workbench-amazon-product-fee-sync-routes.js";
 import { handleAmazonProductSyncRequest } from "./workbench-amazon-product-sync-routes.js";
 import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from "./workbench-api-boundary.js";
 import { handleDeepResearchRequest } from "./workbench-deep-research-routes.js";
 import { handleFacebookRequest } from "./workbench-facebook-routes.js";
 import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
+import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 import { handleVideoDownloadRequest } from "./workbench-video-download-routes.js";
 
@@ -161,6 +163,12 @@ const handleKnownWorkbenchApiRequest = async (input: {
     return true;
   }
   if (await handleAmazonProductSyncRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleAmazonProductFeeSyncRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {
     return true;
   }
   return handleVideoDownloadRequest(input.request, input.response, input.workbench);

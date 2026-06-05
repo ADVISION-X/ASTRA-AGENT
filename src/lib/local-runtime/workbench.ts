@@ -45,6 +45,11 @@ import {
   startAmazonProductSyncTask,
 } from "../../plugins/amazon-product-sync/index.js";
 import {
+  getAmazonProductFeeSyncTaskStatus,
+  getLatestAmazonProductFeeSyncTask,
+  startAmazonProductFeeSyncTask,
+} from "../../plugins/amazon-product-fee-sync/index.js";
+import {
   deepResearchAnalysisPublicFacade,
   type DeepResearchAnalysisStartInput,
   type DeepResearchHistorySnapshot,
@@ -52,6 +57,7 @@ import {
   type DeepResearchReportViewModel,
   type DeepResearchTimelineSnapshot,
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
+import { prepareMediaProcessingRuntimeDependencies } from "../../capabilities/media-processing/index.js";
 import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
 
 type DeepResearchExecutionState = {
@@ -281,6 +287,32 @@ const buildAmazonProductSyncHandle = (
   },
 });
 
+const buildAmazonProductFeeSyncHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  async startAmazonProductFeeSyncTask(rawInput: unknown) {
+    return startAmazonProductFeeSyncTask(rawInput, {
+      dataDir,
+      browser: assembly.browserController,
+      runtimeLogger: assembly.runtimeLogger,
+    });
+  },
+  async getAmazonProductFeeSyncTaskStatus(taskId: string) {
+    return getAmazonProductFeeSyncTaskStatus({
+      dataDir,
+      taskId,
+      runtimeLogger: assembly.runtimeLogger,
+    });
+  },
+  async getLatestAmazonProductFeeSyncTask() {
+    return getLatestAmazonProductFeeSyncTask({
+      dataDir,
+      runtimeLogger: assembly.runtimeLogger,
+    });
+  },
+});
+
 const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
   async startDeepResearchAnalysis(input: DeepResearchAnalysisStartInput) {
     const previousLatest = context.loadLatestSnapshot();
@@ -401,6 +433,7 @@ const buildWorkbenchHandle = (
       getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
     getVideoDownloadAbilityGroup: () => assembly.videoDownload,
+    getMediaProcessingAbilityGroup: () => assembly.mediaProcessing,
     findOpenVideoDownloadSourcePage,
     getAiInputGatewayAbilityGroup: () => assembly.aiInputGateway,
     getModeInfo: () => getModeInfo(assembly.options),
@@ -409,6 +442,7 @@ const buildWorkbenchHandle = (
     ...buildFacebookMiningHandle(assembly, dataDir),
     ...buildAmazonMiningHandle(assembly, dataDir),
     ...buildAmazonProductSyncHandle(assembly, dataDir),
+    ...buildAmazonProductFeeSyncHandle(assembly, dataDir),
     ...buildDeepResearchAnalysisHandle(assembly, dataDir),
   };
 };
@@ -422,6 +456,7 @@ export class GrassEyeWorkbench {
 
   async init(): Promise<void> {
     await prepareVideoDownloadRuntimeDependencies();
+    await prepareMediaProcessingRuntimeDependencies();
     continueInterruptedAmazonProductMiningTasks({
       dataDir: this.assembly.dataDir,
       browser: this.assembly.browserController,

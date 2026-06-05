@@ -223,6 +223,8 @@ const logMatchedItemSummary = (
       actualInventoryUnits: item.actualInventoryUnits === null ? "null" : String(item.actualInventoryUnits),
       rowEvidenceRef: item.rowEvidenceRef ?? "none",
       mainImageEvidenceRef: item.sellerCentralMainImageEvidenceRef ?? "none",
+      mainImageUploadStatus: item.mainImageUpload?.status ?? "none",
+      mainImageUploadMediaId: item.mainImageUpload?.mediaId ?? "none",
     },
   });
 };
@@ -257,6 +259,8 @@ const logReviewItemSummary = (
       actualInventoryUnits: item.actualInventoryUnits === null ? "null" : String(item.actualInventoryUnits),
       rowEvidenceRef: item.rowEvidenceRef ?? "none",
       mainImageEvidenceRef: item.sellerCentralMainImageEvidenceRef ?? "none",
+      mainImageUploadStatus: item.mainImageUpload?.status ?? "none",
+      mainImageUploadReason: item.mainImageUpload?.reason ?? "none",
       authGate: itemAuthGate(item),
       detectedState: diagnosticValue(diagnostic?.detectedState),
       diagnosticStage: diagnosticValue(diagnostic?.diagnosticStage),

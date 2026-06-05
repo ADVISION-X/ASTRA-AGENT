@@ -1,5 +1,6 @@
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
 import type { VideoDownloadAbilityGroup } from "../../capabilities/video-download/index.js";
 import type {
   DeepResearchAnalysisStartInput,
@@ -42,6 +43,9 @@ type ContinueInterruptedAmazonProductMiningTasks = typeof import("../../plugins/
 type StartAmazonProductSyncTask = typeof import("../../plugins/amazon-product-sync/index.js").startAmazonProductSyncTask;
 type GetAmazonProductSyncTaskStatus = typeof import("../../plugins/amazon-product-sync/index.js").getAmazonProductSyncTaskStatus;
 type GetLatestAmazonProductSyncTask = typeof import("../../plugins/amazon-product-sync/index.js").getLatestAmazonProductSyncTask;
+type StartAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").startAmazonProductFeeSyncTask;
+type GetAmazonProductFeeSyncTaskStatus = typeof import("../../plugins/amazon-product-fee-sync/index.js").getAmazonProductFeeSyncTaskStatus;
+type GetLatestAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").getLatestAmazonProductFeeSyncTask;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -68,6 +72,9 @@ type AmazonProductMiningAutoContinueResult = ReturnType<ContinueInterruptedAmazo
 type AmazonProductSyncStartInput = Parameters<StartAmazonProductSyncTask>[0];
 type AmazonProductSyncTaskRecord = Awaited<ReturnType<GetAmazonProductSyncTaskStatus>>;
 type AmazonProductSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductSyncTask>>;
+type AmazonProductFeeSyncStartInput = Parameters<StartAmazonProductFeeSyncTask>[0];
+type AmazonProductFeeSyncTaskRecord = Awaited<ReturnType<GetAmazonProductFeeSyncTaskStatus>>;
+type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductFeeSyncTask>>;
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -85,6 +92,7 @@ export type GrassEyeWorkbenchHandle = {
   }) => void;
   getDataDir: () => string;
   getVideoDownloadAbilityGroup: () => VideoDownloadAbilityGroup;
+  getMediaProcessingAbilityGroup: () => MediaProcessingAbilityGroup;
   findOpenVideoDownloadSourcePage: (
     platformId: VideoDownloadSourcePagePlatform,
     preferredSourcePageUrl?: string,
@@ -198,4 +206,11 @@ export type GrassEyeWorkbenchHandle = {
     taskId: string,
   ) => Promise<AmazonProductSyncTaskRecord>;
   getLatestAmazonProductSyncTask: () => Promise<AmazonProductSyncLatestTaskRecord>;
+  startAmazonProductFeeSyncTask: (
+    input: AmazonProductFeeSyncStartInput,
+  ) => Promise<NonNullable<AmazonProductFeeSyncTaskRecord>>;
+  getAmazonProductFeeSyncTaskStatus: (
+    taskId: string,
+  ) => Promise<AmazonProductFeeSyncTaskRecord>;
+  getLatestAmazonProductFeeSyncTask: () => Promise<AmazonProductFeeSyncLatestTaskRecord>;
 };

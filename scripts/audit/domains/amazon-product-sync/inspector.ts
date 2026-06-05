@@ -44,7 +44,16 @@ const requiredFlowTokens = [
   "shadowRoot",
   "input[type='text'], input",
   "dispatchEvent",
+  "document.createEvent",
+  "Object.defineProperty",
+  "hostValueGetterDefined",
+  "shadowValueReady",
+  "searchEventsReady",
+  "kat-input host own value getter for React onInput target",
   "SearchBox-module__searchButton MouseEvent click",
+  "SearchBox-module__searchButton DOM MouseEvent submit click",
+  "pointerdown",
+  "clickEventDispatched",
   "searchClickDelayMs",
   "setTimeout",
   "closeAmazonTabOnCompletion",
@@ -57,31 +66,17 @@ const requiredFlowTokens = [
   "ASIN",
   "现货（亚马逊物流）",
   "inventory_filter_shadow_input_submit_failed",
+  "inventory_filter_search_button_dom_click_failed",
   "inventory_search_result_dom_not_verified",
 ] as const;
 
-const requiredLogEvents = [
-  "amazon_product_sync.start_received",
-  "amazon_product_sync.queued",
-  "amazon_product_sync.progress",
-  "amazon_product_sync.item_summary",
-  "amazon_product_sync.flow_finished",
-  "amazon_product_sync.flow_failed",
-  "amazon_product_sync.stale_running_task_failed",
-] as const;
+const requiredLogEvents = ["amazon_product_sync.start_received", "amazon_product_sync.queued", "amazon_product_sync.progress", "amazon_product_sync.item_summary", "amazon_product_sync.flow_finished", "amazon_product_sync.flow_failed", "amazon_product_sync.stale_running_task_failed"] as const;
 
 const requiredDiagnosticRefs = ["authGate", "detectedState", "diagnosticStage", "pageTitle", "pageUrlPath"] as const;
+const requiredMainImageSchemaTokens = ["mainImageUpload", "endpoint", "token", "imageUrl", "mediaId", "imageSha256", "uploaded"] as const;
+const requiredMainImageUploadTokens = ["mainImageUpload", "x-amzmgr-agent-product-image-token", "imageBase64", "imageMimeType", "imageUrl", "mediaId", "uploaded"] as const;
 
-const forbiddenFlowTokens = [
-  "setFileInputFiles",
-  "callbackUrl",
-  "XMLHttpRequest",
-  "rowMatchScore",
-  "pickBestSkuRow",
-  "findAfter",
-  "readFieldAfter",
-  "expectedOutputOverride",
-] as const;
+const forbiddenFlowTokens = ["setFileInputFiles", "callbackUrl", "XMLHttpRequest", "rowMatchScore", "pickBestSkuRow", "findAfter", "readFieldAfter", "expectedOutputOverride"] as const;
 
 const addFinding = (findings: InspectorFinding[], lawId: string, filePath: string, message: string): void => {
   findings.push(createFinding({ checkId: "amazon-product-sync/contract", filePath, lawId, message }));
@@ -244,24 +239,29 @@ const inspectBoundary = (boundary: SourceFile | undefined, findings: InspectorFi
   if (!hasRouteRule(boundary, "/api/plugins/amazon-product-sync/status/", "GET")) addFinding(findings, lawId, boundaryPath, "boundary missing external API-key amazon-product-sync status route");
 };
 
+const checkSchemaToken = (schema: SourceFile | undefined, findings: InspectorFinding[], lawId: string, required: string, message: string): void => { if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `${message}: ${required}`); };
+
 const inspectSchema = (schema: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
   if (hasIdentifier(schema, "requestedAt")) {
     addFinding(findings, lawId, schemaPath, "Amazon product sync input must not require requestedAt outside the law-approved input shape");
   }
   for (const required of ["site", "requiredFields", "AmazonProductSyncRequiredFieldSchema", "missingRequestedFields", "blocked"]) {
-    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing website request/status contract token: ${required}`);
+    checkSchemaToken(schema, findings, lawId, required, "schema missing website request/status contract token");
   }
   for (const required of ["mainImage", "asin", "availableInventory", "actualInventory", "actualInventoryUnits"]) {
-    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing required field token: ${required}`);
+    checkSchemaToken(schema, findings, lawId, required, "schema missing required field token");
+  }
+  for (const required of requiredMainImageSchemaTokens) {
+    checkSchemaToken(schema, findings, lawId, required, "schema missing main image upload contract token");
   }
   for (const required of ["AmazonProductSyncAllRequiredFields", "containsAllProductUpdateFields", "Amazon product update must request mainImage, asin, availableInventory, and actualInventory."]) {
-    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema must enforce fixed product update requiredFields: ${required}`);
+    checkSchemaToken(schema, findings, lawId, required, "schema must enforce fixed product update requiredFields");
   }
   for (const required of ["length", "Amazon product sync task must contain exactly one SKU item; website side owns the SKU queue."]) {
-    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema must reject multi-SKU AGENT tasks: ${required}`);
+    checkSchemaToken(schema, findings, lawId, required, "schema must reject multi-SKU AGENT tasks");
   }
   for (const required of ["AmazonProductSyncItemDiagnostic", ...requiredDiagnosticRefs]) {
-    if (!hasIdentifier(schema, required) && !hasStringToken(schema, required)) addFinding(findings, lawId, schemaPath, `schema missing auth/page diagnostic contract token: ${required}`);
+    checkSchemaToken(schema, findings, lawId, required, "schema missing auth/page diagnostic contract token");
   }
 };
 
@@ -271,16 +271,19 @@ const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[],
       addFinding(findings, lawId, flowPath, `flow must not use forbidden token: ${forbidden}`);
     }
   }
-  if (hasCallName(flow, "fetch")) addFinding(findings, lawId, flowPath, "flow must not fetch website callbackUrl or any external callback");
-  for (const required of ["BrowserController", "buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventoryExtractionScript", "expandSellerCentralParentRows"]) {
+  if (!hasCallName(flow, "fetch")) addFinding(findings, lawId, flowPath, "flow must download Seller Central image bytes and upload them to the fixed ON image API");
+  for (const required of ["BrowserController", "buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventorySearchButtonClickScript", "buildInventoryExtractionScript", "expandSellerCentralParentRows"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing required AST token: ${required}`);
   }
   for (const required of ["open", "click", "evaluateActiveTab", "screenshotRegion"]) {
     if (!hasCallName(flow, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
   }
   if (!hasStringToken(flow, "reuse-host-tab")) addFinding(findings, lawId, flowPath, "flow must reuse Seller Central host tab instead of the active website tab");
-  for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef", "actualInventoryUnits"]) {
+  for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef", "uploadMainImage", "downloadMainImageBytes", "actualInventoryUnits"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
+  }
+  for (const required of requiredMainImageUploadTokens) {
+    if (!hasIdentifier(flow, required) && !hasStringToken(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
   }
   for (const required of ["AmazonProductSyncItemDiagnostic", "buildDiagnostic", "authGateFromState", "pageUrlPath", ...requiredDiagnosticRefs]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing auth/page diagnostic propagation token: ${required}`);
@@ -376,7 +379,7 @@ const inspectItemSummaryLog = (taskService: SourceFile | undefined, findings: In
   const itemSummaries = emitObjectsForEvent(taskService, "amazon_product_sync.item_summary");
   if (itemSummaries.length === 0) return;
   for (const itemSummary of itemSummaries) {
-    for (const refName of ["sellerSku", "itemStatus", "requestedFields", "missingRequestedFields", "availableFbaUnits", "actualInventoryUnits", "rowEvidenceRef", "mainImageEvidenceRef"]) {
+    for (const refName of ["sellerSku", "itemStatus", "requestedFields", "missingRequestedFields", "availableFbaUnits", "actualInventoryUnits", "rowEvidenceRef", "mainImageEvidenceRef", "mainImageUploadStatus"]) {
       if (!hasNestedObjectProperty(itemSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `item summary log missing refs.${refName}`);
     }
   }
@@ -428,17 +431,17 @@ const inspectDomScripts = (
       addFinding(findings, lawId, domScriptsPath, `DOM scripts must not use forbidden token: ${forbidden}`);
     }
   }
-  for (const required of ["buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventoryExtractionScript", "buildVariationExpansionProbeScript"]) {
+  for (const required of ["buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventorySearchButtonClickScript", "buildInventoryExtractionScript", "buildVariationExpansionProbeScript"]) {
     if (!hasIdentifier(domScripts, required)) addFinding(findings, lawId, domScriptsPath, `DOM scripts missing exported builder: ${required}`);
   }
   if (!hasIdentifier(domScripts, "actualInventoryUnits") && !hasStringToken(domScripts, "actualInventoryUnits")) addFinding(findings, lawId, domScriptsPath, "DOM scripts missing actualInventoryUnits extraction token");
 };
 
 const inspectAcceptance = (acceptance: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["site", "requiredFields", "missingRequestedFields", "actualInventoryUnits", "screenshotCalls", "closeActiveTabCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified"]) {
+  for (const required of ["site", "requiredFields", "missingRequestedFields", "actualInventoryUnits", "screenshotCalls", "closeActiveTabCalls", "clickLabels", "topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "mainImageUpload", "fetchCalls"]) {
     if (!hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing website/search assertion token: ${required}`);
   }
-  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "input[type='text'], input", "dispatchEvent", "SearchBox-module__searchButton MouseEvent click", "searchClickDelayMs"]) {
+  for (const required of ["form#sc-global-search-form", "input#sc-search-field", "button.sc-search-button", "搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN", "shadowRoot", "input[type='text'], input", "dispatchEvent", "document.createEvent", "Object.defineProperty", "hostValueGetterDefined", "shadowValueReady", "searchEventsReady", "kat-input host own value getter for React onInput target", "SearchBox-module__searchButton MouseEvent click", "SearchBox-module__searchButton DOM MouseEvent submit click", "pointerdown", "clickEventDispatched", "searchClickDelayMs"]) {
     if (!hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing DOM exclusion assertion token: ${required}`);
   }
   for (const required of ["reuse-host-tab", "acceptance-amazon-product-sync-reject-partial-fields", "amazon_product_sync_flow_timeout_after_20ms"]) {
@@ -450,6 +453,9 @@ const inspectAcceptance = (acceptance: SourceFile | undefined, findings: Inspect
   }
   if (!hasStringToken(acceptance, "amazon_product_sync_running_progress_stale_after_3000ms")) addFinding(findings, lawId, acceptancePath, "acceptance missing stale running progress failure assertion");
   if (!hasIdentifier(acceptance, "screenshotRegion")) addFinding(findings, lawId, acceptancePath, "acceptance must exercise screenshotRegion for main image evidence");
+  for (const required of requiredMainImageUploadTokens) {
+    if (!hasStringToken(acceptance, required) && !hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing main image upload assertion token: ${required}`);
+  }
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
@@ -498,8 +504,5 @@ const runInspectorFromCli = async (): Promise<void> => {
   process.stdout.write("[AUDIT] amazon-product-sync PASS\n");
 };
 
-const isEntrypoint = (): boolean => {
-  const invokedPath = process.argv[1];
-  return invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url);
-};
+const isEntrypoint = (): boolean => process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isEntrypoint()) await runInspectorFromCli();

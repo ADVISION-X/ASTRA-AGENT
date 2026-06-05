@@ -14,6 +14,7 @@ Kernel loads first. Current top-level authority is the 2026-05-21 job-flow autom
 | -- | -- |
 | architecture boundary, mediator route, vertical job-flow growth | modules/module-architecture-boundary.instructions.md |
 | job flow, ability group boundary, child ability ownership, forbidden universal planner | modules/module-capability-group-governance.instructions.md |
+| local media optimization, website-ready video/image artifacts, media-processing capability | modules/module-media-processing-capability.instructions.md |
 | Amazon invoice upload, order upload, approved PDF upload, Seller Central flow | modules/module-dom-automation.instructions.md |
 | new lawful job flow, Facebook/product/page/data workflows, flow admission | modules/module-architecture-boundary.instructions.md |
 | Facebook product video mining flow ownership, loop truth, app-shell exposure, acceptance ownership | modules/module-facebook-product-video-mining.instructions.md |

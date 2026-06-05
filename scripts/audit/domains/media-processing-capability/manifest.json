@@ -1,0 +1,24 @@
+{
+  "capabilityDomain": "media-processing-capability",
+  "ownerInspectorPath": "scripts/audit/domains/media-processing-capability/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Media Processing 媒体处理能力组施工图.md",
+      "requiredAnchors": [
+        "## 0. 施工定位",
+        "## 4. 架构位置",
+        "## 5. 目录结构",
+        "## 6. Public Facade 设计",
+        "## 13. 验收标准"
+      ]
+    }
+  ],
+  "description": "Media-processing capability owner inspector for governed website-ready image and video artifact optimization."
+}

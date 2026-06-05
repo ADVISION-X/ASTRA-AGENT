@@ -78,6 +78,30 @@
       ]
     },
     {
+      "pluginId": "amazon-product-fee-sync",
+      "status": "active",
+      "owner": "plugin:amazon-product-fee-sync",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-product-fee-sync-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-product-fee-sync"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-product-fee-sync",
+        "audit:amazon-product-fee-sync"
+      ],
+      "exposureTokens": [
+        "amazon-product-fee-sync"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md"
+      ]
+    },
+    {
       "pluginId": "deep-research-analysis",
       "status": "active",
       "owner": "plugin:deep-research-analysis",

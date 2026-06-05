@@ -63,6 +63,9 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   { method: "POST", pathPattern: "exact", path: "/api/plugins/amazon-product-sync/start", localUiAllowed: true, externalApiAllowed: true, requiresApiKey: true, jobOwner: "amazon-product-sync", purpose: "external_amazon_product_sync_task_start" },
   { method: "GET", pathPattern: "prefix", path: "/api/plugins/amazon-product-sync/status/", localUiAllowed: true, externalApiAllowed: true, requiresApiKey: true, jobOwner: "amazon-product-sync", purpose: "external_amazon_product_sync_task_status" },
   { method: "GET", pathPattern: "exact", path: "/api/plugins/amazon-product-sync/latest", localUiAllowed: true, externalApiAllowed: true, requiresApiKey: true, jobOwner: "amazon-product-sync", purpose: "external_amazon_product_sync_task_latest" },
+  { method: "POST", pathPattern: "exact", path: "/api/plugins/amazon-product-fee-sync/start", localUiAllowed: true, externalApiAllowed: true, requiresApiKey: true, jobOwner: "amazon-product-fee-sync", purpose: "external_amazon_product_fee_sync_task_start" },
+  { method: "GET", pathPattern: "prefix", path: "/api/plugins/amazon-product-fee-sync/status/", localUiAllowed: true, externalApiAllowed: true, requiresApiKey: true, jobOwner: "amazon-product-fee-sync", purpose: "external_amazon_product_fee_sync_task_status" },
+  { method: "GET", pathPattern: "exact", path: "/api/plugins/amazon-product-fee-sync/latest", localUiAllowed: true, externalApiAllowed: true, requiresApiKey: true, jobOwner: "amazon-product-fee-sync", purpose: "external_amazon_product_fee_sync_task_latest" },
   { method: "POST", pathPattern: "exact", path: "/api/amazon-invoice-upload/mission", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "amazon-invoice-upload", purpose: "local_amazon_invoice_upload_mission" },
   { method: "POST", pathPattern: "exact", path: "/api/amazon-invoice-upload/task", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "amazon-invoice-upload", purpose: "local_amazon_invoice_upload_task_start" },
   { method: "POST", pathPattern: "exact", path: "/api/amazon-invoice-upload/task/resume", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "amazon-invoice-upload", purpose: "local_amazon_invoice_upload_task_resume" },
@@ -91,6 +94,10 @@ export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   { method: "POST", pathPattern: "exact", path: "/api/video-download/start", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_start" },
   { method: "POST", pathPattern: "exact", path: "/api/video-download/start-async", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_start_async" },
   { method: "GET", pathPattern: "exact", path: "/api/video-download/status", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "video-download", purpose: "local_video_download_status" },
+  { method: "GET", pathPattern: "exact", path: "/api/media-processing/presets", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "media-processing", purpose: "local_media_processing_presets" },
+  { method: "POST", pathPattern: "exact", path: "/api/media-processing/start-async", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "media-processing", purpose: "local_media_processing_start_async" },
+  { method: "GET", pathPattern: "exact", path: "/api/media-processing/status", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "media-processing", purpose: "local_media_processing_status" },
+  { method: "POST", pathPattern: "exact", path: "/api/media-processing/download", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "media-processing", purpose: "local_media_processing_download" },
 ];
 
 type BodyPreview = {

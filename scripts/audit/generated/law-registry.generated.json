@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T21:00:29.621Z",
+  "generatedAt": "2026-06-04T09:12:50.093Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -966,9 +966,11 @@
         "Input contains exactly one SKU item.",
         "The item contains requiredFields.",
         "Every product update item requests mainImage, asin, availableInventory, and actualInventory together.",
+        "When mainImage is requested, the item contains mainImageUpload endpoint and token.",
         "Partial requiredFields are rejected.",
         "Multi-SKU AGENT tasks are rejected; website side owns the SKU queue.",
         "Main image evidence uses BrowserController screenshotRegion.",
+        "Main image product update uses downloaded image bytes uploaded to the website image API.",
         "Task status JSON contains requestedFields and missingRequestedFields."
       ],
       "forbidden": [
@@ -976,7 +978,8 @@
         "Agent accepts multiple SKU items in one product sync task.",
         "Browser flow remains running indefinitely without observable progress or a terminal task status.",
         "Main image evidence fabricated from public img src.",
-        "Plugin directly fetches website callbackUrl.",
+        "Website product main image written from public img src or screenshot evidence ref.",
+        "Plugin directly fetches arbitrary website callbackUrl.",
         "External caller controls selectors, browser commands, or output overrides."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
@@ -994,7 +997,7 @@
         "Flow probes the inventory filter Katal search input placeholder.",
         "Flow recursively handles open shadow DOM for the Katal input.",
         "Flow excludes form#sc-global-search-form and input#sc-search-field.",
-        "Flow submits SKU search by writing the inventory Katal open shadow input, dispatching composed input/change events, waiting 1000-2000 ms, and clicking the inventory search button.",
+        "Flow submits SKU search by writing the inventory Katal open shadow input, installing the host own value getter for React onInput retargeting, dispatching composed input/change events, waiting 1000-2000 ms, and dispatching DOM MouseEvents on the inventory search button.",
         "Flow waits for and verifies search success from an exact SKU row in Seller Central result DOM.",
         "Flow closes the active Seller Central tab after a successful closeAmazonTabOnCompletion task.",
         "Acceptance asserts the top global search is excluded."

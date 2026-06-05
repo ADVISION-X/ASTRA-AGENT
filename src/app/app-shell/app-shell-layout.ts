@@ -1,5 +1,6 @@
 import { renderDeepResearchPanel } from "../workbench-deep-research-panel.js";
 import { renderAmazonProductMiningWorkspace } from "../skills/amazon-product-mining/amazon-product-mining-workspace.js";
+import { renderMediaOptimizerWorkspace } from "../skills/media-optimizer/media-optimizer-workspace.js";
 import { renderAmazonInvoiceWorkspace } from "./amazon-invoice-workspace.js";
 
 const renderFacebookWorkspace = (): string => `
@@ -171,5 +172,6 @@ export const renderMainWorkspace = (): string => `
     ${renderDeepResearchPanel()}
   </section>
   ${renderVideoDownloadWorkspace()}
+  ${renderMediaOptimizerWorkspace()}
   ${renderAmazonInvoiceWorkspace()}
 </main>`;

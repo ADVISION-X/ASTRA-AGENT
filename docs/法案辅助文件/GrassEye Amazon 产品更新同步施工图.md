@@ -15,13 +15,14 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 -> runAmazonProductSyncFlow
 -> BrowserController open/evaluateActiveTab/click/screenshotRegion
 -> Seller Central inventory read-only evidence
+-> AGENT downloads/transfers current row main image bytes to the website-owned image upload API
 -> task status JSON
 -> ON-THE-WAY 同源 API `/api/apex/amazon-manage/products/sync/status/[taskId]`
 -> ON-THE-WAY Amazon Manage polls status/latest and updates its own product record
 -> 网站侧队列在当前 SKU 终态后发送下一个 SKU
 ```
 
-网站侧和 App 页面只能发起同一条既有 task 链路。禁止新增 callbackUrl、第二 API server、第二 browser controller、第二 route bus 或插件直接 fetch 网站回调。
+网站侧和 App 页面只能发起同一条既有 task 链路。禁止新增 arbitrary callbackUrl、第二 API server、第二 browser controller、第二 route bus。主图专项例外只能是网站在每个 SKU item 下发的固定 `mainImageUpload.endpoint`，AGENT 只能向该 endpoint 上传真实图片字节。
 
 请求必须显式带，并且 AGENT start request 必须 exactly one SKU item。多 SKU 队列归网站侧所有；网站侧可以循环调用同一个 start/status 链路，但每次 start 只能包含一个 item。
 
@@ -35,7 +36,11 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
       "sourceKeyType": "sku",
       "sourceKey": "site-product-id-or-row-id",
       "sellerSku": "7Y-PMQW-FOAE",
-      "requiredFields": ["mainImage", "asin", "availableInventory", "actualInventory"]
+      "requiredFields": ["mainImage", "asin", "availableInventory", "actualInventory"],
+      "mainImageUpload": {
+        "endpoint": "https://ontheway.example/api/apex/amazon-manage/products/images/sku/7Y-PMQW-FOAE",
+        "token": "site-issued-upload-token"
+      }
     }
   ]
 }
@@ -63,7 +68,7 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 5. 当前 SKU terminal 后，ON server 将 matched result 写入 `amazon_product_external_snapshot`，页面刷新产品数据。
 6. 若状态为 login/captcha/failed，队列停止并展示状态；否则继续下一个 SKU。
 
-`requiredFields` 只允许并且必须同时包含 `mainImage`、`asin`、`availableInventory`、`actualInventory`。这是产品信息更新固定范围，不再按网站侧“缺什么字段”裁剪。Agent 不反向猜网站状态，也不接受 partial requiredFields。
+`requiredFields` 只允许并且必须同时包含 `mainImage`、`asin`、`availableInventory`、`actualInventory`。这是产品信息更新固定范围，不再按网站侧“缺什么字段”裁剪。Agent 不反向猜网站状态，也不接受 partial requiredFields。只要请求 `mainImage`，item 就必须带 `mainImageUpload`；缺失 endpoint/token 必须在 schema 层拒绝或返回 `not_configured`，不得把截图 ref、Amazon CDN URL、DOM `img[src]` 当作网站主图。
 
 ## Phase 1
 
@@ -75,8 +80,8 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 4. `/status/:taskId` 和 `/latest` 读取 queued/running task 时，如果 `updatedAt` 超过 3 秒没有推进，AGENT 必须把同一个 task 固化为 `failed`，reason 为 `amazon_product_sync_running_progress_stale_after_3000ms`，`reachedStep` 为 `flow_progress_stale`。AGENT 重启后旧 running task 不得继续堵住网站按钮。
 5. 如果出现 login、captcha、2FA、权限页或 Seller Central 页面未就绪，不返回 success，按结构化 status 结束该 item 或 task。
 6. 运行搜索框 probe：必须定位库存筛选条内的 Katal 搜索输入，必须证明顶部全局搜索框被排除。
-7. 通过 AGENT 内置 DOM 脚本定位库存筛选区 Katal host 的 open shadow input `input[type='text'], input`，同时写入 host value 与 shadow input value，派发 composed `input` / `change` 事件，然后只点击库存筛选区搜索按钮。外部请求不得传 selector、坐标、命令或 action plan。禁止用坐标 focus + OS textInput 作为 SKU 提交方式，因为实测会聚焦 Katal host 但不更新真实输入节点。
-8. 写入 SKU 后必须随机等待 1000-2000 ms，再点击库存筛选区搜索符号。随后循环运行结果 DOM probe，直到结果 DOM 出现目标 SKU 行。等待期间必须持续写入可观察进度；不能只看输入框 value、Enter、按钮 click event、URL search state，也不能只看库存结果计数。
+7. 通过 AGENT 内置 DOM 脚本定位库存筛选区 Katal host 的 open shadow input `input[type='text'], input`，同时写入 host value 与 shadow input value，派发 composed `input` / `change` 事件，然后仍在页面 DOM 上重新定位库存筛选区搜索按钮并派发鼠标事件。外部请求不得传 selector、坐标、命令或 action plan。禁止用坐标 focus + OS textInput 或外部坐标点击作为 SKU 提交方式，因为实测会聚焦/点击但不保证更新并提交 Katal React state。
+8. 写入 SKU 后必须随机等待 1000-2000 ms，再对库存筛选区搜索符号派发 `pointerdown` / `mousedown` / `pointerup` / `mouseup` / `click`。随后循环运行结果 DOM probe，直到结果 DOM 出现目标 SKU 行。等待期间必须持续写入可观察进度；不能只看输入框 value、Enter、按钮 click event、URL search state，也不能只看库存结果计数。
 9. 如果页面展示父体/变体组，先执行只读 reveal：定位 `VariationExpander-module__expanderHeader svg` 中心点并点击，直到子 SKU 行进入 DOM。不得点击保存、提交、编辑、价格或库存写入控件。
 10. 在结果行中以结构化 label/value 匹配目标 SKU：目标行必须同时存在 `ProductDetails-module__container` 和 `JanusSplitBox-module__row`，且某个 label/value pair 精确等于 `SKU` / 请求 SKU。
 11. 从同一目标行读取：
@@ -87,10 +92,11 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
    - `预留` -> reserved snapshot
    - `availableFbaUnits + reservedUnits + unfulfillableUnits` -> `actualInventory`
    - `售出件数` -> 30-day sales snapshot
-12. 读取目标行产品图节点和截图区域。`img[src]` 只能作为 DOM 定位证据；只有 BrowserController `screenshotRegion` 成功后，才能返回 `sellerCentralMainImageEvidenceRef`。
-13. 返回 task status JSON，per item 带 `requestedFields`、`missingRequestedFields`、`matched/not_found/ambiguous/blocked` 状态和 bounded row evidence。网站侧通过既有 status/latest 轮询链更新自己的产品记录。
+12. 读取目标行产品图节点和截图区域。`img[src]` 只能作为 DOM 定位和下载源线索；只有 BrowserController `screenshotRegion` 成功后，才能返回 `sellerCentralMainImageEvidenceRef` 作为证据。
+13. 如果 item 带 `mainImageUpload`，AGENT 必须把同一目标行的主图下载/转存为真实 image bytes，调用网站固定图片上传 API，收到 `imageUrl` 与 `mediaId` 后在 per item 返回 `mainImageUpload.status = "uploaded"`。下载失败、mime/size 不合规、上传失败或目标行无图时，必须返回结构化 `mainImageUpload` 失败原因。
+14. 返回 task status JSON，per item 带 `requestedFields`、`missingRequestedFields`、`mainImageUpload`、`matched/not_found/ambiguous/blocked` 状态和 bounded row evidence。网站侧通过既有 status/latest 轮询链更新自己的产品记录。
 
-生产代码必须让 `evaluateActiveTab` 负责 DOM probe、库存 Katal shadow input 写入/提交、结果读取、候选点位和截图信号。只读变体展开点击和 screenshotRegion 必须走 BrowserController 批准动作。
+生产代码必须让 `evaluateActiveTab` 负责 DOM probe、库存 Katal shadow input 写入、库存搜索按钮 DOM MouseEvent 提交、结果读取、候选点位和截图信号。只读变体展开点击和 screenshotRegion 必须走 BrowserController 批准动作。
 
 ## 日志矩阵
 
@@ -135,6 +141,8 @@ Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、
 - `actualInventoryUnits`
 - `rowEvidenceRef`
 - `mainImageEvidenceRef`
+- `mainImageUploadStatus`
+- `mainImageUploadMediaId`
 
 当 item 不是 `matched` 时，`amazon_product_sync.item_summary` 还必须带：
 
@@ -182,7 +190,7 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - 搜索范围下拉：`kat-dropdown.SearchBox-module__searchDropdown--y7jts`，实测 value 为 `ALL`，显示文本为 `所有`
 - 输入 host：`kat-input.SearchBox-module__searchInput--T3Fdk[type="text"][placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]`
 - 真实输入节点在 open shadow DOM：`kat-input.SearchBox-module__searchInput--T3Fdk` -> `shadowRoot` -> `input#katal-id-4[type="text"]`
-- 搜索按钮区域：`.SearchBox-module__searchButton--5iHxx`，实测 rect `x=582 y=294 width=45 height=32`，内部 `kat-icon[name="search"]`；提交必须对该搜索按钮区域派发 `MouseEvent` 的 `mousedown` / `mouseup` / `click`，不能点顶部搜索，也不能用不存在的原生 `button.click()` 当成功证据。
+- 搜索按钮区域：`.SearchBox-module__searchButton--5iHxx`，实测 rect `x=582 y=294 width=45 height=32`，内部 `kat-icon[name="search"]`；提交必须在页面 DOM 上重新定位该搜索按钮区域并派发 `MouseEvent` 的 `pointerdown` / `mousedown` / `pointerup` / `mouseup` / `click`，不能点顶部搜索，也不能用不存在的原生 `button.click()` 当成功证据。
 - 普通 `document.querySelectorAll("input")` 不足以发现该输入框；DOM probe 必须递归读取 open shadowRoot。
 
 ## 搜索框排他性规则
@@ -193,13 +201,15 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - `topGlobalSearchExcluded: true` 必须由 DOM probe 证明：目标 Katal input 不在 `form#sc-global-search-form` 内，且不是 `input#sc-search-field`。
 - `inventorySearchUsesShadowInput: true` 表示 probe 已观察到 Katal host 的 open shadow input。
 - `inventorySearchInputPoint` 和 `inventorySearchButtonPoint` 只能由 Agent 内置 DOM probe 产生，外部请求不能提供。
-- 提交 SKU 时必须直接写入 `kat-input[placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]` 的 open `shadowRoot` 内部 `input[type='text'], input`，并对 host 与 shadow input 派发 composed `input` / `change` 事件。
-- 写入 SKU 后必须随机等待 1000-2000 ms，再点击产品搜索框右侧搜索符号 `.SearchBox-module__searchButton--*`；不得用 URL 刷新 / URL 拼 `searchTerm` 替代点击。
+- 提交 SKU 时必须直接写入 `kat-input[placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]` 的 open `shadowRoot` 内部 `input[type='text'], input`，并先在 Katal host 上安装 configurable own `value` getter，让 React `onInput` 事件 retarget 到 host 时读取到 requested SKU，再对 host 与 shadow input 派发 composed `input` / `change` 事件。
+- 写入 SKU 后必须随机等待 1000-2000 ms，再对产品搜索框右侧搜索符号 `.SearchBox-module__searchButton--*` 派发 DOM MouseEvents；不得用 URL 刷新 / URL 拼 `searchTerm` 替代点击。
 - `inputValue === sellerSku` 只能证明提交动作写入成功，不能作为搜索成功；Enter、搜索按钮 click event、URL search state、结果数量也不能作为搜索成功。确认搜索必须继续轮询结果 DOM，直到精确 SKU 行落地。
 - `searchVerified: true` 必须来自结果 DOM：`exact_sku_row_visible` 成立；只有 URL 上有 `searchTerm` 但库存表格 / 精确 SKU 行未加载，必须继续等待或失败，不得读取。
 - 若只完成输入但结果 DOM 未验证，item 必须返回 `blocked`，reason 为 `inventory_search_result_dom_not_verified`。
 
 2026-06-03 Chrome 插件复测结论：顶部搜索框属于排除项；正确入口是库存筛选区第二搜索框。生产流程固定为写入 Katal shadow input、随机等待 1000-2000 ms、点击库存筛选区搜索符号、轮询结果 DOM。URL 刷新 / 拼 `searchTerm` 属于错误方向，禁止作为提交搜索方式。
+
+2026-06-04 Chrome 插件复测结论：`7Y-PMQW-FOAE` 在库存页可见输入框被写入后，直接外部点击搜索按钮仍未触发结果 DOM 变化；Seller Central chunk `196.b9a6d89b.chunk.js` 中搜索组件使用 `onSearchInput => setState(e.target.value)`，按钮提交该 React state。Katal shadow input 的 composed 事件会 retarget 到 `kat-input` host，若 host `value` 仍为空，按钮提交空值。生产提交动作必须先安装 host own `value` getter，再派发 input/change，并在页面 DOM 上重新定位库存筛选搜索按钮派发 MouseEvents；实测该路径使页面自行进入 `searchTerm=7Y-PMQW-FOAE` 且结果 DOM 出现精确 SKU 行。Chrome 插件坐标点击和 DOM-CUA node id 点击均不能作为该按钮的生产提交路径，前者未触发搜索，后者实测误点到筛选控件。
 
 ## 结果行结构
 
@@ -271,7 +281,7 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - Seller Central login/captcha/2FA/权限问题不得返回 success。
 - `matched/not_found/ambiguous/blocked` 必须有 per-item status。
 - SKU 搜索入口必须排除 `#sc-global-search-form #sc-search-field`，只允许库存筛选区 Katal 搜索框。
-- SKU 提交必须写入库存 Katal open shadow input 并派发 composed input/change 事件；禁止退回坐标 focus + OS textInput 作为提交主链路。
+- SKU 提交必须写入库存 Katal open shadow input、安装 host own value getter、派发 composed input/change 事件，并以 DOM MouseEvents 提交库存筛选搜索按钮；禁止退回坐标 focus + OS textInput 或外部坐标点击作为提交主链路。
 - 搜索提交必须以结果 DOM 命中目标 SKU 为准，不能以输入框 value、URL search state 或结果计数为准。
 - 目标行必须用 `SKU` exact label/value 匹配，不能用整行 contains 作为主判定。
 - `availableInventory` 必须来自 exact label `现货（亚马逊物流）`。

@@ -18,6 +18,10 @@ export const AmazonProductSyncItemSchema = z.object({
   sourceKey: z.string().min(1).max(128),
   sellerSku: z.string().min(1).max(128),
   requiredFields: z.array(AmazonProductSyncRequiredFieldSchema).min(1).max(4),
+  mainImageUpload: z.object({
+    endpoint: z.string().url(),
+    token: z.string().min(1),
+  }).strict().optional(),
 }).strict().superRefine((item, context) => {
   if (
     item.requiredFields.length !== AmazonProductSyncAllRequiredFields.length
@@ -68,6 +72,14 @@ export type AmazonProductSyncItemDiagnostic = {
   readonly pageUrlPath: string | null;
 };
 
+export type AmazonProductSyncMainImageUploadResult = {
+  readonly status: "uploaded" | "failed" | "not_configured" | "not_found";
+  readonly imageUrl: string | null;
+  readonly mediaId: string | null;
+  readonly imageSha256: string | null;
+  readonly reason: string | null;
+};
+
 export type AmazonProductSyncResultItem = {
   readonly sellerSku: string;
   readonly sourceKeyType: "sku" | "asin";
@@ -78,6 +90,7 @@ export type AmazonProductSyncResultItem = {
   readonly asinSnapshot: string | null;
   readonly sellerCentralTitleSnapshot: string | null;
   readonly sellerCentralMainImageEvidenceRef: string | null;
+  readonly mainImageUpload: AmazonProductSyncMainImageUploadResult | null;
   readonly listingStatus: string | null;
   readonly availableFbaUnits: number | null;
   readonly actualInventoryUnits: number | null;

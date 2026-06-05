@@ -1,17 +1,6 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import type {
-  AmazonProductSyncInput,
-  AmazonProductSyncItemDiagnostic,
-  AmazonProductSyncRequiredField,
-  AmazonProductSyncResultItem,
-  AmazonProductSyncTaskRecord,
-} from "./amazon-product-sync.schema.js";
-import {
-  buildInventoryExtractionScript,
-  buildInventorySearchProbeScript,
-  buildInventorySearchSubmitScript,
-  buildVariationExpansionProbeScript,
-} from "./amazon-product-sync.dom-scripts.js";
+import type { AmazonProductSyncInput, AmazonProductSyncItemDiagnostic, AmazonProductSyncMainImageUploadResult, AmazonProductSyncRequiredField, AmazonProductSyncResultItem, AmazonProductSyncTaskRecord } from "./amazon-product-sync.schema.js";
+import { buildInventorySearchButtonClickScript, buildInventoryExtractionScript, buildInventorySearchProbeScript, buildInventorySearchSubmitScript, buildVariationExpansionProbeScript } from "./amazon-product-sync.dom-scripts.js";
 
 type PageState = "ready" | "login_required" | "captcha_or_2fa_required" | "review_required";
 
@@ -24,7 +13,7 @@ type InventorySearchProbe = {
 };
 type ExtractedRow = {
   readonly sellerSku: string; readonly asinSnapshot: string | null; readonly sellerCentralTitleSnapshot: string | null;
-  readonly imagePresent: boolean; readonly listingStatus: string | null; readonly availableFbaUnits: number | null;
+  readonly imagePresent: boolean; readonly imageSrc: string | null; readonly listingStatus: string | null; readonly availableFbaUnits: number | null;
   readonly actualInventoryUnits: number | null; readonly inboundUnits: number | null; readonly unfulfillableUnits: number | null; readonly reservedUnits: number | null;
   readonly sales30dSnapshot: number | null;
 };
@@ -37,30 +26,25 @@ type ExpansionProbe = { readonly collapsedCount: number; readonly points: readon
 type InventorySearchSubmitResult = {
   readonly url: string; readonly title: string; readonly detectedState: PageState; readonly ok: boolean;
   readonly submittedValue: string | null; readonly inputValue: string | null; readonly clickedButton: boolean;
+  readonly hostValue?: string | null; readonly hostValueGetterDefined?: boolean; readonly shadowValueReady?: boolean;
+  readonly searchEventsReady?: boolean;
+  readonly hostAttributeValue?: string | null;
   readonly searchClickDelayMs?: number; readonly inventorySearchButtonPoint?: ViewportPoint | null;
   readonly topGlobalSearchExcluded: boolean; readonly reason: string | null;
 };
-
-export type AmazonProductSyncFlowProgress = {
-  readonly reachedStep: string;
-  readonly items?: readonly AmazonProductSyncResultItem[];
-  readonly reason?: string | null;
-  readonly authGate?: AmazonProductSyncItemDiagnostic["authGate"];
-  readonly detectedState?: string;
-  readonly diagnosticStage?: string;
-  readonly pageTitle?: string | null;
-  readonly pageUrlPath?: string | null;
+type InventorySearchButtonClickResult = {
+  readonly url: string; readonly title: string; readonly detectedState: PageState; readonly ok: boolean;
+  readonly clickedButton: boolean; readonly hostValue?: string | null; readonly inputValue?: string | null;
+  readonly pointerDownDispatched?: boolean; readonly mouseDownDispatched?: boolean; readonly pointerUpDispatched?: boolean;
+  readonly mouseUpDispatched?: boolean; readonly clickEventDispatched?: boolean;
+  readonly topGlobalSearchExcluded: boolean; readonly reason: string | null;
 };
+
+export type AmazonProductSyncFlowProgress = { readonly reachedStep: string; readonly items?: readonly AmazonProductSyncResultItem[]; readonly reason?: string | null; readonly authGate?: AmazonProductSyncItemDiagnostic["authGate"]; readonly detectedState?: string; readonly diagnosticStage?: string; readonly pageTitle?: string | null; readonly pageUrlPath?: string | null };
 
 type ProgressReporter = (progress: AmazonProductSyncFlowProgress) => Promise<void>;
 
-const MARKETPLACE_INVENTORY_URL: Record<AmazonProductSyncInput["marketplace"], string> = {
-  "amazon.ae": "https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
-  "amazon.sa": "https://sellercentral.amazon.sa/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
-  "amazon.com": "https://sellercentral.amazon.com/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
-  "amazon.co.uk": "https://sellercentral.amazon.co.uk/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
-  "amazon.co.jp": "https://sellercentral.amazon.co.jp/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
-};
+const MARKETPLACE_INVENTORY_URL: Record<AmazonProductSyncInput["marketplace"], string> = { "amazon.ae": "https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.sa": "https://sellercentral.amazon.sa/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.com": "https://sellercentral.amazon.com/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.co.uk": "https://sellercentral.amazon.co.uk/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.co.jp": "https://sellercentral.amazon.co.jp/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all" };
 
 const normalizeSku = (value: string): string => value.trim().toUpperCase();
 
@@ -116,9 +100,10 @@ const buildMissingItem = (
   missingRequestedFields: inputItem.requiredFields,
   status,
   asinSnapshot: null,
-  sellerCentralTitleSnapshot: null,
-  sellerCentralMainImageEvidenceRef: null,
-  listingStatus: null,
+    sellerCentralTitleSnapshot: null,
+    sellerCentralMainImageEvidenceRef: null,
+    mainImageUpload: null,
+    listingStatus: null,
   availableFbaUnits: null,
   actualInventoryUnits: null,
   inboundUnits: null,
@@ -152,6 +137,66 @@ const captureMainImageEvidenceRef = async (
   return `${redactedEvidenceRef(input.taskId, input.sellerSku)}/main-image/${capture.browserActionId}`;
 };
 
+const missingMainImageUpload = (status: AmazonProductSyncMainImageUploadResult["status"], reason: string): AmazonProductSyncMainImageUploadResult => ({
+  status,
+  imageUrl: null,
+  mediaId: null,
+  imageSha256: null,
+  reason,
+});
+
+const uploadMainImage = async (
+  inputItem: AmazonProductSyncInput["items"][number],
+  row: ExtractedRow,
+  taskId: string,
+): Promise<AmazonProductSyncMainImageUploadResult | null> => {
+  if (!hasRequiredField(inputItem, "mainImage")) return null;
+  if (!inputItem.mainImageUpload) return missingMainImageUpload("not_configured", "main_image_upload_endpoint_not_configured");
+  if (!row.imageSrc) return missingMainImageUpload("not_found", "seller_central_main_image_src_not_found");
+  const downloaded = await downloadMainImageBytes(row.imageSrc);
+  if (!downloaded) return missingMainImageUpload("failed", "seller_central_main_image_download_failed");
+  const response = await fetch(inputItem.mainImageUpload.endpoint, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-amzmgr-agent-product-image-token": inputItem.mainImageUpload.token,
+    },
+    body: JSON.stringify({
+      agentTaskId: taskId,
+      sellerSku: inputItem.sellerSku,
+      imageMimeType: downloaded.mimeType,
+      imageBase64: Buffer.from(downloaded.bytes).toString("base64"),
+    }),
+  });
+  if (!response.ok) return missingMainImageUpload("failed", `main_image_upload_failed:${response.status}`);
+  const payload = await response.json() as unknown;
+  return readMainImageUploadResponse(payload);
+};
+
+const downloadMainImageBytes = async (imageSrc: string): Promise<{ readonly bytes: Uint8Array; readonly mimeType: string } | null> => {
+  try {
+    const response = await fetch(imageSrc);
+    if (!response.ok) return null;
+    const mimeType = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    if (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength <= 0 || bytes.byteLength > 800 * 1024) return null;
+    return { bytes, mimeType };
+  } catch {
+    return null;
+  }
+};
+
+const readMainImageUploadResponse = (payload: unknown): AmazonProductSyncMainImageUploadResult => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return missingMainImageUpload("failed", "main_image_upload_response_invalid");
+  const record = payload as Readonly<Record<string, unknown>>;
+  const imageUrl = typeof record.imageUrl === "string" && record.imageUrl.trim() ? record.imageUrl.trim() : null;
+  const mediaId = typeof record.mediaId === "string" && record.mediaId.trim() ? record.mediaId.trim() : null;
+  const imageSha256 = typeof record.imageSha256 === "string" && record.imageSha256.trim() ? record.imageSha256.trim() : null;
+  if (!imageUrl || !mediaId) return missingMainImageUpload("failed", "main_image_upload_response_missing_image_url_or_media_id");
+  return { status: "uploaded", imageUrl, mediaId, imageSha256, reason: null };
+};
+
 const buildMatchedItem = async (
   browser: BrowserController,
   taskId: string,
@@ -162,11 +207,12 @@ const buildMatchedItem = async (
   const mainImageEvidenceRef = hasRequiredField(inputItem, "mainImage")
     ? await captureMainImageEvidenceRef(browser, { taskId, sellerSku: inputItem.sellerSku, row })
     : null;
+  const mainImageUpload = await uploadMainImage(inputItem, row, taskId);
   const asinSnapshot = hasRequiredField(inputItem, "asin") ? row.asinSnapshot : null;
   const availableFbaUnits = hasRequiredField(inputItem, "availableInventory") ? row.availableFbaUnits : null;
   const actualInventoryUnits = hasRequiredField(inputItem, "actualInventory") ? row.actualInventoryUnits : null;
   const missingRequestedFields = inputItem.requiredFields.filter((field) => {
-    if (field === "mainImage") return !mainImageEvidenceRef;
+    if (field === "mainImage") return mainImageUpload?.status !== "uploaded";
     if (field === "asin") return !asinSnapshot;
     if (field === "availableInventory") return availableFbaUnits === null;
     return actualInventoryUnits === null;
@@ -182,6 +228,7 @@ const buildMatchedItem = async (
     asinSnapshot,
     sellerCentralTitleSnapshot: row.sellerCentralTitleSnapshot,
     sellerCentralMainImageEvidenceRef: mainImageEvidenceRef,
+    mainImageUpload,
     listingStatus: row.listingStatus,
     availableFbaUnits,
     actualInventoryUnits,
@@ -340,7 +387,7 @@ const submitInventorySearch = async (
   if (terminalStatus) {
     return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked", diagnostic);
   }
-  if (!submitResult.ok || !submitResult.inventorySearchButtonPoint || !submitResult.topGlobalSearchExcluded) {
+  if (!submitResult.ok || !submitResult.topGlobalSearchExcluded) {
     return buildMissingItem(input.item, input.snapshotAt, submitResult.reason ?? "inventory_filter_shadow_input_submit_failed", "blocked", diagnostic);
   }
   const searchClickDelayMs = Math.min(Math.max(submitResult.searchClickDelayMs ?? 1000, 1000), 2000);
@@ -348,13 +395,23 @@ const submitInventorySearch = async (
     reachedStep: `seller_central_inventory_filter_submit_started:${input.item.sellerSku}`,
   });
   await input.browser.wait(searchClickDelayMs);
-  await input.browser.click({
-    targetLabel: "Seller Central inventory filter search button",
-    point: submitResult.inventorySearchButtonPoint,
-    coordinateSpace: "browserViewport",
-    button: "left",
-    clickCount: 1,
+  const clickResult = await input.browser.evaluateActiveTab<InventorySearchButtonClickResult>({
+    description: `amazon-product-sync click inventory filter search button DOM ${input.item.sellerSku}`,
+    script: buildInventorySearchButtonClickScript(input.item.sellerSku),
   });
+  const clickDiagnostic = buildDiagnostic({
+    detectedState: clickResult.detectedState,
+    stageName: "seller_central_inventory_filter_button_click",
+    title: clickResult.title,
+    url: clickResult.url,
+  });
+  const clickTerminalStatus = terminalTaskStatusFromPage(clickResult.detectedState);
+  if (clickTerminalStatus) {
+    return buildMissingItem(input.item, input.snapshotAt, clickTerminalStatus, "blocked", clickDiagnostic);
+  }
+  if (!clickResult.ok || !clickResult.clickedButton || !clickResult.topGlobalSearchExcluded) {
+    return buildMissingItem(input.item, input.snapshotAt, clickResult.reason ?? "inventory_filter_search_button_dom_click_failed", "blocked", clickDiagnostic);
+  }
   await input.browser.wait(900);
   await input.onProgress?.({
     reachedStep: `seller_central_inventory_filter_submit_finished:${input.item.sellerSku}`,
@@ -412,7 +469,7 @@ const waitForInventorySearchResult = async (
   input: SearchAndExtractInput,
 ): Promise<ExtractedPage | AmazonProductSyncResultItem> => {
   let lastPage: ExtractedPage | null = null;
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 24; attempt += 1) {
     const page = await extractInventoryPage(input, { requireSearchVerified: false });
     if ("status" in page) return page;
     if (page.searchVerified) return page;

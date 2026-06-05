@@ -33,6 +33,7 @@ const skillLabels = {
   "tiktok-product-mining": "TikTok Product Mining",
   "deep-research-analysis": "Deep Research Analysis",
   "video-downloader": "Video Downloader",
+  "media-optimizer": "Media Optimizer",
   "amazon-invoice-upload": "Amazon Invoice Upload",
 };
 const jobToSkill = {
@@ -41,6 +42,8 @@ const jobToSkill = {
   "facebook-video-mining": "facebook-video-mining",
   "video-download": "video-downloader",
   "video-downloader": "video-downloader",
+  "media-processing": "media-optimizer",
+  "media-optimizer": "media-optimizer",
   "deep-research": "deep-research-analysis",
   "deep-research-analysis": "deep-research-analysis",
   amazon: "amazon-invoice-upload",
