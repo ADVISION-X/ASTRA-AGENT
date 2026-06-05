@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 
+import sharp from "sharp";
+
 import {
   buildMediaProcessingArtifact,
   ensureMediaProcessingRunDir,
@@ -9,6 +11,7 @@ import type {
   MediaProcessingArtifact,
   ParsedMediaProcessingAbilityInput,
 } from "../schema.js";
+import { probeVideoOutputMetadata } from "./ffprobe-metadata.js";
 
 const runCommand = async (input: {
   command: string;
@@ -37,6 +40,7 @@ const runCommand = async (input: {
 
 export const runFfmpegVideoForWeb = async (input: {
   ffmpegPath: string;
+  ffprobePath: string;
   dataDir: string;
   request: ParsedMediaProcessingAbilityInput;
   sourceFilePath: string;
@@ -72,14 +76,22 @@ export const runFfmpegVideoForWeb = async (input: {
       outputPath,
     ],
   });
+  const metadata = await probeVideoOutputMetadata({
+    ffprobePath: input.ffprobePath,
+    filePath: outputPath,
+    timeoutMs: input.request.timeoutMs,
+  });
   return [await buildMediaProcessingArtifact({
     input: input.request,
     filePath: outputPath,
     contentType: "video/mp4",
-    width: null,
-    height: null,
-    durationMs: null,
-    format: "mp4",
+    width: metadata.width,
+    height: metadata.height,
+    durationMs: metadata.durationMs,
+    format: metadata.format,
+    videoCodec: metadata.videoCodec,
+    audioCodec: metadata.audioCodec,
+    fastStart: metadata.fastStart,
     derivativeKind: input.mode === "compressed" ? "video_compressed" : "video_optimized",
   })];
 };
@@ -106,12 +118,13 @@ export const runFfmpegPosterForWeb = async (input: {
       outputPath,
     ],
   });
+  const metadata = await sharp(outputPath).metadata();
   return [await buildMediaProcessingArtifact({
     input: input.request,
     filePath: outputPath,
     contentType: input.request.outputFormat === "jpeg" ? "image/jpeg" : "image/webp",
-    width: null,
-    height: null,
+    width: metadata.width ?? null,
+    height: metadata.height ?? null,
     durationMs: null,
     format: input.request.outputFormat,
     derivativeKind: "poster",
