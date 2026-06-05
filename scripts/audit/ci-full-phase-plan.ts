@@ -74,6 +74,8 @@ export const acceptanceSteps: readonly CommandStep[] = [
   createAcceptanceStep("amazon-product-sync", ["npm", "run", "acceptance:amazon-product-sync"], "scripts/acceptance/amazon-product-sync.acceptance.ts", "Run npm run acceptance:amazon-product-sync directly and repair the first failing Amazon product sync assertion."),
   createAcceptanceStep("video-download-telegram-web", ["npm", "run", "acceptance:video-download-telegram-web"], "scripts/acceptance/video-download-telegram-web.acceptance.ts", "Run npm run acceptance:video-download-telegram-web directly and repair the first failing video-download acceptance."),
   createAcceptanceStep("video-download-youtube-production", ["npm", "run", "acceptance:video-download-youtube-production"], "scripts/acceptance/video-download-youtube-production.acceptance.ts", "Run npm run acceptance:video-download-youtube-production directly and repair the first failing YouTube production assertion."),
+  createAcceptanceStep("media-processing", ["npm", "run", "acceptance:media-processing"], "scripts/acceptance/media-processing-image.acceptance.ts", "Run npm run acceptance:media-processing directly and repair the first failing media-processing assertion."),
+  createAcceptanceStep("media-optimizer-app-ui", ["npm", "run", "acceptance:media-optimizer-app-ui"], "scripts/acceptance/media-optimizer-app-ui.acceptance.ts", "Run npm run acceptance:media-optimizer-app-ui directly and repair the first failing Media Optimizer UI assertion."),
 ];
 
 export const plannedSteps: readonly PlannedStep[] = [

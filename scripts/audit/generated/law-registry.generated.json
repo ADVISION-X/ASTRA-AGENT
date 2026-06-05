@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T09:12:50.093Z",
+  "generatedAt": "2026-06-05T09:30:56.615Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -309,6 +309,24 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 11
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-product-fee-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs+acceptance",
+      "summary": "Amazon product fee sync must be an independent read-only job flow with bounded Seller Central fee evidence.",
+      "forbidden": [
+        "Seller Central write-back",
+        "DOM selector control by external callers",
+        "fee fields in amazon-product-sync requiredFields",
+        "residual mislabeled as referral fee",
+        "raw HTML/cookie/credential evidence leakage"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
+      "blockIndex": 0
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -2897,6 +2915,116 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
       "blockIndex": 4
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "media-processing is the only governed owner for local media artifact optimization into website-ready video and image artifacts.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "media-processing may process only user-authorized local files or governed local artifact refs; remote acquisition and credentialed source access are outside this group.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "media-processing exposes bounded atomic child abilities; each invocation processes one source media artifact and must not hide workflow logic.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "Consumers may call media-processing only through its explicit public facade; UI, routes, and job flows must not import private runtime files.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "runtime+ast",
+      "summary": "media-processing runtime dependencies must be prepared, validated, bounded, and invoked through internal safe adapters only.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "media-processing success must produce validated website-ready outputs with complete metadata, not merely copied or renamed files.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+runtime",
+      "summary": "media-processing may write governed output artifacts and proof refs but must not create a second evidence or logging chain.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+route-inspection",
+      "summary": "App Shell skills and routes are user surfaces only; long media processing must enter a governed job-flow or mediator path and call the ability group public facade.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+runtime+ast",
+      "summary": "media-processing must enforce local-file safety, bounded resource usage, and safe command execution.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "media-processing-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "hybrid",
+      "summary": "media-processing cannot be called production-stable until law, blueprint, implementation, inspector, acceptance, and ci:full verification are aligned.",
+      "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+      "blockIndex": 9
     },
     {
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",

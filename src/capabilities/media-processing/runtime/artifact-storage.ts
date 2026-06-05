@@ -16,6 +16,9 @@ export type MediaProcessingArtifactBuildInput = {
   height: number | null;
   durationMs: number | null;
   format: string;
+  videoCodec?: string | null;
+  audioCodec?: string | null;
+  fastStart?: boolean | null;
   derivativeKind: MediaProcessingArtifact["derivativeKind"];
 };
 
@@ -56,6 +59,9 @@ export const buildMediaProcessingArtifact = async (
     height: artifactInput.height,
     durationMs: artifactInput.durationMs,
     format: artifactInput.format,
+    videoCodec: artifactInput.videoCodec ?? null,
+    audioCodec: artifactInput.audioCodec ?? null,
+    fastStart: artifactInput.fastStart ?? null,
     derivativeKind: artifactInput.derivativeKind,
   };
 };

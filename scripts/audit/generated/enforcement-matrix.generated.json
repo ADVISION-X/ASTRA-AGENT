@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T09:12:50.093Z",
+  "generatedAt": "2026-06-05T09:30:56.615Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -264,6 +264,23 @@
         "APEX-LOCAL-APP-SHELL-003-V1",
         "APEX-LOCAL-APP-SHELL-004-V1",
         "APEX-LOCAL-APP-SHELL-005-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "media-processing-capability",
+      "manifestPath": "scripts/audit/domains/media-processing-capability/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/media-processing-capability/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+        "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1"
       ]
     },
     {

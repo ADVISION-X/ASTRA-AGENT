@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import {
   MEDIA_PROCESSING_ABILITY_GROUP_ID,
   type ParsedMediaProcessingAbilityInput,
@@ -34,6 +36,10 @@ const executeImageChild = async (
 ) => {
   const startedAt = new Date().toISOString();
   let sourceByteSize: number | null = null;
+  const allowedRoots = [
+    path.join(context.dataDir, "runtime-data", "media-processing-uploads"),
+    path.join(context.dataDir, "runtime-data", "media-processing-artifacts"),
+  ];
   try {
     const readiness = await prepareMediaProcessingRuntimeDependencies();
     if (!readiness.image.available) {
@@ -44,7 +50,7 @@ const executeImageChild = async (
         "review_required",
       );
     }
-    const source = await validateMediaSourceFile(input.inputFilePath);
+    const source = await validateMediaSourceFile(input.inputFilePath, allowedRoots);
     sourceByteSize = source.byteSize;
     if (!isSupportedImageExtension(source.extension)) {
       return buildMediaProcessingFailure(
@@ -67,10 +73,12 @@ const executeImageChild = async (
       outputArtifacts,
     });
   } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
     return buildMediaProcessingFailure(
       { input, dataDir: context.dataDir, startedAt, inputByteSize: sourceByteSize },
-      "image_processing_failed",
-      error instanceof Error ? error.message : String(error),
+      reason === "media_input_outside_allowed_roots" ? "media_input_outside_allowed_roots" : "image_processing_failed",
+      reason,
+      reason === "media_input_outside_allowed_roots" ? "invalid_input" : "failed",
     );
   }
 };

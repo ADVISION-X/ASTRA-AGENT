@@ -1,5 +1,25 @@
 {
-  "generatedAt": "2026-06-04T09:12:50.093Z",
-  "status": "PASS",
-  "conflicts": []
+  "generatedAt": "2026-06-05T09:30:56.615Z",
+  "status": "FAIL",
+  "conflicts": [
+    {
+      "kind": "manifest-parse-error",
+      "filePath": "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityDomain\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ownerInspectorPath\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"expected\": \"'foundation' | 'domain' | 'meta'\",\n    \"received\": \"undefined\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"executionGroup\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"coverage\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"unrecognized_keys\",\n    \"keys\": [\n      \"domain\",\n      \"lawId\",\n      \"owner\",\n      \"status\",\n      \"sourceLaw\",\n      \"blueprint\"\n    ],\n    \"path\": [],\n    \"message\": \"Unrecognized key(s) in object: 'domain', 'lawId', 'owner', 'status', 'sourceLaw', 'blueprint'\"\n  }\n]"
+    },
+    {
+      "kind": "missing-manifest",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "capabilityDomain": "amazon-product-fee-sync",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
+      "message": "No manifest found for capabilityDomain amazon-product-fee-sync."
+    },
+    {
+      "kind": "uncovered-law",
+      "capabilityDomain": "amazon-product-fee-sync",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "message": "Active law GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1 has no generated static clause coverage."
+    }
+  ]
 }

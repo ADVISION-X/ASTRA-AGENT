@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-04T09:12:50.093Z",
+  "generatedAt": "2026-06-05T09:30:56.615Z",
   "summary": {
-    "activeLawCount": 200,
-    "coveredLawCount": 200,
+    "activeLawCount": 211,
+    "coveredLawCount": 210,
     "coveragePercent": 100
   },
   "coverage": [
@@ -1635,6 +1635,106 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "capabilityDomain": "media-processing-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/media-processing-capability/manifest.json"
         }
       ]
     },

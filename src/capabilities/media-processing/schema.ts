@@ -28,6 +28,14 @@ const MediaProcessingPresetIdSchema = z.enum([
   "web-video-poster",
 ]);
 
+export const mediaProcessingPresetIds = [
+  "web-image",
+  "web-image-responsive",
+  "web-video",
+  "web-video-compressed",
+  "web-video-poster",
+] as const satisfies readonly z.infer<typeof MediaProcessingPresetIdSchema>[];
+
 const MediaProcessingImageFormatSchema = z.enum(["webp", "jpeg", "png"]);
 const MediaProcessingVideoFormatSchema = z.enum(["mp4"]);
 
@@ -119,6 +127,9 @@ const MediaProcessingArtifactSchema = z.object({
   height: z.number().int().positive().nullable(),
   durationMs: z.number().nonnegative().nullable(),
   format: z.string().min(1),
+  videoCodec: z.string().min(1).nullable(),
+  audioCodec: z.string().min(1).nullable(),
+  fastStart: z.boolean().nullable(),
   derivativeKind: z.enum(["optimized", "resized", "responsive_variant", "video_optimized", "video_compressed", "poster"]),
 }).strict();
 
@@ -164,7 +175,7 @@ export const MediaProcessingResultSchema = z.object({
 }).strict();
 
 export type MediaProcessingChildCapabilityId = z.infer<typeof MediaProcessingChildCapabilityIdSchema>;
-export type MediaProcessingPublicRequest = z.infer<typeof MediaProcessingPublicRequestSchema>;
+export type MediaProcessingPublicRequest = z.input<typeof MediaProcessingPublicRequestSchema>;
 export type MediaProcessingAbilityInput = z.input<typeof MediaProcessingAbilityInputSchema>;
 export type ParsedMediaProcessingAbilityInput = z.infer<typeof MediaProcessingAbilityInputSchema>;
 export type MediaProcessingResult = z.infer<typeof MediaProcessingResultSchema>;
