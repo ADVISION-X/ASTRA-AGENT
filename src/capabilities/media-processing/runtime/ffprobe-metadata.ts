@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { open } from "node:fs/promises";
 
 export type FfprobeVideoMetadata = {
   width: number;
@@ -78,6 +79,30 @@ const positiveInteger = (value: unknown): number | null => {
 const stringValue = (value: unknown): string | null =>
   typeof value === "string" && value.trim() ? value.trim() : null;
 
+const atomIndex = (buffer: Buffer, atom: string): number => {
+  const marker = Buffer.from(atom, "ascii");
+  for (let index = 4; index <= buffer.length - marker.length; index += 1) {
+    if (buffer.subarray(index, index + marker.length).equals(marker)) {
+      return index - 4;
+    }
+  }
+  return -1;
+};
+
+const hasFastStartMoovAtom = async (filePath: string): Promise<boolean> => {
+  const handle = await open(filePath, "r");
+  try {
+    const buffer = Buffer.alloc(1024 * 1024);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    const header = buffer.subarray(0, bytesRead);
+    const moovIndex = atomIndex(header, "moov");
+    const mdatIndex = atomIndex(header, "mdat");
+    return moovIndex >= 0 && (mdatIndex < 0 || moovIndex < mdatIndex);
+  } finally {
+    await handle.close();
+  }
+};
+
 export const probeVideoOutputMetadata = async (input: {
   ffprobePath: string;
   filePath: string;
@@ -102,6 +127,6 @@ export const probeVideoOutputMetadata = async (input: {
     format,
     videoCodec,
     audioCodec: stringValue(audioStream?.codec_name),
-    fastStart: rawFormat?.split(",").includes("mp4") ?? false,
+    fastStart: format === "mp4" ? await hasFastStartMoovAtom(input.filePath) : false,
   };
 };

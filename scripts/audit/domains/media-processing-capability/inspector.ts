@@ -11,6 +11,7 @@ type Finding = ReturnType<typeof createFinding>;
 
 const lawPath = ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md";
 const blueprintPath = "docs/法案辅助文件/GrassEye Media Processing 媒体处理能力组施工图.md";
+const dependencyReadinessPath = "src/capabilities/media-processing/dependency-readiness.ts";
 
 const governedFiles = [
   "src/capabilities/media-processing/schema.ts",
@@ -26,7 +27,7 @@ const governedFiles = [
   "src/capabilities/media-processing/runtime/hash-stream.ts",
   "src/capabilities/media-processing/runtime/media-source.ts",
   "src/capabilities/media-processing/runtime/result.ts",
-  "src/capabilities/media-processing/runtime/runtime-dependencies.ts",
+  "src/capabilities/media-processing/dependency-readiness.ts",
   "src/capabilities/media-processing/runtime/sharp-runner.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
@@ -54,12 +55,12 @@ const expectedChildren = [
 ] as const;
 
 const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> = {
-  "optimize-video-for-web-once": "optimizeVideoForWeb",
-  "compress-video-for-web-once": "compressVideoForWeb",
-  "generate-video-poster-once": "generateVideoPosterForWeb",
-  "optimize-image-for-web-once": "optimizeImageForWeb",
-  "resize-image-for-web-once": "resizeImageForWeb",
-  "generate-responsive-image-variants-once": "generateResponsiveImageSet",
+  "optimize-video-for-web-once": "createOptimizeVideoForWeb",
+  "compress-video-for-web-once": "createCompressVideoForWeb",
+  "generate-video-poster-once": "createGenerateVideoPosterForWeb",
+  "optimize-image-for-web-once": "createOptimizeImageForWeb",
+  "resize-image-for-web-once": "createResizeImageForWeb",
+  "generate-responsive-image-variants-once": "createGenerateResponsiveImageSet",
 };
 
 const forbiddenMediaOwnerNames = [
@@ -93,14 +94,17 @@ const requiredSourceFile = (
   return null;
 };
 
-const identifierName = (node: Node): string | null =>
-  Node.isIdentifier(node) ? String(node.compilerNode.escapedText) : null;
-
 const callExpressionName = (call: CallExpression): string => {
   const expression = call.getExpression();
   if (Node.isIdentifier(expression)) return String(expression.compilerNode.escapedText);
   if (Node.isPropertyAccessExpression(expression)) return expression.getName();
   return "";
+};
+
+const registryElementName = (node: Node): string | null => {
+  if (Node.isIdentifier(node)) return String(node.compilerNode.escapedText);
+  if (Node.isCallExpression(node)) return callExpressionName(node);
+  return null;
 };
 
 const stringLiteralValues = (source: SourceFile): string[] => [
@@ -191,7 +195,7 @@ const inspectSchemaAndRegistry = (context: InspectorContext, findings: Finding[]
     registry.getVariableDeclaration("MEDIA_PROCESSING_CHILDREN")
       ?.getInitializerIfKind(SyntaxKind.ArrayLiteralExpression)
       ?.getElements()
-      .map((element) => identifierName(element))
+      .map((element) => registryElementName(element))
       .filter((value): value is string => value !== null) ?? [],
   );
   for (const child of expectedChildren) {
@@ -283,13 +287,7 @@ const inspectGeneratedPlanVisibility = (context: InspectorContext, findings: Fin
   }
 };
 
-const inspectFfprobeAndMetadataProof = (context: InspectorContext, findings: Finding[], lawId: string): void => {
-  const runner = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/ffmpeg-runner.ts");
-  const ffprobe = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/ffprobe-metadata.ts");
-  const dependencies = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/runtime-dependencies.ts");
-  const result = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/result.ts");
-  if (!runner || !ffprobe || !dependencies || !result) return;
-
+const inspectFfprobeRunnerProof = (runner: SourceFile, ffprobe: SourceFile, findings: Finding[], lawId: string): void => {
   if (!callNames(runner).has("probeVideoOutputMetadata")) {
     pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/ffmpeg-runner.ts", "media-processing/video-ffprobe-metadata", "Video ffmpeg runner must validate output with ffprobe before success.");
   }
@@ -305,14 +303,52 @@ const inspectFfprobeAndMetadataProof = (context: InspectorContext, findings: Fin
       }
     }
   }
+};
+
+const inspectRuntimeReadinessProof = (dependencies: SourceFile, findings: Finding[], lawId: string): void => {
   if (!callNames(dependencies).has("resolveFfprobeStaticPath") || !hasStringLiteral(dependencies, "ffprobe_runtime_unavailable")) {
-    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/runtime-dependencies.ts", "media-processing/ffprobe-readiness-proof", "Runtime readiness must prove ffprobePath as part of video availability.");
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/ffprobe-readiness-proof", "Runtime readiness must prove ffprobePath as part of video availability.");
   }
   if (!callNames(dependencies).has("resolveFfmpegStaticPath") || !hasStringLiteral(dependencies, "ffmpeg-static")) {
-    pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/runtime-dependencies.ts", "media-processing/ffmpeg-packaged-readiness", "Runtime readiness must prefer packaged ffmpeg-static before PATH ffmpeg for production video closure.");
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/ffmpeg-packaged-readiness", "Runtime readiness must prefer packaged ffmpeg-static before PATH ffmpeg for production video closure.");
   }
+};
+
+const inspectFfprobeAndMetadataProof = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const runner = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/ffmpeg-runner.ts");
+  const ffprobe = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/ffprobe-metadata.ts");
+  const dependencies = requiredSourceFile(context, findings, lawId, dependencyReadinessPath);
+  const result = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/runtime/result.ts");
+  if (!runner || !ffprobe || !dependencies || !result) return;
+
+  inspectFfprobeRunnerProof(runner, ffprobe, findings, lawId);
+  inspectRuntimeReadinessProof(dependencies, findings, lawId);
   if (!callNames(result).has("writeMediaProcessingProof")) {
     pushFinding(findings, lawId, "src/capabilities/media-processing/runtime/result.ts", "media-processing/proof-ref-file-path", "Result builder must write a media-processing proof file before returning proofRef.");
+  }
+};
+
+const inspectLatestDependencyUseGate = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const dependencies = requiredSourceFile(context, findings, lawId, dependencyReadinessPath);
+  const abilityGroup = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/ability-group.ts");
+  if (!dependencies || !abilityGroup) return;
+
+  if (!dependencies.getVariableDeclaration("MEDIA_PROCESSING_LATEST_DEPENDENCY_PACKAGES")) {
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-package-list", "Runtime dependency gate must declare the governed latest dependency package list.");
+  }
+  for (const packageName of ["sharp", "@img/sharp-darwin-arm64", "ffmpeg-static", "ffprobe-static"]) {
+    if (!hasStringLiteral(dependencies, packageName)) {
+      pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-package-covered", `Latest dependency gate must cover ${packageName}.`);
+    }
+  }
+  if (!dependencies.getVariableDeclaration("ensureMediaProcessingLatestDependenciesForUse")) {
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-gate-function", "Runtime dependencies must expose ensureMediaProcessingLatestDependenciesForUse.");
+  }
+  if (!callNames(dependencies).has("execFileAsync") || !hasStringLiteral(dependencies, "outdated") || !hasStringLiteral(dependencies, "install") || !hasStringLiteral(dependencies, "@latest")) {
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-npm-latest", "Latest dependency gate must use bounded npm outdated/install @latest through execFile.");
+  }
+  if (!callNames(abilityGroup).has("ensureMediaProcessingLatestDependenciesForUse") || !hasStringLiteral(abilityGroup, "media_processing_dependency_latest_refresh_failed")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/ability-group.ts", "media-processing/latest-dependency-before-child", "Ability group execution must refresh/confirm latest dependencies before child processing starts.");
   }
 };
 
@@ -357,6 +393,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAppShellSkillBoundary(context, findings, lawId);
   inspectGeneratedPlanVisibility(context, findings, lawId);
   inspectFfprobeAndMetadataProof(context, findings, lawId);
+  inspectLatestDependencyUseGate(context, findings, lawId);
   inspectNoVideoDownloadOwnerLeak(context, findings, lawId);
   inspectNoParallelMediaOwner(context, findings, lawId);
 

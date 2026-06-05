@@ -19,6 +19,9 @@ export type MediaProcessingArtifactBuildInput = {
   videoCodec?: string | null;
   audioCodec?: string | null;
   fastStart?: boolean | null;
+  targetMaxBytes?: number | null;
+  targetBitrateKbps?: number | null;
+  sourceByteSize?: number | null;
   derivativeKind: MediaProcessingArtifact["derivativeKind"];
 };
 
@@ -62,6 +65,11 @@ export const buildMediaProcessingArtifact = async (
     videoCodec: artifactInput.videoCodec ?? null,
     audioCodec: artifactInput.audioCodec ?? null,
     fastStart: artifactInput.fastStart ?? null,
+    targetMaxBytes: artifactInput.targetMaxBytes ?? null,
+    targetBitrateKbps: artifactInput.targetBitrateKbps ?? null,
+    compressionRatio: artifactInput.sourceByteSize && artifactInput.sourceByteSize > 0
+      ? details.size / artifactInput.sourceByteSize
+      : null,
     derivativeKind: artifactInput.derivativeKind,
   };
 };

@@ -21,7 +21,7 @@ import {
   runResizeImageForWeb,
   runResponsiveImageSetForWeb,
 } from "../runtime/sharp-runner.js";
-import { prepareMediaProcessingRuntimeDependencies } from "../runtime/runtime-dependencies.js";
+import { prepareMediaProcessingRuntimeDependencies } from "../dependency-readiness.js";
 
 type ImageRunner = (input: {
   dataDir: string;
@@ -83,26 +83,26 @@ const executeImageChild = async (
   }
 };
 
-export const optimizeImageForWeb: MediaProcessingChildCapability = {
+export const createOptimizeImageForWeb = (): MediaProcessingChildCapability => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   childCapabilityId: "optimize-image-for-web-once",
   execute(input, context) {
     return executeImageChild(input, context, runOptimizeImageForWeb);
   },
-};
+});
 
-export const resizeImageForWeb: MediaProcessingChildCapability = {
+export const createResizeImageForWeb = (): MediaProcessingChildCapability => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   childCapabilityId: "resize-image-for-web-once",
   execute(input, context) {
     return executeImageChild(input, context, runResizeImageForWeb);
   },
-};
+});
 
-export const generateResponsiveImageSet: MediaProcessingChildCapability = {
+export const createGenerateResponsiveImageSet = (): MediaProcessingChildCapability => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   childCapabilityId: "generate-responsive-image-variants-once",
   execute(input, context) {
     return executeImageChild(input, context, runResponsiveImageSetForWeb);
   },
-};
+});

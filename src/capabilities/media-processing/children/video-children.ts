@@ -16,7 +16,7 @@ import {
   buildMediaProcessingFailure,
   buildMediaProcessingSuccess,
 } from "../runtime/result.js";
-import { prepareMediaProcessingRuntimeDependencies } from "../runtime/runtime-dependencies.js";
+import { prepareMediaProcessingRuntimeDependencies } from "../dependency-readiness.js";
 import {
   runFfmpegPosterForWeb,
   runFfmpegVideoForWeb,
@@ -61,6 +61,7 @@ const executeVideoChild = async (
           dataDir: context.dataDir,
           request: input,
           sourceFilePath: source.filePath,
+          sourceByteSize,
         })
       : await runFfmpegVideoForWeb({
           ffmpegPath: readiness.video.ffmpegPath,
@@ -68,6 +69,7 @@ const executeVideoChild = async (
           dataDir: context.dataDir,
           request: input,
           sourceFilePath: source.filePath,
+          sourceByteSize,
           mode,
         });
     return buildMediaProcessingSuccess({
@@ -88,26 +90,26 @@ const executeVideoChild = async (
   }
 };
 
-export const optimizeVideoForWeb: MediaProcessingChildCapability = {
+export const createOptimizeVideoForWeb = (): MediaProcessingChildCapability => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   childCapabilityId: "optimize-video-for-web-once",
   execute(input, context) {
     return executeVideoChild(input, context, "optimized");
   },
-};
+});
 
-export const compressVideoForWeb: MediaProcessingChildCapability = {
+export const createCompressVideoForWeb = (): MediaProcessingChildCapability => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   childCapabilityId: "compress-video-for-web-once",
   execute(input, context) {
     return executeVideoChild(input, context, "compressed");
   },
-};
+});
 
-export const generateVideoPosterForWeb: MediaProcessingChildCapability = {
+export const createGenerateVideoPosterForWeb = (): MediaProcessingChildCapability => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   childCapabilityId: "generate-video-poster-once",
   execute(input, context) {
     return executeVideoChild(input, context, "poster");
   },
-};
+});

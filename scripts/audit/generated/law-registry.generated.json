@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-05T09:49:23.138Z",
+  "generatedAt": "2026-06-05T11:07:39.880Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -2967,7 +2967,7 @@
       "capabilityDomain": "media-processing-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "runtime+ast",
-      "summary": "media-processing runtime dependencies must be prepared, validated, bounded, and invoked through internal safe adapters only.",
+      "summary": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only.",
       "filePath": ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
       "blockIndex": 4
     },

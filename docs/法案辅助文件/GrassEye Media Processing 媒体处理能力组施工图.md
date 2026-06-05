@@ -1,7 +1,7 @@
 # GrassEye Media Processing 媒体处理能力组施工图
 
 status: active
-version: 2026-06-05-v1
+version: 2026-06-05-v2
 lawModule: `.github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md`
 capabilityDomain: `media-processing-capability`
 canonicalRoot: `src/capabilities/media-processing/`
@@ -237,8 +237,13 @@ export {
 export {
   createMediaProcessingAbilityGroup,
   createMediaProcessingAbilityGroupFromFilesystem,
-  prepareMediaProcessingRuntimeDependencies,
 } from "./ability-group.js";
+
+export {
+  ensureMediaProcessingLatestDependenciesForUse,
+  MEDIA_PROCESSING_LATEST_DEPENDENCY_PACKAGES,
+  prepareMediaProcessingRuntimeDependencies,
+} from "./runtime/runtime-dependencies.js";
 ```
 
 禁止：
@@ -643,6 +648,56 @@ type MediaProcessingFailure = {
 
 ## 17. Runtime Adapter 图纸
 
+### 17.0 Latest Dependency Use Gate
+
+生产目标：
+
+```txt
+每一次媒体处理 public use 进入 child ability 之前，
+都先由 media-processing 自己确认图片/视频处理依赖是 npm latest。
+```
+
+治理包清单：
+
+```txt
+- sharp
+- @img/sharp-darwin-arm64
+- ffmpeg-static
+- ffprobe-static
+```
+
+执行位置：
+
+```txt
+processMedia / execute
+  -> ensureMediaProcessingLatestDependenciesForUse
+  -> child.execute
+```
+
+要求：
+
+```txt
+- 使用 npm outdated --json 检查治理包
+- 只对 outdated 包执行 npm install <package>@latest
+- 使用 execFile/argv 数组模式，禁止 shell:true
+- bounded timeout
+- 并发调用必须共用同一个 refresh promise
+- 返回 already_latest / updated / failed
+- failed 必须在 child processing 之前返回 structured review_required/failed
+- 不依赖某一种启动方式；startup --update 只能是额外 preflight，不能是本目标的唯一保证
+```
+
+禁止：
+
+```txt
+- 新增 standalone updater
+- 新增第二 dependency truth
+- 把 latest gate 放到 App Shell UI
+- 把 latest gate 放到 video-download
+- route/plugin 直接调用 npm 或 runtime runner
+- latest gate 失败后继续调用 sharp/ffmpeg/ffprobe
+```
+
 ### 17.1 ffmpeg-runner
 
 要求：
@@ -721,6 +776,7 @@ type MediaProcessingFailure = {
 MEDIA_PROCESSING_REQUEST_ACCEPTED
 MEDIA_PROCESSING_SOURCE_VALIDATION_STARTED
 MEDIA_PROCESSING_SOURCE_VALIDATION_COMPLETED
+MEDIA_PROCESSING_LATEST_DEPENDENCY_REFRESHED
 MEDIA_PROCESSING_RUNTIME_DEPENDENCY_CHECKED
 MEDIA_PROCESSING_PRESET_RESOLVED
 MEDIA_PROCESSING_PROCESS_STARTED
@@ -959,6 +1015,8 @@ Fixtures：
 
 ```txt
 - prepareMediaProcessingRuntimeDependencies
+- ensureMediaProcessingLatestDependenciesForUse
+- MEDIA_PROCESSING_LATEST_DEPENDENCY_PACKAGES
 - ffmpeg-runner
 - ffprobe-runner
 - optimize-video-for-web-once

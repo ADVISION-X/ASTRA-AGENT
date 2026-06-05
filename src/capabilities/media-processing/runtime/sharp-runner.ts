@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import sharp from "sharp";
+import type { Sharp } from "sharp";
 
 import type {
   MediaProcessingArtifact,
@@ -25,10 +25,10 @@ const contentTypeForImageFormat = (format: string): string => {
 };
 
 const imagePipelineForFormat = (
-  pipeline: sharp.Sharp,
+  pipeline: Sharp,
   format: string,
   quality: number,
-): sharp.Sharp => {
+): Sharp => {
   if (format === "jpeg") {
     return pipeline.jpeg({ quality, mozjpeg: true });
   }
@@ -38,6 +38,8 @@ const imagePipelineForFormat = (
   return pipeline.webp({ quality });
 };
 
+const loadSharp = async () => (await import("sharp")).default;
+
 const runSingleImageOutput = async (input: {
   dataDir: string;
   request: ParsedMediaProcessingAbilityInput;
@@ -45,6 +47,7 @@ const runSingleImageOutput = async (input: {
   plan: ImageOutputPlan;
   format: string;
 }): Promise<MediaProcessingArtifact> => {
+  const sharp = await loadSharp();
   const runDir = await ensureMediaProcessingRunDir(input.dataDir, input.request);
   const outputPath = path.join(runDir, input.plan.outputFileName);
   let pipeline = sharp(input.sourceFilePath).rotate();
@@ -105,6 +108,7 @@ export const runResponsiveImageSetForWeb = async (input: {
   request: ParsedMediaProcessingAbilityInput;
   sourceFilePath: string;
 }): Promise<MediaProcessingArtifact[]> => {
+  const sharp = await loadSharp();
   const metadata = await sharp(input.sourceFilePath).metadata();
   const sourceWidth = metadata.width ?? 1280;
   const requestedWidths = input.request.variantWidths ?? [320, 640, 960, 1280];

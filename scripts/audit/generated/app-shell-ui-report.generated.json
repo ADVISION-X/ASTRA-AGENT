@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T00:56:50.517Z",
+  "generatedAt": "2026-06-05T11:08:18.345Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -37,6 +37,9 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
+    "src/app/skills/media-optimizer/media-optimizer-client.ts",
+    "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+    "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
@@ -62,6 +65,7 @@
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
+    "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts"

@@ -1,5 +1,66 @@
 {
-  "generatedAt": "2026-06-04T00:56:40.848Z",
-  "itemCount": 0,
-  "items": []
+  "generatedAt": "2026-06-05T11:08:11.931Z",
+  "itemCount": 6,
+  "items": [
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:amazon-product-sync",
+      "reason": "Function near line 220 breaks function budget: cyclomatic complexity 18 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/app/create-workbench-server.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "app-shell",
+      "reason": "Function near line 144 breaks function budget: return branch count 9 exceeds red line 8.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "app-shell",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/app/workbench-media-processing-routes.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "app-shell",
+      "reason": "Function near line 236 breaks function budget: cyclomatic complexity 21 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "app-shell",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/app/workbench-media-processing-routes.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "app-shell",
+      "reason": "Function near line 374 breaks function budget: physical line count 83 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "app-shell",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:amazon-product-fee-sync",
+      "reason": "Function near line 214 breaks function budget: physical line count 150 exceeds red line 75; return branch count 10 exceeds red line 8; await count 13 exceeds red line 10; cyclomatic complexity 26 exceeds red line 16.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:amazon-product-sync",
+      "reason": "active executable source file has 559 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    }
+  ]
 }

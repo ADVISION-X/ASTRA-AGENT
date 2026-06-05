@@ -15,7 +15,8 @@ type CapabilityFacadePolicy = ReturnType<typeof resolveCapabilityFacadePolicy>;
 type PushFinding = (input: CapabilityGroupFindingInput) => void;
 
 const isFactoryContractValueExportAllowed = (capabilityRoot: string, targetPath: string): boolean =>
-  targetPath === `${capabilityRoot}/ability-group.ts`;
+  targetPath === `${capabilityRoot}/ability-group.ts`
+    || targetPath === `${capabilityRoot}/schema.ts`;
 
 const isRuntimeValueExportDeclaration = (
   exportDeclaration: ExportDeclaration,

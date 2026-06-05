@@ -1,8 +1,24 @@
 {
-  "domain": "amazon-product-fee-sync",
-  "lawId": "AMZMGR-AGENT-PRODUCT-FEE-SYNC-001-V1",
-  "owner": "plugin:amazon-product-fee-sync",
-  "status": "active",
-  "sourceLaw": ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
-  "blueprint": "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md"
+  "capabilityDomain": "amazon-product-fee-sync",
+  "ownerInspectorPath": "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
+      "requiredAnchors": [
+        "## Goal",
+        "## Required Result Contract",
+        "## DOM Plan",
+        "## Isolation Rules",
+        "## QA Plan"
+      ]
+    }
+  ],
+  "description": "Amazon product fee sync read-only Seller Central fee evidence owner audit."
 }

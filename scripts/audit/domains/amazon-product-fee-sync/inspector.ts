@@ -1,146 +1,304 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
-type Finding = {
-  readonly checkId: string;
-  readonly filePath: string;
-  readonly lawId: string;
-  readonly message: string;
-};
+import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { resolveFromRepo } from "../../shared/paths.js";
 
-const repoRoot = resolve(import.meta.dirname, "../../../..");
-const lawId = "AMZMGR-AGENT-PRODUCT-FEE-SYNC-001-V1";
+const domain = "amazon-product-fee-sync";
 
-const fromRepo = (filePath: string): string => resolve(repoRoot, filePath);
-const read = (filePath: string): string => readFileSync(fromRepo(filePath), "utf8");
+const schemaPath = "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts";
+const domScriptsPath = "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts";
+const flowPath = "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts";
+const storagePath = "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts";
+const taskServicePath = "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts";
+const indexPath = "src/plugins/amazon-product-fee-sync/index.ts";
+const routePath = "src/app/workbench-amazon-product-fee-sync-routes.ts";
+const apiBoundaryPath = "src/app/workbench-api-boundary.ts";
+const serverPath = "src/app/create-workbench-server.ts";
+const localRuntimePath = "src/lib/local-runtime/workbench.ts";
+const localRuntimeHandlePath = "src/lib/local-runtime/workbench-handle.ts";
+const acceptancePath = "scripts/acceptance/amazon-product-fee-sync.acceptance.ts";
+const selfPath = "scripts/audit/domains/amazon-product-fee-sync/inspector.ts";
+const manifestPath = "scripts/audit/domains/amazon-product-fee-sync/manifest.json";
+const lawPath = ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md";
+const blueprintPath = "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md";
 
-const findings: Finding[] = [];
-
-const addFinding = (filePath: string, message: string): void => {
-  findings.push({
-    checkId: "amazon-product-fee-sync/contract",
-    filePath,
-    lawId,
-    message,
-  });
-};
-
-const requiredFiles = [
-  ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
-  "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
-  "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
-  "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
-  "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
-  "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
-  "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
-  "src/plugins/amazon-product-fee-sync/index.ts",
-  "src/app/workbench-amazon-product-fee-sync-routes.ts",
-  "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
-  "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+const inspectedFiles = [
+  lawPath,
+  blueprintPath,
+  manifestPath,
+  selfPath,
+  schemaPath,
+  domScriptsPath,
+  flowPath,
+  storagePath,
+  taskServicePath,
+  indexPath,
+  routePath,
+  apiBoundaryPath,
+  serverPath,
+  localRuntimePath,
+  localRuntimeHandlePath,
+  acceptancePath,
 ] as const;
 
-for (const filePath of requiredFiles) {
-  if (!existsSync(fromRepo(filePath))) {
-    addFinding(filePath, "Required Amazon product fee sync artifact is missing.");
-  }
-}
+const sourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
+  context.project.getSourceFile(resolveFromRepo(repoPath));
 
-const assertContains = (filePath: string, tokens: readonly string[]): void => {
-  const source = existsSync(fromRepo(filePath)) ? read(filePath) : "";
-  for (const token of tokens) {
-    if (!source.includes(token)) {
-      addFinding(filePath, `Missing required token: ${token}`);
+const addFinding = (
+  findings: InspectorFinding[],
+  lawId: string,
+  filePath: string,
+  checkId: string,
+  message: string,
+): void => {
+  findings.push(createFinding({ checkId, filePath, lawId, message }));
+};
+
+const requireSourceFile = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+  repoPath: string,
+): SourceFile | null => {
+  const file = sourceFile(context, repoPath);
+  if (file) {
+    return file;
+  }
+  addFinding(findings, lawId, repoPath, "amazon-product-fee-sync/source-file-present", `${repoPath} must exist in the ts-morph project.`);
+  return null;
+};
+
+const literalValues = (source: SourceFile): Set<string> =>
+  new Set([
+    ...source.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralText()),
+    ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((literal) => literal.getLiteralText()),
+  ]);
+
+const hasLiteral = (source: SourceFile | null | undefined, value: string): boolean =>
+  Boolean(source && literalValues(source).has(value));
+
+const hasLiteralContaining = (source: SourceFile | null | undefined, value: string): boolean =>
+  Boolean(source && [...literalValues(source)].some((literal) => literal.includes(value)));
+
+const hasIdentifier = (source: SourceFile | null | undefined, name: string): boolean =>
+  Boolean(source?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === name));
+
+const hasCallName = (source: SourceFile | null | undefined, name: string): boolean =>
+  Boolean(source?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return (Node.isIdentifier(expression) && expression.getText() === name)
+      || (Node.isPropertyAccessExpression(expression) && expression.getName() === name);
+  }));
+
+const zEnumValues = (source: SourceFile, variableName: string): Set<string> => {
+  const initializer = source.getVariableDeclaration(variableName)?.getInitializer();
+  if (!initializer || !Node.isCallExpression(initializer)) {
+    return new Set();
+  }
+  const [firstArgument] = initializer.getArguments();
+  if (!firstArgument || !Node.isArrayLiteralExpression(firstArgument)) {
+    return new Set();
+  }
+  return new Set(firstArgument.getElements().flatMap((element) =>
+    Node.isStringLiteral(element) ? [element.getLiteralText()] : []));
+};
+
+const arrayVariableValues = (source: SourceFile, variableName: string): Set<string> => {
+  const initializer = source.getVariableDeclaration(variableName)?.getInitializer();
+  if (!initializer || !Node.isArrayLiteralExpression(initializer)) {
+    return new Set();
+  }
+  return new Set(initializer.getElements().flatMap((element) =>
+    Node.isStringLiteral(element) ? [element.getLiteralText()] : []));
+};
+
+const inspectSchema = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
+  if (!source) {
+    return;
+  }
+  const requiredFieldEnum = zEnumValues(source, "AmazonProductFeeSyncRequiredFieldSchema");
+  const allRequiredFields = arrayVariableValues(source, "AmazonProductFeeSyncAllRequiredFields");
+  for (const field of ["totalAmazonFee", "fbaFulfillmentFee"]) {
+    if (!requiredFieldEnum.has(field) || !allRequiredFields.has(field)) {
+      addFinding(findings, lawId, schemaPath, "amazon-product-fee-sync/required-fields", `${field} must be declared as a fixed-scope requested fee field.`);
+    }
+  }
+  if (!hasLiteral(source, "Amazon product fee sync must request totalAmazonFee and fbaFulfillmentFee together.")) {
+    addFinding(findings, lawId, schemaPath, "amazon-product-fee-sync/field-pair-rejection", "Schema must reject requests that do not ask for totalAmazonFee and fbaFulfillmentFee together.");
+  }
+  if (!hasLiteral(source, "Amazon product fee sync task must contain exactly one SKU item; website side owns the SKU queue.")) {
+    addFinding(findings, lawId, schemaPath, "amazon-product-fee-sync/single-sku", "Schema must reject multi-SKU fee sync task input.");
+  }
+  for (const forbidden of ["selector", "actionPlan", "browserCommand", "flowStep", "callbackUrl", "cookie", "sellerCentralCookie"]) {
+    if (hasLiteral(source, forbidden)) {
+      addFinding(findings, lawId, schemaPath, "amazon-product-fee-sync/external-control", `Schema must not expose external browser control field ${forbidden}.`);
     }
   }
 };
 
-const assertNotContains = (filePath: string, tokens: readonly string[]): void => {
-  const source = existsSync(fromRepo(filePath)) ? read(filePath) : "";
-  for (const token of tokens) {
-    if (source.includes(token)) {
-      addFinding(filePath, `Forbidden token is present: ${token}`);
+const inspectDomScripts = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
+  if (!source) {
+    return;
+  }
+  for (const required of [
+    "总费用",
+    "亚马逊物流费用",
+    "not_visible_in_current_dom",
+    "derived_total_minus_fba_not_referral",
+    "input[type='text'], input",
+  ]) {
+    if (!hasLiteral(source, required)) {
+      addFinding(findings, lawId, domScriptsPath, "amazon-product-fee-sync/dom-contract", `DOM scripts must preserve required fee/search literal ${required}.`);
+    }
+  }
+  for (const exportedFunction of [
+    "buildInventoryFeeSearchProbeScript",
+    "buildInventoryFeeSearchSubmitScript",
+    "buildInventoryFeeSearchButtonClickScript",
+    "buildInventoryFeeExtractionScript",
+    "parseAmazonFeeMoney",
+    "deriveAmazonFeeResidual",
+  ]) {
+    if (!hasIdentifier(source, exportedFunction)) {
+      addFinding(findings, lawId, domScriptsPath, "amazon-product-fee-sync/dom-export", `${exportedFunction} must remain owned by fee sync DOM scripts.`);
+    }
+  }
+  for (const templateToken of [
+    "form#sc-global-search-form",
+    "topGlobalSearchExcluded",
+    "Object.defineProperty",
+    "ProductDetails-module__container",
+    "JanusSplitBox-module__row",
+    "SKU",
+  ]) {
+    if (!hasLiteralContaining(source, templateToken)) {
+      addFinding(findings, lawId, domScriptsPath, "amazon-product-fee-sync/inventory-search", `DOM scripts must preserve inventory-filter search evidence token ${templateToken}.`);
+    }
+  }
+  if (hasLiteralContaining(source, "rowMatchScore") || hasLiteralContaining(source, "expectedOutputOverride")) {
+    addFinding(findings, lawId, domScriptsPath, "amazon-product-fee-sync/no-fuzzy-row-match", "DOM scripts must not use fuzzy row matching or expected output overrides.");
+  }
+};
+
+const inspectFlow = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
+  if (!source) {
+    return;
+  }
+  for (const required of [
+    "buildInventoryFeeSearchProbeScript",
+    "buildInventoryFeeSearchSubmitScript",
+    "buildInventoryFeeSearchButtonClickScript",
+    "buildInventoryFeeExtractionScript",
+    "rowEvidenceRef",
+    "feeEvidenceRef",
+    "not_visible_in_current_dom",
+  ]) {
+    if (!hasIdentifier(source, required) && !hasLiteral(source, required)) {
+      addFinding(findings, lawId, flowPath, "amazon-product-fee-sync/flow-contract", `Flow must preserve ${required}.`);
+    }
+  }
+  for (const forbiddenCall of ["setFileInputFiles", "type", "fill"]) {
+    if (hasCallName(source, forbiddenCall)) {
+      addFinding(findings, lawId, flowPath, "amazon-product-fee-sync/read-only-flow", `Fee sync flow must not call browser write primitive ${forbiddenCall}.`);
+    }
+  }
+  for (const forbiddenLiteral of ["callbackUrl", "rawHtml", "cookie", "password", "expectedOutputOverride"]) {
+    if (hasLiteral(source, forbiddenLiteral)) {
+      addFinding(findings, lawId, flowPath, "amazon-product-fee-sync/evidence-safety", `Flow must not expose ${forbiddenLiteral}.`);
     }
   }
 };
 
-assertContains("src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts", [
-  "totalAmazonFee",
-  "fbaFulfillmentFee",
-  ".length(1",
-  "Amazon product fee sync task must contain exactly one SKU item",
-]);
-
-assertContains("src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts", [
-  "总费用",
-  "亚马逊物流费用",
-  "form#sc-global-search-form",
-  "topGlobalSearchExcluded",
-  "ProductDetails-module__container",
-  "JanusSplitBox-module__row",
-  "not_visible_in_current_dom",
-  "derived_total_minus_fba_not_referral",
-]);
-
-assertContains("src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts", [
-  "reuse-host-tab",
-  "buildInventoryFeeSearchProbeScript",
-  "buildInventoryFeeExtractionScript",
-  "feeEvidenceRef",
-  "rowEvidenceRef",
-]);
-
-assertContains("src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts", [
-  "amazon_product_fee_sync.start_received",
-  "amazon_product_fee_sync.queued",
-  "amazon_product_fee_sync.progress",
-  "amazon_product_fee_sync.item_summary",
-  "amazon_product_fee_sync.flow_finished",
-  "amazon_product_fee_sync.flow_failed",
-  "amazon_product_fee_sync.stale_running_task_failed",
-]);
-
-assertContains("src/app/workbench-api-boundary.ts", [
-  "/api/plugins/amazon-product-fee-sync/start",
-  "/api/plugins/amazon-product-fee-sync/status/",
-  "/api/plugins/amazon-product-fee-sync/latest",
-  "amazon-product-fee-sync",
-]);
-
-assertContains("src/app/create-workbench-server.ts", [
-  "handleAmazonProductFeeSyncRequest",
-]);
-
-assertContains("src/lib/local-runtime/workbench.ts", [
-  "startAmazonProductFeeSyncTask",
-  "getAmazonProductFeeSyncTaskStatus",
-  "getLatestAmazonProductFeeSyncTask",
-]);
-
-assertContains("src/lib/local-runtime/workbench-handle.ts", [
-  "startAmazonProductFeeSyncTask",
-  "getAmazonProductFeeSyncTaskStatus",
-  "getLatestAmazonProductFeeSyncTask",
-]);
-
-assertContains("scripts/audit/config/plugin-status.json", [
-  "\"pluginId\": \"amazon-product-fee-sync\"",
-  "\"owner\": \"plugin:amazon-product-fee-sync\"",
-  "\"acceptance:amazon-product-fee-sync\"",
-  "\"audit:amazon-product-fee-sync\"",
-]);
-
-assertNotContains("src/plugins/amazon-product-sync/amazon-product-sync.schema.ts", [
-  "totalAmazonFee",
-  "fbaFulfillmentFee",
-]);
-
-const output = {
-  domain: "amazon-product-fee-sync",
-  ok: findings.length === 0,
-  findings,
+const inspectTaskService = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
+  if (!source) {
+    return;
+  }
+  for (const eventName of [
+    "amazon_product_fee_sync.start_received",
+    "amazon_product_fee_sync.queued",
+    "amazon_product_fee_sync.progress",
+    "amazon_product_fee_sync.item_summary",
+    "amazon_product_fee_sync.flow_finished",
+    "amazon_product_fee_sync.flow_failed",
+    "amazon_product_fee_sync.stale_running_task_failed",
+  ]) {
+    if (!hasLiteral(source, eventName)) {
+      addFinding(findings, lawId, taskServicePath, "amazon-product-fee-sync/runtime-log", `Task service must emit ${eventName}.`);
+    }
+  }
+  if (!hasIdentifier(source, "runningProgressStaleMs") || !hasLiteral(source, "amazon_product_fee_sync_running_progress_stale_after_")) {
+    addFinding(findings, lawId, taskServicePath, "amazon-product-fee-sync/stale-running-task", "Task service must fail stale queued/running tasks that have not advanced recently.");
+  }
 };
 
-console.log(JSON.stringify(output, null, 2));
-if (findings.length > 0) {
-  process.exit(1);
-}
+const inspectApiSurface = (
+  sources: {
+    apiBoundary: SourceFile | null;
+    server: SourceFile | null;
+    runtime: SourceFile | null;
+    runtimeHandle: SourceFile | null;
+  },
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  if (!hasLiteral(sources.apiBoundary, "/api/plugins/amazon-product-fee-sync/start")
+    || !hasLiteral(sources.apiBoundary, "/api/plugins/amazon-product-fee-sync/status/")
+    || !hasLiteral(sources.apiBoundary, "/api/plugins/amazon-product-fee-sync/latest")
+    || !hasLiteral(sources.apiBoundary, domain)) {
+    addFinding(findings, lawId, apiBoundaryPath, "amazon-product-fee-sync/api-boundary", "API boundary must expose only the explicit fee-sync route namespace.");
+  }
+  if (!hasIdentifier(sources.server, "handleAmazonProductFeeSyncRequest")) {
+    addFinding(findings, lawId, serverPath, "amazon-product-fee-sync/server-route", "Workbench server must register the fee sync route handler.");
+  }
+  for (const required of [
+    "startAmazonProductFeeSyncTask",
+    "getAmazonProductFeeSyncTaskStatus",
+    "getLatestAmazonProductFeeSyncTask",
+  ]) {
+    if (!hasIdentifier(sources.runtime, required) || !hasIdentifier(sources.runtimeHandle, required)) {
+      addFinding(findings, lawId, localRuntimePath, "amazon-product-fee-sync/workbench-runtime", `${required} must stay on the existing Workbench task status chain.`);
+    }
+  }
+};
+
+const inspectProductSyncIsolation = (context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  const productSyncSchema = sourceFile(context, "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts");
+  if (!productSyncSchema) {
+    return;
+  }
+  if (hasLiteral(productSyncSchema, "totalAmazonFee") || hasLiteral(productSyncSchema, "fbaFulfillmentFee")) {
+    addFinding(findings, lawId, "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts", "amazon-product-fee-sync/product-sync-pollution", "Fee fields must not be added to amazon-product-sync requiredFields.");
+  }
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1");
+  const findings: InspectorFinding[] = [];
+  const schema = requireSourceFile(context, findings, lawId, schemaPath);
+  const domScripts = requireSourceFile(context, findings, lawId, domScriptsPath);
+  const flow = requireSourceFile(context, findings, lawId, flowPath);
+  requireSourceFile(context, findings, lawId, storagePath);
+  const taskService = requireSourceFile(context, findings, lawId, taskServicePath);
+  requireSourceFile(context, findings, lawId, indexPath);
+  requireSourceFile(context, findings, lawId, routePath);
+  const apiBoundary = requireSourceFile(context, findings, lawId, apiBoundaryPath);
+  const server = requireSourceFile(context, findings, lawId, serverPath);
+  const runtime = requireSourceFile(context, findings, lawId, localRuntimePath);
+  const runtimeHandle = requireSourceFile(context, findings, lawId, localRuntimeHandlePath);
+  requireSourceFile(context, findings, lawId, acceptancePath);
+
+  inspectSchema(schema, findings, lawId);
+  inspectDomScripts(domScripts, findings, lawId);
+  inspectFlow(flow, findings, lawId);
+  inspectTaskService(taskService, findings, lawId);
+  inspectApiSurface({ apiBoundary, server, runtime, runtimeHandle }, findings, lawId);
+  inspectProductSyncIsolation(context, findings, lawId);
+
+  return {
+    capabilityDomain: domain,
+    reportedLawIds: [lawId],
+    findings,
+    inspectedFiles: [...inspectedFiles],
+  };
+};

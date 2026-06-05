@@ -1,23 +1,23 @@
 import type { MediaProcessingChildCapability } from "./contract.js";
 import type { MediaProcessingChildCapabilityId } from "./schema.js";
 import {
-  generateResponsiveImageSet,
-  optimizeImageForWeb,
-  resizeImageForWeb,
+  createGenerateResponsiveImageSet,
+  createOptimizeImageForWeb,
+  createResizeImageForWeb,
 } from "./children/image-children.js";
 import {
-  compressVideoForWeb,
-  generateVideoPosterForWeb,
-  optimizeVideoForWeb,
+  createCompressVideoForWeb,
+  createGenerateVideoPosterForWeb,
+  createOptimizeVideoForWeb,
 } from "./children/video-children.js";
 
 const MEDIA_PROCESSING_CHILDREN: MediaProcessingChildCapability[] = [
-  optimizeImageForWeb,
-  resizeImageForWeb,
-  generateResponsiveImageSet,
-  optimizeVideoForWeb,
-  compressVideoForWeb,
-  generateVideoPosterForWeb,
+  createOptimizeImageForWeb(),
+  createResizeImageForWeb(),
+  createGenerateResponsiveImageSet(),
+  createOptimizeVideoForWeb(),
+  createCompressVideoForWeb(),
+  createGenerateVideoPosterForWeb(),
 ];
 
 export const listMediaProcessingChildren = (): MediaProcessingChildCapabilityId[] =>

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-04T00:56:47.656Z",
-  "status": "PASS",
-  "scannedFiles": 350,
+  "generatedAt": "2026-06-05T11:08:16.175Z",
+  "status": "FAIL",
+  "scannedFiles": 382,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -25,6 +25,9 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
+    "src/app/skills/media-optimizer/media-optimizer-client.ts",
+    "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+    "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
@@ -50,6 +53,7 @@
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
+    "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
@@ -112,6 +116,21 @@
     "src/capabilities/forensics-persistence/schema.ts",
     "src/capabilities/forensics-persistence/storage-adapter.ts",
     "src/capabilities/forensics-persistence/storage-port.ts",
+    "src/capabilities/media-processing/ability-group.ts",
+    "src/capabilities/media-processing/children/image-children.ts",
+    "src/capabilities/media-processing/children/video-children.ts",
+    "src/capabilities/media-processing/contract.ts",
+    "src/capabilities/media-processing/dependency-readiness.ts",
+    "src/capabilities/media-processing/index.ts",
+    "src/capabilities/media-processing/registry.ts",
+    "src/capabilities/media-processing/runtime/artifact-storage.ts",
+    "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
+    "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
+    "src/capabilities/media-processing/runtime/hash-stream.ts",
+    "src/capabilities/media-processing/runtime/media-source.ts",
+    "src/capabilities/media-processing/runtime/result.ts",
+    "src/capabilities/media-processing/runtime/sharp-runner.ts",
+    "src/capabilities/media-processing/schema.ts",
     "src/capabilities/video-download/ability-group.ts",
     "src/capabilities/video-download/children/download-bilibili-video-once.ts",
     "src/capabilities/video-download/children/download-douyin-video-once.ts",
@@ -179,6 +198,7 @@
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
@@ -208,6 +228,7 @@
     "src/lib/storage/refs.ts",
     "src/lib/storage/schema.ts",
     "src/lib/storage/storage-port.ts",
+    "src/mediator/media-processing-artifact-route.ts",
     "src/mediator/video-download-artifact-route.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
@@ -231,6 +252,12 @@
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+    "src/plugins/amazon-product-fee-sync/index.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-control.ts",
@@ -344,6 +371,10 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
     "src/plugins/facebook-product-video-mining/index.ts",
+    "src/plugins/media-processing-artifact/index.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
@@ -351,18 +382,19 @@
     "src/types/dom-automation-inputs.ts",
     "src/types/dom-automation.ts",
     "src/types/evidence.ts",
+    "src/types/ffprobe-static.d.ts",
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 31,
+  "emitCallCount": 34,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
-  "missingTraceContractCount": 0,
+  "missingTraceContractCount": 1,
   "catchBranchCount": 1,
-  "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 37,
+  "catchBranchWithoutLogCount": 1,
+  "failureBranchCount": 39,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 39,
@@ -370,10 +402,10 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 0,
-    "fatalFindings": 0,
-    "scannedFiles": 350,
-    "emitCallCount": 31,
+    "totalFindings": 3,
+    "fatalFindings": 3,
+    "scannedFiles": 382,
+    "emitCallCount": 34,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -383,7 +415,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 345,
+      "scannedFiles": 377,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -392,43 +424,43 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 270
+      "scannedFiles": 296
     },
     {
       "name": "runtime-log-emit-contract",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 266,
+      "status": "FAIL",
+      "findingCount": 2,
+      "scannedFiles": 292,
       "metrics": {
-        "emitCallCount": 20
+        "emitCallCount": 23
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 266
+      "scannedFiles": 292
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 271,
+      "scannedFiles": 297,
       "metrics": {
         "stageCoveragePercent": 100
       }
     },
     {
       "name": "catch-branch-log",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 24
+      "status": "FAIL",
+      "findingCount": 1,
+      "scannedFiles": 25
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 271,
+      "scannedFiles": 297,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -461,12 +493,12 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 24,
+      "scannedFiles": 25,
       "metrics": {
-        "emitCallCount": 31,
+        "emitCallCount": 34,
         "stageStartCount": 19,
         "stageTerminalCount": 39,
-        "failureBranchCount": 37
+        "failureBranchCount": 39
       }
     },
     {
@@ -476,7 +508,38 @@
       "scannedFiles": 2
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "checkId": "runtime-log-spine/emit-trace-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+      "clauseId": "primary",
+      "message": "RuntimeLogger.emit contract is incomplete",
+      "line": 80,
+      "severity": "fatal",
+      "hint": "Add traceId, level, modeVisibility, eventType, owner and mission/run/round identifiers. Failed/review_required/skipped events must include failureClass contract. Spread fields must be statically proven.",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
+    },
+    {
+      "checkId": "runtime-log-spine/emit-event-type-registry",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
+      "clauseId": "primary",
+      "message": "eventType is not proven to come from RuntimeLogEventType registry",
+      "line": 80,
+      "severity": "fatal",
+      "hint": "Import RuntimeLogEventType from the runtime log registry and use RuntimeLogEventType.X directly or through a traceable constant.",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
+    },
+    {
+      "checkId": "runtime-log-spine/failure-return-log",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+      "clauseId": "primary",
+      "message": "control-flow failure branch has no proven structured log",
+      "line": 33,
+      "severity": "fatal",
+      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating.",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
+    }
+  ],
   "capabilityDomain": "runtime-log-spine",
   "executionGroup": "foundation",
   "lawIds": [

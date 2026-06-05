@@ -1,10 +1,10 @@
 const MEDIA_OPTIMIZER_CLIENT = `
 const MEDIA_OPTIMIZER_PRESETS = {
-  "web-image": { childCapabilityId: "optimize-image-for-web-once", outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "" },
-  "web-image-responsive": { childCapabilityId: "generate-responsive-image-variants-once", outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "480,960,1440" },
-  "web-video": { childCapabilityId: "optimize-video-for-web-once", outputFormat: "mp4", quality: 78, maxWidth: 1280, maxHeight: 720, variants: "" },
-  "web-video-compressed": { childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4", quality: 64, maxWidth: 1280, maxHeight: 720, variants: "" },
-  "web-video-poster": { childCapabilityId: "generate-video-poster-once", outputFormat: "webp", quality: 82, maxWidth: 1280, maxHeight: 720, variants: "" },
+  "web-image": { childCapabilityId: "optimize-image-for-web-once", outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-image-responsive": { childCapabilityId: "generate-responsive-image-variants-once", outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "480,960,1440", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-video": { childCapabilityId: "optimize-video-for-web-once", outputFormat: "mp4", quality: 78, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-video-compressed": { childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4", quality: 64, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "1200", targetMaxMegabytes: "" },
+  "web-video-poster": { childCapabilityId: "generate-video-poster-once", outputFormat: "webp", quality: 82, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
 };
 const escapeMediaOptimizerHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -72,7 +72,10 @@ const applyMediaOptimizerPreset = (presetId) => {
   form.maxWidth.value = String(preset.maxWidth);
   form.maxHeight.value = String(preset.maxHeight);
   form.variantWidths.value = preset.variants;
+  form.targetBitrateKbps.value = preset.targetBitrateKbps;
+  form.targetMaxMegabytes.value = preset.targetMaxMegabytes;
   qs("[data-media-optimizer-variant-field]")?.classList.toggle("hidden", preset.childCapabilityId !== "generate-responsive-image-variants-once");
+  document.querySelectorAll("[data-media-optimizer-video-target-field]").forEach((field) => field.classList.toggle("hidden", preset.childCapabilityId !== "compress-video-for-web-once"));
 };
 const renderMediaOptimizerArtifacts = (result, downloadsPath, downloadsPaths = []) => {
   const list = qs("[data-media-optimizer-artifact-list]");
@@ -146,6 +149,8 @@ const startMediaOptimizer = async (event) => {
       quality: Number(form.quality.value),
       maxWidth: Number(form.maxWidth.value),
       maxHeight: Number(form.maxHeight.value),
+      targetBitrateKbps: Number(form.targetBitrateKbps.value) || undefined,
+      targetMaxBytes: Number(form.targetMaxMegabytes.value) > 0 ? Math.round(Number(form.targetMaxMegabytes.value) * 1000000) : undefined,
       variantWidths: parseMediaOptimizerNumbers(form.variantWidths.value),
       saveToDownloads: form.saveToDownloads?.checked === true,
     };

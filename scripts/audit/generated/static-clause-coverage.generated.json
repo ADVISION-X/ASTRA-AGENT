@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-05T09:49:23.138Z",
+  "generatedAt": "2026-06-05T11:07:39.880Z",
   "summary": {
     "activeLawCount": 211,
-    "coveredLawCount": 210,
+    "coveredLawCount": 211,
     "coveragePercent": 100
   },
   "coverage": [
@@ -123,6 +123,16 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/amazon-invoice-upload/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "capabilityDomain": "amazon-product-fee-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-product-fee-sync/manifest.json"
         }
       ]
     },

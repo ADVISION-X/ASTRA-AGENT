@@ -39,6 +39,8 @@ const renderMediaSourceSurface = (): string => `
       <div class="field"><label>Quality</label><input name="quality" type="number" min="1" max="100" value="82" /></div>
       <div class="field"><label>Max width</label><input name="maxWidth" type="number" min="1" max="8000" value="1600" /></div>
       <div class="field"><label>Max height</label><input name="maxHeight" type="number" min="1" max="8000" value="1200" /></div>
+      <div class="field" data-media-optimizer-video-target-field><label>Target bitrate kbps</label><input name="targetBitrateKbps" type="number" min="64" max="20000" value="1200" /></div>
+      <div class="field" data-media-optimizer-video-target-field><label>Target max MB</label><input name="targetMaxMegabytes" type="number" min="1" max="250" value="" /></div>
       <div class="field" data-media-optimizer-variant-field><label>Variant widths</label><input name="variantWidths" type="text" value="480,960,1440" /></div>
       <label class="check wide"><input name="saveToDownloads" type="checkbox" checked /> Save to Downloads/GrassEye Media Processing</label>
       <div class="wide hidden" data-media-optimizer-progress>

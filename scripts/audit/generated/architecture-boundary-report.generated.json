@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T00:55:40.936Z",
+  "generatedAt": "2026-06-05T11:07:47.928Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -16,10 +16,12 @@
   ],
   "actualPluginIds": [
     "amazon-invoice-upload",
+    "amazon-product-fee-sync",
     "amazon-product-mining",
     "amazon-product-sync",
     "deep-research-analysis",
     "facebook-product-video-mining",
+    "media-processing-artifact",
     "video-download-artifact"
   ],
   "pluginStatusEntries": [
@@ -101,6 +103,30 @@
       ]
     },
     {
+      "pluginId": "amazon-product-fee-sync",
+      "status": "active",
+      "owner": "plugin:amazon-product-fee-sync",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-product-fee-sync-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-product-fee-sync"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-product-fee-sync",
+        "audit:amazon-product-fee-sync"
+      ],
+      "exposureTokens": [
+        "amazon-product-fee-sync"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md"
+      ]
+    },
+    {
       "pluginId": "deep-research-analysis",
       "status": "active",
       "owner": "plugin:deep-research-analysis",
@@ -148,6 +174,29 @@
       ]
     },
     {
+      "pluginId": "media-processing-artifact",
+      "status": "active",
+      "owner": "plugin:media-processing-artifact",
+      "phase": "capability-routed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-media-processing-routes.ts",
+        "src/mediator/media-processing-artifact-route.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:media-processing"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:media-processing"
+      ],
+      "exposureTokens": [
+        "media-processing",
+        "media-processing-artifact"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md"
+      ]
+    },
+    {
       "pluginId": "video-download-artifact",
       "status": "active",
       "owner": "plugin:video-download-artifact",
@@ -183,6 +232,10 @@
       "src/app/workbench-amazon-product-sync-routes.ts",
       "src/lib/local-runtime/workbench.ts"
     ],
+    "amazon-product-fee-sync": [
+      "src/app/workbench-amazon-product-fee-sync-routes.ts",
+      "src/lib/local-runtime/workbench.ts"
+    ],
     "deep-research-analysis": [
       "src/app/workbench-deep-research-routes.ts",
       "src/lib/local-runtime/workbench-handle.ts",
@@ -191,6 +244,10 @@
     "facebook-product-video-mining": [
       "src/app/workbench-facebook-routes.ts",
       "src/lib/local-runtime/workbench.ts"
+    ],
+    "media-processing-artifact": [
+      "src/app/workbench-media-processing-routes.ts",
+      "src/mediator/media-processing-artifact-route.ts"
     ],
     "video-download-artifact": [
       "src/app/workbench-video-download-routes.ts",
@@ -201,6 +258,7 @@
     "acceptance:amazon-invoice-upload-batch",
     "acceptance:amazon-invoice-upload-download",
     "acceptance:amazon-invoice-upload-smoke",
+    "acceptance:amazon-product-fee-sync",
     "acceptance:amazon-product-mining",
     "acceptance:amazon-product-sync",
     "acceptance:app-shell-ui",
@@ -233,6 +291,8 @@
     "acceptance:deep-research-single-chain",
     "acceptance:deep-research-subquestion-failure-stop",
     "acceptance:facebook-product-video-mining",
+    "acceptance:media-optimizer-app-ui",
+    "acceptance:media-processing",
     "acceptance:runtime-log-spine",
     "acceptance:runtime-truth-completed-evidence",
     "acceptance:video-download-telegram-web",
@@ -244,14 +304,17 @@
   "findings": [],
   "inspectedFiles": [
     ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
+    ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
     ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
     ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+    ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
     ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
@@ -371,6 +434,14 @@
     "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/b.ts",
     "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/c.ts",
     "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/live.ts",
+    "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
+    "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
+    "scripts/acceptance/media-processing-async-route.acceptance.ts",
+    "scripts/acceptance/media-processing-image.acceptance.ts",
+    "scripts/acceptance/media-processing-job-flow.acceptance.ts",
+    "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
+    "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
+    "scripts/acceptance/media-processing-video.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
@@ -400,6 +471,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+    "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
@@ -416,6 +488,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
+    "scripts/audit/domains/amazon-product-sync/inspector-constants.ts",
     "scripts/audit/domains/amazon-product-sync/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
@@ -531,6 +604,8 @@
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
+    "scripts/audit/domains/media-processing-capability/inspector.ts",
+    "scripts/audit/domains/media-processing-capability/run-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
     "scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
@@ -612,6 +687,9 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
+    "src/app/skills/media-optimizer/media-optimizer-client.ts",
+    "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+    "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
@@ -637,6 +715,7 @@
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
+    "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
@@ -699,6 +778,21 @@
     "src/capabilities/forensics-persistence/schema.ts",
     "src/capabilities/forensics-persistence/storage-adapter.ts",
     "src/capabilities/forensics-persistence/storage-port.ts",
+    "src/capabilities/media-processing/ability-group.ts",
+    "src/capabilities/media-processing/children/image-children.ts",
+    "src/capabilities/media-processing/children/video-children.ts",
+    "src/capabilities/media-processing/contract.ts",
+    "src/capabilities/media-processing/dependency-readiness.ts",
+    "src/capabilities/media-processing/index.ts",
+    "src/capabilities/media-processing/registry.ts",
+    "src/capabilities/media-processing/runtime/artifact-storage.ts",
+    "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
+    "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
+    "src/capabilities/media-processing/runtime/hash-stream.ts",
+    "src/capabilities/media-processing/runtime/media-source.ts",
+    "src/capabilities/media-processing/runtime/result.ts",
+    "src/capabilities/media-processing/runtime/sharp-runner.ts",
+    "src/capabilities/media-processing/schema.ts",
     "src/capabilities/video-download/ability-group.ts",
     "src/capabilities/video-download/children/download-bilibili-video-once.ts",
     "src/capabilities/video-download/children/download-douyin-video-once.ts",
@@ -766,6 +860,7 @@
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
@@ -795,6 +890,7 @@
     "src/lib/storage/refs.ts",
     "src/lib/storage/schema.ts",
     "src/lib/storage/storage-port.ts",
+    "src/mediator/media-processing-artifact-route.ts",
     "src/mediator/video-download-artifact-route.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
@@ -818,6 +914,12 @@
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+    "src/plugins/amazon-product-fee-sync/index.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-control.ts",
@@ -931,6 +1033,10 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
     "src/plugins/facebook-product-video-mining/index.ts",
+    "src/plugins/media-processing-artifact/index.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",

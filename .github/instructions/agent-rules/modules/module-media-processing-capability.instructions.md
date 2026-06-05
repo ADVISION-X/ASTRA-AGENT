@@ -7,7 +7,7 @@ applyTo: ".github/instructions/agent-rules/modules/module-media-processing-capab
 # GrassEye Media Processing Capability
 
 status: active
-version: 2026-06-05-v1
+version: 2026-06-05-v2
 capabilityDomain: media-processing-capability
 
 ## 0. Identity
@@ -338,7 +338,7 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "runtime+ast",
-  "summary": "media-processing runtime dependencies must be prepared, validated, bounded, and invoked through internal safe adapters only."
+  "summary": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only."
 }
 ```
 
@@ -348,10 +348,16 @@ FORBIDDEN:
 
 ### 法条
 
-Media processing may use local media tooling only through internal safe adapters.
+Media processing may use local media tooling only after the governed media-processing dependency gate has refreshed or confirmed the required packages at the latest published version for that use.
 
 Required direction:
 
+- Every public `processMedia` / `execute` path must run a media-processing-owned latest dependency use gate before any child ability starts image or video work.
+- The latest dependency use gate must cover `sharp`, `@img/sharp-darwin-arm64`, `ffmpeg-static`, and `ffprobe-static`.
+- The latest dependency use gate must use bounded, argv-array npm execution to inspect latest availability and install outdated governed packages as `<package>@latest`.
+- The latest dependency use gate must serialize concurrent refreshes and return structured status: `already_latest`, `updated`, or `failed`.
+- A failed latest dependency refresh must return structured `review_required` or `failed` before media processing work begins.
+- The latest dependency use gate must live inside the `media-processing` runtime/public execution boundary, not in App Shell UI, route code, `video-download`, or a standalone updater chain.
 - Video processing must use an internal process runner with bounded arguments, timeout, abort handling, stdout/stderr redaction, and exit-code mapping.
 - ffprobe-like probing must be validated before success and must not be skipped for video outputs.
 - Image processing must use an internal decoding/encoding adapter with bounded dimensions, bounded input bytes, bounded output bytes, and memory safeguards.
@@ -369,6 +375,9 @@ FORBIDDEN:
 - loading 1GB+ media into memory when stream/path-based processing is required;
 - hidden fallback to remote processing APIs;
 - hidden fallback to third-party online compression/downloader websites;
+- treating startup `--update` or any one launch mode as the only latest dependency guarantee;
+- starting sharp/ffmpeg/ffprobe media work before the per-use latest dependency gate has passed;
+- creating a second updater service, second runner, second dependency truth, or parallel media-processing dependency chain;
 - declaring success when runtime dependency is missing or unverified.
 
 ## 10. Law GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1 — Web Output Contract

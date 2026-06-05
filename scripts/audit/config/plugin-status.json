@@ -149,6 +149,29 @@
       ]
     },
     {
+      "pluginId": "media-processing-artifact",
+      "status": "active",
+      "owner": "plugin:media-processing-artifact",
+      "phase": "capability-routed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-media-processing-routes.ts",
+        "src/mediator/media-processing-artifact-route.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:media-processing"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:media-processing"
+      ],
+      "exposureTokens": [
+        "media-processing",
+        "media-processing-artifact"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md"
+      ]
+    },
+    {
       "pluginId": "video-download-artifact",
       "status": "active",
       "owner": "plugin:video-download-artifact",

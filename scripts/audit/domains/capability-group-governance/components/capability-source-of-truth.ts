@@ -111,6 +111,8 @@ const mapBlueprintAbilityLabelToOwnerPath = (label: string): string | null => {
       return "src/lib/runtime-logs";
     case "video download":
       return "src/capabilities/video-download";
+    case "media processing":
+      return "src/capabilities/media-processing";
     default:
       return null;
   }

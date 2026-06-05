@@ -28,6 +28,8 @@ export const MediaProcessingArtifactJobInputSchema = z.object({
   targetHeight: z.number().int().min(1).max(8192).optional(),
   variantWidths: z.array(z.number().int().min(1).max(8192)).min(1).max(8).optional(),
   posterTimestampSeconds: z.number().min(0).max(86_400).optional(),
+  targetMaxBytes: z.number().int().min(1).max(250_000_000).optional(),
+  targetBitrateKbps: z.number().int().min(64).max(20_000).optional(),
   timeoutMs: z.number().int().min(1000).max(3_600_000).optional(),
   artifactPolicy: z.enum(["deliverable", "staging"]).default("deliverable"),
 }).strict();

@@ -45,6 +45,8 @@ type MediaProcessingRequestBody = {
   targetHeight?: unknown;
   variantWidths?: unknown;
   posterTimestampSeconds?: unknown;
+  targetMaxBytes?: unknown;
+  targetBitrateKbps?: unknown;
   timeoutMs?: unknown;
   saveToDownloads?: unknown;
 };
@@ -65,7 +67,7 @@ type MediaProcessingTaskSnapshot = {
 const mediaProcessingTasks = new Map<string, MediaProcessingTaskSnapshot>();
 const MEDIA_PROCESSING_TASK_TTL_MS = 24 * 60 * 60 * 1000;
 const MEDIA_PROCESSING_MAX_RUNNING_TASKS = 2;
-const MEDIA_PROCESSING_UPLOAD_MAX_BYTES = 250_000_000;
+const MEDIA_PROCESSING_UPLOAD_MAX_BYTES = 50_000_000;
 const MEDIA_PROCESSING_TASK_PERSISTENCE_FAILED = "media_processing_task_persistence_failed";
 
 const isMediaProcessingChildId = (value: unknown): value is MediaProcessingChildId =>
@@ -258,6 +260,8 @@ const buildMediaProcessingJobInput = async (
   const maxHeight = readPositiveInteger(body.maxHeight);
   const targetWidth = readPositiveInteger(body.targetWidth);
   const targetHeight = readPositiveInteger(body.targetHeight);
+  const targetMaxBytes = readPositiveInteger(body.targetMaxBytes);
+  const targetBitrateKbps = readPositiveInteger(body.targetBitrateKbps);
   const posterTimestampSeconds = readNumber(body.posterTimestampSeconds);
   return {
     jobType: "media-processing-artifact",
@@ -271,6 +275,8 @@ const buildMediaProcessingJobInput = async (
     ...(targetWidth ? { targetWidth } : {}),
     ...(targetHeight ? { targetHeight } : {}),
     ...(variantWidths && variantWidths.length > 0 ? { variantWidths } : {}),
+    ...(targetMaxBytes ? { targetMaxBytes } : {}),
+    ...(targetBitrateKbps ? { targetBitrateKbps } : {}),
     ...(posterTimestampSeconds !== null ? { posterTimestampSeconds } : {}),
     timeoutMs: readPositiveInteger(body.timeoutMs) ?? 120_000,
     artifactPolicy: "deliverable",
@@ -334,7 +340,7 @@ const handleMediaProcessingPresetsRequest = (
       { presetId: "web-image", childCapabilityId: "optimize-image-for-web-once", outputFormat: "webp", quality: 82 },
       { presetId: "web-image-responsive", childCapabilityId: "generate-responsive-image-variants-once", outputFormat: "webp", quality: 82, variantWidths: [320, 640, 960, 1280] },
       { presetId: "web-video", childCapabilityId: "optimize-video-for-web-once", outputFormat: "mp4" },
-      { presetId: "web-video-compressed", childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4" },
+      { presetId: "web-video-compressed", childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4", targetBitrateKbps: 1200 },
       { presetId: "web-video-poster", childCapabilityId: "generate-video-poster-once", outputFormat: "webp" },
     ],
   });

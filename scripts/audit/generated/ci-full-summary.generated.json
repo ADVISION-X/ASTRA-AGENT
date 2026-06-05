@@ -1,47 +1,63 @@
 {
-  "generatedAt": "2026-06-05T09:40:51.345Z",
+  "generatedAt": "2026-06-05T11:08:20.083Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
-    "phase": "build-audit-artifacts",
-    "command": "internal:buildAuditArtifacts()",
-    "lawId": null,
-    "filePath": "scripts/audit/build-audit-artifacts.ts",
-    "message": "Audit artifact generation failed with 3 conflict(s).",
-    "minimalFixHint": "Repair the generated-audit artifact builder conflict and rerun npm run ci:full."
+    "phase": "domain-audit-runner",
+    "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
+    "lawId": "APEX-CODE-PURITY-015-V1",
+    "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+    "message": "scripts/audit/domains/amazon-product-sync/inspector.ts has an over-line function near line 220.",
+    "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 226,
-      "endedAt": "2026-06-05T09:40:51.324Z",
+      "durationMs": 229,
+      "endedAt": "2026-06-05T11:07:39.854Z",
       "name": "codex-entry-gate",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-06-05T09:40:51.098Z",
+      "startedAt": "2026-06-05T11:07:39.625Z",
+      "status": "PASS"
+    },
+    {
+      "command": "internal:buildAuditArtifacts()",
+      "durationMs": 26,
+      "endedAt": "2026-06-05T11:07:39.881Z",
+      "name": "build-audit-artifacts",
+      "phase": "build-audit-artifacts",
+      "startedAt": "2026-06-05T11:07:39.855Z",
+      "status": "PASS"
+    },
+    {
+      "command": "internal:verifyActiveLawFullCoverage()",
+      "durationMs": 0,
+      "endedAt": "2026-06-05T11:07:39.882Z",
+      "name": "active-law-full-coverage",
+      "phase": "active-law-full-coverage",
+      "startedAt": "2026-06-05T11:07:39.882Z",
+      "status": "PASS"
+    },
+    {
+      "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
+      "durationMs": 2144,
+      "endedAt": "2026-06-05T11:07:42.026Z",
+      "name": "meta-quality",
+      "phase": "meta-quality",
+      "startedAt": "2026-06-05T11:07:39.882Z",
+      "status": "PASS"
+    },
+    {
+      "command": "npm run typecheck",
+      "durationMs": 3848,
+      "endedAt": "2026-06-05T11:07:45.874Z",
+      "name": "typecheck",
+      "phase": "typecheck",
+      "startedAt": "2026-06-05T11:07:42.026Z",
       "status": "PASS"
     }
   ],
   "skippedAfterFailure": [
-    {
-      "command": "internal:verifyActiveLawFullCoverage()",
-      "name": "active-law-full-coverage",
-      "phase": "active-law-full-coverage"
-    },
-    {
-      "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
-      "name": "meta-quality",
-      "phase": "meta-quality"
-    },
-    {
-      "command": "npm run typecheck",
-      "name": "typecheck",
-      "phase": "typecheck"
-    },
-    {
-      "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
-      "name": "domain-audit-runner",
-      "phase": "domain-audit-runner"
-    },
     {
       "command": "npm run acceptance:constitutional-boundary-anti-escape",
       "name": "constitutional-boundary-anti-escape",
@@ -233,6 +249,11 @@
       "phase": "acceptance-runner"
     },
     {
+      "command": "npm run acceptance:amazon-product-fee-sync",
+      "name": "amazon-product-fee-sync",
+      "phase": "acceptance-runner"
+    },
+    {
       "command": "npm run acceptance:video-download-telegram-web",
       "name": "video-download-telegram-web",
       "phase": "acceptance-runner"
@@ -259,15 +280,15 @@
     }
   ],
   "lawCoverage": {
-    "activeLawCount": 0,
-    "checked": false,
-    "plannedLawCount": 0,
+    "activeLawCount": 211,
+    "checked": true,
+    "plannedLawCount": 211,
     "uncoveredLawIds": []
   },
   "metaQuality": {
-    "checked": false,
-    "findingCount": null,
-    "reportPath": null
+    "checked": true,
+    "findingCount": 0,
+    "reportPath": "scripts/audit/generated/audit-truth-report.generated.json"
   },
   "finalDecision": "FAIL"
 }

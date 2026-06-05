@@ -19,6 +19,7 @@ import {
   listMediaProcessingChildren,
 } from "./registry.js";
 import { buildMediaProcessingFailure } from "./runtime/result.js";
+import { ensureMediaProcessingLatestDependenciesForUse } from "./dependency-readiness.js";
 
 const stringOrFallback = (value: unknown, fallback: string): string =>
   typeof value === "string" ? value : fallback;
@@ -62,28 +63,45 @@ const buildUnknownChildFailure = (
     "invalid_input",
   );
 
+const buildDependencyLatestRefreshFailure = (
+  input: ParsedMediaProcessingAbilityInput,
+  context: MediaProcessingExecutionContext,
+  reason: string | null,
+): Promise<MediaProcessingResult> => buildMediaProcessingFailure(
+    { input, dataDir: context.dataDir, startedAt: new Date().toISOString(), inputByteSize: null },
+    "media_processing_dependency_latest_refresh_failed",
+    reason ?? "Media processing dependencies must be refreshed to latest before processing can run.",
+    "review_required",
+  );
+
+const buildPublicRequestBase = (
+  parsed: ReturnType<typeof MediaProcessingPublicRequestSchema.parse>,
+) => ({
+  abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
+  missionId: parsed.missionId,
+  runId: parsed.runId,
+  capabilityCallId: `${parsed.runId}_${parsed.childCapabilityId}_${randomUUID()}`,
+  inputFilePath: parsed.inputFilePath,
+  ...(parsed.presetId ? { presetId: parsed.presetId } : {}),
+  ...(parsed.quality ? { quality: parsed.quality } : {}),
+  ...(parsed.maxWidth ? { maxWidth: parsed.maxWidth } : {}),
+  ...(parsed.maxHeight ? { maxHeight: parsed.maxHeight } : {}),
+  ...(parsed.targetWidth ? { targetWidth: parsed.targetWidth } : {}),
+  ...(parsed.targetHeight ? { targetHeight: parsed.targetHeight } : {}),
+  ...(parsed.variantWidths ? { variantWidths: parsed.variantWidths } : {}),
+  ...(parsed.targetMaxBytes ? { targetMaxBytes: parsed.targetMaxBytes } : {}),
+  ...(parsed.targetBitrateKbps ? { targetBitrateKbps: parsed.targetBitrateKbps } : {}),
+  posterTimestampSeconds: parsed.posterTimestampSeconds ?? 1,
+  timeoutMs: parsed.timeoutMs,
+  artifactDisposition: parsed.artifactPolicy,
+});
+
 const buildPublicRequestInput = (input: MediaProcessingPublicRequest): MediaProcessingAbilityInput => {
   const parsed = MediaProcessingPublicRequestSchema.parse(input);
   const imageOutputFormat = parsed.outputFormat === "jpeg" || parsed.outputFormat === "png" || parsed.outputFormat === "webp"
     ? parsed.outputFormat
     : "webp";
-  const base = {
-    abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-    missionId: parsed.missionId,
-    runId: parsed.runId,
-    capabilityCallId: `${parsed.runId}_${parsed.childCapabilityId}_${randomUUID()}`,
-    inputFilePath: parsed.inputFilePath,
-    ...(parsed.presetId ? { presetId: parsed.presetId } : {}),
-    ...(parsed.quality ? { quality: parsed.quality } : {}),
-    ...(parsed.maxWidth ? { maxWidth: parsed.maxWidth } : {}),
-    ...(parsed.maxHeight ? { maxHeight: parsed.maxHeight } : {}),
-    ...(parsed.targetWidth ? { targetWidth: parsed.targetWidth } : {}),
-    ...(parsed.targetHeight ? { targetHeight: parsed.targetHeight } : {}),
-    ...(parsed.variantWidths ? { variantWidths: parsed.variantWidths } : {}),
-    posterTimestampSeconds: parsed.posterTimestampSeconds ?? 1,
-    timeoutMs: parsed.timeoutMs,
-    artifactDisposition: parsed.artifactPolicy,
-  };
+  const base = buildPublicRequestBase(parsed);
   switch (parsed.childCapabilityId) {
     case "optimize-image-for-web-once":
       return { ...base, childCapabilityId: "optimize-image-for-web-once", outputFormat: imageOutputFormat };
@@ -112,6 +130,10 @@ const executeMediaProcessingRequest = async (input: {
   const child = input.registry.get(parsed.data.childCapabilityId);
   if (!child) {
     return buildUnknownChildFailure(parsed.data, input.context);
+  }
+  const dependencyRefresh = await ensureMediaProcessingLatestDependenciesForUse();
+  if (dependencyRefresh.status === "failed") {
+    return buildDependencyLatestRefreshFailure(parsed.data, input.context, dependencyRefresh.reason);
   }
   return child.execute(parsed.data, input.context);
 };

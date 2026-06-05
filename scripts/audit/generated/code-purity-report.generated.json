@@ -4,12 +4,68 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-06-04T00:56:40.852Z",
+  "findings": [
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/amazon-product-sync/inspector.ts has an over-line function near line 220.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+      "evidence": "{\"owner\":\"audit:amazon-product-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/create-workbench-server.ts has an over-line function near line 144.",
+      "severity": "fatal",
+      "filePath": "src/app/create-workbench-server.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-media-processing-routes.ts has an over-line function near line 236.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-media-processing-routes.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-media-processing-routes.ts has an over-line function near line 374.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-media-processing-routes.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts has an over-line function near line 214.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-fee-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts has 559 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-product-sync\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-06-05T11:08:11.932Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
@@ -68,6 +124,14 @@
     "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+    "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
+    "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
+    "scripts/acceptance/media-processing-async-route.acceptance.ts",
+    "scripts/acceptance/media-processing-image.acceptance.ts",
+    "scripts/acceptance/media-processing-job-flow.acceptance.ts",
+    "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
+    "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
+    "scripts/acceptance/media-processing-video.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
@@ -96,6 +160,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+    "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
@@ -112,6 +177,7 @@
     "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
+    "scripts/audit/domains/amazon-product-sync/inspector-constants.ts",
     "scripts/audit/domains/amazon-product-sync/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
@@ -227,6 +293,8 @@
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
+    "scripts/audit/domains/media-processing-capability/inspector.ts",
+    "scripts/audit/domains/media-processing-capability/run-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
     "scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
@@ -308,6 +376,9 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
+    "src/app/skills/media-optimizer/media-optimizer-client.ts",
+    "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+    "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-amazon-routes.ts",
@@ -333,6 +404,7 @@
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
+    "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
@@ -392,6 +464,21 @@
     "src/capabilities/forensics-persistence/schema.ts",
     "src/capabilities/forensics-persistence/storage-adapter.ts",
     "src/capabilities/forensics-persistence/storage-port.ts",
+    "src/capabilities/media-processing/ability-group.ts",
+    "src/capabilities/media-processing/children/image-children.ts",
+    "src/capabilities/media-processing/children/video-children.ts",
+    "src/capabilities/media-processing/contract.ts",
+    "src/capabilities/media-processing/dependency-readiness.ts",
+    "src/capabilities/media-processing/index.ts",
+    "src/capabilities/media-processing/registry.ts",
+    "src/capabilities/media-processing/runtime/artifact-storage.ts",
+    "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
+    "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
+    "src/capabilities/media-processing/runtime/hash-stream.ts",
+    "src/capabilities/media-processing/runtime/media-source.ts",
+    "src/capabilities/media-processing/runtime/result.ts",
+    "src/capabilities/media-processing/runtime/sharp-runner.ts",
+    "src/capabilities/media-processing/schema.ts",
     "src/capabilities/video-download/ability-group.ts",
     "src/capabilities/video-download/children/download-bilibili-video-once.ts",
     "src/capabilities/video-download/children/download-douyin-video-once.ts",
@@ -459,6 +546,7 @@
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
@@ -488,6 +576,7 @@
     "src/lib/storage/refs.ts",
     "src/lib/storage/schema.ts",
     "src/lib/storage/storage-port.ts",
+    "src/mediator/media-processing-artifact-route.ts",
     "src/mediator/video-download-artifact-route.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
@@ -511,6 +600,12 @@
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+    "src/plugins/amazon-product-fee-sync/index.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.flow-control.ts",
@@ -624,6 +719,10 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
     "src/plugins/facebook-product-video-mining/index.ts",
+    "src/plugins/media-processing-artifact/index.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
+    "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
@@ -678,6 +777,12 @@
       "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
       "reason": "package.json script acceptance:amazon-invoice-upload-smoke",
       "scriptName": "acceptance:amazon-invoice-upload-smoke"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
+      "reason": "package.json script acceptance:amazon-product-fee-sync",
+      "scriptName": "acceptance:amazon-product-fee-sync"
     },
     {
       "entryKind": "package-script",
@@ -1005,6 +1110,54 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-async-route.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-image.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-job-flow.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/media-processing-video.acceptance.ts",
+      "reason": "package.json script acceptance:media-processing",
+      "scriptName": "acceptance:media-processing"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
       "reason": "package.json script acceptance:runtime-log-spine",
       "scriptName": "acceptance:runtime-log-spine"
@@ -1074,6 +1227,12 @@
       "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
       "reason": "package.json script audit:amazon-invoice-upload",
       "scriptName": "audit:amazon-invoice-upload"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+      "reason": "package.json script audit:amazon-product-fee-sync",
+      "scriptName": "audit:amazon-product-fee-sync"
     },
     {
       "entryKind": "package-script",
@@ -1167,6 +1326,18 @@
     },
     {
       "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/audit/domains/media-processing-capability/run-inspector.ts",
+      "reason": "package.json script audit:media-processing-capability",
+      "scriptName": "audit:media-processing-capability"
+    },
+    {
+      "entryKind": "owner-inspector",
       "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
       "reason": "generated-plan owner inspector dynamic load",
       "scriptName": null
@@ -1214,10 +1385,10 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1760,
+  "liveExportCount": 1894,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 626,
-  "status": "PASS",
+  "reachableFileCount": 670,
+  "status": "FAIL",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],
@@ -1228,9 +1399,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1760,
+    "liveExportCount": 1894,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 626,
+    "reachableFileCount": 670,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

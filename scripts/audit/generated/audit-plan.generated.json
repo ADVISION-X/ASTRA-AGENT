@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-05T09:49:23.138Z",
+  "generatedAt": "2026-06-05T11:07:39.880Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -45,6 +45,33 @@
             "## 10. App Shell UI Download Surface 变化",
             "## 11. Website API Integration: Amazon Tax Invoice Download",
             "## 16. 禁止第二链路清单"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "amazon-product-fee-sync",
+      "manifestPath": "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast+fs+acceptance"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
+          "requiredAnchors": [
+            "## Goal",
+            "## Required Result Contract",
+            "## DOM Plan",
+            "## Isolation Rules",
+            "## QA Plan"
           ]
         }
       ]

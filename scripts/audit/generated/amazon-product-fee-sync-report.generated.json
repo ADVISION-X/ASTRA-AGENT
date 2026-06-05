@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-06-05T11:08:16.338Z",
+  "capabilityDomain": "amazon-product-fee-sync",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1"
+  ],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "amazon-product-fee-sync/required-fields",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "primary",
+      "message": "totalAmazonFee must be declared as a fixed-scope requested fee field.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts"
+    },
+    {
+      "checkId": "amazon-product-fee-sync/required-fields",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "primary",
+      "message": "fbaFulfillmentFee must be declared as a fixed-scope requested fee field.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts"
+    },
+    {
+      "checkId": "amazon-product-fee-sync/inventory-search",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "primary",
+      "message": "DOM scripts must preserve inventory-filter search evidence token Object.defineProperty.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts"
+    },
+    {
+      "checkId": "amazon-product-fee-sync/inventory-search",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "primary",
+      "message": "DOM scripts must preserve inventory-filter search evidence token ProductDetails-module__container.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts"
+    },
+    {
+      "checkId": "amazon-product-fee-sync/inventory-search",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "primary",
+      "message": "DOM scripts must preserve inventory-filter search evidence token JanusSplitBox-module__row.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts"
+    },
+    {
+      "checkId": "amazon-product-fee-sync/stale-running-task",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "primary",
+      "message": "Task service must fail stale queued/running tasks that have not advanced recently.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
+    }
+  ],
+  "inspectedFiles": [
+    ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
+    "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
+    "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+    "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+    "src/plugins/amazon-product-fee-sync/index.ts",
+    "src/app/workbench-amazon-product-fee-sync-routes.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/create-workbench-server.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
+    "scripts/acceptance/amazon-product-fee-sync.acceptance.ts"
+  ]
+}

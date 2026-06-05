@@ -48,6 +48,7 @@ Business Flow Script
 - AI Input Gateway / Choice Judge：有限选项问题投递、provider proof、schema 校验
 - Evidence Store / Forensics Persistence：step trace、artifact ref、失败原因、结果记录
 - Video Download：媒体候选路由、下载、校验、artifact 生命周期
+- Media Processing：图片/视频单次处理、产物生成、proof 输出、每次使用前最新依赖确认
 
 ## 3.1 当前基础设施 owner
 

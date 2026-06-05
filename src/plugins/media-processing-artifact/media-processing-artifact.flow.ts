@@ -31,6 +31,8 @@ export const runMediaProcessingArtifactFlow = async (
     ...(jobInput.targetWidth ? { targetWidth: jobInput.targetWidth } : {}),
     ...(jobInput.targetHeight ? { targetHeight: jobInput.targetHeight } : {}),
     ...(jobInput.variantWidths ? { variantWidths: jobInput.variantWidths } : {}),
+    ...(jobInput.targetMaxBytes ? { targetMaxBytes: jobInput.targetMaxBytes } : {}),
+    ...(jobInput.targetBitrateKbps ? { targetBitrateKbps: jobInput.targetBitrateKbps } : {}),
     ...(jobInput.posterTimestampSeconds ? { posterTimestampSeconds: jobInput.posterTimestampSeconds } : {}),
     timeoutMs: jobInput.timeoutMs ?? 120_000,
     artifactPolicy: jobInput.artifactPolicy,

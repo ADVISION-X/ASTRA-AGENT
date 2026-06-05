@@ -3,15 +3,10 @@ export {
   createMediaProcessingAbilityGroupFromFilesystem,
 } from "./ability-group.js";
 export {
-  prepareMediaProcessingRuntimeDependencies,
-  type MediaProcessingRuntimeReadiness,
-} from "./runtime/runtime-dependencies.js";
-export {
   MEDIA_PROCESSING_ABILITY_GROUP_ID,
   MediaProcessingAbilityInputSchema,
   MediaProcessingPublicRequestSchema,
   MediaProcessingResultSchema,
-  mediaProcessingPresetIds,
 } from "./schema.js";
 export type {
   MediaProcessingAbilityGroup,
