@@ -17,6 +17,7 @@ import {
   domScriptsPath,
   flowPath,
   forbiddenFlowTokens,
+  imageTransferPath,
   pluginStatusPath,
   requiredDiagnosticRefs,
   requiredFiles,
@@ -217,30 +218,63 @@ const inspectSchema = (schema: SourceFile | undefined, findings: InspectorFindin
   }
 };
 
-const inspectFlow = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
+const inspectForbiddenFlowTokens = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
   for (const forbidden of forbiddenFlowTokens) {
     if (hasIdentifier(flow, forbidden) || hasCallName(flow, forbidden) || hasStringToken(flow, forbidden)) {
       addFinding(findings, lawId, flowPath, `flow must not use forbidden token: ${forbidden}`);
     }
   }
-  if (!hasCallName(flow, "fetch")) addFinding(findings, lawId, flowPath, "flow must download Seller Central image bytes and upload them to the fixed ON image API");
+};
+
+const inspectFlowBrowserContract = (
+  flow: SourceFile | undefined,
+  imageTransfer: SourceFile | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const flowBrowserSources = [flow, imageTransfer] as const;
+  if (!hasTokenInAny(flowBrowserSources, "fetch")) addFinding(findings, lawId, flowPath, "flow must download Seller Central image bytes and upload them to the fixed ON image API");
   for (const required of ["BrowserController", "buildInventorySearchProbeScript", "buildInventorySearchSubmitScript", "buildInventorySearchButtonClickScript", "buildInventoryExtractionScript", "expandSellerCentralParentRows"]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing required AST token: ${required}`);
   }
   for (const required of ["open", "click", "evaluateActiveTab", "screenshotRegion"]) {
-    if (!hasCallName(flow, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
+    if (!hasTokenInAny(flowBrowserSources, required)) addFinding(findings, lawId, flowPath, `flow missing BrowserController action call: ${required}`);
   }
   if (!hasStringToken(flow, "reuse-host-tab")) addFinding(findings, lawId, flowPath, "flow must reuse Seller Central host tab instead of the active website tab");
+};
+
+const inspectFlowEvidenceContract = (
+  flow: SourceFile | undefined,
+  imageTransfer: SourceFile | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const flowEvidenceSources = [flow, imageTransfer] as const;
   for (const required of ["topGlobalSearchExcluded", "inventorySearchUsesShadowInput", "searchVerified", "searchVerificationEvidence", "requestedFields", "missingRequestedFields", "captureMainImageEvidenceRef", "uploadMainImage", "downloadMainImageBytes", "actualInventoryUnits"]) {
-    if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
+    if (!hasTokenInAny(flowEvidenceSources, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
   }
   for (const required of requiredMainImageUploadTokens) {
-    if (!hasIdentifier(flow, required) && !hasStringToken(flow, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
+    if (!hasTokenInAny(flowEvidenceSources, required)) addFinding(findings, lawId, flowPath, `flow missing inventory search/evidence contract token: ${required}`);
   }
+};
+
+const inspectFlowDiagnosticContract = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
   for (const required of ["AmazonProductSyncItemDiagnostic", "buildDiagnostic", "authGateFromState", "pageUrlPath", ...requiredDiagnosticRefs]) {
     if (!hasIdentifier(flow, required)) addFinding(findings, lawId, flowPath, `flow missing auth/page diagnostic propagation token: ${required}`);
   }
   inspectSubmitSearchDiagnostic(flow, findings, lawId);
+};
+
+const inspectFlow = (
+  flow: SourceFile | undefined,
+  imageTransfer: SourceFile | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  inspectForbiddenFlowTokens(flow, findings, lawId);
+  inspectFlowBrowserContract(flow, imageTransfer, findings, lawId);
+  inspectFlowEvidenceContract(flow, imageTransfer, findings, lawId);
+  inspectFlowDiagnosticContract(flow, findings, lawId);
 };
 
 const inspectSubmitSearchDiagnostic = (flow: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
@@ -418,6 +452,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const server = source(context.project, serverPath);
   const schema = source(context.project, schemaPath);
   const flow = source(context.project, flowPath);
+  const imageTransfer = source(context.project, imageTransferPath);
   const taskService = source(context.project, taskServicePath);
   const domScripts = source(context.project, domScriptsPath);
   const acceptance = source(context.project, acceptancePath);
@@ -425,7 +460,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectRequiredFiles(findings, lawId);
   inspectBoundary(boundary, findings, lawId);
   inspectSchema(schema, findings, lawId);
-  inspectFlow(flow, findings, lawId);
+  inspectFlow(flow, imageTransfer, findings, lawId);
   inspectTaskService(taskService, findings, lawId);
   inspectLogMatrix(taskService, findings, logLawId);
   inspectDomScripts(flow, domScripts, findings, lawId);

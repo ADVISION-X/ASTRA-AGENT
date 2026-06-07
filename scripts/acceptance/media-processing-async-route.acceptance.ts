@@ -48,7 +48,7 @@ try {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       inputFilePath,
-      childCapabilityId: "optimize-image-for-web-once",
+      presetId: "web-image",
       outputFormat: "webp",
       quality: 80,
     }),
@@ -61,7 +61,7 @@ try {
     body: JSON.stringify({
       fileName: "source.png",
       fileContentBase64: (await readFile(inputFilePath)).toString("base64"),
-      childCapabilityId: "generate-responsive-image-variants-once",
+      presetId: "web-image-responsive",
       outputFormat: "webp",
       quality: 80,
       variantWidths: [64, 128],

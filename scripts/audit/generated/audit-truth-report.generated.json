@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-05T11:07:42.025Z",
+  "generatedAt": "2026-06-07T20:49:16.196Z",
   "status": "PASS",
   "inspectorFileCount": 22,
   "generatedPlanEntryCount": 22,
@@ -12,6 +12,8 @@
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",

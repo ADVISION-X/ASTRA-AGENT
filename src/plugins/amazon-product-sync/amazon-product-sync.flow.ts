@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import type { AmazonProductSyncInput, AmazonProductSyncItemDiagnostic, AmazonProductSyncMainImageUploadResult, AmazonProductSyncRequiredField, AmazonProductSyncResultItem, AmazonProductSyncTaskRecord } from "./amazon-product-sync.schema.js";
 import { buildInventorySearchButtonClickScript, buildInventoryExtractionScript, buildInventorySearchProbeScript, buildInventorySearchSubmitScript, buildVariationExpansionProbeScript } from "./amazon-product-sync.dom-scripts.js";
+import { captureMainImageEvidenceRef, hasRequiredField, redactedEvidenceRef, uploadMainImage } from "./amazon-product-sync.image-transfer.js";
+import type { AmazonProductSyncInput, AmazonProductSyncItemDiagnostic, AmazonProductSyncRequiredField, AmazonProductSyncResultItem, AmazonProductSyncTaskRecord } from "./amazon-product-sync.schema.js";
 
 type PageState = "ready" | "login_required" | "captcha_or_2fa_required" | "review_required";
 
@@ -11,7 +12,7 @@ type InventorySearchProbe = {
   readonly inventorySearchUsesShadowInput: boolean; readonly inventorySearchInputPoint: ViewportPoint | null;
   readonly inventorySearchButtonPoint: ViewportPoint | null; readonly reason: string | null;
 };
-type ExtractedRow = {
+export type ExtractedRow = {
   readonly sellerSku: string; readonly asinSnapshot: string | null; readonly sellerCentralTitleSnapshot: string | null;
   readonly imagePresent: boolean; readonly imageSrc: string | null; readonly listingStatus: string | null; readonly availableFbaUnits: number | null;
   readonly actualInventoryUnits: number | null; readonly inboundUnits: number | null; readonly unfulfillableUnits: number | null; readonly reservedUnits: number | null;
@@ -47,12 +48,6 @@ type ProgressReporter = (progress: AmazonProductSyncFlowProgress) => Promise<voi
 const MARKETPLACE_INVENTORY_URL: Record<AmazonProductSyncInput["marketplace"], string> = { "amazon.ae": "https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.sa": "https://sellercentral.amazon.sa/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.com": "https://sellercentral.amazon.com/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.co.uk": "https://sellercentral.amazon.co.uk/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.co.jp": "https://sellercentral.amazon.co.jp/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all" };
 
 const normalizeSku = (value: string): string => value.trim().toUpperCase();
-
-const redactedEvidenceRef = (taskId: string, sku: string): string =>
-  `evidence://amazon-product-sync/${taskId}/${encodeURIComponent(normalizeSku(sku))}`;
-
-const hasRequiredField = (inputItem: AmazonProductSyncInput["items"][number], field: AmazonProductSyncRequiredField): boolean =>
-  inputItem.requiredFields.includes(field);
 
 const terminalTaskStatusFromPage = (state: PageState): AmazonProductSyncTaskRecord["status"] | null => {
   if (state === "login_required") return "login_required";
@@ -115,87 +110,6 @@ const buildMissingItem = (
   reason,
   ...(diagnostic ? { diagnostic } : {}),
 });
-
-const captureMainImageEvidenceRef = async (
-  browser: BrowserController,
-  input: {
-    readonly taskId: string;
-    readonly sellerSku: string;
-    readonly row: ExtractedRow;
-  },
-): Promise<string | null> => {
-  if (!input.row.imagePresent) return null;
-  const capture = await browser.screenshotRegion({
-    regionLabel: `amazon-product-sync main image evidence ${input.sellerSku}`,
-    contentLines: [
-      `taskId=${input.taskId}`,
-      `sellerSku=${input.sellerSku}`,
-      "field=mainImage",
-    ],
-    captureProfile: "observation_lightweight",
-  });
-  return `${redactedEvidenceRef(input.taskId, input.sellerSku)}/main-image/${capture.browserActionId}`;
-};
-
-const missingMainImageUpload = (status: AmazonProductSyncMainImageUploadResult["status"], reason: string): AmazonProductSyncMainImageUploadResult => ({
-  status,
-  imageUrl: null,
-  mediaId: null,
-  imageSha256: null,
-  reason,
-});
-
-const uploadMainImage = async (
-  inputItem: AmazonProductSyncInput["items"][number],
-  row: ExtractedRow,
-  taskId: string,
-): Promise<AmazonProductSyncMainImageUploadResult | null> => {
-  if (!hasRequiredField(inputItem, "mainImage")) return null;
-  if (!inputItem.mainImageUpload) return missingMainImageUpload("not_configured", "main_image_upload_endpoint_not_configured");
-  if (!row.imageSrc) return missingMainImageUpload("not_found", "seller_central_main_image_src_not_found");
-  const downloaded = await downloadMainImageBytes(row.imageSrc);
-  if (!downloaded) return missingMainImageUpload("failed", "seller_central_main_image_download_failed");
-  const response = await fetch(inputItem.mainImageUpload.endpoint, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-amzmgr-agent-product-image-token": inputItem.mainImageUpload.token,
-    },
-    body: JSON.stringify({
-      agentTaskId: taskId,
-      sellerSku: inputItem.sellerSku,
-      imageMimeType: downloaded.mimeType,
-      imageBase64: Buffer.from(downloaded.bytes).toString("base64"),
-    }),
-  });
-  if (!response.ok) return missingMainImageUpload("failed", `main_image_upload_failed:${response.status}`);
-  const payload = await response.json() as unknown;
-  return readMainImageUploadResponse(payload);
-};
-
-const downloadMainImageBytes = async (imageSrc: string): Promise<{ readonly bytes: Uint8Array; readonly mimeType: string } | null> => {
-  try {
-    const response = await fetch(imageSrc);
-    if (!response.ok) return null;
-    const mimeType = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    if (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") return null;
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength <= 0 || bytes.byteLength > 800 * 1024) return null;
-    return { bytes, mimeType };
-  } catch {
-    return null;
-  }
-};
-
-const readMainImageUploadResponse = (payload: unknown): AmazonProductSyncMainImageUploadResult => {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return missingMainImageUpload("failed", "main_image_upload_response_invalid");
-  const record = payload as Readonly<Record<string, unknown>>;
-  const imageUrl = typeof record.imageUrl === "string" && record.imageUrl.trim() ? record.imageUrl.trim() : null;
-  const mediaId = typeof record.mediaId === "string" && record.mediaId.trim() ? record.mediaId.trim() : null;
-  const imageSha256 = typeof record.imageSha256 === "string" && record.imageSha256.trim() ? record.imageSha256.trim() : null;
-  if (!imageUrl || !mediaId) return missingMainImageUpload("failed", "main_image_upload_response_missing_image_url_or_media_id");
-  return { status: "uploaded", imageUrl, mediaId, imageSha256, reason: null };
-};
 
 const buildMatchedItem = async (
   browser: BrowserController,

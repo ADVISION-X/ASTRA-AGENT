@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
@@ -69,10 +69,18 @@ const requireSourceFile = (
   return null;
 };
 
+const unwrapExpression = (expression: Expression): Expression => {
+  if (Node.isAsExpression(expression) || Node.isSatisfiesExpression(expression) || Node.isParenthesizedExpression(expression)) {
+    return unwrapExpression(expression.getExpression());
+  }
+  return expression;
+};
+
 const literalValues = (source: SourceFile): Set<string> =>
   new Set([
     ...source.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralText()),
     ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((literal) => literal.getLiteralText()),
+    ...source.getDescendantsOfKind(SyntaxKind.TemplateExpression).map((template) => template.getText()),
   ]);
 
 const hasLiteral = (source: SourceFile | null | undefined, value: string): boolean =>
@@ -107,10 +115,37 @@ const zEnumValues = (source: SourceFile, variableName: string): Set<string> => {
 const arrayVariableValues = (source: SourceFile, variableName: string): Set<string> => {
   const initializer = source.getVariableDeclaration(variableName)?.getInitializer();
   if (!initializer || !Node.isArrayLiteralExpression(initializer)) {
-    return new Set();
+    const unwrapped = initializer ? unwrapExpression(initializer) : null;
+    if (!unwrapped || !Node.isArrayLiteralExpression(unwrapped)) {
+      return new Set();
+    }
+    return new Set(unwrapped.getElements().flatMap((element) =>
+      Node.isStringLiteral(element) ? [element.getLiteralText()] : []));
   }
   return new Set(initializer.getElements().flatMap((element) =>
     Node.isStringLiteral(element) ? [element.getLiteralText()] : []));
+};
+
+const inspectTaskService = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
+  if (!source) {
+    return;
+  }
+  for (const eventName of [
+    "amazon_product_fee_sync.start_received",
+    "amazon_product_fee_sync.queued",
+    "amazon_product_fee_sync.progress",
+    "amazon_product_fee_sync.item_summary",
+    "amazon_product_fee_sync.flow_finished",
+    "amazon_product_fee_sync.flow_failed",
+    "amazon_product_fee_sync.stale_running_task_failed",
+  ]) {
+    if (!hasLiteral(source, eventName)) {
+      addFinding(findings, lawId, taskServicePath, "amazon-product-fee-sync/runtime-log", `Task service must emit ${eventName}.`);
+    }
+  }
+  if (!hasIdentifier(source, "runningProgressStaleMs") || !hasLiteralContaining(source, "amazon_product_fee_sync_running_progress_stale_after_")) {
+    addFinding(findings, lawId, taskServicePath, "amazon-product-fee-sync/stale-running-task", "Task service must fail stale queued/running tasks that have not advanced recently.");
+  }
 };
 
 const inspectSchema = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
@@ -207,28 +242,6 @@ const inspectFlow = (source: SourceFile | null, findings: InspectorFinding[], la
     if (hasLiteral(source, forbiddenLiteral)) {
       addFinding(findings, lawId, flowPath, "amazon-product-fee-sync/evidence-safety", `Flow must not expose ${forbiddenLiteral}.`);
     }
-  }
-};
-
-const inspectTaskService = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
-  if (!source) {
-    return;
-  }
-  for (const eventName of [
-    "amazon_product_fee_sync.start_received",
-    "amazon_product_fee_sync.queued",
-    "amazon_product_fee_sync.progress",
-    "amazon_product_fee_sync.item_summary",
-    "amazon_product_fee_sync.flow_finished",
-    "amazon_product_fee_sync.flow_failed",
-    "amazon_product_fee_sync.stale_running_task_failed",
-  ]) {
-    if (!hasLiteral(source, eventName)) {
-      addFinding(findings, lawId, taskServicePath, "amazon-product-fee-sync/runtime-log", `Task service must emit ${eventName}.`);
-    }
-  }
-  if (!hasIdentifier(source, "runningProgressStaleMs") || !hasLiteral(source, "amazon_product_fee_sync_running_progress_stale_after_")) {
-    addFinding(findings, lawId, taskServicePath, "amazon-product-fee-sync/stale-running-task", "Task service must fail stale queued/running tasks that have not advanced recently.");
   }
 };
 

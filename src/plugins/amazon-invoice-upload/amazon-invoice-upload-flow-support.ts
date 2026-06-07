@@ -17,7 +17,10 @@ import { amazonDomTraceRefFromIds, recordAmazonDomStepTrace } from "./amazon-dom
 
 const DOM_CLICK_SETTLE_MS = 50;
 
-export const readSnapshot = (browser: BrowserController) => readDomSnapshotOnce(browser);
+export const readSnapshot = (
+  browser: BrowserController,
+  input?: Parameters<typeof readDomSnapshotOnce>[1],
+) => readDomSnapshotOnce(browser, input);
 
 export const verifyState = (
   input: Parameters<typeof verifyDomStateOnce>[0],

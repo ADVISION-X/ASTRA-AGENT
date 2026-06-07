@@ -24,6 +24,7 @@ export type EvaluateActiveTabInput = {
   script: string;
   description: string;
   abortSignal?: AbortSignal;
+  timeoutMs?: number;
 };
 type SetFileInputFilesInput = Parameters<BrowserController["setFileInputFiles"]>[0];
 
@@ -129,10 +130,26 @@ export const evaluateActiveTab = async <T>(
     throw new Error(`Active-tab evaluation "${input.description}" is forbidden from reading browser storage or cookies.`);
   }
 
-  const raw = await runAppleScript(
-    `tell application "Google Chrome" to execute front window's active tab javascript "${escapeAppleScriptText(buildWrappedActiveTabScript(input.script))}"`,
-    input.abortSignal ? { signal: input.abortSignal } : undefined,
-  );
+  const controller = new AbortController();
+  const timeoutMs = input.timeoutMs ?? 10_000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const abortInput = () => controller.abort();
+  input.abortSignal?.addEventListener("abort", abortInput, { once: true });
+  let raw: string;
+  try {
+    raw = await runAppleScript(
+      `tell application "Google Chrome" to execute front window's active tab javascript "${escapeAppleScriptText(buildWrappedActiveTabScript(input.script))}"`,
+      { signal: controller.signal },
+    );
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Active-tab evaluation "${input.description}" timed out after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    input.abortSignal?.removeEventListener("abort", abortInput);
+  }
   await refreshSnapshot(state);
   return JSON.parse(raw) as T;
 };

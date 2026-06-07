@@ -108,7 +108,7 @@ const summarizeCandidates = (selector, candidateKind, maxCount) => Array.from(do
   .map((el) => ({...base(el), candidateKind}))
   .filter((item) => !item.hidden && Boolean(item.visibleText || item.ariaLabel || item.nearbyText))
   .slice(0, maxCount);
-const dropdownTriggers = summarizeCandidates("[role='combobox'], [aria-haspopup='listbox'], [aria-expanded], .ant-select-selector, .el-select__input, .arco-select-view, .select2-selection, select", "dropdown-trigger", 80);
+const dropdownTriggers = summarizeCandidates("kat-dropdown, [role='combobox'], [aria-haspopup='listbox'], [aria-expanded], .ant-select-selector, .el-select__input, .arco-select-view, .select2-selection, select", "dropdown-trigger", 80);
 const overlays = summarizeCandidates("dialog, [role='dialog'], [aria-modal='true'], [class*='modal'], [class*='drawer'], [class*='cookie'], [class*='consent'], [class*='banner']", "overlay", 40);
 const loadingIndicators = summarizeCandidates("[aria-busy='true'], [class*='skeleton'], [class*='spinner'], [class*='loading'], [role='progressbar']", "loading-indicator", 40);
 const stickyElements = Array.from(document.querySelectorAll("header, nav, [style*='position: fixed'], [style*='position: sticky']"))

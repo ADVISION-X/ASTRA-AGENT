@@ -1,25 +1,17 @@
 import { z } from "zod";
 
-const MediaProcessingArtifactChildSchema = z.enum([
-  "optimize-image-for-web-once",
-  "resize-image-for-web-once",
-  "generate-responsive-image-variants-once",
-  "optimize-video-for-web-once",
-  "compress-video-for-web-once",
-  "generate-video-poster-once",
+const MediaProcessingArtifactPresetSchema = z.enum([
+  "web-image",
+  "web-image-responsive",
+  "web-video",
+  "web-video-compressed",
+  "web-video-poster",
 ]);
 
 export const MediaProcessingArtifactJobInputSchema = z.object({
   jobType: z.literal("media-processing-artifact"),
   inputFilePath: z.string().min(1),
-  childCapabilityId: MediaProcessingArtifactChildSchema,
-  presetId: z.enum([
-    "web-image",
-    "web-image-responsive",
-    "web-video",
-    "web-video-compressed",
-    "web-video-poster",
-  ]).optional(),
+  presetId: MediaProcessingArtifactPresetSchema,
   outputFormat: z.enum(["webp", "jpeg", "png", "mp4"]).optional(),
   quality: z.number().int().min(1).max(100).optional(),
   maxWidth: z.number().int().min(1).max(8192).optional(),

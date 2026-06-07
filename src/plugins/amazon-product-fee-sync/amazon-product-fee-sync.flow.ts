@@ -81,6 +81,14 @@ export type AmazonProductFeeSyncFlowProgress = {
 
 type ProgressReporter = (progress: AmazonProductFeeSyncFlowProgress) => Promise<void>;
 
+type AmazonProductFeeSyncFlowInput = {
+  readonly browser: BrowserController;
+  readonly mission: AmazonProductFeeSyncInput;
+  readonly taskId: string;
+  readonly createdAt: string;
+  readonly onProgress?: ProgressReporter;
+};
+
 const MARKETPLACE_INVENTORY_URL: Record<AmazonProductFeeSyncInput["marketplace"], string> = {
   "amazon.ae": "https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
   "amazon.sa": "https://sellercentral.amazon.sa/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all",
@@ -211,17 +219,10 @@ const resolveTerminalStatus = (items: readonly AmazonProductFeeSyncResultItem[])
 const sleepViaBrowser = (browser: BrowserController, durationMs: number): Promise<unknown> =>
   browser.wait(durationMs);
 
-export const runAmazonProductFeeSyncFlow = async (input: {
-  readonly browser: BrowserController;
-  readonly mission: AmazonProductFeeSyncInput;
-  readonly taskId: string;
-  readonly createdAt: string;
-  readonly onProgress?: ProgressReporter;
-}): Promise<AmazonProductFeeSyncTaskRecord> => {
-  const inputItem = input.mission.items[0];
-  if (!inputItem) {
-    throw new Error("amazon_product_fee_sync_missing_single_sku_item");
-  }
+const openInventoryAndProbe = async (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+): Promise<InventoryFeeSearchProbe> => {
   const inventoryUrl = MARKETPLACE_INVENTORY_URL[input.mission.marketplace];
   await input.onProgress?.({ reachedStep: "seller_central_inventory_opening", reason: "progress_continues" });
   await input.browser.open({
@@ -244,6 +245,14 @@ export const runAmazonProductFeeSyncFlow = async (input: {
     pageTitle: probe.title,
     pageUrlPath: pageUrlPath(probe.url),
   });
+  return probe;
+};
+
+const buildProbeBlockedTask = (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+  probe: InventoryFeeSearchProbe,
+): AmazonProductFeeSyncTaskRecord | null => {
   const pageTerminal = terminalTaskStatusFromPage(probe.detectedState);
   if (pageTerminal) {
     const item = buildMissingItem(
@@ -265,7 +274,13 @@ export const runAmazonProductFeeSyncFlow = async (input: {
     );
     return buildFinalTask(input, [item], "review_required", item.reason);
   }
+  return null;
+};
 
+const submitInventorySearch = async (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+): Promise<InventoryFeeSearchSubmitResult> => {
   const submit = await input.browser.evaluateActiveTab<InventoryFeeSearchSubmitResult>({
     script: buildInventoryFeeSearchSubmitScript(inputItem.sellerSku),
     description: `submit Seller Central inventory fee sync SKU ${inputItem.sellerSku}`,
@@ -279,6 +294,14 @@ export const runAmazonProductFeeSyncFlow = async (input: {
     pageTitle: submit.title,
     pageUrlPath: pageUrlPath(submit.url),
   });
+  return submit;
+};
+
+const buildSubmitBlockedTask = (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+  submit: InventoryFeeSearchSubmitResult,
+): AmazonProductFeeSyncTaskRecord | null => {
   if (!submit.ok || !submit.searchClickDelayMs) {
     const item = buildMissingItem(
       inputItem,
@@ -289,18 +312,46 @@ export const runAmazonProductFeeSyncFlow = async (input: {
     );
     return buildFinalTask(input, [item], "review_required", item.reason);
   }
+  return null;
+};
 
-  await sleepViaBrowser(input.browser, submit.searchClickDelayMs);
+const requireSearchClickDelayMs = (submit: InventoryFeeSearchSubmitResult): number => {
+  if (!submit.searchClickDelayMs) {
+    throw new Error("amazon_product_fee_sync_missing_search_click_delay_after_submit");
+  }
+  return submit.searchClickDelayMs;
+};
+
+const clickInventorySearchButton = async (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+  delayMs: number,
+): Promise<InventoryFeeSearchButtonClickResult> => {
+  await sleepViaBrowser(input.browser, delayMs);
   const click = await input.browser.evaluateActiveTab<InventoryFeeSearchButtonClickResult>({
     script: buildInventoryFeeSearchButtonClickScript(inputItem.sellerSku),
     description: `click Seller Central inventory fee search button ${inputItem.sellerSku}`,
   });
   await input.onProgress?.({ reachedStep: "inventory_search_button_clicked", reason: click.reason ?? "inventory_search_dom_mouse_events_dispatched" });
+  return click;
+};
+
+const buildClickBlockedTask = (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+  click: InventoryFeeSearchButtonClickResult,
+): AmazonProductFeeSyncTaskRecord | null => {
   if (!click.ok) {
     const item = buildMissingItem(inputItem, new Date().toISOString(), click.reason ?? "inventory_search_button_click_failed", "blocked");
     return buildFinalTask(input, [item], "review_required", item.reason);
   }
+  return null;
+};
 
+const extractFeePage = async (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+): Promise<ExtractedFeePage | null> => {
   let extracted: ExtractedFeePage | null = null;
   for (let attempt = 0; attempt < 15; attempt += 1) {
     await sleepViaBrowser(input.browser, attempt === 0 ? 1500 : 1000);
@@ -312,7 +363,14 @@ export const runAmazonProductFeeSyncFlow = async (input: {
       break;
     }
   }
+  return extracted;
+};
 
+const buildExtractedTask = async (
+  input: AmazonProductFeeSyncFlowInput,
+  inputItem: AmazonProductFeeSyncInput["items"][number],
+  extracted: ExtractedFeePage | null,
+): Promise<AmazonProductFeeSyncTaskRecord> => {
   const snapshotAt = new Date().toISOString();
   if (!extracted) {
     const item = buildMissingItem(inputItem, snapshotAt, "inventory_fee_dom_extract_not_executed", "blocked");
@@ -360,6 +418,29 @@ export const runAmazonProductFeeSyncFlow = async (input: {
   }
   const item = buildMatchedItem(input.taskId, inputItem, extractedRow, snapshotAt);
   return buildFinalTask(input, [item], resolveTerminalStatus([item]) ?? resolveOverallStatus([item]), item.reason);
+};
+
+export const runAmazonProductFeeSyncFlow = async (input: AmazonProductFeeSyncFlowInput): Promise<AmazonProductFeeSyncTaskRecord> => {
+  const inputItem = input.mission.items[0];
+  if (!inputItem) {
+    throw new Error("amazon_product_fee_sync_missing_single_sku_item");
+  }
+  const probe = await openInventoryAndProbe(input, inputItem);
+  const probeBlockedTask = buildProbeBlockedTask(input, inputItem, probe);
+  if (probeBlockedTask) {
+    return probeBlockedTask;
+  }
+  const submit = await submitInventorySearch(input, inputItem);
+  const submitBlockedTask = buildSubmitBlockedTask(input, inputItem, submit);
+  if (submitBlockedTask) {
+    return submitBlockedTask;
+  }
+  const click = await clickInventorySearchButton(input, inputItem, requireSearchClickDelayMs(submit));
+  const clickBlockedTask = buildClickBlockedTask(input, inputItem, click);
+  if (clickBlockedTask) {
+    return clickBlockedTask;
+  }
+  return buildExtractedTask(input, inputItem, await extractFeePage(input, inputItem));
 };
 
 const buildFinalTask = (

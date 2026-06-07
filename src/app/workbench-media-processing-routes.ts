@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, realpath, stat, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { homedir } from "node:os";
@@ -8,15 +8,17 @@ import { URL } from "node:url";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { routeMediaProcessingArtifactJob } from "../mediator/media-processing-artifact-route.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
-
-const MEDIA_PROCESSING_CHILDREN = [
-  "optimize-image-for-web-once",
-  "resize-image-for-web-once",
-  "generate-responsive-image-variants-once",
-  "optimize-video-for-web-once",
-  "compress-video-for-web-once",
-  "generate-video-poster-once",
-] as const;
+import {
+  buildInitialMediaProcessingTask,
+  mediaProcessingTasks,
+  persistMediaProcessingTask,
+  persistenceFailureReason,
+  persistTerminalMediaProcessingTask,
+  readPersistedMediaProcessingTask,
+  runningTaskCount,
+  type MediaProcessingJobInput,
+  type MediaProcessingTaskSnapshot,
+} from "./workbench-media-processing-task-store.js";
 
 const MEDIA_PROCESSING_OUTPUT_FORMATS = ["webp", "jpeg", "png", "mp4"] as const;
 const MEDIA_PROCESSING_PRESETS = [
@@ -27,7 +29,6 @@ const MEDIA_PROCESSING_PRESETS = [
   "web-video-poster",
 ] as const;
 
-type MediaProcessingChildId = typeof MEDIA_PROCESSING_CHILDREN[number];
 type MediaProcessingOutputFormat = typeof MEDIA_PROCESSING_OUTPUT_FORMATS[number];
 type MediaProcessingPresetId = typeof MEDIA_PROCESSING_PRESETS[number];
 
@@ -35,7 +36,6 @@ type MediaProcessingRequestBody = {
   inputFilePath?: unknown;
   fileName?: unknown;
   fileContentBase64?: unknown;
-  childCapabilityId?: unknown;
   presetId?: unknown;
   outputFormat?: unknown;
   quality?: unknown;
@@ -51,27 +51,8 @@ type MediaProcessingRequestBody = {
   saveToDownloads?: unknown;
 };
 
-type MediaProcessingTaskSnapshot = {
-  taskId: string;
-  status: "running" | "success" | "failed" | "review_required" | "invalid_input";
-  startedAt: string;
-  updatedAt: string;
-  childCapabilityId: MediaProcessingChildId;
-  sourceFileName: string;
-  record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>> | null;
-  downloadsPath: string | null;
-  downloadsPaths: string[];
-  failureReason: string | null;
-};
-
-const mediaProcessingTasks = new Map<string, MediaProcessingTaskSnapshot>();
-const MEDIA_PROCESSING_TASK_TTL_MS = 24 * 60 * 60 * 1000;
 const MEDIA_PROCESSING_MAX_RUNNING_TASKS = 2;
 const MEDIA_PROCESSING_UPLOAD_MAX_BYTES = 50_000_000;
-const MEDIA_PROCESSING_TASK_PERSISTENCE_FAILED = "media_processing_task_persistence_failed";
-
-const isMediaProcessingChildId = (value: unknown): value is MediaProcessingChildId =>
-  typeof value === "string" && MEDIA_PROCESSING_CHILDREN.some((child) => child === value);
 
 const isMediaProcessingOutputFormat = (value: unknown): value is MediaProcessingOutputFormat =>
   typeof value === "string" && MEDIA_PROCESSING_OUTPUT_FORMATS.some((format) => format === value);
@@ -101,91 +82,6 @@ const safeFileName = (value: string): string => {
     .slice(0, 160)
     .trim();
   return cleaned || "media-input";
-};
-
-const taskStoreDir = (workbench: GrassEyeWorkbenchHandle): string =>
-  path.join(workbench.getDataDir(), "runtime-data", "media-processing-tasks");
-
-const taskStorePath = (workbench: GrassEyeWorkbenchHandle, taskId: string): string =>
-  path.join(taskStoreDir(workbench), `${taskId}.json`);
-
-const persistMediaProcessingTask = async (
-  workbench: GrassEyeWorkbenchHandle,
-  task: MediaProcessingTaskSnapshot,
-): Promise<void> => {
-  await mkdir(taskStoreDir(workbench), { recursive: true });
-  const destination = taskStorePath(workbench, task.taskId);
-  const temporary = `${destination}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(task, null, 2)}\n`);
-  await rename(temporary, destination);
-};
-
-const readPersistedMediaProcessingTask = async (
-  workbench: GrassEyeWorkbenchHandle,
-  taskId: string,
-): Promise<MediaProcessingTaskSnapshot | null> => {
-  try {
-    const parsed = JSON.parse(await readFile(taskStorePath(workbench, taskId), "utf8")) as MediaProcessingTaskSnapshot;
-    if (parsed.taskId !== taskId) return null;
-    const task = {
-      ...parsed,
-      downloadsPaths: Array.isArray(parsed.downloadsPaths) ? parsed.downloadsPaths : [],
-    };
-    return parsed.status === "running"
-      ? {
-          ...task,
-          status: "failed",
-          updatedAt: new Date().toISOString(),
-          failureReason: "media_processing_task_interrupted_before_completion",
-        }
-      : task;
-  } catch {
-    return null;
-  }
-};
-
-const pruneMediaProcessingTasks = (): void => {
-  const now = Date.now();
-  for (const [taskId, task] of mediaProcessingTasks) {
-    if (now - Date.parse(task.updatedAt) > MEDIA_PROCESSING_TASK_TTL_MS) {
-      mediaProcessingTasks.delete(taskId);
-    }
-  }
-};
-
-const runningTaskCount = (): number => {
-  pruneMediaProcessingTasks();
-  return [...mediaProcessingTasks.values()].filter((task) => task.status === "running").length;
-};
-
-const persistenceFailureReason = (error: unknown): string =>
-  `${MEDIA_PROCESSING_TASK_PERSISTENCE_FAILED}: ${error instanceof Error ? error.message : String(error)}`;
-
-const persistTerminalMediaProcessingTask = async (
-  workbench: GrassEyeWorkbenchHandle,
-  taskId: string,
-  terminalTask: MediaProcessingTaskSnapshot,
-): Promise<void> => {
-  try {
-    await persistMediaProcessingTask(workbench, terminalTask);
-    mediaProcessingTasks.set(taskId, terminalTask);
-  } catch (error) {
-    const failed: MediaProcessingTaskSnapshot = {
-      ...terminalTask,
-      status: "failed",
-      updatedAt: new Date().toISOString(),
-      record: null,
-      downloadsPath: null,
-      downloadsPaths: [],
-      failureReason: persistenceFailureReason(error),
-    };
-    mediaProcessingTasks.set(taskId, failed);
-    try {
-      await persistMediaProcessingTask(workbench, failed);
-    } catch {
-      return;
-    }
-  }
 };
 
 const stageUploadedMediaFile = async (
@@ -233,15 +129,49 @@ const assertAllowedMediaProcessingInputPath = async (
   return resolvedInput;
 };
 
+const readVariantWidths = (value: unknown): number[] | undefined =>
+  Array.isArray(value)
+    ? value.filter((item): item is number => Number.isInteger(item) && item > 0).slice(0, 8)
+    : undefined;
+
+const assignPositiveIntegerOption = (
+  options: Partial<MediaProcessingJobInput>,
+  key: "quality" | "maxWidth" | "maxHeight" | "targetWidth" | "targetHeight" | "targetMaxBytes" | "targetBitrateKbps",
+  value: unknown,
+): void => {
+  const parsed = readPositiveInteger(value);
+  if (parsed) {
+    options[key] = parsed;
+  }
+};
+
+const buildMediaProcessingJobOptions = (body: MediaProcessingRequestBody): Partial<MediaProcessingJobInput> => {
+  const variantWidths = readVariantWidths(body.variantWidths);
+  const posterTimestampSeconds = readNumber(body.posterTimestampSeconds);
+  const options: Partial<MediaProcessingJobInput> = {};
+  if (isMediaProcessingPresetId(body.presetId)) options.presetId = body.presetId;
+  if (isMediaProcessingOutputFormat(body.outputFormat)) options.outputFormat = body.outputFormat;
+  assignPositiveIntegerOption(options, "quality", body.quality);
+  assignPositiveIntegerOption(options, "maxWidth", body.maxWidth);
+  assignPositiveIntegerOption(options, "maxHeight", body.maxHeight);
+  assignPositiveIntegerOption(options, "targetWidth", body.targetWidth);
+  assignPositiveIntegerOption(options, "targetHeight", body.targetHeight);
+  assignPositiveIntegerOption(options, "targetMaxBytes", body.targetMaxBytes);
+  assignPositiveIntegerOption(options, "targetBitrateKbps", body.targetBitrateKbps);
+  if (variantWidths && variantWidths.length > 0) options.variantWidths = variantWidths;
+  if (posterTimestampSeconds !== null) options.posterTimestampSeconds = posterTimestampSeconds;
+  return options;
+};
+
 const buildMediaProcessingJobInput = async (
   body: MediaProcessingRequestBody,
   workbench: GrassEyeWorkbenchHandle,
   taskId: string,
-): Promise<Parameters<typeof routeMediaProcessingArtifactJob>[0] | null> => {
-  const childCapabilityId = isMediaProcessingChildId(body.childCapabilityId)
-    ? body.childCapabilityId
+): Promise<MediaProcessingJobInput | null> => {
+  const presetId = isMediaProcessingPresetId(body.presetId)
+    ? body.presetId
     : null;
-  if (!childCapabilityId) {
+  if (!presetId) {
     return null;
   }
   const stagedPath = await stageUploadedMediaFile(workbench, taskId, body);
@@ -252,32 +182,11 @@ const buildMediaProcessingJobInput = async (
   if (!inputFilePath) {
     return null;
   }
-  const variantWidths = Array.isArray(body.variantWidths)
-    ? body.variantWidths.filter((item): item is number => Number.isInteger(item) && item > 0).slice(0, 8)
-    : undefined;
-  const quality = readPositiveInteger(body.quality);
-  const maxWidth = readPositiveInteger(body.maxWidth);
-  const maxHeight = readPositiveInteger(body.maxHeight);
-  const targetWidth = readPositiveInteger(body.targetWidth);
-  const targetHeight = readPositiveInteger(body.targetHeight);
-  const targetMaxBytes = readPositiveInteger(body.targetMaxBytes);
-  const targetBitrateKbps = readPositiveInteger(body.targetBitrateKbps);
-  const posterTimestampSeconds = readNumber(body.posterTimestampSeconds);
   return {
     jobType: "media-processing-artifact",
-    childCapabilityId,
+    presetId,
     inputFilePath,
-    ...(isMediaProcessingPresetId(body.presetId) ? { presetId: body.presetId } : {}),
-    ...(isMediaProcessingOutputFormat(body.outputFormat) ? { outputFormat: body.outputFormat } : {}),
-    ...(quality ? { quality } : {}),
-    ...(maxWidth ? { maxWidth } : {}),
-    ...(maxHeight ? { maxHeight } : {}),
-    ...(targetWidth ? { targetWidth } : {}),
-    ...(targetHeight ? { targetHeight } : {}),
-    ...(variantWidths && variantWidths.length > 0 ? { variantWidths } : {}),
-    ...(targetMaxBytes ? { targetMaxBytes } : {}),
-    ...(targetBitrateKbps ? { targetBitrateKbps } : {}),
-    ...(posterTimestampSeconds !== null ? { posterTimestampSeconds } : {}),
+    ...buildMediaProcessingJobOptions(body),
     timeoutMs: readPositiveInteger(body.timeoutMs) ?? 120_000,
     artifactPolicy: "deliverable",
   };
@@ -337,11 +246,11 @@ const handleMediaProcessingPresetsRequest = (
   }
   writeJson(response, 200, {
     presets: [
-      { presetId: "web-image", childCapabilityId: "optimize-image-for-web-once", outputFormat: "webp", quality: 82 },
-      { presetId: "web-image-responsive", childCapabilityId: "generate-responsive-image-variants-once", outputFormat: "webp", quality: 82, variantWidths: [320, 640, 960, 1280] },
-      { presetId: "web-video", childCapabilityId: "optimize-video-for-web-once", outputFormat: "mp4" },
-      { presetId: "web-video-compressed", childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4", targetBitrateKbps: 1200 },
-      { presetId: "web-video-poster", childCapabilityId: "generate-video-poster-once", outputFormat: "webp" },
+      { presetId: "web-image", outputFormat: "webp", quality: 82 },
+      { presetId: "web-image-responsive", outputFormat: "webp", quality: 82, variantWidths: [320, 640, 960, 1280] },
+      { presetId: "web-video", outputFormat: "mp4" },
+      { presetId: "web-video-compressed", outputFormat: "mp4", targetBitrateKbps: 1200 },
+      { presetId: "web-video-poster", outputFormat: "webp" },
     ],
   });
   return true;
@@ -371,6 +280,67 @@ const handleMediaProcessingStatusRequest = async (
   return true;
 };
 
+const writePersistStartFailure = (
+  response: ServerResponse,
+  task: MediaProcessingTaskSnapshot,
+  error: unknown,
+): void => {
+  const failed: MediaProcessingTaskSnapshot = {
+    ...task,
+    status: "failed",
+    updatedAt: new Date().toISOString(),
+    failureReason: persistenceFailureReason(error),
+  };
+  mediaProcessingTasks.set(task.taskId, failed);
+  writeJson(response, 500, failed);
+};
+
+const persistCompletedMediaProcessingTask = async (
+  workbench: GrassEyeWorkbenchHandle,
+  taskId: string,
+  output: Awaited<ReturnType<typeof runMediaProcessingJob>>,
+): Promise<void> => {
+  const current = mediaProcessingTasks.get(taskId);
+  if (!current) return;
+  const completed: MediaProcessingTaskSnapshot = {
+    ...current,
+    status: output.record.status,
+    updatedAt: new Date().toISOString(),
+    record: output.record,
+    downloadsPath: output.downloadsPath,
+    downloadsPaths: output.downloadsPaths,
+    failureReason: output.record.result.failureReason ?? output.record.result.reviewRequiredReason ?? null,
+  };
+  await persistTerminalMediaProcessingTask(workbench, taskId, completed);
+};
+
+const persistFailedMediaProcessingTask = (
+  workbench: GrassEyeWorkbenchHandle,
+  taskId: string,
+  error: unknown,
+): void => {
+  const current = mediaProcessingTasks.get(taskId);
+  if (!current) return;
+  const failed: MediaProcessingTaskSnapshot = {
+    ...current,
+    status: "failed",
+    updatedAt: new Date().toISOString(),
+    failureReason: error instanceof Error ? error.message : String(error),
+  };
+  void persistTerminalMediaProcessingTask(workbench, taskId, failed);
+};
+
+const runMediaProcessingJobInBackground = (
+  input: MediaProcessingJobInput,
+  body: MediaProcessingRequestBody,
+  workbench: GrassEyeWorkbenchHandle,
+  taskId: string,
+): void => {
+  void runMediaProcessingJob(input, body, workbench)
+    .then((output) => persistCompletedMediaProcessingTask(workbench, taskId, output))
+    .catch((error) => persistFailedMediaProcessingTask(workbench, taskId, error));
+};
+
 const handleMediaProcessingAsyncStartRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -385,7 +355,7 @@ const handleMediaProcessingAsyncStartRequest = async (
   }
   const body = await readJsonBody(request) as MediaProcessingRequestBody;
   const taskId = `media_processing_${randomUUID()}`;
-  let input: Parameters<typeof routeMediaProcessingArtifactJob>[0] | null;
+  let input: MediaProcessingJobInput | null;
   try {
     input = await buildMediaProcessingJobInput(body, workbench, taskId);
   } catch (error) {
@@ -398,59 +368,15 @@ const handleMediaProcessingAsyncStartRequest = async (
     writeJson(response, 400, { error: "invalid_media_processing_input" });
     return true;
   }
-  const now = new Date().toISOString();
-  const initialTask: MediaProcessingTaskSnapshot = {
-    taskId,
-    status: "running",
-    startedAt: now,
-    updatedAt: now,
-    childCapabilityId: input.childCapabilityId,
-    sourceFileName: path.basename(input.inputFilePath),
-    record: null,
-    downloadsPath: null,
-    downloadsPaths: [],
-    failureReason: null,
-  };
+  const initialTask = buildInitialMediaProcessingTask(taskId, input);
   mediaProcessingTasks.set(taskId, initialTask);
   try {
     await persistMediaProcessingTask(workbench, initialTask);
   } catch (error) {
-    const failed: MediaProcessingTaskSnapshot = {
-      ...initialTask,
-      status: "failed",
-      updatedAt: new Date().toISOString(),
-      failureReason: persistenceFailureReason(error),
-    };
-    mediaProcessingTasks.set(taskId, failed);
-    writeJson(response, 500, failed);
+    writePersistStartFailure(response, initialTask, error);
     return true;
   }
-  void runMediaProcessingJob(input, body, workbench)
-    .then(async ({ record, downloadsPath, downloadsPaths }) => {
-      const current = mediaProcessingTasks.get(taskId);
-      if (!current) return;
-      const completed: MediaProcessingTaskSnapshot = {
-        ...current,
-        status: record.status,
-        updatedAt: new Date().toISOString(),
-        record,
-        downloadsPath,
-        downloadsPaths,
-        failureReason: record.result.failureReason ?? record.result.reviewRequiredReason ?? null,
-      };
-      await persistTerminalMediaProcessingTask(workbench, taskId, completed);
-    })
-    .catch((error) => {
-      const current = mediaProcessingTasks.get(taskId);
-      if (!current) return;
-      const failed: MediaProcessingTaskSnapshot = {
-        ...current,
-        status: "failed",
-        updatedAt: new Date().toISOString(),
-        failureReason: error instanceof Error ? error.message : String(error),
-      };
-      void persistTerminalMediaProcessingTask(workbench, taskId, failed);
-    });
+  runMediaProcessingJobInBackground(input, body, workbench, taskId);
   writeJson(response, 202, mediaProcessingTasks.get(taskId));
   return true;
 };

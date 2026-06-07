@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-05T11:08:16.247Z",
+  "generatedAt": "2026-06-07T20:49:48.635Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -31,6 +31,9 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
@@ -40,6 +43,8 @@
     "src/app/workbench-home-amazon-invoice-client.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",

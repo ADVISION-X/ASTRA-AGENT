@@ -76,13 +76,14 @@ const buildDependencyLatestRefreshFailure = (
 
 const buildPublicRequestBase = (
   parsed: ReturnType<typeof MediaProcessingPublicRequestSchema.parse>,
+  childCapabilityId: MediaProcessingChildCapabilityId,
 ) => ({
   abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
   missionId: parsed.missionId,
   runId: parsed.runId,
-  capabilityCallId: `${parsed.runId}_${parsed.childCapabilityId}_${randomUUID()}`,
+  capabilityCallId: `${parsed.runId}_${childCapabilityId}_${randomUUID()}`,
   inputFilePath: parsed.inputFilePath,
-  ...(parsed.presetId ? { presetId: parsed.presetId } : {}),
+  presetId: parsed.presetId,
   ...(parsed.quality ? { quality: parsed.quality } : {}),
   ...(parsed.maxWidth ? { maxWidth: parsed.maxWidth } : {}),
   ...(parsed.maxHeight ? { maxHeight: parsed.maxHeight } : {}),
@@ -101,20 +102,27 @@ const buildPublicRequestInput = (input: MediaProcessingPublicRequest): MediaProc
   const imageOutputFormat = parsed.outputFormat === "jpeg" || parsed.outputFormat === "png" || parsed.outputFormat === "webp"
     ? parsed.outputFormat
     : "webp";
-  const base = buildPublicRequestBase(parsed);
-  switch (parsed.childCapabilityId) {
-    case "optimize-image-for-web-once":
-      return { ...base, childCapabilityId: "optimize-image-for-web-once", outputFormat: imageOutputFormat };
-    case "resize-image-for-web-once":
-      return { ...base, childCapabilityId: "resize-image-for-web-once", outputFormat: imageOutputFormat };
-    case "generate-responsive-image-variants-once":
-      return { ...base, childCapabilityId: "generate-responsive-image-variants-once", outputFormat: imageOutputFormat };
-    case "optimize-video-for-web-once":
-      return { ...base, childCapabilityId: "optimize-video-for-web-once", outputFormat: "mp4" };
-    case "compress-video-for-web-once":
-      return { ...base, childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4" };
-    case "generate-video-poster-once":
-      return { ...base, childCapabilityId: "generate-video-poster-once", outputFormat: imageOutputFormat };
+  switch (parsed.presetId) {
+    case "web-image": {
+      const childCapabilityId = "optimize-image-for-web-once";
+      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: imageOutputFormat };
+    }
+    case "web-image-responsive": {
+      const childCapabilityId = "generate-responsive-image-variants-once";
+      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: imageOutputFormat };
+    }
+    case "web-video": {
+      const childCapabilityId = "optimize-video-for-web-once";
+      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: "mp4" };
+    }
+    case "web-video-compressed": {
+      const childCapabilityId = "compress-video-for-web-once";
+      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: "mp4" };
+    }
+    case "web-video-poster": {
+      const childCapabilityId = "generate-video-poster-once";
+      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: imageOutputFormat };
+    }
   }
 };
 

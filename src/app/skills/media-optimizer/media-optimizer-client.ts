@@ -1,10 +1,10 @@
 const MEDIA_OPTIMIZER_CLIENT = `
 const MEDIA_OPTIMIZER_PRESETS = {
-  "web-image": { childCapabilityId: "optimize-image-for-web-once", outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
-  "web-image-responsive": { childCapabilityId: "generate-responsive-image-variants-once", outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "480,960,1440", targetBitrateKbps: "", targetMaxMegabytes: "" },
-  "web-video": { childCapabilityId: "optimize-video-for-web-once", outputFormat: "mp4", quality: 78, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
-  "web-video-compressed": { childCapabilityId: "compress-video-for-web-once", outputFormat: "mp4", quality: 64, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "1200", targetMaxMegabytes: "" },
-  "web-video-poster": { childCapabilityId: "generate-video-poster-once", outputFormat: "webp", quality: 82, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-image": { outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-image-responsive": { outputFormat: "webp", quality: 82, maxWidth: 1600, maxHeight: 1200, variants: "480,960,1440", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-video": { outputFormat: "mp4", quality: 78, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
+  "web-video-compressed": { outputFormat: "mp4", quality: 64, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "1200", targetMaxMegabytes: "" },
+  "web-video-poster": { outputFormat: "webp", quality: 82, maxWidth: 1280, maxHeight: 720, variants: "", targetBitrateKbps: "", targetMaxMegabytes: "" },
 };
 const escapeMediaOptimizerHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -66,7 +66,6 @@ const applyMediaOptimizerPreset = (presetId) => {
   const form = qs("[data-media-optimizer-form]");
   const preset = MEDIA_OPTIMIZER_PRESETS[presetId] || MEDIA_OPTIMIZER_PRESETS["web-image"];
   if (!form) return;
-  form.childCapabilityId.value = preset.childCapabilityId;
   form.outputFormat.value = preset.outputFormat;
   form.quality.value = String(preset.quality);
   form.maxWidth.value = String(preset.maxWidth);
@@ -74,8 +73,8 @@ const applyMediaOptimizerPreset = (presetId) => {
   form.variantWidths.value = preset.variants;
   form.targetBitrateKbps.value = preset.targetBitrateKbps;
   form.targetMaxMegabytes.value = preset.targetMaxMegabytes;
-  qs("[data-media-optimizer-variant-field]")?.classList.toggle("hidden", preset.childCapabilityId !== "generate-responsive-image-variants-once");
-  document.querySelectorAll("[data-media-optimizer-video-target-field]").forEach((field) => field.classList.toggle("hidden", preset.childCapabilityId !== "compress-video-for-web-once"));
+  qs("[data-media-optimizer-variant-field]")?.classList.toggle("hidden", presetId !== "web-image-responsive");
+  document.querySelectorAll("[data-media-optimizer-video-target-field]").forEach((field) => field.classList.toggle("hidden", presetId !== "web-video-compressed"));
 };
 const renderMediaOptimizerArtifacts = (result, downloadsPath, downloadsPaths = []) => {
   const list = qs("[data-media-optimizer-artifact-list]");
@@ -144,7 +143,6 @@ const startMediaOptimizer = async (event) => {
       fileName: file.name,
       fileContentBase64: await fileToMediaOptimizerBase64(file),
       presetId: form.presetId.value,
-      childCapabilityId: form.childCapabilityId.value,
       outputFormat: form.outputFormat.value,
       quality: Number(form.quality.value),
       maxWidth: Number(form.maxWidth.value),

@@ -8,9 +8,8 @@ import path from "node:path";
 import sharp from "sharp";
 
 import {
-  MEDIA_PROCESSING_ABILITY_GROUP_ID,
+  createMediaProcessingAbilityGroupFromFilesystem,
   type MediaProcessingAbilityGroup,
-  type MediaProcessingPublicRequest,
   type MediaProcessingResult,
 } from "../../src/capabilities/media-processing/index.js";
 import { handleMediaProcessingRequest } from "../../src/app/workbench-media-processing-routes.js";
@@ -47,59 +46,6 @@ const createControlledPromise = <T>() => {
   return { promise, resolve };
 };
 
-const buildSuccessResult = (input: MediaProcessingPublicRequest, artifactFilePath: string): MediaProcessingResult => {
-  const now = new Date().toISOString();
-  const artifact = {
-    artifactRef: `mp_artifact_${randomUUID()}`,
-    storageRef: artifactFilePath,
-    filePath: artifactFilePath,
-    contentType: "image/webp",
-    byteSize: 12,
-    sha256: "a".repeat(64),
-    width: 24,
-    height: 24,
-    durationMs: null,
-    format: "webp",
-    videoCodec: null,
-    audioCodec: null,
-    fastStart: null,
-    targetMaxBytes: null,
-    targetBitrateKbps: null,
-    compressionRatio: null,
-    derivativeKind: "optimized" as const,
-  };
-  const proof = {
-    proofId: `mp_proof_${randomUUID()}`,
-    missionId: input.missionId,
-    runId: input.runId,
-    capabilityCallId: `acceptance_${randomUUID()}`,
-    abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    status: "success" as const,
-    failureReason: null,
-    reviewRequiredReason: null,
-    inputFilePath: input.inputFilePath,
-    inputByteSize: null,
-    outputArtifacts: [artifact],
-    startedAt: now,
-    endedAt: now,
-    durationMsTotal: 0,
-  };
-  return {
-    abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    status: "success",
-    failureReason: null,
-    reviewRequiredReason: null,
-    output: {
-      status: "success",
-      outputArtifacts: [artifact],
-      proofRef: proof.proofId,
-    },
-    runtimeProof: proof,
-  };
-};
-
 const buildWorkbench = (dataDir: string, mediaProcessing: MediaProcessingAbilityGroup): GrassEyeWorkbenchHandle =>
   ({
     getDataDir: () => dataDir,
@@ -129,7 +75,7 @@ const postStart = async (baseUrl: string, filePath: string, body: Record<string,
     body: JSON.stringify({
       fileName: path.basename(filePath),
       fileContentBase64: (await readFile(filePath)).toString("base64"),
-      childCapabilityId: "optimize-image-for-web-once",
+      presetId: "web-image",
       outputFormat: "webp",
       ...body,
     }),
@@ -160,14 +106,7 @@ const runInitialSnapshotFailureAcceptance = async (): Promise<void> => {
   const taskPathBlocker = path.join(dataDir, "runtime-data", "media-processing-tasks");
   await mkdir(path.dirname(taskPathBlocker), { recursive: true });
   await writeFile(taskPathBlocker, "not a directory");
-  const mediaProcessing = {
-    abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-    listChildCapabilityIds: () => ["optimize-image-for-web-once"],
-    processMedia: async (input: MediaProcessingPublicRequest) => buildSuccessResult(input, input.inputFilePath),
-    execute: async () => {
-      throw new Error("not used");
-    },
-  } as MediaProcessingAbilityGroup;
+  const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
   const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
   try {
     const response = await postStart(server.baseUrl, inputFilePath);
@@ -180,30 +119,25 @@ const runInitialSnapshotFailureAcceptance = async (): Promise<void> => {
   }
 };
 
-const createControlledMediaProcessing = (artifactFilePath: string): {
+const createControlledMediaProcessing = (dataDir: string): {
   first: ControlledPromise<MediaProcessingResult>;
   second: ControlledPromise<MediaProcessingResult>;
   mediaProcessing: MediaProcessingAbilityGroup;
 } => {
   const first = createControlledPromise<MediaProcessingResult>();
   const second = createControlledPromise<MediaProcessingResult>();
+  const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
   let calls = 0;
+  mediaProcessing.processMedia = async () => {
+    calls += 1;
+    if (calls === 1) return first.promise;
+    if (calls === 2) return second.promise;
+    return first.promise;
+  };
   return {
     first,
     second,
-    mediaProcessing: {
-      abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-      listChildCapabilityIds: () => ["optimize-image-for-web-once"],
-      processMedia: async (input: MediaProcessingPublicRequest) => {
-        calls += 1;
-        if (calls === 1) return first.promise;
-        if (calls === 2) return second.promise;
-        return buildSuccessResult(input, artifactFilePath);
-      },
-      execute: async () => {
-        throw new Error("not used");
-      },
-    } as MediaProcessingAbilityGroup,
+    mediaProcessing,
   };
 };
 
@@ -213,28 +147,23 @@ const blockTaskPersistenceWrites = async (dataDir: string): Promise<void> => {
   await writeFile(tasksDir, "terminal writes blocked");
 };
 
-const buildImageRequest = (inputFilePath: string): MediaProcessingPublicRequest => ({
-  missionId: "acceptance",
-  runId: "acceptance",
-  inputFilePath,
-  childCapabilityId: "optimize-image-for-web-once",
-  outputFormat: "webp",
-  artifactPolicy: "deliverable",
-});
-
 const prepareTerminalPersistenceFixture = async (): Promise<{
-  artifactFilePath: string;
   dataDir: string;
   inputFilePath: string;
+  successResult: MediaProcessingResult;
 }> => {
   const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-mp-terminal-persist-"));
   const inputFilePath = path.join(dataDir, "source.png");
   await makeImage(inputFilePath);
-  const artifactDir = path.join(dataDir, "runtime-data", "media-processing-artifacts");
-  await mkdir(artifactDir, { recursive: true });
-  const artifactFilePath = path.join(artifactDir, "artifact.webp");
-  await writeFile(artifactFilePath, "artifact");
-  return { artifactFilePath, dataDir, inputFilePath };
+  const successResult = await createMediaProcessingAbilityGroupFromFilesystem({ dataDir }).processMedia({
+    missionId: "acceptance",
+    runId: "acceptance",
+    inputFilePath,
+    presetId: "web-image",
+    outputFormat: "webp",
+    artifactPolicy: "deliverable",
+  });
+  return { dataDir, inputFilePath, successResult };
 };
 
 const startTwoTasksAndAssertConcurrency = async (
@@ -265,15 +194,15 @@ const assertTerminalPersistenceFailure = async (
 };
 
 const runTerminalSnapshotFailureAndConcurrencyAcceptance = async (): Promise<void> => {
-  const { artifactFilePath, dataDir, inputFilePath } = await prepareTerminalPersistenceFixture();
-  const { first, second, mediaProcessing } = createControlledMediaProcessing(artifactFilePath);
+  const { dataDir, inputFilePath, successResult } = await prepareTerminalPersistenceFixture();
+  const { first, second, mediaProcessing } = createControlledMediaProcessing(dataDir);
   const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
   try {
     const { startedOne } = await startTwoTasksAndAssertConcurrency(server.baseUrl, inputFilePath);
     await blockTaskPersistenceWrites(dataDir);
-    first.resolve(buildSuccessResult(buildImageRequest(inputFilePath), artifactFilePath));
+    first.resolve(successResult);
     await assertTerminalPersistenceFailure(server.baseUrl, startedOne.taskId);
-    second.resolve(buildSuccessResult(buildImageRequest(inputFilePath), artifactFilePath));
+    second.resolve(successResult);
   } finally {
     await server.close();
   }
@@ -289,21 +218,14 @@ const runInterruptedRunningSnapshotAcceptance = async (): Promise<void> => {
     status: "running",
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    childCapabilityId: "optimize-image-for-web-once",
+    presetId: "web-image",
     sourceFileName: "source.png",
     record: null,
     downloadsPath: null,
     downloadsPaths: [],
     failureReason: null,
   })}\n`);
-  const mediaProcessing = {
-    abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-    listChildCapabilityIds: () => ["optimize-image-for-web-once"],
-    processMedia: async (input: MediaProcessingPublicRequest) => buildSuccessResult(input, input.inputFilePath),
-    execute: async () => {
-      throw new Error("not used");
-    },
-  } as MediaProcessingAbilityGroup;
+  const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
   const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
   try {
     const interrupted = await readTask(server.baseUrl, taskId);
@@ -316,18 +238,44 @@ const runInterruptedRunningSnapshotAcceptance = async (): Promise<void> => {
 
 const runDownloadsCopyFailureAcceptance = async (): Promise<void> => {
   const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-mp-downloads-failure-"));
-  const inputFilePath = path.join(dataDir, "source.png");
+  const uploadDir = path.join(dataDir, "runtime-data", "media-processing-uploads", "downloads-failure");
+  await mkdir(uploadDir, { recursive: true });
+  const inputFilePath = path.join(uploadDir, "source.png");
   await makeImage(inputFilePath);
   const outsideArtifactPath = path.join(await mkdtemp(path.join(tmpdir(), "grasseye-mp-outside-artifact-")), "artifact.webp");
   await writeFile(outsideArtifactPath, "artifact");
-  const mediaProcessing = {
-    abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-    listChildCapabilityIds: () => ["optimize-image-for-web-once"],
-    processMedia: async (input: MediaProcessingPublicRequest) => buildSuccessResult(input, outsideArtifactPath),
-    execute: async () => {
-      throw new Error("not used");
+  const result = await createMediaProcessingAbilityGroupFromFilesystem({ dataDir }).processMedia({
+    missionId: "acceptance",
+    runId: "acceptance-outside-artifact",
+    inputFilePath,
+    presetId: "web-image",
+    outputFormat: "webp",
+    artifactPolicy: "deliverable",
+  });
+  assert.equal(result.output.status, "success");
+  const [artifact] = result.output.outputArtifacts;
+  assert.ok(artifact, "Downloads failure fixture must produce an owner result artifact.");
+  const outsideResult: MediaProcessingResult = {
+    ...result,
+    output: {
+      ...result.output,
+      outputArtifacts: [{
+        ...artifact,
+        storageRef: outsideArtifactPath,
+        filePath: outsideArtifactPath,
+      }],
     },
-  } as MediaProcessingAbilityGroup;
+    runtimeProof: {
+      ...result.runtimeProof,
+      outputArtifacts: [{
+        ...artifact,
+        storageRef: outsideArtifactPath,
+        filePath: outsideArtifactPath,
+      }],
+    },
+  };
+  const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
+  mediaProcessing.processMedia = async () => outsideResult;
   const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
   try {
     const started = await postStart(server.baseUrl, inputFilePath, { saveToDownloads: true })

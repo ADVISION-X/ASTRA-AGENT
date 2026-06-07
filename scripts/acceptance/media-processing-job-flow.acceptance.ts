@@ -25,7 +25,7 @@ const result = await runMediaProcessingArtifactFlow(
   {
     jobType: "media-processing-artifact",
     inputFilePath,
-    childCapabilityId: "resize-image-for-web-once",
+    presetId: "web-image",
     outputFormat: "webp",
     targetWidth: 160,
     targetHeight: 90,
@@ -37,6 +37,6 @@ const result = await runMediaProcessingArtifactFlow(
 assert.equal(result.jobType, "media-processing-artifact");
 assert.equal(result.status, "success");
 assert.equal(result.result.abilityGroupId, "media-processing");
-assert.equal(result.result.childCapabilityId, "resize-image-for-web-once");
+assert.equal(result.result.childCapabilityId, "optimize-image-for-web-once");
 
 process.stdout.write("[ACCEPTANCE][media-processing-job-flow] PASS\n");

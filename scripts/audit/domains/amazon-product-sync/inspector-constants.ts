@@ -5,6 +5,7 @@ export const boundaryPath = "src/app/workbench-api-boundary.ts";
 export const serverPath = "src/app/create-workbench-server.ts";
 export const schemaPath = "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts";
 export const flowPath = "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts";
+export const imageTransferPath = "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts";
 export const taskServicePath = "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts";
 export const domScriptsPath = "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts";
 export const acceptancePath = "scripts/acceptance/amazon-product-sync.acceptance.ts";
@@ -15,6 +16,7 @@ export const requiredFiles = [
   "scripts/audit/domains/amazon-product-sync/manifest.json",
   schemaPath,
   flowPath,
+  imageTransferPath,
   domScriptsPath,
   taskServicePath,
   "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",

@@ -4,63 +4,8 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/amazon-product-sync/inspector.ts has an over-line function near line 220.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
-      "evidence": "{\"owner\":\"audit:amazon-product-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/create-workbench-server.ts has an over-line function near line 144.",
-      "severity": "fatal",
-      "filePath": "src/app/create-workbench-server.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-media-processing-routes.ts has an over-line function near line 236.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-media-processing-routes.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-media-processing-routes.ts has an over-line function near line 374.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-media-processing-routes.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts has an over-line function near line 214.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-fee-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts has 559 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-sync\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-06-05T11:08:11.932Z",
+  "findings": [],
+  "generatedAt": "2026-06-07T20:49:44.300Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -156,6 +101,8 @@
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
@@ -405,6 +352,7 @@
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",
+    "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
@@ -597,6 +545,9 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
@@ -655,6 +606,7 @@
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
     "src/plugins/amazon-product-sync/index.ts",
@@ -1385,10 +1337,10 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1894,
+  "liveExportCount": 1945,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 670,
-  "status": "FAIL",
+  "reachableFileCount": 677,
+  "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],
@@ -1399,9 +1351,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1894,
+    "liveExportCount": 1945,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 670,
+    "reachableFileCount": 677,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

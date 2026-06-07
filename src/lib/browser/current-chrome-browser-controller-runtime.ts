@@ -10,6 +10,7 @@ import { createInitialLocalBrowserSessionState } from "./local-browser-session.j
 import {
   activateChrome,
   clickAt,
+  moveAt,
   scrollAt,
 } from "./current-chrome-browser-controller-primitives.js";
 import {
@@ -51,6 +52,7 @@ type RuntimeState = {
 type OpenInput = Parameters<BrowserController["open"]>[0];
 type ScrollInput = Parameters<BrowserController["scroll"]>[0];
 type ClickInput = Parameters<BrowserController["click"]>[0];
+type MoveInput = Parameters<NonNullable<BrowserController["move"]>>[0];
 type TextInput = Parameters<BrowserController["textInput"]>[0];
 type ScreenshotRegionInput = Parameters<BrowserController["screenshotRegion"]>[0];
 type SetFileInputFilesInput = Parameters<BrowserController["setFileInputFiles"]>[0];
@@ -108,8 +110,9 @@ const sleep = async (
 
 const refreshSnapshot = async (
   state: RuntimeState,
+  fallbackUrl?: string,
 ): Promise<CurrentChromeWindowState> => {
-  const windowState = await readFrontChromeWindowState();
+  const windowState = await readFrontChromeWindowState(fallbackUrl ?? state.snapshot.currentUrl);
   state.lastWindowState = windowState;
   state.snapshot = {
     ...state.snapshot,
@@ -127,16 +130,22 @@ const refreshSnapshot = async (
   return windowState;
 };
 
-const readScaleFactor = async (): Promise<number> => {
+type ViewportMetrics = {
+  dpr: number;
+  innerWidth: number;
+  innerHeight: number;
+  outerHeight: number;
+};
+
+const readViewportMetrics = async (): Promise<ViewportMetrics> => {
   try {
-    const jsSnippet = "JSON.stringify({dpr:window.devicePixelRatio||1})";
+    const jsSnippet = "JSON.stringify({dpr:window.devicePixelRatio||1,innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerHeight:window.outerHeight})";
     const raw = await runAppleScript(
       `tell application "Google Chrome" to execute front window's active tab javascript "${jsSnippet}"`,
     );
-    const viewport = JSON.parse(raw) as { dpr: number };
-    return viewport.dpr;
+    return JSON.parse(raw) as ViewportMetrics;
   } catch {
-    return 1;
+    return { dpr: 1, innerWidth: 0, innerHeight: 0, outerHeight: 0 };
   }
 };
 
@@ -144,22 +153,25 @@ const getGeometrySnapshot = async (
   state: RuntimeState,
 ): Promise<BrowserGeometrySnapshot> => {
   const windowState = await refreshSnapshot(state);
-  const scaleFactor = await readScaleFactor();
+  const viewportMetrics = await readViewportMetrics();
+  const viewportWidth = viewportMetrics.innerWidth > 0 ? viewportMetrics.innerWidth : windowState.width;
+  const viewportHeight = viewportMetrics.innerHeight > 0 ? viewportMetrics.innerHeight : windowState.height;
+  const browserChromeTopInset = Math.max(0, windowState.height - viewportHeight);
   const visibleContentBounds = {
     x: 0,
-    y: 0,
-    width: windowState.width,
-    height: windowState.height,
+    y: browserChromeTopInset,
+    width: viewportWidth,
+    height: viewportHeight,
   };
 
   return {
     windowX: windowState.windowX,
     windowY: windowState.windowY,
-    viewportWidth: visibleContentBounds.width,
-    viewportHeight: visibleContentBounds.height,
-    screenshotWidth: Math.round(visibleContentBounds.width * scaleFactor),
-    screenshotHeight: Math.round(visibleContentBounds.height * scaleFactor),
-    scaleFactor,
+    viewportWidth,
+    viewportHeight,
+    screenshotWidth: Math.round(viewportWidth * viewportMetrics.dpr),
+    screenshotHeight: Math.round(viewportHeight * viewportMetrics.dpr),
+    scaleFactor: viewportMetrics.dpr,
     currentUrl: windowState.currentUrl,
     pageTitle: windowState.currentTitle,
     visibleContentBounds,
@@ -172,7 +184,7 @@ const openCurrentChrome = async (
   input: OpenInput,
 ): Promise<BrowserActionResult> => {
   await runAppleScript(buildOpenUrlScript(input.url, input.reusePolicy ?? "reuse-exact-url"));
-  await refreshSnapshot(state);
+  await refreshSnapshot(state, input.url);
   return createCurrentChromeBrowserActionResult({
     message: `opened ${input.url} in current Chrome session`,
   });
@@ -215,10 +227,10 @@ const resolveClickDesktopPoint = (
     coordinateSpace,
     x: coordinateSpace === "desktopScreen"
       ? input.point.x
-      : geometry.windowX + geometry.visibleContentBounds.x + (input.point.x / geometry.scaleFactor),
+      : geometry.windowX + geometry.visibleContentBounds.x + input.point.x,
     y: coordinateSpace === "desktopScreen"
       ? input.point.y
-      : geometry.windowY + geometry.visibleContentBounds.y + (input.point.y / geometry.scaleFactor),
+      : geometry.windowY + geometry.visibleContentBounds.y + input.point.y,
   };
 };
 
@@ -262,6 +274,20 @@ const clickCurrentChrome = async (
   });
 };
 
+const moveCurrentChrome = async (
+  state: RuntimeState,
+  input: MoveInput,
+): Promise<BrowserActionResult> => {
+  const geometry = await getGeometrySnapshot(state);
+  await activateChrome();
+  const point = resolveClickDesktopPoint(geometry, input);
+  await moveAt(Math.round(point.x), Math.round(point.y));
+  await refreshSnapshot(state);
+  return createCurrentChromeBrowserActionResult({
+    message: `moved mouse to ${input.targetLabel}`,
+  });
+};
+
 export const createCurrentChromeBrowserControllerRuntime = (
   options: CurrentChromeBrowserControllerOptions,
 ): BrowserController => {
@@ -273,6 +299,7 @@ export const createCurrentChromeBrowserControllerRuntime = (
     open: (input) => openCurrentChrome(state, input),
     scroll: (input) => scrollCurrentChrome(state, input),
     click: (input) => clickCurrentChrome(state, input),
+    move: (input) => moveCurrentChrome(state, input),
     clickLocatedDomElement: (input) => clickCurrentChrome(state, {
       targetLabel: input.targetLabel,
       point: input.point,

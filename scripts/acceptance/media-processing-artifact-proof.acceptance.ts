@@ -24,7 +24,7 @@ const result = await createMediaProcessingAbilityGroupFromFilesystem({ dataDir }
   missionId: "media-processing-proof-acceptance",
   runId: "media-processing-proof-run",
   inputFilePath,
-  childCapabilityId: "generate-responsive-image-variants-once",
+  presetId: "web-image-responsive",
   outputFormat: "webp",
   variantWidths: [120, 240],
 });

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-05T11:08:12.043Z",
-  "status": "FAIL",
+  "generatedAt": "2026-06-07T20:49:44.419Z",
+  "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -157,6 +157,8 @@
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
@@ -406,6 +408,7 @@
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",
+    "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
@@ -601,6 +604,9 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
@@ -659,6 +665,7 @@
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
     "src/plugins/amazon-product-sync/index.ts",
@@ -737,98 +744,7 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "findings": [
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-optimizer-app-ui.acceptance.ts constructs private capability protocol keys outside the owning capability: capabilityCallId, abilityGroupId, childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
-      "evidence": "capabilityCallId, abilityGroupId, childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-processing-artifact-proof.acceptance.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-processing-image.acceptance.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-processing-image.acceptance.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-processing-task-persistence.acceptance.ts constructs private capability protocol keys outside the owning capability: capabilityCallId, abilityGroupId, childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
-      "evidence": "capabilityCallId, abilityGroupId, childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-processing-task-persistence.acceptance.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/acceptance/media-processing-video.acceptance.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/media-processing-video.acceptance.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-media-processing-routes.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-media-processing-routes.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
-      "evidence": "childCapabilityId"
-    },
-    {
-      "checkId": "constitutional-boundary/private-capability-protocol",
-      "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts constructs private capability protocol keys outside the owning capability: childCapabilityId.",
-      "severity": "fatal",
-      "filePath": "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-      "evidence": "childCapabilityId"
-    }
-  ],
+  "findings": [],
   "summary": {
     "auditRegexViolations": 0,
     "directPrivateImports": 0,
@@ -837,7 +753,7 @@
     "orphanExports": 0,
     "orphanFiles": 0,
     "passThroughWrappers": 0,
-    "protocolEscapes": 10
+    "protocolEscapes": 0
   },
   "capabilityDomain": "constitutional-boundary",
   "executionGroup": "foundation",

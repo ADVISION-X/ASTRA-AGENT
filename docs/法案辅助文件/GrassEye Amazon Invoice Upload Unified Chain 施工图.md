@@ -60,10 +60,10 @@ Website / App Shell UI
 
 | stepId | stepName | sellerCentralPage | actualUrlPattern | humanObservedAction | visibleTextEvidence | locatorCandidates | expectedResult | failureSignals | manualRequiredSignals | downloadArtifactExpectation | chromeVerified | evidenceSourceFile |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| AID-01 | open_seller_central_home | Seller Central home | `https://sellercentral.amazon.ae/home` | 打开 Seller Central 管理后台 | `亚马逊`, `搜索`, `NEXGEN 阿拉伯联合酋长国` | `a[aria-label="Amazon"][href="/home"]`, `input[name="query"][placeholder="搜索"]` | home loaded and menu/search visible | login wall, not Seller Central | login, 2FA, captcha, risk verification | none | true | `docs/法案辅助文件/amazon_invoice_upload_process.md` |
-| AID-02 | open_global_menu | Seller Central home | `sellercentral.amazon.ae/*` | 点击左上菜单按钮 | `目录`, `库存`, `订单`, `报告` | top-left visible `div[role="button"]`; text anchor `目录` after click | global menu opens | menu not visible | login, captcha, risk verification | none | true | same |
-| AID-03 | choose_reports | Global menu | `sellercentral.amazon.ae/*` | 点击或悬停 `报告` | `报告`, `业务报告`, `配送` | visible text `报告` | reports submenu visible | only inventory submenu visible | login, captcha, risk verification | none | true | same |
-| AID-04 | open_fulfillment_reports | Reports submenu | `/reportcentral/ref=xx_fbareports_dnav_xx` or `/reportcentral/WelcomePage` | 点击 `配送` | `配送`, `亚马逊配送报告` | `a[aria-label="配送"][href="/reportcentral/ref=xx_fbareports_dnav_xx"]` | fulfillment reports page opens | wrong menu category | login, captcha, risk verification | none | true | same |
+| AID-01 | open_seller_central_home | Seller Central home | `https://sellercentral.amazon.ae/home` | 打开 Seller Central 管理后台 | Seller Central same-host URL after login/captcha gate; optional `亚马逊`, `Amazon`, `搜索`, `NEXGEN` | `sellercentral.amazon.* /home` or `/reportcentral/`; `a[aria-label="Amazon"][href="/home"]`, `input[name="query"][placeholder="搜索"]` when exposed | home shell loaded and next menu step can verify hamburger | login wall, not Seller Central | login, 2FA, captcha, risk verification | none | true | `docs/法案辅助文件/amazon_invoice_upload_process.md` |
+| AID-02 | open_global_menu | Seller Central home | `sellercentral.amazon.ae/*` | 点击左上菜单按钮 | `目录`, `库存`, `订单`, `报告` | `navigation-hamburger-menu[data-test-tag="hamburger-menu"]`; top-left visible menu Web Component; text anchor `目录` after click | global menu opens | menu not visible | login, captcha, risk verification | none | true | same |
+| AID-03 | choose_reports | Global menu | `sellercentral.amazon.ae/*` | 悬停 `报告` 右侧展开区 | `报告`, `业务报告`, `配送` | `navigation-hamburger-menu[data-test-tag="hamburger-menu"] >>> [data-test-tag="menu__section-reports"]`; shadowRoot section `menu__section-reports`; Chrome-verified right-edge hover; verify `aria-expanded="true"` | reports submenu visible | only inventory submenu visible | login, captcha, risk verification | none | true | same |
+| AID-04 | open_fulfillment_reports | Reports submenu | `/reportcentral/ref=xx_fbareports_dnav_xx` or `/reportcentral/WelcomePage` | 确认 `配送` 链接后打开同源 reportcentral href | `配送`, `亚马逊配送报告` | `navigation-hamburger-menu[data-test-tag="hamburger-menu"] >>> a[data-test-tag="menu__button-ssof-inventory-manager-new"][href="/reportcentral/ref=xx_fbareports_dnav_xx"]`; visible text `配送` | fulfillment reports page opens | wrong menu category | login, captcha, risk verification | none | true | same |
 | AID-05 | open_afn_shipment_invoicing_report | Fulfillment reports | `/reportcentral/AFNShipmentInvoicingReport/1` | 点击 `亚马逊配送货件 – 税务发票` | `亚马逊配送货件 – 税务发票`, `有关已配送的亚马逊物流买家订单的全面详情` | `a[href="/reportcentral/AFNShipmentInvoicingReport/1"]` plus visible text | target report page opens | target report absent | login, captcha, risk verification | none | true | same |
 | AID-06 | choose_event_date_last_30_days | Tax invoice report page | `/reportcentral/AFNShipmentInvoicingReport/1` | 选择事件日期最近 30 天 | `事件日期`, `最近 30 天` | `kat-dropdown[label="事件日期"]`, `kat-option[value="30"]`, `div[title="最近 30 天"]` | dropdown value becomes `30` | value remains `0` | login, captcha, risk verification | none | true | same |
 | AID-07 | request_csv_download | Tax invoice report page | `/reportcentral/AFNShipmentInvoicingReport/1` | 点击请求下载 CSV | `请求下载 .csv 文件` | `button[type="button"][value="CSV"]` | first row appears with `.csv` and `进行中` | no current row | login, captcha, risk verification | none | true | same |
@@ -71,6 +71,14 @@ Website / App Shell UI
 | AID-09 | refresh_if_needed | Tax invoice report page | `/reportcentral/AFNShipmentInvoicingReport/1` | 180 秒兜底刷新确认 | `下载`, `.csv` | first `kat-table-row`; browser reload by opening current URL | latest row still downloadable | latest row missing | login, captcha, risk verification | none | true | same |
 | AID-10 | click_latest_report_download | Tax invoice report page | `/reportcentral/AFNShipmentInvoicingReport/1` | 点击第一行下载 | `下载` | first data row `kat-button[label="下载"][type="button"]` | browser downloads file | click fails or wrong row | login, captcha, risk verification | new local file expected | true | same |
 | AID-11 | verify_local_download_artifact | Local Downloads | local filesystem | 检查 Downloads 最新文件 | filename may not end `.csv`; endpoint contentType is CSV | `~/Downloads` mtime/size delta | new file persisted as safe artifact metadata | no new file, zero size | none | artifactRef, artifactName, mimeType, fileSize, sha256, createdAt | true | same |
+
+### AID-07 到 AID-10 防复发细则
+
+AID-07 是请求阶段，不是下载阶段。选择最近 30 天后，除非第一条税务发票行已经明确处于 `进行中`，必须点击 `请求下载 .csv 文件`。第一条行已经暴露 `下载` 不得作为跳过 AID-07 的理由，因为那可能是旧报表。
+
+AID-08 / AID-09 只允许等待第一条 `亚马逊配送货件 – 税务发票` 行从 `进行中` 变为 `下载`。不得扫描表格中任意带 `下载` 的历史行作为完成依据。
+
+AID-10 必须先锁定第一条 `亚马逊配送货件 – 税务发票` 行，再点击该行内的 `kat-button[label="下载"]`。禁止在 `rows.find` 阶段把 `下载` 按钮存在作为筛选条件；否则当第一条仍在 `进行中`、倒数第二条可下载时，会错误下载历史报表。
 
 ## 5. Mission Schema 变化
 

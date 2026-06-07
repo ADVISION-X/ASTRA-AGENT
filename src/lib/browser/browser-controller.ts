@@ -84,6 +84,11 @@ interface BrowserController {
     button?: BrowserClickButton;
     clickCount?: 1 | 2;
   }): Promise<BrowserActionResult>;
+  move?(input: {
+    targetLabel: string;
+    point: { x: number; y: number };
+    coordinateSpace?: BrowserClickCoordinateSpace;
+  }): Promise<BrowserActionResult>;
   clickLocatedDomElement(input: {
     targetLabel: string;
     point: { x: number; y: number };

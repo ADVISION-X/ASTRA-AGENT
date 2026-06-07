@@ -141,6 +141,27 @@ const handleWorkbenchMetaRequest = async (input: {
   return false;
 };
 
+const handleInventoryWorkbenchApiRequest = async (input: {
+  request: import("node:http").IncomingMessage;
+  response: import("node:http").ServerResponse;
+  workbench: GrassEyeWorkbenchHandle;
+  url: URL;
+}): Promise<boolean> => {
+  if (await handleAmazonProductMiningRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleAmazonProductSyncRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleAmazonProductFeeSyncRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {
+    return true;
+  }
+  return handleVideoDownloadRequest(input.request, input.response, input.workbench);
+};
+
 const handleKnownWorkbenchApiRequest = async (input: {
   request: import("node:http").IncomingMessage;
   response: import("node:http").ServerResponse;
@@ -159,19 +180,7 @@ const handleKnownWorkbenchApiRequest = async (input: {
   if (await handleFacebookRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
-  if (await handleAmazonProductMiningRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleAmazonProductSyncRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleAmazonProductFeeSyncRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {
-    return true;
-  }
-  return handleVideoDownloadRequest(input.request, input.response, input.workbench);
+  return handleInventoryWorkbenchApiRequest(input);
 };
 
 async function handleRequest(

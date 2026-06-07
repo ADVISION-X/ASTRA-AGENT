@@ -16,17 +16,6 @@ const renderMediaSourceSurface = (): string => `
           <option value="web-video-poster">Video poster</option>
         </select>
       </div>
-      <div class="field">
-        <label>Capability</label>
-        <select name="childCapabilityId" data-media-optimizer-child>
-          <option value="optimize-image-for-web-once">Optimize image</option>
-          <option value="resize-image-for-web-once">Resize image</option>
-          <option value="generate-responsive-image-variants-once">Responsive image set</option>
-          <option value="optimize-video-for-web-once">Optimize video</option>
-          <option value="compress-video-for-web-once">Compress video</option>
-          <option value="generate-video-poster-once">Video poster</option>
-        </select>
-      </div>
       <div class="field" data-media-optimizer-format-field>
         <label>Output format</label>
         <select name="outputFormat">

@@ -65,6 +65,15 @@ for (let count = 0; count < ${clickCount}; count += 1) {
 `);
 };
 
+const moveAt = async (x: number, y: number): Promise<void> => {
+  await runJxa(`
+ObjC.import('ApplicationServices');
+const point = $.CGPointMake(${x}, ${y});
+const event = $.CGEventCreateMouseEvent(null, $.kCGEventMouseMoved, point, $.kCGMouseButtonLeft);
+$.CGEventPost($.kCGHIDEventTap, event);
+`);
+};
+
 const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
@@ -117,4 +126,4 @@ $.CGEventPost($.kCGHIDEventTap, scrollEvent);
 `, input.abortSignal ? { signal: input.abortSignal } : undefined);
 };
 
-export { activateChrome, escapeAppleScriptText, clickAt, keystrokeBrowserText, selectAllBrowserText, pressNamedBrowserKey, scrollAt };
+export { activateChrome, escapeAppleScriptText, clickAt, moveAt, keystrokeBrowserText, selectAllBrowserText, pressNamedBrowserKey, scrollAt };

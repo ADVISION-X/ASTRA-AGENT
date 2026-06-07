@@ -19,8 +19,15 @@ function buildClickScript(selector: string, expectedText: string | undefined): s
   return `
 const selector = ${JSON.stringify(selector)};
 const expectedText = ${JSON.stringify(expectedText ?? "")};
-const browserChromeTopInset = Math.max(0, window.outerHeight - window.innerHeight);
-const matches = Array.from(document.querySelectorAll(selector));
+const queryScoped = (root, css) => Array.from(root.querySelectorAll(css));
+const matches = (() => {
+  const parts = selector.split(">>>").map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 1) return queryScoped(document, parts[0]);
+  if (parts.length !== 2) return [];
+  const hosts = queryScoped(document, parts[0]);
+  if (hosts.length !== 1 || !hosts[0].shadowRoot) return [];
+  return queryScoped(hosts[0].shadowRoot, parts[1]);
+})();
 if (matches.length === 0) return {status: "not_found", message: "element not found"};
 if (matches.length > 1) return {status: "ambiguous", message: "selector matched multiple elements"};
 const el = matches[0];
@@ -36,8 +43,8 @@ return {
   status: "success",
   message: "located DOM element is ready for governed native click",
   nativeClickPoint: {
-    x: Math.round(window.screenX + afterScrollRect.x + afterScrollRect.width / 2),
-    y: Math.round(window.screenY + browserChromeTopInset + afterScrollRect.y + afterScrollRect.height / 2),
+    x: Math.round(afterScrollRect.x + afterScrollRect.width / 2),
+    y: Math.round(afterScrollRect.y + afterScrollRect.height / 2),
   },
 };
 `;
@@ -49,9 +56,12 @@ async function clickLocatedDomPoint(
   targetLabel: string,
 ): Promise<Pick<DomActionResult, "status" | "message">> {
   if (!result.nativeClickPoint || result.status !== "success") return result;
-  const nativeClick = await browser.clickLocatedDomElement({
+  const nativeClick = await browser.click({
     targetLabel,
     point: result.nativeClickPoint,
+    coordinateSpace: "browserViewport",
+    button: "left",
+    clickCount: 1,
   });
   return {
     status: nativeClick.ok ? "success" : "failed",

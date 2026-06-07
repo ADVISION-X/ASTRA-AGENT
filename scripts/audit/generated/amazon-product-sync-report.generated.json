@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-05T11:08:17.924Z",
+  "generatedAt": "2026-06-07T20:49:50.131Z",
   "status": "PASS",
   "findings": [],
   "capabilityDomain": "amazon-product-sync",
@@ -23,6 +23,7 @@
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
     "src/plugins/amazon-product-sync/index.ts"

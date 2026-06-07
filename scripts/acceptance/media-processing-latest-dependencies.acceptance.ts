@@ -20,7 +20,7 @@ const result = await group.processMedia({
   missionId: "media-processing-latest-dependencies-acceptance",
   runId: "media-processing-latest-dependencies-run",
   inputFilePath,
-  childCapabilityId: "optimize-image-for-web-once",
+  presetId: "web-image",
   outputFormat: "webp",
   quality: 82,
 });

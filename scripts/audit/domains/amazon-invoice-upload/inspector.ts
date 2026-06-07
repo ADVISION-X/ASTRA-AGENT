@@ -18,6 +18,7 @@ import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectAmazonInvoiceBatchGuard } from "./inspector-batch.js";
+import { inspectDownloadFlow } from "./inspector-download-flow.js";
 import { inspectAmazonInvoiceUploadLedgerGuard } from "./inspector-ledger.js";
 import { inspectUploadRouteSanitizer } from "./inspector-upload-route-sanitizer.js";
 import { inspectUploadStabilityGuard } from "./inspector-upload-stability.js";
@@ -37,6 +38,8 @@ const uploadVerifyPath = `${ownerRoot}/amazon-invoice-upload-verify.ts`;
 const existingUploadPath = `${ownerRoot}/amazon-invoice-upload-existing.ts`;
 const existingEvidencePath = `${ownerRoot}/amazon-existing-invoice-evidence.ts`;
 const downloadFlowPath = `${ownerRoot}/amazon-tax-invoice-download.flow.ts`;
+const downloadPageStatePath = `${ownerRoot}/amazon-tax-invoice-download-page-state.ts`;
+const downloadLocalArtifactPath = `${ownerRoot}/amazon-tax-invoice-download-local-artifact.ts`, downloadRuntimeHelpersPath = `${ownerRoot}/amazon-tax-invoice-download-runtime-helpers.ts`;
 const evidencePath = `${ownerRoot}/amazon-tax-invoice-download-evidence.ts`;
 const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
@@ -44,6 +47,39 @@ const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellClientPath = "src/app/workbench-home-client.ts";
 const selfPath = "scripts/audit/domains/amazon-invoice-upload/inspector.ts";
+
+const inspectedFiles = [
+  lawPath,
+  blueprintPath,
+  processPath,
+  uploadFlowPath,
+  orderDetailPath,
+  taskServicePath,
+  uploadLedgerPath,
+  uploadStoragePath,
+  uploadVerifyPath,
+  existingUploadPath,
+  existingEvidencePath,
+  downloadFlowPath,
+  downloadPageStatePath,
+  downloadLocalArtifactPath,
+  downloadRuntimeHelpersPath,
+  evidencePath,
+  routesPath,
+  boundaryPath,
+  appShellLayoutPath,
+  appShellAmazonInvoiceWorkspacePath,
+  appShellClientPath,
+  "src/app/workbench-home-amazon-invoice-client.ts",
+  "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
+  selfPath,
+];
 
 const evidenceStepIds = [
   "AID-01",
@@ -157,7 +193,7 @@ const inspectRequiredFiles = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  for (const repoPath of [lawPath, blueprintPath, processPath, uploadFlowPath, orderDetailPath, taskServicePath, uploadLedgerPath, uploadStoragePath, uploadVerifyPath, existingUploadPath, existingEvidencePath, downloadFlowPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellAmazonInvoiceWorkspacePath, appShellClientPath, selfPath]) {
+  for (const repoPath of [lawPath, blueprintPath, processPath, uploadFlowPath, orderDetailPath, taskServicePath, uploadLedgerPath, uploadStoragePath, uploadVerifyPath, existingUploadPath, existingEvidencePath, downloadFlowPath, downloadPageStatePath, downloadLocalArtifactPath, downloadRuntimeHelpersPath, evidencePath, routesPath, boundaryPath, appShellLayoutPath, appShellAmazonInvoiceWorkspacePath, appShellClientPath, selfPath]) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
         checkId: "amazon-invoice-upload/required-file",
@@ -205,75 +241,6 @@ const inspectEvidenceMap = (
         message: `Evidence step ${stepId} must be represented in the canonical Evidence Map export.`,
       });
     }
-  }
-};
-
-const inspectDownloadFlow = (
-  file: SourceFile | null,
-  findings: InspectorFinding[],
-  lawIds: { evidence: string; owner: string; artifact: string },
-): void => {
-  if (!file) return;
-  const repoPath = toRepoPath(file.getFilePath());
-  if (!repoPath.startsWith(ownerRoot)) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/download-flow-owner",
-      lawId: lawIds.owner,
-      filePath: repoPath,
-      message: "Download flow must live under src/plugins/amazon-invoice-upload.",
-    });
-  }
-  const values = stringLiteralValues(file);
-  for (const stepId of evidenceStepIds) {
-    if (!values.has(stepId)) {
-      addFinding(findings, {
-        checkId: "amazon-invoice-upload/download-flow-step-id",
-        lawId: lawIds.evidence,
-        filePath: downloadFlowPath,
-        message: `Download flow must cite Evidence Map step ${stepId}.`,
-      });
-    }
-  }
-  const calls = file.getDescendantsOfKind(SyntaxKind.CallExpression);
-  if (!calls.some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "recordAmazonDomStepTrace")) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/download-flow-dom-trace",
-      lawId: lawIds.evidence,
-      filePath: downloadFlowPath,
-      message: "Download flow must call recordAmazonDomStepTrace.",
-    });
-  }
-  if (!values.has("manual_required")) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/download-flow-manual-required",
-      lawId: lawIds.evidence,
-      filePath: downloadFlowPath,
-      message: "Download flow must expose manual_required gates.",
-    });
-  }
-  if (!values.has("Latest row is not proven to be the current requested CSV report.")) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/current-request-row-gate",
-      lawId: lawIds.evidence,
-      filePath: downloadFlowPath,
-      message: "Download flow must reject rows that are not proven to be the current requested CSV report.",
-    });
-  }
-  if (!values.has("进行中")) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/current-request-in-progress-gate",
-      lawId: lawIds.evidence,
-      filePath: downloadFlowPath,
-      message: "Download flow must observe the current requested row entering 进行中 before waiting for 下载.",
-    });
-  }
-  if (values.has("documentId")) {
-    addFinding(findings, {
-      checkId: "amazon-invoice-upload/no-document-id-log",
-      lawId: lawIds.artifact,
-      filePath: downloadFlowPath,
-      message: "Download flow must not persist or log Amazon download documentId.",
-    });
   }
 };
 
@@ -400,7 +367,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectRequiredFiles(findings, lawIds.owner);
   inspectNoSecondChainPaths(findings, lawIds.owner);
   inspectEvidenceMap(source(context.project, evidencePath), findings, lawIds.evidence);
-  inspectDownloadFlow(source(context.project, downloadFlowPath), findings, lawIds);
+  inspectDownloadFlow({
+    file: source(context.project, downloadFlowPath),
+    pageStateFile: source(context.project, downloadPageStatePath),
+    findings,
+    lawIds,
+    ownerRoot,
+    downloadFlowPath,
+    downloadPageStatePath,
+    evidenceStepIds,
+  });
   inspectBoundaryRoutes(source(context.project, boundaryPath), findings, lawIds.api);
   inspectUploadRouteSanitizer(source(context.project, routesPath), findings, lawIds.api);
   inspectAmazonInvoiceUploadLedgerGuard(context, findings, lawIds.ledger);
@@ -425,33 +401,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [
-      lawPath,
-      blueprintPath,
-      processPath,
-      uploadFlowPath,
-      orderDetailPath,
-      taskServicePath,
-      uploadLedgerPath,
-      uploadStoragePath,
-      uploadVerifyPath,
-      existingUploadPath,
-      existingEvidencePath,
-      downloadFlowPath,
-      evidencePath,
-      routesPath,
-      boundaryPath,
-      appShellLayoutPath,
-      appShellAmazonInvoiceWorkspacePath,
-      appShellClientPath,
-      "src/app/workbench-home-amazon-invoice-client.ts",
-      "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
-      "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
-      "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
-      "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
-      "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
-      selfPath,
-    ],
+    inspectedFiles,
   };
 };
 

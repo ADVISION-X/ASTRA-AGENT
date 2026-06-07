@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-05T11:08:16.175Z",
-  "status": "FAIL",
-  "scannedFiles": 382,
+  "generatedAt": "2026-06-07T20:49:48.568Z",
+  "status": "PASS",
+  "scannedFiles": 387,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -54,6 +54,7 @@
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",
+    "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
@@ -249,6 +250,9 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
@@ -307,6 +311,7 @@
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
     "src/plugins/amazon-product-sync/index.ts",
@@ -386,15 +391,15 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 34,
+  "emitCallCount": 37,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
-  "missingTraceContractCount": 1,
+  "missingTraceContractCount": 0,
   "catchBranchCount": 1,
-  "catchBranchWithoutLogCount": 1,
-  "failureBranchCount": 39,
+  "catchBranchWithoutLogCount": 0,
+  "failureBranchCount": 40,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 39,
@@ -402,10 +407,10 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 3,
-    "fatalFindings": 3,
-    "scannedFiles": 382,
-    "emitCallCount": 34,
+    "totalFindings": 0,
+    "fatalFindings": 0,
+    "scannedFiles": 387,
+    "emitCallCount": 37,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -415,7 +420,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 377,
+      "scannedFiles": 382,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -424,43 +429,43 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 296
+      "scannedFiles": 300
     },
     {
       "name": "runtime-log-emit-contract",
-      "status": "FAIL",
-      "findingCount": 2,
-      "scannedFiles": 292,
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 296,
       "metrics": {
-        "emitCallCount": 23
+        "emitCallCount": 26
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 292
+      "scannedFiles": 296
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 297,
+      "scannedFiles": 301,
       "metrics": {
         "stageCoveragePercent": 100
       }
     },
     {
       "name": "catch-branch-log",
-      "status": "FAIL",
-      "findingCount": 1,
+      "status": "PASS",
+      "findingCount": 0,
       "scannedFiles": 25
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 297,
+      "scannedFiles": 301,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -495,10 +500,10 @@
       "findingCount": 0,
       "scannedFiles": 25,
       "metrics": {
-        "emitCallCount": 34,
+        "emitCallCount": 37,
         "stageStartCount": 19,
         "stageTerminalCount": 39,
-        "failureBranchCount": 39
+        "failureBranchCount": 40
       }
     },
     {
@@ -508,38 +513,7 @@
       "scannedFiles": 2
     }
   ],
-  "findings": [
-    {
-      "checkId": "runtime-log-spine/emit-trace-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-      "clauseId": "primary",
-      "message": "RuntimeLogger.emit contract is incomplete",
-      "line": 80,
-      "severity": "fatal",
-      "hint": "Add traceId, level, modeVisibility, eventType, owner and mission/run/round identifiers. Failed/review_required/skipped events must include failureClass contract. Spread fields must be statically proven.",
-      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
-    },
-    {
-      "checkId": "runtime-log-spine/emit-event-type-registry",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
-      "clauseId": "primary",
-      "message": "eventType is not proven to come from RuntimeLogEventType registry",
-      "line": 80,
-      "severity": "fatal",
-      "hint": "Import RuntimeLogEventType from the runtime log registry and use RuntimeLogEventType.X directly or through a traceable constant.",
-      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
-    },
-    {
-      "checkId": "runtime-log-spine/failure-return-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "clauseId": "primary",
-      "message": "control-flow failure branch has no proven structured log",
-      "line": 33,
-      "severity": "fatal",
-      "hint": "Add stage.fail/reviewRequired or RuntimeLogger.emit with failureClass before returning, throwing, skipping or terminating.",
-      "filePath": "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts"
-    }
-  ],
+  "findings": [],
   "capabilityDomain": "runtime-log-spine",
   "executionGroup": "foundation",
   "lawIds": [

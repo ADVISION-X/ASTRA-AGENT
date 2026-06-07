@@ -170,7 +170,14 @@ export async function startAmazonTaxInvoiceDownloadTask(input: {
     evidenceStepId: "AID-01",
   });
   saveDownloadTaskRecord(input.dataDir, downloading);
-  const result = await runAmazonTaxInvoiceDownload(input.browser, input.runtimeLogger, mission);
+  const result = await runAmazonTaxInvoiceDownload(input.browser, input.runtimeLogger, mission).catch((error: unknown) => ({
+    ok: false,
+    status: "failed" as const,
+    reason: error instanceof Error ? error.message : String(error),
+    reachedStep: "download runtime",
+    evidenceStepId: "AID-01",
+    reviewRequired: true,
+  }));
   const completed = updateDownloadTaskRecord(downloading, result);
   saveDownloadTaskRecord(input.dataDir, completed);
   return completed;

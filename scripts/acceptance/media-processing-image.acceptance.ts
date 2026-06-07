@@ -26,7 +26,7 @@ const result = await group.processMedia({
   missionId: "media-processing-image-acceptance",
   runId: "media-processing-image-run",
   inputFilePath,
-  childCapabilityId: "optimize-image-for-web-once",
+  presetId: "web-image",
   outputFormat: "webp",
   quality: 82,
   maxWidth: 320,

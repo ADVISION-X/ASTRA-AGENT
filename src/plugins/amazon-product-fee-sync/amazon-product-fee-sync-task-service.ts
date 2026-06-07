@@ -30,12 +30,13 @@ const initialTask = (
   taskId = createId("amazon_product_fee_sync"),
 ): AmazonProductFeeSyncTaskRecord => {
   const now = new Date().toISOString();
+  const queuedOk = false;
   return {
     taskId,
     site: mission.site,
     requestId: mission.requestId,
     marketplace: mission.marketplace,
-    ok: false,
+    ok: queuedOk,
     status: "queued",
     reason: null,
     reachedStep: "queued",
@@ -67,7 +68,6 @@ const emitRuntimeEvent = (
   runtime: AmazonProductFeeSyncRuntime,
   task: Pick<AmazonProductFeeSyncTaskRecord, "taskId" | "requestId" | "site">,
   input: {
-    readonly eventType: RuntimeLogEventType;
     readonly event: string;
     readonly level: "info" | "warn" | "error";
     readonly status: "started" | "success" | "review_required" | "failed";
@@ -77,35 +77,124 @@ const emitRuntimeEvent = (
     readonly failureClass?: RuntimeFailureClass;
   },
 ): void => {
+  const refs = {
+    module: "amazon-product-fee-sync",
+    source: "grasseye-agent",
+    event: input.event,
+    site: task.site,
+    ...input.refs,
+  };
+  if (input.status === "started") {
+    emitStartedRuntimeEvent(runtime, task, input, refs);
+    return;
+  }
+  if (input.status === "success") {
+    emitCompletedRuntimeEvent(runtime, task, input, refs);
+    return;
+  }
+  if (input.status === "failed") {
+    emitFailedRuntimeEvent(runtime, task, input, refs);
+    return;
+  }
+  emitReviewRequiredRuntimeEvent(runtime, task, input, refs);
+};
+
+type FeeSyncRuntimeEventInput = Parameters<typeof emitRuntimeEvent>[2];
+type FeeSyncRuntimeEventTask = Parameters<typeof emitRuntimeEvent>[1];
+
+const emitStartedRuntimeEvent = (
+  runtime: AmazonProductFeeSyncRuntime,
+  task: FeeSyncRuntimeEventTask,
+  input: FeeSyncRuntimeEventInput,
+  refs: Record<string, string>,
+): void => {
   runtime.runtimeLogger.emit({
     traceId: task.taskId,
     level: input.level,
     modeVisibility: ["FLOW"],
-    eventType: input.eventType,
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_STARTED,
     owner: "local-runtime",
     missionId: task.taskId,
     runId: task.requestId,
     stepId: input.stepId,
-    status: input.status,
-    ...(input.reason ? { reason: input.reason } : {}),
-    refs: {
-      module: "amazon-product-fee-sync",
-      source: "grasseye-agent",
-      event: input.event,
-      site: task.site,
-      ...input.refs,
+    status: "started",
+    refs,
+  });
+};
+
+const emitCompletedRuntimeEvent = (
+  runtime: AmazonProductFeeSyncRuntime,
+  task: FeeSyncRuntimeEventTask,
+  input: FeeSyncRuntimeEventInput,
+  refs: Record<string, string>,
+): void => {
+  runtime.runtimeLogger.emit({
+    traceId: task.taskId,
+    level: input.level,
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_COMPLETED,
+    owner: "local-runtime",
+    missionId: task.taskId,
+    runId: task.requestId,
+    stepId: input.stepId,
+    status: "success",
+    refs,
+  });
+};
+
+const emitFailedRuntimeEvent = (
+  runtime: AmazonProductFeeSyncRuntime,
+  task: FeeSyncRuntimeEventTask,
+  input: FeeSyncRuntimeEventInput,
+  refs: Record<string, string>,
+): void => {
+  runtime.runtimeLogger.emit({
+    traceId: task.taskId,
+    level: input.level,
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_FAILED,
+    owner: "local-runtime",
+    missionId: task.taskId,
+    runId: task.requestId,
+    stepId: input.stepId,
+    status: "failed",
+    reason: input.reason ?? "amazon_product_fee_sync_failed",
+    refs,
+    payload: {
+      failureClass: input.failureClass ?? RuntimeFailureClass.INTERNAL_BUG,
+      stageName: input.stepId,
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "terminal",
     },
-    ...(input.failureClass
-      ? {
-          payload: {
-            failureClass: input.failureClass,
-            stageName: input.stepId,
-            retryable: false,
-            terminal: true,
-            recoveryPolicy: input.status === "failed" ? "terminal" : "review_required",
-          },
-        }
-      : {}),
+  });
+};
+
+const emitReviewRequiredRuntimeEvent = (
+  runtime: AmazonProductFeeSyncRuntime,
+  task: FeeSyncRuntimeEventTask,
+  input: FeeSyncRuntimeEventInput,
+  refs: Record<string, string>,
+): void => {
+  runtime.runtimeLogger.emit({
+    traceId: task.taskId,
+    level: input.level,
+    modeVisibility: ["FLOW"],
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_REVIEW_REQUIRED,
+    owner: "local-runtime",
+    missionId: task.taskId,
+    runId: task.requestId,
+    stepId: input.stepId,
+    status: "review_required",
+    reason: input.reason ?? "amazon_product_fee_sync_review_required",
+    refs,
+    payload: {
+      failureClass: input.failureClass ?? RuntimeFailureClass.DOM_PROBE_FAILURE,
+      stageName: input.stepId,
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "review_required",
+    },
   });
 };
 
@@ -138,7 +227,6 @@ const logProgress = (
   progress: AmazonProductFeeSyncFlowProgress,
 ): void => {
   emitRuntimeEvent(runtime, task, {
-    eventType: RuntimeLogEventType.RUNTIME_STAGE_STARTED,
     event: "amazon_product_fee_sync.progress",
     level: "info",
     status: "started",
@@ -160,7 +248,6 @@ const logProgress = (
 
 const logFlowFinished = (runtime: AmazonProductFeeSyncRuntime, result: AmazonProductFeeSyncTaskRecord): void => {
   emitRuntimeEvent(runtime, result, {
-    eventType: result.ok ? RuntimeLogEventType.RUNTIME_STAGE_COMPLETED : RuntimeLogEventType.RUNTIME_STAGE_REVIEW_REQUIRED,
     event: "amazon_product_fee_sync.flow_finished",
     level: result.ok ? "info" : "error",
     status: result.ok ? "success" : "review_required",
@@ -177,7 +264,6 @@ const logFlowFinished = (runtime: AmazonProductFeeSyncRuntime, result: AmazonPro
 const logItemSummary = (runtime: AmazonProductFeeSyncRuntime, result: AmazonProductFeeSyncTaskRecord): void => {
   for (const item of result.items) {
     emitRuntimeEvent(runtime, result, {
-      eventType: item.status === "matched" ? RuntimeLogEventType.RUNTIME_STAGE_COMPLETED : RuntimeLogEventType.RUNTIME_STAGE_REVIEW_REQUIRED,
       event: "amazon_product_fee_sync.item_summary",
       level: item.status === "matched" ? "info" : "warn",
       status: item.status === "matched" ? "success" : "review_required",
@@ -215,7 +301,6 @@ const logFlowFailed = (
   error: unknown,
 ): void => {
   emitRuntimeEvent(runtime, running, {
-    eventType: RuntimeLogEventType.RUNTIME_STAGE_FAILED,
     event: "amazon_product_fee_sync.flow_failed",
     level: "error",
     status: "failed",
@@ -325,7 +410,6 @@ export const startAmazonProductFeeSyncTask = async (
   logStartReceived(runtime, mission);
   const queued = await persistAmazonProductFeeSyncTask(runtime.dataDir, initialTask(mission));
   emitRuntimeEvent(runtime, queued, {
-    eventType: RuntimeLogEventType.RUNTIME_STAGE_STARTED,
     event: "amazon_product_fee_sync.queued",
     level: "info",
     status: "started",

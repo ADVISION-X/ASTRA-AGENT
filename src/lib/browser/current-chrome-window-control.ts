@@ -157,10 +157,18 @@ const buildHostMatchPrefix = (url: string): { origin: string; withSlash: string 
   }
 };
 
-const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => {
+const readFrontChromeWindowState = async (fallbackUrl?: string): Promise<ChromeWindowState> => {
+  const restoreUrl = fallbackUrl && fallbackUrl !== "about:blank"
+    ? `set URL of active tab of front window to "${escapeAppleScriptString(fallbackUrl)}"`
+    : "";
   const output = await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "Google Chrome"
+    if (count of windows) = 0 then
+        make new window
+        ${restoreUrl}
+        delay 1
+    end if
     if (count of windows) = 0 then
         return "NO_WINDOW"
     end if
