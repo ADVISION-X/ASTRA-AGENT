@@ -14,10 +14,12 @@ export type WebChatEvaluation = {
   y?: number;
   assistantCount?: number;
   composerText?: string | null;
+  expectedLength?: number;
   attachmentCount?: number;
   attachmentScope?: "input" | "global" | "none";
   inputFocused?: boolean;
   promptPrefixVisible?: boolean;
+  promptSuffixVisible?: boolean;
   pastedTextCardReady?: boolean;
   hasPastedTextCard?: boolean;
   sendReady?: boolean;
@@ -75,26 +77,36 @@ const sendReady = sendButton instanceof HTMLButtonElement
 const pastedTextCardReady = hasPastedTextCard && sendReady;
 `;
 
-export const buildVerifyPromptPastedScript = (expectedPrefix: string): string => `
+export const buildVerifyPromptPastedScript = (input: {
+  expectedLength: number;
+  expectedPrefix: string;
+  expectedSuffix: string;
+}): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
-const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
-const expectedPrefix = ${JSON.stringify(expectedPrefix)};
+const actual = input instanceof HTMLElement ? readComposerVisibleText(input) : "";
+const expectedLength = ${JSON.stringify(input.expectedLength)};
+const expectedPrefix = ${JSON.stringify(input.expectedPrefix)};
+const expectedSuffix = ${JSON.stringify(input.expectedSuffix)};
 const promptPrefixVisible = expectedPrefix.length > 0 && actual.includes(expectedPrefix);
+const promptSuffixVisible = expectedSuffix.length > 0 && actual.includes(expectedSuffix);
+const promptLengthClose = expectedLength > 0 && Math.abs(actual.length - expectedLength) <= Math.max(8, Math.ceil(expectedLength * 0.02));
 const inputFocused = Boolean(input instanceof HTMLElement && (document.activeElement === input || input.contains(document.activeElement)));
 ${CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT}
-if (promptPrefixVisible || pastedTextCardReady || sendReady) {
+if (promptPrefixVisible || (promptSuffixVisible && promptLengthClose) || pastedTextCardReady) {
   return {
     status: "success",
     message: promptPrefixVisible
       ? "provider prompt prefix detected in composer"
-      : pastedTextCardReady
-        ? "chatgpt pasted text card ready for submit"
-        : "provider send button ready after paste",
+      : promptSuffixVisible
+        ? "provider prompt suffix and length detected in composer"
+        : "chatgpt pasted text card ready for submit",
     pageUrl: location.href,
     composerText: actual,
+    expectedLength,
     inputFocused,
     promptPrefixVisible,
+    promptSuffixVisible,
     pastedTextCardReady,
     hasPastedTextCard,
     sendReady,
@@ -107,8 +119,10 @@ return {
     : "provider prompt was not detected in composer after paste",
   pageUrl: location.href,
   composerText: actual,
+  expectedLength,
   inputFocused,
   promptPrefixVisible,
+  promptSuffixVisible,
   pastedTextCardReady,
   hasPastedTextCard,
   sendReady,
@@ -122,7 +136,7 @@ export const buildVerifyPromptSubmittedScript = (
 ): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
-const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
+const actual = input instanceof HTMLElement ? readComposerVisibleText(input) : "";
 const expectedPrefix = ${JSON.stringify(expectedPrefix)};
 ${WEB_CHAT_ASSISTANT_COUNT_SCRIPT}
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}

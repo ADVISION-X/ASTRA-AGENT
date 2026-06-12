@@ -183,10 +183,17 @@ const openCurrentChrome = async (
   state: RuntimeState,
   input: OpenInput,
 ): Promise<BrowserActionResult> => {
-  await runAppleScript(buildOpenUrlScript(input.url, input.reusePolicy ?? "reuse-exact-url"));
-  await refreshSnapshot(state, input.url);
+  const openMode = await runAppleScript(buildOpenUrlScript(input.url, input.reusePolicy ?? "reuse-exact-url"));
+  if (openMode === "no_existing_tab") {
+    await refreshSnapshot(state).catch(() => null);
+    return createCurrentChromeBrowserActionResult({
+      ok: false,
+      message: "no existing Chrome tab matched requested focus-only URL",
+    });
+  }
+  await refreshSnapshot(state);
   return createCurrentChromeBrowserActionResult({
-    message: `opened ${input.url} in current Chrome session`,
+    message: `${openMode || "opened"} ${input.url} in current Chrome session`,
   });
 };
 

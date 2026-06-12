@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-07T20:49:14.391Z",
+  "generatedAt": "2026-06-12T18:14:25.301Z",
   "summary": {
-    "activeLawCount": 211,
-    "coveredLawCount": 211,
+    "activeLawCount": 215,
+    "coveredLawCount": 215,
     "coveragePercent": 100
   },
   "coverage": [
@@ -118,6 +118,16 @@
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "capabilityDomain": "amazon-invoice-upload",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-invoice-upload/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
       "capabilityDomain": "amazon-invoice-upload",
       "clauses": [
         {
@@ -1299,6 +1309,26 @@
       ]
     },
     {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
+      "capabilityDomain": "deep-research-analysis",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/deep-research-analysis/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
+      "capabilityDomain": "deep-research-analysis",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/deep-research-analysis/manifest.json"
+        }
+      ]
+    },
+    {
       "lawId": "APEX-DOM-001-V1",
       "capabilityDomain": "dom-automation",
       "clauses": [
@@ -2010,6 +2040,16 @@
     },
     {
       "lawId": "APEX-STARTUP-006-V1",
+      "capabilityDomain": "startup-entrypoint",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/startup-entrypoint/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
       "capabilityDomain": "startup-entrypoint",
       "clauses": [
         {

@@ -12,7 +12,11 @@ import type {
   BrowserStateSnapshot,
 } from "../../src/lib/browser/browser-controller.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import { runAmazonInvoiceUpload } from "../../src/plugins/amazon-invoice-upload/index.js";
+import {
+  getAmazonInvoiceUploadTaskStatus,
+  runAmazonInvoiceUpload,
+  startAmazonInvoiceUploadTask,
+} from "../../src/plugins/amazon-invoice-upload/index.js";
 
 const smokeFixtureHtml = `
 <html><head><title>Seller Central Local Dry Run</title></head>
@@ -112,9 +116,40 @@ async function main(): Promise<void> {
     if (browser.orderDetailRefreshOpenCount !== 1) {
       throw new Error(`Amazon invoice smoke must execute exactly one conditional recovery refresh; orderDetailRefreshOpenCount=${browser.orderDetailRefreshOpenCount}`);
     }
+    await assertTaskServiceTimeoutGuard(runtimeLogger);
     process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success with retained tab lifecycle\n");
   } finally {
     await launched.close();
+  }
+}
+
+async function assertTaskServiceTimeoutGuard(runtimeLogger: ReturnType<typeof createRuntimeLogger>): Promise<void> {
+  const fixture = createSmokeFixturePaths();
+  const browser = new AmazonHangingOpenBrowserAdapter();
+  const task = await startAmazonInvoiceUploadTask({
+    browser,
+    runtimeLogger,
+    dataDir: fixture.tmp,
+    flowTimeoutMs: 20,
+    task: {
+      mission: {
+        missionType: "amazon_invoice_upload",
+        marketplace: "AE",
+        amazonOrderId: "123-1234567-1234567",
+        invoiceNo: "INV-TIMEOUT",
+        invoicePdfPath: fixture.pdfPath,
+        sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
+      },
+      invoicePdf: {
+        filename: "INV-TIMEOUT.pdf",
+        mimeType: "application/pdf",
+        bytes: Buffer.from("timeout pdf"),
+      },
+    },
+  });
+  const persisted = getAmazonInvoiceUploadTaskStatus({ dataDir: fixture.tmp, taskId: task.taskId });
+  if (persisted.status !== "failed" || persisted.reason !== "amazon_invoice_upload_flow_timeout_after_20ms") {
+    throw new Error(`Amazon invoice upload task timeout guard failed: ${JSON.stringify(persisted)}`);
   }
 }
 
@@ -250,6 +285,74 @@ class AmazonSmokeBrowserAdapter implements BrowserController {
     this.closeActiveTabCalls += 1;
     return action("active tab closed");
   }
+  async close(): Promise<BrowserActionResult> { return action("adapter closed"); }
+}
+
+class AmazonHangingOpenBrowserAdapter implements BrowserController {
+  getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "hanging open timeout fixture" }; }
+  getSessionState(): BrowserStateSnapshot {
+    return {
+      browserMode: "fixture",
+      browserProfileRef: "hanging-open",
+      browserExecutablePath: null,
+      profileStatus: "profile_ready",
+      profileDirectory: "hanging-open",
+      profileProvisioning: "operator_supplied",
+      profileVerificationStatus: "operator_verified",
+      profileVerificationReason: "local timeout fixture",
+      loginState: "unknown",
+      currentUrl: "about:blank",
+      lastLoginCheckAt: null,
+      loginRequiredReason: null,
+      reviewRequiredReason: null,
+      open: true,
+      currentTitle: "Amazon Invoice Upload Timeout Fixture",
+      browserExecutable: null,
+    };
+  }
+  async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> {
+    return {
+      windowX: 0,
+      windowY: 0,
+      viewportWidth: 900,
+      viewportHeight: 700,
+      screenshotWidth: 900,
+      screenshotHeight: 700,
+      scaleFactor: 1,
+      currentUrl: "about:blank",
+      pageTitle: "Amazon Invoice Upload Timeout Fixture",
+      visibleContentBounds: { x: 0, y: 0, width: 900, height: 700 },
+      capturedAt: now(),
+    };
+  }
+  async open(): Promise<BrowserActionResult> {
+    return new Promise<BrowserActionResult>(() => undefined);
+  }
+  async scroll(): Promise<BrowserActionResult> { return action("scroll not reached"); }
+  async click(): Promise<BrowserActionResult> { return action("click not reached"); }
+  async clickLocatedDomElement(): Promise<BrowserActionResult> { return action("click located not reached"); }
+  async textInput(): Promise<BrowserActionResult> { return action("text input not reached"); }
+  async screenshotRegion(input: { regionLabel: string }): Promise<BrowserCaptureResult> {
+    return {
+      browserActionId: `amazon-timeout:capture:${Date.now()}`,
+      pageUrl: "about:blank",
+      pageTitle: "Amazon Invoice Upload Timeout Fixture",
+      regionLabel: input.regionLabel,
+      regionType: "viewport",
+      width: 900,
+      height: 700,
+      viewportWidth: 900,
+      viewportHeight: 700,
+      sourceFilePath: "/tmp/amazon-invoice-upload-timeout-fixture.png",
+      createdAt: now(),
+    };
+  }
+  async evaluateActiveTab<T>(): Promise<T> {
+    throw new Error("timeout fixture should not evaluate active tab");
+  }
+  async setFileInputFiles(): Promise<BrowserActionResult> { return action("set file not reached"); }
+  async wait(durationMs: number): Promise<BrowserActionResult> { return action(`waited ${durationMs}`); }
+  async closeActiveTab(): Promise<BrowserActionResult> { return action("active tab close not reached"); }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }
 }
 

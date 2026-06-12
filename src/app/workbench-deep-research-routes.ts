@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
-import { readJsonBody, writeJson } from "./workbench-http.js";
+import { readJsonBody, readRequestBuffer, writeJson } from "./workbench-http.js";
 
 const DEEP_RESEARCH_PROVIDER_KINDS = [
   "gemini-api",
@@ -38,6 +38,23 @@ type DeepResearchStartRequest = {
   maxSubQuestions?: unknown;
   outputFormat?: unknown;
   providerKind?: unknown;
+  inputAttachments?: unknown;
+};
+
+type DeepResearchAttachmentInput = {
+  id: string;
+  filePath: string;
+  mimeType: string | null;
+  summary: string;
+  fileHash: string | null;
+  fileSizeBytes: number | null;
+  sourceKind: "app-file-picker" | "manual-path";
+};
+
+type DeepResearchMultipartFile = {
+  fileName: string;
+  contentType: string | null;
+  bytes: Buffer;
 };
 
 const isProviderKind = (value: unknown): value is DeepResearchProviderKind =>
@@ -51,6 +68,9 @@ const isExportKind = (value: unknown): value is DeepResearchExportKind =>
 const readTrimmedString = (value: unknown): string | null =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 
+const readNonnegativeInteger = (value: unknown): number | null =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+
 const readLanguage = (value: unknown): "zh-CN" | "en" | null =>
   value === "zh-CN" || value === "en" ? value : null;
 
@@ -61,6 +81,152 @@ const readMaxSubQuestions = (value: unknown): number | null =>
   && value <= 12
     ? value
     : null;
+
+const readInputAttachments = (value: unknown): DeepResearchAttachmentInput[] | null => {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length > 3) {
+    return null;
+  }
+  const attachments: DeepResearchAttachmentInput[] = [];
+  for (const [index, item] of value.entries()) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      return null;
+    }
+    const record = item as Record<string, unknown>;
+    const filePath = readTrimmedString(record.filePath);
+    if (!filePath) {
+      return null;
+    }
+    const id = readTrimmedString(record.id) ?? `deep-research-input-attachment-${index + 1}`;
+    const summary = readTrimmedString(record.summary) ?? filePath;
+    const mimeType = readTrimmedString(record.mimeType);
+    const fileHash = readTrimmedString(record.fileHash);
+    const fileSizeBytes = readNonnegativeInteger(record.fileSizeBytes);
+    const sourceKind = record.sourceKind === "app-file-picker" ? "app-file-picker" : "manual-path";
+    attachments.push({
+      id,
+      filePath,
+      mimeType,
+      summary,
+      fileHash,
+      fileSizeBytes,
+      sourceKind,
+    });
+  }
+  return attachments;
+};
+
+const trimMultipartBodyEnd = (body: Buffer): Buffer => {
+  if (body.length >= 2 && body[body.length - 2] === 13 && body[body.length - 1] === 10) {
+    return body.subarray(0, body.length - 2);
+  }
+  return body;
+};
+
+const splitBuffer = (buffer: Buffer, delimiter: Buffer): Buffer[] => {
+  const parts: Buffer[] = [];
+  let start = 0;
+  let next = buffer.indexOf(delimiter, start);
+  while (next >= 0) {
+    parts.push(buffer.subarray(start, next));
+    start = next + delimiter.length;
+    next = buffer.indexOf(delimiter, start);
+  }
+  parts.push(buffer.subarray(start));
+  return parts;
+};
+
+const readMultipartBoundary = (contentType: string | undefined): string | null => {
+  if (!contentType) {
+    return null;
+  }
+  const parts = contentType.split(";").map((part) => part.trim());
+  if (parts[0]?.toLowerCase() !== "multipart/form-data") {
+    return null;
+  }
+  const boundaryPart = parts.find((part) => part.toLowerCase().startsWith("boundary="));
+  const boundary = boundaryPart?.slice("boundary=".length).replace(/^"|"$/gu, "").trim();
+  return boundary && boundary.length > 0 ? boundary : null;
+};
+
+const readHeaderValue = (headers: string, headerName: string): string | null => {
+  const normalizedName = headerName.toLowerCase();
+  for (const line of headers.split("\r\n")) {
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+    if (line.slice(0, separatorIndex).trim().toLowerCase() === normalizedName) {
+      const value = line.slice(separatorIndex + 1).trim();
+      return value.length > 0 ? value : null;
+    }
+  }
+  return null;
+};
+
+const readQuotedDispositionValue = (disposition: string | null, key: string): string | null => {
+  if (!disposition) {
+    return null;
+  }
+  const token = `${key}="`;
+  const start = disposition.indexOf(token);
+  if (start < 0) {
+    return null;
+  }
+  const valueStart = start + token.length;
+  const valueEnd = disposition.indexOf("\"", valueStart);
+  const value = valueEnd >= 0 ? disposition.slice(valueStart, valueEnd) : "";
+  return value.trim().length > 0 ? value : null;
+};
+
+const parseMultipartDeepResearchFiles = async (
+  request: IncomingMessage,
+): Promise<DeepResearchMultipartFile[] | null> => {
+  const boundary = readMultipartBoundary(request.headers["content-type"]);
+  if (!boundary) {
+    return null;
+  }
+  const rawBody = await readRequestBuffer(request);
+  if (rawBody.byteLength > 210_000_000) {
+    return null;
+  }
+  const boundaryBuffer = Buffer.from(`--${boundary}`, "utf8");
+  const files: DeepResearchMultipartFile[] = [];
+  for (const rawPart of splitBuffer(rawBody, boundaryBuffer)) {
+    let part = rawPart;
+    if (part.length >= 2 && part[0] === 13 && part[1] === 10) {
+      part = part.subarray(2);
+    }
+    if (part.length === 0 || (part[0] === 45 && part[1] === 45)) {
+      continue;
+    }
+    const headerEnd = part.indexOf(Buffer.from("\r\n\r\n", "utf8"));
+    if (headerEnd < 0) {
+      continue;
+    }
+    const headers = part.subarray(0, headerEnd).toString("utf8");
+    const disposition = readHeaderValue(headers, "content-disposition");
+    const fileName = readQuotedDispositionValue(disposition, "filename");
+    if (!fileName) {
+      continue;
+    }
+    const bytes = trimMultipartBodyEnd(part.subarray(headerEnd + 4));
+    if (bytes.byteLength === 0) {
+      continue;
+    }
+    files.push({
+      fileName,
+      contentType: readHeaderValue(headers, "content-type"),
+      bytes,
+    });
+    if (files.length > 3) {
+      return null;
+    }
+  }
+  return files;
+};
 
 const readJobId = (response: ServerResponse, url: URL): string | null => {
   const jobId = url.searchParams.get("jobId")?.trim();
@@ -92,6 +258,7 @@ const readStartInput = (body: DeepResearchStartRequest) => {
   const language = readLanguage(body.language);
   const maxSubQuestions = readMaxSubQuestions(body.maxSubQuestions);
   const providerKind = isProviderKind(body.providerKind) ? body.providerKind : null;
+  const inputAttachments = readInputAttachments(body.inputAttachments);
   if (!userQuestion) {
     return { error: "missing_user_question" } as const;
   }
@@ -104,6 +271,9 @@ const readStartInput = (body: DeepResearchStartRequest) => {
   if (!providerKind) {
     return { error: "invalid_provider_kind" } as const;
   }
+  if (inputAttachments === null) {
+    return { error: "invalid_input_attachments" } as const;
+  }
   return {
     value: {
       userQuestion,
@@ -112,6 +282,7 @@ const readStartInput = (body: DeepResearchStartRequest) => {
       maxSubQuestions,
       outputFormat: body.outputFormat === "markdown" ? "markdown" : "markdown",
       providerKind,
+      inputAttachments,
     },
   } as const;
 };
@@ -145,6 +316,21 @@ const handleStartRequest = async (
   }
   const snapshot = await workbench.startDeepResearchAnalysis(parsed.value);
   writeJson(response, 200, await buildStartResponse(workbench, snapshot));
+  return true;
+};
+
+const handleInputAttachmentsRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  const files = await parseMultipartDeepResearchFiles(request);
+  if (!files || files.length === 0) {
+    writeJson(response, 400, { error: "invalid_input_attachment_files" });
+    return true;
+  }
+  const staged = await workbench.stageDeepResearchAnalysisInputAttachments({ files });
+  writeJson(response, 200, staged);
   return true;
 };
 
@@ -279,6 +465,7 @@ const buildDeepResearchRouteHandlers = (
   url: URL,
 ): Record<string, DeepResearchRouteHandler> => ({
   "POST:/api/deep-research-analysis/start": () => handleStartRequest(request, response, workbench),
+  "POST:/api/deep-research-analysis/input-attachments": () => handleInputAttachmentsRequest(request, response, workbench),
   "GET:/api/deep-research-analysis/job": () => handleJobRequest(response, workbench, url),
   "DELETE:/api/deep-research-analysis/job": () => handleDeleteJobRequest(response, workbench, url),
   "GET:/api/deep-research-analysis/history": () => handleHistoryRequest(response, workbench, url),

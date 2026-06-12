@@ -22,8 +22,14 @@ const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
 const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
 
-const buildPromptSubmissionExpectedPrefix = (promptText: string): string =>
-  promptText.replace(/\s+/gu, " ").trim().slice(0, PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS);
+const normalizePromptForSubmission = (promptText: string): string =>
+  promptText.replace(/\s+/gu, " ").trim();
+
+const buildPromptSubmissionExpectedPrefix = (normalizedPrompt: string): string =>
+  normalizedPrompt.slice(0, PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS);
+
+const buildPromptSubmissionExpectedSuffix = (normalizedPrompt: string): string =>
+  normalizedPrompt.slice(-PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS);
 
 const withWebChatStep = async <T>(
   step: string,
@@ -71,7 +77,9 @@ type SubmitPromptViaClipboardInput = {
 };
 
 type PreparedPromptComposer = {
+  expectedLength: number;
   expectedPrefix: string;
+  expectedSuffix: string;
   wasPromptVerifiedBeforeSubmit: true;
 };
 
@@ -91,7 +99,9 @@ const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): 
 const waitForPromptReady = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  expectedLength: number;
   expectedPrefix: string;
+  expectedSuffix: string;
   timeoutMs: number;
   step: string;
 }): Promise<WebChatEvaluation> => {
@@ -101,7 +111,9 @@ const waitForPromptReady = async (input: {
   while (Date.now() < deadline) {
     const evaluation = await withWebChatStep(input.step, () =>
       verifyPromptPasted(input.browser, input.context, {
+        expectedLength: input.expectedLength,
         expectedPrefix: input.expectedPrefix,
+        expectedSuffix: input.expectedSuffix,
       }));
     lastEvaluation = evaluation;
     lastMessage = `${evaluation.status}: ${evaluation.message}`;
@@ -112,7 +124,7 @@ const waitForPromptReady = async (input: {
     await input.browser.wait(250);
   }
   throw new Error(
-    `review_required: ${input.step}; last=${lastMessage}; composerChars=${String(lastEvaluation?.composerText?.trim().length ?? 0)}; pastedCard=${String(lastEvaluation?.hasPastedTextCard ?? false)}; sendReady=${String(lastEvaluation?.sendReady ?? false)}`,
+    `review_required: ${input.step}; last=${lastMessage}; composerChars=${String(lastEvaluation?.composerText?.trim().length ?? 0)}; expectedChars=${String(input.expectedLength)}; prefixVisible=${String(lastEvaluation?.promptPrefixVisible ?? false)}; suffixVisible=${String(lastEvaluation?.promptSuffixVisible ?? false)}; pastedCard=${String(lastEvaluation?.hasPastedTextCard ?? false)}; sendReady=${String(lastEvaluation?.sendReady ?? false)}`,
   );
 };
 
@@ -131,7 +143,11 @@ const clearComposerBeforePromptPaste = async (
 };
 
 const pastePromptIntoComposer = async (
-  input: SubmitPromptViaClipboardInput & { expectedPrefix: string },
+  input: SubmitPromptViaClipboardInput & {
+    expectedLength: number;
+    expectedPrefix: string;
+    expectedSuffix: string;
+  },
 ): Promise<void> => {
   await clearComposerBeforePromptPaste(input);
   await withWebChatStep("paste_prompt_text", () =>
@@ -139,7 +155,9 @@ const pastePromptIntoComposer = async (
   await waitForPromptReady({
     browser: input.browser,
     context: input.context,
+    expectedLength: input.expectedLength,
     expectedPrefix: input.expectedPrefix,
+    expectedSuffix: input.expectedSuffix,
     timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
     step: "verify_prompt_pasted_before_submit",
   });
@@ -148,12 +166,17 @@ const pastePromptIntoComposer = async (
 const preparePromptComposer = async (
   input: SubmitPromptViaClipboardInput,
 ): Promise<PreparedPromptComposer> => {
-  const expectedPrefix = buildPromptSubmissionExpectedPrefix(input.request.textPrompt);
+  const normalizedPrompt = normalizePromptForSubmission(input.request.textPrompt);
+  const expectedLength = normalizedPrompt.length;
+  const expectedPrefix = buildPromptSubmissionExpectedPrefix(normalizedPrompt);
+  const expectedSuffix = buildPromptSubmissionExpectedSuffix(normalizedPrompt);
   const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
   await focusComposerBeforePrompt(input);
   await pastePromptIntoComposer({
     ...input,
+    expectedLength,
     expectedPrefix,
+    expectedSuffix,
   });
   if (expectedAttachmentCount > 0) {
     await withWebChatStep("verify_attachments_before_submit", () =>
@@ -162,12 +185,16 @@ const preparePromptComposer = async (
   await waitForPromptReady({
     browser: input.browser,
     context: input.context,
+    expectedLength,
     expectedPrefix,
+    expectedSuffix,
     timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
     step: "verify_prompt_ready_before_submit",
   });
   return {
+    expectedLength,
     expectedPrefix,
+    expectedSuffix,
     wasPromptVerifiedBeforeSubmit: true,
   };
 };

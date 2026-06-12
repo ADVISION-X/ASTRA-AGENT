@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:16.196Z",
+  "generatedAt": "2026-06-11T10:55:59.751Z",
   "status": "PASS",
   "inspectorFileCount": 22,
   "generatedPlanEntryCount": 22,
@@ -119,6 +119,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-uses-raw-final-answer.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-no-system-generated-confidence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",

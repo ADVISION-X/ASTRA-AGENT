@@ -26,6 +26,7 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     language TEXT NOT NULL,
     max_sub_questions INTEGER NOT NULL,
     output_format TEXT NOT NULL,
+    input_attachments_json TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL,
     phase TEXT NOT NULL,
     failure_reason TEXT,
@@ -270,6 +271,17 @@ const migrateResearchInteractionsRenderedPromptText = (db: Database.Database): v
   ).run(MISSING_RENDERED_PROMPT_TEXT);
 };
 
+const migrateResearchJobsInputAttachments = (db: Database.Database): void => {
+  if (!hasColumn(db, "research_jobs", "input_attachments_json")) {
+    db.exec("ALTER TABLE research_jobs ADD COLUMN input_attachments_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  db.prepare(
+    `UPDATE research_jobs
+     SET input_attachments_json = '[]'
+     WHERE input_attachments_json IS NULL OR trim(input_attachments_json) = ''`,
+  ).run();
+};
+
 const migrateResearchSubQuestionStructuredFields = (db: Database.Database): void => {
   if (!hasColumn(db, "research_sub_questions", "why_it_matters")) {
     db.exec("ALTER TABLE research_sub_questions ADD COLUMN why_it_matters TEXT");
@@ -393,6 +405,7 @@ export const createDeepResearchDatabase = (dataDir: string): Database.Database =
     db.exec(statement);
   }
   migrateResearchSubQuestionsSchema(db);
+  migrateResearchJobsInputAttachments(db);
   migrateResearchInteractionsRenderedPromptText(db);
   migrateResearchSubQuestionStructuredFields(db);
   migrateResearchAnswersParsedPayload(db);

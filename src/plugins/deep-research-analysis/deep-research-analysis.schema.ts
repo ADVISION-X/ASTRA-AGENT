@@ -110,6 +110,16 @@ const DeepResearchLanguageSchema = z.enum(["zh-CN", "en"]);
 
 const DeepResearchOutputFormatSchema = z.enum(["markdown"]);
 
+export const DeepResearchInputAttachmentSchema = z.object({
+  id: z.string().trim().min(1),
+  filePath: z.string().trim().min(1),
+  mimeType: z.string().trim().min(1).nullable().default(null),
+  summary: z.string().trim().min(1),
+  fileHash: z.string().trim().min(1).nullable().default(null),
+  fileSizeBytes: z.number().int().nonnegative().nullable().default(null),
+  sourceKind: z.enum(["app-file-picker", "manual-path"]).default("manual-path"),
+}).strict();
+
 export const DeepResearchJobStatusSchema = z.enum([
   "queued",
   "running",
@@ -188,9 +198,12 @@ export const DeepResearchInputSchema = z.object({
   language: DeepResearchLanguageSchema.default("zh-CN"),
   maxSubQuestions: z.number().int().min(2).max(12).default(4),
   outputFormat: DeepResearchOutputFormatSchema.default("markdown"),
+  inputAttachments: z.array(DeepResearchInputAttachmentSchema).max(3).default([]),
 }).strict();
 
-export type DeepResearchInput = z.infer<typeof DeepResearchInputSchema>;
+export type DeepResearchInput = z.output<typeof DeepResearchInputSchema>;
+export type DeepResearchInputPayload = z.input<typeof DeepResearchInputSchema>;
+export type DeepResearchInputAttachment = z.infer<typeof DeepResearchInputAttachmentSchema>;
 export type DeepResearchJobStatus = z.infer<typeof DeepResearchJobStatusSchema>;
 export type DeepResearchPhase = z.infer<typeof DeepResearchPhaseSchema>;
 export type DeepResearchSubQuestion = z.infer<typeof DeepResearchSubQuestionSchema>;

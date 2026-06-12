@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:14.391Z",
+  "generatedAt": "2026-06-12T18:14:25.301Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -309,6 +309,49 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 11
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-invoice-upload",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "runtime-log+acceptance+audit",
+      "summary": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+      "appliesTo": [
+        "src/app/workbench-amazon-routes.ts",
+        "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/current-chrome-window-control.ts",
+        "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+        "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/audit/domains/amazon-invoice-upload/**",
+        "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+        "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+        "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+      ],
+      "required": [
+        "The external upload route may preserve sourceSystem and requestId only as API source metadata from X-GrassEye-Source-System / X-GrassEye-Request-Id or the legacy mission payload.",
+        "sourceSystem and requestId must not become DOM selectors, browser commands, Seller Central workflow inputs, or upload success evidence.",
+        "For API-sourced upload missions with adminOrderUrl, the task service must first persist the original Amazon upload terminal result, then attempt website tab return.",
+        "Website return must use a focus-only existing-tab browser policy that first activates an exact matching adminOrderUrl tab, then may activate an existing same-origin same-path admin tab when the only mismatch is query/hash state.",
+        "Focus-only tab switching must be an explicit API-return mode and must not become the default behavior of normal Amazon Manage admin page opening.",
+        "The focus-only policy must not create a new Chrome window, create a new tab, set URL of an existing tab, refresh the website, or navigate by host fallback when the exact/same-path website tab is missing.",
+        "If the existing website tab is missing or cannot be focused, the focus failure must be recorded in runtime trace without overwriting the Amazon upload terminal status.",
+        "adminOrderUrl must still pass the allowed Amazon admin host validation before any tab focus attempt.",
+        "A post-change production-readiness claim for website tab return must cite fresh runtime evidence from the changed path; historical Seller Central upload success evidence is not proof that the website return IF was tested."
+      ],
+      "forbidden": [
+        "Opening adminOrderUrl as a new tab after upload completion.",
+        "Refreshing or navigating the website-side Amazon Manage page after upload completion.",
+        "Applying focus-only behavior to ordinary admin page open commands.",
+        "Using reuse-active-tab, reuse-host-tab, open-new-tab, or fallback URL navigation for website return.",
+        "Running website return before the Amazon upload reaches and persists a terminal result.",
+        "Inferring upload_success, already_uploaded, or review_required from website focus state.",
+        "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
+        "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+      "blockIndex": 12
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
@@ -2302,6 +2345,28 @@
       "blockIndex": 20
     },
     {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "schema+ast+ui+acceptance",
+      "summary": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 21
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+chrome",
+      "summary": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 22
+    },
+    {
       "lawId": "APEX-DOM-001-V1",
       "status": "active",
       "tier": "P0",
@@ -3377,6 +3442,32 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
       "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime",
+      "summary": "Started local workbench health readiness must use a production cold-start budget and must not fail before the app server has a reasonable chance to bind and answer /api/health.",
+      "appliesTo": [
+        "scripts/startup/lib/service-readiness.mjs",
+        "scripts/startup/launch-grasseye.mjs"
+      ],
+      "required": [
+        "waitForWorkbenchHealth default readiness budget is at least 60000ms.",
+        "waitForWorkbenchHealth default poll interval is between 250ms and 1000ms.",
+        "Startup still probes only /api/health and still fails closed with a concrete failureReason after the budget is exhausted."
+      ],
+      "forbidden": [
+        "Started-service health readiness budget below 60000ms.",
+        "Treating child process spawn as app readiness.",
+        "Opening the workbench before /api/health passes.",
+        "Replacing /api/health readiness with homepage readiness."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 6
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",

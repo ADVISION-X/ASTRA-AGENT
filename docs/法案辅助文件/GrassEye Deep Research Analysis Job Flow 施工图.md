@@ -12,12 +12,19 @@ capabilityDomain: `deep-research-analysis`
 ```txt
 USER QUESTION
    ↓
+INPUT ATTACHMENT INTAKE
+   - App page file picker / paste / drop
+   - stage files under Workbench dataDir
+   - produce governed inputAttachments manifest
+   - delivery stays on AI Input Gateway file-ref path
+   ↓
 AI RESEARCH PLAN JSON
    - N subQuestions
    - each subQuestion has its own promptBundle
    - finalAdjudicationPromptBundle
    - htmlReportPromptBundle
    - planIntegrityCheck
+   - inputAttachments sent with the decomposition prompt package
    ↓
 PERSIST RAW DECOMPOSITION + RESEARCH PLAN
    ↓
@@ -26,6 +33,7 @@ FOR EACH SUBQUESTION
    - runtime N format shell
    - AI answer body between ANSWER_TEXT_BEGIN / ANSWER_TEXT_END
    - optional retrieval-only index JSON between INDEX_JSON_BEGIN / INDEX_JSON_END
+   - inputAttachments sent with every subQuestion prompt package
    - send to AI
    - persist rawResponseText
    - persist parsed answerText from the delimited answer body
@@ -34,6 +42,7 @@ FOR EACH SUBQUESTION
 BUILD FULL CASE FILE
    - all prompts
    - all raw responses
+   - inputAttachments manifest
    - structured index
    - parse failures with raw
    ↓
@@ -42,6 +51,7 @@ FINAL ADJUDICATION
    - structuredIndex
    - fullCaseFile
    - fullCaseFileMarkdown
+   - inputAttachments sent with the final adjudication prompt package
    - runtime final format shell
    - persist rawFinalAnswerText
    - persist parsedJsonIndex only when available
@@ -51,6 +61,7 @@ HTML REPORT
    - rawFinalAnswerText
    - fullCaseFile
    - fullCaseFileMarkdown
+   - inputAttachments sent with the HTML report prompt package
    - runtime HTML format shell
    - visible summary answer
    - visible forensics process
@@ -144,6 +155,20 @@ supplementalContent
 
 `FULL_CASE_FILE` 是最终裁决案卷。所有 AI prompt、所有 AI raw response、parse status、结构化索引、record hashes、provider proof 都必须进入案卷。结构化解析只是索引，不得替代 raw response。
 
+本地输入附件必须进入案卷附件清单：
+
+```txt
+id
+filePath
+mimeType
+summary
+fileHash
+fileSizeBytes
+sourceKind
+```
+
+附件清单只是 Deep Research 输入材料 manifest。文件实际传输不得绕过 AI Input Gateway，不得新增 provider 上传链路。
+
 最终裁决必须接收：
 
 ```txt
@@ -171,6 +196,43 @@ GPT web-chat 生成 `business-report.html` 时，AI Input Gateway 必须返回�
 ```
 
 Deep Research 不得保留从 assistant 文本、代码 fence、摘要文本中猜测 HTML 的获取方式。
+
+## Web Chat Prompt Paste Truth
+
+Deep Research 通过 web-chat 投喂 prompt 时，发送按钮可用不等于 prompt 已经正确进入 composer。
+
+生产提交前必须按同一条 AI Input Gateway web-chat 路径完成以下证明：
+
+```txt
+focus composer
+clear stale composer when no attachments are present
+paste prompt through governed clipboard path
+read untruncated visible composer text from the real provider page
+compare normalized expectedPrefix + expectedSuffix + expectedLength
+accept provider pasted-text card only when card exists and send is ready
+submit only after verified paste
+verify generation / assistant progress / composer cleared after verified paste
+```
+
+判定规则：
+
+- `expectedPrefix` 使用 prompt 归一化后的前 80 字符。
+- `expectedSuffix` 使用 prompt 归一化后的后 80 字符。
+- `expectedLength` 使用完整归一化 prompt 长度。
+- composer 真值必须优先读取 rich-text editor 的 `innerText`，再兜底 `textContent`；不得用 `textContent` 拼接段落后的结构文本作为主裁。
+- fresh provider conversation 的 composer readiness 等待预算不得低于 60000ms；超时诊断必须带最后一次 provider 状态。
+- prefix 命中可作为成功。
+- suffix 命中且 composer 长度与 expectedLength 接近可作为成功。
+- ChatGPT pasted text card 存在且 send ready 可作为成功。
+- `sendReady` 单独存在不得作为成功。
+- failure / review diagnostics 必须输出 `composerChars`、`expectedChars`、`prefixVisible`、`suffixVisible`、`pastedCard`、`sendReady`。
+
+禁止：
+
+- 用截断 composer 文本做 prompt presence 主裁。
+- 用 send button ready 证明 prompt 已粘贴。
+- paste 失败后新增 retry/fallback/第二 provider 提交流程掩盖失败。
+- 没有真实 Chrome 页面验证就声称 web-chat 提交生产可用。
 
 ChatGPT HTML artifact 捕获必须允许真实页面延迟：
 

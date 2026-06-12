@@ -8,6 +8,8 @@ export const AmazonInvoiceUploadMissionInputSchema = z.object({
   invoicePdfPath: z.string().min(1),
   sellerCentralEntryUrl: z.string().url(),
   adminOrderUrl: z.string().url().optional(),
+  sourceSystem: z.string().min(1).optional(),
+  requestId: z.string().min(1).optional(),
 }).strict();
 
 export type AmazonInvoiceUploadMissionInput = z.infer<typeof AmazonInvoiceUploadMissionInputSchema>;

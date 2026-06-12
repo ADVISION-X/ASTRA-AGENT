@@ -63,7 +63,9 @@ const assertExternalStartAllowed = async (): Promise<void> => {
     assert.notEqual(response.headers.get("access-control-allow-origin"), "*");
     assert.equal(workbench.startCalls, 1);
     assert.equal(workbench.lastUploadMission?.invoicePdfPath, "approved-by-workbench");
-    for (const key of ["requireHumanFinalSubmit", "stopOnManualRequired", "sourceSystem", "requestId"]) assert.equal(key in (workbench.lastUploadMission ?? {}), false);
+    for (const key of ["requireHumanFinalSubmit", "stopOnManualRequired"]) assert.equal(key in (workbench.lastUploadMission ?? {}), false);
+    assert.equal(workbench.lastUploadMission?.sourceSystem, "ontheway");
+    assert.equal(workbench.lastUploadMission?.requestId, "request-test-1");
   });
 };
 

@@ -205,6 +205,33 @@ textarea {
   resize: vertical;
   font: inherit;
 }
+.research-attachment-dropzone {
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcf8;
+  color: var(--muted);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+.research-attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+}
+.research-attachment-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  padding: 4px 9px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .research-history,
 .research-reader,
 .research-side-panel {

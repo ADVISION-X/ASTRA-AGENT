@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:14.391Z",
+  "generatedAt": "2026-06-12T18:14:25.301Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -17,7 +17,8 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"
       ]
     },
     {
@@ -208,7 +209,9 @@
         "GRASSEYE-DEEP-RESEARCH-054-V1",
         "GRASSEYE-DEEP-RESEARCH-055-V1",
         "GRASSEYE-DEEP-RESEARCH-056-V1",
-        "GRASSEYE-DEEP-RESEARCH-057-V1"
+        "GRASSEYE-DEEP-RESEARCH-057-V1",
+        "GRASSEYE-DEEP-RESEARCH-058-V1",
+        "GRASSEYE-DEEP-RESEARCH-059-V1"
       ]
     },
     {
@@ -336,7 +339,8 @@
         "APEX-STARTUP-003-V1",
         "APEX-STARTUP-004-V1",
         "APEX-STARTUP-005-V1",
-        "APEX-STARTUP-006-V1"
+        "APEX-STARTUP-006-V1",
+        "APEX-STARTUP-007-V1"
       ]
     },
     {

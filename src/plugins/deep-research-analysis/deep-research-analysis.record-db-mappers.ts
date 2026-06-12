@@ -22,13 +22,14 @@ import {
 } from "./deep-research-analysis.records.js";
 import type {
     DeepResearchInput,
+    DeepResearchInputAttachment,
     DeepResearchInteractionPhase,
     DeepResearchJobStatus,
     DeepResearchParseStatus,
     DeepResearchPhase,
     DeepResearchSubQuestion,
 } from "./deep-research-analysis.schema.js";
-import { DeepResearchPlanSchema } from "./deep-research-analysis.schema.js";
+import { DeepResearchInputSchema, DeepResearchPlanSchema } from "./deep-research-analysis.schema.js";
 
 const parseStringArray = (value: string): string[] =>
   z.array(z.string().trim().min(1)).parse(JSON.parse(value));
@@ -42,6 +43,9 @@ const parseUnknownRecord = (value: string): Record<string, unknown> => {
 
 const parseUnknownJson = (value: string | null): unknown | null =>
   value && value.trim().length > 0 ? JSON.parse(value) as unknown : null;
+
+const parseInputAttachments = (value: string): DeepResearchInputAttachment[] =>
+  DeepResearchInputSchema.shape.inputAttachments.parse(JSON.parse(value));
 
 const buildUnavailablePromptBundle = (row: {
   model_question_id: string;
@@ -86,6 +90,7 @@ export const mapJobRow = (row: {
   language: DeepResearchInput["language"];
   max_sub_questions: number;
   output_format: DeepResearchInput["outputFormat"];
+  input_attachments_json: string;
   status: DeepResearchJobStatus;
   phase: DeepResearchPhase;
   failure_reason: string | null;
@@ -100,6 +105,7 @@ export const mapJobRow = (row: {
     language: row.language,
     maxSubQuestions: row.max_sub_questions,
     outputFormat: row.output_format,
+    inputAttachments: parseInputAttachments(row.input_attachments_json),
     status: row.status,
     phase: row.phase,
     failureReason: row.failure_reason,

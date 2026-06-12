@@ -9,6 +9,11 @@ const uploadCompatibilityKeys = [
   "stopOnManualRequired",
 ] as const;
 
+const uploadSourceMetadataKeys = [
+  "sourceSystem",
+  "requestId",
+] as const;
+
 export const inspectUploadRouteSanitizer = (
   file: SourceFile | null,
   findings: InspectorFinding[],
@@ -32,13 +37,37 @@ export const inspectUploadRouteSanitizer = (
     const expression = item.getExpression();
     return Node.isPropertyAccessExpression(expression) ? [expression.getName()] : [];
   }));
-  for (const key of [...uploadCompatibilityKeys, "sourceSystem", "requestId"]) {
+  for (const key of uploadCompatibilityKeys) {
     if (!deleted.has(key)) {
       findings.push(createFinding({
         checkId: "amazon-invoice-upload/upload-route-sanitizer-field",
         lawId,
         filePath: routesPath,
         message: `External upload route sanitizer must drop non-schema field ${key} before the single upload service parses the strict mission contract.`,
+      }));
+    }
+  }
+  const sanitizerIdentifiers = new Set(sanitizer.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) =>
+    identifier.getText()));
+  const sanitizerStringLiterals = new Set(sanitizer.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) =>
+    literal.getLiteralText()));
+  for (const key of uploadSourceMetadataKeys) {
+    if (!sanitizerIdentifiers.has(key)) {
+      findings.push(createFinding({
+        checkId: "amazon-invoice-upload/upload-route-source-metadata",
+        lawId,
+        filePath: routesPath,
+        message: `External upload route sanitizer must preserve ${key} as API source metadata for website tab return.`,
+      }));
+    }
+  }
+  for (const header of ["x-grasseye-source-system", "x-grasseye-request-id"]) {
+    if (!sanitizerStringLiterals.has(header)) {
+      findings.push(createFinding({
+        checkId: "amazon-invoice-upload/upload-route-source-header",
+        lawId,
+        filePath: routesPath,
+        message: `External upload route sanitizer must read ${header} before the single upload service parses the strict mission contract.`,
       }));
     }
   }

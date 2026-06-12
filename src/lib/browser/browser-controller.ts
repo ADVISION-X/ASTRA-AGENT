@@ -57,7 +57,7 @@ type BrowserClickButton = "left" | "right" | "middle";
 type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
 type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
 type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
-type BrowserOpenReusePolicy = "reuse-exact-url" | "open-new-tab" | "reuse-active-tab" | "reuse-host-tab";
+type BrowserOpenReusePolicy = "reuse-exact-url" | "focus-existing-exact-url" | "focus-existing-same-path-url" | "open-new-tab" | "reuse-active-tab" | "reuse-host-tab";
 
 type BrowserFileInputRef = {
   selector: string;

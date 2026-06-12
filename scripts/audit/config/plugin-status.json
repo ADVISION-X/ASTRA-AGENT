@@ -109,12 +109,15 @@
       "allowedEntrypoints": [
         "src/app/workbench-deep-research-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
+        "acceptance:deep-research-input-attachments",
         "acceptance:deep-research-analysis-smoke"
       ],
       "allowedNpmScripts": [
+        "acceptance:deep-research-input-attachments",
         "acceptance:deep-research-analysis-smoke"
       ],
       "exposureTokens": [

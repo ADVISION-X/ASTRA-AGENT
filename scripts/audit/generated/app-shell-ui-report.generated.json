@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:50.567Z",
+  "generatedAt": "2026-06-11T10:56:38.015Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -45,6 +45,7 @@
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
+    "src/app/workbench-deep-research-client-attachments.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-case-reader.ts",
     "src/app/workbench-deep-research-client-contracts.ts",
@@ -52,6 +53,7 @@
     "src/app/workbench-deep-research-client-report-sections.ts",
     "src/app/workbench-deep-research-client-shared.ts",
     "src/app/workbench-deep-research-client.ts",
+    "src/app/workbench-deep-research-field-help.ts",
     "src/app/workbench-deep-research-history-view.ts",
     "src/app/workbench-deep-research-panel.ts",
     "src/app/workbench-deep-research-report-styles.ts",

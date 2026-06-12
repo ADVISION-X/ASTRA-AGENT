@@ -504,3 +504,91 @@ The `business-conclusion` section must preserve the final adjudication meaning a
 The `n-stage-questions-and-answers` section must list each persisted sub-question with its question text and answer material from the full case file. If a structured answer is missing but raw response exists, the raw-preserved state must be shown rather than hidden.
 
 This law does not authorize runtime-owned domain conclusions, confidence fields, verdict schemas, rankings, investment theses, or question-specific business section logic. It only authorizes mandatory presentation transparency and trace ordering for the single `business-report.html` artifact.
+
+### [GRASSEYE-DEEP-RESEARCH-058-V1] Input Attachment Every-AI-Feed Sovereignty
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "schema+ast+ui+acceptance",
+  "summary": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path."
+}
+```
+
+User local files added on the Deep Research App page must become governed `inputAttachments`.
+
+The App page may collect files through file picker, paste, or drop, but the runtime must convert those files into a single `inputAttachments` payload owned by Deep Research intake.
+
+The same `inputAttachments` manifest must be included in:
+
+```txt
+ResearchPlan decomposition send
+each sub-question analysis send
+final adjudication send
+HTML report send
+full case file JSON
+full case file Markdown
+```
+
+Each attachment manifest entry must preserve:
+
+```txt
+id
+filePath
+mimeType
+summary
+fileHash when available
+fileSizeBytes when available
+sourceKind
+```
+
+Deep Research must not create a second provider upload chain. Provider delivery must continue through the existing AI Input Gateway file-ref path, including the existing Chrome Cmd+V web chat attachment path where applicable.
+
+App Shell UI may render the file intake control, but it must not become the business owner of attachment semantics, prompt routing, or provider delivery.
+
+### [GRASSEYE-DEEP-RESEARCH-059-V1] Web Chat Prompt Paste Truth
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+chrome",
+  "summary": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof."
+}
+```
+
+Before any Deep Research web-chat submit:
+
+```txt
+focus composer
+clear stale composer when no attachments are present
+paste prompt
+verify prompt presence
+verify attachments when expected
+submit
+verify provider generation or composer cleared after verified paste
+```
+
+Prompt presence proof must use the current provider page's visible composer text, not a simulated DOM or DOM-structure text:
+
+- The verification script must read the untruncated visible composer text with `innerText` before falling back to `textContent`.
+- The verification input must include normalized `expectedPrefix`, normalized `expectedSuffix`, and `expectedLength`.
+- Fresh provider conversation startup must allow at least 60000ms for the real provider composer to become ready before returning `review_required`.
+- Success may come from prompt prefix visibility, prompt suffix visibility plus near-equal normalized length, or a provider pasted-text card with send ready.
+- `sendReady` alone must never return paste verification success.
+- Timeout diagnostics must include `composerChars`, `expectedChars`, `prefixVisible`, `suffixVisible`, `pastedCard`, and `sendReady`.
+
+Forbidden:
+
+- Treating send-button readiness as proof that the intended prompt was pasted.
+- Clipping composer text before prompt verification.
+- Using raw `textContent` as the primary composer truth for ProseMirror / rich-text editors.
+- Submitting after an unverified paste.
+- Adding a retry/fallback/second provider submission chain to hide paste verification failure.

@@ -19,6 +19,10 @@ const isVisible = (node) => {
   const style = getComputedStyle(node);
   return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
 };
+const readComposerVisibleText = (node) => {
+  if (!(node instanceof HTMLElement)) return "";
+  return clip(node.innerText || node.textContent || "");
+};
 const resolveComposerInput = () => {
   const chatGptComposer = document.querySelector("div#prompt-textarea[contenteditable='true'][role='textbox']");
   if (chatGptComposer instanceof HTMLElement && chatGptComposer.isContentEditable && isVisible(chatGptComposer)) {

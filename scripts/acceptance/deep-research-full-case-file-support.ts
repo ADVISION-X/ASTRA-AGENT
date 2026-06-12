@@ -8,6 +8,7 @@ import {
 } from "../../src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.js";
 import type { DeepResearchFinalAdjudicationParse } from "../../src/plugins/deep-research-analysis/deep-research-analysis.parser.js";
 import { createDeepResearchRecordStore } from "../../src/plugins/deep-research-analysis/deep-research-analysis.records.js";
+import type { DeepResearchInputAttachment } from "../../src/plugins/deep-research-analysis/deep-research-analysis.schema.js";
 import { buildDeepResearchStructuredIndex } from "../../src/plugins/deep-research-analysis/deep-research-analysis.structured-index.js";
 
 type DeepResearchStore = ReturnType<typeof createDeepResearchRecordStore>;
@@ -351,7 +352,9 @@ export type DeepResearchFullCaseFixture = {
   finalAdjudication: DeepResearchFinalAdjudicationParse;
 };
 
-export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture => {
+export const createDeepResearchFullCaseFixture = (input?: {
+  inputAttachments?: readonly DeepResearchInputAttachment[];
+}): DeepResearchFullCaseFixture => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-full-case-file-"));
   const store = createDeepResearchRecordStore(dataDir);
   const job = store.createJob({
@@ -360,6 +363,7 @@ export const createDeepResearchFullCaseFixture = (): DeepResearchFullCaseFixture
     language: "en",
     maxSubQuestions: 4,
     outputFormat: "markdown",
+    inputAttachments: input?.inputAttachments ? [...input.inputAttachments] : [],
   });
   const subQuestions = persistDecomposition({ store, job });
   const firstSubQuestion = subQuestions[0];

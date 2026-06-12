@@ -10,6 +10,8 @@ const missionSchemaPath = "src/plugins/amazon-invoice-upload/mission.schema.ts";
 const verifyPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts";
 const existingUploadPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts";
 const existingEvidencePath = "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts";
+const browserControllerPath = "src/lib/browser/browser-controller.ts";
+const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
 
 type UploadStabilityGuardInput = {
   flowFile: SourceFile | null;
@@ -19,10 +21,13 @@ type UploadStabilityGuardInput = {
   verifyFile: SourceFile | null;
   existingUploadFile: SourceFile | null;
   existingEvidenceFile: SourceFile | null;
+  browserControllerFile: SourceFile | null;
+  chromeWindowControlFile: SourceFile | null;
   findings: InspectorFinding[];
   lawId: string;
   conditionalRefreshLawId: string;
   tabLifecycleLawId: string;
+  apiFocusReturnLawId: string;
 };
 
 type UploadStabilityFiles = {
@@ -33,6 +38,8 @@ type UploadStabilityFiles = {
   verifyFile: SourceFile;
   existingUploadFile: SourceFile;
   existingEvidenceFile: SourceFile;
+  browserControllerFile: SourceFile;
+  chromeWindowControlFile: SourceFile;
 };
 
 const stringLiteralValues = (file: SourceFile): Set<string> =>
@@ -95,11 +102,14 @@ export const inspectUploadStabilityGuard = (input: UploadStabilityGuardInput): v
   appendUploadStabilityFindings(input.findings, input.lawId, missing);
   const tabLifecycleMissing = collectTabLifecycleGaps(files);
   appendUploadStabilityFindings(input.findings, input.tabLifecycleLawId, tabLifecycleMissing);
+  const apiFocusMissing = collectApiFocusReturnGaps(files);
+  appendUploadStabilityFindings(input.findings, input.apiFocusReturnLawId, apiFocusMissing);
 };
 
 function resolveUploadStabilityFiles(input: UploadStabilityGuardInput): UploadStabilityFiles | null {
   if (!input.flowFile || !input.orderFile || !input.taskServiceFile) return null;
   if (!input.missionSchemaFile || !input.verifyFile || !input.existingUploadFile || !input.existingEvidenceFile) return null;
+  if (!input.browserControllerFile || !input.chromeWindowControlFile) return null;
   return {
     flowFile: input.flowFile,
     orderFile: input.orderFile,
@@ -108,6 +118,8 @@ function resolveUploadStabilityFiles(input: UploadStabilityGuardInput): UploadSt
     verifyFile: input.verifyFile,
     existingUploadFile: input.existingUploadFile,
     existingEvidenceFile: input.existingEvidenceFile,
+    browserControllerFile: input.browserControllerFile,
+    chromeWindowControlFile: input.chromeWindowControlFile,
   };
 }
 
@@ -139,12 +151,79 @@ function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
 function uploadStabilityFindingPath(item: string): string {
   const tabLifecyclePath = tabLifecycleFindingPath(item);
   if (tabLifecyclePath) return tabLifecyclePath;
+  const apiFocusPath = apiFocusFindingPath(item);
+  if (apiFocusPath) return apiFocusPath;
   if (item.startsWith("english-success-evidence")) return verifyPath;
   if (item.startsWith("english-existing-evidence")) return existingEvidencePath;
   if (item.startsWith("no-human-final-submit-schema")) return missionSchemaPath;
   if (item.startsWith("no-human-final-submit-service")) return taskServicePath;
   if (isOrderRefreshFinding(item)) return orderDetailPath;
   return uploadFlowPath;
+}
+
+function apiFocusFindingPath(item: string): string | null {
+  if (item.startsWith("api-focus-schema")) return missionSchemaPath;
+  if (item.startsWith("api-focus-service")) return taskServicePath;
+  if (item.startsWith("api-focus-controller")) return browserControllerPath;
+  if (item.startsWith("api-focus-browser")) return chromeWindowControlPath;
+  return null;
+}
+
+function collectApiFocusReturnGaps(files: UploadStabilityFiles): string[] {
+  const taskValues = stringLiteralValues(files.taskServiceFile);
+  const controllerValues = stringLiteralValues(files.browserControllerFile);
+  const chromeValues = stringLiteralValues(files.chromeWindowControlFile);
+  return [
+    ...collectApiFocusSchemaGaps(files),
+    ...collectApiFocusServiceGaps(files, taskValues),
+    ...collectApiFocusBrowserGaps(files, controllerValues, chromeValues),
+  ];
+}
+
+function collectApiFocusSchemaGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  if (!hasPropertyAssignment(files.missionSchemaFile, "sourceSystem")) missing.push("api-focus-schema:sourceSystem");
+  if (!hasPropertyAssignment(files.missionSchemaFile, "requestId")) missing.push("api-focus-schema:requestId");
+  return missing;
+}
+
+function collectApiFocusServiceGaps(files: UploadStabilityFiles, taskValues: Set<string>): string[] {
+  const missing: string[] = [];
+  if (!files.taskServiceFile.getFunction("returnApiUploadFocusToAdmin")) missing.push("api-focus-service:return-helper");
+  if (!files.taskServiceFile.getFunction("isApiUploadMission")) missing.push("api-focus-service:api-source-guard");
+  if (!functionCallsIdentifier(files.taskServiceFile, "startAmazonInvoiceUploadTask", "returnApiUploadFocusToAdmin")) {
+    missing.push("api-focus-service:start-call");
+  }
+  if (!functionCallsIdentifier(files.taskServiceFile, "resumeAmazonInvoiceUploadTask", "returnApiUploadFocusToAdmin")) {
+    missing.push("api-focus-service:resume-call");
+  }
+  if (!functionCallsIdentifier(files.taskServiceFile, "returnApiUploadFocusToAdmin", "openAmazonInvoiceAdminPage")) {
+    missing.push("api-focus-service:admin-allowlist-open");
+  }
+  if (!hasPropertyAssignment(files.taskServiceFile, "focusOnlyExistingTab")) missing.push("api-focus-service:explicit-focus-flag");
+  if (!hasTruePropertyAssignment(files.taskServiceFile, "focusOnlyExistingTab")) missing.push("api-focus-service:return-helper-explicit-focus");
+  if (!hasFocusOnlyReusePolicyConditional(files.taskServiceFile)) {
+    missing.push("api-focus-service:normal-open-not-focus-only");
+  }
+  if (!taskValues.has("focus-existing-same-path-url")) missing.push("api-focus-service:same-path-focus-only-policy");
+  if (!taskValues.has("return API upload focus to website")) missing.push("api-focus-service:runtime-trace");
+  return missing;
+}
+
+function collectApiFocusBrowserGaps(
+  files: UploadStabilityFiles,
+  controllerValues: Set<string>,
+  chromeValues: Set<string>,
+): string[] {
+  const missing: string[] = [];
+  if (!controllerValues.has("focus-existing-same-path-url")) missing.push("api-focus-controller:same-path-policy-type");
+  if (!chromeValues.has("focus-existing-same-path-url")) missing.push("api-focus-browser:same-path-policy-implementation");
+  if (!chromeValues.has("focused_existing_same_path_tab")) missing.push("api-focus-browser:same-path-focus-result");
+  if (!chromeValues.has("no_existing_tab")) missing.push("api-focus-browser:missing-tab-fails-closed");
+  if (hasTemplateExpressionWithIdentifier(files.chromeWindowControlFile, "input")) {
+    missing.push("api-focus-browser:no-full-url-leak");
+  }
+  return missing;
 }
 
 function tabLifecycleFindingPath(item: string): string | null {
@@ -231,6 +310,44 @@ function collectNoHumanFinalSubmitContractGaps(taskServiceFile: SourceFile, miss
 function hasPropertyAssignment(file: SourceFile, propertyName: string): boolean {
   return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
     property.getName() === propertyName);
+}
+
+function hasTruePropertyAssignment(file: SourceFile, propertyName: string): boolean {
+  return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
+    property.getName() === propertyName && property.getInitializer()?.getKind() === SyntaxKind.TrueKeyword);
+}
+
+function hasFocusOnlyReusePolicyConditional(file: SourceFile): boolean {
+  return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
+    if (property.getName() !== "reusePolicy") return false;
+    const initializer = property.getInitializer();
+    if (!initializer || !Node.isConditionalExpression(initializer)) return false;
+    const condition = initializer.getCondition();
+    const whenTrue = initializer.getWhenTrue();
+    const whenFalse = initializer.getWhenFalse();
+    if (!Node.isBinaryExpression(condition)) return false;
+    const left = condition.getLeft();
+    const right = condition.getRight();
+    const operatorIsStrictEquals = condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken;
+    const leftIsFocusFlag = Node.isPropertyAccessExpression(left)
+      && left.getExpression().getKind() === SyntaxKind.Identifier
+      && left.getName() === "focusOnlyExistingTab";
+    return operatorIsStrictEquals
+      && leftIsFocusFlag
+      && right.getKind() === SyntaxKind.TrueKeyword
+      && Node.isStringLiteral(whenTrue)
+      && whenTrue.getLiteralText() === "focus-existing-same-path-url"
+      && Node.isStringLiteral(whenFalse)
+      && whenFalse.getLiteralText() === "reuse-exact-url";
+  });
+}
+
+function hasTemplateExpressionWithIdentifier(file: SourceFile, identifierName: string): boolean {
+  return file.getDescendantsOfKind(SyntaxKind.TemplateExpression).some((template) =>
+    template.getTemplateSpans().some((span) => {
+      const expression = span.getExpression();
+      return Node.isIdentifier(expression) && expression.getText() === identifierName;
+    }));
 }
 
 function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUploadFile: SourceFile, existingEvidenceFile: SourceFile): string[] {

@@ -10,12 +10,18 @@ export const verifyPromptPasted = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
   input: {
+    expectedLength: number;
     expectedPrefix: string;
+    expectedSuffix: string;
   },
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: "verify AI web chat prompt was pasted",
-    script: buildVerifyPromptPastedScript(input.expectedPrefix),
+    script: buildVerifyPromptPastedScript({
+      expectedLength: input.expectedLength,
+      expectedPrefix: input.expectedPrefix,
+      expectedSuffix: input.expectedSuffix,
+    }),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 

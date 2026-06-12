@@ -12,7 +12,10 @@ type ChromeWindowState = {
   currentTitle: string;
 };
 
-type ChromeOpenReusePolicy = "reuse-exact-url" | "open-new-tab" | "reuse-active-tab" | "reuse-host-tab";
+type ChromeOpenReusePolicy = "reuse-exact-url" | "focus-existing-exact-url" | "focus-existing-same-path-url" | "open-new-tab" | "reuse-active-tab" | "reuse-host-tab";
+
+const FOCUS_ONLY_MISSING_TAB_RESULT = "no_existing_tab";
+const FOCUS_ONLY_SAME_PATH_TAB_RESULT = "focused_existing_same_path_tab";
 
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
@@ -63,16 +66,19 @@ const buildOpenUrlScript = (
 ): string => {
   const escapedUrl = escapeAppleScriptString(url);
   const existingTabScript = buildReuseExactUrlScript(reusePolicy, escapedUrl);
+  const samePathTabScript = buildFocusSamePathUrlScript(url, reusePolicy);
   const hostTabScript = buildReuseHostTabScript(url, reusePolicy, escapedUrl);
   return `
 tell application "Google Chrome" to activate
 tell application "Google Chrome"
+    ${buildFocusOnlyNoWindowScript(reusePolicy)}
     if (count of windows) = 0 then
         make new window
         set URL of active tab of front window to "${escapedUrl}"
         return "opened_new_window"
     end if
   ${existingTabScript}
+  ${samePathTabScript}
   ${hostTabScript}
   ${buildPolicyNavigationScript(reusePolicy, escapedUrl)}
 end tell
@@ -80,7 +86,7 @@ end tell
 };
 
 function buildReuseExactUrlScript(reusePolicy: ChromeOpenReusePolicy, escapedUrl: string): string {
-  return reusePolicy === "reuse-exact-url"
+  return reusePolicy === "reuse-exact-url" || reusePolicy === "focus-existing-exact-url" || reusePolicy === "focus-existing-same-path-url"
     ? `
   repeat with w in windows
     set tIndex to 1
@@ -92,8 +98,40 @@ function buildReuseExactUrlScript(reusePolicy: ChromeOpenReusePolicy, escapedUrl
       end if
       set tIndex to tIndex + 1
     end repeat
-  end repeat`
+  end repeat
+  ${reusePolicy === "focus-existing-exact-url" ? `return "${FOCUS_ONLY_MISSING_TAB_RESULT}"` : ""}`
     : "";
+}
+
+function buildFocusOnlyNoWindowScript(reusePolicy: ChromeOpenReusePolicy): string {
+  return reusePolicy === "focus-existing-exact-url" || reusePolicy === "focus-existing-same-path-url"
+    ? `
+    if (count of windows) = 0 then
+        return "${FOCUS_ONLY_MISSING_TAB_RESULT}"
+    end if`
+    : "";
+}
+
+function buildFocusSamePathUrlScript(url: string, reusePolicy: ChromeOpenReusePolicy): string {
+  const match = buildSamePathMatch(url);
+  if (reusePolicy !== "focus-existing-same-path-url" || !match) return "";
+  const base = escapeAppleScriptString(match.base);
+  const queryPrefix = escapeAppleScriptString(`${match.base}?`);
+  const hashPrefix = escapeAppleScriptString(`${match.base}#`);
+  return `
+  repeat with w in windows
+    set tIndex to 1
+    repeat with t in tabs of w
+      set tabUrl to URL of t
+      if tabUrl is "${base}" or tabUrl starts with "${queryPrefix}" or tabUrl starts with "${hashPrefix}" then
+        set active tab index of w to tIndex
+        set index of w to 1
+        return "${FOCUS_ONLY_SAME_PATH_TAB_RESULT}"
+      end if
+      set tIndex to tIndex + 1
+    end repeat
+  end repeat
+  return "${FOCUS_ONLY_MISSING_TAB_RESULT}"`;
 }
 
 function buildReuseHostTabScript(
@@ -128,6 +166,8 @@ function buildPolicyNavigationScript(
   if (reusePolicy === "reuse-active-tab") return buildReuseActiveTabScript(escapedUrl);
   if (reusePolicy === "open-new-tab") return buildOpenNewTabScript(escapedUrl, "opened_new_tab");
   if (reusePolicy === "reuse-exact-url") return buildOpenNewTabScript(escapedUrl, "opened_new_tab");
+  if (reusePolicy === "focus-existing-exact-url") return `return "${FOCUS_ONLY_MISSING_TAB_RESULT}"`;
+  if (reusePolicy === "focus-existing-same-path-url") return `return "${FOCUS_ONLY_MISSING_TAB_RESULT}"`;
   if (reusePolicy === "reuse-host-tab") return buildOpenNewTabScript(escapedUrl, "opened_new_host_tab");
   return "";
 }
@@ -152,6 +192,16 @@ const buildHostMatchPrefix = (url: string): { origin: string; withSlash: string 
     const parsed = new URL(url);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
     return { origin: parsed.origin, withSlash: `${parsed.origin}/` };
+  } catch {
+    return null;
+  }
+};
+
+const buildSamePathMatch = (url: string): { base: string } | null => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return { base: `${parsed.origin}${parsed.pathname}` };
   } catch {
     return null;
   }

@@ -321,7 +321,7 @@ External upload compatibility rule:
 
 ```txt
 API Boundary 只拦截 selector / browserCommand / documentId / cookie 等 DOM 控制或敏感逃逸字段。
-历史网站 payload 中的 requireHumanFinalSubmit / stopOnManualRequired / sourceSystem / requestId 不得作为 forbidden_external_request_key 在 Boundary 层拦截；upload route 必须先清洗这些非单张上传 schema 字段，再进入既有 startAmazonInvoiceUploadTask 单张上传链路。执行层、schema、service 仍不得保留人工最终提交字段。
+历史网站 payload 中的 requireHumanFinalSubmit / stopOnManualRequired / sourceSystem / requestId 不得作为 forbidden_external_request_key 在 Boundary 层拦截；upload route 必须清洗 requireHumanFinalSubmit / stopOnManualRequired，并仅将 sourceSystem / requestId 作为 API 来源元数据保留。执行层、schema、service 仍不得保留人工最终提交字段。
 ```
 
 ## 12. Status / Latest / Artifact / Ledger 查询
@@ -613,6 +613,57 @@ WHY HAPPEN:
 旧上传链路在 upload_success / already_uploaded 后逐单关闭 active tab。
 这让“清理 tab 失败”污染了真实业务结果，并且批量处理时反复开关 Seller Central 订单 tab，页面焦点和弹窗状态更脆弱。
 该问题属于 active law 缺失 + 施工图细节缺失；已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1 固化。
+
+## 22. API 上传完成后的既有网站标签页切回
+
+问题追溯：
+
+```txt
+WHY HAPPEN:
+网站侧批量上传 Amazon 是流水模式，网站页面持有当前批次状态。
+AGENT 上传完成后如果停留在 Seller Central 标签页，网站侧轮询和下一张准备链路可能失焦。
+但把回跳定义为“打开 adminOrderUrl”会刷新或新开网站页，导致网站侧当前批次状态丢失。
+因此该行为必须定义成“切回既有网站标签页”，而不是“打开网站 URL”。
+```
+
+固定流程：
+
+```txt
+API /api/plugins/amazon-invoice-upload/start
+  -> upload route 从 X-GrassEye-Source-System / X-GrassEye-Request-Id 或 legacy mission 读取 sourceSystem / requestId
+  -> sourceSystem / requestId 只作为来源元数据进入 strict mission schema
+  -> startAmazonInvoiceUploadTask / resumeAmazonInvoiceUploadTask
+  -> runAmazonInvoiceUpload 完成 Seller Central 上传判定
+  -> saveTaskRecord 持久化原始 terminal result
+  -> IF mission.sourceSystem 或 mission.requestId 且 mission.adminOrderUrl 存在
+       -> 校验 adminOrderUrl host allowlist
+       -> openAmazonInvoiceAdminPage({ focusOnlyExistingTab: true })
+       -> BrowserController.open(reusePolicy: "focus-existing-same-path-url")
+       -> 先激活精确 URL 匹配的既有 Chrome 标签页；若真实网站页只有 query/hash 不一致，则激活同源同路径的既有 Chrome 标签页
+       -> 找不到则记录失败 trace，不新建、不刷新、不导航、不覆盖上传终态
+```
+
+禁止：
+
+```txt
+用 open-new-tab / reuse-active-tab / reuse-host-tab 回到网站。
+找不到网站标签页时新开 adminOrderUrl。
+对网站页执行 set URL、reload、host fallback navigation。
+把 focus-only 作为普通 openAmazonInvoiceAdminPage 默认模式。
+在 Amazon 上传终态持久化之前切回网站。
+把网站回焦成功或失败当作 Amazon 上传成功证据。
+用历史上传成功日志、静态验收或字符串检查宣称新 IF 已完成生产实测。
+```
+
+实测门禁：
+
+```txt
+任意 Chrome 标签页生命周期、API 上传后网站回焦、Seller Central 提交路径变更后：
+  -> 先遍历 runtime-evidence、ledger、网站 handoff 日志，区分历史证据和变更后证据
+  -> 静态 typecheck / acceptance / audit 只能证明法案结构，不等于生产实测
+  -> 没有命中变更后路径的真实 Chrome / Seller Central / 网站标签页证据时，只能报告 NOT_PRODUCTION_VERIFIED
+  -> 若只做安全的 Chrome 标签页集成测试，必须明确标注它验证的是标签页策略，不得冒充发票生产上传实测
+```
 ```
 
 批量上传订单 tab 生命周期必须固定为：

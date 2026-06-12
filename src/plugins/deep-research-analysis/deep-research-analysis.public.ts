@@ -23,7 +23,7 @@ import { mapJobRow } from "./deep-research-analysis.record-db.js";
 import type { ResearchAnswer, ResearchInteraction, ResearchSubQuestion } from "./deep-research-analysis.records.js";
 import { createDeepResearchRecordStore, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH, type ResearchExport, type ResearchExportKind, type ResearchJob } from "./deep-research-analysis.records.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
-import { type DeepResearchInput } from "./deep-research-analysis.schema.js";
+import { type DeepResearchInputAttachment, type DeepResearchInputPayload } from "./deep-research-analysis.schema.js";
 const truncateText = (value: string, maxLength = 220): string => {
   const normalized = value.replace(/\s+/gu, " ").trim();
   if (normalized.length <= maxLength) {
@@ -474,6 +474,7 @@ export const getDeepResearchExportArtifact = (input: { dataDir: string; jobId: s
       jsonContent: JSON.parse(readFileSync(exported.filePath, "utf8")) as unknown,
     };
   });
+export type { DeepResearchInputAttachment };
 export type { DeepResearchHistorySnapshot, DeepResearchJobSnapshot, DeepResearchReportViewModel, DeepResearchTimelineSnapshot } from "./deep-research-analysis.public-contracts.js";
 export const deepResearchAnalysisPublicFacade = {
   runDeepResearchAnalysis,
@@ -485,6 +486,6 @@ export const deepResearchAnalysisPublicFacade = {
   getDeepResearchExportArtifact,
   deleteDeepResearchAnalysisJob,
 } as const;
-export type DeepResearchAnalysisStartInput = DeepResearchInput & {
+export type DeepResearchAnalysisStartInput = DeepResearchInputPayload & {
   providerKind: DeepResearchAnalysisContext["providerKind"];
 };

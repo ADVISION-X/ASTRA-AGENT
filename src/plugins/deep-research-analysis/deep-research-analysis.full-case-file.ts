@@ -5,7 +5,7 @@ import { z } from "zod";
 import { stableJsonHash } from "../../lib/storage/hash.js";
 import { isDeepResearchSuccessfulParseStatus } from "./deep-research-analysis.parser-support.js";
 import type { DeepResearchRecordStore, ResearchAnswer, ResearchExport, ResearchInteraction, ResearchJob, ResearchSubQuestion } from "./deep-research-analysis.records.js";
-import { DeepResearchInteractionPhaseSchema, DeepResearchParseStatusSchema, DeepResearchPlanSchema } from "./deep-research-analysis.schema.js";
+import { DeepResearchInputAttachmentSchema, DeepResearchInteractionPhaseSchema, DeepResearchParseStatusSchema, DeepResearchPlanSchema } from "./deep-research-analysis.schema.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
 
 const DeepResearchFullCaseFileJobSchema = z
@@ -81,6 +81,7 @@ export const DeepResearchFullCaseFileSchema = z
     caseFileVersion: z.literal("v1"),
     job: DeepResearchFullCaseFileJobSchema,
     researchPlan: DeepResearchPlanSchema,
+    inputAttachments: z.array(DeepResearchInputAttachmentSchema),
     decomposition: DeepResearchCaseDecompositionSchema.nullable(),
     subQuestionAnalyses: z.array(DeepResearchFullCaseFileSubQuestionAnalysisSchema),
     failedButRawAvailableInteractions: z.array(DeepResearchFailedRawInteractionSchema),
@@ -227,6 +228,7 @@ const loadFullCaseFileState = (
 ): {
   job: ResearchJob;
   researchPlan: DeepResearchFullCaseFile["researchPlan"];
+  inputAttachments: DeepResearchFullCaseFile["inputAttachments"];
   interactions: ResearchInteraction[];
   subQuestions: ResearchSubQuestion[];
   answers: ResearchAnswer[];
@@ -242,6 +244,7 @@ const loadFullCaseFileState = (
   return {
     job,
     researchPlan,
+    inputAttachments: job.inputAttachments,
     interactions: store.listInteractions(jobId),
     subQuestions: store.listSubQuestions(jobId),
     answers: store.listAnswers({ jobId, answerKind: "analysis" }),
@@ -260,6 +263,7 @@ export const buildDeepResearchFullCaseFile = (input: { store: DeepResearchRecord
       createdAt: state.job.createdAt,
     },
     researchPlan: state.researchPlan,
+    inputAttachments: state.inputAttachments,
     decomposition: buildDecompositionCase({
       interactions: state.interactions,
       structuredIndex: input.structuredIndex,
@@ -304,6 +308,24 @@ const buildMetadataLines = (input: DeepResearchFullCaseFile): string[] => [
   `- Structured Coverage Ratio: ${input.coverage.structuredCoverageRatio}`,
   `- Raw Coverage Ratio: ${input.coverage.rawCoverageRatio}`,
 ];
+
+const buildInputAttachmentsSection = (input: DeepResearchFullCaseFile): string => {
+  if (input.inputAttachments.length === 0) {
+    return ["## Input Attachments", "_No input attachments were supplied._"].join("\n\n");
+  }
+  return [
+    "## Input Attachments",
+    ...input.inputAttachments.map((attachment) => [
+      `### ${attachment.summary}`,
+      `- Attachment ID: ${attachment.id}`,
+      `- File Path: ${attachment.filePath}`,
+      `- MIME Type: ${attachment.mimeType ?? "UNAVAILABLE"}`,
+      `- File Hash: ${attachment.fileHash ?? "UNAVAILABLE"}`,
+      `- File Size Bytes: ${attachment.fileSizeBytes ?? "UNAVAILABLE"}`,
+      `- Source Kind: ${attachment.sourceKind}`,
+    ].join("\n")),
+  ].join("\n\n");
+};
 
 const buildDecompositionSection = (input: DeepResearchFullCaseFile): string => {
   if (!input.decomposition) {
@@ -379,6 +401,7 @@ export const renderDeepResearchFullCaseFileMarkdown = (input: DeepResearchFullCa
     "The structured index is not the complete case file.",
     "The raw interactions below remain the sovereign record for final adjudication and HTML publishing.",
     buildMetadataLines(input).join("\n"),
+    buildInputAttachmentsSection(input),
     buildDecompositionSection(input),
     "## Sub-question Analyses",
     input.subQuestionAnalyses.length > 0 ? input.subQuestionAnalyses.map(buildSubQuestionSection).join("\n\n") : "_No sub-question analysis records were persisted._",

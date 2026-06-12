@@ -61,8 +61,8 @@ export async function probeExistingWorkbench({ baseUrl, toFailureReason, expecte
 
 export async function waitForWorkbenchHealth({
   baseUrl,
-  attempts = 20,
-  delayMs = 250,
+  attempts = 120,
+  delayMs = 500,
   toFailureReason,
   expectedSourceFingerprint,
   onStarted,

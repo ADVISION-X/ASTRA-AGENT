@@ -11,6 +11,7 @@ import {
     inspectHtmlArtifactCaptureChain,
     inspectHtmlReportPromptBundleInput,
     inspectHtmlUsesRawFinalAnswer,
+    inspectInputAttachmentEveryAiFeed,
     inspectWebChatPromptSubmitVerification,
 } from "./components/html-owner-inspectors.js";
 import { inspectAnalysisOutputCleanliness } from "./components/scan-analysis-output-cleanliness.js";
@@ -47,6 +48,7 @@ const requiredAuditComponentFiles = [
   "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
   "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
   "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
+  "scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
 ] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
@@ -240,9 +242,11 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
     submitFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"),
     submitPageActionsFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts"),
     evaluationFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts"),
+    selectorPreludeFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts"),
+    openFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"),
     findings,
     inspectedFiles,
-    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-044-V1"),
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-059-V1"),
   });
   const cleanOutputScan = inspectAnalysisOutputCleanliness({
     promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
@@ -294,6 +298,23 @@ const inspectPromptBundlePolicies = (state: DeepResearchInspectionState): void =
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-048-V1"),
+  });
+  inspectInputAttachmentEveryAiFeed({
+    schemaFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts"),
+    analysisSubQuestionsFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts"),
+    finalizationFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts"),
+    htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    fullCaseFileFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts"),
+    routesFile: getSourceFile(context, "src/app/workbench-deep-research-routes.ts"),
+    panelFile: getSourceFile(context, "src/app/workbench-deep-research-panel.ts"),
+    clientBootFile: getSourceFile(context, "src/app/workbench-deep-research-client-boot.ts"),
+    workbenchFile: getSourceFile(context, "src/lib/local-runtime/workbench.ts"),
+    workbenchInputAttachmentsFile: getSourceFile(context, "src/lib/local-runtime/workbench-deep-research-input-attachments.ts"),
+    acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-input-attachments.acceptance.ts"),
+    ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-058-V1"),
   });
 };
 

@@ -43,6 +43,8 @@ const downloadLocalArtifactPath = `${ownerRoot}/amazon-tax-invoice-download-loca
 const evidencePath = `${ownerRoot}/amazon-tax-invoice-download-evidence.ts`;
 const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
+const browserControllerPath = "src/lib/browser/browser-controller.ts";
+const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellClientPath = "src/app/workbench-home-client.ts";
@@ -67,6 +69,8 @@ const inspectedFiles = [
   evidencePath,
   routesPath,
   boundaryPath,
+  browserControllerPath,
+  chromeWindowControlPath,
   appShellLayoutPath,
   appShellAmazonInvoiceWorkspacePath,
   appShellClientPath,
@@ -362,6 +366,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     ledger: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1"),
     conditionalRefresh: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1"),
     batchLedgerPreflight: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"),
+    apiFocusReturn: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"),
   };
   const findings: InspectorFinding[] = [];
   inspectRequiredFiles(findings, lawIds.owner);
@@ -390,10 +395,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     verifyFile: source(context.project, uploadVerifyPath),
     existingUploadFile: source(context.project, existingUploadPath),
     existingEvidenceFile: source(context.project, existingEvidencePath),
+    browserControllerFile: source(context.project, browserControllerPath),
+    chromeWindowControlFile: source(context.project, chromeWindowControlPath),
     findings,
     lawId: lawIds.audit,
     conditionalRefreshLawId: lawIds.conditionalRefresh,
     tabLifecycleLawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1"),
+    apiFocusReturnLawId: lawIds.apiFocusReturn,
   });
   inspectAmazonInvoiceBatchGuard(context, findings, lawIds.batchLedgerPreflight);
 

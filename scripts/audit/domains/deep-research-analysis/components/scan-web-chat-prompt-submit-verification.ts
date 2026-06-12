@@ -9,6 +9,8 @@ type WebChatPromptSubmitVerificationInput = {
   submitFile: SourceFile | undefined;
   submitPageActionsFile: SourceFile | undefined;
   evaluationFile: SourceFile | undefined;
+  selectorPreludeFile: SourceFile | undefined;
+  openFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
@@ -25,6 +27,15 @@ const collectSourceTokens = (sourceFile: SourceFile | undefined): Set<string> =>
   for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)) {
     tokens.add(literal.getLiteralText());
   }
+  for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)) {
+    tokens.add(literal.getText());
+  }
+  for (const templateExpression of sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression)) {
+    tokens.add(templateExpression.getHead().getLiteralText());
+    for (const span of templateExpression.getTemplateSpans()) {
+      tokens.add(span.getLiteral().getLiteralText());
+    }
+  }
   for (const identifier of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
     tokens.add(identifier.getText());
   }
@@ -33,6 +44,9 @@ const collectSourceTokens = (sourceFile: SourceFile | undefined): Set<string> =>
 
 const getVariableInitializerText = (sourceFile: SourceFile | undefined, declarationName: string): string =>
   sourceFile?.getVariableDeclaration(declarationName)?.getInitializer()?.getText() ?? "";
+
+const hasTokenPart = (tokens: ReadonlySet<string>, marker: string): boolean =>
+  [...tokens].some((token) => token.includes(marker));
 
 const pushFinding = (input: {
   findings: InspectorFinding[];
@@ -58,12 +72,25 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
         "waitForPromptReady",
         "verifyPromptPasted",
         "PROMPT_PASTE_VERIFY_TIMEOUT_MS",
+        "expectedLength",
         "verify_prompt_pasted_before_submit",
         "verify_prompt_ready_before_submit",
+        "expectedSuffix",
         "click_send_after_prompt_paste",
         "wasPromptVerifiedBeforeSubmit",
       ],
       message: "web-chat submit runtime must verify prompt paste before submit, click send after return does not submit, and carry pre-submit verification state.",
+    },
+    {
+      sourceFile: input.openFile,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+      markers: [
+        "PROVIDER_COMPOSER_READY_TIMEOUT_MS",
+        "60_000",
+        "lastMessage",
+        "provider composer did not become ready; last=",
+      ],
+      message: "web-chat provider open runtime must allow real provider composer readiness and expose concise timeout diagnostics.",
     },
     {
       sourceFile: input.answerSupportFile,
@@ -86,12 +113,24 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
       message: "web-chat submit page actions must expose prompt paste verification and verified-submit gating.",
     },
     {
+      sourceFile: input.selectorPreludeFile,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+      markers: [
+        "readComposerVisibleText",
+        "innerText",
+      ],
+      message: "web-chat selector prelude must expose visible composer text reading for rich-text provider editors.",
+    },
+    {
       sourceFile: input.evaluationFile,
       filePath: "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
       markers: [
         "buildVerifyPromptPastedScript",
         "pastedTextCardReady",
         "hasPastedTextCard",
+        "promptSuffixVisible",
+        "expectedLength",
+        "expectedSuffix",
         "sendReady",
         "wasPromptVerifiedBeforeSubmit",
       ],
@@ -101,7 +140,7 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
 
   for (const check of checks) {
     const tokens = collectSourceTokens(check.sourceFile);
-    const missingMarkers = check.markers.filter((marker) => !tokens.has(marker));
+    const missingMarkers = check.markers.filter((marker) => !hasTokenPart(tokens, marker));
     if (missingMarkers.length === 0) continue;
     pushFinding({
       findings: input.findings,
@@ -178,14 +217,94 @@ const inspectPromptSubmitProtection = (input: WebChatPromptSubmitVerificationInp
   }
 };
 
+const inspectPromptPasteTruthDiagnostics = (input: WebChatPromptSubmitVerificationInput): void => {
+  const submitTokens = collectSourceTokens(input.submitFile);
+  const evaluationTokens = collectSourceTokens(input.evaluationFile);
+  const selectorPreludeTokens = collectSourceTokens(input.selectorPreludeFile);
+  const providerOpenTokens = collectSourceTokens(input.openFile);
+  const requiredDiagnostics = [
+    "expectedChars=",
+    "prefixVisible=",
+    "suffixVisible=",
+    "pastedCard=",
+    "sendReady=",
+  ] as const;
+  const missingDiagnostics = requiredDiagnostics.filter((marker) => !hasTokenPart(submitTokens, marker));
+  if (missingDiagnostics.length > 0) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+      message: `web-chat paste review diagnostics must expose concise prompt proof metrics. Missing: ${missingDiagnostics.join(", ")}.`,
+    });
+  }
+
+  const requiredEvaluationTokens = [
+    "promptSuffixVisible",
+    "promptLengthClose",
+    "expectedLength",
+    "expectedSuffix",
+    "provider prompt suffix and length detected in composer",
+  ] as const;
+  const missingEvaluationTokens = requiredEvaluationTokens.filter((marker) => !hasTokenPart(evaluationTokens, marker));
+  const requiredSelectorPreludeTokens = [
+    "readComposerVisibleText",
+    "return clip(node.innerText || node.textContent || \"\")",
+  ] as const;
+  const missingSelectorPreludeTokens = requiredSelectorPreludeTokens.filter((marker) => !hasTokenPart(selectorPreludeTokens, marker));
+  const requiredProviderOpenTokens = [
+    "PROVIDER_COMPOSER_READY_TIMEOUT_MS",
+    "60_000",
+    "provider composer did not become ready; last=",
+  ] as const;
+  const missingProviderOpenTokens = requiredProviderOpenTokens.filter((marker) => !hasTokenPart(providerOpenTokens, marker));
+  process.stdout.write(
+    `[AUDIT][deep-research-analysis][web-chat-paste-truth] diagnosticsMissing=${String(missingDiagnostics.length)} evaluationMissing=${String(missingEvaluationTokens.length)} visibleTextMissing=${String(missingSelectorPreludeTokens.length)} composerReadyMissing=${String(missingProviderOpenTokens.length)}\n`,
+  );
+  if (missingEvaluationTokens.length > 0) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+      message: `web-chat prompt paste verification must use suffix plus length proof. Missing: ${missingEvaluationTokens.join(", ")}.`,
+    });
+  }
+  if (missingSelectorPreludeTokens.length > 0) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+      message: `web-chat prompt paste verification must read visible composer text before DOM-structure text. Missing: ${missingSelectorPreludeTokens.join(", ")}.`,
+    });
+  }
+  if (missingProviderOpenTokens.length > 0) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+      message: `web-chat provider composer readiness must keep the real-provider wait budget and timeout diagnostics. Missing: ${missingProviderOpenTokens.join(", ")}.`,
+    });
+  }
+
+  if (hasTokenPart(evaluationTokens, "provider send button ready after paste")) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+      message: "web-chat prompt paste verification must not treat sendReady alone as prompt proof.",
+    });
+  }
+};
+
 export const inspectWebChatPromptSubmitVerification = (
   input: WebChatPromptSubmitVerificationInput,
 ): void => {
-  for (const sourceFile of [input.answerSupportFile, input.submitFile, input.submitPageActionsFile, input.evaluationFile]) {
+  for (const sourceFile of [input.answerSupportFile, input.submitFile, input.submitPageActionsFile, input.evaluationFile, input.selectorPreludeFile, input.openFile]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
   inspectRequiredTokens(input);
   inspectSubmissionOrdering(input);
   inspectUnsafeComposerSuccess(input);
   inspectPromptSubmitProtection(input);
+  inspectPromptPasteTruthDiagnostics(input);
 };

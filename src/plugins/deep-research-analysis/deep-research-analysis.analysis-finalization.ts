@@ -8,6 +8,10 @@ import {
     type AnalysisFailure,
     type FlowStageHandle,
 } from "./deep-research-analysis.analysis-runner.js";
+import {
+    buildDeepResearchGatewayInputRefs,
+    getDeepResearchInputAttachmentLimits,
+} from "./deep-research-analysis.input-attachments.js";
 import { buildDeepResearchFullCaseFile, renderDeepResearchFullCaseFileMarkdown } from "./deep-research-analysis.full-case-file.js";
 import { exportDeepResearchArtifacts } from "./deep-research-analysis.export-artifacts.js";
 import {
@@ -131,6 +135,7 @@ export const runFinalAdjudicationPhase = async (
   fullCaseFileMarkdown: string,
 ): Promise<FinalAdjudicationSuccess | AnalysisFailure> => {
   const prompt = buildFinalAdjudicationShellPrompt();
+  const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   const result = await runPromptExchange<DeepResearchFinalAdjudicationParse>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
@@ -149,13 +154,18 @@ export const runFinalAdjudicationPhase = async (
       fullCaseFileMarkdown,
       finalAdjudicationPromptBundle: fullCaseFile.researchPlan.finalAdjudicationPromptBundle,
     }),
-    inputRefs: [
-      `job:${context.jobId}:structured-index`,
-      `job:${context.jobId}:full-case-file`,
-      `job:${context.jobId}:full-case-file-markdown`,
-    ],
+    inputRefs: buildDeepResearchGatewayInputRefs({
+      baseRefs: [
+        `job:${context.jobId}:structured-index`,
+        `job:${context.jobId}:full-case-file`,
+        `job:${context.jobId}:full-case-file-markdown`,
+      ],
+      attachments: context.input.inputAttachments,
+    }),
     timeoutMs: 1_800_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
+    maxFileCount: attachmentLimits.maxFileCount,
+    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "FINAL_ADJUDICATION_SEND",
       capture: "FINAL_ADJUDICATION_CAPTURE",

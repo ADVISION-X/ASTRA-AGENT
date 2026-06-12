@@ -1,3 +1,4 @@
+import { deepResearchClientAttachmentFunctions } from "./workbench-deep-research-client-attachments.js";
 import { deepResearchClientBootFunctions } from "./workbench-deep-research-client-boot.js";
 import { deepResearchClientDeliverySectionFunctions } from "./workbench-deep-research-client-delivery-sections.js";
 import { deepResearchClientReportFunctions } from "./workbench-deep-research-client-report-sections.js";
@@ -7,6 +8,7 @@ const DEEP_RESEARCH_CLIENT_FUNCTIONS = [
   ...deepResearchClientSharedFunctions,
   ...deepResearchClientDeliverySectionFunctions,
   ...deepResearchClientReportFunctions,
+  ...deepResearchClientAttachmentFunctions,
   ...deepResearchClientBootFunctions,
 ] as const;
 

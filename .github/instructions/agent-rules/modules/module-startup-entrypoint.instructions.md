@@ -246,3 +246,39 @@ Forbidden:
 - Duplicate dev servers on the same workbench port.
 - Restarting a healthy workbench during code iteration.
 - Using hot mount to execute job flows, browser actions, AI judgment, evidence writes, or CI.
+
+## [APEX-STARTUP-007-V1] Cold Start Health Budget
+
+```apex-law
+{
+  "lawId": "APEX-STARTUP-007-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "startup-entrypoint",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+runtime",
+  "summary": "Started local workbench health readiness must use a production cold-start budget and must not fail before the app server has a reasonable chance to bind and answer /api/health.",
+  "appliesTo": [
+    "scripts/startup/lib/service-readiness.mjs",
+    "scripts/startup/launch-grasseye.mjs"
+  ],
+  "required": [
+    "waitForWorkbenchHealth default readiness budget is at least 60000ms.",
+    "waitForWorkbenchHealth default poll interval is between 250ms and 1000ms.",
+    "Startup still probes only /api/health and still fails closed with a concrete failureReason after the budget is exhausted."
+  ],
+  "forbidden": [
+    "Started-service health readiness budget below 60000ms.",
+    "Treating child process spawn as app readiness.",
+    "Opening the workbench before /api/health passes.",
+    "Replacing /api/health readiness with homepage readiness."
+  ]
+}
+```
+
+Required:
+
+- Started-service health readiness must tolerate normal local cold start and TypeScript dev server load.
+- The default readiness budget must be at least `60000ms`.
+- The default readiness poll interval must stay bounded between `250ms` and `1000ms`.
+- Spawn success is only process readiness; app readiness remains `/api/health`.

@@ -11,6 +11,8 @@ import {
   saveWorkspaceUrl,
 } from "./web-chat-workspace.js";
 
+const PROVIDER_COMPOSER_READY_TIMEOUT_MS = 60_000;
+
 const PROVIDER_COMPOSER_READY_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const composer = resolveComposerInput();
@@ -60,7 +62,8 @@ const waitForProviderComposer = async (
   browser: BrowserController,
   abortSignal?: AbortSignal,
 ): Promise<void> => {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + PROVIDER_COMPOSER_READY_TIMEOUT_MS;
+  let lastMessage = "provider composer readiness was not checked";
   while (Date.now() < deadline) {
     if (abortSignal?.aborted) {
       throw new Error("review_required: provider composer wait aborted.");
@@ -70,13 +73,14 @@ const waitForProviderComposer = async (
       script: PROVIDER_COMPOSER_READY_SCRIPT,
       ...(abortSignal ? { abortSignal } : {}),
     });
+    lastMessage = `${state.status}: ${state.message}; pageUrl=${state.pageUrl ?? "unknown"}`;
     if (state.status === "success") return;
     if (state.status === "review_required" || state.status === "failed") {
       throw new Error(`${state.status}: ${state.message}`);
     }
     await browser.wait(300);
   }
-  throw new Error("review_required: provider composer did not become ready.");
+  throw new Error(`review_required: provider composer did not become ready; last=${lastMessage}`);
 };
 
 const startFreshChatGptConversation = async (input: {

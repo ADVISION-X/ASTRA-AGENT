@@ -314,6 +314,58 @@ const collectHotMountHealthMetrics = (readinessSource: SourceFile) => {
   };
 };
 
+const readObjectBindingDefaultNumber = (
+  sourceFile: SourceFile,
+  functionName: string,
+  bindingName: string,
+): number | null => {
+  const parameterNameNode = sourceFile.getFunction(functionName)?.getParameters()[0]?.getNameNode();
+  if (!parameterNameNode || !Node.isObjectBindingPattern(parameterNameNode)) {
+    return null;
+  }
+  for (const element of parameterNameNode.getElements()) {
+    if (element.getName() !== bindingName) {
+      continue;
+    }
+    const initializer = element.getInitializer();
+    if (!initializer || !Node.isNumericLiteral(initializer)) {
+      return null;
+    }
+    return Number(initializer.getLiteralValue());
+  }
+  return null;
+};
+
+const inspectColdStartHealthBudget = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const readinessSource = getProjectSource(context, readinessPath);
+  if (!readinessSource) {
+    pushFinding(findings, {
+      lawId,
+      checkId: "startup/cold-start-health-budget-source",
+      filePath: readinessPath,
+      message: "Startup readiness source must be visible to the audit ts-morph project.",
+    });
+    return;
+  }
+
+  const attempts = readObjectBindingDefaultNumber(readinessSource, "waitForWorkbenchHealth", "attempts");
+  const delayMs = readObjectBindingDefaultNumber(readinessSource, "waitForWorkbenchHealth", "delayMs");
+  const budgetMs = attempts === null || delayMs === null ? null : attempts * delayMs;
+  process.stdout.write(
+    `[AUDIT][startup-entrypoint][cold-start-budget] attempts=${String(attempts ?? "missing")} delayMs=${String(delayMs ?? "missing")} budgetMs=${String(budgetMs ?? "missing")}\n`,
+  );
+
+  if (budgetMs === null || budgetMs < 60_000 || delayMs === null || delayMs < 250 || delayMs > 1_000) {
+    pushFinding(findings, {
+      lawId,
+      checkId: "startup/cold-start-health-budget",
+      filePath: readinessPath,
+      message: "Started-service /api/health readiness must keep a production cold-start budget of at least 60000ms with a 250-1000ms poll interval.",
+      evidence: JSON.stringify({ attempts, delayMs, budgetMs }),
+    });
+  }
+};
+
 const collectHotMountStabilityMetrics = (launchSource: SourceFile) => ({
   verifiesTransientHotMount: launchSource.getFunction("verifyHotMountedWorkbenchStability") !== undefined,
   usesSharedPortClearAfterTransientHotMount: launchSource.getFunction("clearWorkbenchPort") !== undefined,
@@ -361,6 +413,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const reportLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-004-V1");
   const portClearLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-005-V1");
   const hotMountLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-006-V1");
+  const coldStartBudgetLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-007-V1");
   const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, processControlPath, portListenerPath, sourceFingerprintPath, inspectorPath]);
   const startupFiles = listStartupFiles().map((filePath) => toRepoPath(resolveFromRepo(filePath)));
   startupFiles.forEach((filePath) => inspectedFiles.add(filePath));
@@ -373,6 +426,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectStructuredReport(findings, reportLawId);
   inspectRealPortClear(context, findings, portClearLawId);
   inspectHotMountAst(context, findings, hotMountLawId);
+  inspectColdStartHealthBudget(context, findings, coldStartBudgetLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

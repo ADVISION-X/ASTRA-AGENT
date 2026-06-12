@@ -5,6 +5,10 @@ import {
     type AnalysisFailure,
     type AnalysisOutcome,
 } from "./deep-research-analysis.analysis-runner.js";
+import {
+    buildDeepResearchGatewayInputRefs,
+    getDeepResearchInputAttachmentLimits,
+} from "./deep-research-analysis.input-attachments.js";
 import type { DeepResearchSubQuestionAnalysisAnswer } from "./deep-research-analysis.parser.js";
 import {
     parseDeepResearchDecompositionResponse,
@@ -106,6 +110,7 @@ const buildPromptBundleShellPrompt = (input: {
 export const runDecompositionPhase = async (
   context: AnalysisExecutionContext,
 ): Promise<DecompositionSuccess | AnalysisFailure> => {
+  const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   const decomposition = await runPromptExchange<DeepResearchDecompositionResponse>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
@@ -118,7 +123,12 @@ export const runDecompositionPhase = async (
     prompt: buildDecompositionPrompt(),
     promptKey: "decomposition",
     renderedPromptText: renderDeepResearchDecompositionPrompt(context.input),
-    inputRefs: [`job:${context.jobId}:user-question`],
+    inputRefs: buildDeepResearchGatewayInputRefs({
+      baseRefs: [`job:${context.jobId}:user-question`],
+      attachments: context.input.inputAttachments,
+    }),
+    maxFileCount: attachmentLimits.maxFileCount,
+    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "DECOMPOSE_SEND",
       capture: "DECOMPOSE_CAPTURE",
@@ -166,6 +176,7 @@ const runAnalysisPhase = async (
   subQuestion: ResearchSubQuestion,
 ): Promise<Awaited<ReturnType<typeof runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>>>> => {
   const promptBundle = subQuestion.question.promptBundle ?? requireSubQuestionPromptBundle(subQuestion.question);
+  const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   return runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
@@ -187,7 +198,12 @@ const runAnalysisPhase = async (
       subQuestion: subQuestion.question,
       promptBundle,
     }),
-    inputRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
+    inputRefs: buildDeepResearchGatewayInputRefs({
+      baseRefs: [`job:${context.jobId}:user-question`, `sub-question:${subQuestion.id}`],
+      attachments: context.input.inputAttachments,
+    }),
+    maxFileCount: attachmentLimits.maxFileCount,
+    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "ANALYSIS_SEND",
       capture: "ANALYSIS_CAPTURE",

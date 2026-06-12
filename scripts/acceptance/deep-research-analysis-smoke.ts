@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -215,8 +215,10 @@ class SequentialFixtureAdapter implements AiProviderAdapter {
   readonly providerKind = "gemini-api" as const;
 
   private cursor = 0;
+  readonly observedInputs: AiFeedInput[] = [];
 
   async feed(input: AiFeedInput, _context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+    this.observedInputs.push(input);
     let rawText = FIXTURE_RESPONSES[this.cursor];
     if (!rawText && input.promptPackageId.includes("business-html-report")) {
       rawText = buildInlineHtmlFixture({
@@ -262,6 +264,21 @@ const verifySmokeCoverageDelegation = (): void => {
   assert(typeof verifyPersistedResearchState === "function", "Smoke must delegate persisted-state assertions to the support verifier.");
 };
 
+const verifyAttachmentRefsReachResearchStages = (
+  observedInputs: readonly AiFeedInput[],
+  filePath: string,
+): void => {
+  assert(observedInputs.length === 5, `Expected 5 AI feed inputs, received ${observedInputs.length}.`);
+  observedInputs.forEach((input, index) => {
+    assert(input.maxFileCount === 1, `AI feed ${index + 1} must permit one file.`);
+    assert(input.maxFileBytes === 200_000_000, `AI feed ${index + 1} must preserve the approved file byte budget.`);
+    assert(
+      input.inputRefs.some((ref) => ref.filePath === filePath && ref.kind === "user-attachment"),
+      `AI feed ${index + 1} must receive the user attachment ref.`,
+    );
+  });
+};
+
 async function main(): Promise<void> {
   verifySmokeUsesRealSurfaces();
   verifySmokeCoverageDelegation();
@@ -274,10 +291,13 @@ async function main(): Promise<void> {
       redact: false,
     },
   });
+  const attachmentPath = path.join(dataDir, "market-notes.txt");
+  writeFileSync(attachmentPath, "Warehouse automation notes for attachment transport proof.\n", "utf8");
+  const fixtureAdapter = new SequentialFixtureAdapter();
   const aiInputGateway = createAiInputGatewayAbilityGroup({
     dataDir,
     adapters: {
-      "gemini-api": new SequentialFixtureAdapter(),
+      "gemini-api": fixtureAdapter,
     },
   });
 
@@ -288,6 +308,15 @@ async function main(): Promise<void> {
       language: "en",
       maxSubQuestions: 4,
       outputFormat: "markdown",
+      inputAttachments: [{
+        id: "fixture-attachment-1",
+        filePath: attachmentPath,
+        mimeType: "text/plain",
+        summary: "market-notes.txt",
+        fileHash: null,
+        fileSizeBytes: null,
+        sourceKind: "manual-path",
+      }],
     },
     {
       aiInputGateway,
@@ -309,6 +338,7 @@ async function main(): Promise<void> {
     result.finalAdjudication?.parseStatus === "parsed_json_index",
     "Smoke result must preserve the parsed JSON index as a secondary record when JSON is returned.",
   );
+  verifyAttachmentRefsReachResearchStages(fixtureAdapter.observedInputs, attachmentPath);
   verifyRuntimeLogCoverage(runtimeLogBundlePath);
   verifyPersistedResearchState(dataDir, result);
   verifySubQuestionIdsAreJobScoped();

@@ -6,6 +6,10 @@ import {
     type AnalysisFailure,
     finishPromptFailure,
 } from "./deep-research-analysis.analysis-runner.js";
+import {
+    buildDeepResearchGatewayInputRefs,
+    getDeepResearchInputAttachmentLimits,
+} from "./deep-research-analysis.input-attachments.js";
 import type { DeepResearchFullCaseFile } from "./deep-research-analysis.full-case-file.js";
 import {
     buildFailure,
@@ -247,6 +251,7 @@ export const runBusinessHtmlReportPhase = async (
   fullCaseFileMarkdown: string,
 ): Promise<HtmlReportSuccess | AnalysisFailure> => {
   const outputPath = buildBusinessHtmlReportOutputPath(context.dataDir, context.jobId);
+  const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   const result = await runPromptExchange<DeepResearchBusinessHtmlReportRecord>({
     store: context.store,
     runtimeLogger: context.runtimeLogger,
@@ -264,13 +269,18 @@ export const runBusinessHtmlReportPhase = async (
       fullCaseFile,
       fullCaseFileMarkdown,
     }),
-    inputRefs: [
-      `job:${context.jobId}:structured-index`,
-      `job:${context.jobId}:final-adjudication-raw`,
-      `job:${context.jobId}:full-case-file`,
-    ],
+    inputRefs: buildDeepResearchGatewayInputRefs({
+      baseRefs: [
+        `job:${context.jobId}:structured-index`,
+        `job:${context.jobId}:final-adjudication-raw`,
+        `job:${context.jobId}:full-case-file`,
+      ],
+      attachments: context.input.inputAttachments,
+    }),
     timeoutMs: 1_800_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
+    maxFileCount: attachmentLimits.maxFileCount,
+    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "HTML_REPORT_SEND",
       capture: "HTML_REPORT_CAPTURE",

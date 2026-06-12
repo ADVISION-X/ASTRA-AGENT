@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:21.873Z",
+  "generatedAt": "2026-06-11T10:56:05.291Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -134,12 +134,15 @@
       "allowedEntrypoints": [
         "src/app/workbench-deep-research-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
+        "acceptance:deep-research-input-attachments",
         "acceptance:deep-research-analysis-smoke"
       ],
       "allowedNpmScripts": [
+        "acceptance:deep-research-input-attachments",
         "acceptance:deep-research-analysis-smoke"
       ],
       "exposureTokens": [
@@ -238,6 +241,7 @@
     ],
     "deep-research-analysis": [
       "src/app/workbench-deep-research-routes.ts",
+      "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
       "src/lib/local-runtime/workbench-handle.ts",
       "src/lib/local-runtime/workbench.ts"
     ],
@@ -279,6 +283,7 @@
     "acceptance:deep-research-html-promptbundle-input",
     "acceptance:deep-research-html-report-only",
     "acceptance:deep-research-html-uses-raw-final-answer",
+    "acceptance:deep-research-input-attachments",
     "acceptance:deep-research-no-compatibility-formats",
     "acceptance:deep-research-no-system-confidence",
     "acceptance:deep-research-per-subquestion-promptbundle",
@@ -355,6 +360,7 @@
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
+    "scripts/acceptance/deep-research-input-attachments.acceptance.ts",
     "scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
     "scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
     "scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",
@@ -563,6 +569,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-uses-raw-final-answer.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-no-system-generated-confidence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
@@ -697,6 +704,7 @@
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
+    "src/app/workbench-deep-research-client-attachments.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-case-reader.ts",
     "src/app/workbench-deep-research-client-contracts.ts",
@@ -704,6 +712,7 @@
     "src/app/workbench-deep-research-client-report-sections.ts",
     "src/app/workbench-deep-research-client-shared.ts",
     "src/app/workbench-deep-research-client.ts",
+    "src/app/workbench-deep-research-field-help.ts",
     "src/app/workbench-deep-research-history-view.ts",
     "src/app/workbench-deep-research-panel.ts",
     "src/app/workbench-deep-research-report-styles.ts",
@@ -860,6 +869,7 @@
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
+    "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -984,7 +994,9 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",

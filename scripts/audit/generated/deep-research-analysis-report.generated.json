@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:51.331Z",
+  "generatedAt": "2026-06-12T18:14:27.918Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,10 +23,29 @@
     "GRASSEYE-DEEP-RESEARCH-054-V1",
     "GRASSEYE-DEEP-RESEARCH-055-V1",
     "GRASSEYE-DEEP-RESEARCH-056-V1",
-    "GRASSEYE-DEEP-RESEARCH-057-V1"
+    "GRASSEYE-DEEP-RESEARCH-057-V1",
+    "GRASSEYE-DEEP-RESEARCH-058-V1",
+    "GRASSEYE-DEEP-RESEARCH-059-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "deep-research/web-chat-prompt-submit-verification",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
+      "clauseId": "primary",
+      "message": "web-chat provider open runtime must allow real provider composer readiness and expose concise timeout diagnostics. Missing: 60_000.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
+    },
+    {
+      "checkId": "deep-research/web-chat-prompt-submit-verification",
+      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
+      "clauseId": "primary",
+      "message": "web-chat provider composer readiness must keep the real-provider wait budget and timeout diagnostics. Missing: 60_000.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
@@ -43,6 +62,7 @@
     "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
     "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
     "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
+    "scripts/acceptance/deep-research-input-attachments.acceptance.ts",
     "scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
     "scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
     "scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",
@@ -67,6 +87,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-html-uses-raw-final-answer.ts",
+    "scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-no-system-generated-confidence.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
@@ -79,6 +100,7 @@
     "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
     "src/app/workbench-deep-research-case-reader-styles.ts",
+    "src/app/workbench-deep-research-client-attachments.ts",
     "src/app/workbench-deep-research-client-boot.ts",
     "src/app/workbench-deep-research-client-case-reader.ts",
     "src/app/workbench-deep-research-client-contracts.ts",
@@ -86,6 +108,7 @@
     "src/app/workbench-deep-research-client-report-sections.ts",
     "src/app/workbench-deep-research-client-shared.ts",
     "src/app/workbench-deep-research-client.ts",
+    "src/app/workbench-deep-research-field-help.ts",
     "src/app/workbench-deep-research-history-view.ts",
     "src/app/workbench-deep-research-panel.ts",
     "src/app/workbench-deep-research-report-styles.ts",
@@ -95,6 +118,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
@@ -104,6 +129,7 @@
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
+    "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -117,7 +143,9 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",

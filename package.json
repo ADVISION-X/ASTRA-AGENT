@@ -29,6 +29,7 @@
     "acceptance:ci-summary-truth": "node --import tsx scripts/acceptance/ci-summary-truth.acceptance.ts",
     "acceptance:runtime-truth-completed-evidence": "node --import tsx scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
+    "acceptance:deep-research-input-attachments": "node --import tsx scripts/acceptance/deep-research-input-attachments.acceptance.ts",
     "acceptance:deep-research-promptbundle-sovereignty": "node --import tsx scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
     "acceptance:deep-research-per-subquestion-promptbundle": "node --import tsx scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
     "acceptance:deep-research-single-chain": "node --import tsx scripts/acceptance/deep-research-single-chain.acceptance.ts",
@@ -76,13 +77,13 @@
     "audit:amazon-product-fee-sync": "node --import tsx scripts/audit/domains/amazon-product-fee-sync/inspector.ts"
   },
   "dependencies": {
-    "@img/sharp-darwin-arm64": "^0.34.5",
+    "@img/sharp-darwin-arm64": "^0.35.0",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.10.0",
     "ffmpeg-static": "^5.3.0",
     "ffprobe-static": "^3.1.0",
     "playwright": "^1.59.1",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "yt-dlp-wrap": "^2.3.12",
     "zod": "^3.24.4"
   },

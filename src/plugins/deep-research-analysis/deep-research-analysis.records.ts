@@ -68,6 +68,7 @@ export const ResearchJobSchema = z.object({
   language: DeepResearchInputSchema.shape.language,
   maxSubQuestions: DeepResearchInputSchema.shape.maxSubQuestions,
   outputFormat: DeepResearchInputSchema.shape.outputFormat,
+  inputAttachments: DeepResearchInputSchema.shape.inputAttachments,
   status: DeepResearchJobStatusSchema,
   phase: DeepResearchPhaseSchema,
   failureReason: z.string().trim().min(1).nullable().default(null),
@@ -174,9 +175,9 @@ const createCreateJobOperation = (
   const createdAt = getCurrentTimestamp();
   db.prepare(
     `INSERT INTO research_jobs (
-      id, user_question, analysis_goal, language, max_sub_questions, output_format,
+      id, user_question, analysis_goal, language, max_sub_questions, output_format, input_attachments_json,
       status, phase, failure_reason, review_reason, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     parsedInput.userQuestion,
@@ -184,6 +185,7 @@ const createCreateJobOperation = (
     parsedInput.language,
     parsedInput.maxSubQuestions,
     parsedInput.outputFormat,
+    JSON.stringify(parsedInput.inputAttachments),
     "queued",
     "INTAKE",
     null,

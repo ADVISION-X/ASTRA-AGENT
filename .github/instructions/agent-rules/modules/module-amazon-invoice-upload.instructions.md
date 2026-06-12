@@ -380,3 +380,49 @@ Download completion is not upload completion. Website status return is not task 
   ]
 }
 ```
+
+## [GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1] API Upload Website Tab Return
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-invoice-upload",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "runtime-log+acceptance+audit",
+  "summary": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+  "appliesTo": [
+    "src/app/workbench-amazon-routes.ts",
+    "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-window-control.ts",
+    "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+    "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/audit/domains/amazon-invoice-upload/**",
+    "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+    "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+  ],
+  "required": [
+    "The external upload route may preserve sourceSystem and requestId only as API source metadata from X-GrassEye-Source-System / X-GrassEye-Request-Id or the legacy mission payload.",
+    "sourceSystem and requestId must not become DOM selectors, browser commands, Seller Central workflow inputs, or upload success evidence.",
+    "For API-sourced upload missions with adminOrderUrl, the task service must first persist the original Amazon upload terminal result, then attempt website tab return.",
+    "Website return must use a focus-only existing-tab browser policy that first activates an exact matching adminOrderUrl tab, then may activate an existing same-origin same-path admin tab when the only mismatch is query/hash state.",
+    "Focus-only tab switching must be an explicit API-return mode and must not become the default behavior of normal Amazon Manage admin page opening.",
+    "The focus-only policy must not create a new Chrome window, create a new tab, set URL of an existing tab, refresh the website, or navigate by host fallback when the exact/same-path website tab is missing.",
+    "If the existing website tab is missing or cannot be focused, the focus failure must be recorded in runtime trace without overwriting the Amazon upload terminal status.",
+    "adminOrderUrl must still pass the allowed Amazon admin host validation before any tab focus attempt.",
+    "A post-change production-readiness claim for website tab return must cite fresh runtime evidence from the changed path; historical Seller Central upload success evidence is not proof that the website return IF was tested."
+  ],
+  "forbidden": [
+    "Opening adminOrderUrl as a new tab after upload completion.",
+    "Refreshing or navigating the website-side Amazon Manage page after upload completion.",
+    "Applying focus-only behavior to ordinary admin page open commands.",
+    "Using reuse-active-tab, reuse-host-tab, open-new-tab, or fallback URL navigation for website return.",
+    "Running website return before the Amazon upload reaches and persists a terminal result.",
+    "Inferring upload_success, already_uploaded, or review_required from website focus state.",
+    "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
+    "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
+  ]
+}
+```

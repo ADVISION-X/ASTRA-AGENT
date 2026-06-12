@@ -45,6 +45,7 @@ dependency check
 - 现有端口不健康时，真实清理本地 app server 端口。
 - 未热挂载时启动本地 HTTP workbench。
 - 用 `/api/health` 证明 app shell readiness。
+- 新启动服务的 `/api/health` readiness 默认等待预算不得低于 60s；poll 间隔必须保持在 250ms 到 1000ms 之间。
 - 在 readiness 通过后打开本地 workbench URL。
 - 输出结构化终端日志和明确 failureReason。
 
@@ -111,6 +112,7 @@ startup-entrypoint owner inspector 检查：
 - `package.json` 是否暴露 `grasseye:start`。
 - `grasseye:start` 是否指向 `scripts/startup/launch-grasseye.mjs`。
 - 启动脚本是否探测 `/api/health`。
+- `waitForWorkbenchHealth` 默认冷启动预算是否至少 60000ms，poll 间隔是否在 250ms 到 1000ms 之间。
 - 启动脚本是否在清理端口前支持 hot-mount health probe。
 - 启动脚本是否通过真实 listener discovery / terminate / post-check 完成端口清理。
 - 启动脚本是否避免健康 workbench 被重复重启。

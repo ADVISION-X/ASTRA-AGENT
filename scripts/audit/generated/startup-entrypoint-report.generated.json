@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T20:49:52.000Z",
+  "generatedAt": "2026-06-12T18:14:18.126Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -8,7 +8,8 @@
     "APEX-STARTUP-003-V1",
     "APEX-STARTUP-004-V1",
     "APEX-STARTUP-005-V1",
-    "APEX-STARTUP-006-V1"
+    "APEX-STARTUP-006-V1",
+    "APEX-STARTUP-007-V1"
   ],
   "status": "PASS",
   "findings": [],

@@ -6,6 +6,7 @@ import type {
   DeepResearchAnalysisStartInput,
   DeepResearchExportArtifactPayload,
   DeepResearchHistorySnapshot,
+  DeepResearchInputAttachment,
   DeepResearchJobSnapshot,
   DeepResearchReportViewModel,
   DeepResearchTimelineSnapshot,
@@ -75,6 +76,12 @@ type AmazonProductSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProdu
 type AmazonProductFeeSyncStartInput = Parameters<StartAmazonProductFeeSyncTask>[0];
 type AmazonProductFeeSyncTaskRecord = Awaited<ReturnType<GetAmazonProductFeeSyncTaskStatus>>;
 type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductFeeSyncTask>>;
+
+export type DeepResearchInputAttachmentStagingFile = {
+  fileName: string;
+  contentType: string | null;
+  bytes: Buffer;
+};
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -161,6 +168,9 @@ export type GrassEyeWorkbenchHandle = {
   startDeepResearchAnalysis: (
     input: DeepResearchAnalysisStartInput,
   ) => Promise<DeepResearchJobSnapshot>;
+  stageDeepResearchAnalysisInputAttachments: (input: {
+    files: readonly DeepResearchInputAttachmentStagingFile[];
+  }) => Promise<{ attachments: DeepResearchInputAttachment[] }>;
   getDeepResearchAnalysisJob: (
     jobId: string,
   ) => Promise<DeepResearchJobSnapshot | null>;

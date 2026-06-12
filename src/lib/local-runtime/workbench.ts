@@ -22,6 +22,7 @@ import {
 } from "./workbench-assembly.js";
 import { buildAmazonInvoiceHandle } from "./workbench-amazon-invoice-handle.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
+import { buildDeepResearchAttachmentStagingHandle } from "./workbench-deep-research-input-attachments.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
   exportFacebookProductVideoMiningSelectionRecords,
@@ -319,9 +320,10 @@ const buildDeepResearchStartHandle = (context: DeepResearchHandleContext) => ({
       {
         userQuestion: input.userQuestion,
         analysisGoal: input.analysisGoal ?? null,
-        language: input.language,
-        maxSubQuestions: input.maxSubQuestions,
-        outputFormat: input.outputFormat,
+        language: input.language ?? "zh-CN",
+        maxSubQuestions: input.maxSubQuestions ?? 4,
+        outputFormat: input.outputFormat ?? "markdown",
+        inputAttachments: input.inputAttachments ?? [],
       },
       {
         aiInputGateway: context.assembly.aiInputGateway,
@@ -413,6 +415,7 @@ const buildDeepResearchAnalysisHandle = (
 
   return {
     ...buildDeepResearchStartHandle(context),
+    ...buildDeepResearchAttachmentStagingHandle(dataDir),
     ...buildDeepResearchQueryHandle(context),
   };
 };

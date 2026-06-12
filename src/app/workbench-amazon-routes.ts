@@ -8,8 +8,10 @@ import { readMultipartFormData } from "./workbench-multipart.js";
 type AmazonRouteHandler = () => Promise<boolean>;
 type AmazonInvoiceUploadRouteMission = Parameters<GrassEyeWorkbenchHandle["startAmazonInvoiceUploadTask"]>[0]["mission"];
 
-function sanitizeAmazonInvoiceUploadMission(missionText: string): AmazonInvoiceUploadRouteMission {
+function sanitizeAmazonInvoiceUploadMission(missionText: string, request: IncomingMessage): AmazonInvoiceUploadRouteMission {
   const raw = JSON.parse(missionText) as Record<string, unknown>;
+  const sourceSystem = readOptionalHeader(request, "x-grasseye-source-system") ?? readOptionalRawString(raw.sourceSystem);
+  const requestId = readOptionalHeader(request, "x-grasseye-request-id") ?? readOptionalRawString(raw.requestId);
   const mission: AmazonInvoiceUploadRouteMission = {
     missionType: "amazon_invoice_upload",
     marketplace: raw.marketplace as AmazonInvoiceUploadRouteMission["marketplace"],
@@ -18,12 +20,22 @@ function sanitizeAmazonInvoiceUploadMission(missionText: string): AmazonInvoiceU
     invoicePdfPath: typeof raw.invoicePdfPath === "string" && raw.invoicePdfPath ? raw.invoicePdfPath : "approved-by-workbench",
     sellerCentralEntryUrl: String(raw.sellerCentralEntryUrl ?? ""),
     ...(typeof raw.adminOrderUrl === "string" && raw.adminOrderUrl ? { adminOrderUrl: raw.adminOrderUrl } : {}),
+    ...(sourceSystem ? { sourceSystem } : {}),
+    ...(requestId ? { requestId } : {}),
   };
   delete raw.requireHumanFinalSubmit;
   delete raw.stopOnManualRequired;
-  delete raw.sourceSystem;
-  delete raw.requestId;
   return mission;
+}
+
+function readOptionalHeader(request: IncomingMessage, name: string): string | undefined {
+  const value = request.headers[name];
+  const normalized = Array.isArray(value) ? value[0] : value;
+  return readOptionalRawString(normalized);
+}
+
+function readOptionalRawString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 const handleAmazonMissionRequest = async (
@@ -61,7 +73,7 @@ async function handleAmazonPluginStartRequest(
     return true;
   }
   const result = await workbench.startAmazonInvoiceUploadTask({
-    mission: sanitizeAmazonInvoiceUploadMission(missionText),
+    mission: sanitizeAmazonInvoiceUploadMission(missionText, request),
     invoicePdf,
   });
   writeJson(response, 200, result);

@@ -25,26 +25,20 @@ import {
 } from "./deep-research-analysis.logging.js";
 import type { DeepResearchResult } from "./deep-research-analysis.parser.js";
 import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-bundle-shell.js";
-import { buildDeepResearchTextHash } from "./deep-research-analysis.prompts.js";
+import { mapGatewayResult, type AiGatewayExecutionResult } from "./deep-research-analysis.gateway-result.js";
 import type {
     DeepResearchRecordStore,
     ResearchInteraction,
 } from "./deep-research-analysis.records.js";
 import { createDeepResearchRecordStore } from "./deep-research-analysis.records.js";
-import type { DeepResearchInput, DeepResearchPhase } from "./deep-research-analysis.schema.js";
+import type {
+    DeepResearchInput,
+    DeepResearchInputPayload,
+    DeepResearchPhase,
+} from "./deep-research-analysis.schema.js";
 import {
     DeepResearchInputSchema
 } from "./deep-research-analysis.schema.js";
-
-type AiGatewayExecutionResult = {
-  status: "success" | "failed" | "review_required";
-  normalizedText: string | null;
-  rawOutputHash: string | null;
-  rawOutputRef: string | null;
-  providerProof: unknown;
-  failureReason?: string | null;
-  reviewRequiredReason?: string | null;
-};
 
 export type ProviderKind = "gemini-api" | "gemini-web-chat" | "gpt-web-chat";
 export type StageLogger = ReturnType<typeof createStageLogger>;
@@ -53,13 +47,21 @@ export type FlowStageHandle = ReturnType<StageLogger["start"]>;
 type FlowStageStartInput = Parameters<StageLogger["start"]>[0];
 type FlowStageStartFields = Omit<FlowStageStartInput, "stageName">;
 
+export type DeepResearchGatewayInputRef = string | {
+  id: string;
+  kind: string;
+  summary: string;
+  filePath?: string;
+  mimeType?: string;
+};
+
 export type DeepResearchGatewayPromptPackage = {
   jobId: string;
   promptPackageId: string;
   promptContractId: string;
   promptText: string;
   promptHash: string;
-  inputRefs: string[];
+  inputRefs: DeepResearchGatewayInputRef[];
   providerKind: ProviderKind;
   timeoutMs: number;
   maxInputChars: number;
@@ -114,18 +116,15 @@ export type DeepResearchAnalysisContext = {
   sendPromptPackage?: DeepResearchGatewaySender;
 };
 
-const mapGatewayResult = (
-  result: AiGatewayExecutionResult,
-): DeepResearchGatewayResult => {
-  const normalizedText = result.normalizedText ?? "";
-  return {
-    status: result.status === "success" ? "completed" : result.status,
-    rawOutputRef: result.rawOutputRef,
-    rawOutputHash: result.rawOutputHash ?? buildDeepResearchTextHash(normalizedText),
-    normalizedText,
-    providerProofJson: JSON.stringify(result.providerProof),
-    errorReason: result.failureReason ?? result.reviewRequiredReason ?? null,
-  };
+const toAiGatewayInputRef = (ref: DeepResearchGatewayInputRef) => {
+  if (typeof ref === "string") {
+    return {
+      id: ref,
+      kind: "prompt-input",
+      summary: ref,
+    };
+  }
+  return ref;
 };
 
 export const buildGatewaySender = (
@@ -164,11 +163,7 @@ export const buildGatewaySender = (
       promptContractId: promptPackage.promptContractId,
       expectedOutputSchemaRef: null,
       textPrompt: promptPackage.promptText,
-      inputRefs: promptPackage.inputRefs.map((ref) => ({
-        id: ref,
-        kind: "prompt-input",
-        summary: ref,
-      })),
+      inputRefs: promptPackage.inputRefs.map(toAiGatewayInputRef),
       modelName: context.modelName ?? null,
       timeoutMs: context.timeoutMs ?? promptPackage.timeoutMs,
       maxInputChars: promptPackage.maxInputChars,
@@ -190,9 +185,11 @@ export const buildPromptPackage = (input: {
   renderedPromptText: string;
   promptHash: string;
   providerKind: ProviderKind;
-  inputRefs: string[];
+  inputRefs: DeepResearchGatewayInputRef[];
   timeoutMs?: number;
   maxInputChars?: number;
+  maxFileCount?: number;
+  maxFileBytes?: number;
 }): DeepResearchGatewayPromptPackage => ({
   jobId: input.jobId,
   promptPackageId: `${input.jobId}:${input.promptKey}:${input.prompt.promptVersion}`,
@@ -203,8 +200,8 @@ export const buildPromptPackage = (input: {
   providerKind: input.providerKind,
   timeoutMs: input.timeoutMs ?? 180_000,
   maxInputChars: input.maxInputChars ?? 30_000,
-  maxFileCount: 0,
-  maxFileBytes: 1,
+  maxFileCount: input.maxFileCount ?? 0,
+  maxFileBytes: input.maxFileBytes ?? 1,
 });
 
 export const rememberInteractionHashes = (
@@ -439,7 +436,7 @@ const runAnalysisPhases = async (
 };
 
 export const runDeepResearchAnalysis = async (
-  rawInput: DeepResearchInput,
+  rawInput: DeepResearchInputPayload,
   context: DeepResearchAnalysisContext,
 ): Promise<DeepResearchResult> => {
   const input = DeepResearchInputSchema.parse(rawInput);

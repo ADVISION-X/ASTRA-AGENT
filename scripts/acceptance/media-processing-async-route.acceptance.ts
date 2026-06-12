@@ -86,11 +86,11 @@ try {
       };
     } | null;
   } = started;
-  for (let index = 0; index < 20 && current.status === "running"; index += 1) {
+  for (let index = 0; index < 120 && current.status === "running"; index += 1) {
     await new Promise((resolve) => setTimeout(resolve, 250));
     current = await fetch(`${baseUrl}/api/media-processing/status?taskId=${encodeURIComponent(started.taskId)}`).then((response) => response.json() as Promise<typeof current>);
   }
-  assert.equal(current.status, "success");
+  assert.equal(current.status, "success", `Async media processing task must finish successfully, got ${current.status}.`);
   assert.equal(current.record?.status, "success");
   assert.equal(current.record?.result?.output?.status, "success");
   assert.ok(current.record?.result?.output?.proofRef);

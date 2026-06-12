@@ -1,6 +1,7 @@
 import { RuntimeFailureClass, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import {
     type DeepResearchGatewaySender,
+    type DeepResearchGatewayInputRef,
     type ExchangePersistSummary,
     type PromptExchangeFailure,
     type PromptExchangeSuccess,
@@ -44,7 +45,7 @@ type PromptExchangeInput<TParsed> = {
   prompt: DeepResearchPrompt;
   promptKey: string;
   renderedPromptText: string;
-  inputRefs: string[];
+  inputRefs: DeepResearchGatewayInputRef[];
   stages: {
     send: DeepResearchPhase;
     capture: DeepResearchPhase;
@@ -54,6 +55,8 @@ type PromptExchangeInput<TParsed> = {
   subQuestionId?: string;
   timeoutMs?: number;
   maxInputChars?: number;
+  maxFileCount?: number;
+  maxFileBytes?: number;
   parse: (rawText: string) => DeepResearchParserResult<TParsed>;
   successRecordCount: (parsed: TParsed) => number;
   persist: (input: {
@@ -224,6 +227,8 @@ const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => 
       inputRefs: input.inputRefs,
       ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
       ...(input.maxInputChars ? { maxInputChars: input.maxInputChars } : {}),
+      ...(typeof input.maxFileCount === "number" ? { maxFileCount: input.maxFileCount } : {}),
+      ...(typeof input.maxFileBytes === "number" ? { maxFileBytes: input.maxFileBytes } : {}),
     }),
     preview: buildPromptPreview(input.prompt, input.subQuestionId),
   };

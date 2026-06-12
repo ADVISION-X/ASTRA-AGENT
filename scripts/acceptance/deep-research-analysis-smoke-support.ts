@@ -233,6 +233,7 @@ export const verifySubQuestionIdsAreJobScoped = (): void => {
       language: "en" as const,
       maxSubQuestions: 4,
       outputFormat: "markdown" as const,
+      inputAttachments: [],
     };
     const modelSubQuestions = buildModelSubQuestions();
     const persistedSubQuestions = modelSubQuestions.map(withIdentityPromptBundle);
