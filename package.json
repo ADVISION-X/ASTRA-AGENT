@@ -29,6 +29,7 @@
     "acceptance:ci-summary-truth": "node --import tsx scripts/acceptance/ci-summary-truth.acceptance.ts",
     "acceptance:runtime-truth-completed-evidence": "node --import tsx scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
+    "audit:deep-research-analysis": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['deep-research-analysis'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
     "acceptance:deep-research-input-attachments": "node --import tsx scripts/acceptance/deep-research-input-attachments.acceptance.ts",
     "acceptance:deep-research-promptbundle-sovereignty": "node --import tsx scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
     "acceptance:deep-research-per-subquestion-promptbundle": "node --import tsx scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",

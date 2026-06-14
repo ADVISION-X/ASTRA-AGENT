@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T18:14:27.918Z",
+  "generatedAt": "2026-06-12T23:04:55.646Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -27,25 +27,8 @@
     "GRASSEYE-DEEP-RESEARCH-058-V1",
     "GRASSEYE-DEEP-RESEARCH-059-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "deep-research/web-chat-prompt-submit-verification",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
-      "clauseId": "primary",
-      "message": "web-chat provider open runtime must allow real provider composer readiness and expose concise timeout diagnostics. Missing: 60_000.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
-    },
-    {
-      "checkId": "deep-research/web-chat-prompt-submit-verification",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
-      "clauseId": "primary",
-      "message": "web-chat provider composer readiness must keep the real-provider wait budget and timeout diagnostics. Missing: 60_000.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",

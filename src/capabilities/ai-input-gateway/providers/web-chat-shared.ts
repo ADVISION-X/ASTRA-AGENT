@@ -10,7 +10,7 @@ import {
   captureChatGptBusinessHtmlArtifact,
   isBusinessHtmlReportRequest,
 } from "./web-chat-html-artifact-capture.js";
-import { isAmazonProductMiningGptRequest, isDeepResearchGptRequest, openProviderPage } from "./web-chat-open.js";
+import { isAmazonProductMiningGptRequest, openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import {
@@ -30,7 +30,7 @@ const STABLE_ROUNDS_REQUIRED = 2;
 const shouldCloseProviderTabAfterResponse = (input: {
   providerUrl: string;
   request: AiFeedInput;
-}): boolean => isDeepResearchGptRequest(input) || isAmazonProductMiningGptRequest(input);
+}): boolean => isAmazonProductMiningGptRequest(input);
 
 const submitWebChatPrompt = async (input: {
   browser: BrowserController;

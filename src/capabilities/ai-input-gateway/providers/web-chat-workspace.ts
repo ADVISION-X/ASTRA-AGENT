@@ -6,6 +6,7 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { AiFeedInput } from "../schema.js";
 
 const FACEBOOK_WORKSPACE_ID = "facebook";
+const DEEP_RESEARCH_WORKSPACE_ID = "deep-research";
 
 const escapeAppleScriptText = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
@@ -17,7 +18,11 @@ const workspaceUrlPath = (dataDir: string, providerKind: string, workspaceId: st
   path.join(workspaceDir(dataDir), `${providerKind}-${workspaceId}.url`);
 
 export const resolveWebChatWorkspaceId = (request: AiFeedInput): string | null =>
-  request.promptContractId.includes("facebook-product-video-mining") ? FACEBOOK_WORKSPACE_ID : null;
+  request.promptContractId.includes("facebook-product-video-mining")
+    ? FACEBOOK_WORKSPACE_ID
+    : request.promptContractId.includes("deep-research.")
+      ? DEEP_RESEARCH_WORKSPACE_ID
+      : null;
 
 export const readSavedWorkspaceUrl = (input: {
   dataDir: string;

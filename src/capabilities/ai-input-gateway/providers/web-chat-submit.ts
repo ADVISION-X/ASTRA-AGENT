@@ -69,6 +69,27 @@ const waitForPromptSubmitted = async (input: {
   return false;
 };
 
+const waitForSendButtonClick = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  step: "click_send_after_prompt_paste";
+  timeoutMs: number;
+}): Promise<void> => {
+  const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
+  let lastMessage = "provider send button was not checked";
+  while (Date.now() < deadline) {
+    const clicked = await withWebChatStep(input.step, () =>
+      clickChatGptSendButton(input.browser, input.context));
+    lastMessage = `${clicked.status}: ${clicked.message}`;
+    if (clicked.status === "success") return;
+    if (clicked.status === "review_required" || clicked.status === "failed") {
+      throw new Error(lastMessage);
+    }
+    await input.browser.wait(750);
+  }
+  throw new Error(`review_required: provider send button did not become ready after verified paste; last=${lastMessage}`);
+};
+
 type SubmitPromptViaClipboardInput = {
   browser: BrowserController;
   request: AiFeedInput;
@@ -214,11 +235,12 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     timeoutMs: 8_000,
   });
   if (submittedAfterReturn) return;
-  const clicked = await withWebChatStep("click_send_after_prompt_paste", () =>
-    clickChatGptSendButton(input.browser, input.context));
-  if (clicked.status !== "success") {
-    throw new Error(`${clicked.status}: ${clicked.message}`);
-  }
+  await waitForSendButtonClick({
+    browser: input.browser,
+    context: input.context,
+    step: "click_send_after_prompt_paste",
+    timeoutMs: input.request.timeoutMs,
+  });
   const submittedAfterClick = await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,
