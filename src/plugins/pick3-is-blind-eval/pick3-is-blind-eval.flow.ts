@@ -15,6 +15,8 @@ import {
   PICK3_WINDOW_SIZE,
   Pick3InputSchema,
   type Pick3BatchSummary,
+  type Pick3Draw,
+  type Pick3ImageRecord,
   type Pick3Input,
   type Pick3ScoringSummary,
   type Pick3TaskRecord,
@@ -22,6 +24,7 @@ import {
 import {
   buildPick3PlaybookPromptPackage,
   loadBuiltInPick3Playbooks,
+  type Pick3PlaybookVersion,
 } from "./pick3-is-blind-eval.playbook.js";
 import { openPick3Storage } from "./pick3-is-blind-eval.storage.js";
 
@@ -32,6 +35,40 @@ export type RunPick3Context = {
 
 const hashJson = (value: unknown): string =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
+
+const dateKey = (draw: Pick3Draw): string => draw.expectedPrizeTime.slice(0, 10);
+
+const dateDay = (date: string): number => {
+  const [year, month, day] = date.split("-").map(Number);
+  if (!year || !month || !day) {
+    throw new Error(`pick3_invalid_official_date_${date}`);
+  }
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+};
+
+export const verifyPick3FullHistoryCoverage = (input: {
+  bounds: { startTime: string; endTime: string };
+  drawsAscending: readonly Pick3Draw[];
+}): void => {
+  const first = input.drawsAscending[0];
+  const last = input.drawsAscending[input.drawsAscending.length - 1];
+  if (!first || !last) {
+    throw new Error("pick3_full_history_empty");
+  }
+  if (dateKey(first) > input.bounds.startTime) {
+    throw new Error(`pick3_full_history_missing_earliest_${input.bounds.startTime}_got_${dateKey(first)}`);
+  }
+  if (dateKey(last) < input.bounds.endTime) {
+    throw new Error(`pick3_full_history_missing_latest_${input.bounds.endTime}_got_${dateKey(last)}`);
+  }
+  const coveredDates = new Set(input.drawsAscending.map(dateKey));
+  for (let day = dateDay(input.bounds.startTime); day <= dateDay(input.bounds.endTime); day += 1) {
+    const expectedDate = new Date(day * 86_400_000).toISOString().slice(0, 10);
+    if (!coveredDates.has(expectedDate)) {
+      throw new Error(`pick3_full_history_date_gap_${expectedDate}`);
+    }
+  }
+};
 
 const emptyScoring = (): Pick3ScoringSummary => ({
   total: 0,
@@ -85,17 +122,20 @@ const syncOfficialDraws = async (dataDir: string) => {
       const oldest = freshDraws[freshDraws.length - 1];
       if (!oldest || freshDraws.length === 0) break;
       payload = buildPick3CursorHistoryPayload(oldest.phase);
-      if (oldest.expectedPrizeTime.slice(0, 10) <= bounds.startTime) {
+      if (dateKey(oldest) <= bounds.startTime) {
         break;
       }
     }
 
     const allDraws = storage.listDrawsAscending();
+    verifyPick3FullHistoryCoverage({ bounds, drawsAscending: allDraws });
     return {
       storage,
       summary: {
         runId,
         status: "success" as const,
+        officialStartTime: bounds.startTime,
+        officialEndTime: bounds.endTime,
         rowsSeen,
         rowsInserted,
         rowsUpdated,
@@ -111,11 +151,10 @@ const syncOfficialDraws = async (dataDir: string) => {
   }
 };
 
-const buildBatch = async (
+const selectBatchTargets = (
   input: Pick3Input,
-  context: RunPick3Context,
   storage: ReturnType<typeof openPick3Storage>,
-): Promise<Pick3BatchSummary> => {
+): { drawsAscending: Pick3Draw[]; targetDraws: Pick3Draw[] } => {
   const drawsAscending = storage.listDrawsAscending();
   const targetDraws = storage.listTargetDraws({
     ...(input.explicitTargetPhases ? { phases: input.explicitTargetPhases } : {}),
@@ -124,10 +163,61 @@ const buildBatch = async (
   if (targetDraws.length === 0) {
     throw new Error("pick3_not_enough_history_for_l80_batch");
   }
-  const batchId = `pick3_batch_${randomUUID()}`;
-  const artifactDir = input.artifactRoot
+  return { drawsAscending, targetDraws };
+};
+
+const resolveArtifactDir = (input: Pick3Input, context: RunPick3Context, batchId: string): string =>
+  input.artifactRoot
     ? path.join(input.artifactRoot, batchId)
     : path.join(context.dataDir, "runtime-data", PICK3_JOB_ID, "artifacts", batchId);
+
+const buildPromptPackages = (images: readonly Pick3ImageRecord[], playbooks: readonly Pick3PlaybookVersion[]) => {
+  const playbookByPosition = new Map(playbooks.map((playbook) => [playbook.position, playbook]));
+  return images.map((image) => {
+    const playbook = playbookByPosition.get(image.position);
+    if (!playbook) {
+      throw new Error(`pick3_playbook_missing_${image.position}`);
+    }
+    return buildPick3PlaybookPromptPackage(playbook, image);
+  });
+};
+
+const writeBatchArtifacts = (input: {
+  artifactDir: string;
+  images: readonly Pick3ImageRecord[];
+  playbooks: readonly Pick3PlaybookVersion[];
+  promptPackages: unknown;
+  sealedAnswers: unknown;
+}): void => {
+  const playbookManifest = input.playbooks.map((playbook) => ({
+    playbookVersionId: playbook.playbookVersionId,
+    position: playbook.position,
+    version: playbook.version,
+    status: playbook.status,
+    sourceKind: playbook.sourceKind,
+    contentHash: playbook.contentHash,
+    systemPromptHash: playbook.systemPromptHash,
+    visualGrammarHash: playbook.visualGrammarHash,
+  }));
+  writeFileSync(path.join(input.artifactDir, "sealed_answers.json"), `${JSON.stringify(input.sealedAnswers, null, 2)}\n`);
+  writeFileSync(path.join(input.artifactDir, "playbook_manifest.json"), `${JSON.stringify(playbookManifest, null, 2)}\n`);
+  writeFileSync(path.join(input.artifactDir, "ai_prompt_manifest.json"), `${JSON.stringify(input.promptPackages, null, 2)}\n`);
+  writeFileSync(path.join(input.artifactDir, "ai_image_manifest.json"), `${JSON.stringify(input.images.map((image) => ({
+    imageId: image.imageId,
+    position: image.position,
+    imagePath: image.imagePath,
+    imageSha256: image.imageSha256,
+  })), null, 2)}\n`);
+};
+
+const buildBatch = async (
+  input: Pick3Input,
+  context: RunPick3Context,
+  storage: ReturnType<typeof openPick3Storage>,
+): Promise<Pick3BatchSummary> => {
+  const { drawsAscending, targetDraws } = selectBatchTargets(input, storage);
+  const batchId = `pick3_batch_${randomUUID()}`;
+  const artifactDir = resolveArtifactDir(input, context, batchId);
   mkdirSync(artifactDir, { recursive: true });
   const images = await createPick3BlindImages({
     artifactDir,
@@ -138,14 +228,7 @@ const buildBatch = async (
   });
   const playbooks = loadBuiltInPick3Playbooks();
   storage.upsertPlaybooks(playbooks);
-  const playbookByPosition = new Map(playbooks.map((playbook) => [playbook.position, playbook]));
-  const promptPackages = images.map((image) => {
-    const playbook = playbookByPosition.get(image.position);
-    if (!playbook) {
-      throw new Error(`pick3_playbook_missing_${image.position}`);
-    }
-    return buildPick3PlaybookPromptPackage(playbook, image);
-  });
+  const promptPackages = buildPromptPackages(images, playbooks);
   const sealedAnswers = images.map((image) => ({
     imageId: image.imageId,
     position: image.position,
@@ -154,25 +237,7 @@ const buildBatch = async (
     answerLabel: image.answerLabel,
   }));
   const sealedAnswersHash = hashJson(sealedAnswers);
-  const playbookManifest = playbooks.map((playbook) => ({
-    playbookVersionId: playbook.playbookVersionId,
-    position: playbook.position,
-    version: playbook.version,
-    status: playbook.status,
-    sourceKind: playbook.sourceKind,
-    contentHash: playbook.contentHash,
-    systemPromptHash: playbook.systemPromptHash,
-    visualGrammarHash: playbook.visualGrammarHash,
-  }));
-  writeFileSync(path.join(artifactDir, "sealed_answers.json"), `${JSON.stringify(sealedAnswers, null, 2)}\n`);
-  writeFileSync(path.join(artifactDir, "playbook_manifest.json"), `${JSON.stringify(playbookManifest, null, 2)}\n`);
-  writeFileSync(path.join(artifactDir, "ai_prompt_manifest.json"), `${JSON.stringify(promptPackages, null, 2)}\n`);
-  writeFileSync(path.join(artifactDir, "ai_image_manifest.json"), `${JSON.stringify(images.map((image) => ({
-    imageId: image.imageId,
-    position: image.position,
-    imagePath: image.imagePath,
-    imageSha256: image.imageSha256,
-  })), null, 2)}\n`);
+  writeBatchArtifacts({ artifactDir, images, playbooks, promptPackages, sealedAnswers });
   storage.insertBatch({
     batchId,
     artifactDir,

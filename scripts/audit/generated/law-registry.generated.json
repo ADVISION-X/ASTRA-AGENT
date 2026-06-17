@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:23:57.692Z",
+  "generatedAt": "2026-06-17T13:44:59.068Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3147,6 +3147,7 @@
         "660201 reads current lottery metadata.",
         "660104 reads official history bounds.",
         "660301 reads draw history and cursor pages.",
+        "A successful sync refuses to pass when official startTime/endTime coverage is incomplete or has a date gap.",
         "Chrome DOM first row must be comparable with API first row.",
         "Digits map nums[0], nums[1], nums[2] to hundreds, tens, ones."
       ],
@@ -3154,6 +3155,7 @@
         "Non-official lottery source of truth.",
         "Manual result edits without official evidence.",
         "Synthesized missing draws.",
+        "Success status with missing earliest history, missing latest history, or an official date gap.",
         "Digit position remapping by prompt preference."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",

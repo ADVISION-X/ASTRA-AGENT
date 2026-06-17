@@ -61,6 +61,8 @@ export type Pick3ImageRecord = {
 export type Pick3SyncSummary = {
   runId: string;
   status: "success" | "partial_success" | "failed" | "review_required";
+  officialStartTime: string;
+  officialEndTime: string;
   rowsSeen: number;
   rowsInserted: number;
   rowsUpdated: number;

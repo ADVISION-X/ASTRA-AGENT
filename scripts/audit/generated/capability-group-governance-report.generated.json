@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:24:05.201Z",
+  "generatedAt": "2026-06-17T13:45:06.934Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -455,6 +455,7 @@
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",

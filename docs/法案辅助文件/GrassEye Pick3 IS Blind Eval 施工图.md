@@ -261,9 +261,17 @@ type OfficialPhaseRow = {
 5. call 660301 cursor payload with phase=cursorPhase.
 6. repeat until:
    - returned phaseList is empty, or
-   - oldest expectedPrizeTime < startTime, or
-   - oldest phase already exists and no new rows were inserted.
-7. sort ascending by expectedPrizeTimestamp for image generation.
+   - oldest expectedPrizeTime <= startTime.
+7. never stop only because rows already exist; an existing latest slice does not prove the historical floor.
+8. sort ascending by expectedPrizeTimestamp for image generation.
+9. run `verifyPick3FullHistoryCoverage` before returning success:
+   - local oldest draw date <= official `startTime`;
+   - local newest draw date >= official `endTime`;
+   - every calendar date from official `startTime` through official `endTime` has one stored official draw.
+10. if coverage fails, return no success status and expose one of:
+   - `pick3_full_history_missing_earliest`;
+   - `pick3_full_history_missing_latest`;
+   - `pick3_full_history_date_gap`.
 ```
 
 ### Incremental Sync
@@ -284,12 +292,23 @@ Pick3 draws daily at 21:30 UAE time. A missing calendar date between `startTime`
 Gap handling:
 
 ```txt
-status = partial_success
-reason = historical_gap_detected
+status != success
+reason = pick3_full_history_date_gap_<YYYY-MM-DD>
 gapDates = [...]
 ```
 
 Do not synthesize missing draws.
+Do not report partial_success as acceptable full database coverage.
+
+Full-history boundary evidence:
+
+```txt
+officialStartTime = 660104 lotteryTypePrizeTimeDto.startTime
+officialEndTime = 660104 lotteryTypePrizeTimeDto.endTime
+reason = pick3_full_history_missing_earliest
+reason = pick3_full_history_missing_latest
+reason = pick3_full_history_date_gap
+```
 
 ## Database Schema
 
@@ -871,6 +890,8 @@ type Pick3IsBlindEvalResult = {
   mode: Pick3IsBlindEvalMode;
   status: string;
   sync: {
+    officialStartTime: string;
+    officialEndTime: string;
     rowsSeen: number;
     rowsInserted: number;
     rowsUpdated: number;

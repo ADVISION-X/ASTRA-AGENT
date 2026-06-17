@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { createPick3BlindImages } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.js";
+import { verifyPick3FullHistoryCoverage } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.js";
 import {
   buildPick3PlaybookPromptPackage,
   loadBuiltInPick3Playbooks,
@@ -82,6 +83,11 @@ for (const token of [
   "confidence_is_probability",
   "abstain",
   "coverageRate",
+  "officialStartTime",
+  "officialEndTime",
+  "pick3_full_history_missing_earliest",
+  "pick3_full_history_missing_latest",
+  "pick3_full_history_date_gap",
   "one-position baseline = 50%",
   "three-position combination baseline = 12.5%",
   "three-position hit rate > 25%",
@@ -166,6 +172,44 @@ const buildDraw = (index: number): Pick3Draw => {
     rawHash: `hash-${phase}`,
   };
 };
+
+const buildDatedDraw = (date: string, index: number): Pick3Draw => ({
+  ...buildDraw(index),
+  phase: date.replaceAll("-", "").slice(2),
+  expectedPrizeTime: `${date} 21:30:00`,
+  expectedPrizeTimestamp: String(Date.parse(`${date}T17:30:00.000Z`)),
+});
+
+const fullCoverageDraws = [
+  buildDatedDraw("2025-06-04", 1),
+  buildDatedDraw("2025-06-05", 2),
+  buildDatedDraw("2025-06-06", 3),
+];
+verifyPick3FullHistoryCoverage({
+  bounds: { startTime: "2025-06-04", endTime: "2025-06-06" },
+  drawsAscending: fullCoverageDraws,
+});
+assert.throws(
+  () => verifyPick3FullHistoryCoverage({
+    bounds: { startTime: "2025-06-04", endTime: "2025-06-06" },
+    drawsAscending: fullCoverageDraws.slice(1),
+  }),
+  /pick3_full_history_missing_earliest/,
+);
+assert.throws(
+  () => verifyPick3FullHistoryCoverage({
+    bounds: { startTime: "2025-06-04", endTime: "2025-06-06" },
+    drawsAscending: fullCoverageDraws.slice(0, 2),
+  }),
+  /pick3_full_history_missing_latest/,
+);
+assert.throws(
+  () => verifyPick3FullHistoryCoverage({
+    bounds: { startTime: "2025-06-04", endTime: "2025-06-06" },
+    drawsAscending: [fullCoverageDraws[0]!, fullCoverageDraws[2]!],
+  }),
+  /pick3_full_history_date_gap_2025-06-05/,
+);
 
 const tempDataDir = mkdtempSync(resolve(tmpdir(), "pick3-is-blind-eval-"));
 const storage = openPick3Storage(tempDataDir);

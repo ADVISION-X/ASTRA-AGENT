@@ -29,6 +29,7 @@ UAE Lottery Pick 3 official source
 - The official Pick 3 lottery type is `72`.
 - First sync must support full historical backfill from official API bounds.
 - Later sync must support incremental update without duplicating draws.
+- A successful sync must prove full official coverage: local oldest draw date is at or before official `startTime`, local newest draw date is at or after official `endTime`, and every calendar date in the official `startTime`/`endTime` range has a stored official draw.
 - Draw numbers, dates, and digits must be stored as official-source facts.
 - Pick 3 digits must be mapped as `nums[0] -> hundreds`, `nums[1] -> tens`, `nums[2] -> ones`.
 - The image window for this Pick3 executor is `L=80`.
@@ -137,6 +138,7 @@ UAE Lottery Pick 3 official source
     "660201 reads current lottery metadata.",
     "660104 reads official history bounds.",
     "660301 reads draw history and cursor pages.",
+    "A successful sync refuses to pass when official startTime/endTime coverage is incomplete or has a date gap.",
     "Chrome DOM first row must be comparable with API first row.",
     "Digits map nums[0], nums[1], nums[2] to hundreds, tens, ones."
   ],
@@ -144,6 +146,7 @@ UAE Lottery Pick 3 official source
     "Non-official lottery source of truth.",
     "Manual result edits without official evidence.",
     "Synthesized missing draws.",
+    "Success status with missing earliest history, missing latest history, or an official date gap.",
     "Digit position remapping by prompt preference."
   ]
 }

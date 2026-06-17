@@ -4,54 +4,8 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/app-shell/app-shell-layout.ts has an over-line function near line 166.",
-      "severity": "fatal",
-      "filePath": "src/app/app-shell/app-shell-layout.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-home-client.ts has 547 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-home-client.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/named-export-budget",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/pick3-is-blind-eval/index.ts exports 28 symbols and exceeds the red line 24.",
-      "severity": "fatal",
-      "filePath": "src/plugins/pick3-is-blind-eval/index.ts",
-      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts has an over-line function near line 114.",
-      "severity": "fatal",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
-      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts has an over-line function near line 134.",
-      "severity": "fatal",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
-      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-06-17T13:24:30.071Z",
+  "findings": [],
+  "generatedAt": "2026-06-17T13:45:33.486Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -401,6 +355,7 @@
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",
@@ -1419,10 +1374,10 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 2040,
+  "liveExportCount": 2037,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 695,
-  "status": "FAIL",
+  "reachableFileCount": 696,
+  "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],
@@ -1433,9 +1388,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2040,
+    "liveExportCount": 2037,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 695,
+    "reachableFileCount": 696,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

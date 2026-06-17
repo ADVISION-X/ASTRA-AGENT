@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:24:05.170Z",
+  "generatedAt": "2026-06-17T13:45:06.901Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -328,35 +328,16 @@
     "acceptance:facebook-product-video-mining",
     "acceptance:media-optimizer-app-ui",
     "acceptance:media-processing",
+    "acceptance:pick3-is-blind-eval",
     "acceptance:runtime-log-spine",
     "acceptance:runtime-truth-completed-evidence",
     "acceptance:video-download-telegram-web",
     "acceptance:video-download-youtube-production",
     "acceptance:workbench-api-boundary"
   ],
-  "activePluginViolations": [
-    {
-      "checkId": "architecture/plugin-active-missing-ci-acceptance",
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "primary",
-      "message": "Active plugin pick3-is-blind-eval has no allowed acceptance smoke wired into ci:full.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/config/plugin-status.json",
-      "evidence": "acceptance:pick3-is-blind-eval"
-    }
-  ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "architecture/plugin-active-missing-ci-acceptance",
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "primary",
-      "message": "Active plugin pick3-is-blind-eval has no allowed acceptance smoke wired into ci:full.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/config/plugin-status.json",
-      "evidence": "acceptance:pick3-is-blind-eval"
-    }
-  ],
+  "activePluginViolations": [],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
@@ -777,6 +758,7 @@
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",

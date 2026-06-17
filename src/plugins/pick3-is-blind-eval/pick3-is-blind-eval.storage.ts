@@ -131,29 +131,34 @@ const rowToPlaybook = (row: Record<string, unknown>): Pick3PlaybookRecord => ({
   notes: row.notes === null ? null : String(row.notes),
 });
 
-export const openPick3Storage = (dataDir: string): Pick3Storage => {
-  const dataRoot = path.join(dataDir, "runtime-data", PICK3_JOB_ID);
-  mkdirSync(dataRoot, { recursive: true });
-  const dbPath = path.join(dataRoot, "pick3.sqlite");
-  const db = new Database(dbPath);
-  createSchema(db);
+type Pick3Statements = {
+  drawExists: Database.Statement;
+  insertBatch: Database.Statement;
+  insertDraw: Database.Statement;
+  insertImage: Database.Statement;
+  listActivePlaybooks: Database.Statement;
+  listDrawsAscending: Database.Statement;
+  updateDraw: Database.Statement;
+  upsertPlaybook: Database.Statement;
+};
 
-  const drawExists = db.prepare("SELECT raw_hash FROM pick3_draws WHERE source = ? AND lottery_type = ? AND phase = ?");
-  const insertDraw = db.prepare(`
+const prepareStatements = (db: Database.Database): Pick3Statements => ({
+  drawExists: db.prepare("SELECT raw_hash FROM pick3_draws WHERE source = ? AND lottery_type = ? AND phase = ?"),
+  insertDraw: db.prepare(`
 INSERT INTO pick3_draws (
   source, lottery_type, phase, expected_prize_time, expected_prize_timestamp, result_text,
   hundreds, tens, ones, total_winning_bet_count, result_detail_json, raw_json, raw_hash,
   fetched_at, created_at, updated_at
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-  const updateDraw = db.prepare(`
+`),
+  updateDraw: db.prepare(`
 UPDATE pick3_draws SET
   expected_prize_time = ?, expected_prize_timestamp = ?, result_text = ?,
   hundreds = ?, tens = ?, ones = ?, total_winning_bet_count = ?,
   result_detail_json = ?, raw_json = ?, raw_hash = ?, fetched_at = ?, updated_at = ?
 WHERE source = ? AND lottery_type = ? AND phase = ?
-`);
-  const upsertPlaybook = db.prepare(`
+`),
+  upsertPlaybook: db.prepare(`
 INSERT INTO pick3_playbooks (
   playbook_version_id, position, version, status, source_kind, content_path,
   content_hash, system_prompt_hash, visual_grammar_hash, created_at,
@@ -166,164 +171,201 @@ ON CONFLICT(playbook_version_id) DO UPDATE SET
   system_prompt_hash = excluded.system_prompt_hash,
   visual_grammar_hash = excluded.visual_grammar_hash,
   notes = excluded.notes
-`);
-
-  return {
-    close: () => db.close(),
-    dataRoot,
-    dbPath,
-    upsertDraws(draws) {
-      let inserted = 0;
-      let updated = 0;
-      const now = new Date().toISOString();
-      const run = db.transaction(() => {
-        for (const draw of draws) {
-          const existing = drawExists.get(draw.source, draw.lotteryType, draw.phase) as { raw_hash: string } | undefined;
-          if (!existing) {
-            insertDraw.run(
-              draw.source,
-              draw.lotteryType,
-              draw.phase,
-              draw.expectedPrizeTime,
-              draw.expectedPrizeTimestamp,
-              draw.resultText,
-              draw.hundreds,
-              draw.tens,
-              draw.ones,
-              draw.totalWinningBetCount,
-              draw.resultDetailJson,
-              draw.rawJson,
-              draw.rawHash,
-              now,
-              now,
-              now,
-            );
-            inserted += 1;
-          } else if (existing.raw_hash !== draw.rawHash) {
-            updateDraw.run(
-              draw.expectedPrizeTime,
-              draw.expectedPrizeTimestamp,
-              draw.resultText,
-              draw.hundreds,
-              draw.tens,
-              draw.ones,
-              draw.totalWinningBetCount,
-              draw.resultDetailJson,
-              draw.rawJson,
-              draw.rawHash,
-              now,
-              now,
-              draw.source,
-              draw.lotteryType,
-              draw.phase,
-            );
-            updated += 1;
-          }
-        }
-      });
-      run();
-      return { inserted, updated };
-    },
-    listDrawsAscending() {
-      return db.prepare("SELECT * FROM pick3_draws ORDER BY expected_prize_timestamp ASC, phase ASC")
-        .all()
-        .map((row) => rowToDraw(row as Record<string, unknown>));
-    },
-    listTargetDraws(input) {
-      const draws = this.listDrawsAscending();
-      if (input.phases && input.phases.length > 0) {
-        const wanted = new Set(input.phases);
-        return draws.filter((draw, index) => wanted.has(draw.phase) && index >= PICK3_WINDOW_SIZE);
-      }
-      return draws.filter((_, index) => index >= PICK3_WINDOW_SIZE).slice(-input.batchSize);
-    },
-    insertBatch(input) {
-      db.prepare(`
+`),
+  insertBatch: db.prepare(`
 INSERT OR REPLACE INTO is_blind_batches (
   batch_id, mode, source, lottery_type, window_size, target_phase, status, created_at,
   sealed_answers_hash, prediction_hash, reveal_hash, artifact_dir
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`).run(
-        input.batchId,
-        "generate_batch",
-        PICK3_OFFICIAL_SOURCE,
-        PICK3_LOTTERY_TYPE,
-        PICK3_WINDOW_SIZE,
-        input.targetPhase,
-        "success",
-        new Date().toISOString(),
-        input.sealedAnswersHash,
-        null,
-        null,
-        input.artifactDir,
-      );
-    },
-    insertImages(images) {
-      const statement = db.prepare(`
+`),
+  insertImage: db.prepare(`
 INSERT OR REPLACE INTO is_blind_images (
   image_id, batch_id, position, target_phase, target_expected_prize_time,
   visible_start_phase, visible_end_phase, image_path, image_sha256, answer_digit, answer_label
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-      const run = db.transaction(() => {
-        for (const image of images) {
-          statement.run(
-            image.imageId,
-            image.batchId,
-            image.position,
-            image.targetPhase,
-            image.targetExpectedPrizeTime,
-            image.visibleStartPhase,
-            image.visibleEndPhase,
-            image.imagePath,
-            image.imageSha256,
-            image.answerDigit,
-            image.answerLabel,
-          );
-        }
-      });
-      run();
-    },
-    upsertPlaybooks(playbooks) {
-      const now = new Date().toISOString();
-      const run = db.transaction(() => {
-        for (const playbook of playbooks) {
-          upsertPlaybook.run(
-            playbook.playbookVersionId,
-            playbook.position,
-            playbook.version,
-            playbook.status,
-            playbook.sourceKind,
-            playbook.contentPath,
-            playbook.contentHash,
-            playbook.systemPromptHash,
-            playbook.visualGrammarHash,
-            now,
-            playbook.parentPlaybookVersionId,
-            playbook.createdFromFailureReviewId,
-            playbook.notes,
-          );
-        }
-      });
-      run();
-    },
-    listActivePlaybooks() {
-      return db.prepare("SELECT * FROM pick3_playbooks WHERE status = 'active' ORDER BY position ASC, version DESC")
-        .all()
-        .map((row) => rowToPlaybook(row as Record<string, unknown>));
-    },
-    writeTask(record) {
-      const taskDir = path.join(dataRoot, "tasks", record.taskId);
-      mkdirSync(taskDir, { recursive: true });
-      writeFileSync(path.join(taskDir, "task.json"), `${JSON.stringify(record, null, 2)}\n`);
-      writeFileSync(path.join(dataRoot, "latest-task.json"), `${JSON.stringify(record, null, 2)}\n`);
-    },
-    readLatestTask() {
-      try {
-        return JSON.parse(readFileSync(path.join(dataRoot, "latest-task.json"), "utf8")) as Pick3TaskRecord;
-      } catch {
-        return null;
+`),
+  listDrawsAscending: db.prepare("SELECT * FROM pick3_draws ORDER BY expected_prize_timestamp ASC, phase ASC"),
+  listActivePlaybooks: db.prepare("SELECT * FROM pick3_playbooks WHERE status = 'active' ORDER BY position ASC, version DESC"),
+});
+
+const upsertDraws = (
+  db: Database.Database,
+  statements: Pick3Statements,
+  draws: readonly Pick3Draw[],
+): { inserted: number; updated: number } => {
+  let inserted = 0;
+  let updated = 0;
+  const now = new Date().toISOString();
+  const run = db.transaction(() => {
+    for (const draw of draws) {
+      const existing = statements.drawExists.get(draw.source, draw.lotteryType, draw.phase) as { raw_hash: string } | undefined;
+      if (!existing) {
+        statements.insertDraw.run(
+          draw.source,
+          draw.lotteryType,
+          draw.phase,
+          draw.expectedPrizeTime,
+          draw.expectedPrizeTimestamp,
+          draw.resultText,
+          draw.hundreds,
+          draw.tens,
+          draw.ones,
+          draw.totalWinningBetCount,
+          draw.resultDetailJson,
+          draw.rawJson,
+          draw.rawHash,
+          now,
+          now,
+          now,
+        );
+        inserted += 1;
+      } else if (existing.raw_hash !== draw.rawHash) {
+        statements.updateDraw.run(
+          draw.expectedPrizeTime,
+          draw.expectedPrizeTimestamp,
+          draw.resultText,
+          draw.hundreds,
+          draw.tens,
+          draw.ones,
+          draw.totalWinningBetCount,
+          draw.resultDetailJson,
+          draw.rawJson,
+          draw.rawHash,
+          now,
+          now,
+          draw.source,
+          draw.lotteryType,
+          draw.phase,
+        );
+        updated += 1;
       }
-    },
+    }
+  });
+  run();
+  return { inserted, updated };
+};
+
+const listDrawsAscending = (statements: Pick3Statements): Pick3Draw[] =>
+  statements.listDrawsAscending.all().map((row) => rowToDraw(row as Record<string, unknown>));
+
+const listTargetDraws = (
+  statements: Pick3Statements,
+  input: { phases?: readonly string[]; batchSize: number },
+): Pick3Draw[] => {
+  const draws = listDrawsAscending(statements);
+  if (input.phases && input.phases.length > 0) {
+    const wanted = new Set(input.phases);
+    return draws.filter((draw, index) => wanted.has(draw.phase) && index >= PICK3_WINDOW_SIZE);
+  }
+  return draws.filter((_, index) => index >= PICK3_WINDOW_SIZE).slice(-input.batchSize);
+};
+
+const insertBatch = (
+  statements: Pick3Statements,
+  input: { batchId: string; artifactDir: string; targetPhase: string | null; sealedAnswersHash: string },
+): void => {
+  statements.insertBatch.run(
+    input.batchId,
+    "generate_batch",
+    PICK3_OFFICIAL_SOURCE,
+    PICK3_LOTTERY_TYPE,
+    PICK3_WINDOW_SIZE,
+    input.targetPhase,
+    "success",
+    new Date().toISOString(),
+    input.sealedAnswersHash,
+    null,
+    null,
+    input.artifactDir,
+  );
+};
+
+const insertImages = (db: Database.Database, statements: Pick3Statements, images: readonly Pick3ImageRecord[]): void => {
+  const run = db.transaction(() => {
+    for (const image of images) {
+      statements.insertImage.run(
+        image.imageId,
+        image.batchId,
+        image.position,
+        image.targetPhase,
+        image.targetExpectedPrizeTime,
+        image.visibleStartPhase,
+        image.visibleEndPhase,
+        image.imagePath,
+        image.imageSha256,
+        image.answerDigit,
+        image.answerLabel,
+      );
+    }
+  });
+  run();
+};
+
+const upsertPlaybooks = (
+  db: Database.Database,
+  statements: Pick3Statements,
+  playbooks: readonly Pick3PlaybookRecord[],
+): void => {
+  const now = new Date().toISOString();
+  const run = db.transaction(() => {
+    for (const playbook of playbooks) {
+      statements.upsertPlaybook.run(
+        playbook.playbookVersionId,
+        playbook.position,
+        playbook.version,
+        playbook.status,
+        playbook.sourceKind,
+        playbook.contentPath,
+        playbook.contentHash,
+        playbook.systemPromptHash,
+        playbook.visualGrammarHash,
+        now,
+        playbook.parentPlaybookVersionId,
+        playbook.createdFromFailureReviewId,
+        playbook.notes,
+      );
+    }
+  });
+  run();
+};
+
+const listActivePlaybooks = (statements: Pick3Statements): Pick3PlaybookRecord[] =>
+  statements.listActivePlaybooks.all().map((row) => rowToPlaybook(row as Record<string, unknown>));
+
+const writeTaskRecord = (dataRoot: string, record: Pick3TaskRecord): void => {
+  const taskDir = path.join(dataRoot, "tasks", record.taskId);
+  mkdirSync(taskDir, { recursive: true });
+  writeFileSync(path.join(taskDir, "task.json"), `${JSON.stringify(record, null, 2)}\n`);
+  writeFileSync(path.join(dataRoot, "latest-task.json"), `${JSON.stringify(record, null, 2)}\n`);
+};
+
+const readLatestTaskRecord = (dataRoot: string): Pick3TaskRecord | null => {
+  try {
+    return JSON.parse(readFileSync(path.join(dataRoot, "latest-task.json"), "utf8")) as Pick3TaskRecord;
+  } catch {
+    return null;
+  }
+};
+
+export const openPick3Storage = (dataDir: string): Pick3Storage => {
+  const dataRoot = path.join(dataDir, "runtime-data", PICK3_JOB_ID);
+  mkdirSync(dataRoot, { recursive: true });
+  const dbPath = path.join(dataRoot, "pick3.sqlite");
+  const db = new Database(dbPath);
+  createSchema(db);
+  const statements = prepareStatements(db);
+  return {
+    close: () => db.close(),
+    dataRoot,
+    dbPath,
+    upsertDraws: (draws) => upsertDraws(db, statements, draws),
+    listDrawsAscending: () => listDrawsAscending(statements),
+    listTargetDraws: (input) => listTargetDraws(statements, input),
+    insertBatch: (input) => insertBatch(statements, input),
+    insertImages: (images) => insertImages(db, statements, images),
+    upsertPlaybooks: (playbooks) => upsertPlaybooks(db, statements, playbooks),
+    listActivePlaybooks: () => listActivePlaybooks(statements),
+    writeTask: (record) => writeTaskRecord(dataRoot, record),
+    readLatestTask: () => readLatestTaskRecord(dataRoot),
   };
 };

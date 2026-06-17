@@ -1,56 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:24:30.070Z",
-  "itemCount": 5,
-  "items": [
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/app/app-shell/app-shell-layout.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "app-shell",
-      "reason": "Function near line 166 breaks function budget: physical line count 81 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/app/workbench-home-client.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "app-shell",
-      "reason": "active executable source file has 547 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/named-export-budget",
-      "filePath": "src/plugins/pick3-is-blind-eval/index.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "plugin:pick3-is-blind-eval",
-      "reason": "Named export count 28 exceeds red line 24.",
-      "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:pick3-is-blind-eval",
-      "reason": "Function near line 114 breaks function budget: physical line count 77 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-flow",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:pick3-is-blind-eval",
-      "reason": "Function near line 134 breaks function budget: physical line count 196 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-06-17T13:45:33.485Z",
+  "itemCount": 0,
+  "items": []
 }
