@@ -163,6 +163,88 @@ const renderPlannedWorkspace = (): string => `
   </section>
 </section>`;
 
+const renderPick3Workspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="pick3-is-blind-eval" data-job-panel="pick3-is-blind-eval">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Research Executor</span>
+      <h1>Pick3 IS Blind Eval</h1>
+      <p>Official UAE Pick 3 data sync and isolated L80 visual batches.</p>
+    </div>
+    <span class="status-badge status-active">active</span>
+  </div>
+  <nav class="skill-page-nav" data-workspace-page-nav="pick3-is-blind-eval" aria-label="Pick3 IS Blind Eval pages">
+    <button class="skill-page-tab" type="button" data-workspace-page="run" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="true">Run</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="images" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="false">Images</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="audit" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="false">Audit</button>
+  </nav>
+  <div class="skill-page-stack secondary-page-stack">
+    <section class="skill-page-surface" data-workspace-surface="run" data-workspace-surface-skill="pick3-is-blind-eval">
+      <section class="panel app-form-panel">
+        <form class="form-grid compact-form" data-pick3-form>
+          <div class="field">
+            <label>Mode</label>
+            <select name="mode">
+              <option value="generate_batch">Sync and generate images</option>
+              <option value="sync_only">Sync only</option>
+            </select>
+          </div>
+          <div class="field"><label>Batch size</label><input name="batchSize" type="number" min="1" max="20" value="20" required /></div>
+          <label class="check"><input name="hundreds" type="checkbox" checked /> hundreds</label>
+          <label class="check"><input name="tens" type="checkbox" checked /> tens</label>
+          <label class="check"><input name="ones" type="checkbox" checked /> ones</label>
+          <div class="notice wide">
+            <b>Blind boundary</b>
+            <span>L80 images contain no title, axis, phase, date, Chart number, point count, answer, or position text.</span>
+          </div>
+          <div class="actions wide">
+            <button class="btn" type="submit">Start</button>
+            <button class="btn secondary" type="button" data-pick3-latest>Latest</button>
+          </div>
+        </form>
+      </section>
+      <section class="panel history-panel">
+        <div class="panel-title-row">
+          <div>
+            <span class="eyebrow">Latest Task</span>
+            <h2 data-pick3-summary-title>No Pick3 task loaded</h2>
+          </div>
+          <span class="status-badge" data-pick3-status>idle</span>
+        </div>
+        <div class="detail-grid inspector-detail-grid">
+          <div><b>Rows seen</b><span data-pick3-rows-seen>-</span></div>
+          <div><b>Inserted</b><span data-pick3-rows-inserted>-</span></div>
+          <div><b>Updated</b><span data-pick3-rows-updated>-</span></div>
+          <div><b>Newest phase</b><span data-pick3-newest-phase>-</span></div>
+          <div><b>Batch</b><span data-pick3-batch-id>-</span></div>
+          <div><b>Images</b><span data-pick3-image-count>-</span></div>
+          <div><b>Artifact dir</b><span data-pick3-artifact-dir>-</span></div>
+          <div><b>Random baseline</b><span>50% single / 12.5% combo</span></div>
+        </div>
+      </section>
+    </section>
+    <section class="skill-page-surface hidden" data-workspace-surface="images" data-workspace-surface-skill="pick3-is-blind-eval">
+      <section class="panel history-panel">
+        <div class="panel-title-row">
+          <div>
+            <span class="eyebrow">AI Image Manifest</span>
+            <h2>One image per AI call</h2>
+          </div>
+          <span class="status-badge status-active" data-pick3-image-total>0</span>
+        </div>
+        <div class="record-list" data-pick3-image-list></div>
+      </section>
+    </section>
+    <section class="skill-page-surface hidden" data-workspace-surface="audit" data-workspace-surface-skill="pick3-is-blind-eval">
+      <section class="panel empty-state app-empty-surface">
+        <span class="eyebrow">Statistical Honesty</span>
+        <h2>Confidence is not probability</h2>
+        <p>Model id, temperature, image detail, prompt versions, random baselines, calibration, and abstain coverage are required by law before AI scoring is considered complete.</p>
+      </section>
+    </section>
+  </div>
+</section>`;
+
 export const renderMainWorkspace = (): string => `
 <main class="workspace" data-app-shell-workspace>
   ${renderAmazonProductMiningWorkspace()}
@@ -171,6 +253,7 @@ export const renderMainWorkspace = (): string => `
   <section class="skill-workspace hidden" data-skill-workspace="deep-research-analysis" data-job-panel="deep-research">
     ${renderDeepResearchPanel()}
   </section>
+  ${renderPick3Workspace()}
   ${renderVideoDownloadWorkspace()}
   ${renderMediaOptimizerWorkspace()}
   ${renderAmazonInvoiceWorkspace()}

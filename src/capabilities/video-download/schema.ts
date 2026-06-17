@@ -78,6 +78,7 @@ const VideoDownloadFailureReasonSchema = z.enum([
   "captcha_or_2fa_required",
   "drm_or_private_video",
   "permission_denied",
+  "runtime_dependency_unavailable",
   "network_failed",
   "metadata_validation_failed",
   "artifact_write_failed",

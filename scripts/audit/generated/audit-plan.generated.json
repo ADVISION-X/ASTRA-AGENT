@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T23:04:15.305Z",
+  "generatedAt": "2026-06-17T11:29:08.683Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -639,6 +639,51 @@
             "## 5. 目录结构",
             "## 6. Public Facade 设计",
             "## 13. 验收标准"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "pick3-is-blind-eval",
+      "manifestPath": "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1"
+      ],
+      "clauseIds": [
+        "primary",
+        "official-source",
+        "blind-boundary",
+        "prompt-repair"
+      ],
+      "evidenceModes": [
+        "blind-boundary+acceptance",
+        "law+blueprint+acceptance",
+        "model-metadata+baseline+calibration+acceptance",
+        "prompt-version+audit",
+        "source-contract+acceptance"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施工图.md",
+          "requiredAnchors": [
+            "## Chrome Verification Baseline",
+            "## Plugin File Plan",
+            "## Sync Algorithm",
+            "## Database Schema",
+            "## Image Generation",
+            "## AI Prediction Flow",
+            "## Reveal And Scoring",
+            "## Output Schema",
+            "## Failure Review Flow",
+            "## Prompt Rewrite Flow",
+            "## Failure Replay Flow",
+            "## QA Plan"
           ]
         }
       ]

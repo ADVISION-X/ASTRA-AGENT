@@ -39,6 +39,14 @@ export const sanitizeYoutubeProgressLine = (value: string): string | null => {
 export const classifyYoutubeDlpFailure = (error: unknown): YoutubeDlpFailure => {
   const message = error instanceof Error ? error.message : "Unknown YouTube download failure.";
   const lower = message.toLowerCase();
+  if (includesAny(lower, [
+    "unsupported version of python",
+    "only python versions 3.10 and above",
+    "importerror",
+    "managed yt-dlp runtime was not prepared",
+  ])) {
+    return { failureReason: "runtime_dependency_unavailable", reason: message, reviewRequired: false };
+  }
   if (includesAny(lower, ["aborted", "abort", "timed out", "timeout"])) {
     return {
       failureReason: "network_failed",

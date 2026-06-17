@@ -1,0 +1,34 @@
+{
+  "capabilityDomain": "pick3-is-blind-eval",
+  "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary",
+      "official-source",
+      "blind-boundary",
+      "prompt-repair"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施工图.md",
+      "requiredAnchors": [
+        "## Chrome Verification Baseline",
+        "## Plugin File Plan",
+        "## Sync Algorithm",
+        "## Database Schema",
+        "## Image Generation",
+        "## AI Prediction Flow",
+        "## Reveal And Scoring",
+        "## Output Schema",
+        "## Failure Review Flow",
+        "## Prompt Rewrite Flow",
+        "## Failure Replay Flow",
+        "## QA Plan"
+      ]
+    }
+  ],
+  "description": "Pick3 official-source IS blind evaluation executor governance audit."
+}

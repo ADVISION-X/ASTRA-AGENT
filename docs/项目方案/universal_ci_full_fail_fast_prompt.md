@@ -10,7 +10,6 @@
 
 你现在只做一件事：
 
-```txt
 启动 CI-FULL。
 发现第一个失败。
 鉴权根因。
@@ -21,13 +20,11 @@
 
 唯一停止条件：
 
-```txt
 CI-FULL 全绿。
 ```
 
 禁止停止条件：
 
-```txt
 修了一部分
 大概通过
 局部通过
@@ -41,13 +38,11 @@ CI-FULL 全绿。
 
 ## 1. CI-FULL 的定义
 
-```txt
 CI-FULL = 鉴权系统。
 ```
 
 它鉴定的是：
 
-```txt
 代码文件是否 100% 按照法案和施工图的意图建设。
 不能多一分。
 不能少一分。
@@ -68,7 +63,6 @@ CI-FULL = 鉴权系统。
 
 必须确认：
 
-```txt
 所有 active 法案全部进入执法链。
 每条 active 法案都有 inspector / acceptance / enforcement evidence。
 没有孤儿法案。
@@ -79,7 +73,6 @@ CI-FULL = 鉴权系统。
 
 如果不是：
 
-```txt
 立即修复执法覆盖。
 不得进入正式 CI-FULL。
 ```
@@ -90,7 +83,6 @@ CI-FULL = 鉴权系统。
 
 必须确认：
 
-```txt
 质检脚本必须 ts-morph。
 必须 AST 级。
 必须 symbol 级。
@@ -101,7 +93,6 @@ CI-FULL = 鉴权系统。
 
 禁止质检脚本出现：
 
-```txt
 RegularExpressionLiteral
 new RegExp()
 .match()
@@ -120,7 +111,6 @@ raw regex string scanning
 
 如果发现：
 
-```txt
 立即修复元质检。
 不得进入正式 CI-FULL。
 ```
@@ -131,7 +121,6 @@ raw regex string scanning
 
 必须确认：
 
-```txt
 所有 scripts/audit/** 被审查。
 所有 scripts/acceptance/** 被审查。
 所有 CI gate 文件被审查。
@@ -141,7 +130,6 @@ raw regex string scanning
 
 禁止：
 
-```txt
 质检脚本审别人，不审自己
 某些 audit 文件被 exclude
 某些 acceptance 文件被 exclude
@@ -151,7 +139,6 @@ raw regex string scanning
 
 如果质检系统存在逃逸口：
 
-```txt
 立即封死。
 不得进入正式 CI-FULL。
 ```
@@ -162,7 +149,6 @@ raw regex string scanning
 
 执行顺序固定：
 
-```txt
 1. 启动 CI-FULL
 2. 获取第一个报错
 3. 鉴权失败原因
@@ -181,13 +167,11 @@ raw regex string scanning
 
 只允许处理：
 
-```txt
 第一个失败。
 ```
 
 禁止：
 
-```txt
 一次性分析一堆错误
 挑简单的先修
 跳过第一个失败
@@ -204,13 +188,11 @@ raw regex string scanning
 
 每次失败，必须输出：
 
-```txt
 [CI-FIRST-FAILURE-AUTHORIZATION]
 ```
 
 内容必须包含：
 
-```txt
 1. failurePhase
 2. failureCommand
 3. failureFile
@@ -235,7 +217,6 @@ raw regex string scanning
 
 只修：
 
-```txt
 根因
 辅助根因
 导致 firstFailure 的文件
@@ -244,7 +225,6 @@ raw regex string scanning
 
 禁止：
 
-```txt
 兼容旧逻辑
 新增第二链路
 新增 fallback
@@ -271,14 +251,12 @@ npm run ci:full
 
 然后继续：
 
-```txt
 如果 PASS：结束。
 如果 FAIL：读取新的第一个失败。
 ```
 
 禁止：
 
-```txt
 只跑局部测试就宣布完成
 只跑 typecheck 就宣布完成
 只跑 acceptance 就宣布完成
@@ -287,7 +265,6 @@ npm run ci:full
 
 最终判定只看：
 
-```txt
 CI-FULL 全绿。
 ```
 
@@ -297,7 +274,6 @@ CI-FULL 全绿。
 
 CI-FULL 必须：
 
-```txt
 发现第一个失败立即停止。
 写入 firstFailure。
 跳过后续步骤。
@@ -306,7 +282,6 @@ CI-FULL 必须：
 
 禁止：
 
-```txt
 失败后继续跑完全部步骤
 堆出几十个错误
 让用户从错误山里找重点
@@ -318,7 +293,6 @@ CI-FULL 必须：
 
 系统只能二元：
 
-```txt
 存在 或 不存在。
 active 或 delete。
 single chain 或 forbidden。
@@ -326,7 +300,6 @@ single chain 或 forbidden。
 
 禁止：
 
-```txt
 新旧逻辑并存
 runId/taskId 双兼容
 v1/v2 双入口
@@ -338,7 +311,6 @@ soft migration
 
 如果旧逻辑不属于当前法案和施工图：
 
-```txt
 删除。
 ```
 
@@ -348,7 +320,6 @@ soft migration
 
 元质检必须能证明：
 
-```txt
 质检系统自身没有逃逸。
 质检脚本没有正则。
 质检脚本不是文本扫描。
@@ -374,7 +345,6 @@ globalThis["RegExp"];
 
 symbol 无法确认时：
 
-```txt
 按 suspicious escape FAIL。
 ```
 
@@ -386,7 +356,6 @@ symbol 无法确认时：
 
 除了用户三项硬要求，还必须检查：
 
-```txt
 generated artifacts 是否由源文件重建
 generated artifacts 是否 stale
 domain inspector 是否覆盖 plan lawIds
@@ -407,13 +376,11 @@ app / runtime / plugin owner 是否越界
 
 只有 CI-FULL 全绿后，输出：
 
-```txt
 [CI-FULL-FINAL-GREEN-REPORT]
 ```
 
 内容必须包含：
 
-```txt
 1. CI-FULL 最终结果：PASS
 2. active 法案是否全量执法：YES
 3. 元质检是否无正则：YES
@@ -435,13 +402,11 @@ app / runtime / plugin owner 是否越界
 
 如果未全绿，只能输出：
 
-```txt
 [CI-FULL-STILL-RED]
 ```
 
 并且只输出当前第一个失败：
 
-```txt
 failurePhase
 failureCommand
 failureFile
@@ -458,7 +423,6 @@ minimalFix
 
 ## 13. 最狠标准
 
-```txt
 CI-FULL 没绿，就是失败。
 法案没全量执法，就是失败。
 元质检还有正则，就是失败。
@@ -470,6 +434,7 @@ CI-FULL 没绿，就是失败。
 存在第二链路，就是失败。
 存在 warning-only，就是失败。
 存在 partial pass，就是失败。
+死命令，禁止最小补丁模式，原则上必须汲取当前代码文件的优点，然后删除代码文件后重写【代码纯洁度法案执法下的文件非常小，目的就是为了重构设计的】
 ```
 
 ---

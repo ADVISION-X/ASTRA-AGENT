@@ -107,6 +107,7 @@ const runYtDlpProcess = async (input: {
   abortSignal: AbortSignal;
   captureStdout?: boolean;
   onProgress?: (message: string) => void;
+  processTimeoutMs?: number;
 }): Promise<string> => {
   const binaryPath = getPreparedYtDlpBinaryPath();
   return new Promise<string>((resolve, reject) => {
@@ -115,9 +116,11 @@ const runYtDlpProcess = async (input: {
     const stderr: string[] = [];
     let settled = false;
     let lastProgressAt = 0;
+    let processTimeout: NodeJS.Timeout | null = null;
     const rejectOnce = (error: Error) => {
       if (settled) return;
       settled = true;
+      if (processTimeout) clearTimeout(processTimeout);
       reject(error);
     };
     const abort = () => {
@@ -126,6 +129,13 @@ const runYtDlpProcess = async (input: {
         if (!child.killed) child.kill("SIGKILL");
       }, YOUTUBE_PROCESS_KILL_GRACE_MS).unref();
     };
+    if (input.processTimeoutMs) {
+      processTimeout = setTimeout(() => {
+        abort();
+        rejectOnce(new Error(`yt-dlp process timed out after ${input.processTimeoutMs}ms.`));
+      }, input.processTimeoutMs);
+      processTimeout.unref();
+    }
     const emitProgress = (chunk: Buffer) => {
       const text = chunk.toString();
       stderr.push(text);
@@ -146,6 +156,7 @@ const runYtDlpProcess = async (input: {
     child.on("error", rejectOnce);
     child.on("close", (code, signal) => {
       input.abortSignal.removeEventListener("abort", abort);
+      if (processTimeout) clearTimeout(processTimeout);
       if (settled) return;
       settled = true;
       if (code === 0) {
@@ -165,14 +176,16 @@ const readMetadata = async (
   timeoutMs: number,
   abortSignal: AbortSignal,
 ): Promise<YoutubeMetadata> => {
+  const metadataTimeoutMs = youtubeMetadataTimeoutSeconds({ timeoutMs }) * 1000;
   const stdout = await runYtDlpProcess({
     abortSignal,
     captureStdout: true,
+    processTimeoutMs: metadataTimeoutMs + YOUTUBE_PROCESS_KILL_GRACE_MS,
     args: [
     "--dump-json",
     "--no-warnings",
     "--socket-timeout",
-    String(youtubeMetadataTimeoutSeconds({ timeoutMs })),
+    String(Math.ceil(metadataTimeoutMs / 1000)),
     ...youtubeArgs(url),
     ],
   });
@@ -246,6 +259,7 @@ const runYoutubeDownload = async (input: {
   await runYtDlpProcess({
     abortSignal: input.abortSignal,
     ...(input.onProgress ? { onProgress: input.onProgress } : {}),
+    processTimeoutMs: input.request.timeoutMs + YOUTUBE_PROCESS_KILL_GRACE_MS,
     args: [
     "--format",
     formatSelector(input.request),

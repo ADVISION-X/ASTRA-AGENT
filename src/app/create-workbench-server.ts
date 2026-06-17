@@ -13,6 +13,7 @@ import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-ht
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
+import { handlePick3Request } from "./workbench-pick3-routes.js";
 import { handleVideoDownloadRequest } from "./workbench-video-download-routes.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
@@ -157,6 +158,9 @@ const handleInventoryWorkbenchApiRequest = async (input: {
     return true;
   }
   if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {
+    return true;
+  }
+  if (await handlePick3Request(input.request, input.response, input.workbench)) {
     return true;
   }
   return handleVideoDownloadRequest(input.request, input.response, input.workbench);

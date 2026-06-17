@@ -106,6 +106,8 @@ const resultBuilder = source("src/capabilities/video-download/runtime/result.ts"
 const abilityGroup = source("src/capabilities/video-download/ability-group.ts");
 const binary = source("src/capabilities/video-download/runtime/youtube-dlp-binary.ts");
 const output = source("src/capabilities/video-download/runtime/youtube-dlp-output.ts");
+const policy = source("src/capabilities/video-download/runtime/youtube-dlp-policy.ts");
+const schema = source("src/capabilities/video-download/schema.ts");
 const storagePort = source("src/capabilities/video-download/ports/video-artifact-storage-port.ts");
 const storage = source("src/capabilities/video-download/runtime/artifact-storage.ts");
 const boundary = source("src/app/workbench-api-boundary.ts");
@@ -175,6 +177,9 @@ assert(abilityGroup.getVariableDeclaration("prepareVideoDownloadRuntimeDependenc
 assert.equal(hasCall(abilityGroup, "resolveYtDlpBinaryPath"), true);
 assert.equal(hasCall(abilityGroup, "verifyFfprobeAvailable"), true);
 assert.equal(hasCall(binary, "downloadFromGithub"), true);
+assert.equal(hasStringLiteral(binary, "yt-dlp_macos"), true);
+assert.equal(hasStringLiteral(policy, "runtime_dependency_unavailable"), true);
+assert.equal(hasStringLiteral(schema, "runtime_dependency_unavailable"), true);
 assert(binary.getVariableDeclaration("getPreparedYtDlpBinaryPath"), "prepared yt-dlp accessor must be exported.");
 
 assert.equal(hasCall(output, "execFileAsync"), true);

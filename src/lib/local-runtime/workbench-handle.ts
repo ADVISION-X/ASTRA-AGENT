@@ -47,6 +47,8 @@ type GetLatestAmazonProductSyncTask = typeof import("../../plugins/amazon-produc
 type StartAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").startAmazonProductFeeSyncTask;
 type GetAmazonProductFeeSyncTaskStatus = typeof import("../../plugins/amazon-product-fee-sync/index.js").getAmazonProductFeeSyncTaskStatus;
 type GetLatestAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").getLatestAmazonProductFeeSyncTask;
+type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").runPick3IsBlindEvalFlow;
+type GetLatestPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getLatestPick3IsBlindEvalTask;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -76,6 +78,9 @@ type AmazonProductSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProdu
 type AmazonProductFeeSyncStartInput = Parameters<StartAmazonProductFeeSyncTask>[0];
 type AmazonProductFeeSyncTaskRecord = Awaited<ReturnType<GetAmazonProductFeeSyncTaskStatus>>;
 type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductFeeSyncTask>>;
+type Pick3IsBlindEvalStartInput = Parameters<StartPick3IsBlindEvalTask>[0];
+type Pick3IsBlindEvalTaskRecord = Awaited<ReturnType<StartPick3IsBlindEvalTask>>;
+type Pick3IsBlindEvalLatestTaskRecord = ReturnType<GetLatestPick3IsBlindEvalTask>;
 
 export type DeepResearchInputAttachmentStagingFile = {
   fileName: string;
@@ -223,4 +228,8 @@ export type GrassEyeWorkbenchHandle = {
     taskId: string,
   ) => Promise<AmazonProductFeeSyncTaskRecord>;
   getLatestAmazonProductFeeSyncTask: () => Promise<AmazonProductFeeSyncLatestTaskRecord>;
+  startPick3IsBlindEvalTask: (
+    input: Pick3IsBlindEvalStartInput,
+  ) => Promise<Pick3IsBlindEvalTaskRecord>;
+  getLatestPick3IsBlindEvalTask: () => Promise<Pick3IsBlindEvalLatestTaskRecord>;
 };

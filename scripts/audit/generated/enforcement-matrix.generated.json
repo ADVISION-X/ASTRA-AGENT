@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T23:04:15.305Z",
+  "generatedAt": "2026-06-17T11:29:08.683Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -292,6 +292,18 @@
         "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
         "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
         "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "pick3-is-blind-eval",
+      "manifestPath": "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1"
       ]
     },
     {

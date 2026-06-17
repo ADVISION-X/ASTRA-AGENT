@@ -8,6 +8,8 @@ import YTDlpWrapModule from "yt-dlp-wrap/dist/index.js";
 
 type YTDlpWrapRuntime = {
   downloadFromGithub(binaryPath: string): Promise<void>;
+  downloadFile(fileUrl: string, binaryPath: string): Promise<void>;
+  getGithubReleases(page?: number, perPage?: number): Promise<Array<{ tag_name?: unknown }>>;
 };
 
 const unwrapDefaultExport = (value: unknown): unknown => {
@@ -23,6 +25,12 @@ const resolveYTDlpWrapRuntime = (value: unknown): YTDlpWrapRuntime => {
   const runtime = runtimeValue as Partial<YTDlpWrapRuntime>;
   if (typeof runtime.downloadFromGithub !== "function") {
     throw new Error("yt-dlp-wrap runtime is missing downloadFromGithub.");
+  }
+  if (typeof runtime.downloadFile !== "function") {
+    throw new Error("yt-dlp-wrap runtime is missing downloadFile.");
+  }
+  if (typeof runtime.getGithubReleases !== "function") {
+    throw new Error("yt-dlp-wrap runtime is missing getGithubReleases.");
   }
   return runtime as YTDlpWrapRuntime;
 };
@@ -84,8 +92,36 @@ const buildLocalRunner = async (binaryPath: string): Promise<string | null> => {
   return await canExecute(runner) ? runner : null;
 };
 
+const latestGithubReleaseTag = async (): Promise<string> => {
+  const [latest] = await YTDlpWrapRuntime.getGithubReleases(1, 1);
+  if (typeof latest?.tag_name !== "string" || latest.tag_name.length === 0) {
+    throw new Error("yt-dlp GitHub release tag was not resolved.");
+  }
+  return latest.tag_name;
+};
+
+const nativeGithubAssetName = (): string | null =>
+  process.platform === "darwin" ? "yt-dlp_macos" : null;
+
+const downloadNativeGithubAsset = async (
+  binaryPath: string,
+  assetName: string,
+): Promise<string> => {
+  const version = await latestGithubReleaseTag();
+  await YTDlpWrapRuntime.downloadFile(
+    `https://github.com/yt-dlp/yt-dlp/releases/download/${version}/${assetName}`,
+    binaryPath,
+  );
+  await chmod(binaryPath, 0o755);
+  return binaryPath;
+};
+
 const downloadLatestBinary = async (binaryPath: string): Promise<string> => {
   await mkdir(path.dirname(binaryPath), { recursive: true });
+  const nativeAssetName = nativeGithubAssetName();
+  if (nativeAssetName) {
+    return downloadNativeGithubAsset(binaryPath, nativeAssetName);
+  }
   await YTDlpWrapRuntime.downloadFromGithub(binaryPath);
   await chmod(binaryPath, 0o755);
   return binaryPath;

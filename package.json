@@ -75,7 +75,9 @@
     "acceptance:amazon-product-sync": "node --import tsx scripts/acceptance/amazon-product-sync.acceptance.ts",
     "audit:amazon-product-sync": "node --import tsx scripts/audit/domains/amazon-product-sync/inspector.ts",
     "acceptance:amazon-product-fee-sync": "node --import tsx scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
-    "audit:amazon-product-fee-sync": "node --import tsx scripts/audit/domains/amazon-product-fee-sync/inspector.ts"
+    "audit:amazon-product-fee-sync": "node --import tsx scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+    "audit:pick3-is-blind-eval": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['pick3-is-blind-eval'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "acceptance:pick3-is-blind-eval": "node --import tsx scripts/acceptance/pick3-is-blind-eval.acceptance.ts"
   },
   "dependencies": {
     "@img/sharp-darwin-arm64": "^0.35.0",

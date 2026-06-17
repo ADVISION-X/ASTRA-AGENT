@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-12T23:04:15.305Z",
+  "generatedAt": "2026-06-17T11:29:08.683Z",
   "summary": {
-    "activeLawCount": 215,
-    "coveredLawCount": 215,
+    "activeLawCount": 220,
+    "coveredLawCount": 220,
     "coveragePercent": 100
   },
   "coverage": [
@@ -1775,6 +1775,116 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/media-processing-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]
     },

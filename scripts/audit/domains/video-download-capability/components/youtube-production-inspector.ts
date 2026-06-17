@@ -242,6 +242,9 @@ const inspectYoutubeDependencyGate = (abilityGroup: SourceFile, binary: SourceFi
   if (!hasStringLiteral(binary, "python3.10") || !hasCall(binary, "downloadFromGithub")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-binary.ts", "video-download/managed-yt-dlp", "Managed yt-dlp path must support refresh and Python 3.10+ runner.");
   }
+  if (!hasStringLiteral(binary, "yt-dlp_macos") || !hasCall(binary, "downloadFile")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-binary.ts", "video-download/macos-standalone-ytdlp", "Managed macOS yt-dlp must download the official standalone asset instead of a Python-version-bound zipapp.");
+  }
 };
 
 const inspectYoutubeMediaProbe = (output: SourceFile, findings: Finding[], lawId: string): void => {
