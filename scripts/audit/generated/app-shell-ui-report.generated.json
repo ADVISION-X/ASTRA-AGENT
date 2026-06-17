@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T23:04:54.767Z",
+  "generatedAt": "2026-06-17T13:24:36.857Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -70,6 +70,7 @@
     "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
+    "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts"
   ]

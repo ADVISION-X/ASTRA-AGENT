@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T23:04:22.443Z",
+  "generatedAt": "2026-06-17T13:24:05.170Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -22,6 +22,7 @@
     "deep-research-analysis",
     "facebook-product-video-mining",
     "media-processing-artifact",
+    "pick3-is-blind-eval",
     "video-download-artifact"
   ],
   "pluginStatusEntries": [
@@ -124,6 +125,31 @@
       ],
       "lawSourceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "pick3-is-blind-eval",
+      "status": "active",
+      "owner": "plugin:pick3-is-blind-eval",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-pick3-routes.ts",
+        "src/lib/local-runtime/workbench-pick3-support.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:pick3-is-blind-eval"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:pick3-is-blind-eval",
+        "audit:pick3-is-blind-eval"
+      ],
+      "exposureTokens": [
+        "pick3-is-blind-eval"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md"
       ]
     },
     {
@@ -239,6 +265,10 @@
       "src/app/workbench-amazon-product-fee-sync-routes.ts",
       "src/lib/local-runtime/workbench.ts"
     ],
+    "pick3-is-blind-eval": [
+      "src/app/workbench-pick3-routes.ts",
+      "src/lib/local-runtime/workbench-pick3-support.ts"
+    ],
     "deep-research-analysis": [
       "src/app/workbench-deep-research-routes.ts",
       "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
@@ -304,9 +334,29 @@
     "acceptance:video-download-youtube-production",
     "acceptance:workbench-api-boundary"
   ],
-  "activePluginViolations": [],
-  "status": "PASS",
-  "findings": [],
+  "activePluginViolations": [
+    {
+      "checkId": "architecture/plugin-active-missing-ci-acceptance",
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "primary",
+      "message": "Active plugin pick3-is-blind-eval has no allowed acceptance smoke wired into ci:full.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/config/plugin-status.json",
+      "evidence": "acceptance:pick3-is-blind-eval"
+    }
+  ],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "architecture/plugin-active-missing-ci-acceptance",
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "primary",
+      "message": "Active plugin pick3-is-blind-eval has no allowed acceptance smoke wired into ci:full.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/config/plugin-status.json",
+      "evidence": "acceptance:pick3-is-blind-eval"
+    }
+  ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
@@ -315,6 +365,7 @@
     ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
     ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
     ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+    ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
     ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -448,6 +499,7 @@
     "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
     "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
     "scripts/acceptance/media-processing-video.acceptance.ts",
+    "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
@@ -615,6 +667,7 @@
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
     "scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
@@ -729,6 +782,7 @@
     "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
+    "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
@@ -874,6 +928,7 @@
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
+    "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
@@ -1056,6 +1111,13 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+    "src/plugins/pick3-is-blind-eval/index.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",

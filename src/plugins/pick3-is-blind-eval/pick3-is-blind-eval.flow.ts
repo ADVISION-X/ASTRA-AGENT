@@ -19,6 +19,10 @@ import {
   type Pick3ScoringSummary,
   type Pick3TaskRecord,
 } from "./pick3-is-blind-eval.schema.js";
+import {
+  buildPick3PlaybookPromptPackage,
+  loadBuiltInPick3Playbooks,
+} from "./pick3-is-blind-eval.playbook.js";
 import { openPick3Storage } from "./pick3-is-blind-eval.storage.js";
 
 export type RunPick3Context = {
@@ -61,7 +65,7 @@ const syncOfficialDraws = async (dataDir: string) => {
   const storage = openPick3Storage(dataDir);
   try {
     const runId = `pick3_sync_${randomUUID()}`;
-    await fetchPick3PrizeBounds();
+    const bounds = await fetchPick3PrizeBounds();
     let rowsSeen = 0;
     let rowsInserted = 0;
     let rowsUpdated = 0;
@@ -69,7 +73,7 @@ const syncOfficialDraws = async (dataDir: string) => {
     let payload: unknown = buildPick3LatestHistoryPayload();
     const seenPhases = new Set<string>();
 
-    for (let page = 0; page < 80; page += 1) {
+    for (let page = 0; page < 200; page += 1) {
       const { draws, officialApiResponseHash } = await fetchPick3HistoryPage(payload);
       latestHash = officialApiResponseHash;
       const freshDraws = draws.filter((draw) => !seenPhases.has(draw.phase));
@@ -81,7 +85,7 @@ const syncOfficialDraws = async (dataDir: string) => {
       const oldest = freshDraws[freshDraws.length - 1];
       if (!oldest || freshDraws.length === 0) break;
       payload = buildPick3CursorHistoryPayload(oldest.phase);
-      if (storage.listDrawsAscending().length >= PICK3_WINDOW_SIZE + 30 && page >= 12) {
+      if (oldest.expectedPrizeTime.slice(0, 10) <= bounds.startTime) {
         break;
       }
     }
@@ -132,6 +136,16 @@ const buildBatch = async (
     positions: input.positions,
     targetDraws,
   });
+  const playbooks = loadBuiltInPick3Playbooks();
+  storage.upsertPlaybooks(playbooks);
+  const playbookByPosition = new Map(playbooks.map((playbook) => [playbook.position, playbook]));
+  const promptPackages = images.map((image) => {
+    const playbook = playbookByPosition.get(image.position);
+    if (!playbook) {
+      throw new Error(`pick3_playbook_missing_${image.position}`);
+    }
+    return buildPick3PlaybookPromptPackage(playbook, image);
+  });
   const sealedAnswers = images.map((image) => ({
     imageId: image.imageId,
     position: image.position,
@@ -140,7 +154,19 @@ const buildBatch = async (
     answerLabel: image.answerLabel,
   }));
   const sealedAnswersHash = hashJson(sealedAnswers);
+  const playbookManifest = playbooks.map((playbook) => ({
+    playbookVersionId: playbook.playbookVersionId,
+    position: playbook.position,
+    version: playbook.version,
+    status: playbook.status,
+    sourceKind: playbook.sourceKind,
+    contentHash: playbook.contentHash,
+    systemPromptHash: playbook.systemPromptHash,
+    visualGrammarHash: playbook.visualGrammarHash,
+  }));
   writeFileSync(path.join(artifactDir, "sealed_answers.json"), `${JSON.stringify(sealedAnswers, null, 2)}\n`);
+  writeFileSync(path.join(artifactDir, "playbook_manifest.json"), `${JSON.stringify(playbookManifest, null, 2)}\n`);
+  writeFileSync(path.join(artifactDir, "ai_prompt_manifest.json"), `${JSON.stringify(promptPackages, null, 2)}\n`);
   writeFileSync(path.join(artifactDir, "ai_image_manifest.json"), `${JSON.stringify(images.map((image) => ({
     imageId: image.imageId,
     position: image.position,

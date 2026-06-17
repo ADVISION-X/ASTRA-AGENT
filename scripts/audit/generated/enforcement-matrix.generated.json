@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T11:29:08.683Z",
+  "generatedAt": "2026-06-17T13:23:57.692Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -303,7 +303,8 @@
         "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-        "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1"
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+        "GRASSEYE-PICK3-IS-BRAIN-006-V1"
       ]
     },
     {

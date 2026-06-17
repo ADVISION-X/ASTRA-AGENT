@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T11:29:08.683Z",
+  "generatedAt": "2026-06-17T13:23:57.692Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -653,18 +653,21 @@
         "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-        "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1"
+        "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+        "GRASSEYE-PICK3-IS-BRAIN-006-V1"
       ],
       "clauseIds": [
         "primary",
         "official-source",
         "blind-boundary",
-        "prompt-repair"
+        "prompt-repair",
+        "agent-owned-playbook"
       ],
       "evidenceModes": [
         "blind-boundary+acceptance",
         "law+blueprint+acceptance",
         "model-metadata+baseline+calibration+acceptance",
+        "playbook+storage+acceptance+audit",
         "prompt-version+audit",
         "source-contract+acceptance"
       ],
@@ -676,6 +679,7 @@
             "## Plugin File Plan",
             "## Sync Algorithm",
             "## Database Schema",
+            "## AGENT-Owned IS Brain",
             "## Image Generation",
             "## AI Prediction Flow",
             "## Reveal And Scoring",

@@ -5,6 +5,10 @@ import { resolve } from "node:path";
 
 import { createPick3BlindImages } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.js";
 import {
+  buildPick3PlaybookPromptPackage,
+  loadBuiltInPick3Playbooks,
+} from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
+import {
   PICK3_LOTTERY_TYPE,
   PICK3_OFFICIAL_SOURCE,
   type Pick3Draw,
@@ -20,11 +24,23 @@ const blueprintPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施�
 const misplacedLawPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 法案.md";
 const manifestPath = "scripts/audit/domains/pick3-is-blind-eval/manifest.json";
 const inspectorPath = "scripts/audit/domains/pick3-is-blind-eval/inspector.ts";
+const playbookLoaderPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts";
+const playbookPaths = [
+  "src/plugins/pick3-is-blind-eval/playbooks/system.md",
+  "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md",
+  "src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md",
+  "src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md",
+  "src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md",
+];
 
 assert.equal(existsSync(fromRepo(lawPath)), true);
 assert.equal(existsSync(fromRepo(blueprintPath)), true);
 assert.equal(existsSync(fromRepo(manifestPath)), true);
 assert.equal(existsSync(fromRepo(inspectorPath)), true);
+assert.equal(existsSync(fromRepo(playbookLoaderPath)), true);
+for (const playbookPath of playbookPaths) {
+  assert.equal(existsSync(fromRepo(playbookPath)), true, `${playbookPath} must exist`);
+}
 assert.equal(existsSync(fromRepo(misplacedLawPath)), false);
 
 const lawText = readRepoText(lawPath);
@@ -38,6 +54,7 @@ for (const token of [
   "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
   "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
   "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+  "GRASSEYE-PICK3-IS-BRAIN-006-V1",
 ]) {
   assert.equal(lawText.includes(token), true, `law must include ${token}`);
 }
@@ -70,8 +87,27 @@ for (const token of [
   "three-position hit rate > 25%",
   "approximate stable per-position hit rate > 63%",
   "confidence is not probability",
+  "## AGENT-Owned IS Brain",
+  "pick3_playbooks",
+  "Pick3PlaybookPromptPackage",
 ]) {
   assert.equal(blueprintText.includes(token), true, `blueprint must include ${token}`);
+}
+
+for (const runtimePath of [
+  "src/plugins/pick3-is-blind-eval/index.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
+]) {
+  assert.equal(readRepoText(runtimePath).includes("trend-intuition-brain"), false, `${runtimePath} must not read external IS brain`);
+}
+
+for (const playbookPath of playbookPaths) {
+  const playbookText = readRepoText(playbookPath);
+  for (const forbidden of ["0-4", "5-9", "0-2", "7-9"]) {
+    assert.equal(playbookText.includes(forbidden), false, `${playbookPath} must not contain numeric bucket ${forbidden}`);
+  }
 }
 
 const latestPayload = {
@@ -154,6 +190,10 @@ try {
     targetDraws: targets,
   });
   assert.equal(images.length, 6);
+  const playbooks = loadBuiltInPick3Playbooks();
+  assert.equal(playbooks.length, 3);
+  storage.upsertPlaybooks(playbooks);
+  assert.equal(storage.listActivePlaybooks().length, 3);
   for (const image of images) {
     assert.equal(existsSync(image.imagePath), true);
     assert.ok(statSync(image.imagePath).size > 1000);
@@ -162,6 +202,19 @@ try {
     assert.equal(image.imagePath.includes(`/${image.position}/`), false);
     assert.equal(image.imagePath.includes("Chart"), false);
     assert.equal(image.imagePath.includes("points"), false);
+    const playbook = playbooks.find((item) => item.position === image.position);
+    assert.ok(playbook);
+    const promptPackage = buildPick3PlaybookPromptPackage(playbook, image);
+    assert.equal(promptPackage.confidenceIsProbability, false);
+    assert.deepEqual(promptPackage.allowedLabels, ["front", "back", "abstain"]);
+    const promptJson = JSON.stringify(promptPackage);
+    assert.equal(promptJson.includes(image.targetPhase), false);
+    assert.equal(promptJson.includes(image.targetExpectedPrizeTime), false);
+    assert.equal(promptJson.includes("answerDigit"), false);
+    assert.equal(promptJson.includes("answerLabel"), false);
+    assert.equal(promptJson.includes("targetPhase"), false);
+    assert.equal(promptJson.includes("expectedPrizeTime"), false);
+    assert.equal(promptJson.includes("trend-intuition-brain"), false);
   }
 } finally {
   storage.close();

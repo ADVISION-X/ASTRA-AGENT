@@ -76,11 +76,18 @@ src/plugins/pick3-is-blind-eval/
   pick3-is-blind-eval.official-api.ts
   pick3-is-blind-eval.chrome-source.ts
   pick3-is-blind-eval.image.ts
+  pick3-is-blind-eval.playbook.ts
   pick3-is-blind-eval.ai.ts
   pick3-is-blind-eval.scoring.ts
   pick3-is-blind-eval.failure-review.ts
   pick3-is-blind-eval.prompt-versioning.ts
   pick3-is-blind-eval.evidence.ts
+  playbooks/
+    system.md
+    visual-grammar.md
+    is_hundreds_l80_v1.md
+    is_tens_l80_v1.md
+    is_ones_l80_v1.md
 ```
 
 Optional audit/acceptance:
@@ -430,6 +437,104 @@ CREATE TABLE prompt_versions (
 );
 ```
 
+### pick3_playbooks
+
+```sql
+CREATE TABLE pick3_playbooks (
+  playbook_version_id TEXT PRIMARY KEY,
+  position TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  source_kind TEXT NOT NULL,
+  content_path TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  system_prompt_hash TEXT NOT NULL,
+  visual_grammar_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  parent_playbook_version_id TEXT,
+  created_from_failure_review_id TEXT,
+  notes TEXT
+);
+```
+
+## AGENT-Owned IS Brain
+
+The Pick3 IS Brain is not an external project dependency. The active brain source is:
+
+```txt
+src/plugins/pick3-is-blind-eval/playbooks/
+```
+
+Required active Playbook files:
+
+```txt
+system.md
+visual-grammar.md
+is_hundreds_l80_v1.md
+is_tens_l80_v1.md
+is_ones_l80_v1.md
+```
+
+Runtime rules:
+
+```txt
+AGENT is the only Playbook source.
+No /Users/nexgen/Documents/trend-intuition-brain runtime read.
+No fallback prompt path.
+No bridge prompt loader.
+No external prompt mirror.
+```
+
+The active Playbook may contain:
+
+```txt
+mission
+image law
+position stream boundary
+visual grammar
+decision rules
+confidence discipline
+abstain rules
+failure risk language
+output schema
+```
+
+The active Playbook must not contain:
+
+```txt
+targetPhase
+expectedPrizeTime
+answerDigit
+answerLabel
+concrete historical failed-case answer memory
+future results
+lottery source outside UAE Pick 3
+betting advice
+```
+
+Failure examples with revealed answers belong only in `failure_reviews`, candidate repair notes, or diagnostic replay records. They are not part of the blind prediction payload.
+
+Playbook prompt package:
+
+```ts
+type Pick3PlaybookPromptPackage = {
+  playbookVersionId: string;
+  position: "hundreds" | "tens" | "ones";
+  systemPrompt: string;
+  businessPrompt: string;
+  systemPromptHash: string;
+  businessPromptHash: string;
+  visualGrammarHash: string;
+  rawPromptHash: string;
+  confidenceIsProbability: false;
+  allowedLabels: ["front", "back", "abstain"];
+  imageRef: {
+    imageId: string;
+    imageSha256: string;
+  };
+};
+```
+
 ### failure_reviews
 
 ```sql
@@ -582,9 +687,9 @@ neighboring target answers
 For 3 positions:
 
 ```txt
-hundreds -> prompts/is_hundreds_blind_visual_judgment_prompt.md
-tens     -> prompts/is_tens_blind_visual_judgment_prompt.md
-ones     -> prompts/is_ones_blind_visual_judgment_prompt.md
+hundreds -> src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md
+tens     -> src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md
+ones     -> src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md
 ```
 
 ## Reveal And Scoring
@@ -672,20 +777,12 @@ For each position:
 5. mark new prompt status = candidate.
 ```
 
-Prompt file targets in trend project:
-
-```txt
-/Users/nexgen/Documents/trend-intuition-brain/prompts/is_hundreds_blind_visual_judgment_prompt.md
-/Users/nexgen/Documents/trend-intuition-brain/prompts/is_tens_blind_visual_judgment_prompt.md
-/Users/nexgen/Documents/trend-intuition-brain/prompts/is_ones_blind_visual_judgment_prompt.md
-```
-
 Plugin should write candidate prompts as:
 
 ```txt
-prompts/candidates/is_hundreds_v{n}.md
-prompts/candidates/is_tens_v{n}.md
-prompts/candidates/is_ones_v{n}.md
+src/plugins/pick3-is-blind-eval/playbooks/candidates/is_hundreds_l80_v{n}.md
+src/plugins/pick3-is-blind-eval/playbooks/candidates/is_tens_l80_v{n}.md
+src/plugins/pick3-is-blind-eval/playbooks/candidates/is_ones_l80_v{n}.md
 ```
 
 Human promotion can copy candidate to active prompt.
@@ -760,13 +857,7 @@ type Pick3IsBlindEvalInput = {
   targetMode?: "latest_unrevealed" | "historical_blind_batch" | "explicit_phases";
   explicitTargetPhases?: string[];
   batchSize?: number;
-  trendProjectRoot: string;
   artifactRoot?: string;
-  promptPaths?: {
-    hundreds: string;
-    tens: string;
-    ones: string;
-  };
   aiProvider?: "web-chat" | "ai-input-gateway";
   dryRun?: boolean;
 };
@@ -923,6 +1014,9 @@ Acceptance tests:
 8. one-image AI payload contains no target phase/date/answer.
 9. reveal refuses to run when predictions are missing.
 10. failure replay records not_valid_for_accuracy=true.
+11. active Playbook files are inside AGENT Pick3 plugin owner.
+12. AGENT code, law, and blueprint contain no runtime dependency on trend-intuition-brain.
+13. Playbook prompt package contains hashes and no target phase/date/answer fields.
 ```
 
 Manual Chrome acceptance:

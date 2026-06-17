@@ -102,6 +102,31 @@
       ]
     },
     {
+      "pluginId": "pick3-is-blind-eval",
+      "status": "active",
+      "owner": "plugin:pick3-is-blind-eval",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-pick3-routes.ts",
+        "src/lib/local-runtime/workbench-pick3-support.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:pick3-is-blind-eval"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:pick3-is-blind-eval",
+        "audit:pick3-is-blind-eval"
+      ],
+      "exposureTokens": [
+        "pick3-is-blind-eval"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md"
+      ]
+    },
+    {
       "pluginId": "deep-research-analysis",
       "status": "active",
       "owner": "plugin:deep-research-analysis",

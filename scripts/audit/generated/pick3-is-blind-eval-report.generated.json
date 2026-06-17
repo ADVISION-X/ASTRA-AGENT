@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T12:12:03.454Z",
+  "generatedAt": "2026-06-17T13:24:38.406Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,7 +7,8 @@
     "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
     "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
     "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-    "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1"
+    "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+    "GRASSEYE-PICK3-IS-BRAIN-006-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -17,6 +18,12 @@
     "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
-    "package.json"
+    "package.json",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+    "src/plugins/pick3-is-blind-eval/playbooks/system.md",
+    "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md",
+    "src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md",
+    "src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md",
+    "src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md"
   ]
 }

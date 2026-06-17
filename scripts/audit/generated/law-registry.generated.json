@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T11:29:08.683Z",
+  "generatedAt": "2026-06-17T13:23:57.692Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3111,6 +3111,29 @@
       "blockIndex": 0
     },
     {
+      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "playbook+storage+acceptance+audit",
+      "summary": "Pick3 IS brain must be AGENT-owned: active Playbook assets live inside the Pick3 plugin, are versioned and hash-addressed, and blind prediction payloads must not depend on trend-intuition-brain or leak concrete answers.",
+      "required": [
+        "Active Playbook assets live under src/plugins/pick3-is-blind-eval/playbooks/.",
+        "Playbook versions are persisted with content hash before prediction use.",
+        "Blind prompt packages include only visual grammar, decision rules, confidence discipline, abstain rules, and one image reference.",
+        "Failure examples with revealed answers stay in failure review records or candidate repair notes, not in active blind Playbook payloads."
+      ],
+      "forbidden": [
+        "Runtime dependency on /Users/nexgen/Documents/trend-intuition-brain.",
+        "External Playbook fallback or prompt bridge.",
+        "Active blind Playbook containing target phase, date, answer digit, answer label, or future results.",
+        "Failure replay or revealed-answer memory counted as future blind accuracy."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 1
+    },
+    {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
       "status": "active",
       "tier": "P0",
@@ -3134,7 +3157,7 @@
         "Digit position remapping by prompt preference."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
@@ -3162,7 +3185,7 @@
         "Post-reveal prediction overwrite."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
@@ -3187,7 +3210,7 @@
         "Abstain counted as hit or miss without separate coverage accounting."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
@@ -3209,7 +3232,7 @@
         "Replay overwrites original prediction or reveal."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",

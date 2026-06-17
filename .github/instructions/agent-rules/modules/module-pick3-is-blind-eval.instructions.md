@@ -49,6 +49,12 @@ UAE Lottery Pick 3 official source
 - Prompt rewrite must create a new prompt version instead of mutating historical prompts.
 - Failure replay must be recorded as `mode = failure_replay` and `not_valid_for_accuracy = true`.
 - BrowserController/Chrome verification must exist for official page drift checks and DOM/API consistency evidence.
+- The AGENT-owned Pick3 Playbook is the only IS brain source for this executor.
+- Active Playbook assets must live under `src/plugins/pick3-is-blind-eval/playbooks/`.
+- Playbook content may teach visual grammar, decision rules, confidence discipline, and abstain rules.
+- Playbook content sent to blind prediction must not contain concrete historical failed-case answers, target phase, date, answer digit, answer label, or future results.
+- Failure library and replay records may store revealed answers, but they must not be merged into the active blind Playbook payload.
+- Playbook versions must be hash-addressed and persisted before prediction use.
 
 ## Forbidden
 
@@ -67,6 +73,8 @@ UAE Lottery Pick 3 official source
 - No claiming failure replay accuracy as future/blind accuracy.
 - No synthesizing missing official draws.
 - No generic shared lottery owner hiding this domain.
+- No runtime dependency on `/Users/nexgen/Documents/trend-intuition-brain`.
+- No external Playbook fallback, bridge, mirror, or prompt path outside the Pick3 plugin owner.
 
 ## Law IDs
 
@@ -86,6 +94,30 @@ UAE Lottery Pick 3 official source
     "contact-sheet blind payloads",
     "answer reveal before prediction sealing",
     "failure replay counted as future accuracy"
+  ]
+}
+```
+
+```apex-law
+{
+  "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "pick3-is-blind-eval",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "playbook+storage+acceptance+audit",
+  "summary": "Pick3 IS brain must be AGENT-owned: active Playbook assets live inside the Pick3 plugin, are versioned and hash-addressed, and blind prediction payloads must not depend on trend-intuition-brain or leak concrete answers.",
+  "required": [
+    "Active Playbook assets live under src/plugins/pick3-is-blind-eval/playbooks/.",
+    "Playbook versions are persisted with content hash before prediction use.",
+    "Blind prompt packages include only visual grammar, decision rules, confidence discipline, abstain rules, and one image reference.",
+    "Failure examples with revealed answers stay in failure review records or candidate repair notes, not in active blind Playbook payloads."
+  ],
+  "forbidden": [
+    "Runtime dependency on /Users/nexgen/Documents/trend-intuition-brain.",
+    "External Playbook fallback or prompt bridge.",
+    "Active blind Playbook containing target phase, date, answer digit, answer label, or future results.",
+    "Failure replay or revealed-answer memory counted as future blind accuracy."
   ]
 }
 ```

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-12T23:04:51.470Z",
+  "generatedAt": "2026-06-17T13:24:34.517Z",
   "status": "PASS",
-  "scannedFiles": 393,
+  "scannedFiles": 402,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -58,6 +58,7 @@
     "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
+    "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
@@ -203,6 +204,7 @@
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
+    "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
@@ -385,6 +387,13 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+    "src/plugins/pick3-is-blind-eval/index.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
@@ -415,7 +424,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 393,
+    "scannedFiles": 402,
     "emitCallCount": 37,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -426,7 +435,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 388,
+      "scannedFiles": 397,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -435,13 +444,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 303
+      "scannedFiles": 311
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 299,
+      "scannedFiles": 307,
       "metrics": {
         "emitCallCount": 26
       }
@@ -450,13 +459,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 299
+      "scannedFiles": 307
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 304,
+      "scannedFiles": 312,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -471,7 +480,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 304,
+      "scannedFiles": 312,
       "metrics": {
         "failureWithoutClassCount": 0
       }

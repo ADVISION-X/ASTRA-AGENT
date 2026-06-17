@@ -4,8 +4,54 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-06-12T23:04:46.395Z",
+  "findings": [
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/app-shell/app-shell-layout.ts has an over-line function near line 166.",
+      "severity": "fatal",
+      "filePath": "src/app/app-shell/app-shell-layout.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-home-client.ts has 547 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-home-client.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/pick3-is-blind-eval/index.ts exports 28 symbols and exceeds the red line 24.",
+      "severity": "fatal",
+      "filePath": "src/plugins/pick3-is-blind-eval/index.ts",
+      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts has an over-line function near line 114.",
+      "severity": "fatal",
+      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts has an over-line function near line 134.",
+      "severity": "fatal",
+      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
+      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-06-17T13:24:30.071Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -78,6 +124,7 @@
     "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
     "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
     "scripts/acceptance/media-processing-video.acceptance.ts",
+    "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
@@ -244,6 +291,7 @@
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
     "scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
@@ -358,6 +406,7 @@
     "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
+    "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
@@ -500,6 +549,7 @@
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
+    "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
@@ -682,6 +732,13 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+    "src/plugins/pick3-is-blind-eval/index.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
@@ -1123,6 +1180,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+      "reason": "package.json script acceptance:pick3-is-blind-eval",
+      "scriptName": "acceptance:pick3-is-blind-eval"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
       "reason": "package.json script acceptance:runtime-log-spine",
       "scriptName": "acceptance:runtime-log-spine"
@@ -1303,6 +1366,12 @@
     },
     {
       "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
+      "entryKind": "owner-inspector",
       "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
       "reason": "generated-plan owner inspector dynamic load",
       "scriptName": null
@@ -1350,10 +1419,10 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 1975,
+  "liveExportCount": 2040,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 684,
-  "status": "PASS",
+  "reachableFileCount": 695,
+  "status": "FAIL",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
   "unprovenPublicExports": [],
@@ -1364,9 +1433,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1975,
+    "liveExportCount": 2040,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 684,
+    "reachableFileCount": 695,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

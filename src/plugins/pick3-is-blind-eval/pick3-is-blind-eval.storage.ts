@@ -12,6 +12,7 @@ import {
   type Pick3ImageRecord,
   type Pick3TaskRecord,
 } from "./pick3-is-blind-eval.schema.js";
+import type { Pick3PlaybookRecord } from "./pick3-is-blind-eval.playbook.js";
 
 export type Pick3Storage = {
   close: () => void;
@@ -27,6 +28,8 @@ export type Pick3Storage = {
     sealedAnswersHash: string;
   }) => void;
   insertImages: (images: readonly Pick3ImageRecord[]) => void;
+  upsertPlaybooks: (playbooks: readonly Pick3PlaybookRecord[]) => void;
+  listActivePlaybooks: () => Pick3PlaybookRecord[];
   writeTask: (record: Pick3TaskRecord) => void;
   readLatestTask: () => Pick3TaskRecord | null;
 };
@@ -79,6 +82,21 @@ CREATE TABLE IF NOT EXISTS is_blind_images (
   answer_digit INTEGER NOT NULL,
   answer_label TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS pick3_playbooks (
+  playbook_version_id TEXT PRIMARY KEY,
+  position TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  source_kind TEXT NOT NULL,
+  content_path TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  system_prompt_hash TEXT NOT NULL,
+  visual_grammar_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  parent_playbook_version_id TEXT,
+  created_from_failure_review_id TEXT,
+  notes TEXT
+);
 `);
 };
 
@@ -96,6 +114,21 @@ const rowToDraw = (row: Record<string, unknown>): Pick3Draw => ({
   resultDetailJson: String(row.result_detail_json),
   rawJson: String(row.raw_json),
   rawHash: String(row.raw_hash),
+});
+
+const rowToPlaybook = (row: Record<string, unknown>): Pick3PlaybookRecord => ({
+  playbookVersionId: String(row.playbook_version_id),
+  position: row.position as Pick3PlaybookRecord["position"],
+  version: Number(row.version),
+  status: row.status as Pick3PlaybookRecord["status"],
+  sourceKind: row.source_kind as Pick3PlaybookRecord["sourceKind"],
+  contentPath: String(row.content_path),
+  contentHash: String(row.content_hash),
+  systemPromptHash: String(row.system_prompt_hash),
+  visualGrammarHash: String(row.visual_grammar_hash),
+  parentPlaybookVersionId: row.parent_playbook_version_id === null ? null : String(row.parent_playbook_version_id),
+  createdFromFailureReviewId: row.created_from_failure_review_id === null ? null : String(row.created_from_failure_review_id),
+  notes: row.notes === null ? null : String(row.notes),
 });
 
 export const openPick3Storage = (dataDir: string): Pick3Storage => {
@@ -119,6 +152,20 @@ UPDATE pick3_draws SET
   hundreds = ?, tens = ?, ones = ?, total_winning_bet_count = ?,
   result_detail_json = ?, raw_json = ?, raw_hash = ?, fetched_at = ?, updated_at = ?
 WHERE source = ? AND lottery_type = ? AND phase = ?
+`);
+  const upsertPlaybook = db.prepare(`
+INSERT INTO pick3_playbooks (
+  playbook_version_id, position, version, status, source_kind, content_path,
+  content_hash, system_prompt_hash, visual_grammar_hash, created_at,
+  parent_playbook_version_id, created_from_failure_review_id, notes
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(playbook_version_id) DO UPDATE SET
+  status = excluded.status,
+  content_path = excluded.content_path,
+  content_hash = excluded.content_hash,
+  system_prompt_hash = excluded.system_prompt_hash,
+  visual_grammar_hash = excluded.visual_grammar_hash,
+  notes = excluded.notes
 `);
 
   return {
@@ -236,6 +283,34 @@ INSERT OR REPLACE INTO is_blind_images (
         }
       });
       run();
+    },
+    upsertPlaybooks(playbooks) {
+      const now = new Date().toISOString();
+      const run = db.transaction(() => {
+        for (const playbook of playbooks) {
+          upsertPlaybook.run(
+            playbook.playbookVersionId,
+            playbook.position,
+            playbook.version,
+            playbook.status,
+            playbook.sourceKind,
+            playbook.contentPath,
+            playbook.contentHash,
+            playbook.systemPromptHash,
+            playbook.visualGrammarHash,
+            now,
+            playbook.parentPlaybookVersionId,
+            playbook.createdFromFailureReviewId,
+            playbook.notes,
+          );
+        }
+      });
+      run();
+    },
+    listActivePlaybooks() {
+      return db.prepare("SELECT * FROM pick3_playbooks WHERE status = 'active' ORDER BY position ASC, version DESC")
+        .all()
+        .map((row) => rowToPlaybook(row as Record<string, unknown>));
     },
     writeTask(record) {
       const taskDir = path.join(dataRoot, "tasks", record.taskId);

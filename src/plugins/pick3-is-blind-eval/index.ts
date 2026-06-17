@@ -27,3 +27,10 @@ export {
   runPick3IsBlindEvalFlow,
   type RunPick3Context,
 } from "./pick3-is-blind-eval.flow.js";
+export {
+  buildPick3PlaybookPromptPackage,
+  loadBuiltInPick3Playbooks,
+  type Pick3PlaybookPromptPackage,
+  type Pick3PlaybookRecord,
+  type Pick3PlaybookVersion,
+} from "./pick3-is-blind-eval.playbook.js";

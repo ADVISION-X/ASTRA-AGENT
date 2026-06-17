@@ -8,7 +8,8 @@
       "primary",
       "official-source",
       "blind-boundary",
-      "prompt-repair"
+      "prompt-repair",
+      "agent-owned-playbook"
     ]
   },
   "blueprintRefs": [
@@ -19,6 +20,7 @@
         "## Plugin File Plan",
         "## Sync Algorithm",
         "## Database Schema",
+        "## AGENT-Owned IS Brain",
         "## Image Generation",
         "## AI Prediction Flow",
         "## Reveal And Scoring",
