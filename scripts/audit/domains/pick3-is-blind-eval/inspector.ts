@@ -12,6 +12,8 @@ const manifestPath = "scripts/audit/domains/pick3-is-blind-eval/manifest.json";
 const selfPath = "scripts/audit/domains/pick3-is-blind-eval/inspector.ts";
 const acceptancePath = "scripts/acceptance/pick3-is-blind-eval.acceptance.ts";
 const packagePath = "package.json";
+const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
+const workbenchPick3SupportPath = "src/lib/local-runtime/workbench-pick3-support.ts";
 const playbookLoaderPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts";
 const aiExchangePath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts";
 const scoringPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts";
@@ -31,6 +33,8 @@ const inspectedFiles = [
   selfPath,
   acceptancePath,
   packagePath,
+  appShellLayoutPath,
+  workbenchPick3SupportPath,
   playbookLoaderPath,
   aiExchangePath,
   scoringPath,
@@ -270,6 +274,8 @@ const inspectRuntimeExternalBrain = (findings: InspectorFinding[], agentBrainLaw
 
 const inspectPromptExchangeRuntime = (findings: InspectorFinding[], promptExchangeLaw: string): void => {
   const aiText = existsRepoPath(aiExchangePath) ? readRepoText(aiExchangePath) : "";
+  const appShellLayoutText = existsRepoPath(appShellLayoutPath) ? readRepoText(appShellLayoutPath) : "";
+  const workbenchPick3SupportText = existsRepoPath(workbenchPick3SupportPath) ? readRepoText(workbenchPick3SupportPath) : "";
   const storageSchemaText = existsRepoPath(storageSchemaPath) ? readRepoText(storageSchemaPath) : "";
   const storageText = existsRepoPath("src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts")
     ? readRepoText("src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts")
@@ -287,6 +293,15 @@ const inspectPromptExchangeRuntime = (findings: InspectorFinding[], promptExchan
   requireTokens(findings, promptExchangeLaw, "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts", storageText, "pick3-is-blind-eval/interaction-storage", [
     "insertAiInteractions",
     "listAiInteractions",
+  ]);
+  requireTokens(findings, promptExchangeLaw, workbenchPick3SupportPath, workbenchPick3SupportText, "pick3-is-blind-eval/workbench-gateway-sender", [
+    "assembly.aiInputGateway.execute",
+    "pick3GatewaySender",
+    "assembly.browserController",
+  ]);
+  requireTokens(findings, promptExchangeLaw, appShellLayoutPath, appShellLayoutText, "pick3-is-blind-eval/full-pipeline-ui", [
+    "full_pipeline",
+    "Full pipeline via GPT web chat",
   ]);
   if (aiText.includes("Pick3ManualAiResponse")) {
     addFinding(findings, promptExchangeLaw, aiExchangePath, "pick3-is-blind-eval/no-direct-manual-ingestion", "Pick3 AI exchange must not use direct manual response ingestion.");

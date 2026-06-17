@@ -187,6 +187,7 @@ const renderPick3RunForm = (): string => `
       <label>Mode</label>
       <select name="mode">
         <option value="generate_batch">Sync and generate images</option>
+        <option value="full_pipeline">Full pipeline via GPT web chat</option>
         <option value="sync_only">Sync only</option>
       </select>
     </div>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T14:21:15.896Z",
+  "generatedAt": "2026-06-17T15:02:13.483Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,6 +20,8 @@
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
     "package.json",
+    "src/app/app-shell/app-shell-layout.ts",
+    "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",

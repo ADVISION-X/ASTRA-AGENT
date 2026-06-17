@@ -712,6 +712,23 @@ REVEAL
 
 Manual GPT chat is allowed only as the capture surface behind `Pick3GatewaySender`. It must return raw output and provider proof into `pick3_ai_interactions`; it must not write `ai_predictions` directly.
 
+Workbench runtime entry:
+
+```txt
+src/lib/local-runtime/workbench-pick3-support.ts
+  -> reuse assembly.aiInputGateway
+  -> pick3GatewaySender(input) = assembly.aiInputGateway.execute(input)
+  -> runPick3IsBlindEvalFlow({ mode: "full_pipeline" }, context)
+```
+
+App Shell must expose:
+
+```txt
+mode = full_pipeline
+source label = Full pipeline via GPT web chat
+default zh label = 通过 GPT 网页聊天运行完整链路
+```
+
 Per image payload:
 
 ```txt

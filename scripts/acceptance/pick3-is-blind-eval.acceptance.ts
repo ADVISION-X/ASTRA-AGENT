@@ -38,8 +38,10 @@ const blueprintPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施�
 const misplacedLawPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 法案.md";
 const manifestPath = "scripts/audit/domains/pick3-is-blind-eval/manifest.json";
 const inspectorPath = "scripts/audit/domains/pick3-is-blind-eval/inspector.ts";
+const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const playbookLoaderPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts";
 const aiExchangePath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts";
+const workbenchPick3SupportPath = "src/lib/local-runtime/workbench-pick3-support.ts";
 const playbookPaths = [
   "src/plugins/pick3-is-blind-eval/playbooks/system.md",
   "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md",
@@ -52,8 +54,10 @@ assert.equal(existsSync(fromRepo(lawPath)), true);
 assert.equal(existsSync(fromRepo(blueprintPath)), true);
 assert.equal(existsSync(fromRepo(manifestPath)), true);
 assert.equal(existsSync(fromRepo(inspectorPath)), true);
+assert.equal(existsSync(fromRepo(appShellLayoutPath)), true);
 assert.equal(existsSync(fromRepo(playbookLoaderPath)), true);
 assert.equal(existsSync(fromRepo(aiExchangePath)), true);
+assert.equal(existsSync(fromRepo(workbenchPick3SupportPath)), true);
 for (const playbookPath of playbookPaths) {
   assert.equal(existsSync(fromRepo(playbookPath)), true, `${playbookPath} must exist`);
 }
@@ -61,6 +65,8 @@ assert.equal(existsSync(fromRepo(misplacedLawPath)), false);
 
 const lawText = readRepoText(lawPath);
 const blueprintText = readRepoText(blueprintPath);
+const appShellLayoutText = readRepoText(appShellLayoutPath);
+const workbenchPick3SupportText = readRepoText(workbenchPick3SupportPath);
 
 for (const token of [
   "```apex-law",
@@ -135,6 +141,10 @@ for (const runtimePath of [
 ]) {
   assert.equal(readRepoText(runtimePath).includes("trend-intuition-brain"), false, `${runtimePath} must not read external IS brain`);
 }
+assert.equal(appShellLayoutText.includes('value="full_pipeline"'), true, "Pick3 App Shell must expose full_pipeline mode.");
+assert.equal(workbenchPick3SupportText.includes("assembly.aiInputGateway.execute"), true, "Workbench Pick3 handle must reuse canonical AI Input Gateway.");
+assert.equal(workbenchPick3SupportText.includes("pick3GatewaySender"), true, "Workbench Pick3 handle must pass Pick3GatewaySender.");
+assert.equal(workbenchPick3SupportText.includes("assembly.browserController"), true, "Workbench Pick3 sender must use governed BrowserController.");
 
 for (const playbookPath of playbookPaths) {
   const playbookText = readRepoText(playbookPath);

@@ -1,294 +1,479 @@
 {
-  "generatedAt": "2026-06-17T14:20:34.697Z",
+  "generatedAt": "2026-06-17T15:03:09.869Z",
   "mode": "fail_fast",
-  "status": "FAIL",
-  "firstFailure": {
-    "phase": "domain-audit-runner",
-    "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
-    "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-    "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
-    "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts must contain CREATE TABLE IF NOT EXISTS pick3_ai_interactions.",
-    "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
-  },
+  "status": "PASS",
+  "firstFailure": null,
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 237,
-      "endedAt": "2026-06-17T14:19:54.704Z",
+      "durationMs": 219,
+      "endedAt": "2026-06-17T15:01:30.031Z",
       "name": "codex-entry-gate",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-06-17T14:19:54.467Z",
+      "startedAt": "2026-06-17T15:01:29.812Z",
       "status": "PASS"
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 30,
-      "endedAt": "2026-06-17T14:19:54.735Z",
+      "durationMs": 20,
+      "endedAt": "2026-06-17T15:01:30.051Z",
       "name": "build-audit-artifacts",
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-06-17T14:19:54.705Z",
+      "startedAt": "2026-06-17T15:01:30.031Z",
       "status": "PASS"
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 1,
-      "endedAt": "2026-06-17T14:19:54.736Z",
+      "endedAt": "2026-06-17T15:01:30.052Z",
       "name": "active-law-full-coverage",
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-06-17T14:19:54.735Z",
+      "startedAt": "2026-06-17T15:01:30.051Z",
       "status": "PASS"
     },
     {
       "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
-      "durationMs": 2003,
-      "endedAt": "2026-06-17T14:19:56.739Z",
+      "durationMs": 1717,
+      "endedAt": "2026-06-17T15:01:31.769Z",
       "name": "meta-quality",
       "phase": "meta-quality",
-      "startedAt": "2026-06-17T14:19:54.736Z",
+      "startedAt": "2026-06-17T15:01:30.052Z",
       "status": "PASS"
     },
     {
       "command": "npm run typecheck",
-      "durationMs": 3714,
-      "endedAt": "2026-06-17T14:20:00.453Z",
+      "durationMs": 3713,
+      "endedAt": "2026-06-17T15:01:35.482Z",
       "name": "typecheck",
       "phase": "typecheck",
-      "startedAt": "2026-06-17T14:19:56.739Z",
+      "startedAt": "2026-06-17T15:01:31.769Z",
       "status": "PASS"
-    }
-  ],
-  "skippedAfterFailure": [
+    },
+    {
+      "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
+      "durationMs": 38307,
+      "endedAt": "2026-06-17T15:02:13.789Z",
+      "name": "domain-audit-runner",
+      "phase": "domain-audit-runner",
+      "startedAt": "2026-06-17T15:01:35.482Z",
+      "status": "PASS"
+    },
     {
       "command": "npm run acceptance:constitutional-boundary-anti-escape",
+      "durationMs": 2179,
+      "endedAt": "2026-06-17T15:02:15.969Z",
       "name": "constitutional-boundary-anti-escape",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:13.790Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:code-purity-zombie-deep",
+      "durationMs": 4637,
+      "endedAt": "2026-06-17T15:02:20.606Z",
       "name": "code-purity-zombie-deep",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:15.969Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:audit-truth-coverage",
+      "durationMs": 860,
+      "endedAt": "2026-06-17T15:02:21.466Z",
       "name": "audit-truth-coverage",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:20.606Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:ci-summary-truth",
+      "durationMs": 490,
+      "endedAt": "2026-06-17T15:02:21.956Z",
       "name": "ci-summary-truth",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:21.466Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:runtime-truth-completed-evidence",
+      "durationMs": 493,
+      "endedAt": "2026-06-17T15:02:22.449Z",
       "name": "runtime-truth-completed-evidence",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:21.956Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:runtime-log-spine",
+      "durationMs": 6546,
+      "endedAt": "2026-06-17T15:02:28.995Z",
       "name": "runtime-log-spine",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:22.449Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-analysis-smoke",
+      "durationMs": 355,
+      "endedAt": "2026-06-17T15:02:29.350Z",
       "name": "deep-research-analysis-smoke",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:28.995Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-input-attachments",
+      "durationMs": 262,
+      "endedAt": "2026-06-17T15:02:29.612Z",
       "name": "deep-research-input-attachments",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:29.350Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-promptbundle-sovereignty",
+      "durationMs": 226,
+      "endedAt": "2026-06-17T15:02:29.838Z",
       "name": "deep-research-promptbundle-sovereignty",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:29.612Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-per-subquestion-promptbundle",
+      "durationMs": 250,
+      "endedAt": "2026-06-17T15:02:30.088Z",
       "name": "deep-research-per-subquestion-promptbundle",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:29.838Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-single-chain",
+      "durationMs": 220,
+      "endedAt": "2026-06-17T15:02:30.308Z",
       "name": "deep-research-single-chain",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:30.088Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-full-case-file",
+      "durationMs": 256,
+      "endedAt": "2026-06-17T15:02:30.564Z",
       "name": "deep-research-full-case-file",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:30.308Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-runtime-shell-only",
+      "durationMs": 219,
+      "endedAt": "2026-06-17T15:02:30.783Z",
       "name": "deep-research-runtime-shell-only",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:30.564Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-raw-response-sovereignty",
+      "durationMs": 255,
+      "endedAt": "2026-06-17T15:02:31.038Z",
       "name": "deep-research-raw-response-sovereignty",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:30.783Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-format-shell-boundary",
+      "durationMs": 221,
+      "endedAt": "2026-06-17T15:02:31.259Z",
       "name": "deep-research-format-shell-boundary",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:31.038Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-final-adjudication-raw",
+      "durationMs": 235,
+      "endedAt": "2026-06-17T15:02:31.494Z",
       "name": "deep-research-final-adjudication-raw",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:31.259Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-no-system-confidence",
+      "durationMs": 218,
+      "endedAt": "2026-06-17T15:02:31.712Z",
       "name": "deep-research-no-system-confidence",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:31.494Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-promptbundle-field-consistency",
+      "durationMs": 218,
+      "endedAt": "2026-06-17T15:02:31.930Z",
       "name": "deep-research-promptbundle-field-consistency",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:31.712Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-uses-raw-final-answer",
+      "durationMs": 220,
+      "endedAt": "2026-06-17T15:02:32.150Z",
       "name": "deep-research-html-uses-raw-final-answer",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:31.930Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-final-adjudication-promptbundle-input",
+      "durationMs": 260,
+      "endedAt": "2026-06-17T15:02:32.410Z",
       "name": "deep-research-final-adjudication-promptbundle-input",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:32.150Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-promptbundle-input",
+      "durationMs": 215,
+      "endedAt": "2026-06-17T15:02:32.625Z",
       "name": "deep-research-html-promptbundle-input",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:32.410Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-report-only",
+      "durationMs": 218,
+      "endedAt": "2026-06-17T15:02:32.843Z",
       "name": "deep-research-html-report-only",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:32.625Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-full-process-report",
+      "durationMs": 250,
+      "endedAt": "2026-06-17T15:02:33.093Z",
       "name": "deep-research-html-full-process-report",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:32.843Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-subquestion-failure-stop",
+      "durationMs": 303,
+      "endedAt": "2026-06-17T15:02:33.396Z",
       "name": "deep-research-subquestion-failure-stop",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:33.093Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-report-export",
+      "durationMs": 218,
+      "endedAt": "2026-06-17T15:02:33.614Z",
       "name": "deep-research-report-export",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:33.396Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-no-compatibility-formats",
+      "durationMs": 237,
+      "endedAt": "2026-06-17T15:02:33.851Z",
       "name": "deep-research-no-compatibility-formats",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:33.614Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-app-ui",
+      "durationMs": 216,
+      "endedAt": "2026-06-17T15:02:34.067Z",
       "name": "deep-research-app-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:33.851Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-case-reader-ui",
+      "durationMs": 219,
+      "endedAt": "2026-06-17T15:02:34.286Z",
       "name": "deep-research-case-reader-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:34.067Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-promptbundle-visibility-ui",
+      "durationMs": 231,
+      "endedAt": "2026-06-17T15:02:34.517Z",
       "name": "deep-research-promptbundle-visibility-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:34.286Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-clean-raw-index-ui",
+      "durationMs": 224,
+      "endedAt": "2026-06-17T15:02:34.741Z",
       "name": "deep-research-clean-raw-index-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:34.517Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:deep-research-html-delivery-status-ui",
+      "durationMs": 222,
+      "endedAt": "2026-06-17T15:02:34.963Z",
       "name": "deep-research-html-delivery-status-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:34.741Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:app-shell-ui",
+      "durationMs": 590,
+      "endedAt": "2026-06-17T15:02:35.553Z",
       "name": "app-shell-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:34.963Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:workbench-api-boundary",
+      "durationMs": 552,
+      "endedAt": "2026-06-17T15:02:36.105Z",
       "name": "workbench-api-boundary",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:35.553Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-invoice-upload-batch",
+      "durationMs": 222,
+      "endedAt": "2026-06-17T15:02:36.327Z",
       "name": "amazon-invoice-upload-batch",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:36.105Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-invoice-upload-download",
+      "durationMs": 256,
+      "endedAt": "2026-06-17T15:02:36.583Z",
       "name": "amazon-invoice-upload-download",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:36.327Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-invoice-upload-smoke",
+      "durationMs": 1797,
+      "endedAt": "2026-06-17T15:02:38.380Z",
       "name": "amazon-invoice-upload-smoke",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:36.583Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:facebook-product-video-mining",
+      "durationMs": 4096,
+      "endedAt": "2026-06-17T15:02:42.476Z",
       "name": "facebook-product-video-mining",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:38.380Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-product-mining",
+      "durationMs": 6106,
+      "endedAt": "2026-06-17T15:02:48.582Z",
       "name": "amazon-product-mining",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:42.476Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-product-sync",
+      "durationMs": 333,
+      "endedAt": "2026-06-17T15:02:48.915Z",
       "name": "amazon-product-sync",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:48.582Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:amazon-product-fee-sync",
+      "durationMs": 231,
+      "endedAt": "2026-06-17T15:02:49.146Z",
       "name": "amazon-product-fee-sync",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:48.915Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:pick3-is-blind-eval",
+      "durationMs": 365,
+      "endedAt": "2026-06-17T15:02:49.511Z",
       "name": "pick3-is-blind-eval",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:49.146Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:video-download-telegram-web",
+      "durationMs": 261,
+      "endedAt": "2026-06-17T15:02:49.772Z",
       "name": "video-download-telegram-web",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:49.511Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:video-download-youtube-production",
+      "durationMs": 1516,
+      "endedAt": "2026-06-17T15:02:51.288Z",
       "name": "video-download-youtube-production",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:49.772Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:media-processing",
+      "durationMs": 16212,
+      "endedAt": "2026-06-17T15:03:07.500Z",
       "name": "media-processing",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:02:51.288Z",
+      "status": "PASS"
     },
     {
       "command": "npm run acceptance:media-optimizer-app-ui",
+      "durationMs": 2368,
+      "endedAt": "2026-06-17T15:03:09.868Z",
       "name": "media-optimizer-app-ui",
-      "phase": "acceptance-runner"
+      "phase": "acceptance-runner",
+      "startedAt": "2026-06-17T15:03:07.500Z",
+      "status": "PASS"
     },
     {
       "command": "internal:verifyGeneratedArtifactTruth()",
+      "durationMs": 1,
+      "endedAt": "2026-06-17T15:03:09.869Z",
       "name": "generated-artifact-truth",
-      "phase": "generated-artifact-truth"
+      "phase": "generated-artifact-truth",
+      "startedAt": "2026-06-17T15:03:09.868Z",
+      "status": "PASS"
     }
   ],
+  "skippedAfterFailure": [],
   "lawCoverage": {
     "activeLawCount": 223,
     "checked": true,
@@ -300,5 +485,5 @@
     "findingCount": 0,
     "reportPath": "scripts/audit/generated/audit-truth-report.generated.json"
   },
-  "finalDecision": "FAIL"
+  "finalDecision": "PASS"
 }

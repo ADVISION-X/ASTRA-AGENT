@@ -13,6 +13,7 @@ export const buildPick3IsBlindEvalHandle = (
     return runPick3IsBlindEvalFlow(rawInput, {
       dataDir,
       browser: assembly.browserController,
+      pick3GatewaySender: (input) => assembly.aiInputGateway.execute(input),
     });
   },
   async getLatestPick3IsBlindEvalTask(): Promise<Pick3TaskRecord | null> {

@@ -101,6 +101,7 @@ const appShellZhCopyEntries = [
   ["Audit", "审计"],
   ["Mode", "模式"],
   ["Sync and generate images", "同步并生成图片"],
+  ["Full pipeline via GPT web chat", "通过 GPT 网页聊天运行完整链路"],
   ["Sync only", "仅同步"],
   ["Batch size", "批次大小"],
   ["Blind boundary", "盲测边界"],
