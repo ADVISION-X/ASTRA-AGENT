@@ -21,16 +21,27 @@ import {
   type Pick3ScoringSummary,
   type Pick3TaskRecord,
 } from "./pick3-is-blind-eval.schema.js";
+import { runPick3PromptExchange, type Pick3GatewaySender } from "./pick3-is-blind-eval.ai.js";
+import { reviewPick3Failures } from "./pick3-is-blind-eval.failure-review.js";
 import {
   buildPick3PlaybookPromptPackage,
   loadBuiltInPick3Playbooks,
+  type Pick3PlaybookPromptPackage,
   type Pick3PlaybookVersion,
 } from "./pick3-is-blind-eval.playbook.js";
+import { writeCandidatePick3Playbooks } from "./pick3-is-blind-eval.prompt-versioning.js";
+import { revealPick3Predictions, scorePick3Predictions } from "./pick3-is-blind-eval.scoring.js";
 import { openPick3Storage } from "./pick3-is-blind-eval.storage.js";
 
 export type RunPick3Context = {
   dataDir: string;
   browser?: BrowserController | undefined;
+  pick3GatewaySender?: Pick3GatewaySender | undefined;
+};
+
+type BuiltPick3Batch = Pick3BatchSummary & {
+  playbooks: Pick3PlaybookVersion[];
+  promptPackages: Pick3PlaybookPromptPackage[];
 };
 
 const hashJson = (value: unknown): string =>
@@ -171,7 +182,10 @@ const resolveArtifactDir = (input: Pick3Input, context: RunPick3Context, batchId
     ? path.join(input.artifactRoot, batchId)
     : path.join(context.dataDir, "runtime-data", PICK3_JOB_ID, "artifacts", batchId);
 
-const buildPromptPackages = (images: readonly Pick3ImageRecord[], playbooks: readonly Pick3PlaybookVersion[]) => {
+const buildPromptPackages = (
+  images: readonly Pick3ImageRecord[],
+  playbooks: readonly Pick3PlaybookVersion[],
+): Pick3PlaybookPromptPackage[] => {
   const playbookByPosition = new Map(playbooks.map((playbook) => [playbook.position, playbook]));
   return images.map((image) => {
     const playbook = playbookByPosition.get(image.position);
@@ -214,7 +228,7 @@ const buildBatch = async (
   input: Pick3Input,
   context: RunPick3Context,
   storage: ReturnType<typeof openPick3Storage>,
-): Promise<Pick3BatchSummary> => {
+): Promise<BuiltPick3Batch> => {
   const { drawsAscending, targetDraws } = selectBatchTargets(input, storage);
   const batchId = `pick3_batch_${randomUUID()}`;
   const artifactDir = resolveArtifactDir(input, context, batchId);
@@ -251,7 +265,77 @@ const buildBatch = async (
     imageCount: images.length,
     sealedAnswersHash,
     images,
+    playbooks,
+    promptPackages,
   };
+};
+
+const writePipelineArtifacts = (input: {
+  batch: BuiltPick3Batch;
+  gatewayInputs: unknown;
+  interactions: unknown;
+  predictions: unknown;
+  reveals: unknown;
+  failureReviews: unknown;
+  candidatePlaybooks: unknown;
+}): void => {
+  writeFileSync(path.join(input.batch.artifactDir, "ai_gateway_inputs.json"), `${JSON.stringify(input.gatewayInputs, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "ai_interactions.json"), `${JSON.stringify(input.interactions, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "ai_predictions.json"), `${JSON.stringify(input.predictions, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "public_results.json"), `${JSON.stringify(input.reveals, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "failure_reviews.json"), `${JSON.stringify(input.failureReviews, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "candidate_playbooks.json"), `${JSON.stringify(input.candidatePlaybooks, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "next_blind_validation_plan.json"), `${JSON.stringify({
+    required: true,
+    status: "pending_new_sealed_batch",
+    reason: "Candidate Playbook repair is diagnostic until the next sealed blind batch is predicted and scored.",
+  }, null, 2)}\n`);
+};
+
+const runFullPipeline = async (input: {
+  batch: BuiltPick3Batch;
+  context: RunPick3Context;
+  storage: ReturnType<typeof openPick3Storage>;
+}): Promise<Pick3ScoringSummary> => {
+  const sender = input.context.pick3GatewaySender;
+  if (!sender) {
+    throw new Error("pick3_prompt_exchange_sender_missing");
+  }
+  const exchange = await runPick3PromptExchange({
+    artifactDir: input.batch.artifactDir,
+    images: input.batch.images,
+    promptPackages: input.batch.promptPackages,
+    sender,
+  });
+  input.storage.insertAiInteractions(exchange.interactions);
+  input.storage.insertPredictions(exchange.predictions);
+  const reveals = revealPick3Predictions({
+    images: input.batch.images,
+    predictions: exchange.predictions,
+  });
+  input.storage.insertReveals(reveals);
+  const failureReviews = reviewPick3Failures({
+    images: input.batch.images,
+    predictions: exchange.predictions,
+    reveals,
+  });
+  input.storage.insertFailureReviews(failureReviews);
+  const candidatePlaybooks = writeCandidatePick3Playbooks({
+    artifactDir: input.batch.artifactDir,
+    activePlaybooks: input.batch.playbooks,
+    failureReviews,
+  });
+  input.storage.upsertPlaybooks(candidatePlaybooks);
+  writePipelineArtifacts({
+    batch: input.batch,
+    gatewayInputs: exchange.gatewayInputs,
+    interactions: exchange.interactions,
+    predictions: exchange.predictions,
+    reveals,
+    failureReviews,
+    candidatePlaybooks,
+  });
+  return scorePick3Predictions({ predictions: exchange.predictions, reveals });
 };
 
 export const runPick3IsBlindEvalFlow = async (
@@ -264,17 +348,20 @@ export const runPick3IsBlindEvalFlow = async (
   const { storage, summary } = await syncOfficialDraws(context.dataDir);
   try {
     const batch = input.mode === "sync_only" ? null : await buildBatch(input, context, storage);
+    const scoring = batch && input.mode === "full_pipeline"
+      ? await runFullPipeline({ batch, context, storage })
+      : batch ? emptyScoring() : null;
     const record: Pick3TaskRecord = {
       taskId,
       mode: input.mode,
       status: summary.status,
-      reachedStep: batch ? "images_generated" : "official_sync_completed",
+      reachedStep: input.mode === "full_pipeline" && batch ? "scoring_completed" : batch ? "images_generated" : "official_sync_completed",
       reason: null,
       createdAt,
       updatedAt: new Date().toISOString(),
       sync: summary,
       batch,
-      scoring: batch ? emptyScoring() : null,
+      scoring,
     };
     storage.writeTask(record);
     return record;

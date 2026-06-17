@@ -81,7 +81,27 @@ pre {
   gap: 8px;
   min-width: 0;
 }
-.command-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.command-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.locale-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+.locale-toggle span { padding: 0 5px; color: var(--muted); font-size: 11px; font-weight: 680; }
+.locale-button {
+  min-width: 44px;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.locale-button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
 .icon-button {
   width: 32px;
   height: 32px;

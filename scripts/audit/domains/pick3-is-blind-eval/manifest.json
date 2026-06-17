@@ -9,7 +9,8 @@
       "official-source",
       "blind-boundary",
       "prompt-repair",
-      "agent-owned-playbook"
+      "agent-owned-playbook",
+      "prompt-exchange"
     ]
   },
   "blueprintRefs": [

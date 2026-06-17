@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:44:59.068Z",
+  "generatedAt": "2026-06-17T14:21:23.849Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -1101,6 +1101,29 @@
       "blockIndex": 0
     },
     {
+      "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "app-shell-ui",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "locale-runtime+acceptance+visual",
+      "summary": "GrassEye App Shell must provide one in-place Chinese/English localization chain, default to Chinese, expose a fast language switch, and block untranslated static App Shell copy.",
+      "appliesTo": [
+        "src/app/**",
+        "scripts/audit/domains/app-shell-ui/**",
+        "scripts/acceptance/app-shell-*.acceptance.ts"
+      ],
+      "forbidden": [
+        "Second localized page tree.",
+        "Separate zh/en route implementation.",
+        "English default App Shell.",
+        "Static App Shell copy without a Chinese translation entry.",
+        "Language switch requiring server restart."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
+      "blockIndex": 1
+    },
+    {
       "lawId": "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1",
       "status": "active",
       "tier": "P0",
@@ -1124,7 +1147,7 @@
         "App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -3111,6 +3134,30 @@
       "blockIndex": 0
     },
     {
+      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt-exchange+interaction+acceptance+audit",
+      "summary": "Pick3 AI prediction must use a Deep-Research-style prompt exchange: governed prompt package, gateway sender capture, raw provider proof persistence, schema parse, interaction record, then sealed prediction.",
+      "required": [
+        "Each one-image prompt package is sent through a Pick3 Prompt Exchange sender compatible with AI Input Gateway proof semantics.",
+        "Raw GPT/web-chat output is persisted as a Pick3 AI interaction before business prediction sealing.",
+        "Parse status is stored separately from prediction records.",
+        "Only parsed interactions may create sealed ai_predictions.",
+        "Manual GPT chat remains a capture surface, not a direct prediction write path."
+      ],
+      "forbidden": [
+        "Writing ai_predictions directly from pasted GPT text without an interaction record.",
+        "Treating provider transport success as business prediction success.",
+        "Dropping parse-failed raw output.",
+        "Creating a second prediction/scoring table or second AI transport chain."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 1
+    },
+    {
       "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
       "status": "active",
       "tier": "P0",
@@ -3131,7 +3178,7 @@
         "Failure replay or revealed-answer memory counted as future blind accuracy."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
@@ -3159,7 +3206,7 @@
         "Digit position remapping by prompt preference."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
@@ -3187,7 +3234,7 @@
         "Post-reveal prediction overwrite."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
@@ -3212,7 +3259,7 @@
         "Abstain counted as hit or miss without separate coverage accounting."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
@@ -3234,7 +3281,7 @@
         "Replay overwrites original prediction or reveal."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 6
     },
     {
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",

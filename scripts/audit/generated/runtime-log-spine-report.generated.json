@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-17T13:45:38.088Z",
+  "generatedAt": "2026-06-17T14:20:30.681Z",
   "status": "PASS",
-  "scannedFiles": 403,
+  "scannedFiles": 409,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -16,6 +16,7 @@
     "src/app/app-shell/app-shell.ts",
     "src/app/app-shell/command-bar.ts",
     "src/app/app-shell/inspector.ts",
+    "src/app/app-shell/localization.ts",
     "src/app/app-shell/runtime-console.ts",
     "src/app/app-shell/sidebar.ts",
     "src/app/app-shell/skill-registry.ts",
@@ -389,11 +390,16 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/pick3-is-blind-eval/index.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
@@ -425,7 +431,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 403,
+    "scannedFiles": 409,
     "emitCallCount": 37,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -436,7 +442,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 398,
+      "scannedFiles": 404,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -445,13 +451,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 311
+      "scannedFiles": 316
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 307,
+      "scannedFiles": 312,
       "metrics": {
         "emitCallCount": 26
       }
@@ -460,13 +466,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 307
+      "scannedFiles": 312
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 312,
+      "scannedFiles": 317,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -481,7 +487,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 312,
+      "scannedFiles": 317,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -502,7 +508,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 40
+      "scannedFiles": 42
     },
     {
       "name": "browser-action-log-contract",

@@ -1,4 +1,5 @@
 import { getDefaultSkill } from "./skill-registry.js";
+import { renderLocaleToggle } from "./localization.js";
 
 export const renderCommandBar = (): string => `
 <header class="command-bar" data-app-shell-command-bar>
@@ -11,7 +12,8 @@ export const renderCommandBar = (): string => `
     <span class="status-badge status-completed">health <b data-health-status>-</b></span>
     <span class="status-badge status-watch">mode <b data-mode-status>-</b></span>
   </div>
-  <div class="command-actions">
+  <div class="command-actions" data-locale-toggle-host>
+    ${renderLocaleToggle()}
     <button class="icon-button" type="button" data-sidebar-toggle aria-label="Toggle sidebar" title="Toggle sidebar">⌥</button>
     <button class="icon-button" type="button" data-inspector-toggle aria-label="Toggle inspector" title="Toggle inspector">⌘</button>
     <button class="icon-button" type="button" data-console-toggle aria-label="Toggle console" title="Toggle console">⌃</button>

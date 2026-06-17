@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:44:59.068Z",
+  "generatedAt": "2026-06-17T14:21:23.849Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -186,6 +186,7 @@
       "executionGroup": "domain",
       "lawIds": [
         "GRASSEYE-APP-SHELL-UI-001-V1",
+        "GRASSEYE-APP-SHELL-UI-002-V1",
         "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"
       ],
       "clauseIds": [
@@ -193,6 +194,7 @@
       ],
       "evidenceModes": [
         "fs+ast+acceptance+chrome",
+        "locale-runtime+acceptance+visual",
         "ts-morph+acceptance+visual"
       ],
       "blueprintRefs": [
@@ -203,6 +205,7 @@
             "## 2. App Shell 总布局",
             "## 5. Skill Registry 设计",
             "## 8. 三级页面 / Inspector 标准",
+            "## 8.5 App Shell 本地化",
             "## 13. 验收测试建议",
             "## 23. Legacy APP User-Demand Authority Physical Absence"
           ]
@@ -649,6 +652,7 @@
       "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
+        "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
@@ -661,13 +665,15 @@
         "official-source",
         "blind-boundary",
         "prompt-repair",
-        "agent-owned-playbook"
+        "agent-owned-playbook",
+        "prompt-exchange"
       ],
       "evidenceModes": [
         "blind-boundary+acceptance",
         "law+blueprint+acceptance",
         "model-metadata+baseline+calibration+acceptance",
         "playbook+storage+acceptance+audit",
+        "prompt-exchange+interaction+acceptance+audit",
         "prompt-version+audit",
         "source-contract+acceptance"
       ],

@@ -13,6 +13,11 @@ const selfPath = "scripts/audit/domains/pick3-is-blind-eval/inspector.ts";
 const acceptancePath = "scripts/acceptance/pick3-is-blind-eval.acceptance.ts";
 const packagePath = "package.json";
 const playbookLoaderPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts";
+const aiExchangePath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts";
+const scoringPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts";
+const failureReviewPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts";
+const promptVersioningPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts";
+const storageSchemaPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts";
 const playbookSystemPath = "src/plugins/pick3-is-blind-eval/playbooks/system.md";
 const playbookGrammarPath = "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md";
 const playbookHundredsPath = "src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md";
@@ -27,6 +32,11 @@ const inspectedFiles = [
   acceptancePath,
   packagePath,
   playbookLoaderPath,
+  aiExchangePath,
+  scoringPath,
+  failureReviewPath,
+  promptVersioningPath,
+  storageSchemaPath,
   playbookSystemPath,
   playbookGrammarPath,
   playbookHundredsPath,
@@ -40,8 +50,13 @@ const pluginRuntimePaths = [
   "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
   "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
   "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
   "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
   "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
+  "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
 ] as const;
 
 const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
@@ -78,6 +93,7 @@ type LawRefs = {
   officialSourceLaw: string;
   primaryLaw: string;
   promptRepairLaw: string;
+  promptExchangeLaw: string;
   statisticalHonestyLaw: string;
 };
 
@@ -90,6 +106,7 @@ const buildLawRefs = (lawIds: readonly string[]): LawRefs => {
     promptRepairLaw: lawIds.find((lawId) => lawId.endsWith("004-V1")) ?? primaryLaw,
     statisticalHonestyLaw: lawIds.find((lawId) => lawId.endsWith("005-V1")) ?? primaryLaw,
     agentBrainLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-IS-BRAIN-006-V1") ?? primaryLaw,
+    promptExchangeLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1") ?? primaryLaw,
   };
 };
 
@@ -120,6 +137,7 @@ const inspectLawContract = (findings: InspectorFinding[], lawRefs: LawRefs, lawT
     "\"GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1\"",
     "\"GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1\"",
     "\"GRASSEYE-PICK3-IS-BRAIN-006-V1\"",
+    "\"GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1\"",
     "full official coverage",
     "Success status with missing earliest history",
     "No betting",
@@ -185,6 +203,22 @@ const inspectBlueprintContract = (findings: InspectorFinding[], lawRefs: LawRefs
     "confidence is not probability",
     "confidenceIsProbability: false",
   ]);
+  requireTokens(findings, lawRefs.promptExchangeLaw, blueprintPath, blueprintText, "pick3-is-blind-eval/prompt-exchange", [
+    "Pick3 Prompt Exchange",
+    "pick3_ai_interactions",
+    "prompt_package_id",
+    "prompt_contract_id",
+    "raw_response_text",
+    "raw_response_hash",
+    "raw_output_ref",
+    "provider_proof_json",
+    "parse_status",
+    "parse_failed_raw_available",
+    "Pick3GatewaySender",
+    "Manual GPT chat is allowed only as the capture surface",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
+  ]);
 };
 
 const inspectAgentBrainContract = (findings: InspectorFinding[], lawRefs: LawRefs, lawText: string, blueprintText: string): void => {
@@ -234,6 +268,31 @@ const inspectRuntimeExternalBrain = (findings: InspectorFinding[], agentBrainLaw
   }
 };
 
+const inspectPromptExchangeRuntime = (findings: InspectorFinding[], promptExchangeLaw: string): void => {
+  const aiText = existsRepoPath(aiExchangePath) ? readRepoText(aiExchangePath) : "";
+  const storageSchemaText = existsRepoPath(storageSchemaPath) ? readRepoText(storageSchemaPath) : "";
+  const storageText = existsRepoPath("src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts")
+    ? readRepoText("src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts")
+    : "";
+  requireTokens(findings, promptExchangeLaw, aiExchangePath, aiText, "pick3-is-blind-eval/prompt-exchange-runtime", [
+    "Pick3GatewaySender",
+    "buildPick3AiGatewayInput",
+    "runPick3PromptExchange",
+    "parse_failed_raw_available",
+    "providerProofJson",
+  ]);
+  requireTokens(findings, promptExchangeLaw, storageSchemaPath, storageSchemaText, "pick3-is-blind-eval/interaction-storage-schema", [
+    "CREATE TABLE IF NOT EXISTS pick3_ai_interactions",
+  ]);
+  requireTokens(findings, promptExchangeLaw, "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts", storageText, "pick3-is-blind-eval/interaction-storage", [
+    "insertAiInteractions",
+    "listAiInteractions",
+  ]);
+  if (aiText.includes("Pick3ManualAiResponse")) {
+    addFinding(findings, promptExchangeLaw, aiExchangePath, "pick3-is-blind-eval/no-direct-manual-ingestion", "Pick3 AI exchange must not use direct manual response ingestion.");
+  }
+};
+
 const inspectPackageScripts = (findings: InspectorFinding[], primaryLaw: string, packageText: string): void => {
   requireTokens(findings, primaryLaw, packagePath, packageText, "pick3-is-blind-eval/package-scripts", [
     "\"audit:pick3-is-blind-eval\"",
@@ -259,6 +318,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAgentBrainContract(findings, lawRefs, lawText, blueprintText);
   inspectPlaybookFiles(findings, lawRefs.agentBrainLaw);
   inspectRuntimeExternalBrain(findings, lawRefs.agentBrainLaw);
+  inspectPromptExchangeRuntime(findings, lawRefs.promptExchangeLaw);
   inspectPackageScripts(findings, lawRefs.primaryLaw, packageText);
 
   return {

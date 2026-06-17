@@ -400,6 +400,7 @@ CREATE TABLE is_blind_images (
 ```sql
 CREATE TABLE ai_predictions (
   prediction_id TEXT PRIMARY KEY,
+  interaction_id TEXT NOT NULL,
   batch_id TEXT NOT NULL,
   image_id TEXT NOT NULL,
   position TEXT NOT NULL,
@@ -421,6 +422,34 @@ CREATE TABLE ai_predictions (
   reason TEXT,
   predicted_at TEXT NOT NULL,
   sealed_before_reveal INTEGER NOT NULL
+);
+```
+
+### pick3_ai_interactions
+
+```sql
+CREATE TABLE pick3_ai_interactions (
+  interaction_id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL,
+  image_id TEXT NOT NULL,
+  position TEXT NOT NULL,
+  prompt_package_id TEXT NOT NULL,
+  prompt_contract_id TEXT NOT NULL,
+  playbook_version_id TEXT NOT NULL,
+  provider_kind TEXT NOT NULL,
+  model_id TEXT NOT NULL,
+  temperature REAL NOT NULL,
+  image_detail TEXT NOT NULL,
+  prompt_hash TEXT NOT NULL,
+  rendered_prompt_text TEXT NOT NULL,
+  input_refs_json TEXT NOT NULL,
+  raw_response_text TEXT NOT NULL,
+  raw_response_hash TEXT NOT NULL,
+  raw_output_ref TEXT NOT NULL,
+  provider_proof_json TEXT NOT NULL,
+  parse_status TEXT NOT NULL,
+  parse_failure_reason TEXT,
+  created_at TEXT NOT NULL
 );
 ```
 
@@ -660,7 +689,28 @@ answer = position sequence[targetIndex]
 
 ## AI Prediction Flow
 
-Prediction must use AI Input Gateway or the approved web-chat provider path.
+Prediction must use Pick3 Prompt Exchange. The exchange is intentionally aligned with Deep Research Analysis:
+
+```txt
+SEND
+  build one-image prompt package
+  compute prompt hash
+CAPTURE
+  call Pick3GatewaySender / AI Input Gateway compatible sender
+  capture raw GPT/web-chat output
+  capture providerProofJson
+PARSE
+  parse predictionLabel/confidence/reason/abstainReason
+  keep parse_failed_raw_available interactions
+PERSIST
+  write pick3_ai_interactions first
+SEAL
+  create ai_predictions only from parsed interactions
+REVEAL
+  compare sealed predictions against official stored answers
+```
+
+Manual GPT chat is allowed only as the capture surface behind `Pick3GatewaySender`. It must return raw output and provider proof into `pick3_ai_interactions`; it must not write `ai_predictions` directly.
 
 Per image payload:
 
@@ -680,6 +730,13 @@ required output:
 Every prediction call must persist:
 
 ```txt
+prompt_package_id
+prompt_contract_id
+raw_response_text
+raw_response_hash
+raw_output_ref
+provider_proof_json
+parse_status
 provider_kind
 model_id
 temperature
@@ -690,6 +747,18 @@ system_prompt_hash
 business_prompt_hash
 raw_prompt_hash
 raw_response_ref
+```
+
+Prompt Exchange source file:
+
+```txt
+src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts
+```
+
+Scoring source file:
+
+```txt
+src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts
 ```
 
 Forbidden payload content:
@@ -840,8 +909,10 @@ runPick3IsBlindEvalFlow(input)
   -> create blind batch
   -> generate 80-draw images by position
   -> seal answers
-  -> send each image to AI
-  -> persist predictions
+  -> send each image through Pick3 Prompt Exchange
+  -> persist pick3_ai_interactions
+  -> parse interactions
+  -> persist sealed predictions
   -> reveal answers
   -> score
   -> review failures

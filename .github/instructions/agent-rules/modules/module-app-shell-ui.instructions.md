@@ -41,6 +41,49 @@
 }
 ```
 
+## [GRASSEYE-APP-SHELL-UI-002-V1] App Shell Localization
+
+```apex-law
+{
+  "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "app-shell-ui",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "locale-runtime+acceptance+visual",
+  "summary": "GrassEye App Shell must provide one in-place Chinese/English localization chain, default to Chinese, expose a fast language switch, and block untranslated static App Shell copy.",
+  "appliesTo": [
+    "src/app/**",
+    "scripts/audit/domains/app-shell-ui/**",
+    "scripts/acceptance/app-shell-*.acceptance.ts"
+  ],
+  "forbidden": [
+    "Second localized page tree.",
+    "Separate zh/en route implementation.",
+    "English default App Shell.",
+    "Static App Shell copy without a Chinese translation entry.",
+    "Language switch requiring server restart."
+  ]
+}
+```
+
+Required:
+
+- Supported App Shell locales are exactly `zh` and `en`.
+- Default App Shell locale is `zh`.
+- The shell must expose a visible language switch for Chinese and English.
+- Switching language must happen in the same App Shell DOM without creating a second page or second route tree.
+- Static visible App Shell copy, placeholders, titles, and aria labels must have Chinese entries in the App Shell localization dictionary.
+- Runtime-inserted App Shell text must pass through the same localization runtime or be covered by the same text translation observer.
+
+Forbidden:
+
+- `/zh` and `/en` cloned Workbench pages.
+- Duplicated skill workspaces for localization.
+- English-only App Shell surfaces.
+- LocalStorage as localization truth.
+- Treating missing translations as warnings.
+
 ## 0. 最高原则
 
 GrassEye 不是网页后台。

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-17T13:44:59.068Z",
+  "generatedAt": "2026-06-17T14:21:23.849Z",
   "summary": {
-    "activeLawCount": 221,
-    "coveredLawCount": 221,
+    "activeLawCount": 223,
+    "coveredLawCount": 223,
     "coveragePercent": 100
   },
   "coverage": [
@@ -480,6 +480,16 @@
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
+      "capabilityDomain": "app-shell-ui",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/app-shell-ui/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
       "capabilityDomain": "app-shell-ui",
       "clauses": [
         {
@@ -1801,6 +1811,40 @@
         {
           "clauseId": "agent-owned-playbook",
           "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]
     },
@@ -1826,6 +1870,10 @@
         },
         {
           "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
           "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]
@@ -1853,6 +1901,10 @@
         {
           "clauseId": "agent-owned-playbook",
           "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]
     },
@@ -1878,6 +1930,10 @@
         },
         {
           "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
           "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]
@@ -1905,6 +1961,10 @@
         {
           "clauseId": "agent-owned-playbook",
           "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]
     },
@@ -1930,6 +1990,10 @@
         },
         {
           "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
           "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
         }
       ]

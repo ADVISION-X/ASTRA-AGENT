@@ -56,6 +56,8 @@ UAE Lottery Pick 3 official source
 - Playbook content sent to blind prediction must not contain concrete historical failed-case answers, target phase, date, answer digit, answer label, or future results.
 - Failure library and replay records may store revealed answers, but they must not be merged into the active blind Playbook payload.
 - Playbook versions must be hash-addressed and persisted before prediction use.
+- AI chat interaction must follow the Pick3 Prompt Exchange chain: send package, capture raw output, parse, persist interaction, then seal prediction.
+- Manual GPT chat usage is allowed only as an AI Input Gateway sender/capture surface that returns raw output and provider proof into the same Pick3 Prompt Exchange chain.
 
 ## Forbidden
 
@@ -76,6 +78,7 @@ UAE Lottery Pick 3 official source
 - No generic shared lottery owner hiding this domain.
 - No runtime dependency on `/Users/nexgen/Documents/trend-intuition-brain`.
 - No external Playbook fallback, bridge, mirror, or prompt path outside the Pick3 plugin owner.
+- No direct manual response ingestion into `ai_predictions` without a persisted Pick3 AI interaction record.
 
 ## Law IDs
 
@@ -95,6 +98,31 @@ UAE Lottery Pick 3 official source
     "contact-sheet blind payloads",
     "answer reveal before prediction sealing",
     "failure replay counted as future accuracy"
+  ]
+}
+```
+
+```apex-law
+{
+  "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "pick3-is-blind-eval",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt-exchange+interaction+acceptance+audit",
+  "summary": "Pick3 AI prediction must use a Deep-Research-style prompt exchange: governed prompt package, gateway sender capture, raw provider proof persistence, schema parse, interaction record, then sealed prediction.",
+  "required": [
+    "Each one-image prompt package is sent through a Pick3 Prompt Exchange sender compatible with AI Input Gateway proof semantics.",
+    "Raw GPT/web-chat output is persisted as a Pick3 AI interaction before business prediction sealing.",
+    "Parse status is stored separately from prediction records.",
+    "Only parsed interactions may create sealed ai_predictions.",
+    "Manual GPT chat remains a capture surface, not a direct prediction write path."
+  ],
+  "forbidden": [
+    "Writing ai_predictions directly from pasted GPT text without an interaction record.",
+    "Treating provider transport success as business prediction success.",
+    "Dropping parse-failed raw output.",
+    "Creating a second prediction/scoring table or second AI transport chain."
   ]
 }
 ```

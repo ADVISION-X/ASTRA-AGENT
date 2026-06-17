@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T13:44:59.068Z",
+  "generatedAt": "2026-06-17T14:21:23.849Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -79,6 +79,7 @@
       "ownerInspectorPath": "scripts/audit/domains/app-shell-ui/inspector.ts",
       "lawIds": [
         "GRASSEYE-APP-SHELL-UI-001-V1",
+        "GRASSEYE-APP-SHELL-UI-002-V1",
         "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"
       ]
     },
@@ -299,6 +300,7 @@
       "manifestPath": "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
       "lawIds": [
+        "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",

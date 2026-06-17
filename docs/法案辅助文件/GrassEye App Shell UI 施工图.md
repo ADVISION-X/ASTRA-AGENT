@@ -259,6 +259,50 @@ Exception Detail
 Runtime Event Detail
 ```
 
+## 8.5 App Shell 本地化
+
+本地化采用一条 App Shell 主链：
+
+```txt
+src/app/app-shell/localization.ts
+  -> supportedAppShellLocales = ["zh", "en"]
+  -> defaultAppShellLocale = "zh"
+  -> appShellZhCopy
+  -> renderLocaleToggle()
+  -> renderAppShellLocalizationClient()
+  -> same DOM language switch
+```
+
+要求：
+
+```txt
+默认中文
+支持 English
+命令栏可快速切换中文 / English
+不新增 /zh 或 /en 页面树
+不复制 Skill Workspace
+不使用 localStorage 作为语言真相
+静态 visible text / placeholder / aria-label / title 必须有中文字典项
+动态插入的 App Shell 文本必须被同一 localization runtime 翻译
+```
+
+参考实现来源：
+
+```txt
+/Users/nexgen/Documents/ON-THE-WAY/src/lib/admin-localization/admin-locale-runtime.ts
+/Users/nexgen/Documents/ON-THE-WAY/src/features/amazon-manage/admin-copy/amzmgr-admin-locale-context.tsx
+```
+
+GrassEye 是本地无 React workbench，因此不复制 React context；只复用其原则：
+
+```txt
+canonical supported locales
+default locale
+cookie/search-param resolver
+owner-local copy source
+same-surface href/runtime shaping
+```
+
 Inspector 通用结构：
 
 ```txt

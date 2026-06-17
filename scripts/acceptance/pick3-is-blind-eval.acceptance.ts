@@ -1,14 +1,24 @@
 import { strict as assert } from "node:assert";
+import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import type { AiFeedInput, AiFeedResult } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createPick3BlindImages } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.js";
 import { verifyPick3FullHistoryCoverage } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.js";
+import {
+  buildPick3AiGatewayInput,
+  runPick3PromptExchange,
+  type Pick3GatewaySender,
+} from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.js";
+import { reviewPick3Failures } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.js";
 import {
   buildPick3PlaybookPromptPackage,
   loadBuiltInPick3Playbooks,
 } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
+import { writeCandidatePick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.js";
+import { revealPick3Predictions, scorePick3Predictions } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.js";
 import {
   PICK3_LOTTERY_TYPE,
   PICK3_OFFICIAL_SOURCE,
@@ -19,6 +29,9 @@ import { openPick3Storage } from "../../src/plugins/pick3-is-blind-eval/pick3-is
 const repoRoot = resolve(import.meta.dirname, "../..");
 const fromRepo = (path: string): string => resolve(repoRoot, path);
 const readRepoText = (path: string): string => readFileSync(fromRepo(path), "utf8");
+function hashText(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
 
 const lawPath = ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md";
 const blueprintPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施工图.md";
@@ -26,6 +39,7 @@ const misplacedLawPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval �
 const manifestPath = "scripts/audit/domains/pick3-is-blind-eval/manifest.json";
 const inspectorPath = "scripts/audit/domains/pick3-is-blind-eval/inspector.ts";
 const playbookLoaderPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts";
+const aiExchangePath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts";
 const playbookPaths = [
   "src/plugins/pick3-is-blind-eval/playbooks/system.md",
   "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md",
@@ -39,6 +53,7 @@ assert.equal(existsSync(fromRepo(blueprintPath)), true);
 assert.equal(existsSync(fromRepo(manifestPath)), true);
 assert.equal(existsSync(fromRepo(inspectorPath)), true);
 assert.equal(existsSync(fromRepo(playbookLoaderPath)), true);
+assert.equal(existsSync(fromRepo(aiExchangePath)), true);
 for (const playbookPath of playbookPaths) {
   assert.equal(existsSync(fromRepo(playbookPath)), true, `${playbookPath} must exist`);
 }
@@ -56,6 +71,7 @@ for (const token of [
   "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
   "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
   "GRASSEYE-PICK3-IS-BRAIN-006-V1",
+  "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
 ]) {
   assert.equal(lawText.includes(token), true, `law must include ${token}`);
 }
@@ -96,6 +112,17 @@ for (const token of [
   "## AGENT-Owned IS Brain",
   "pick3_playbooks",
   "Pick3PlaybookPromptPackage",
+  "Pick3 Prompt Exchange",
+  "pick3_ai_interactions",
+  "prompt_package_id",
+  "prompt_contract_id",
+  "raw_response_text",
+  "raw_response_hash",
+  "raw_output_ref",
+  "provider_proof_json",
+  "parse_status",
+  "parse_failed_raw_available",
+  "Pick3GatewaySender",
 ]) {
   assert.equal(blueprintText.includes(token), true, `blueprint must include ${token}`);
 }
@@ -180,6 +207,53 @@ const buildDatedDraw = (date: string, index: number): Pick3Draw => ({
   expectedPrizeTimestamp: String(Date.parse(`${date}T17:30:00.000Z`)),
 });
 
+function buildFixtureAiResult(input: {
+  gatewayInput: AiFeedInput;
+  rawText: string;
+}): AiFeedResult {
+  const now = new Date().toISOString();
+  const inputHash = hashText(JSON.stringify(input.gatewayInput));
+  const outputHash = hashText(input.rawText);
+  return {
+    abilityGroupId: "ai-input-gateway",
+    childCapabilityId: "feed-gpt-web-chat-once",
+    providerKind: "gpt-web-chat",
+    status: "success",
+    normalizedText: input.rawText,
+    rawOutputRef: `artifact://pick3-fixture/${outputHash}`,
+    rawOutputHash: outputHash,
+    parseStatus: "json_valid",
+    parsedJson: JSON.parse(input.rawText),
+    schemaValidationStatus: "valid",
+    providerProof: {
+      providerKind: "gpt-web-chat",
+      modelName: "fixture-gpt-chat",
+      inputHash,
+      outputHash,
+      inputRefs: input.gatewayInput.inputRefs.map((ref) => ref.id),
+      outputRefs: [`artifact://pick3-fixture/${outputHash}`],
+      startedAt: now,
+      endedAt: now,
+      durationMs: 0,
+      transport: "web-chat",
+      webChatUrl: "https://chatgpt.com/",
+      sourcePageUrlBeforeFeed: null,
+      restoredSourcePage: null,
+      retryCount: 0,
+      cooldownMs: 0,
+      estimatedInputTokens: null,
+      estimatedOutputTokens: null,
+      tokenEstimateUnavailableReason: "fixture",
+    },
+    failureReason: null,
+    reviewRequiredReason: null,
+  };
+}
+
+function oppositeLabel(label: "front" | "back"): "front" | "back" {
+  return label === "front" ? "back" : "front";
+}
+
 const fullCoverageDraws = [
   buildDatedDraw("2025-06-04", 1),
   buildDatedDraw("2025-06-05", 2),
@@ -238,6 +312,7 @@ try {
   assert.equal(playbooks.length, 3);
   storage.upsertPlaybooks(playbooks);
   assert.equal(storage.listActivePlaybooks().length, 3);
+  const promptPackages = [];
   for (const image of images) {
     assert.equal(existsSync(image.imagePath), true);
     assert.ok(statSync(image.imagePath).size > 1000);
@@ -249,6 +324,7 @@ try {
     const playbook = playbooks.find((item) => item.position === image.position);
     assert.ok(playbook);
     const promptPackage = buildPick3PlaybookPromptPackage(playbook, image);
+    promptPackages.push(promptPackage);
     assert.equal(promptPackage.confidenceIsProbability, false);
     assert.deepEqual(promptPackage.allowedLabels, ["front", "back", "abstain"]);
     const promptJson = JSON.stringify(promptPackage);
@@ -260,6 +336,88 @@ try {
     assert.equal(promptJson.includes("expectedPrizeTime"), false);
     assert.equal(promptJson.includes("trend-intuition-brain"), false);
   }
+  const imageById = new Map(images.map((image) => [image.imageId, image]));
+  const sampleGatewayInput = buildPick3AiGatewayInput({
+    batchId: "acceptance-batch",
+    image: images[0]!,
+    promptPackage: promptPackages[0]!,
+  });
+  assert.equal(sampleGatewayInput.inputRefs.length, 1);
+  assert.equal(sampleGatewayInput.textPrompt.includes("predictionLabel"), true);
+  const observedInputs: AiFeedInput[] = [];
+  const sender: Pick3GatewaySender = async (input) => {
+    observedInputs.push(input);
+    const image = imageById.get(input.inputRefs[0]?.id ?? "");
+    assert.ok(image);
+    const predictionLabel = observedInputs.length === 1 ? oppositeLabel(image.answerLabel) : image.answerLabel;
+    return buildFixtureAiResult({
+      gatewayInput: input,
+      rawText: JSON.stringify({
+        predictionLabel,
+        confidence: 0.56,
+        reason: "tail shape is clear enough for this fixture",
+        abstainReason: null,
+      }),
+    });
+  };
+  const exchange = await runPick3PromptExchange({
+    artifactDir,
+    images,
+    promptPackages,
+    sender,
+  });
+  assert.equal(observedInputs.length, images.length);
+  assert.equal(exchange.interactions.length, images.length);
+  assert.equal(exchange.predictions.length, images.length);
+  assert.equal(exchange.interactions.every((interaction) => interaction.parseStatus === "parsed"), true);
+  assert.equal(exchange.predictions.every((prediction) => prediction.sealedBeforeReveal), true);
+  storage.insertAiInteractions(exchange.interactions);
+  storage.insertPredictions(exchange.predictions);
+  assert.equal(storage.listAiInteractions("acceptance-batch").length, images.length);
+  assert.equal(storage.listPredictions("acceptance-batch").length, images.length);
+
+  const reveals = revealPick3Predictions({ images, predictions: exchange.predictions });
+  storage.insertReveals(reveals);
+  assert.equal(storage.listReveals("acceptance-batch").length, images.length);
+  const scoring = scorePick3Predictions({ predictions: exchange.predictions, reveals });
+  assert.equal(scoring.total, images.length);
+  assert.equal(scoring.misses, 1);
+  assert.equal(scoring.hits, images.length - 1);
+  assert.equal(scoring.randomBaseline.onePositionFrontBack, 0.5);
+  assert.equal(scoring.randomBaseline.threePositionCombination, 0.125);
+  assert.equal(scoring.calibration.every((row) => row.confidenceIsProbability === false), true);
+
+  const failureReviews = reviewPick3Failures({ images, predictions: exchange.predictions, reveals });
+  storage.insertFailureReviews(failureReviews);
+  assert.equal(failureReviews.length, 1);
+  assert.equal(storage.listFailureReviews("acceptance-batch").length, 1);
+  const candidatePlaybooks = writeCandidatePick3Playbooks({
+    artifactDir,
+    activePlaybooks: playbooks,
+    failureReviews,
+  });
+  storage.upsertPlaybooks(candidatePlaybooks);
+  assert.equal(candidatePlaybooks.length, 1);
+  assert.equal(candidatePlaybooks[0]?.status, "candidate");
+  assert.equal(readFileSync(candidatePlaybooks[0]!.contentPath, "utf8").includes("Do not memorize concrete answers"), true);
+
+  const badExchange = await runPick3PromptExchange({
+    artifactDir,
+    images: [images[0]!],
+    promptPackages: [promptPackages[0]!],
+    sender: async (input) => buildFixtureAiResult({
+      gatewayInput: input,
+      rawText: JSON.stringify({
+        predictionLabel: "not-a-label",
+        confidence: 0.56,
+        reason: "invalid fixture",
+      abstainReason: null,
+      }),
+    }),
+  });
+  assert.equal(badExchange.interactions.length, 1);
+  assert.equal(badExchange.interactions[0]?.parseStatus, "parse_failed_raw_available");
+  assert.equal(badExchange.predictions.length, 0);
 } finally {
   storage.close();
 }

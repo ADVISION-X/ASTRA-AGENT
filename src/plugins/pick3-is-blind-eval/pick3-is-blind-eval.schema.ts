@@ -58,6 +58,92 @@ export type Pick3ImageRecord = {
   answerLabel: "front" | "back";
 };
 
+export type Pick3PredictionLabel = "front" | "back" | "abstain";
+
+export type Pick3AiInteractionRecord = {
+  interactionId: string;
+  batchId: string;
+  imageId: string;
+  position: Pick3Position;
+  promptPackageId: string;
+  promptContractId: string;
+  playbookVersionId: string;
+  providerKind: "gpt-web-chat";
+  modelId: string;
+  temperature: number;
+  imageDetail: string;
+  promptHash: string;
+  renderedPromptText: string;
+  inputRefsJson: string;
+  rawResponseText: string;
+  rawResponseHash: string;
+  rawOutputRef: string;
+  providerProofJson: string;
+  parseStatus: "parsed" | "parse_failed_raw_available";
+  parseFailureReason: string | null;
+  createdAt: string;
+};
+
+export type Pick3PredictionRecord = {
+  predictionId: string;
+  interactionId: string;
+  batchId: string;
+  imageId: string;
+  position: Pick3Position;
+  playbookVersionId: string;
+  providerKind: "gpt-web-chat";
+  modelId: string;
+  temperature: number;
+  imageDetail: string;
+  systemPromptVersionId: string;
+  businessPromptVersionId: string;
+  systemPromptHash: string;
+  businessPromptHash: string;
+  rawPromptHash: string;
+  rawResponseRef: string;
+  rawResponseHash: string;
+  predictionLabel: Pick3PredictionLabel;
+  confidence: number | null;
+  confidenceIsProbability: false;
+  abstainReason: string | null;
+  reason: string | null;
+  predictedAt: string;
+  sealedBeforeReveal: true;
+};
+
+export type Pick3RevealRecord = {
+  revealId: string;
+  predictionId: string;
+  imageId: string;
+  answerDigit: number;
+  answerLabel: "front" | "back";
+  hit: boolean;
+  revealedAt: string;
+  officialRawHash: string;
+};
+
+export type Pick3FailureReviewRecord = {
+  failureReviewId: string;
+  batchId: string;
+  imageId: string;
+  position: Pick3Position;
+  predictionId: string;
+  answerLabel: "front" | "back";
+  answerDigit: number;
+  providerKind: "gpt-web-chat";
+  modelId: string;
+  temperature: number;
+  imageDetail: string;
+  systemPromptVersionId: string;
+  businessPromptVersionId: string;
+  rawPromptHash: string;
+  rawResponseRef: string;
+  failureType: string;
+  promptProblem: string;
+  repairInstruction: string;
+  createdAt: string;
+};
+
 export type Pick3SyncSummary = {
   runId: string;
   status: "success" | "partial_success" | "failed" | "review_required";

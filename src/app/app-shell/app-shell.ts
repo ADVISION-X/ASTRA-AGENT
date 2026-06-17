@@ -6,12 +6,13 @@ import { renderWorkbenchHomeStyles } from "../workbench-home-styles.js";
 import { renderWorkbenchVideoDownloadClient } from "../workbench-video-download-client.js";
 import { renderCommandBar } from "./command-bar.js";
 import { renderInspector } from "./inspector.js";
+import { renderAppShellLocalizationClient } from "./localization.js";
 import { renderMainWorkspace } from "./app-shell-layout.js";
 import { renderRuntimeConsole } from "./runtime-console.js";
 import { renderSidebar } from "./sidebar.js";
 
 export const renderAppShell = (): string => `<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -28,6 +29,6 @@ export const renderAppShell = (): string => `<!doctype html>
     </div>
     ${renderRuntimeConsole()}
   </div>
-  <script>${renderWorkbenchHomeClient()}${renderWorkbenchVideoDownloadClient()}${renderMediaOptimizerClient()}${renderWorkbenchDeepResearchClient()}</script>
+  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderWorkbenchVideoDownloadClient()}${renderMediaOptimizerClient()}${renderWorkbenchDeepResearchClient()}</script>
 </body>
 </html>`;
