@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-18T01:53:51.923Z",
+  "generatedAt": "2026-06-18T10:58:10.959Z",
   "status": "PASS",
-  "scannedFiles": 411,
+  "scannedFiles": 412,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -396,6 +396,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
@@ -415,15 +416,15 @@
     "src/types/sharp.d.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 39,
+  "emitCallCount": 47,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
   "missingTraceContractCount": 0,
-  "catchBranchCount": 2,
+  "catchBranchCount": 3,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 42,
+  "failureBranchCount": 46,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 39,
@@ -433,8 +434,8 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 411,
-    "emitCallCount": 39,
+    "scannedFiles": 412,
+    "emitCallCount": 47,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -444,7 +445,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 406,
+      "scannedFiles": 407,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -453,28 +454,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 318
+      "scannedFiles": 319
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 314,
+      "scannedFiles": 315,
       "metrics": {
-        "emitCallCount": 28
+        "emitCallCount": 36
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 314
+      "scannedFiles": 315
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 319,
+      "scannedFiles": 320,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -483,13 +484,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 26
+      "scannedFiles": 27
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 319,
+      "scannedFiles": 320,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -522,12 +523,12 @@
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 26,
+      "scannedFiles": 27,
       "metrics": {
-        "emitCallCount": 39,
+        "emitCallCount": 47,
         "stageStartCount": 19,
         "stageTerminalCount": 39,
-        "failureBranchCount": 42
+        "failureBranchCount": 46
       }
     },
     {

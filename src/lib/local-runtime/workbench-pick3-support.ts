@@ -14,6 +14,7 @@ export const buildPick3IsBlindEvalHandle = (
       dataDir,
       browser: assembly.browserController,
       pick3GatewaySender: (input) => assembly.aiInputGateway.execute(input),
+      runtimeLogger: assembly.runtimeLogger,
     });
   },
   async getLatestPick3IsBlindEvalTask(): Promise<Pick3TaskRecord | null> {

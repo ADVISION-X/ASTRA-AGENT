@@ -12,6 +12,7 @@ export type RuntimeLogOwner =
   | "amazon-invoice-upload"
   | "amazon-product-mining"
   | "facebook-product-video-mining"
+  | "pick3-is-blind-eval"
   | "deep-research-analysis"
   | "dom-automation"
   | "unknown";

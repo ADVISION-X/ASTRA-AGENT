@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T01:53:22.821Z",
+  "generatedAt": "2026-06-18T10:57:40.365Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -801,6 +801,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",

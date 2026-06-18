@@ -134,15 +134,13 @@ export const waitWithPick3RateLimitHeartbeat = async (input: {
       const chunkMs = Math.min(remainingMs, HEARTBEAT_MS);
       await input.wait(chunkMs);
       remainingMs -= chunkMs;
-      if (remainingMs > 0) {
-        emitPick3RateLimitRecoveryLog({
-          ...input,
-          reason: "pick3_rate_limit_backoff_waiting",
-          status: "started",
-          remainingMs,
-        });
-        terminalRecoveryLog({ ...input, phase: "backoff_waiting", reason: "still waiting, do NOT interrupt", status: "started", remainingMs, refs: { recoveryAction: "pick3_rate_limit_backoff_waiting" } });
-      }
+      emitPick3RateLimitRecoveryLog({
+        ...input,
+        reason: "pick3_rate_limit_backoff_waiting",
+        status: "started",
+        remainingMs,
+      });
+      terminalRecoveryLog({ ...input, phase: "backoff_waiting", reason: "still waiting, do NOT interrupt", status: "started", remainingMs, refs: { recoveryAction: "pick3_rate_limit_backoff_waiting" } });
     }
     emitPick3RateLimitRecoveryLog({
       ...input,

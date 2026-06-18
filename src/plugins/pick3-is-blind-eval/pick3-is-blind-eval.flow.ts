@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import {
   buildPick3CursorHistoryPayload,
   buildPick3LatestHistoryPayload,
@@ -24,6 +25,14 @@ import {
 import { runPick3PromptExchange, type Pick3GatewaySender } from "./pick3-is-blind-eval.ai.js";
 import { reviewPick3Failures } from "./pick3-is-blind-eval.failure-review.js";
 import {
+  completePick3Stage,
+  createPick3FlowLogger,
+  reviewRequiredPick3Stage,
+  runPick3LoggedStage,
+  startPick3Stage,
+  type Pick3FlowLog,
+} from "./pick3-is-blind-eval.logging.js";
+import {
   buildPick3PlaybookPromptPackage,
   loadBuiltInPick3Playbooks,
   type Pick3PlaybookPromptPackage,
@@ -37,6 +46,7 @@ export type RunPick3Context = {
   dataDir: string;
   browser?: BrowserController | undefined;
   pick3GatewaySender?: Pick3GatewaySender | undefined;
+  runtimeLogger?: RuntimeLogger | undefined;
 };
 
 type BuiltPick3Batch = Pick3BatchSummary & {
@@ -306,17 +316,19 @@ const writePromptExchangeFailureArtifacts = (input: {
 const runFullPipeline = async (input: {
   batch: BuiltPick3Batch;
   context: RunPick3Context;
+  flowLog: Pick3FlowLog | null;
   storage: ReturnType<typeof openPick3Storage>;
 }): Promise<Pick3ScoringSummary> => {
   const sender = input.context.pick3GatewaySender;
   if (!sender) {
     throw new Error("pick3_prompt_exchange_sender_missing");
   }
-  const exchange = await runPick3PromptExchange({
-    artifactDir: input.batch.artifactDir,
-    images: input.batch.images,
-    promptPackages: input.batch.promptPackages,
-    sender,
+  const exchange = await runPick3LoggedStage({
+    flowLog: input.flowLog, stageName: "PICK3_PROMPT_EXCHANGE",
+    refs: { batchId: input.batch.batchId, artifactDir: input.batch.artifactDir },
+    metrics: { imageCount: input.batch.images.length, promptPackageCount: input.batch.promptPackages.length },
+    run: () => runPick3PromptExchange({ artifactDir: input.batch.artifactDir, images: input.batch.images, promptPackages: input.batch.promptPackages, sender }),
+    complete: (value) => ({ refs: { batchId: input.batch.batchId }, metrics: { interactionCount: value.interactions.length, predictionCount: value.predictions.length, imageCount: input.batch.images.length } }),
   });
   input.storage.insertAiInteractions(exchange.interactions);
   input.storage.insertPredictions(exchange.predictions);
@@ -331,6 +343,7 @@ const runFullPipeline = async (input: {
     const firstFailure = parseFailures[0];
     throw new Error(`pick3_prompt_exchange_parse_failed_${parseFailures.length}_of_${input.batch.images.length}_${firstFailure?.parseFailureReason ?? "prediction_count_mismatch"}`);
   }
+  const scoringStage = startPick3Stage({ flowLog: input.flowLog, stageName: "PICK3_REVEAL_AND_SCORING", refs: { batchId: input.batch.batchId }, metrics: { predictionCount: exchange.predictions.length } });
   const reveals = revealPick3Predictions({
     images: input.batch.images,
     predictions: exchange.predictions,
@@ -357,8 +370,85 @@ const runFullPipeline = async (input: {
     failureReviews,
     candidatePlaybooks,
   });
-  return scorePick3Predictions({ predictions: exchange.predictions, reveals });
+  const scoring = scorePick3Predictions({ predictions: exchange.predictions, reveals });
+  completePick3Stage({ stage: scoringStage, refs: { batchId: input.batch.batchId }, metrics: { revealCount: reveals.length, failureReviewCount: failureReviews.length, hitCount: scoring.hits, abstainCount: scoring.abstains, coverageRate: scoring.coverageRate } });
+  return scoring;
 };
+
+const syncOfficialDrawsWithLog = async (input: {
+  context: RunPick3Context;
+  flowLog: Pick3FlowLog | null;
+  taskId: string;
+  taskStage: ReturnType<typeof startPick3Stage>;
+}) => {
+  try {
+    return await runPick3LoggedStage({
+      flowLog: input.flowLog, stageName: "PICK3_OFFICIAL_SYNC", refs: { taskId: input.taskId }, run: () => syncOfficialDraws(input.context.dataDir),
+      complete: (value) => ({
+        refs: { taskId: input.taskId, newestPhase: value.summary.newestPhase ?? "none", oldestPhase: value.summary.oldestPhase ?? "none" },
+        metrics: { rowsSeen: value.summary.rowsSeen, rowsInserted: value.summary.rowsInserted, rowsUpdated: value.summary.rowsUpdated },
+      }),
+    });
+  } catch (error) {
+    reviewRequiredPick3Stage({ stage: input.taskStage, reason: error instanceof Error ? error.message : String(error), refs: { taskId: input.taskId } });
+    throw error;
+  }
+};
+
+const buildBatchWithLog = async (input: {
+  batchInput: Pick3Input;
+  context: RunPick3Context;
+  flowLog: Pick3FlowLog | null;
+  storage: ReturnType<typeof openPick3Storage>;
+  taskId: string;
+}): Promise<BuiltPick3Batch | null> => input.batchInput.mode === "sync_only" ? null : runPick3LoggedStage({
+  flowLog: input.flowLog, stageName: "PICK3_BUILD_BLIND_BATCH", refs: { taskId: input.taskId },
+  metrics: { batchSize: input.batchInput.batchSize, positionCount: input.batchInput.positions.length },
+  run: () => buildBatch(input.batchInput, input.context, input.storage),
+  complete: (value) => ({ refs: { taskId: input.taskId, batchId: value.batchId, artifactDir: value.artifactDir }, metrics: { imageCount: value.imageCount, promptPackageCount: value.promptPackages.length } }),
+});
+
+const buildPick3SuccessTaskRecord = (input: {
+  batch: BuiltPick3Batch | null;
+  createdAt: string;
+  mode: Pick3Input["mode"];
+  scoring: Pick3ScoringSummary | null;
+  summary: Awaited<ReturnType<typeof syncOfficialDraws>>["summary"];
+  taskId: string;
+}): Pick3TaskRecord => ({
+  taskId: input.taskId,
+  mode: input.mode,
+  status: input.summary.status,
+  reachedStep: input.mode === "full_pipeline" && input.batch ? "scoring_completed" : input.batch ? "images_generated" : "official_sync_completed",
+  reason: null,
+  createdAt: input.createdAt,
+  updatedAt: new Date().toISOString(),
+  sync: input.summary,
+  batch: input.batch,
+  scoring: input.scoring,
+});
+
+const buildPick3ReviewRequiredTaskRecord = (input: {
+  batch: BuiltPick3Batch | null;
+  createdAt: string;
+  mode: Pick3Input["mode"];
+  reason: string;
+  summary: Awaited<ReturnType<typeof syncOfficialDraws>>["summary"];
+  taskId: string;
+}): Pick3TaskRecord => ({
+  taskId: input.taskId,
+  mode: input.mode,
+  status: "review_required",
+  reachedStep: input.reason.startsWith("pick3_prompt_exchange_parse_failed")
+    ? "ai_prompt_exchange_failed"
+    : input.batch ? "full_pipeline_failed" : "batch_generation",
+  reason: input.reason,
+  createdAt: input.createdAt,
+  updatedAt: new Date().toISOString(),
+  sync: input.summary,
+  batch: input.batch,
+  scoring: null,
+});
 
 export const runPick3IsBlindEvalFlow = async (
   rawInput: unknown,
@@ -367,44 +457,25 @@ export const runPick3IsBlindEvalFlow = async (
   const input = Pick3InputSchema.parse(rawInput);
   const taskId = `pick3_task_${randomUUID()}`;
   const createdAt = new Date().toISOString();
-  const { storage, summary } = await syncOfficialDraws(context.dataDir);
+  const flowLog = createPick3FlowLogger({ runtimeLogger: context.runtimeLogger, taskId });
+  const taskStage = startPick3Stage({ flowLog, stageName: "PICK3_TASK", refs: { taskId }, preview: { mode: input.mode }, metrics: { batchSize: input.batchSize, positionCount: input.positions.length } });
+  const synced = await syncOfficialDrawsWithLog({ context, flowLog, taskId, taskStage });
+  const { storage, summary } = synced;
   let batch: BuiltPick3Batch | null = null;
   try {
-    batch = input.mode === "sync_only" ? null : await buildBatch(input, context, storage);
+    batch = await buildBatchWithLog({ batchInput: input, context, flowLog, storage, taskId });
     const scoring = batch && input.mode === "full_pipeline"
-      ? await runFullPipeline({ batch, context, storage })
+      ? await runFullPipeline({ batch, context, flowLog, storage })
       : batch ? emptyScoring() : null;
-    const record: Pick3TaskRecord = {
-      taskId,
-      mode: input.mode,
-      status: summary.status,
-      reachedStep: input.mode === "full_pipeline" && batch ? "scoring_completed" : batch ? "images_generated" : "official_sync_completed",
-      reason: null,
-      createdAt,
-      updatedAt: new Date().toISOString(),
-      sync: summary,
-      batch,
-      scoring,
-    };
+    const record = buildPick3SuccessTaskRecord({ batch, createdAt, mode: input.mode, scoring, summary, taskId });
     storage.writeTask(record);
+    completePick3Stage({ stage: taskStage, refs: { taskId, reachedStep: record.reachedStep }, metrics: { imageCount: batch?.imageCount ?? 0, hitCount: scoring?.hits ?? 0, abstainCount: scoring?.abstains ?? 0 } });
     return record;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    const record: Pick3TaskRecord = {
-      taskId,
-      mode: input.mode,
-      status: "review_required",
-      reachedStep: reason.startsWith("pick3_prompt_exchange_parse_failed")
-        ? "ai_prompt_exchange_failed"
-        : batch ? "full_pipeline_failed" : "batch_generation",
-      reason,
-      createdAt,
-      updatedAt: new Date().toISOString(),
-      sync: summary,
-      batch,
-      scoring: null,
-    };
+    const record = buildPick3ReviewRequiredTaskRecord({ batch, createdAt, mode: input.mode, reason, summary, taskId });
     storage.writeTask(record);
+    reviewRequiredPick3Stage({ stage: taskStage, reason, refs: { taskId, reachedStep: record.reachedStep } });
     return record;
   } finally {
     storage.close();

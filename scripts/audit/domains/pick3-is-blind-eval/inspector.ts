@@ -343,6 +343,7 @@ const inspectPick3PromptExchangeCore = (
     "writePromptExchangeFailureArtifacts",
     "exchange.predictions.length !== input.batch.images.length",
   ]);
+  requireTokens(findings, promptExchangeLaw, flowPath, texts.flowText, "pick3-is-blind-eval/runtime-log-stages", ["runtimeLogger?: RuntimeLogger", "PICK3_OFFICIAL_SYNC", "PICK3_BUILD_BLIND_BATCH", "PICK3_PROMPT_EXCHANGE", "PICK3_REVEAL_AND_SCORING", "PICK3_TASK"]);
 };
 
 const inspectPick3WebChatWorkspace = (
@@ -408,7 +409,7 @@ const inspectPick3WebChatWorkspace = (
   requireTokens(findings, promptExchangeLaw, webChatEvaluationPath, existsRepoPath(webChatEvaluationPath) ? readRepoText(webChatEvaluationPath) : "", "pick3-is-blind-eval/submitted-image-binding-dom", ["buildVerifyLastUserMessageAttachmentsScript", "[data-message-author-role='user']", "provider last submitted user message contains bound image attachment"]);
   requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/missing-bound-image-recovery", ["isPick3MissingBoundImageError", "recoverPick3MissingBoundImageConversation", "pick3_missing_bound_image_recovery_deleted_current_conversation_and_reopened_new_chat"]);
   requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/rate-limit-resume-visible", ["emitPick3RateLimitRecoveryStep", "same_payload_resend_started"]);
-  const recoveryLogText = existsRepoPath("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") ? readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") : ""; requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", recoveryLogText, "pick3-is-blind-eval/rate-limit-recovery-logging", ["RuntimeLogEventType.RECOVERY_PROGRESS", "HEARTBEAT_MS = 30_000", "PICK3_RATE_LIMIT_BACKOFF_MS = [600_000, 1_800_000, 3_600_000]", "reservePick3RateLimitAttempt", "missionKey", "imageId", "promptPackageId", "totalWaitSec", "elapsedSec", "remainingSec", "recoveryAction", "pick3_rate_limit_backoff_waiting", "pick3_rate_limit_acknowledgement_started", "pick3_rate_limit_chatgpt_refresh_completed", "and_refreshed", "querySelectorAll('[role=\"dialog\"], [data-radix-portal]')", "node.innerText"]); for (const forbiddenBackoff of ["180_000", "300_000"]) if (recoveryLogText.includes(forbiddenBackoff)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", "pick3-is-blind-eval/rate-limit-backoff-schedule", `Pick3 rate-limit schedule must not contain ${forbiddenBackoff}.`);
+  const recoveryLogText = existsRepoPath("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") ? readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") : ""; requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", recoveryLogText, "pick3-is-blind-eval/rate-limit-recovery-logging", ["RuntimeLogEventType.RECOVERY_PROGRESS", "HEARTBEAT_MS = 30_000", "PICK3_RATE_LIMIT_BACKOFF_MS = [600_000, 1_800_000, 3_600_000]", "reservePick3RateLimitAttempt", "missionKey", "imageId", "promptPackageId", "totalWaitSec", "elapsedSec", "remainingSec", "recoveryAction", "pick3_rate_limit_backoff_waiting", "remainingMs, refs: { recoveryAction: \"pick3_rate_limit_backoff_waiting\" }", "pick3_rate_limit_acknowledgement_started", "pick3_rate_limit_chatgpt_refresh_completed", "and_refreshed", "querySelectorAll('[role=\"dialog\"], [data-radix-portal]')", "node.innerText"]); for (const forbiddenBackoff of ["180_000", "300_000"]) if (recoveryLogText.includes(forbiddenBackoff)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", "pick3-is-blind-eval/rate-limit-backoff-schedule", `Pick3 rate-limit schedule must not contain ${forbiddenBackoff}.`);
   requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/current-history-delete", [
     "deletePick3WorkspaceConversationHistoryUrl",
     "current_history_deleted",
@@ -439,6 +440,7 @@ const inspectPick3PromptExchangeWorkbench = (
     "assembly.aiInputGateway.execute",
     "pick3GatewaySender",
     "assembly.browserController",
+    "runtimeLogger: assembly.runtimeLogger",
   ]);
   requireTokens(findings, promptExchangeLaw, appShellLayoutPath, texts.appShellLayoutText, "pick3-is-blind-eval/full-pipeline-ui", [
     "full_pipeline",

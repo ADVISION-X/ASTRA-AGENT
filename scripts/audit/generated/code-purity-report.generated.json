@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-06-18T01:53:47.355Z",
+  "generatedAt": "2026-06-18T10:58:06.321Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -698,6 +698,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
@@ -1391,9 +1392,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 2086,
+  "liveExportCount": 2094,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 707,
+  "reachableFileCount": 708,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1405,9 +1406,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2086,
+    "liveExportCount": 2094,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 707,
+    "reachableFileCount": 708,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0
