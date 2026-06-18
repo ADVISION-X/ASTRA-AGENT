@@ -7,12 +7,14 @@ import type {
   Pick3RevealRecord,
 } from "./pick3-is-blind-eval.schema.js";
 
+const textHasAny = (text: string, tokens: readonly string[]): boolean => tokens.some((token) => text.includes(token));
+
 const classifyFailure = (prediction: Pick3PredictionRecord): string => {
   const text = `${prediction.reason ?? ""} ${prediction.abstainReason ?? ""}`.toLowerCase();
-  if (text.includes("rebound") || text.includes("反弹")) return "low_rebound_missed";
-  if (text.includes("top") || text.includes("尖顶")) return "high_exhaustion_missed";
-  if (text.includes("shoulder") || text.includes("肩膀")) return "shoulder_false_break";
-  if (text.includes("momentum") || text.includes("惯性")) return "momentum_overfollow";
+  if (textHasAny(text, ["rebound", "反弹", "sharp_bottom", "bare_low"])) return "low_rebound_missed";
+  if (textHasAny(text, ["top", "尖顶", "sharp_top", "high_to_shoulder_edge"])) return "high_exhaustion_missed";
+  if (textHasAny(text, ["shoulder", "肩膀", "shoulder_hold", "shoulder_return", "shoulder_reject"])) return "shoulder_false_break";
+  if (textHasAny(text, ["momentum", "惯性", "inertia", "surge_up", "kill_down"])) return "momentum_overfollow";
   return "unknown";
 };
 

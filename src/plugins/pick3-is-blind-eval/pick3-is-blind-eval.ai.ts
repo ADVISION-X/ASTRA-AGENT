@@ -14,11 +14,15 @@ import type {
 export type Pick3GatewaySender = (input: AiFeedInput) => Promise<AiFeedResult>;
 
 type ParsedPrediction = {
+  imageId: string;
+  promptPackageId: string;
   predictionLabel: Pick3PredictionLabel;
   confidence: number | null;
   abstainReason: string | null;
   reason: string | null;
 };
+
+type AiVisiblePredictionLabel = "lower" | "upper" | "abstain";
 
 export type Pick3PromptExchangeResult = {
   gatewayInputs: AiFeedInput[];
@@ -31,17 +35,30 @@ const expectedOutputSchemaRef = "pick3-is-blind-eval-prediction-json-v1" as cons
 
 const hashText = (value: string): string => createHash("sha256").update(value).digest("hex");
 
+const publicPromptPackageId = (promptPackage: Pick3PlaybookPromptPackage): string =>
+  `blind_series_package_${hashText(`${promptPackage.imageRef.imageId}:${promptPackage.playbookVersionId}`).slice(0, 16)}`;
+
 const renderPick3PredictionPrompt = (promptPackage: Pick3PlaybookPromptPackage): string => [
   promptPackage.systemPrompt,
   promptPackage.businessPrompt,
-  "Return exactly one JSON object with these fields:",
+  "Final output contract:",
+  "Return JSON only. Do not return only `lower`, `upper`, or `abstain`. Do not wrap the JSON in markdown. Do not add commentary before or after the JSON.",
+  "Identity binding:",
   JSON.stringify({
-    predictionLabel: "front | back | abstain",
+    imageId: promptPackage.imageRef.imageId,
+    promptPackageId: publicPromptPackageId(promptPackage),
+  }, null, 2),
+  "You must copy imageId and promptPackageId exactly into the output JSON. If either value is missing or changed, the answer is invalid.",
+  "Return exactly this JSON object shape, with your chosen values:",
+  JSON.stringify({
+    imageId: promptPackage.imageRef.imageId,
+    promptPackageId: publicPromptPackageId(promptPackage),
+    predictionLabel: "lower | upper | abstain",
     confidence: "number or null",
     reason: "one sentence about visible shape only",
     abstainReason: "string or null",
   }, null, 2),
-  "Do not include markdown fences, file paths, target phase, date, answer digit, or action instructions.",
+  "Final reminder: output must start with `{` and end with `}`. Do not include markdown fences, file paths, target phase, date, answer digit, or action instructions.",
 ].join("\n\n");
 
 export const buildPick3AiGatewayInput = (input: {
@@ -56,8 +73,8 @@ export const buildPick3AiGatewayInput = (input: {
   textPrompt: renderPick3PredictionPrompt(input.promptPackage),
   inputRefs: [{
     id: input.image.imageId,
-    kind: "pick3-l80-blind-image",
-    summary: "One opaque Pick3 L80 blind chart image.",
+    kind: "is-l80-blind-chart",
+    summary: "One opaque L80 blind time-series chart image.",
     filePath: input.image.imagePath,
     mimeType: "image/png",
     uploadStatus: "pending",
@@ -73,15 +90,29 @@ export const buildPick3AiGatewayInput = (input: {
   roundId: input.image.position,
 });
 
-const parsePrediction = (rawText: string): { parsed: ParsedPrediction | null; reason: string | null } => {
+const parsePrediction = (input: {
+  expectedImageId: string;
+  expectedPromptPackageId: string;
+  rawText: string;
+}): { parsed: ParsedPrediction | null; reason: string | null } => {
   try {
-    const parsed = JSON.parse(rawText) as Partial<ParsedPrediction>;
-    if (parsed.predictionLabel !== "front" && parsed.predictionLabel !== "back" && parsed.predictionLabel !== "abstain") {
+    const parsed = JSON.parse(input.rawText) as Partial<Omit<ParsedPrediction, "predictionLabel"> & {
+      predictionLabel: AiVisiblePredictionLabel;
+    }>;
+    if (parsed.imageId !== input.expectedImageId) {
+      return { parsed: null, reason: "pick3_prediction_image_id_mismatch" };
+    }
+    if (parsed.promptPackageId !== input.expectedPromptPackageId) {
+      return { parsed: null, reason: "pick3_prediction_prompt_package_id_mismatch" };
+    }
+    if (parsed.predictionLabel !== "lower" && parsed.predictionLabel !== "upper" && parsed.predictionLabel !== "abstain") {
       return { parsed: null, reason: "pick3_prediction_label_invalid" };
     }
     if (parsed.predictionLabel === "abstain") {
       return {
         parsed: {
+          imageId: parsed.imageId,
+          promptPackageId: parsed.promptPackageId,
           predictionLabel: "abstain",
           confidence: null,
           abstainReason: parsed.abstainReason ?? "shape_unclear",
@@ -95,7 +126,9 @@ const parsePrediction = (rawText: string): { parsed: ParsedPrediction | null; re
     }
     return {
       parsed: {
-        predictionLabel: parsed.predictionLabel,
+        imageId: parsed.imageId,
+        promptPackageId: parsed.promptPackageId,
+        predictionLabel: parsed.predictionLabel === "lower" ? "front" : "back",
         confidence: parsed.confidence,
         abstainReason: null,
         reason: parsed.reason ?? null,
@@ -129,7 +162,15 @@ const buildInteraction = (input: {
   promptPackage: Pick3PlaybookPromptPackage;
 }): { interaction: Pick3AiInteractionRecord; parsed: ParsedPrediction | null } => {
   const normalizedText = input.gatewayResult.normalizedText ?? "";
-  const parsed = parsePrediction(normalizedText);
+  const parsed = parsePrediction({
+    expectedImageId: input.image.imageId,
+    expectedPromptPackageId: publicPromptPackageId(input.promptPackage),
+    rawText: normalizedText,
+  });
+  const parseFailureReason = parsed.reason
+    ?? (normalizedText.trim().length === 0
+      ? input.gatewayResult.reviewRequiredReason ?? input.gatewayResult.failureReason ?? null
+      : null);
   const rawResponseHash = input.gatewayResult.rawOutputHash ?? hashText(normalizedText);
   const rawOutputRef = ensureRawOutputRef({
     artifactDir: input.artifactDir,
@@ -159,7 +200,7 @@ const buildInteraction = (input: {
       rawOutputRef,
       providerProofJson: JSON.stringify(input.gatewayResult.providerProof),
       parseStatus: parsed.parsed ? "parsed" : "parse_failed_raw_available",
-      parseFailureReason: parsed.reason,
+      parseFailureReason,
       createdAt: new Date().toISOString(),
     },
   };
@@ -196,6 +237,25 @@ const buildPrediction = (input: {
   sealedBeforeReveal: true,
 });
 
+const sendWithEmptyOutputRetry = async (input: {
+  sender: Pick3GatewaySender;
+  gatewayInput: AiFeedInput;
+}): Promise<AiFeedResult> => {
+  let lastResult: AiFeedResult | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const gatewayInput = attempt === 0
+      ? input.gatewayInput
+      : { ...input.gatewayInput, roundId: `${input.gatewayInput.roundId ?? "round"}:empty-retry-${attempt}` };
+    const result = await input.sender(gatewayInput);
+    lastResult = result;
+    if (result.status === "success" && (result.normalizedText ?? "").trim().length > 0) {
+      return result;
+    }
+  }
+  if (!lastResult) throw new Error("pick3_prompt_exchange_gateway_result_missing");
+  return lastResult;
+};
+
 export const runPick3PromptExchange = async (input: {
   artifactDir: string;
   images: readonly Pick3ImageRecord[];
@@ -210,7 +270,7 @@ export const runPick3PromptExchange = async (input: {
     const promptPackage = packageByImage.get(image.imageId);
     if (!promptPackage) throw new Error("pick3_prompt_exchange_package_missing");
     const gatewayInput = buildPick3AiGatewayInput({ batchId: image.batchId, image, promptPackage });
-    const gatewayResult = await input.sender(gatewayInput);
+    const gatewayResult = await sendWithEmptyOutputRetry({ sender: input.sender, gatewayInput });
     const result = buildInteraction({ artifactDir: input.artifactDir, gatewayInput, gatewayResult, image, promptPackage });
     gatewayInputs.push(gatewayInput);
     interactions.push(result.interaction);

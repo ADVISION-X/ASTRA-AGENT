@@ -1,4 +1,5 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
 import type {
   AiFeedInput,
@@ -21,6 +22,7 @@ type ExecuteAiFeedOnceInput = {
   transport: "api" | "web-chat";
   adapter: AiProviderAdapter;
   browser?: BrowserController;
+  runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
 };
 
@@ -92,6 +94,7 @@ const buildRestoreFailure = (input: {
 const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
   dataDir: input.dataDir,
   ...(input.browser ? { browser: input.browser } : {}),
+  ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   ...(input.signal ? { abortSignal: input.signal } : {}),
 });
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T15:02:12.816Z",
+  "generatedAt": "2026-06-18T01:53:54.870Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -153,6 +153,7 @@
     "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
     "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
     "scripts/acceptance/media-processing-video.acceptance.ts",
+    "scripts/acceptance/pick3-is-blind-eval.acceptance-support.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -457,6 +458,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",

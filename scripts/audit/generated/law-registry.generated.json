@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T15:01:30.049Z",
+  "generatedAt": "2026-06-18T01:53:15.125Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3146,13 +3146,42 @@
         "Raw GPT/web-chat output is persisted as a Pick3 AI interaction before business prediction sealing.",
         "Parse status is stored separately from prediction records.",
         "Only parsed interactions may create sealed ai_predictions.",
-        "Manual GPT chat remains a capture surface, not a direct prediction write path."
+        "Manual GPT chat remains a capture surface, not a direct prediction write path.",
+        "Pick3 GPT web-chat feeds reuse one fixed AI Input Gateway workspace tab while starting a fresh ChatGPT conversation for each image.",
+        "Pick3 GPT workspace tab reuse is host/workspace based; conversation URLs are ledger facts only and must not become the saved workspace tab anchor.",
+        "Pick3 GPT workspace opening uses reuse-host-tab or an equivalent host-level workspace lease, never reuse-exact-url against /c/<conversation> URLs.",
+        "Every Pick3 prompt and GPT output carries matching imageId and promptPackageId identity fields before prediction sealing.",
+        "Pick3 GPT web-chat transport verifies the last submitted user message contains the expected bound image attachment before accepting GPT JSON output.",
+        "A missing bound image causes one same-workspace new-chat resend, then review_required if it persists.",
+        "AI-visible labels are lower, upper, and abstain only; front/back exist only after parser mapping for internal reveal/scoring.",
+        "Prompt package metadata, rendered prompt, parser, acceptance, and audit must agree on lower/upper/abstain.",
+        "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
+        "Empty web-chat raw output is retried once before Pick3 interaction persistence; non-empty invalid JSON remains review_required.",
+        "Pick3 GPT rate-limit dialogs trigger 10-minute, 30-minute, then 60-minute silent backoff before acknowledgement, refresh, new chat, and retry of the same governed one-image prompt.",
+        "Pick3 GPT rate-limit backoff emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_PROGRESS, RECOVERY_COMPLETED, and RECOVERY_FAILED events for waiting, acknowledgement, refresh, new-chat reopen, and same-payload resend.",
+        "Pick3 GPT rate-limit waiting is chunked into heartbeat waits and is not one opaque long sleep.",
+        "Persistent Pick3 GPT rate limiting after the third backoff wait stops the batch before prediction sealing, reveal, or scoring.",
+        "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
+        "Pick3 GPT cleanup deletes stale recorded Pick3 ChatGPT sidebar conversation records, keeping the current and immediately previous conversation.",
+        "Pick3 GPT legacy sidebar cleanup is limited to visible controlled training titles outside the current and immediately previous protected workspace URLs.",
+        "Pick3 GPT history cleanup refreshes ChatGPT home after deletion and fails the training run when non-protected Pick3 training history remains visible.",
+        "Any parse_failed_raw_available interaction blocks reveal and scoring for the batch."
       ],
       "forbidden": [
         "Writing ai_predictions directly from pasted GPT text without an interaction record.",
         "Treating provider transport success as business prediction success.",
         "Dropping parse-failed raw output.",
-        "Creating a second prediction/scoring table or second AI transport chain."
+        "Treating a ChatGPT rate-limit dialog as model prediction output.",
+        "Continuing to send Pick3 GPT prompts while a rate-limit dialog is visible.",
+        "Creating a second prediction/scoring table or second AI transport chain.",
+        "Opening a new GPT browser tab for every Pick3 image.",
+        "Using exact /c/<conversation> URL matching as the Pick3 workspace tab reuse mechanism.",
+        "Accepting a GPT response whose imageId or promptPackageId does not match the active request.",
+        "Accepting GPT JSON when the last submitted user message does not contain the expected bound image attachment.",
+        "Treating composer/global attachment counts as final Pick3 image-delivery proof.",
+        "Allowing front/back to leak into the AI-visible output contract or prompt package allowedLabels.",
+        "Continuing Pick3 training after sidebar history cleanup reports failed deletion.",
+        "Closing untracked or user-owned ChatGPT tabs during Pick3 cleanup."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
       "blockIndex": 1

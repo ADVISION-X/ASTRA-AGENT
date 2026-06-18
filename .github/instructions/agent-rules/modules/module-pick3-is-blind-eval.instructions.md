@@ -54,10 +54,39 @@ UAE Lottery Pick 3 official source
 - Active Playbook assets must live under `src/plugins/pick3-is-blind-eval/playbooks/`.
 - Playbook content may teach visual grammar, decision rules, confidence discipline, and abstain rules.
 - Playbook content sent to blind prediction must not contain concrete historical failed-case answers, target phase, date, answer digit, answer label, or future results.
+- Playbook content sent to blind prediction must describe an anonymous time-series chart, not a lottery, Pick3, UAE draw, digit game, or betting source.
 - Failure library and replay records may store revealed answers, but they must not be merged into the active blind Playbook payload.
 - Playbook versions must be hash-addressed and persisted before prediction use.
 - AI chat interaction must follow the Pick3 Prompt Exchange chain: send package, capture raw output, parse, persist interaction, then seal prediction.
 - Manual GPT chat usage is allowed only as an AI Input Gateway sender/capture surface that returns raw output and provider proof into the same Pick3 Prompt Exchange chain.
+- Pick3 GPT web-chat feeds must reuse one fixed AI Input Gateway workspace tab; each image starts a fresh ChatGPT conversation inside that same tab instead of opening a new browser tab.
+- Pick3 GPT workspace tab reuse must be host/workspace based, not exact conversation URL based; `/c/<conversation>` URLs may be recorded only in the conversation ledger, never saved as the workspace tab anchor.
+- Pick3 GPT workspace opening must use `reuse-host-tab` or an equivalent host-level workspace lease; it must not use `reuse-exact-url` against saved `/c/<conversation>` URLs.
+- Pick3 prompt packages must include a non-secret `imageId` and `promptPackageId` identity binding, and GPT output must echo both values exactly.
+- Pick3 GPT web-chat transport must verify after submit that the last submitted user message contains the expected bound image attachment before accepting any GPT JSON output.
+- Composer-level or global attachment counts are only pre-submit readiness hints; they are not Pick3 proof that the image was bound to the submitted user message.
+- If the last submitted Pick3 user message is missing the bound image, the runner must delete/abandon that failed ChatGPT conversation, reopen a new chat in the same workspace tab, resend the same governed one-image prompt and image once, and stop as `review_required` if it persists.
+- Pick3 AI-visible prediction labels must be `lower`, `upper`, and `abstain` only; `front` and `back` are internal reveal/scoring labels only.
+- Pick3 Prompt Exchange must map AI-visible `lower -> front`, `upper -> back`, and `abstain -> abstain` after identity validation and before sealing.
+- Pick3 parsing must reject any response whose echoed `imageId` or `promptPackageId` does not match the active one-image request.
+- Pick3 prompt package metadata, rendered prompt output contract, parser, acceptance, and audit must agree on the same AI-visible label contract; mismatch is a blocking failure.
+- Pick3 Prompt Exchange may retry an empty web-chat raw output once before creating the Pick3 interaction record; non-empty invalid JSON must not be guessed or repaired.
+- Pick3 failure review must classify current visual-grammar terms, including rebound/bottom, top/exhaustion, shoulder, and inertia/momentum families, before falling back to `unknown`.
+- Pick3 GPT Prompt Exchange must detect ChatGPT rate-limit dialogs such as `请求过于频繁` / `请稍等几分钟后再重试` / too-many-requests before parsing output.
+- When a Pick3 GPT rate-limit dialog appears, the runner must immediately enter silent escalating backoff without clicking the dialog first: first 10 minutes, second 30 minutes, third 60 minutes.
+- Pick3 GPT rate-limit backoff must emit Runtime Log Spine recovery events when detected, when backoff starts, during bounded heartbeat progress, when the wait elapses, when acknowledgement starts/completes/fails, when ChatGPT refresh starts/completes, when new chat is reopened, and when the same payload resend starts.
+- Pick3 GPT rate-limit backoff must also emit a terminal stdout line (via process.stdout.write) every 30 seconds showing attempt number, elapsed status, and remaining seconds; terminal visibility is mandatory, not optional.
+- Pick3 GPT rate-limit Runtime Log Spine events and terminal stdout must include `imageId`, `promptPackageId`, `missionKey`, `attempt`, `totalWaitSec`, `elapsedSec`, `remainingSec`, and `recoveryAction` so a human can prove which image is waiting and what will happen next.
+- Pick3 GPT rate-limit waiting must not be one opaque long sleep; it must be chunked into observable heartbeat waits without increasing request frequency.
+- After each Pick3 GPT rate-limit backoff expires, the runner must click the dialog acknowledgement, refresh/reopen ChatGPT in the same workspace tab, open a new chat, and resend the same governed one-image prompt and image.
+- If Pick3 GPT rate limiting persists after the third backoff wait, the batch must stop as `review_required` before prediction sealing, reveal, or scoring.
+- Pick3 GPT workspace cleanup must close only stale conversation tabs that were previously recorded by the Pick3 workspace ledger, preserving the current and immediately previous conversation.
+- Pick3 GPT workspace cleanup must also delete stale ChatGPT sidebar conversation history entries recorded by the Pick3 workspace ledger, preserving the current and immediately previous conversation records.
+- Pick3 GPT workspace cleanup must delete stale visible ChatGPT sidebar history entries whose title matches the controlled Pick3 training title allowlist: `Pick3 Blind Eval`, `Blind Eval`, `Blind Chart`, `Blind Time-Series`, `Blind Series`, or `Visual Pattern Prediction`, while preserving the current and immediately previous protected workspace URLs.
+- Pick3 GPT history cleanup must refresh/reopen the ChatGPT home sidebar after deletion and treat any remaining non-protected Pick3 training history entry as cleanup failure.
+- Pick3 training must stop before the next prompt when sidebar cleanup reports a deletion failure, because stale training conversations can pollute future ChatGPT context and make the history list explode.
+- Pick3 full pipeline must stop before reveal/scoring when any one-image GPT response fails JSON parsing or identity binding.
+- Pick3 full pipeline must stop before interaction persistence, prediction sealing, reveal, or scoring when the provider cannot prove the submitted user message contains the current image.
 
 ## Forbidden
 
@@ -79,6 +108,13 @@ UAE Lottery Pick 3 official source
 - No runtime dependency on `/Users/nexgen/Documents/trend-intuition-brain`.
 - No external Playbook fallback, bridge, mirror, or prompt path outside the Pick3 plugin owner.
 - No direct manual response ingestion into `ai_predictions` without a persisted Pick3 AI interaction record.
+- No one-GPT-tab-per-image behavior for Pick3 training.
+- No sealed prediction when GPT output omits or changes the active `imageId` or `promptPackageId`.
+- No accepting GPT JSON from a ChatGPT conversation where the last user message has no bound image attachment.
+- No using global ChatGPT attachment count as final Pick3 image-delivery proof.
+- No `front` / `back` labels in the AI-visible output contract, prompt package `allowedLabels`, or rendered GPT prompt.
+- No failure-review classifier that treats current Playbook visual grammar as mostly `unknown`.
+- No broad ChatGPT tab cleanup that closes user-owned or untracked provider tabs.
 
 ## Law IDs
 
@@ -116,13 +152,42 @@ UAE Lottery Pick 3 official source
     "Raw GPT/web-chat output is persisted as a Pick3 AI interaction before business prediction sealing.",
     "Parse status is stored separately from prediction records.",
     "Only parsed interactions may create sealed ai_predictions.",
-    "Manual GPT chat remains a capture surface, not a direct prediction write path."
+    "Manual GPT chat remains a capture surface, not a direct prediction write path.",
+    "Pick3 GPT web-chat feeds reuse one fixed AI Input Gateway workspace tab while starting a fresh ChatGPT conversation for each image.",
+    "Pick3 GPT workspace tab reuse is host/workspace based; conversation URLs are ledger facts only and must not become the saved workspace tab anchor.",
+    "Pick3 GPT workspace opening uses reuse-host-tab or an equivalent host-level workspace lease, never reuse-exact-url against /c/<conversation> URLs.",
+    "Every Pick3 prompt and GPT output carries matching imageId and promptPackageId identity fields before prediction sealing.",
+    "Pick3 GPT web-chat transport verifies the last submitted user message contains the expected bound image attachment before accepting GPT JSON output.",
+    "A missing bound image causes one same-workspace new-chat resend, then review_required if it persists.",
+    "AI-visible labels are lower, upper, and abstain only; front/back exist only after parser mapping for internal reveal/scoring.",
+    "Prompt package metadata, rendered prompt, parser, acceptance, and audit must agree on lower/upper/abstain.",
+    "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
+    "Empty web-chat raw output is retried once before Pick3 interaction persistence; non-empty invalid JSON remains review_required.",
+    "Pick3 GPT rate-limit dialogs trigger 10-minute, 30-minute, then 60-minute silent backoff before acknowledgement, refresh, new chat, and retry of the same governed one-image prompt.",
+    "Pick3 GPT rate-limit backoff emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_PROGRESS, RECOVERY_COMPLETED, and RECOVERY_FAILED events for waiting, acknowledgement, refresh, new-chat reopen, and same-payload resend.",
+    "Pick3 GPT rate-limit waiting is chunked into heartbeat waits and is not one opaque long sleep.",
+    "Persistent Pick3 GPT rate limiting after the third backoff wait stops the batch before prediction sealing, reveal, or scoring.",
+    "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
+    "Pick3 GPT cleanup deletes stale recorded Pick3 ChatGPT sidebar conversation records, keeping the current and immediately previous conversation.",
+    "Pick3 GPT legacy sidebar cleanup is limited to visible controlled training titles outside the current and immediately previous protected workspace URLs.",
+    "Pick3 GPT history cleanup refreshes ChatGPT home after deletion and fails the training run when non-protected Pick3 training history remains visible.",
+    "Any parse_failed_raw_available interaction blocks reveal and scoring for the batch."
   ],
   "forbidden": [
     "Writing ai_predictions directly from pasted GPT text without an interaction record.",
     "Treating provider transport success as business prediction success.",
     "Dropping parse-failed raw output.",
-    "Creating a second prediction/scoring table or second AI transport chain."
+    "Treating a ChatGPT rate-limit dialog as model prediction output.",
+    "Continuing to send Pick3 GPT prompts while a rate-limit dialog is visible.",
+    "Creating a second prediction/scoring table or second AI transport chain.",
+    "Opening a new GPT browser tab for every Pick3 image.",
+    "Using exact /c/<conversation> URL matching as the Pick3 workspace tab reuse mechanism.",
+    "Accepting a GPT response whose imageId or promptPackageId does not match the active request.",
+    "Accepting GPT JSON when the last submitted user message does not contain the expected bound image attachment.",
+    "Treating composer/global attachment counts as final Pick3 image-delivery proof.",
+    "Allowing front/back to leak into the AI-visible output contract or prompt package allowedLabels.",
+    "Continuing Pick3 training after sidebar history cleanup reports failed deletion.",
+    "Closing untracked or user-owned ChatGPT tabs during Pick3 cleanup."
   ]
 }
 ```

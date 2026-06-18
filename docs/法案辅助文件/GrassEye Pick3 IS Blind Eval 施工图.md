@@ -575,7 +575,7 @@ type Pick3PlaybookPromptPackage = {
   visualGrammarHash: string;
   rawPromptHash: string;
   confidenceIsProbability: false;
-  allowedLabels: ["front", "back", "abstain"];
+  allowedLabels: ["lower", "upper", "abstain"];
   imageRef: {
     imageId: string;
     imageSha256: string;
@@ -712,6 +712,26 @@ REVEAL
 
 Manual GPT chat is allowed only as the capture surface behind `Pick3GatewaySender`. It must return raw output and provider proof into `pick3_ai_interactions`; it must not write `ai_predictions` directly.
 
+GPT workspace law:
+
+```txt
+Pick3 must use one AI Input Gateway web-chat workspace:
+  workspaceId = pick3-is-blind-eval
+
+For each one-image prompt:
+  focus the same ChatGPT provider tab
+  click New chat inside that tab
+  upload exactly one image
+  send prompt
+  verify the last submitted user message contains the bound image attachment
+  capture response
+
+Forbidden:
+  one browser tab per image
+  untracked ChatGPT tab cleanup
+  accepting GPT JSON when the last submitted user message has no image
+```
+
 Workbench runtime entry:
 
 ```txt
@@ -732,16 +752,207 @@ default zh label = 通过 GPT 网页聊天运行完整链路
 Per image payload:
 
 ```txt
+identity:
+  imageId = opaque image id
+  promptPackageId = active playbook package id
+
 system/business prompt:
+  de-lotteried anonymous time-series prompt
+  no Pick3 / UAE / lottery / digit-game wording
   position-specific prompt version content
 attachment:
   one image only
-required output:
-  prediction_label: front | back | abstain
-  confidence: number between 0.51 and 0.60 when front/back, null when abstain
+AI-visible required output:
+  imageId: exact input imageId
+  promptPackageId: exact input promptPackageId
+  predictionLabel: lower | upper | abstain
+  confidence: number between 0.51 and 0.60 when lower/upper, null when abstain
   confidence_meaning: subjective_model_strength_not_probability
   abstain_reason: required when prediction_label = abstain
   reason: one sentence
+
+Internal mapping:
+  lower -> front
+  upper -> back
+  abstain -> abstain
+
+Contract lock:
+  AI-visible prompt package allowedLabels = lower | upper | abstain
+  rendered GPT output contract = lower | upper | abstain
+  parser accepts only lower | upper | abstain before mapping
+  front/back are internal reveal/scoring labels only
+  acceptance and audit must fail if these layers disagree
+```
+
+Empty web-chat capture retry:
+
+```txt
+If AI Input Gateway returns empty normalizedText:
+  retry the same one-image prompt once through the same AI Input Gateway sender
+  do not create a Pick3 interaction for the empty transport attempt
+
+If retry still returns empty:
+  create parse_failed_raw_available from final raw response
+  stop before reveal/scoring
+
+If response is non-empty but invalid JSON:
+  do not guess repair
+  parse_status = parse_failed_raw_available
+  stop before reveal/scoring
+```
+
+Submitted image binding proof:
+
+```txt
+Pre-submit attachment count is only readiness:
+  composer-scoped count can allow submit
+  global attachment count can only allow a submit attempt when followed by post-submit binding proof
+
+After submit, Pick3 must prove:
+  last [data-message-author-role="user"] message contains at least one real image/attachment candidate
+  Add Files buttons, profile/avatar controls, menus, and stale global attachments are excluded
+
+Implementation:
+  Script builder: buildVerifyLastUserMessageAttachmentsScript(expectedCount)
+  File: src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts
+  Called through: verifyLastUserMessageAttachments (web-chat-submit-page-actions.ts)
+  Runtime gate: submitPromptViaClipboard waits after verified submit before answer extraction
+  Scopes to: last visible [data-message-author-role="user"] element only
+  Excluded: Add Files, profile/avatar/account/menu/button/send controls
+  Size guard: tiny invisible candidates are excluded
+  Returns:
+    status:"success" -> continue to answer extraction
+    repeated pending until timeout -> throw review_required: provider_missing_bound_image
+
+If proof fails:
+  status = provider_missing_bound_image
+  do not persist pick3_ai_interactions
+  do not create ai_predictions
+  do not reveal
+  do not score
+  delete/abandon the failed current ChatGPT conversation
+  reopen new chat in the same pick3-is-blind-eval workspace tab
+  resend the same governed one-image prompt package and image once
+  if the second submit is still missing the bound image, stop as review_required
+  Recovery path: isPick3MissingBoundImageError + recoverPick3MissingBoundImageConversation (web-chat-shared.ts)
+  missingBoundImageRecovered flag prevents infinite loop (max 1 recovery attempt)
+```
+
+Pick3 GPT rate-limit backoff:
+
+```txt
+If ChatGPT shows a rate-limit dialog:
+  Chinese signals:
+    请求过于频繁
+    请稍等几分钟后再重试
+  English signals:
+    too many requests
+    request too frequent
+    try again later
+    temporarily limited
+
+The dialog is provider throttling, not model output.
+It must not create ai_predictions.
+It must not reveal or score the batch.
+
+Handling:
+  immediately wait silently
+  do not click 明白了 / OK / Got it before the wait expires
+  emit Runtime Log Spine recovery event before the wait starts
+  emit terminal stdout line (process.stdout.write) every 30 seconds while waiting — mandatory
+  emit heartbeat recovery progress every 30 seconds to UI logger while waiting
+  after the wait expires, click 明白了 / OK / Got it through BrowserController native click
+  emit terminal stdout line for ack result
+  refresh/reopen https://chatgpt.com/ in the same workspace tab
+  emit terminal stdout line for refresh result
+  open New Chat
+  retry the same governed one-image prompt package and current image
+
+Terminal stdout format (every 30s heartbeat):
+  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=backoff_waiting totalWaitSec=600 elapsedSec=30 remainingSec=570 recoveryAction=pick3_rate_limit_backoff_waiting — still waiting, do NOT interrupt
+
+Backoff schedule:
+  first rate-limit occurrence:  wait 10 minutes (600_000 ms)
+  second rate-limit occurrence: wait 30 minutes (1_800_000 ms)
+  third rate-limit occurrence:  wait 60 minutes (3_600_000 ms)
+
+Runtime logs and terminal stdout must include imageId, promptPackageId, missionKey, attempt, totalWaitSec, elapsedSec, remainingSec, and recoveryAction.
+
+After each wait:
+  RECOVERY_STARTED reason=pick3_rate_limit_backoff_started
+  RECOVERY_PROGRESS reason=pick3_rate_limit_backoff_waiting remainingMs=<bounded>
+  RECOVERY_COMPLETED reason=pick3_rate_limit_backoff_elapsed
+  click the rate-limit acknowledgement
+  RECOVERY_STARTED reason=pick3_rate_limit_acknowledgement_started
+  RECOVERY_COMPLETED / RECOVERY_FAILED reason=pick3_rate_limit_acknowledgement_completed|failed
+  refresh the same Pick3 ChatGPT workspace tab
+  RECOVERY_STARTED / RECOVERY_COMPLETED reason=pick3_rate_limit_chatgpt_refresh_started|completed
+  click New chat through openProviderPage
+  RECOVERY_COMPLETED reason=pick3_rate_limit_new_chat_reopened_for_resend
+  upload the same one image
+  RECOVERY_STARTED reason=pick3_rate_limit_same_payload_resend_started
+  resend the exact same prompt package
+
+If rate limiting appears again after the third wait:
+  status = review_required
+  reached_step = ai_prompt_exchange_failed
+  no sealed prediction
+  no reveal
+  no scoring
+
+Provider proof:
+  providerRecoveryStatus includes pick3_rate_limit_backoff_<ms>_ms
+  providerRecoveryAttemptCount equals the number of rate-limit backoff waits used
+
+Implementation:
+  logger source = Workbench runtimeLogger
+  injection path = createWorkbenchAiInputGateway -> AiInputGatewayExecutionContext -> AiProviderAdapterContext
+  helper = web-chat-pick3-recovery-log.ts
+  wait helper = waitWithPick3RateLimitHeartbeat
+  heartbeat interval = 30_000 ms
+  no private console.log / JSONL / second log chain
+```
+
+Pick3 GPT no-result recovery:
+
+```txt
+If the Pick3 GPT web-chat prompt has been submitted and no provider result is captured after 200 seconds:
+  refresh the current ChatGPT conversation URL in the same workspace tab
+  delete that current ChatGPT conversation history entry through the verified sidebar delete path
+  reopen https://chatgpt.com/ in the same workspace tab
+  click New chat through the existing AI Input Gateway openProviderPage path
+  resend the same governed one-image prompt package exactly once
+  persist providerProof.providerRecoveryStatus
+  persist providerProof.providerRecoveryAttemptCount = 1
+
+This recovery is Pick3-only.
+It must not create a second GPT browser tab per image.
+It must not delete untracked or user-owned ChatGPT history.
+If current conversation deletion is not verified after refresh/reopen:
+  status = review_required
+	  reason = pick3_no_result_recovery_delete_failed
+```
+
+Pick3 GPT workspace tab identity:
+
+```txt
+workspaceId = pick3-is-blind-eval
+workspace tab anchor = https://chatgpt.com/
+conversation ledger entries = https://chatgpt.com/c/<conversation-id>
+
+The workspace tab anchor and conversation ledger are different facts.
+Do not save a /c/<conversation-id> URL as the workspace tab anchor.
+Do not use reuse-exact-url against a /c/<conversation-id> URL to find the Pick3 workspace tab.
+Use host/workspace tab reuse for Pick3:
+  focus any existing chatgpt.com provider tab owned by the workspace when available
+  otherwise open https://chatgpt.com/ with reuse-host-tab
+  then click New chat inside that same tab
+
+Provider proof must show:
+  webChatWorkspaceId = pick3-is-blind-eval
+  providerTabPolicy = reuse-single-provider-workspace-tab
+
+This is the production guard against one browser tab per image.
 ```
 
 Every prediction call must persist:
@@ -764,6 +975,92 @@ system_prompt_hash
 business_prompt_hash
 raw_prompt_hash
 raw_response_ref
+provider_proof_json.webChatWorkspaceId
+provider_proof_json.providerTabPolicy
+provider_proof_json.providerRecoveryStatus
+provider_proof_json.providerRecoveryAttemptCount
+provider_proof_json.staleConversationCleanupStatus
+provider_proof_json.staleConversationHistoryCleanupStatus
+```
+
+Hard binding rule:
+
+```txt
+If GPT output imageId != active image.imageId:
+  parse_status = parse_failed_raw_available
+  no ai_predictions row
+  no reveal
+
+If GPT output promptPackageId != active promptPackage.playbookVersionId:
+  parse_status = parse_failed_raw_available
+  no ai_predictions row
+  no reveal
+
+If any one-image interaction has parse_status = parse_failed_raw_available:
+  stop full_pipeline
+  status = review_required
+  reached_step = ai_prompt_exchange_failed
+  no reveal
+  no scoring
+```
+
+GPT cleanup rule:
+
+```txt
+AI Input Gateway keeps a Pick3 workspace conversation ledger.
+After a response is captured:
+  record current ChatGPT conversation URL
+  keep current and immediately previous Pick3 conversation tabs
+  close only older recorded Pick3 conversation tabs
+  delete older recorded Pick3 conversations from ChatGPT sidebar history
+  delete legacy sidebar records only when visible title matches the controlled Pick3 training title allowlist
+  never delete the current or immediately previous protected workspace URLs
+  persist staleConversationHistoryCleanupStatus in provider proof
+
+Never close arbitrary user ChatGPT tabs.
+Never delete arbitrary user ChatGPT sidebar history.
+Never depend on browser tab title to identify Pick3 ownership.
+Never continue training when non-protected Pick3 training history remains visible after cleanup.
+
+Controlled Pick3 training title allowlist:
+  Pick3 Blind Eval
+  Blind Eval
+  Blind Chart
+  Blind Time-Series
+  Blind Series
+  Visual Pattern Prediction
+
+These titles are cleanup ownership hints only. They are not prediction input and must not be inserted into the blind prompt payload.
+If cleanup sees a matching visible sidebar record outside the current and immediately previous protected URLs:
+  it must attempt delete through the verified sidebar delete path
+  refresh/reopen https://chatgpt.com/ in the same workspace tab
+  verify the /c/<id> pathname is absent from visible sidebar anchors
+  report failed_N when any non-protected training title remains visible
+```
+
+Live Chrome deletion verification, 2026-06-17:
+
+```txt
+Observed ChatGPT sidebar order:
+  1. Blind Time-Series Evaluation -> /c/6a32e2f5-0a6c-83ed-bbc0-ac5925e9acb8
+  2. Blind Time-Series Evaluation -> /c/6a32e2d1-7a28-83eb-8314-0271b18407b6
+  3. Blind Chart Evaluation -> /c/6a32e2b1-a428-83eb-9899-eb9705776efd
+
+Verified deletion path:
+  locate visible sidebar conversation options button
+  click it through BrowserController native browserViewport point
+  locate menu item 删除
+  click it through BrowserController native browserViewport point
+  locate confirm 删除
+  click it through BrowserController native browserViewport point
+  reopen https://chatgpt.com/ in the same workspace tab
+  verify the deleted /c/<id> path is absent from visible sidebar anchors
+
+Critical production rule:
+  Do not verify against the old DOM immediately after confirm 删除.
+  ChatGPT can leave the deleted conversation link in the current DOM until sidebar refresh.
+  Verification must refresh/reopen the ChatGPT home sidebar, then compare by conversation pathname.
+  Do not use synthetic element.click() as the production deletion action.
 ```
 
 Prompt Exchange source file:
@@ -869,6 +1166,16 @@ Required output:
 ```
 
 The reviewer may see answers. This flow is not blind.
+
+Classifier coverage:
+
+```txt
+low_rebound_missed: rebound, sharp_bottom, bare_low
+high_exhaustion_missed: top, sharp_top, high_to_shoulder_edge
+shoulder_false_break: shoulder, shoulder_hold, shoulder_return, shoulder_reject
+momentum_overfollow: momentum, inertia, surge_up, kill_down
+unknown: only when no current Playbook visual grammar family is present
+```
 
 ## Prompt Rewrite Flow
 

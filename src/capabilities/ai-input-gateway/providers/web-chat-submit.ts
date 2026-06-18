@@ -7,6 +7,7 @@ import {
   pressReturnInChrome,
 } from "./web-chat-clipboard.js";
 import {
+  verifyLastUserMessageAttachments,
   verifyPromptPasted,
   verifyPromptSubmitted,
 } from "./web-chat-submit-page-actions.js";
@@ -21,6 +22,7 @@ import { clearComposer } from "./web-chat-upload-page-actions.js";
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
 const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
+const SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS = 12_000;
 
 const normalizePromptForSubmission = (promptText: string): string =>
   promptText.replace(/\s+/gu, " ").trim();
@@ -101,6 +103,7 @@ type PreparedPromptComposer = {
   expectedLength: number;
   expectedPrefix: string;
   expectedSuffix: string;
+  expectedAttachmentCount: number;
   wasPromptVerifiedBeforeSubmit: true;
 };
 
@@ -146,6 +149,32 @@ const waitForPromptReady = async (input: {
   }
   throw new Error(
     `review_required: ${input.step}; last=${lastMessage}; composerChars=${String(lastEvaluation?.composerText?.trim().length ?? 0)}; expectedChars=${String(input.expectedLength)}; prefixVisible=${String(lastEvaluation?.promptPrefixVisible ?? false)}; suffixVisible=${String(lastEvaluation?.promptSuffixVisible ?? false)}; pastedCard=${String(lastEvaluation?.hasPastedTextCard ?? false)}; sendReady=${String(lastEvaluation?.sendReady ?? false)}`,
+  );
+};
+
+const waitForSubmittedUserMessageAttachments = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  expectedCount: number;
+  timeoutMs: number;
+}): Promise<void> => {
+  if (input.expectedCount <= 0) return;
+  const deadline = Date.now() + input.timeoutMs;
+  let lastMessage = "provider submitted attachment binding was not checked";
+  let lastEvaluation: WebChatEvaluation | null = null;
+  while (Date.now() < deadline) {
+    const evaluation = await withWebChatStep("verify_last_user_message_bound_attachments", () =>
+      verifyLastUserMessageAttachments(input.browser, input.context, input.expectedCount));
+    lastEvaluation = evaluation;
+    lastMessage = `${evaluation.status}: ${evaluation.message}`;
+    if (evaluation.status === "success") return;
+    if (evaluation.status === "review_required" || evaluation.status === "failed") {
+      throw new Error(lastMessage);
+    }
+    await input.browser.wait(500);
+  }
+  throw new Error(
+    `review_required: provider_missing_bound_image; expected=${input.expectedCount}; detected=${String(lastEvaluation?.boundAttachmentCount ?? 0)}; last=${lastMessage}`,
   );
 };
 
@@ -216,6 +245,7 @@ const preparePromptComposer = async (
     expectedLength,
     expectedPrefix,
     expectedSuffix,
+    expectedAttachmentCount,
     wasPromptVerifiedBeforeSubmit: true,
   };
 };
@@ -234,7 +264,15 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
     timeoutMs: 8_000,
   });
-  if (submittedAfterReturn) return;
+  if (submittedAfterReturn) {
+    await waitForSubmittedUserMessageAttachments({
+      browser: input.browser,
+      context: input.context,
+      expectedCount: input.preparedPrompt.expectedAttachmentCount,
+      timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
+    });
+    return;
+  }
   await waitForSendButtonClick({
     browser: input.browser,
     context: input.context,
@@ -249,7 +287,15 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
     timeoutMs: input.request.timeoutMs,
   });
-  if (submittedAfterClick) return;
+  if (submittedAfterClick) {
+    await waitForSubmittedUserMessageAttachments({
+      browser: input.browser,
+      context: input.context,
+      expectedCount: input.preparedPrompt.expectedAttachmentCount,
+      timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
+    });
+    return;
+  }
   throw new Error("review_required: provider prompt was not submitted after return and send click.");
 };
 

@@ -7,6 +7,7 @@ import type { AiFeedInput } from "../schema.js";
 
 const FACEBOOK_WORKSPACE_ID = "facebook";
 const DEEP_RESEARCH_WORKSPACE_ID = "deep-research";
+const PICK3_WORKSPACE_ID = "pick3-is-blind-eval";
 
 const escapeAppleScriptText = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
@@ -17,12 +18,34 @@ const workspaceDir = (dataDir: string): string =>
 const workspaceUrlPath = (dataDir: string, providerKind: string, workspaceId: string): string =>
   path.join(workspaceDir(dataDir), `${providerKind}-${workspaceId}.url`);
 
+const workspaceConversationLedgerPath = (dataDir: string, providerKind: string, workspaceId: string): string =>
+  path.join(workspaceDir(dataDir), `${providerKind}-${workspaceId}-conversation-urls.json`);
+
+export const isPick3WorkspaceId = (workspaceId: string | null): boolean =>
+  workspaceId === PICK3_WORKSPACE_ID;
+
+export const normalizeWorkspaceUrl = (input: {
+  workspaceId: string;
+  url: string | null;
+}): string | null => {
+  if (!input.url || !input.url.startsWith("https://")) return null;
+  if (!isPick3WorkspaceId(input.workspaceId)) return input.url;
+  try {
+    const parsed = new URL(input.url);
+    return parsed.host === "chatgpt.com" ? `${parsed.origin}/` : input.url;
+  } catch {
+    return null;
+  }
+};
+
 export const resolveWebChatWorkspaceId = (request: AiFeedInput): string | null =>
   request.promptContractId.includes("facebook-product-video-mining")
     ? FACEBOOK_WORKSPACE_ID
     : request.promptContractId.includes("deep-research.")
       ? DEEP_RESEARCH_WORKSPACE_ID
-      : null;
+      : request.promptContractId.includes("pick3-is-blind-eval")
+        ? PICK3_WORKSPACE_ID
+        : null;
 
 export const readSavedWorkspaceUrl = (input: {
   dataDir: string;
@@ -32,7 +55,9 @@ export const readSavedWorkspaceUrl = (input: {
   const filePath = workspaceUrlPath(input.dataDir, input.providerKind, input.workspaceId);
   if (!existsSync(filePath)) return null;
   const value = readFileSync(filePath, "utf8").trim();
-  return value.startsWith("http") ? value : null;
+  return value.startsWith("http")
+    ? normalizeWorkspaceUrl({ workspaceId: input.workspaceId, url: value })
+    : null;
 };
 
 export const saveWorkspaceUrl = (input: {
@@ -41,12 +66,82 @@ export const saveWorkspaceUrl = (input: {
   workspaceId: string;
   url: string | null;
 }): void => {
-  if (!input.url || !input.url.startsWith("https://")) return;
+  const normalizedUrl = normalizeWorkspaceUrl({ workspaceId: input.workspaceId, url: input.url });
+  if (!normalizedUrl) return;
   mkdirSync(workspaceDir(input.dataDir), { recursive: true });
   writeFileSync(
     workspaceUrlPath(input.dataDir, input.providerKind, input.workspaceId),
-    `${input.url}\n`,
+    `${normalizedUrl}\n`,
   );
+};
+
+export const readWorkspaceConversationLedger = (input: {
+  dataDir: string;
+  providerKind: string;
+  workspaceId: string;
+}): string[] => {
+  const filePath = workspaceConversationLedgerPath(input.dataDir, input.providerKind, input.workspaceId);
+  if (!existsSync(filePath)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string" && value.startsWith("https://")) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const recordWorkspaceConversationUrl = (input: {
+  dataDir: string;
+  providerKind: string;
+  workspaceId: string;
+  url: string | null;
+}): void => {
+  if (!input.url || !input.url.startsWith("https://chatgpt.com/")) return;
+  const existing = readWorkspaceConversationLedger(input).filter((url) => url !== input.url);
+  const next = [...existing, input.url].slice(-20);
+  mkdirSync(workspaceDir(input.dataDir), { recursive: true });
+  writeFileSync(
+    workspaceConversationLedgerPath(input.dataDir, input.providerKind, input.workspaceId),
+    `${JSON.stringify(next, null, 2)}\n`,
+  );
+};
+
+export const cleanupStaleWorkspaceConversationTabs = async (input: {
+  dataDir: string;
+  providerKind: string;
+  workspaceId: string;
+  keepRecentCount: number;
+  abortSignal?: AbortSignal;
+}): Promise<string> => {
+  const ledger = readWorkspaceConversationLedger(input);
+  const staleUrls = ledger.slice(0, Math.max(0, ledger.length - input.keepRecentCount));
+  if (staleUrls.length === 0) return "not_needed";
+  const staleList = staleUrls.map((url) => `"${escapeAppleScriptText(url)}"`).join(", ");
+  const result = await runAppleScript(`
+set staleUrls to {${staleList}}
+set closedCount to 0
+tell application "Google Chrome"
+  if (count of windows) = 0 then return "closed_0"
+  repeat with w in windows
+    set tIndex to (count of tabs of w)
+    repeat while tIndex > 0
+      set tabUrl to URL of tab tIndex of w
+      if staleUrls contains tabUrl then
+        close tab tIndex of w
+        set closedCount to closedCount + 1
+      end if
+      set tIndex to tIndex - 1
+    end repeat
+  end repeat
+end tell
+return "closed_" & closedCount
+`, input.abortSignal ? { signal: input.abortSignal } : undefined);
+  const keptLedger = ledger.slice(-input.keepRecentCount);
+  writeFileSync(
+    workspaceConversationLedgerPath(input.dataDir, input.providerKind, input.workspaceId),
+    `${JSON.stringify(keptLedger, null, 2)}\n`,
+  );
+  return result.trim();
 };
 
 export const focusExistingWorkspaceTab = async (input: {
@@ -102,7 +197,7 @@ export const ensureProviderWorkspaceFocused = async (input: {
     providerHost: new URL(input.providerUrl).host,
     workspaceId,
     savedUrl,
-    allowAnyProviderTab: false,
+    allowAnyProviderTab: false || isPick3WorkspaceId(workspaceId) || input.allowAnyProviderTab === true,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
   if (!focused) {

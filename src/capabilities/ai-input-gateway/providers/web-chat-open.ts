@@ -6,6 +6,7 @@ import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js
 import { AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX } from "./web-chat-restore-policy.js";
 import {
   focusExistingWorkspaceTab,
+  isPick3WorkspaceId,
   readSavedWorkspaceUrl,
   resolveWebChatWorkspaceId,
   saveWorkspaceUrl,
@@ -46,17 +47,29 @@ export const isAmazonProductMiningGptRequest = (input: {
   new URL(input.providerUrl).host === "chatgpt.com"
   && input.request.promptContractId.startsWith(AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX);
 
+export const isPick3GptRequest = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): boolean =>
+  new URL(input.providerUrl).host === "chatgpt.com"
+  && input.request.promptContractId.includes("pick3-is-blind-eval");
+
 const requiresFreshChatGptConversation = (input: {
   providerUrl: string;
   request: AiFeedInput;
 }): boolean =>
-  isDeepResearchGptRequest(input) || isAmazonProductMiningGptRequest(input);
+  isDeepResearchGptRequest(input) || isAmazonProductMiningGptRequest(input) || isPick3GptRequest(input);
 
 const resolveProviderReusePolicy = (input: {
   providerUrl: string;
   request: AiFeedInput;
-}): "reuse-exact-url" | "open-new-tab" =>
-  requiresFreshChatGptConversation(input) ? "open-new-tab" : "reuse-exact-url";
+  workspaceId: string | null;
+}): "reuse-exact-url" | "open-new-tab" | "reuse-host-tab" =>
+  isPick3WorkspaceId(input.workspaceId)
+    ? "reuse-host-tab"
+    : requiresFreshChatGptConversation(input) && !input.workspaceId
+      ? "open-new-tab"
+      : "reuse-exact-url";
 
 const waitForProviderComposer = async (
   browser: BrowserController,
@@ -142,7 +155,7 @@ const focusExistingProviderWorkspace = async (input: {
     providerHost: new URL(input.providerUrl).host,
     workspaceId: input.workspaceId,
     savedUrl: input.savedUrl,
-    allowAnyProviderTab: false,
+    allowAnyProviderTab: false || isPick3WorkspaceId(input.workspaceId),
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
 };
@@ -171,14 +184,14 @@ const openOrReuseProviderWorkspace = async (input: {
   workspaceId: string | null;
   savedUrl: string | null;
   focusedExisting: boolean;
-  reusePolicy: "reuse-exact-url" | "open-new-tab";
+  reusePolicy: "reuse-exact-url" | "open-new-tab" | "reuse-host-tab";
 }): Promise<{ ok: boolean; message: string }> => input.focusedExisting
   ? { ok: true, message: "focused existing provider workspace tab" }
   : input.browser.open({
-    url: input.savedUrl ?? input.providerUrl,
-    title: `${input.runtimeName}${input.workspaceId ? `:${input.workspaceId}` : ""}`,
-    reusePolicy: input.reusePolicy,
-  });
+      url: isPick3WorkspaceId(input.workspaceId) ? input.providerUrl : input.savedUrl ?? input.providerUrl,
+      title: `${input.runtimeName}${input.workspaceId ? `:${input.workspaceId}` : ""}`,
+      reusePolicy: input.reusePolicy,
+    });
 
 const assertProviderPageOpened = (opened: { ok: boolean; message: string }): void => {
   if (!opened.ok) {
@@ -197,6 +210,7 @@ export const openProviderPage = async (input: {
   const reusePolicy = resolveProviderReusePolicy({
     providerUrl: input.providerUrl,
     request: input.request,
+    workspaceId,
   });
   const focusedExisting = await focusExistingProviderWorkspace({
     providerUrl: input.providerUrl,

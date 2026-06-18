@@ -292,6 +292,17 @@ const writePipelineArtifacts = (input: {
   }, null, 2)}\n`);
 };
 
+const writePromptExchangeFailureArtifacts = (input: {
+  batch: BuiltPick3Batch;
+  gatewayInputs: unknown;
+  interactions: unknown;
+  predictions: unknown;
+}): void => {
+  writeFileSync(path.join(input.batch.artifactDir, "ai_gateway_inputs.json"), `${JSON.stringify(input.gatewayInputs, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "ai_interactions.json"), `${JSON.stringify(input.interactions, null, 2)}\n`);
+  writeFileSync(path.join(input.batch.artifactDir, "ai_predictions.json"), `${JSON.stringify(input.predictions, null, 2)}\n`);
+};
+
 const runFullPipeline = async (input: {
   batch: BuiltPick3Batch;
   context: RunPick3Context;
@@ -309,6 +320,17 @@ const runFullPipeline = async (input: {
   });
   input.storage.insertAiInteractions(exchange.interactions);
   input.storage.insertPredictions(exchange.predictions);
+  const parseFailures = exchange.interactions.filter((interaction) => interaction.parseStatus !== "parsed");
+  if (parseFailures.length > 0 || exchange.predictions.length !== input.batch.images.length) {
+    writePromptExchangeFailureArtifacts({
+      batch: input.batch,
+      gatewayInputs: exchange.gatewayInputs,
+      interactions: exchange.interactions,
+      predictions: exchange.predictions,
+    });
+    const firstFailure = parseFailures[0];
+    throw new Error(`pick3_prompt_exchange_parse_failed_${parseFailures.length}_of_${input.batch.images.length}_${firstFailure?.parseFailureReason ?? "prediction_count_mismatch"}`);
+  }
   const reveals = revealPick3Predictions({
     images: input.batch.images,
     predictions: exchange.predictions,
@@ -346,8 +368,9 @@ export const runPick3IsBlindEvalFlow = async (
   const taskId = `pick3_task_${randomUUID()}`;
   const createdAt = new Date().toISOString();
   const { storage, summary } = await syncOfficialDraws(context.dataDir);
+  let batch: BuiltPick3Batch | null = null;
   try {
-    const batch = input.mode === "sync_only" ? null : await buildBatch(input, context, storage);
+    batch = input.mode === "sync_only" ? null : await buildBatch(input, context, storage);
     const scoring = batch && input.mode === "full_pipeline"
       ? await runFullPipeline({ batch, context, storage })
       : batch ? emptyScoring() : null;
@@ -366,16 +389,19 @@ export const runPick3IsBlindEvalFlow = async (
     storage.writeTask(record);
     return record;
   } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
     const record: Pick3TaskRecord = {
       taskId,
       mode: input.mode,
       status: "review_required",
-      reachedStep: "batch_generation",
-      reason: error instanceof Error ? error.message : String(error),
+      reachedStep: reason.startsWith("pick3_prompt_exchange_parse_failed")
+        ? "ai_prompt_exchange_failed"
+        : batch ? "full_pipeline_failed" : "batch_generation",
+      reason,
       createdAt,
       updatedAt: new Date().toISOString(),
       sync: summary,
-      batch: null,
+      batch,
       scoring: null,
     };
     storage.writeTask(record);

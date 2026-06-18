@@ -33,6 +33,7 @@ const executeGeminiApi = (
 ): Promise<AiFeedResult> => feedGeminiApiOnce({
     request,
     dataDir: context.dataDir,
+    ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
     ...(context.adapters?.["gemini-api"] ? { adapter: context.adapters["gemini-api"] } : {}),
   });
@@ -45,6 +46,7 @@ const executeGeminiWebChat = (
 ): Promise<AiFeedResult> => feedGeminiWebChatOnce({
     request,
     dataDir: context.dataDir,
+    ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
     ...(browser ? { browser } : {}),
     ...(context.adapters?.["gemini-web-chat"] ? { adapter: context.adapters["gemini-web-chat"] } : {}),
@@ -58,6 +60,7 @@ const executeGptWebChat = (
 ): Promise<AiFeedResult> => feedGptWebChatOnce({
     request,
     dataDir: context.dataDir,
+    ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
     ...(browser ? { browser } : {}),
     ...(context.adapters?.["gpt-web-chat"] ? { adapter: context.adapters["gpt-web-chat"] } : {}),

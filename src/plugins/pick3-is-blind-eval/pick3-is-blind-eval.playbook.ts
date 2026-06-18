@@ -36,7 +36,7 @@ export type Pick3PlaybookPromptPackage = {
   visualGrammarHash: string;
   rawPromptHash: string;
   confidenceIsProbability: false;
-  allowedLabels: ["front", "back", "abstain"];
+  allowedLabels: ["lower", "upper", "abstain"];
   imageRef: {
     imageId: string;
     imageSha256: string;
@@ -112,7 +112,7 @@ export const buildPick3PlaybookPromptPackage = (
     visualGrammarHash: playbook.visualGrammarHash,
     rawPromptHash: hashText(`${playbook.systemPrompt}\n\n${businessPrompt}`),
     confidenceIsProbability: false,
-    allowedLabels: ["front", "back", "abstain"],
+    allowedLabels: ["lower", "upper", "abstain"],
     imageRef: {
       imageId: image.imageId,
       imageSha256: image.imageSha256,

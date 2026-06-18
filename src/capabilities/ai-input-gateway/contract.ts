@@ -4,11 +4,13 @@ import type {
   AiInputGatewayProviderKind,
 } from "./schema.js";
 import type { AiProviderAdapter } from "./contracts/ai-provider-adapter.contract.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type AiInputGatewayAbilityGroupId = "ai-input-gateway";
 
 export type AiInputGatewayExecutionContext = {
   dataDir: string;
+  runtimeLogger?: RuntimeLogger;
   adapters?: Partial<Record<AiInputGatewayProviderKind, AiProviderAdapter>>;
 };
 

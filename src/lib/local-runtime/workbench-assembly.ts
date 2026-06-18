@@ -39,7 +39,7 @@ export function createWorkbenchAssembly(
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
   const videoDownload = createWorkbenchVideoDownload(dataDir, browserController, runtimeLogger);
   const mediaProcessing = createWorkbenchMediaProcessing(dataDir, runtimeLogger);
-  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, browserController);
+  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, browserController, runtimeLogger);
 
   return {
     options,

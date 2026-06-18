@@ -3,6 +3,7 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import {
   buildVerifyPromptPastedScript,
   buildVerifyPromptSubmittedScript,
+  buildVerifyLastUserMessageAttachmentsScript,
   type WebChatEvaluation,
 } from "./web-chat-evaluation.js";
 
@@ -41,5 +42,16 @@ export const verifyPromptSubmitted = (
       input.previousAssistantCount,
       input.wasPromptVerifiedBeforeSubmit,
     ),
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });
+
+export const verifyLastUserMessageAttachments = (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+  expectedCount: number,
+): Promise<WebChatEvaluation> =>
+  browser.evaluateActiveTab<WebChatEvaluation>({
+    description: "verify AI web chat submitted user message has bound image",
+    script: buildVerifyLastUserMessageAttachmentsScript(expectedCount),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

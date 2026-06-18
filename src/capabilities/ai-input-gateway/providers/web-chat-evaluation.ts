@@ -17,6 +17,8 @@ export type WebChatEvaluation = {
   expectedLength?: number;
   attachmentCount?: number;
   attachmentScope?: "input" | "global" | "none";
+  boundAttachmentCount?: number;
+  lastUserMessageText?: string | null;
   inputFocused?: boolean;
   promptPrefixVisible?: boolean;
   promptSuffixVisible?: boolean;
@@ -32,6 +34,48 @@ const visibleStatusText = Array.from(document.querySelectorAll("[role='status'],
   .filter((text) => text.length > 0)
   .join(" ");
 const processing = /\\b(thinking|reasoning|analyzing|analysis|searching|processing|reading|browsing|uploading|working)\\b|思考|推理|分析|搜索|处理中|生成中|读取中|工作中/i.test(visibleStatusText);
+`;
+
+export const buildVerifyLastUserMessageAttachmentsScript = (expectedCount: number): string => `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const expectedCount = ${JSON.stringify(expectedCount)};
+const countBoundAttachments = (root) => {
+  if (!root || typeof root.querySelectorAll !== "function") return 0;
+  const selectors = [
+    "img",
+    "picture",
+    "canvas",
+    "[role='img']",
+    "[data-testid*='attachment' i]",
+    "[data-testid*='file' i]",
+    "[class*='attachment' i]",
+    "[class*='file' i]",
+    "[aria-label*='image' i]"
+  ];
+  const seen = new Set();
+  let count = 0;
+  for (const selector of selectors) {
+    for (const node of Array.from(root.querySelectorAll(selector))) {
+      if (!(node instanceof HTMLElement) || seen.has(node) || !isVisible(node)) continue;
+      seen.add(node);
+      const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
+      if (/add files?|添加文件|附加文件|profile|avatar|account|menuitem|button|发送|send/i.test(label)) continue;
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 12 && rect.height < 12 && label.length === 0) continue;
+      count += 1;
+    }
+  }
+  return count;
+};
+const userMessages = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node));
+const lastUserMessage = userMessages[userMessages.length - 1] || null;
+const boundAttachmentCount = countBoundAttachments(lastUserMessage);
+const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
+if (boundAttachmentCount >= expectedCount) {
+  return {status: "success", message: "provider last submitted user message contains bound image attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
+}
+return {status: "pending", message: "provider_missing_bound_image: last submitted user message does not contain required image attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
 `;
 
 const WEB_CHAT_GENERATION_STATE_SCRIPT = `
@@ -181,6 +225,23 @@ return {
 
 export const EXTRACT_LAST_RESPONSE_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const rateLimitDialog = Array.from(document.querySelectorAll('[role="dialog"], [data-radix-portal], body'))
+  .filter((node) => isVisible(node))
+  .find((node) => {
+    const text = clip(node.textContent || "");
+    return (text.includes("请求过于频繁") && text.includes("请稍等"))
+      || /too many requests|request too frequent|try again later|temporarily limited/i.test(text);
+  });
+if (rateLimitDialog) {
+  return {
+    status: "review_required",
+    message: "provider_rate_limited_too_many_requests",
+    answerText: null,
+    pageUrl: location.href,
+    generating: false,
+    assistantCount: 0,
+  };
+}
 const extractNodeText = (node) => {
   if (!(node instanceof HTMLElement)) return clip(node?.textContent || "");
   return clip(node.innerText || node.textContent || "");

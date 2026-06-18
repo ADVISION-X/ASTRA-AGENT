@@ -1,4 +1,5 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
 import { geminiWebChatAdapter } from "../providers/gemini-web-chat.adapter.js";
 import type {
@@ -11,6 +12,7 @@ export const feedGeminiWebChatOnce = async (input: {
   request: AiFeedInput;
   dataDir: string;
   browser?: BrowserController;
+  runtimeLogger?: RuntimeLogger;
   adapter?: AiProviderAdapter;
   signal?: AbortSignal;
 }): Promise<AiFeedResult> => {
@@ -21,6 +23,7 @@ export const feedGeminiWebChatOnce = async (input: {
     childCapabilityId: "feed-gemini-web-chat-once",
     transport: "web-chat",
     ...(input.browser ? { browser: input.browser } : {}),
+    ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
   });
 };

@@ -6,10 +6,13 @@ import type {
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import {
+  cleanupStaleWorkspaceConversationTabs,
   focusExistingSourceTab,
+  recordWorkspaceConversationUrl,
   resolveWebChatWorkspaceId,
   saveWorkspaceUrl,
 } from "./web-chat-workspace.js";
+import { cleanupStaleWorkspaceConversationHistory } from "./web-chat-pick3-history-cleanup.js";
 
 export const restoreSourcePage = async (
   browser: BrowserController,
@@ -98,6 +101,14 @@ export const buildWebChatRawResponse = (input: {
   answerText: string;
   outputRefs?: string[];
 }): AiProviderRawResponse => ({
+  webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
+  providerTabPolicy: resolveWebChatWorkspaceId(input.request)
+    ? "reuse-single-provider-workspace-tab"
+    : "provider-default-tab-policy",
+  providerRecoveryAttemptCount: null,
+  providerRecoveryStatus: null,
+  staleConversationCleanupStatus: null,
+  staleConversationHistoryCleanupStatus: null,
   rawText: input.answerText,
   modelName: input.request.modelName,
   runtimeName: input.runtimeName,
@@ -123,5 +134,39 @@ export const persistWorkspaceAfterResponse = (input: {
     providerKind: input.request.providerKind,
     workspaceId,
     url: input.response.webChatUrl,
+  });
+  recordWorkspaceConversationUrl({
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId,
+    url: input.response.webChatUrl,
+  });
+};
+
+export const cleanupProviderWorkspaceAfterResponse = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  response: AiProviderRawResponse;
+}): Promise<void> => {
+  const workspaceId = resolveWebChatWorkspaceId(input.request);
+  if (!workspaceId) return;
+  input.response.staleConversationHistoryCleanupStatus = await cleanupStaleWorkspaceConversationHistory({
+    browser: input.browser,
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId,
+    keepRecentCount: 2,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  if (/failed_[1-9]/.test(input.response.staleConversationHistoryCleanupStatus)) {
+    throw new Error(`review_required: Pick3 ChatGPT sidebar cleanup failed: ${input.response.staleConversationHistoryCleanupStatus}`);
+  }
+  input.response.staleConversationCleanupStatus = await cleanupStaleWorkspaceConversationTabs({
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId,
+    keepRecentCount: 2,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
 };
