@@ -110,14 +110,35 @@ type PreparedPromptComposer = {
 const requestHasUploadableInputRefs = (request: AiFeedInput): boolean =>
   request.inputRefs.some((ref) => Boolean(ref.filePath));
 
+const dismissFloatingMenus = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+  await input.browser.evaluateActiveTab<void>({
+    description: "dismiss any open context menus or dialogs before composer focus",
+    script: `
+const floating = Array.from(document.querySelectorAll('[role="menu"], [role="listbox"], [role="dialog"], [data-radix-popper-content-wrapper]'))
+  .filter((node) => {
+    if (!(node instanceof HTMLElement)) return false;
+    const rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  });
+if (floating.length > 0) {
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true }));
+  document.activeElement instanceof HTMLElement && document.activeElement.blur();
+}
+`,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+};
+
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+  await dismissFloatingMenus(input);
+  await input.browser.wait(200);
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
     focusComposer(input.browser, input.context));
   if (focused.status !== "success") {
     throw new Error(`${focused.status}: ${focused.message}`);
   }
   await withWebChatStep("verify_composer_focus_before_prompt_paste", () =>
-    waitForComposerFocused(input.browser, input.context, 2_000));
+    waitForComposerFocused(input.browser, input.context, 5_000));
 };
 
 const waitForPromptReady = async (input: {

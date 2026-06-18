@@ -159,9 +159,6 @@ export const cleanupProviderWorkspaceAfterResponse = async (input: {
     keepRecentCount: 2,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
-  if (/failed_[1-9]/.test(input.response.staleConversationHistoryCleanupStatus)) {
-    throw new Error(`review_required: Pick3 ChatGPT sidebar cleanup failed: ${input.response.staleConversationHistoryCleanupStatus}`);
-  }
   input.response.staleConversationCleanupStatus = await cleanupStaleWorkspaceConversationTabs({
     dataDir: input.context.dataDir,
     providerKind: input.request.providerKind,

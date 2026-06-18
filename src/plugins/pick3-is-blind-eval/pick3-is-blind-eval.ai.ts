@@ -2,6 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+const terminalLog = (line: string): void => {
+  process.stdout.write(`[GRASSEYE][PICK3][EXCHANGE] ${line}\n`);
+};
+
 import type { AiFeedInput, AiFeedResult } from "../../capabilities/ai-input-gateway/index.js";
 import type { Pick3PlaybookPromptPackage } from "./pick3-is-blind-eval.playbook.js";
 import type {
@@ -237,19 +241,65 @@ const buildPrediction = (input: {
   sealedBeforeReveal: true,
 });
 
+const gatewayInputForAttempt = (input: {
+  gatewayInput: AiFeedInput;
+  attempt: number;
+}): AiFeedInput => input.attempt === 0
+  ? input.gatewayInput
+  : { ...input.gatewayInput, roundId: `${input.gatewayInput.roundId ?? "round"}:empty-retry-${input.attempt}` };
+
+const logPick3SendResult = (input: {
+  result: AiFeedResult;
+  imageId: string;
+  position: string;
+  seqLabel: string;
+  attempt: number;
+}): number => {
+  const rawLen = (input.result.normalizedText ?? "").trim().length;
+  const proof = input.result.providerProof ?? {};
+  const boundVerify = (proof as Record<string, unknown>).boundImageVerifyStatus ?? "not_checked";
+  const boundCount = (proof as Record<string, unknown>).boundImageAttachmentCount ?? "?";
+  const recoveryStatus = (proof as Record<string, unknown>).providerRecoveryStatus ?? null;
+  terminalLog(`[${input.seqLabel}] send_result imageId=${input.imageId} position=${input.position} attempt=${input.attempt + 1} status=${input.result.status} rawLen=${rawLen} boundVerify=${boundVerify} boundCount=${boundCount}${recoveryStatus ? ` recoveryStatus=${recoveryStatus}` : ""}`);
+  return rawLen;
+};
+
+const logPick3EmptyOutput = (input: {
+  result: AiFeedResult;
+  imageId: string;
+  position: string;
+  seqLabel: string;
+  attempt: number;
+}): void => {
+  terminalLog(`[${input.seqLabel}] WARN empty_raw_output imageId=${input.imageId} position=${input.position} attempt=${input.attempt + 1} status=${input.result.status} reviewReason=${input.result.reviewRequiredReason ?? "none"} failureReason=${input.result.failureReason ?? "none"}`);
+};
+
+const pick3CleanupFailureStatus = (result: AiFeedResult): string | null => {
+  const proof = result.providerProof as Record<string, unknown>;
+  const status = proof.staleConversationHistoryCleanupStatus;
+  return typeof status === "string" && /failed_[1-9]/.test(status) ? status : null;
+};
+
 const sendWithEmptyOutputRetry = async (input: {
   sender: Pick3GatewaySender;
   gatewayInput: AiFeedInput;
+  imageId: string;
+  position: string;
+  seqLabel: string;
 }): Promise<AiFeedResult> => {
   let lastResult: AiFeedResult | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const gatewayInput = attempt === 0
-      ? input.gatewayInput
-      : { ...input.gatewayInput, roundId: `${input.gatewayInput.roundId ?? "round"}:empty-retry-${attempt}` };
-    const result = await input.sender(gatewayInput);
+    if (attempt > 0) {
+      terminalLog(`[${input.seqLabel}] retry_started imageId=${input.imageId} position=${input.position} attempt=${attempt + 1} reason=empty_raw_output`);
+    }
+    const result = await input.sender(gatewayInputForAttempt({ gatewayInput: input.gatewayInput, attempt }));
     lastResult = result;
-    if (result.status === "success" && (result.normalizedText ?? "").trim().length > 0) {
+    const rawLen = logPick3SendResult({ ...input, result, attempt });
+    if (result.status === "success" && rawLen > 0) {
       return result;
+    }
+    if (rawLen === 0) {
+      logPick3EmptyOutput({ ...input, result, attempt });
     }
   }
   if (!lastResult) throw new Error("pick3_prompt_exchange_gateway_result_missing");
@@ -266,14 +316,34 @@ export const runPick3PromptExchange = async (input: {
   const gatewayInputs: AiFeedInput[] = [];
   const interactions: Pick3AiInteractionRecord[] = [];
   const predictions: Pick3PredictionRecord[] = [];
-  for (const image of input.images) {
+  const total = input.images.length;
+  for (let idx = 0; idx < total; idx += 1) {
+    const image = input.images[idx]!;
+    const seqLabel = `${idx + 1}/${total}`;
     const promptPackage = packageByImage.get(image.imageId);
     if (!promptPackage) throw new Error("pick3_prompt_exchange_package_missing");
     const gatewayInput = buildPick3AiGatewayInput({ batchId: image.batchId, image, promptPackage });
-    const gatewayResult = await sendWithEmptyOutputRetry({ sender: input.sender, gatewayInput });
+    terminalLog(`[${seqLabel}] send_started imageId=${image.imageId} position=${image.position} targetPhase=${image.targetPhase} promptPackageId=${gatewayInput.promptPackageId}`);
+    const gatewayResult = await sendWithEmptyOutputRetry({
+      sender: input.sender,
+      gatewayInput,
+      imageId: image.imageId,
+      position: image.position,
+      seqLabel,
+    });
     const result = buildInteraction({ artifactDir: input.artifactDir, gatewayInput, gatewayResult, image, promptPackage });
+    const cleanupFailureStatus = pick3CleanupFailureStatus(gatewayResult);
+    if (cleanupFailureStatus) {
+      result.interaction.parseStatus = "parse_failed_raw_available";
+      result.interaction.parseFailureReason = `pick3_provider_cleanup_failed_${cleanupFailureStatus}`;
+    }
+    const rawLen = result.interaction.rawResponseText.length;
+    terminalLog(`[${seqLabel}] parse_result imageId=${image.imageId} position=${image.position} parseStatus=${result.interaction.parseStatus} parseFailureReason=${result.interaction.parseFailureReason ?? "none"} rawLen=${rawLen} predictionLabel=${result.parsed?.predictionLabel ?? "none"} confidence=${result.parsed?.confidence ?? "none"}`);
     gatewayInputs.push(gatewayInput);
     interactions.push(result.interaction);
+    if (cleanupFailureStatus) {
+      return { gatewayInputs, interactions, predictions };
+    }
     if (result.parsed) {
       predictions.push(buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage }));
     }

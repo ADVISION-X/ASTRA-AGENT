@@ -49,7 +49,7 @@ export const waitForComposerFocused = async (
   context: AiProviderAdapterContext,
   timeoutMs: number,
 ): Promise<void> => {
-  const deadline = Date.now() + Math.min(timeoutMs, 2_000);
+  const deadline = Date.now() + Math.min(timeoutMs, 5_000);
   let lastMessage = "provider input focus was not checked";
   while (Date.now() < deadline) {
     const evaluation = await verifyComposerFocused(browser, context);
@@ -60,7 +60,7 @@ export const waitForComposerFocused = async (
     }
     await browser.wait(100);
   }
-  throw new Error(`review_required: provider input did not keep focus; last=${lastMessage}`);
+  throw new Error(`pending: provider input box focus did not stick; last=${lastMessage}`);
 };
 
 export const clickChatGptSendButton = (

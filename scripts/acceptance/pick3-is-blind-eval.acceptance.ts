@@ -6,28 +6,13 @@ import { resolve } from "node:path";
 import type { AiFeedInput } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createPick3BlindImages } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.js";
 import { verifyPick3FullHistoryCoverage } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.js";
-import {
-  buildPick3AiGatewayInput,
-  runPick3PromptExchange,
-  type Pick3GatewaySender,
-} from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.js";
+import { buildPick3AiGatewayInput, runPick3PromptExchange, type Pick3GatewaySender } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.js";
 import { reviewPick3Failures } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.js";
-import {
-  buildPick3PlaybookPromptPackage,
-  loadBuiltInPick3Playbooks,
-} from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
+import { buildPick3PlaybookPromptPackage, loadBuiltInPick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
 import { writeCandidatePick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.js";
 import { revealPick3Predictions, scorePick3Predictions } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.js";
 import { openPick3Storage } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.js";
-import {
-  buildDatedDraw,
-  buildDraw,
-  buildEmptyFixtureAiResult,
-  buildFixtureAiResult,
-  oppositeLabel,
-  toVisibleLabel,
-  visiblePromptPackageId,
-} from "./pick3-is-blind-eval.acceptance-support.js";
+import { buildDatedDraw, buildDraw, buildEmptyFixtureAiResult, buildFixtureAiResult, oppositeLabel, toVisibleLabel, visiblePromptPackageId } from "./pick3-is-blind-eval.acceptance-support.js";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 const fromRepo = (path: string): string => resolve(repoRoot, path);
@@ -64,9 +49,7 @@ assert.equal(existsSync(fromRepo(webChatWorkspacePath)), true);
 assert.equal(existsSync(fromRepo(webChatSharedPath)), true);
 assert.equal(existsSync(fromRepo(webChatSharedSupportPath)), true);
 assert.equal(existsSync(fromRepo(webChatPick3HistoryCleanupPath)), true);
-for (const playbookPath of playbookPaths) {
-  assert.equal(existsSync(fromRepo(playbookPath)), true, `${playbookPath} must exist`);
-}
+for (const playbookPath of playbookPaths) assert.equal(existsSync(fromRepo(playbookPath)), true, `${playbookPath} must exist`);
 assert.equal(existsSync(fromRepo(misplacedLawPath)), false);
 
 const lawText = readRepoText(lawPath);
@@ -218,9 +201,12 @@ for (const token of [
 }
 const webChatRecoveryLogText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts"); assert.equal(webChatRecoveryLogText.includes("RECOVERY_PROGRESS"), true); assert.equal(webChatRecoveryLogText.includes("HEARTBEAT_MS = 30_000"), true, "heartbeat chunk must be 30 seconds"); assert.equal(webChatRecoveryLogText.includes("PICK3_RATE_LIMIT_BACKOFF_MS = [600_000, 1_800_000, 3_600_000]"), true, "rate-limit schedule must be 10/30/60 minutes"); assert.equal(webChatRecoveryLogText.includes("180_000") || webChatRecoveryLogText.includes("300_000"), false, "rate-limit schedule must not regress to 3/5 minutes"); assert.equal(webChatRecoveryLogText.includes("reservePick3RateLimitAttempt"), true, "rate-limit attempt counter must be mission-scoped, not one-image scoped"); for (const token of ["missionKey", "imageId", "promptPackageId", "totalWaitSec", "elapsedSec", "remainingSec", "recoveryAction"]) assert.equal(webChatRecoveryLogText.includes(token), true, `rate-limit logs must include ${token}`); assert.equal(webChatRecoveryLogText.includes("pick3_rate_limit_backoff_waiting"), true); assert.equal(webChatRecoveryLogText.includes("remainingMs, refs: { recoveryAction: \"pick3_rate_limit_backoff_waiting\" }"), true, "rate-limit terminal heartbeat must run after every wait chunk, including the final zero-remaining heartbeat."); assert.equal(webChatRecoveryLogText.includes("and_refreshed"), true); assert.equal(webChatRecoveryLogText.includes("querySelectorAll('[role=\"dialog\"], [data-radix-portal]')"), true, "rate limit popup detection must not fall back to body"); assert.equal(webChatRecoveryLogText.includes("node.innerText"), true, "rate limit popup detection must use visible text"); assert.equal(webChatRecoveryLogText.includes("console."), false, "must use process.stdout.write, not console"); assert.equal(webChatRecoveryLogText.includes("process.stdout.write"), true, "terminal stdout heartbeat is mandatory — must write to process.stdout"); assert.equal(webChatRecoveryLogText.includes("do NOT interrupt"), true, "heartbeat message must warn user not to interrupt"); const webChatSubmitText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts");
 assert.equal(webChatSharedText.includes("emitPick3RateLimitRecoveryStep"), true, "rate-limit resume steps must emit terminal-visible recovery lines."); assert.equal(webChatSharedText.includes("same_payload_resend_started"), true, "rate-limit recovery must visibly start same-payload resend.");
+for (const token of ["pick3_send_success", "pick3_answer_success", "screenshotRegion", "outputRefs"]) assert.equal(webChatSharedText.includes(token), true, `Pick3 web-chat screenshot proof must include ${token}`);
 for (const token of ["runtimeLogger?: RuntimeLogger", "PICK3_OFFICIAL_SYNC", "PICK3_BUILD_BLIND_BATCH", "PICK3_PROMPT_EXCHANGE", "PICK3_REVEAL_AND_SCORING", "PICK3_TASK"]) assert.equal(flowText.includes(token), true, `Pick3 flow must emit Runtime Log Spine stage ${token}`);
 assert.equal(webChatSubmitText.includes("verifyLastUserMessageAttachments"), true, "Web chat submit must verify the last submitted user message has the bound image.");
 assert.equal(webChatSubmitText.includes("provider_missing_bound_image"), true, "Web chat submit must fail missing bound images before GPT output is accepted.");
+const aiExchangeText = readRepoText(aiExchangePath);
+for (const token of ["[GRASSEYE][PICK3][EXCHANGE]", "send_started", "send_result", "parse_result", "empty_raw_output", "WARN empty_raw_output", "rawLen=", "boundVerify=", "parseStatus=", "parseFailureReason=", "predictionLabel=", "targetPhase=", "process.stdout.write"]) assert.equal(aiExchangeText.includes(token), true, `pick3 AI exchange must emit terminal log token: ${token}`);
 for (const token of [
   "deletePick3WorkspaceConversationHistoryUrl",
   "PICK3_TRAINING_HISTORY_TITLE_MARKERS", "Blind Time-Series", "remainingLegacyUrls",
@@ -229,6 +215,14 @@ for (const token of [
 ]) {
   assert.equal(webChatPick3HistoryCleanupText.includes(token), true, `Pick3 history cleanup must include ${token}`);
 }
+for (const token of ["dispatchRowMouseEnter", "pollForHistoryMenuButton", "mouseenter", "mouseover", "scrollIntoView", "maxWaitMs"]) assert.equal(webChatPick3HistoryCleanupText.includes(token), true, `Pick3 history cleanup hover fix must include ${token}`);
+const webChatSubmitTextFull = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts");
+for (const token of ["dismissFloatingMenus", "Escape", "5_000"]) assert.equal(webChatSubmitTextFull.includes(token), true, `web-chat-submit must include ${token}`);
+const webChatPageActionsText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts");
+assert.equal(webChatPageActionsText.includes("Math.min(timeoutMs, 5_000)"), true, "waitForComposerFocused hard cap must be 5000ms (not 2000ms)");
+for (const token of ["STALE_CLEANUP_TRIGGER_THRESHOLD = 15", "STALE_CLEANUP_MAX_PER_RUN = 3", "history_cleanup_deferred", "below_threshold"]) assert.equal(webChatPick3HistoryCleanupText.includes(token), true, `history cleanup must safely defer small stale cleanup with ${token}`);
+assert.equal(webChatSharedSupportText.includes("Pick3 ChatGPT sidebar cleanup failed"), false, "raw output must not be dropped by post-response sidebar cleanup failure");
+assert.equal(aiExchangeText.includes("pick3_provider_cleanup_failed_"), true, "Pick3 exchange must keep raw output and stop if sidebar cleanup reports failed deletion");
 
 for (const playbookPath of playbookPaths) {
   const playbookText = readRepoText(playbookPath);

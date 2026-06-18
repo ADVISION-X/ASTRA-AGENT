@@ -379,9 +379,9 @@ const inspectPick3WebChatWorkspace = (
     "providerRecoveryStatus",
     "staleConversationCleanupStatus",
     "staleConversationHistoryCleanupStatus",
-    "Pick3 ChatGPT sidebar cleanup failed",
     "webChatWorkspaceId",
   ]);
+  requireTokens(findings, promptExchangeLaw, aiExchangePath, texts.aiText, "pick3-is-blind-eval/raw-preserving-cleanup-stop", ["pick3CleanupFailureStatus", "pick3_provider_cleanup_failed_", "parse_failed_raw_available"]);
   requireTokens(findings, promptExchangeLaw, webChatWorkspacePath, texts.webChatWorkspaceText, "pick3-is-blind-eval/workspace-url-normalization", [
     "normalizeWorkspaceUrl",
     "isPick3WorkspaceId",

@@ -94,6 +94,24 @@ const submitWebChatPrompt = async (input: {
   });
 };
 
+const capturePick3ProviderEvidence = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  providerUrl: string;
+  regionLabel: string;
+  contentLines: string[];
+}): Promise<string | null> => {
+  if (!isPick3GptRequest({ providerUrl: input.providerUrl, request: input.request })) return null;
+  const capture = await input.browser.screenshotRegion({
+    regionLabel: input.regionLabel,
+    contentLines: input.contentLines,
+    captureProfile: "observation_lightweight",
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  return capture.sourceFilePath;
+};
+
 const extractWebChatConversation = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
@@ -153,14 +171,18 @@ const readPreSubmitConversationState = async (input: {
   };
 };
 
-const executeWebChatConversation = async (input: {
+type OpenedWebChatConversationInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
   runtimeName: string;
   sourcePageUrlBeforeFeed: string | null;
-}): Promise<AiProviderRawResponse> => {
+};
+
+const prepareWebChatConversation = async (
+  input: OpenedWebChatConversationInput,
+): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   await assertActiveProviderPage({
     browser: input.browser,
@@ -170,11 +192,33 @@ const executeWebChatConversation = async (input: {
   });
   await pasteFilesViaClipboard(input.browser, input.request, input.context);
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
-  const preSubmit = await readPreSubmitConversationState({
+  return readPreSubmitConversationState({
     browser: input.browser,
     context: input.context,
     providerUrl: input.providerUrl,
   });
+};
+
+const capturePick3ConversationEvidence = async (input: OpenedWebChatConversationInput & {
+  phase: "prompt_submitted" | "answer_captured";
+}): Promise<string | null> => capturePick3ProviderEvidence({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    providerUrl: input.providerUrl,
+    regionLabel: input.phase === "prompt_submitted" ? "pick3_send_success" : "pick3_answer_success",
+    contentLines: [
+      `imageId=${input.request.inputRefs[0]?.id ?? "missing-image-id"}`,
+      `promptPackageId=${input.request.promptPackageId}`,
+      `phase=${input.phase}`,
+    ],
+  });
+
+const executeWebChatConversation = async (
+  input: OpenedWebChatConversationInput,
+): Promise<AiProviderRawResponse> => {
+  const preSubmit = await prepareWebChatConversation(input);
+  const evidenceRefs: string[] = [];
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   await submitWebChatPrompt({
     browser: input.browser,
@@ -184,6 +228,8 @@ const executeWebChatConversation = async (input: {
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     previousAssistantCount: preSubmit.previousAssistantCount,
   });
+  const sendEvidenceRef = await capturePick3ConversationEvidence({ ...input, phase: "prompt_submitted" });
+  if (sendEvidenceRef) evidenceRefs.push(sendEvidenceRef);
   const conversation = await extractWebChatConversation({
     browser: input.browser,
     request: input.request,
@@ -192,6 +238,8 @@ const executeWebChatConversation = async (input: {
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
+  const answerEvidenceRef = await capturePick3ConversationEvidence({ ...input, phase: "answer_captured" });
+  if (answerEvidenceRef) evidenceRefs.push(answerEvidenceRef);
   const htmlArtifact = await captureChatGptBusinessHtmlArtifact({
     browser: input.browser,
     request: input.request,
@@ -208,7 +256,10 @@ const executeWebChatConversation = async (input: {
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     extracted: conversation.extracted,
     answerText: htmlArtifact?.htmlDocument ?? conversation.answerText,
-    outputRefs: htmlArtifact ? [htmlArtifact.outputRef] : [],
+    outputRefs: [
+      ...evidenceRefs,
+      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
+    ],
   });
 };
 

@@ -91,6 +91,38 @@ const nativeClick = async (
   return clicked.ok ? `${expectedStatus.replace("_located", "")}_clicked` : `${expectedStatus}_click_failed`;
 };
 
+const resolveHistoryRowScript = `
+const visible = (node) => {
+  if (!node || typeof node.getBoundingClientRect !== "function") return false;
+  const rect = node.getBoundingClientRect();
+  const style = window.getComputedStyle(node);
+  return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+};
+const findHistoryLink = (targetUrl) => {
+  const targetPath = (() => {
+    try { return new URL(targetUrl).pathname; } catch { return targetUrl; }
+  })();
+  const anchors = Array.from(document.querySelectorAll('a[href]')).filter(visible);
+  return anchors.find((anchor) => {
+    const href = anchor.href || anchor.getAttribute("href") || "";
+    if (href === targetUrl) return true;
+    try { return new URL(href, location.href).pathname === targetPath; } catch { return false; }
+  }) || null;
+};
+const resolveHistoryRow = (link) => {
+  const linkRect = link.getBoundingClientRect();
+  const candidates = [];
+  for (let node = link; node && node !== document.body; node = node.parentElement) {
+    if (!visible(node)) continue;
+    const rect = node.getBoundingClientRect();
+    const containsLink = rect.left <= linkRect.left + 4 && rect.right >= linkRect.right - 4;
+    const rowSized = rect.height >= 28 && rect.height <= 96 && rect.width >= Math.max(180, linkRect.width);
+    if (containsLink && rowSized) candidates.push(node);
+  }
+  return candidates[candidates.length - 1] || link;
+};
+`;
+
 const locateHistoryRowForUrl = async (input: {
   browser: BrowserController;
   staleUrl: string;
@@ -100,23 +132,10 @@ const locateHistoryRowForUrl = async (input: {
     description: "locate stale ChatGPT conversation history row",
     script: `
 const targetUrl = ${JSON.stringify(input.staleUrl)};
-const targetPath = (() => {
-  try { return new URL(targetUrl).pathname; } catch { return targetUrl; }
-})();
-const visible = (node) => {
-  if (!node || typeof node.getBoundingClientRect !== "function") return false;
-  const rect = node.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0;
-};
-const norm = (value) => String(value || "").trim();
-const anchors = Array.from(document.querySelectorAll('a[href]')).filter(visible);
-const link = anchors.find((anchor) => {
-  const href = anchor.href || anchor.getAttribute("href") || "";
-  if (href === targetUrl) return true;
-  try { return new URL(href, location.href).pathname === targetPath; } catch { return false; }
-});
+${resolveHistoryRowScript}
+const link = findHistoryLink(targetUrl);
 if (!link) return {status: "not_found"};
-const row = link.closest('[data-testid], li, div') || link.parentElement;
+const row = resolveHistoryRow(link);
 if (!row || typeof row.getBoundingClientRect !== "function") return {status: "row_not_found"};
 row.scrollIntoView({block: "center"});
 const rowRect = row.getBoundingClientRect();
@@ -134,23 +153,11 @@ const locateHistoryMenuForUrl = async (input: {
     description: "locate stale ChatGPT conversation history menu",
     script: `
 const targetUrl = ${JSON.stringify(input.staleUrl)};
-const targetPath = (() => {
-  try { return new URL(targetUrl).pathname; } catch { return targetUrl; }
-})();
-const visible = (node) => {
-  if (!node || typeof node.getBoundingClientRect !== "function") return false;
-  const rect = node.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0;
-};
+${resolveHistoryRowScript}
 const norm = (value) => String(value || "").trim();
-const anchors = Array.from(document.querySelectorAll('a[href]')).filter(visible);
-const link = anchors.find((anchor) => {
-  const href = anchor.href || anchor.getAttribute("href") || "";
-  if (href === targetUrl) return true;
-  try { return new URL(href, location.href).pathname === targetPath; } catch { return false; }
-});
+const link = findHistoryLink(targetUrl);
 if (!link) return {status: "not_found"};
-const row = link.closest('[data-testid], li, div') || link.parentElement;
+const row = resolveHistoryRow(link);
 if (!row || typeof row.getBoundingClientRect !== "function") return {status: "row_not_found"};
 const rowRect = row.getBoundingClientRect();
 const linkLabel = norm(link.textContent);
@@ -177,6 +184,44 @@ return {status: "menu_located", clickPoint: {x: Math.round(rect.x + rect.width /
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
 
+const dispatchRowMouseEnter = async (input: {
+  browser: BrowserController;
+  staleUrl: string;
+  abortSignal?: AbortSignal;
+}): Promise<void> => {
+  await input.browser.evaluateActiveTab<void>({
+    description: "dispatch mouseenter on stale ChatGPT conversation row to reveal menu button",
+    script: `
+const targetUrl = ${JSON.stringify(input.staleUrl)};
+${resolveHistoryRowScript}
+const anchor = findHistoryLink(targetUrl);
+const row = anchor ? resolveHistoryRow(anchor) : null;
+if (row instanceof HTMLElement) {
+  row.scrollIntoView({ block: "center" });
+  row.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true, cancelable: true }));
+  row.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, cancelable: true }));
+}
+`,
+    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+  });
+};
+
+const pollForHistoryMenuButton = async (input: {
+  browser: BrowserController;
+  staleUrl: string;
+  abortSignal?: AbortSignal;
+  maxWaitMs: number;
+}): Promise<DomClickTarget> => {
+  const deadline = Date.now() + input.maxWaitMs;
+  let last: DomClickTarget = { status: "menu_button_not_found" };
+  while (Date.now() < deadline) {
+    last = await locateHistoryMenuForUrl(input);
+    if (last.status === "menu_located") return last;
+    await input.browser.wait(150);
+  }
+  return last;
+};
+
 const openHistoryMenuForUrl = async (input: {
   browser: BrowserController;
   staleUrl: string;
@@ -190,8 +235,9 @@ const openHistoryMenuForUrl = async (input: {
     coordinateSpace: "browserViewport",
   });
   if (moved && !moved.ok) return "row_hover_failed";
-  await input.browser.wait(250);
-  const target = await locateHistoryMenuForUrl(input);
+  await dispatchRowMouseEnter(input);
+  await input.browser.wait(600);
+  const target = await pollForHistoryMenuButton({ ...input, maxWaitMs: 1_000 });
   const result = await nativeClick(input.browser, target, "menu_located", "stale ChatGPT conversation options");
   return result === "menu_clicked" ? "menu_opened" : result;
 };
@@ -280,14 +326,21 @@ return {status: link ? "still_present" : "deleted"};
   return result.status === "deleted";
 };
 
+const STALE_CLEANUP_TRIGGER_THRESHOLD = 15;
+const STALE_CLEANUP_MAX_PER_RUN = 3;
+
 export const cleanupStaleWorkspaceConversationHistory = async (input: HistoryCleanupInput): Promise<string> => {
   const staleUrls = await staleHistoryUrls(input);
   if (staleUrls.length === 0) return "history_not_needed";
+  if (staleUrls.length < STALE_CLEANUP_TRIGGER_THRESHOLD) {
+    return `history_cleanup_deferred_stale_${staleUrls.length}_below_threshold_${STALE_CLEANUP_TRIGGER_THRESHOLD}`;
+  }
 
+  const urlsToDelete = staleUrls.slice(0, STALE_CLEANUP_MAX_PER_RUN);
   let deletedCount = 0;
   let notFoundCount = 0;
   let failedCount = 0;
-  for (const staleUrl of staleUrls) {
+  for (const staleUrl of urlsToDelete) {
     const menuStatus = await openHistoryMenuForUrl({
       browser: input.browser,
       staleUrl,

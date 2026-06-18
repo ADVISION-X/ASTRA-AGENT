@@ -1022,6 +1022,13 @@ Never delete arbitrary user ChatGPT sidebar history.
 Never depend on browser tab title to identify Pick3 ownership.
 Never continue training when non-protected Pick3 training history remains visible after cleanup.
 
+Cleanup throttle rule (avoids ChatGPT history access rate limit):
+  STALE_CLEANUP_TRIGGER_THRESHOLD = 15
+  STALE_CLEANUP_MAX_PER_RUN = 3
+  If stale entry count < 15: skip cleanup, return history_cleanup_deferred_stale_N_below_threshold_15, continue training.
+  If stale entry count ≥ 15: execute deletion for at most 3 entries this run, then continue training.
+  Rationale: deleting every run triggers ChatGPT's "请求过于频繁" history access rate limit dialog; throttling to 3 max and deferring until 15 are accumulated reduces API pressure while keeping history bounded.
+
 Controlled Pick3 training title allowlist:
   Pick3 Blind Eval
   Blind Eval
@@ -1047,16 +1054,34 @@ Observed ChatGPT sidebar order:
   3. Blind Chart Evaluation -> /c/6a32e2b1-a428-83eb-9899-eb9705776efd
 
 Verified deletion path:
-  locate visible sidebar conversation options button
-  click it through BrowserController native browserViewport point
-  locate menu item 删除
-  click it through BrowserController native browserViewport point
-  locate confirm 删除
-  click it through BrowserController native browserViewport point
-  reopen https://chatgpt.com/ in the same workspace tab
-  verify the deleted /c/<id> path is absent from visible sidebar anchors
+  1. Locate conversation row via a[href] matching target URL/path
+  2. scrollIntoView({block:"center"}) the row
+  3. browser.move? to hover native point + dispatch JS mouseenter/mouseover events on row as mandatory fallback
+  4. Wait 600ms for ChatGPT to render the "…" options button
+  5. Poll for options button via bounding-box overlap check, up to 1000ms total
+  6. Click options button through BrowserController native browserViewport point
+  7. Wait 350ms; locate menu item 删除
+  8. Click 删除 through BrowserController native browserViewport point
+  9. Wait 350ms; locate confirm 删除
+  10. Click confirm through BrowserController native browserViewport point
+  11. Reopen https://chatgpt.com/ in the same workspace tab
+  12. Verify the deleted /c/<id> path is absent from visible sidebar anchors
 
-Critical production rule:
+Hover implementation rule:
+  browser.move? is an optional chain — if native hover is unavailable, it silently no-ops.
+  JS mouseenter/mouseover dispatch on the row element is MANDATORY as a co-trigger so the
+  "…" button always appears even when native hover does not fire.
+  Wait must be 600ms after hover (not 250ms) to allow ChatGPT animation to complete.
+  Poll for button appearance for up to 1000ms after the 600ms wait before declaring failure.
+
+Composer focus rule:
+  Before every focusComposer call, dismiss any floating menus or dialogs via:
+    document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}))
+    + blur active element
+  Wait 200ms after dismiss before calling focusComposer.
+  waitForComposerFocused timeout cap must be 5000ms (not 2000ms).
+
+Critical production rules:
   Do not verify against the old DOM immediately after confirm 删除.
   ChatGPT can leave the deleted conversation link in the current DOM until sidebar refresh.
   Verification must refresh/reopen the ChatGPT home sidebar, then compare by conversation pathname.

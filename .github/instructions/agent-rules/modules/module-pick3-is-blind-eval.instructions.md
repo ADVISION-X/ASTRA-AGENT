@@ -71,6 +71,9 @@ UAE Lottery Pick 3 official source
 - Pick3 parsing must reject any response whose echoed `imageId` or `promptPackageId` does not match the active one-image request.
 - Pick3 prompt package metadata, rendered prompt output contract, parser, acceptance, and audit must agree on the same AI-visible label contract; mismatch is a blocking failure.
 - Pick3 Prompt Exchange may retry an empty web-chat raw output once before creating the Pick3 interaction record; non-empty invalid JSON must not be guessed or repaired.
+- Pick3 Prompt Exchange must emit a terminal stdout line via `process.stdout.write` with prefix `[GRASSEYE][PICK3][EXCHANGE]` for every image at these moments: send_started (imageId, position, targetPhase, seq N/total), send_result (status, rawLen, boundVerify, boundCount, recoveryStatus), empty_output WARN (reviewReason, failureReason), retry_started (attempt, reason), and parse_result (parseStatus, parseFailureReason, predictionLabel, confidence).
+- Pick3 Prompt Exchange terminal stdout must allow a human to reconstruct the exact send/receive/parse sequence for every image in a batch without opening any artifact file.
+- When Pick3 Prompt Exchange rawLen=0 appears in terminal stdout, the log must include the gateway status, reviewRequiredReason, and failureReason so the empty-output cause is diagnosable from the terminal alone.
 - Pick3 failure review must classify current visual-grammar terms, including rebound/bottom, top/exhaustion, shoulder, and inertia/momentum families, before falling back to `unknown`.
 - Pick3 GPT Prompt Exchange must detect ChatGPT rate-limit dialogs such as `请求过于频繁` / `请稍等几分钟后再重试` / too-many-requests before parsing output.
 - When a Pick3 GPT rate-limit dialog appears, the runner must immediately enter silent escalating backoff without clicking the dialog first: first 10 minutes, second 30 minutes, third 60 minutes.
@@ -84,7 +87,13 @@ UAE Lottery Pick 3 official source
 - Pick3 GPT workspace cleanup must also delete stale ChatGPT sidebar conversation history entries recorded by the Pick3 workspace ledger, preserving the current and immediately previous conversation records.
 - Pick3 GPT workspace cleanup must delete stale visible ChatGPT sidebar history entries whose title matches the controlled Pick3 training title allowlist: `Pick3 Blind Eval`, `Blind Eval`, `Blind Chart`, `Blind Time-Series`, `Blind Series`, or `Visual Pattern Prediction`, while preserving the current and immediately previous protected workspace URLs.
 - Pick3 GPT history cleanup must refresh/reopen the ChatGPT home sidebar after deletion and treat any remaining non-protected Pick3 training history entry as cleanup failure.
+- Pick3 GPT history cleanup must only execute deletions when the stale entry count reaches 15 or more; below this threshold the cleanup must be skipped (returning a deferred status) and training must continue uninterrupted.
+- Pick3 GPT history cleanup must delete at most 3 stale entries per training run, even when the total stale count exceeds the threshold, to avoid triggering ChatGPT's history access rate limit.
 - Pick3 training must stop before the next prompt when sidebar cleanup reports a deletion failure, because stale training conversations can pollute future ChatGPT context and make the history list explode.
+- Pick3 GPT sidebar history menu hover must dispatch JS `mouseenter` and `mouseover` events on the target conversation row as a mandatory co-trigger alongside any native hover, because native browser.move is optional-chained and may silently no-op; JS dispatch ensures the "…" menu button renders in the DOM.
+- Pick3 GPT sidebar history menu hover wait must be at least 600ms (not 250ms) after hover events before checking for the "…" button, and must poll for the button up to 1000ms total.
+- Pick3 GPT composer focus must dispatch an Escape keyboard event and blur the active element to dismiss any floating menus or context menus before calling focusComposer, because sidebar hover events can leave floating menus open that intercept keyboard input.
+- Pick3 GPT composer focus must allow up to 5000ms (not 2000ms) for the composer to register as focused after the focus call.
 - Pick3 full pipeline must stop before reveal/scoring when any one-image GPT response fails JSON parsing or identity binding.
 - Pick3 full pipeline must stop before interaction persistence, prediction sealing, reveal, or scoring when the provider cannot prove the submitted user message contains the current image.
 
