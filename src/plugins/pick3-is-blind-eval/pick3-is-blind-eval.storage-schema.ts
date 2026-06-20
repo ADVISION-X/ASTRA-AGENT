@@ -125,6 +125,10 @@ const schemaSql = [
   prediction_label TEXT NOT NULL,
   confidence REAL,
   confidence_is_probability INTEGER NOT NULL,
+  tail_shapes TEXT,
+  zone_weight TEXT,
+  driving_evidence TEXT,
+  discounted_evidence TEXT,
   abstain_reason TEXT,
   reason TEXT,
   predicted_at TEXT NOT NULL,
@@ -165,6 +169,17 @@ const schemaSql = [
 
 export const createPick3Schema = (db: Database.Database): void => {
   for (const sql of schemaSql) db.exec(sql);
+  const predictionColumns = new Set(
+    (db.prepare("PRAGMA table_info(ai_predictions)").all() as Array<{ name: string }>)
+      .map((column) => column.name),
+  );
+  const addPredictionColumn = (name: string, definition: string): void => {
+    if (!predictionColumns.has(name)) db.exec(`ALTER TABLE ai_predictions ADD COLUMN ${definition}`);
+  };
+  addPredictionColumn("tail_shapes", "tail_shapes TEXT");
+  addPredictionColumn("zone_weight", "zone_weight TEXT");
+  addPredictionColumn("driving_evidence", "driving_evidence TEXT");
+  addPredictionColumn("discounted_evidence", "discounted_evidence TEXT");
 };
 
 const preparePick3DrawStatements = (db: Database.Database): Pick<
@@ -237,9 +252,9 @@ INSERT OR REPLACE INTO ai_predictions (
   prediction_id, interaction_id, batch_id, image_id, position, prompt_version_id, provider_kind, model_id,
   temperature, image_detail, system_prompt_version_id, business_prompt_version_id,
   system_prompt_hash, business_prompt_hash, raw_prompt_hash, raw_response_ref, raw_response_hash,
-  prediction_label, confidence, confidence_is_probability, abstain_reason, reason, predicted_at,
-  sealed_before_reveal
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  prediction_label, confidence, confidence_is_probability, tail_shapes, zone_weight, driving_evidence,
+  discounted_evidence, abstain_reason, reason, predicted_at, sealed_before_reveal
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `),
   insertReveal: db.prepare(`
 INSERT OR REPLACE INTO ai_reveals (

@@ -1,7 +1,7 @@
 export const WEB_CHAT_SELECTOR_SCRIPT_PRELUDE = `
 const clip = (value) => String(value || "").replace(/\\s+/g, " ").trim();
 const bodyText = clip(document.body?.innerText || "");
-const hasProviderComposerChrome = Boolean(document.querySelector("div#prompt-textarea[contenteditable='true'][role='textbox'], #composer-submit-button, #composer-plus-btn"));
+const hasProviderComposerChrome = Boolean(document.querySelector("div#prompt-textarea[contenteditable='true'][role='textbox'], div[contenteditable='true'][role='textbox'][aria-label='Enter a prompt for Gemini'], rich-textarea div[contenteditable='true'][role='textbox'], div.ql-editor[contenteditable='true'][role='textbox'], #composer-submit-button, #composer-plus-btn, button[aria-label='Upload and tools']"));
 if (!hasProviderComposerChrome && /captcha|verify|verification|2fa|two-factor|login|sign in|log in/i.test(bodyText)) {
   return {status: "review_required", message: "provider requires login or security verification", pageUrl: location.href};
 }
@@ -28,7 +28,7 @@ const resolveComposerInput = () => {
   if (chatGptComposer instanceof HTMLElement && chatGptComposer.isContentEditable && isVisible(chatGptComposer)) {
     return chatGptComposer;
   }
-  const geminiComposer = document.querySelector("rich-textarea div[contenteditable='true'][role='textbox'], div.ql-editor[contenteditable='true'][role='textbox']");
+  const geminiComposer = document.querySelector("div[contenteditable='true'][role='textbox'][aria-label='Enter a prompt for Gemini'], rich-textarea div[contenteditable='true'][role='textbox'], div.ql-editor[contenteditable='true'][role='textbox']");
   if (geminiComposer instanceof HTMLElement && geminiComposer.isContentEditable && isVisible(geminiComposer)) {
     return geminiComposer;
   }

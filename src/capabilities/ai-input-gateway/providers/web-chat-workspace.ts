@@ -21,6 +21,8 @@ const workspaceUrlPath = (dataDir: string, providerKind: string, workspaceId: st
 const workspaceConversationLedgerPath = (dataDir: string, providerKind: string, workspaceId: string): string =>
   path.join(workspaceDir(dataDir), `${providerKind}-${workspaceId}-conversation-urls.json`);
 
+const PICK3_CONVERSATION_LEDGER_MAX_ENTRIES = 100;
+
 export const isPick3WorkspaceId = (workspaceId: string | null): boolean =>
   workspaceId === PICK3_WORKSPACE_ID;
 
@@ -96,9 +98,13 @@ export const recordWorkspaceConversationUrl = (input: {
   workspaceId: string;
   url: string | null;
 }): void => {
-  if (!input.url || !input.url.startsWith("https://chatgpt.com/")) return;
+  if (!input.url) return;
+  const isSupportedConversationUrl = input.providerKind === "gemini-web-chat"
+    ? input.url.startsWith("https://gemini.google.com/app/")
+    : input.url.startsWith("https://chatgpt.com/");
+  if (!isSupportedConversationUrl) return;
   const existing = readWorkspaceConversationLedger(input).filter((url) => url !== input.url);
-  const next = [...existing, input.url].slice(-20);
+  const next = [...existing, input.url].slice(-PICK3_CONVERSATION_LEDGER_MAX_ENTRIES);
   mkdirSync(workspaceDir(input.dataDir), { recursive: true });
   writeFileSync(
     workspaceConversationLedgerPath(input.dataDir, input.providerKind, input.workspaceId),
@@ -136,11 +142,6 @@ tell application "Google Chrome"
 end tell
 return "closed_" & closedCount
 `, input.abortSignal ? { signal: input.abortSignal } : undefined);
-  const keptLedger = ledger.slice(-input.keepRecentCount);
-  writeFileSync(
-    workspaceConversationLedgerPath(input.dataDir, input.providerKind, input.workspaceId),
-    `${JSON.stringify(keptLedger, null, 2)}\n`,
-  );
   return result.trim();
 };
 

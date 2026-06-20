@@ -13,9 +13,20 @@ const facebookSelectionExportPath = "src/plugins/facebook-product-video-mining/f
 
 const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
 
+const extractBetween = (text: string, startMarker: string, endMarker: string): string => {
+  const startIndex = text.indexOf(startMarker);
+  if (startIndex < 0) return "";
+  const endIndex = text.indexOf(endMarker, startIndex + startMarker.length);
+  return text.slice(startIndex, endIndex > startIndex ? endIndex + endMarker.length : undefined);
+};
+
 const readFacebookWorkspaceText = (): string => [
   readRepoText(facebookPagePath),
-  readRepoText(facebookWorkspacePath),
+  extractBetween(
+    readRepoText(facebookWorkspacePath),
+    'data-skill-workspace="facebook-video-mining"',
+    "</section>`",
+  ),
 ].join("\n");
 
 const extractClientFunctionText = (

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T20:35:07.019Z",
+  "generatedAt": "2026-06-20T10:54:04.191Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -69,6 +69,9 @@
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-pick3-client.ts",
+    "src/app/workbench-home-pick3-history-client.ts",
+    "src/app/workbench-home-pick3-stability-client.ts",
+    "src/app/workbench-home-pick3-trend-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",

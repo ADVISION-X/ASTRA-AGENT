@@ -11,9 +11,19 @@ const serverSource = readFileSync("src/app/workbench-facebook-routes.ts", "utf8"
 const videoSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts", "utf8");
 const aiJudgeSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts", "utf8");
 const aiTimeoutSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts", "utf8");
+const extractBetween = (text: string, startMarker: string, endMarker: string): string => {
+  const startIndex = text.indexOf(startMarker);
+  if (startIndex < 0) return "";
+  const endIndex = text.indexOf(endMarker, startIndex + startMarker.length);
+  return text.slice(startIndex, endIndex > startIndex ? endIndex + endMarker.length : undefined);
+};
 const pageSource = [
   readFileSync("src/app/workbench-home-page.ts", "utf8"),
-  readFileSync("src/app/app-shell/app-shell-layout.ts", "utf8"),
+  extractBetween(
+    readFileSync("src/app/app-shell/app-shell-layout.ts", "utf8"),
+    'data-skill-workspace="facebook-video-mining"',
+    "</section>`",
+  ),
 ].join("\n");
 const clientSource = readFileSync("src/app/workbench-home-client.ts", "utf8");
 const facebookClientSource = clientSource.slice(

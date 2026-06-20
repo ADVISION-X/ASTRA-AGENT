@@ -1,3 +1,7 @@
+import { renderPick3StabilityClient } from "./workbench-home-pick3-stability-client.js";
+import { renderPick3HistoryClient } from "./workbench-home-pick3-history-client.js";
+import { renderPick3TrendClient } from "./workbench-home-pick3-trend-client.js";
+
 export const renderPick3Client = (): string => `
 const renderPick3Images = (images) => {
   const list = qs("[data-pick3-image-list]");
@@ -21,6 +25,9 @@ const renderPick3Images = (images) => {
     list.append(item);
   }
 };
+${renderPick3StabilityClient()}
+${renderPick3HistoryClient()}
+${renderPick3TrendClient()}
 const renderPick3Task = (task) => {
   if (!task) return;
   state.pick3TaskId = task.taskId || state.pick3TaskId;
@@ -35,6 +42,9 @@ const renderPick3Task = (task) => {
   setText("[data-pick3-image-count]", String(task.batch?.imageCount ?? "-"));
   setText("[data-pick3-artifact-dir]", task.batch?.artifactDir || "-");
   renderPick3Images(task.batch?.images || []);
+  renderPick3Stability(task.stability || null);
+  refreshPick3Trend().catch(() => undefined);
+  refreshPick3History().catch(() => undefined);
 };
 const startPick3 = async (event) => {
   event.preventDefault();
@@ -50,13 +60,15 @@ const startPick3 = async (event) => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       mode: form.mode.value,
-      batchSize: Number(form.batchSize.value),
-      positions,
-      dryRun: true,
-    }),
+		      providerKind: form.providerKind.value,
+		      promptMode: form.promptMode.value,
+		      batchSize: Number(form.batchSize.value),
+	      positions,
+	      dryRun: form.mode.value !== "full_pipeline" && form.mode.value !== "next_prediction_stability",
+	    }),
   });
   renderPick3Task(task);
-  showWorkspacePage("pick3-is-blind-eval", "images");
+  showWorkspacePage("pick3-is-blind-eval", task.mode === "next_prediction_stability" ? "history" : "images");
   writeActivity("pick3 task completed with status " + task.status, task.status === "success" ? "completed" : "manual-required");
 };
 const refreshPick3Latest = async () => {

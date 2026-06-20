@@ -49,6 +49,11 @@ type GetAmazonProductFeeSyncTaskStatus = typeof import("../../plugins/amazon-pro
 type GetLatestAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").getLatestAmazonProductFeeSyncTask;
 type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").runPick3IsBlindEvalFlow;
 type GetLatestPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getLatestPick3IsBlindEvalTask;
+type DeletePick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").deletePick3HumanReviewTask;
+type ListPick3HumanReviewHistory = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3HumanReviewHistory;
+type GetPick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewTask;
+type GetPick3HumanReviewInteraction = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewInteraction;
+type ListPick3TrendSnapshot = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3TrendSnapshot;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -81,6 +86,11 @@ type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonPr
 type Pick3IsBlindEvalStartInput = Parameters<StartPick3IsBlindEvalTask>[0];
 type Pick3IsBlindEvalTaskRecord = Awaited<ReturnType<StartPick3IsBlindEvalTask>>;
 type Pick3IsBlindEvalLatestTaskRecord = ReturnType<GetLatestPick3IsBlindEvalTask>;
+type Pick3HumanReviewDeleteResult = ReturnType<DeletePick3HumanReviewTask>;
+type Pick3HumanReviewHistoryResult = ReturnType<ListPick3HumanReviewHistory>;
+type Pick3HumanReviewTaskResult = ReturnType<GetPick3HumanReviewTask>;
+type Pick3HumanReviewInteractionResult = ReturnType<GetPick3HumanReviewInteraction>;
+type Pick3TrendSnapshotResult = ReturnType<ListPick3TrendSnapshot>;
 
 export type DeepResearchInputAttachmentStagingFile = {
   fileName: string;
@@ -232,4 +242,16 @@ export type GrassEyeWorkbenchHandle = {
     input: Pick3IsBlindEvalStartInput,
   ) => Promise<Pick3IsBlindEvalTaskRecord>;
   getLatestPick3IsBlindEvalTask: () => Promise<Pick3IsBlindEvalLatestTaskRecord>;
+  listPick3TrendSnapshot: () => Promise<Pick3TrendSnapshotResult>;
+  listPick3HumanReviewHistory: () => Promise<Pick3HumanReviewHistoryResult>;
+  getPick3HumanReviewTask: (
+    taskId: string,
+  ) => Promise<Pick3HumanReviewTaskResult>;
+  getPick3HumanReviewInteraction: (input: {
+    interactionId: string;
+    taskId: string;
+  }) => Promise<Pick3HumanReviewInteractionResult>;
+  deletePick3HumanReviewTask: (
+    taskId: string,
+  ) => Promise<Pick3HumanReviewDeleteResult>;
 };

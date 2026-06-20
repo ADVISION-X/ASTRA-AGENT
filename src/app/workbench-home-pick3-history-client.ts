@@ -1,0 +1,196 @@
+const PICK3_HISTORY_CLIENT = `
+const renderPick3HistoryRows = (tasks) => {
+  const list = qs("[data-pick3-history-list]");
+  if (!list) return;
+  list.innerHTML = "";
+  const records = Array.isArray(tasks) ? tasks : [];
+  setText("[data-pick3-history-count]", String(records.length));
+  for (const task of records) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "record-item";
+    item.dataset.pick3HistoryTaskId = task.taskId;
+    const title = document.createElement("strong");
+    title.textContent = (task.newestOfficialPhase || "-") + " -> " + (task.targetPhase || "-");
+    const meta = document.createElement("div");
+    meta.className = "record-meta";
+    meta.textContent = [
+      task.taskMode || "-",
+      task.status,
+      task.providerKind || "-",
+      "batch " + (task.batchId || "-"),
+      "repeat " + (task.repeatCount ?? "-"),
+    ].join(" · ");
+    const proof = document.createElement("div");
+    proof.textContent = "raw " + task.rawAnswerCount + "/" + task.expectedRepeatResults + " · " + task.taskId;
+    item.append(title, meta, proof);
+    item.addEventListener("click", () => loadPick3HistoryTask(task.taskId));
+    list.append(item);
+  }
+};
+
+const clearPick3HistoryDetail = () => {
+  setText("[data-pick3-history-task-id]", "-");
+  setText("[data-pick3-history-status]", "-");
+  setText("[data-pick3-history-phase]", "-");
+  setText("[data-pick3-history-window]", "-");
+  setText("[data-pick3-history-provider]", "-");
+  setText("[data-pick3-history-scoring]", "-");
+  setText("[data-pick3-history-repeats]", "-");
+  setText("[data-pick3-history-completeness]", "-");
+  setText("[data-pick3-history-distribution]", "-");
+  const imageList = qs("[data-pick3-history-image-list]");
+  const phaseReportList = qs("[data-pick3-history-phase-report-list]");
+  const repeatList = qs("[data-pick3-history-repeat-list]");
+  if (imageList) imageList.innerHTML = "";
+  if (phaseReportList) phaseReportList.innerHTML = "";
+  if (repeatList) repeatList.innerHTML = "";
+};
+
+const renderPick3HistoryImages = (images) => {
+  const list = qs("[data-pick3-history-image-list]");
+  if (!list) return;
+  list.innerHTML = "";
+  for (const image of images || []) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "record-item";
+    const title = document.createElement("strong");
+    title.textContent = image.position + " · " + image.imageId;
+    const meta = document.createElement("div");
+    meta.className = "record-meta";
+    meta.textContent = (image.targetPhase || "-") + " · " + (image.visibleStartPhase || "-") + "..." + (image.visibleEndPhase || "-");
+    const proof = document.createElement("div");
+    proof.textContent = "sha256 " + (image.imageSha256 || "-");
+    item.append(title, meta, proof);
+    item.addEventListener("click", () => openInspector({ kind: "pick3 history image", title: title.textContent, payload: image }));
+    list.append(item);
+  }
+};
+
+const renderPick3ObservedDistribution = (distribution) => {
+  const node = qs("[data-pick3-history-distribution]");
+  if (!node) return;
+  const positionEntries = Object.entries(distribution || {});
+  node.textContent = positionEntries.length
+    ? positionEntries.map(([position, labelCounts]) => position + " [" + Object.entries(labelCounts || {}).map(([label, count]) => label + ": " + count).join(" · ") + "]").join("  ||  ")
+    : "-";
+};
+
+const renderPick3PhaseReports = (phaseReports) => {
+  const list = qs("[data-pick3-history-phase-report-list]");
+  if (!list) return;
+  list.innerHTML = "";
+  for (const report of phaseReports || []) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "record-item";
+    const title = document.createElement("strong");
+    title.textContent = (report.phase || "-") + " · " + (report.status || "-");
+    const meta = document.createElement("div");
+    meta.className = "record-meta";
+    meta.textContent = (report.positions || []).map((pos) =>
+      pos.position + ": " + (pos.predictionLabel || "-") + " -> " + (pos.answerLabel || "-") + " · " + (pos.hit === true ? "hit" : pos.hit === false ? "miss" : "pending")
+    ).join("  |  ");
+    const proof = document.createElement("div");
+    proof.textContent = report.errorReason || "all three positions matched";
+    item.append(title, meta, proof);
+    item.addEventListener("click", () => openInspector({ kind: "pick3 phase report", title: title.textContent, payload: report }));
+    list.append(item);
+  }
+};
+
+const openPick3AiAnswer = async (taskId, repeat) => {
+  const answer = await readJson(
+    "/api/pick3-is-blind-eval/interaction?taskId=" + encodeURIComponent(taskId) + "&interactionId=" + encodeURIComponent(repeat.interactionId),
+  );
+  openInspector({
+    kind: "pick3 ai answer",
+    title: repeat.position + " repeat " + repeat.repeatIndex,
+    payload: {
+      interactionId: repeat.interactionId,
+      imageId: repeat.imageId,
+      predictionLabel: repeat.predictionLabel,
+      visiblePredictionLabel: repeat.visiblePredictionLabel,
+      confidence: repeat.confidence,
+      parseStatus: repeat.parseStatus,
+      rawResponseText: answer.rawResponseText,
+      renderedPromptText: answer.renderedPromptText,
+      promptPackageId: answer.promptPackageId,
+      promptContractId: answer.promptContractId,
+      promptHash: answer.promptHash,
+      rawResponseHash: answer.rawResponseHash,
+      rawOutputRef: answer.rawOutputRef,
+      providerProofJson: answer.providerProofJson,
+    },
+  });
+};
+
+const renderPick3HistoryRepeats = (taskId, repeats) => {
+  const list = qs("[data-pick3-history-repeat-list]");
+  if (!list) return;
+  list.innerHTML = "";
+  for (const repeat of repeats || []) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "record-item";
+    const title = document.createElement("strong");
+    title.textContent = repeat.position + " · repeat " + repeat.repeatIndex + " · " + (repeat.visiblePredictionLabel || "-");
+    const meta = document.createElement("div");
+    meta.className = "record-meta";
+    meta.textContent = [
+      "confidence " + (repeat.confidence ?? "-"),
+      repeat.parseStatus || "-",
+      repeat.sameImageForPosition ? "same image" : "image mismatch",
+    ].join(" · ");
+    const proof = document.createElement("div");
+    proof.textContent = repeat.interactionId + " · " + (repeat.rawResponseHash || "-");
+    item.append(title, meta, proof);
+    item.addEventListener("click", () => openPick3AiAnswer(taskId, repeat).catch((error) => writeActivity("pick3 ai answer load failed: " + error.message, "failed")));
+    list.append(item);
+  }
+};
+
+const renderPick3HistoryDetail = (detail) => {
+  if (!detail?.summary) return;
+  const summary = detail.summary;
+  state.pick3TaskId = summary.taskId || state.pick3TaskId;
+  setText("[data-pick3-history-task-id]", summary.taskId);
+  setText("[data-pick3-history-status]", summary.status);
+  setText("[data-pick3-history-phase]", (summary.newestOfficialPhase || "-") + " -> " + (summary.targetPhase || "-"));
+  setText("[data-pick3-history-window]", (summary.visibleStartPhase || "-") + "..." + (summary.visibleEndPhase || "-"));
+  setText("[data-pick3-history-provider]", summary.providerKind || "-");
+  setText("[data-pick3-history-scoring]", summary.scoring ? String(summary.scoring.hits) + "/" + String(summary.scoring.total) + " hit · " + String(summary.scoring.abstains) + " abstain" : "-");
+  setText("[data-pick3-history-repeats]", String(summary.actualRepeatResults) + "/" + String(summary.expectedRepeatResults));
+  setText("[data-pick3-history-completeness]", summary.evidenceCompleteness?.status || "-");
+  renderPick3ObservedDistribution(detail.observedDistribution);
+  renderPick3PhaseReports(detail.phaseReports);
+  renderPick3HistoryImages(detail.images);
+  renderPick3HistoryRepeats(summary.taskId, detail.repeats);
+};
+
+const loadPick3HistoryTask = async (taskId) => {
+  const detail = await readJson("/api/pick3-is-blind-eval/task?taskId=" + encodeURIComponent(taskId));
+  renderPick3HistoryDetail(detail);
+};
+
+const refreshPick3History = async () => {
+  const payload = await readJson("/api/pick3-is-blind-eval/history");
+  const tasks = payload.tasks || [];
+  renderPick3HistoryRows(tasks);
+  if (tasks[0]?.taskId) await loadPick3HistoryTask(tasks[0].taskId);
+  if (!tasks[0]?.taskId) clearPick3HistoryDetail();
+};
+
+const deletePick3SelectedHistoryTask = async () => {
+  const taskId = state.pick3TaskId;
+  if (!taskId) return writeActivity("pick3 history task id is required", "manual-required");
+  const confirmed = window.confirm("物理删除，不可恢复。将永久删除这个 Pick3 历史任务、任务证据、AI 回答和 artifact 文件。确认删除 " + taskId + " ?");
+  if (!confirmed) return writeActivity("pick3 history physical delete canceled", "manual-required");
+  const result = await readJson("/api/pick3-is-blind-eval/task?taskId=" + encodeURIComponent(taskId), { method: "DELETE" });
+  writeActivity("pick3 history physically deleted: " + result.taskId, "completed");
+  await refreshPick3History();
+};
+`;
+
+export const renderPick3HistoryClient = (): string => PICK3_HISTORY_CLIENT;

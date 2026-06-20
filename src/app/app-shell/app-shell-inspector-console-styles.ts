@@ -100,6 +100,19 @@ summary { cursor: pointer; color: var(--muted); font-weight: 650; }
 .runtime-event.manual-required-state { border-color: #66521d; color: #f4d489; }
 .runtime-event.failed-state { border-color: #66313a; color: #f2bbc3; }
 .record-list { display: grid; gap: 8px; }
+.compact-record-list {
+  max-height: 340px;
+  overflow: auto;
+  align-content: start;
+}
+.split-grid {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+.two-column-grid {
+  grid-template-columns: minmax(260px, 0.9fr) minmax(420px, 1.4fr);
+}
 .record-item {
   width: 100%;
   display: grid;
@@ -168,5 +181,6 @@ progress { width: 100%; height: 12px; }
   .app-shell-layout { grid-template-columns: 210px minmax(740px, 1fr) 290px; }
   .workspace-grid { grid-template-columns: 250px minmax(610px, 1fr); }
   .filter-bar { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+  .two-column-grid { grid-template-columns: 1fr; }
 }
 `;

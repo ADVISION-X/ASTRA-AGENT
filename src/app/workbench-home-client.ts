@@ -474,6 +474,17 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-facebook-export]")?.addEventListener("click", exportFacebookSelection);
   qs("[data-pick3-form]")?.addEventListener("submit", startPick3);
   qs("[data-pick3-latest]")?.addEventListener("click", refreshPick3Latest);
+  qs("[data-pick3-trend-refresh]")?.addEventListener("click", () => {
+    refreshPick3Trend().catch((error) => writeActivity("pick3 trend refresh failed: " + error.message, "failed"));
+  });
+  bindPick3TrendDrag();
+  refreshPick3Trend().catch(() => undefined);
+  qs("[data-pick3-history-refresh]")?.addEventListener("click", () => {
+    refreshPick3History().catch((error) => writeActivity("pick3 history refresh failed: " + error.message, "failed"));
+  });
+  qs("[data-pick3-history-delete]")?.addEventListener("click", () => {
+    deletePick3SelectedHistoryTask().catch((error) => writeActivity("pick3 history delete failed: " + error.message, "failed"));
+  });
   showSkill("amazon-product-mining");
   showAmazonProductMiningPage("history");
   refreshShell();

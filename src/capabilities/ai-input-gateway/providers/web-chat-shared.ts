@@ -1,85 +1,68 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import type {
-  AiProviderAdapterContext,
-  AiProviderRawResponse,
-} from "../contracts/ai-provider-adapter.contract.js";
+import type { AiProviderAdapterContext, AiProviderRawResponse } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
-import {
-  captureChatGptBusinessHtmlArtifact,
-  isBusinessHtmlReportRequest,
-} from "./web-chat-html-artifact-capture.js";
-import { isAmazonProductMiningGptRequest, isPick3GptRequest, openProviderPage } from "./web-chat-open.js";
-import { deletePick3WorkspaceConversationHistoryUrl } from "./web-chat-pick3-history-cleanup.js";
+import { captureChatGptBusinessHtmlArtifact, isBusinessHtmlReportRequest } from "./web-chat-html-artifact-capture.js";
+import { isAmazonProductMiningGptRequest, isPick3GptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
+import { deletePick3WorkspaceConversationHistoryUrl, GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { emitPick3RateLimitRecoveryStep, reservePick3RateLimitAttempt, resolvePick3RateLimitBackoffMs, waitAfterPick3RateLimit } from "./web-chat-pick3-recovery-log.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
-import {
-  assertActiveProviderPage,
-  buildWebChatRawResponse,
-  cleanupProviderWorkspaceAfterResponse,
-  persistWorkspaceAfterResponse,
-  readActivePageUrl,
-  requireBrowser,
-  restoreSourcePage,
-} from "./web-chat-shared-support.js";
+import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser, restoreSourcePage } from "./web-chat-shared-support.js";
 import { canContinueAfterWebChatSourceRestoreFailure } from "./web-chat-restore-policy.js";
 import { ensureProviderWorkspaceFocused, resolveWebChatWorkspaceId, saveWorkspaceUrl } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
+const GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS = 250;
 const STABLE_ROUNDS_REQUIRED = 2;
 const PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000;
 const PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1;
 
-const shouldCloseProviderTabAfterResponse = (input: {
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean => isAmazonProductMiningGptRequest(input);
+const emitWebChatStage = (input: { request: AiFeedInput; stage: string; status: string; startedAtMs: number | null; refs?: Record<string, unknown> }): void => {
+  if (!isPick3WebChatRequest({ request: input.request })) return;
+  process.stdout.write(`${JSON.stringify({
+    ts: new Date().toISOString(),
+    marker: "[GRASSEYE][AI-GATEWAY][WEB-CHAT]",
+    providerKind: input.request.providerKind,
+    stage: input.stage,
+    status: input.status,
+    ...(input.startedAtMs === null ? {} : { elapsedMs: Date.now() - input.startedAtMs }),
+    refs: {
+      promptPackageId: input.request.promptPackageId,
+      inputRefId: input.request.inputRefs[0]?.id ?? null,
+      ...input.refs,
+    },
+  })}\n`);
+};
 
-const resolveResponseTimeoutMs = (input: {
-  providerUrl: string;
-  request: AiFeedInput;
-}): number =>
-  isPick3GptRequest(input)
+const shouldCloseProviderTabAfterResponse = (input: { providerUrl: string; request: AiFeedInput }): boolean => isAmazonProductMiningGptRequest(input);
+
+const resolveResponseTimeoutMs = (input: { providerUrl: string; request: AiFeedInput }): number =>
+  isPick3WebChatRequest({ request: input.request })
     ? PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS
     : input.request.timeoutMs;
 
-const isPick3NoResultTimeoutError = (input: {
-  error: unknown;
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean =>
-  isPick3GptRequest(input)
+const isPick3NoResultTimeoutError = (input: { error: unknown; providerUrl: string; request: AiFeedInput }): boolean =>
+  isPick3WebChatRequest({ request: input.request })
   && input.error instanceof Error
   && input.error.message.includes("failed: provider response polling timed out");
 
-const isPick3RateLimitError = (input: {
-  error: unknown;
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean =>
+const isPick3RateLimitError = (input: { error: unknown; providerUrl: string; request: AiFeedInput }): boolean =>
   isPick3GptRequest(input)
   && input.error instanceof Error
   && input.error.message.includes("provider_rate_limited_too_many_requests");
 
-const isPick3MissingBoundImageError = (input: {
-  error: unknown;
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean =>
-  isPick3GptRequest(input)
+const isPick3MissingBoundImageError = (input: { error: unknown; providerUrl: string; request: AiFeedInput }): boolean =>
+  isPick3WebChatRequest({ request: input.request })
   && input.error instanceof Error
   && input.error.message.includes("provider_missing_bound_image");
 
-const submitWebChatPrompt = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  sourcePageUrlBeforeFeed: string | null;
-  previousAssistantCount: number;
-}): Promise<void> => {
+const shouldSkipPreSubmitConversationState = (request: AiFeedInput): boolean =>
+  request.providerKind === "gemini-web-chat"
+  && isPick3WebChatRequest({ request });
+
+const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number }): Promise<void> => {
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -94,32 +77,7 @@ const submitWebChatPrompt = async (input: {
   });
 };
 
-const capturePick3ProviderEvidence = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  regionLabel: string;
-  contentLines: string[];
-}): Promise<string | null> => {
-  if (!isPick3GptRequest({ providerUrl: input.providerUrl, request: input.request })) return null;
-  const capture = await input.browser.screenshotRegion({
-    regionLabel: input.regionLabel,
-    contentLines: input.contentLines,
-    captureProfile: "observation_lightweight",
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-  return capture.sourceFilePath;
-};
-
-const extractWebChatConversation = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  previousAssistantCount: number;
-  previousAnswerText: string | null;
-}): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
+const extractWebChatConversation = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number; previousAnswerText: string | null }): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
   await ensureProviderWorkspaceFocused({
     request: input.request,
     context: input.context,
@@ -132,26 +90,39 @@ const extractWebChatConversation = async (input: {
     phase: "response capture",
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
+  const responseCaptureStartedAtMs = Date.now();
+  const responsePollIntervalMs = input.request.providerKind === "gemini-web-chat" ? GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+  emitWebChatStage({ request: input.request, stage: "response_capture", status: "start", startedAtMs: null, refs: { pollIntervalMs: responsePollIntervalMs } });
   const extracted = await waitForStableAnswer({
     browser: input.browser,
     context: input.context,
     timeoutMs: resolveResponseTimeoutMs(input),
-    pollIntervalMs: POLL_INTERVAL_MS,
-    stableRoundsRequired: STABLE_ROUNDS_REQUIRED,
-    minAssistantCount: Math.max(1, input.previousAssistantCount + 1),
+    pollIntervalMs: responsePollIntervalMs,
+    stableRoundsRequired: input.request.providerKind === "gemini-web-chat" ? 1 : STABLE_ROUNDS_REQUIRED,
+    ...(input.request.providerKind === "gemini-web-chat" ? {} : {
+      minAssistantCount: Math.max(1, input.previousAssistantCount + 1),
+    }),
     previousAnswerText: input.previousAnswerText,
   });
+  emitWebChatStage({ request: input.request, stage: "response_capture", status: extracted.status, startedAtMs: responseCaptureStartedAtMs, refs: {
+    message: extracted.message,
+    rawLen: extracted.answerText?.length ?? 0,
+    generating: extracted.generating ?? null,
+    assistantCount: extracted.assistantCount ?? null,
+  } });
   return {
     extracted,
     answerText: assertExtracted({ extracted, restoredSourcePage: null }),
   };
 };
 
-const readPreSubmitConversationState = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-}): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
+const readPreSubmitConversationState = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string }): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
+  if (shouldSkipPreSubmitConversationState(input.request)) {
+    emitWebChatStage({ request: input.request, stage: "pre_submit_snapshot", status: "skipped", startedAtMs: null, refs: { reason: "fresh_gemini_pick3_conversation" } });
+    return { previousAssistantCount: 0, previousAnswerText: null };
+  }
+  const startedAtMs = Date.now();
+  emitWebChatStage({ request: input.request, stage: "pre_submit_snapshot", status: "start", startedAtMs: null });
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -165,25 +136,49 @@ const readPreSubmitConversationState = async (input: {
     pollIntervalMs: 250,
     stableRoundsRequired: 1,
   });
+  emitWebChatStage({
+    request: input.request,
+    stage: "pre_submit_snapshot",
+    status: "success",
+    startedAtMs,
+    refs: { assistantCount: beforeSubmit.assistantCount ?? 0 },
+  });
   return {
     previousAssistantCount: beforeSubmit.assistantCount ?? 0,
     previousAnswerText: beforeSubmit.answerText?.trim() ?? null,
   };
 };
 
-type OpenedWebChatConversationInput = {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  runtimeName: string;
-  sourcePageUrlBeforeFeed: string | null;
-};
+type OpenedWebChatConversationInput = { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; runtimeName: string; sourcePageUrlBeforeFeed: string | null };
 
 const prepareWebChatConversation = async (
   input: OpenedWebChatConversationInput,
 ): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
+  const preImageCleanupStartedAtMs = Date.now();
+  const preImageCleanupStatus = await cleanupGeminiPick3HistoryBeforeNextImage({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+  });
+  if (preImageCleanupStatus !== null) {
+    emitWebChatStage({
+      request: input.request,
+      stage: "pre_image_history_cleanup",
+      status: preImageCleanupStatus,
+      startedAtMs: preImageCleanupStartedAtMs,
+      refs: {
+        provider: "gemini",
+        policy: "delete_previous_stale_history_before_next_image",
+        keepRecentCount: 1,
+        triggerThreshold: 1,
+        maxDeleteCount: GEMINI_STALE_CLEANUP_MAX_PER_RUN,
+      },
+    });
+  }
+  if (isBlockingGeminiPick3PreImageHistoryCleanupStatus(preImageCleanupStatus)) {
+    throw new Error(`review_required: Gemini Pick3 pre-image history cleanup failed before attachment upload: ${preImageCleanupStatus}`);
+  }
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -194,42 +189,24 @@ const prepareWebChatConversation = async (
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   return readPreSubmitConversationState({
     browser: input.browser,
+    request: input.request,
     context: input.context,
     providerUrl: input.providerUrl,
   });
 };
 
-const capturePick3ConversationEvidence = async (input: OpenedWebChatConversationInput & {
-  phase: "prompt_submitted" | "answer_captured";
-}): Promise<string | null> => capturePick3ProviderEvidence({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    providerUrl: input.providerUrl,
-    regionLabel: input.phase === "prompt_submitted" ? "pick3_send_success" : "pick3_answer_success",
-    contentLines: [
-      `imageId=${input.request.inputRefs[0]?.id ?? "missing-image-id"}`,
-      `promptPackageId=${input.request.promptPackageId}`,
-      `phase=${input.phase}`,
-    ],
-  });
-
 const executeWebChatConversation = async (
   input: OpenedWebChatConversationInput,
 ): Promise<AiProviderRawResponse> => {
   const preSubmit = await prepareWebChatConversation(input);
-  const evidenceRefs: string[] = [];
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   await submitWebChatPrompt({
     browser: input.browser,
     request: input.request,
     context: input.context,
     providerUrl: input.providerUrl,
-    sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     previousAssistantCount: preSubmit.previousAssistantCount,
   });
-  const sendEvidenceRef = await capturePick3ConversationEvidence({ ...input, phase: "prompt_submitted" });
-  if (sendEvidenceRef) evidenceRefs.push(sendEvidenceRef);
   const conversation = await extractWebChatConversation({
     browser: input.browser,
     request: input.request,
@@ -238,8 +215,6 @@ const executeWebChatConversation = async (
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
-  const answerEvidenceRef = await capturePick3ConversationEvidence({ ...input, phase: "answer_captured" });
-  if (answerEvidenceRef) evidenceRefs.push(answerEvidenceRef);
   const htmlArtifact = await captureChatGptBusinessHtmlArtifact({
     browser: input.browser,
     request: input.request,
@@ -256,10 +231,7 @@ const executeWebChatConversation = async (
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     extracted: conversation.extracted,
     answerText: htmlArtifact?.htmlDocument ?? conversation.answerText,
-    outputRefs: [
-      ...evidenceRefs,
-      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
-    ],
+    outputRefs: htmlArtifact ? [htmlArtifact.outputRef] : [],
   });
 };
 
@@ -271,6 +243,25 @@ const recoverPick3NoResultConversation = async (input: {
   runtimeName: string;
 }): Promise<string> => {
   const timedOutUrl = input.browser.getSessionState().currentUrl;
+  if (input.request.providerKind === "gemini-web-chat") {
+    const workspaceId = resolveWebChatWorkspaceId(input.request);
+    if (workspaceId) {
+      saveWorkspaceUrl({
+        dataDir: input.context.dataDir,
+        providerKind: input.request.providerKind,
+        workspaceId,
+        url: input.providerUrl,
+      });
+    }
+    await openProviderPage({
+      browser: input.browser,
+      providerUrl: input.providerUrl,
+      runtimeName: input.runtimeName,
+      context: input.context,
+      request: input.request,
+    });
+    return "pick3_no_result_recovery_reopened_gemini_new_chat";
+  }
   if (!timedOutUrl.startsWith("https://chatgpt.com/c/")) {
     return `pick3_no_result_recovery_skipped_non_conversation_url:${timedOutUrl}`;
   }

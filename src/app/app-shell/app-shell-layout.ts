@@ -176,7 +176,9 @@ const renderPick3Header = (): string => `
 const renderPick3PageNav = (): string => `
   <nav class="skill-page-nav" data-workspace-page-nav="pick3-is-blind-eval" aria-label="Pick3 IS Blind Eval pages">
     <button class="skill-page-tab" type="button" data-workspace-page="run" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="true">Run</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="trend" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="false">Trend</button>
     <button class="skill-page-tab" type="button" data-workspace-page="images" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="false">Images</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="history" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="false">History</button>
     <button class="skill-page-tab" type="button" data-workspace-page="audit" data-workspace-page-skill="pick3-is-blind-eval" aria-pressed="false">Audit</button>
   </nav>`;
 
@@ -188,16 +190,35 @@ const renderPick3RunForm = (): string => `
       <select name="mode">
         <option value="generate_batch">Sync and generate images</option>
         <option value="full_pipeline">Full pipeline via GPT web chat</option>
+        <option value="next_prediction_stability">Next prediction stability</option>
         <option value="sync_only">Sync only</option>
       </select>
     </div>
-    <div class="field"><label>Batch size</label><input name="batchSize" type="number" min="1" max="20" value="20" required /></div>
+    <div class="field">
+      <label>AI provider</label>
+      <select name="providerKind">
+        <option value="gpt-web-chat">GPT web chat</option>
+        <option value="gemini-web-chat">Gemini web chat</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>AI analysis mode</label>
+      <select name="promptMode">
+        <option value="playbook_v1">Playbook mode</option>
+        <option value="free_analysis_strict_reasoning">AI free analysis mode</option>
+      </select>
+    </div>
+    <div class="field"><label>Batch size</label><input name="batchSize" type="number" min="1" max="30" value="20" required /></div>
     <label class="check"><input name="hundreds" type="checkbox" checked /> hundreds</label>
     <label class="check"><input name="tens" type="checkbox" checked /> tens</label>
     <label class="check"><input name="ones" type="checkbox" checked /> ones</label>
     <div class="notice wide">
       <b>Blind boundary</b>
       <span>L80 images contain no title, axis, phase, date, Chart number, point count, answer, or position text.</span>
+    </div>
+    <div class="notice wide">
+      <b>Next stability</b>
+      <span>In next prediction stability, batch size is repeat sends of the same one image per selected position.</span>
     </div>
     <div class="actions wide">
       <button class="btn" type="submit">Start</button>
@@ -225,6 +246,7 @@ const renderPick3LatestPanel = (): string => `
     <div><b>Artifact dir</b><span data-pick3-artifact-dir>-</span></div>
     <div><b>Random baseline</b><span>50% single / 12.5% combo</span></div>
   </div>
+  <div class="record-list" data-pick3-stability-list></div>
 </section>`;
 
 const renderPick3RunSurface = (): string => `
@@ -247,6 +269,72 @@ const renderPick3ImagesSurface = (): string => `
   </section>
 </section>`;
 
+const renderPick3TrendSurface = (): string => `
+<section class="skill-page-surface hidden" data-workspace-surface="trend" data-workspace-surface-skill="pick3-is-blind-eval">
+  <section class="panel pick3-trend-panel">
+    <div class="panel-title-row">
+      <div>
+        <span class="eyebrow">Official Trend</span>
+        <h2>Latest 80 draw window</h2>
+      </div>
+      <div class="actions">
+        <span class="status-badge status-active">L80</span>
+        <button class="btn secondary" type="button" data-pick3-trend-refresh>Refresh</button>
+      </div>
+    </div>
+    <div class="pick3-trend-metrics">
+      <div><b>Window</b><span data-pick3-trend-window>-</span></div>
+      <div><b>Phase range</b><span data-pick3-trend-range>-</span></div>
+      <div><b>Latest phase</b><span data-pick3-trend-latest>-</span></div>
+      <div><b>Historical offset</b><span data-pick3-trend-offset>-</span></div>
+      <div><b>Total draws</b><span data-pick3-trend-total>-</span></div>
+    </div>
+    <div class="pick3-trend-shell" data-pick3-trend-shell>
+      <div class="pick3-trend-chart" data-pick3-trend-chart></div>
+      <div class="pick3-trend-tooltip hidden" data-pick3-trend-tooltip></div>
+    </div>
+  </section>
+</section>`;
+
+const renderPick3HistorySurface = (): string => `
+<section class="skill-page-surface hidden" data-workspace-surface="history" data-workspace-surface-skill="pick3-is-blind-eval">
+  <section class="panel history-panel">
+    <div class="panel-title-row">
+      <div>
+        <span class="eyebrow">Pick3 History</span>
+        <h2>Scoring and human review evidence</h2>
+      </div>
+      <div class="actions">
+        <span class="status-badge status-active" data-pick3-history-count>0</span>
+        <button class="btn secondary" type="button" data-pick3-history-refresh>Refresh</button>
+        <button class="btn secondary" type="button" data-pick3-history-delete>Delete</button>
+      </div>
+    </div>
+    <div class="split-grid two-column-grid">
+      <div class="record-list" data-pick3-history-list></div>
+      <div class="detail-section">
+        <div class="detail-grid inspector-detail-grid">
+          <div><b>Task</b><span data-pick3-history-task-id>-</span></div>
+          <div><b>Status</b><span data-pick3-history-status>-</span></div>
+          <div><b>Phase</b><span data-pick3-history-phase>-</span></div>
+          <div><b>Window</b><span data-pick3-history-window>-</span></div>
+          <div><b>Provider</b><span data-pick3-history-provider>-</span></div>
+          <div><b>Scoring</b><span data-pick3-history-scoring>-</span></div>
+          <div><b>Repeats</b><span data-pick3-history-repeats>-</span></div>
+          <div><b>Completeness</b><span data-pick3-history-completeness>-</span></div>
+          <div><b>Observed distribution</b><span data-pick3-history-distribution>-</span></div>
+        </div>
+        <h3>Phase Result</h3>
+        <div class="record-list compact-record-list" data-pick3-history-phase-report-list></div>
+        <h3>Images</h3>
+        <div class="record-list compact-record-list" data-pick3-history-image-list></div>
+        <h3>AI Answers</h3>
+        <div class="record-list compact-record-list" data-pick3-history-repeat-list></div>
+      </div>
+    </div>
+  </section>
+</section>`;
+
 const renderPick3AuditSurface = (): string => `
 <section class="skill-page-surface hidden" data-workspace-surface="audit" data-workspace-surface-skill="pick3-is-blind-eval">
   <section class="panel empty-state app-empty-surface">
@@ -262,7 +350,9 @@ const renderPick3Workspace = (): string => `
   ${renderPick3PageNav()}
   <div class="skill-page-stack secondary-page-stack">
     ${renderPick3RunSurface()}
+    ${renderPick3TrendSurface()}
     ${renderPick3ImagesSurface()}
+    ${renderPick3HistorySurface()}
     ${renderPick3AuditSurface()}
   </div>
 </section>`;

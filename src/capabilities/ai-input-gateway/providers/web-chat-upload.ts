@@ -17,6 +17,35 @@ import {
 
 const CLIPBOARD_UPLOAD_TIMEOUT_MS = 20_000;
 const CLIPBOARD_PASTE_RETRY_LIMIT = 3;
+const COMPOSER_FOCUS_RETRY_TIMEOUT_MS = 15_000;
+
+const terminalUploadStageLog = (line: string): void => {
+  process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] ${line}\n`);
+};
+
+const formatUploadStageRefs = (refs: Record<string, string | number | boolean | null | undefined>): string =>
+  Object.entries(refs)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join(" ");
+
+const emitUploadStage = (input: {
+  request: AiFeedInput;
+  stage: string;
+  status: "start" | "success" | "failed";
+  startedAtMs: number | null;
+  refs?: Record<string, string | number | boolean | null | undefined>;
+}): void => {
+  terminalUploadStageLog(formatUploadStageRefs({
+    stage: input.stage,
+    status: input.status,
+    providerKind: input.request.providerKind,
+    promptPackageId: input.request.promptPackageId,
+    promptContractId: input.request.promptContractId,
+    elapsedMs: input.startedAtMs === null ? undefined : Date.now() - input.startedAtMs,
+    ...(input.refs ?? {}),
+  }));
+};
 
 const withUploadTimeout = async <T>(
   label: string,
@@ -35,9 +64,23 @@ const uploadFileViaClipboardPaste = async (
   filePath: string,
   expectedAttachmentCount: number,
 ): Promise<void> => {
-  const focused = await focusComposer(browser, context);
-  if (focused.status !== "success") {
-    throw new Error(`${focused.status}: ${focused.message}`);
+  const focusDeadline = Date.now() + COMPOSER_FOCUS_RETRY_TIMEOUT_MS;
+  let lastFocusMessage = "provider input box was not checked";
+  while (Date.now() < focusDeadline) {
+    try {
+      const focused = await focusComposer(browser, context);
+      lastFocusMessage = `${focused.status}: ${focused.message}`;
+      if (focused.status === "success") break;
+      if (focused.status === "failed") {
+        throw new Error(lastFocusMessage);
+      }
+    } catch (error) {
+      lastFocusMessage = error instanceof Error ? error.message : String(error);
+    }
+    await browser.wait(300);
+  }
+  if (!lastFocusMessage.startsWith("success:")) {
+    throw new Error(`review_required: provider input box not ready for upload; last=${lastFocusMessage}`);
   }
   await waitForComposerFocused(browser, context, 2_000);
   for (let attempt = 1; attempt <= CLIPBOARD_PASTE_RETRY_LIMIT; attempt += 1) {
@@ -49,7 +92,6 @@ const uploadFileViaClipboardPaste = async (
         .then(() => waitForComposerFocused(browser, context, 2_000))
         .then(() => pasteMacClipboardIntoChrome(context.abortSignal)),
     );
-    await browser.wait(1_500);
     try {
       await waitForAttachmentCountAtLeast(browser, context, expectedAttachmentCount, 8_000);
       return;
@@ -75,10 +117,32 @@ const listUploadableRefs = (request: AiFeedInput): UploadableAiFeedInputRef[] =>
 const uploadSingleFileByClipboardPaste = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
   expectedAttachmentCount: number;
 }): Promise<void> => {
+  const startedAtMs = Date.now();
+  emitUploadStage({
+    request: input.request,
+    stage: "upload_file_clipboard_paste",
+    status: "start",
+    startedAtMs: null,
+    refs: {
+      inputRefId: input.ref.id,
+      expectedAttachmentCount: input.expectedAttachmentCount,
+    },
+  });
   await uploadFileViaClipboardPaste(input.browser, input.context, input.ref.filePath, input.expectedAttachmentCount);
+  emitUploadStage({
+    request: input.request,
+    stage: "upload_file_clipboard_paste",
+    status: "success",
+    startedAtMs,
+    refs: {
+      inputRefId: input.ref.id,
+      expectedAttachmentCount: input.expectedAttachmentCount,
+    },
+  });
 };
 
 export const uploadFiles = async (
@@ -89,9 +153,8 @@ export const uploadFiles = async (
   const refs = listUploadableRefs(request);
   if (refs.length > 0) {
     await clearComposer(browser, context);
-    await browser.wait(800);
   }
   for (const [index, ref] of refs.entries()) {
-    await uploadSingleFileByClipboardPaste({ browser, context, ref, expectedAttachmentCount: index + 1 });
+    await uploadSingleFileByClipboardPaste({ browser, context, request, ref, expectedAttachmentCount: index + 1 });
   }
 };

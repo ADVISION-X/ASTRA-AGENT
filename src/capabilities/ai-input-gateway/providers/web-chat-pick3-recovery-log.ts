@@ -11,7 +11,7 @@ import type { AiFeedInput } from "../schema.js";
 
 const HEARTBEAT_MS = 30_000;
 const PICK3_RECOVERY_STAGE = "PICK3_GPT_RATE_LIMIT_RECOVERY" as const;
-const PICK3_RATE_LIMIT_BACKOFF_MS = [600_000, 1_800_000, 3_600_000] as const;
+const PICK3_RATE_LIMIT_BACKOFF_MS = [600_000, 600_000, 600_000] as const;
 const pick3RateLimitAttemptsByMission = new Map<string, number>();
 
 type Pick3RecoveryLogInput = {

@@ -198,7 +198,7 @@ Required direction:
 - Provider proof must record `sourcePageUrlBeforeFeed`.
 - Provider proof must record `providerPageUrl`.
 - The source mission page must be restored after feed completion when a source URL exists.
-- If source restoration fails, the result must be `review_required`.
+- If source restoration fails, the result must be `review_required`, except when an active P0 job-flow law explicitly allows a local non-DOM follow-up flow to keep an already captured raw provider response while recording `restoredSourcePage=false`.
 - Only one web-chat feed may run at a time.
 - Web-chat feed execution must not run concurrently with product-video next-video DOM operations.
 

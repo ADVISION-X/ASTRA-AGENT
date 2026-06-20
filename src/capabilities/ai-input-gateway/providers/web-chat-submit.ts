@@ -4,6 +4,7 @@ import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import {
   pasteTextAndSubmitInChrome,
+  pasteTextReplacingInChrome,
   pressReturnInChrome,
 } from "./web-chat-clipboard.js";
 import {
@@ -21,8 +22,38 @@ import { clearComposer } from "./web-chat-upload-page-actions.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
+const GEMINI_PROMPT_PASTE_VERIFY_TIMEOUT_MS = 5_000;
+const GEMINI_PROMPT_PASTE_RETRY_LIMIT = 3;
 const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
 const SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS = 12_000;
+
+const terminalStageLog = (line: string): void => {
+  process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] ${line}\n`);
+};
+
+const formatStageRefs = (refs: Record<string, string | number | boolean | null | undefined>): string =>
+  Object.entries(refs)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join(" ");
+
+const emitSubmitStage = (
+  input: SubmitPromptViaClipboardInput,
+  stage: string,
+  status: "start" | "success" | "fallback" | "failed",
+  startedAtMs: number | null,
+  refs: Record<string, string | number | boolean | null | undefined> = {},
+): void => {
+  terminalStageLog(formatStageRefs({
+    stage,
+    status,
+    providerKind: input.request.providerKind,
+    promptPackageId: input.request.promptPackageId,
+    promptContractId: input.request.promptContractId,
+    elapsedMs: startedAtMs === null ? undefined : Date.now() - startedAtMs,
+    ...refs,
+  }));
+};
 
 const normalizePromptForSubmission = (promptText: string): string =>
   promptText.replace(/\s+/gu, " ").trim();
@@ -221,22 +252,70 @@ const pastePromptIntoComposer = async (
   },
 ): Promise<void> => {
   await clearComposerBeforePromptPaste(input);
-  await withWebChatStep("paste_prompt_text", () =>
-    pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
-  await waitForPromptReady({
-    browser: input.browser,
-    context: input.context,
-    expectedLength: input.expectedLength,
-    expectedPrefix: input.expectedPrefix,
-    expectedSuffix: input.expectedSuffix,
-    timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
-    step: "verify_prompt_pasted_before_submit",
-  });
+  const pasteStage = input.request.providerKind === "gemini-web-chat"
+    ? "gemini_clipboard_prompt_paste"
+    : "clipboard_prompt_paste";
+  const pasteVerifyTimeoutMs = input.request.providerKind === "gemini-web-chat"
+    ? GEMINI_PROMPT_PASTE_VERIFY_TIMEOUT_MS
+    : PROMPT_PASTE_VERIFY_TIMEOUT_MS;
+  const pasteVerifyStep = input.request.providerKind === "gemini-web-chat"
+    ? "verify_gemini_prompt_pasted_before_submit"
+    : "verify_prompt_pasted_before_submit";
+  const pasteStartedAtMs = Date.now();
+  const pasteRetryLimit = input.request.providerKind === "gemini-web-chat"
+    ? GEMINI_PROMPT_PASTE_RETRY_LIMIT
+    : 1;
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= pasteRetryLimit; attempt += 1) {
+    const attemptStartedAtMs = Date.now();
+    emitSubmitStage(input, pasteStage, "start", null, {
+      attempt,
+      expectedChars: input.expectedLength,
+      timeoutMs: pasteVerifyTimeoutMs,
+    });
+    try {
+      if (attempt > 1 || input.request.providerKind === "gemini-web-chat") {
+        await focusComposerBeforePrompt(input);
+        await withWebChatStep("paste_prompt_text_replace", () =>
+          pasteTextReplacingInChrome(input.request.textPrompt, input.context.abortSignal));
+      } else {
+        await withWebChatStep("paste_prompt_text", () =>
+          pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
+      }
+      await waitForPromptReady({
+        browser: input.browser,
+        context: input.context,
+        expectedLength: input.expectedLength,
+        expectedPrefix: input.expectedPrefix,
+        expectedSuffix: input.expectedSuffix,
+        timeoutMs: pasteVerifyTimeoutMs,
+        step: pasteVerifyStep,
+      });
+      emitSubmitStage(input, pasteStage, "success", pasteStartedAtMs, {
+        attempt,
+        attemptElapsedMs: Date.now() - attemptStartedAtMs,
+        expectedChars: input.expectedLength,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      emitSubmitStage(input, pasteStage, attempt >= pasteRetryLimit ? "failed" : "fallback", attemptStartedAtMs, {
+        attempt,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      if (attempt < pasteRetryLimit) await input.browser.wait(500);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "prompt paste failed"));
 };
 
 const preparePromptComposer = async (
   input: SubmitPromptViaClipboardInput,
 ): Promise<PreparedPromptComposer> => {
+  const prepareStartedAtMs = Date.now();
+  emitSubmitStage(input, "prompt_prepare", "start", null, {
+    inputFileCount: input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length,
+  });
   const normalizedPrompt = normalizePromptForSubmission(input.request.textPrompt);
   const expectedLength = normalizedPrompt.length;
   const expectedPrefix = buildPromptSubmissionExpectedPrefix(normalizedPrompt);
@@ -250,8 +329,15 @@ const preparePromptComposer = async (
     expectedSuffix,
   });
   if (expectedAttachmentCount > 0) {
+    const attachmentStartedAtMs = Date.now();
+    emitSubmitStage(input, "verify_attachments_before_submit", "start", null, {
+      expectedAttachmentCount,
+    });
     await withWebChatStep("verify_attachments_before_submit", () =>
       waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
+    emitSubmitStage(input, "verify_attachments_before_submit", "success", attachmentStartedAtMs, {
+      expectedAttachmentCount,
+    });
   }
   await waitForPromptReady({
     browser: input.browser,
@@ -261,6 +347,10 @@ const preparePromptComposer = async (
     expectedSuffix,
     timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
     step: "verify_prompt_ready_before_submit",
+  });
+  emitSubmitStage(input, "prompt_prepare", "success", prepareStartedAtMs, {
+    expectedChars: expectedLength,
+    expectedAttachmentCount,
   });
   return {
     expectedLength,
@@ -274,7 +364,10 @@ const preparePromptComposer = async (
 const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   preparedPrompt: PreparedPromptComposer;
 }): Promise<void> => {
-  await input.browser.wait(1_000);
+  const submitStartedAtMs = Date.now();
+  emitSubmitStage(input, "prompt_submit", "start", null, {
+    expectedAttachmentCount: input.preparedPrompt.expectedAttachmentCount,
+  });
   await withWebChatStep("press_return_after_prompt_paste", () =>
     pressReturnInChrome(input.context.abortSignal));
   const submittedAfterReturn = await waitForPromptSubmitted({
@@ -291,6 +384,9 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
       context: input.context,
       expectedCount: input.preparedPrompt.expectedAttachmentCount,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
+    });
+    emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
+      method: "return",
     });
     return;
   }
@@ -315,8 +411,14 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
       expectedCount: input.preparedPrompt.expectedAttachmentCount,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
     });
+    emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
+      method: "send_button",
+    });
     return;
   }
+  emitSubmitStage(input, "prompt_submit", "failed", submitStartedAtMs, {
+    reason: "not_submitted",
+  });
   throw new Error("review_required: provider prompt was not submitted after return and send click.");
 };
 

@@ -20,6 +20,29 @@ const composer = resolveComposerInput();
 return {status: composer ? "success" : "pending", message: composer ? "provider composer ready" : "provider composer pending", pageUrl: location.href};
 `;
 
+const emitWebChatOpenStage = (input: {
+  request: AiFeedInput;
+  stage: string;
+  status: string;
+  startedAtMs: number | null;
+  refs?: Record<string, unknown>;
+}): void => {
+  if (!isPick3WebChatRequest({ request: input.request })) return;
+  process.stdout.write(`${JSON.stringify({
+    ts: new Date().toISOString(),
+    marker: "[GRASSEYE][AI-GATEWAY][WEB-CHAT]",
+    providerKind: input.request.providerKind,
+    stage: input.stage,
+    status: input.status,
+    ...(input.startedAtMs === null ? {} : { elapsedMs: Date.now() - input.startedAtMs }),
+    refs: {
+      promptPackageId: input.request.promptPackageId,
+      inputRefId: input.request.inputRefs[0]?.id ?? null,
+      ...input.refs,
+    },
+  })}\n`);
+};
+
 const CHATGPT_NEW_CHAT_SCRIPT = `
 const candidates = Array.from(document.querySelectorAll("a,button"));
 const target = candidates.find((element) => {
@@ -54,11 +77,28 @@ export const isPick3GptRequest = (input: {
   new URL(input.providerUrl).host === "chatgpt.com"
   && input.request.promptContractId.includes("pick3-is-blind-eval");
 
+export const isPick3GeminiRequest = (input: {
+  providerUrl: string;
+  request: AiFeedInput;
+}): boolean =>
+  new URL(input.providerUrl).host === "gemini.google.com"
+  && input.request.providerKind === "gemini-web-chat"
+  && input.request.promptContractId.includes("pick3-is-blind-eval");
+
+export const isPick3WebChatRequest = (input: {
+  request: AiFeedInput;
+}): boolean =>
+  (input.request.providerKind === "gpt-web-chat" || input.request.providerKind === "gemini-web-chat")
+  && input.request.promptContractId.includes("pick3-is-blind-eval");
+
 const requiresFreshChatGptConversation = (input: {
   providerUrl: string;
   request: AiFeedInput;
 }): boolean =>
-  isDeepResearchGptRequest(input) || isAmazonProductMiningGptRequest(input) || isPick3GptRequest(input);
+  isDeepResearchGptRequest(input)
+  || isAmazonProductMiningGptRequest(input)
+  || isPick3GptRequest(input)
+  || isPick3GeminiRequest(input);
 
 const resolveProviderReusePolicy = (input: {
   providerUrl: string;
@@ -71,28 +111,66 @@ const resolveProviderReusePolicy = (input: {
       ? "open-new-tab"
       : "reuse-exact-url";
 
-const waitForProviderComposer = async (
-  browser: BrowserController,
-  abortSignal?: AbortSignal,
-): Promise<void> => {
+const waitForProviderComposer = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  abortSignal?: AbortSignal;
+}): Promise<void> => {
+  const startedAtMs = Date.now();
   const deadline = Date.now() + PROVIDER_COMPOSER_READY_TIMEOUT_MS;
   let lastMessage = "provider composer readiness was not checked";
+  emitWebChatOpenStage({
+    request: input.request,
+    stage: "provider_composer_ready",
+    status: "start",
+    startedAtMs: null,
+    refs: { timeoutMs: PROVIDER_COMPOSER_READY_TIMEOUT_MS },
+  });
   while (Date.now() < deadline) {
-    if (abortSignal?.aborted) {
+    if (input.abortSignal?.aborted) {
       throw new Error("review_required: provider composer wait aborted.");
     }
-    const state = await browser.evaluateActiveTab<WebChatEvaluation>({
-      description: "wait for provider web chat composer",
-      script: PROVIDER_COMPOSER_READY_SCRIPT,
-      ...(abortSignal ? { abortSignal } : {}),
-    });
+    let state: WebChatEvaluation | null = null;
+    try {
+      state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+        description: "wait for provider web chat composer",
+        script: PROVIDER_COMPOSER_READY_SCRIPT,
+        ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+      });
+    } catch (error) {
+      lastMessage = error instanceof Error ? error.message : String(error);
+      emitWebChatOpenStage({
+        request: input.request,
+        stage: "provider_composer_ready_probe",
+        status: "fallback",
+        startedAtMs,
+        refs: { reason: lastMessage },
+      });
+      await input.browser.wait(1_000);
+      continue;
+    }
     lastMessage = `${state.status}: ${state.message}; pageUrl=${state.pageUrl ?? "unknown"}`;
-    if (state.status === "success") return;
+    if (state.status === "success") {
+      emitWebChatOpenStage({
+        request: input.request,
+        stage: "provider_composer_ready",
+        status: "success",
+        startedAtMs,
+      });
+      return;
+    }
     if (state.status === "review_required" || state.status === "failed") {
       throw new Error(`${state.status}: ${state.message}`);
     }
-    await browser.wait(300);
+    await input.browser.wait(300);
   }
+  emitWebChatOpenStage({
+    request: input.request,
+    stage: "provider_composer_ready",
+    status: "failed",
+    startedAtMs,
+    refs: { reason: lastMessage },
+  });
   throw new Error(`review_required: provider composer did not become ready; last=${lastMessage}`);
 };
 
@@ -103,6 +181,20 @@ const startFreshChatGptConversation = async (input: {
   providerUrl: string;
 }): Promise<void> => {
   if (!requiresFreshChatGptConversation(input)) return;
+  if (isPick3GeminiRequest(input)) {
+    const opened = await input.browser.open({
+      url: input.providerUrl,
+      title: "gemini-web-chat:pick3-is-blind-eval:fresh",
+      reusePolicy: "reuse-active-tab",
+    });
+    assertProviderPageOpened(opened);
+    await waitForProviderComposer({
+      browser: input.browser,
+      request: input.request,
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+    return;
+  }
   const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
     description: "click ChatGPT new chat before isolated GPT prompt",
     script: CHATGPT_NEW_CHAT_SCRIPT,
@@ -112,19 +204,27 @@ const startFreshChatGptConversation = async (input: {
     throw new Error(`${state.status}: ${state.message}`);
   }
   await input.browser.wait(1_000);
-  await waitForProviderComposer(input.browser, input.context.abortSignal);
+  await waitForProviderComposer({
+    browser: input.browser,
+    request: input.request,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
 };
 
 const readActiveProviderUrl = async (
   browser: BrowserController,
   abortSignal?: AbortSignal,
 ): Promise<string | null> => {
-  const state = await browser.evaluateActiveTab<{ pageUrl: string | null }>({
-    description: "read active provider workspace URL",
-    script: "return {pageUrl: location.href};",
-    ...(abortSignal ? { abortSignal } : {}),
-  });
-  return state.pageUrl;
+  try {
+    const state = await browser.evaluateActiveTab<{ pageUrl: string | null }>({
+      description: "read active provider workspace URL",
+      script: "return {pageUrl: location.href};",
+      ...(abortSignal ? { abortSignal } : {}),
+    });
+    return state.pageUrl;
+  } catch {
+    return browser.getSessionState().currentUrl || null;
+  }
 };
 
 const resolveWorkspaceState = (input: {
@@ -228,7 +328,11 @@ export const openProviderPage = async (input: {
     reusePolicy,
   });
   assertProviderPageOpened(opened);
-  await waitForProviderComposer(input.browser, input.context.abortSignal);
+  await waitForProviderComposer({
+    browser: input.browser,
+    request: input.request,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
   await startFreshChatGptConversation({
     browser: input.browser,
     context: input.context,

@@ -1,16 +1,28 @@
-# IS Blind Eval System Playbook
+# IS Blind Eval System Playbook — Phase 1
 
-Mission: judge one blind time-series chart and decide whether the next hidden value falls below (`lower`) or above (`upper`) the 4.5 midline, or `abstain` if the tail shape is unreadable.
+Mission: analyze one blind time-series chart and determine whether the next hidden value falls below (`lower`) or above (`upper`) the red dashed horizontal midline. Every prediction must be derived from named visual evidence. Analysis is mandatory. Guessing is forbidden.
 
-This is a pure visual pattern recognition task on a line chart. The data source is irrelevant. Treat it as an anonymous numeric time series ranging from 0 to 9 with a fixed midline at 4.5.
+This is a pure visual pattern recognition task on a line chart. The data source is irrelevant. Treat it as an anonymous numeric time series ranging from 0 to 9 with a fixed red dashed horizontal line marking the midline. The chart has no axis labels — judge position purely by whether a point sits above or below this red dashed line, not by estimating a numeric distance from it.
 
 Hard boundaries:
 
 - The image window is `L=80` (`L80`).
-- Read only the chart shape: line, dots, and the 4.5 midline.
+- Read only the chart shape: line, dots, and the red dashed horizontal midline.
 - Do not infer from file name, image id, sequence number, date, value frequency, recency bias, or any external context.
 - Do not predict a concrete value or reason from numeric distribution.
-- Confidence is subjective visual clarity, not statistical probability.
-- Use `abstain` when the tail is noisy, contradictory, or not visually actionable.
+- Confidence reflects the strength of your visual evidence, not statistical probability.
+- Every prediction of `lower` or `upper` must be grounded in at least one named shape word from the grammar vocabulary. A prediction without named evidence is invalid.
+- Ambiguity alone is not sufficient reason to abstain.
+- Use `abstain` only when your analysis identifies strong lower evidence AND strong upper evidence of equal weight that directly cancel each other out. `abstain` is an analysis conclusion, not a retreat from analysis.
+- Weak evidence is not a reason to abstain. Weak evidence produces a low-confidence prediction (0.51), not abstain.
+
+Evidence requirement:
+
+- `tailShapes`: list every named grammar motion/shape word you observe in the last 3–8 tail points. Minimum 1 item. A response without tailShapes is invalid. Words must come from the visual-grammar vocabulary only — informal descriptors (climb, ascending, drop, descend, or any word not in the grammar list) are invalid and will cause parse failure.
+- `zoneWeight`: one of `"lower_weighted"`, `"upper_weighted"`, or `"balanced"` — your assessment of where the full L80 window spends more time relative to the red dashed horizontal midline.
+- `drivingEvidence`: one sentence naming the specific shape that determined your direction conclusion.
+- `discountedEvidence`: one sentence naming any opposing signal you noticed but chose not to let override your conclusion. Use null if you observed no opposing signal. Do not use an empty string. Contrarian override rule: if your position playbook instructs you to treat a signal opposite to the standard grammar (e.g., Stream B treating `shoulder_hold` as lower evidence), the standard grammar interpretation you are overriding IS your discounted evidence — `discountedEvidence` must NOT be null in this case.
+- `reason`: the full analytical chain. Do not write one sentence. Write: which shapes you named, the zone weight, and how they together produced your conclusion.
+- If `abstain`: `abstainReason` must name both the lower evidence and the upper evidence that conflict, and explain why neither outweighs the other.
 
 Output JSON only. Follow the final output contract supplied at the end of the prompt.

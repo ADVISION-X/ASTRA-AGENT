@@ -58,6 +58,22 @@ export const pasteTextAndSubmitInChrome = async (
   await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
+export const pasteTextReplacingInChrome = async (
+  prompt: string,
+  abortSignal?: AbortSignal,
+): Promise<void> => {
+  await copyTextToMacClipboard(prompt, abortSignal);
+  const script = [
+    'tell application "Google Chrome" to activate',
+    'tell application "System Events"',
+    '  keystroke "a" using command down',
+    "  delay 0.2",
+    '  keystroke "v" using command down',
+    "end tell",
+  ].join("\n");
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
+};
+
 export const pressReturnInChrome = async (
   abortSignal?: AbortSignal,
 ): Promise<void> => {

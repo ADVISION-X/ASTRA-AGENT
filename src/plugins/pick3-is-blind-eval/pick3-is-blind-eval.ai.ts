@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -7,73 +7,39 @@ const terminalLog = (line: string): void => {
 };
 
 import type { AiFeedInput, AiFeedResult } from "../../capabilities/ai-input-gateway/index.js";
+import { parsePick3Prediction, type ParsedPick3Prediction } from "./pick3-is-blind-eval.ai-parse.js";
 import type { Pick3PlaybookPromptPackage } from "./pick3-is-blind-eval.playbook.js";
+import { hashText, pick3PromptContractMetadata, publicPromptPackageId, renderPick3PredictionPrompt } from "./pick3-is-blind-eval.ai-contract.js";
 import type {
   Pick3AiInteractionRecord,
+  Pick3AiProviderKind,
   Pick3ImageRecord,
-  Pick3PredictionLabel,
   Pick3PredictionRecord,
 } from "./pick3-is-blind-eval.schema.js";
 
 export type Pick3GatewaySender = (input: AiFeedInput) => Promise<AiFeedResult>;
 
-type ParsedPrediction = {
-  imageId: string;
-  promptPackageId: string;
-  predictionLabel: Pick3PredictionLabel;
-  confidence: number | null;
-  abstainReason: string | null;
-  reason: string | null;
-};
-
-type AiVisiblePredictionLabel = "lower" | "upper" | "abstain";
-
 export type Pick3PromptExchangeResult = {
   gatewayInputs: AiFeedInput[];
   interactions: Pick3AiInteractionRecord[];
   predictions: Pick3PredictionRecord[];
+  completion: {
+    expectedCount: number;
+    completedCount: number;
+    deferredRetryCount: number;
+    unresolvedCount: number;
+  };
 };
-
-const promptContractId = "pick3-is-blind-eval-one-image-v1" as const;
-const expectedOutputSchemaRef = "pick3-is-blind-eval-prediction-json-v1" as const;
-
-const hashText = (value: string): string => createHash("sha256").update(value).digest("hex");
-
-const publicPromptPackageId = (promptPackage: Pick3PlaybookPromptPackage): string =>
-  `blind_series_package_${hashText(`${promptPackage.imageRef.imageId}:${promptPackage.playbookVersionId}`).slice(0, 16)}`;
-
-const renderPick3PredictionPrompt = (promptPackage: Pick3PlaybookPromptPackage): string => [
-  promptPackage.systemPrompt,
-  promptPackage.businessPrompt,
-  "Final output contract:",
-  "Return JSON only. Do not return only `lower`, `upper`, or `abstain`. Do not wrap the JSON in markdown. Do not add commentary before or after the JSON.",
-  "Identity binding:",
-  JSON.stringify({
-    imageId: promptPackage.imageRef.imageId,
-    promptPackageId: publicPromptPackageId(promptPackage),
-  }, null, 2),
-  "You must copy imageId and promptPackageId exactly into the output JSON. If either value is missing or changed, the answer is invalid.",
-  "Return exactly this JSON object shape, with your chosen values:",
-  JSON.stringify({
-    imageId: promptPackage.imageRef.imageId,
-    promptPackageId: publicPromptPackageId(promptPackage),
-    predictionLabel: "lower | upper | abstain",
-    confidence: "number or null",
-    reason: "one sentence about visible shape only",
-    abstainReason: "string or null",
-  }, null, 2),
-  "Final reminder: output must start with `{` and end with `}`. Do not include markdown fences, file paths, target phase, date, answer digit, or action instructions.",
-].join("\n\n");
 
 export const buildPick3AiGatewayInput = (input: {
   batchId: string;
   image: Pick3ImageRecord;
   promptPackage: Pick3PlaybookPromptPackage;
+  providerKind: Pick3AiProviderKind;
 }): AiFeedInput => ({
-  providerKind: "gpt-web-chat",
+  providerKind: input.providerKind,
   promptPackageId: `pick3:${input.batchId}:${input.image.imageId}:${input.promptPackage.playbookVersionId}`,
-  promptContractId,
-  expectedOutputSchemaRef,
+  ...pick3PromptContractMetadata(input.promptPackage),
   textPrompt: renderPick3PredictionPrompt(input.promptPackage),
   inputRefs: [{
     id: input.image.imageId,
@@ -94,55 +60,6 @@ export const buildPick3AiGatewayInput = (input: {
   roundId: input.image.position,
 });
 
-const parsePrediction = (input: {
-  expectedImageId: string;
-  expectedPromptPackageId: string;
-  rawText: string;
-}): { parsed: ParsedPrediction | null; reason: string | null } => {
-  try {
-    const parsed = JSON.parse(input.rawText) as Partial<Omit<ParsedPrediction, "predictionLabel"> & {
-      predictionLabel: AiVisiblePredictionLabel;
-    }>;
-    if (parsed.imageId !== input.expectedImageId) {
-      return { parsed: null, reason: "pick3_prediction_image_id_mismatch" };
-    }
-    if (parsed.promptPackageId !== input.expectedPromptPackageId) {
-      return { parsed: null, reason: "pick3_prediction_prompt_package_id_mismatch" };
-    }
-    if (parsed.predictionLabel !== "lower" && parsed.predictionLabel !== "upper" && parsed.predictionLabel !== "abstain") {
-      return { parsed: null, reason: "pick3_prediction_label_invalid" };
-    }
-    if (parsed.predictionLabel === "abstain") {
-      return {
-        parsed: {
-          imageId: parsed.imageId,
-          promptPackageId: parsed.promptPackageId,
-          predictionLabel: "abstain",
-          confidence: null,
-          abstainReason: parsed.abstainReason ?? "shape_unclear",
-          reason: parsed.reason ?? null,
-        },
-        reason: null,
-      };
-    }
-    if (typeof parsed.confidence !== "number" || parsed.confidence < 0 || parsed.confidence > 1) {
-      return { parsed: null, reason: "pick3_prediction_confidence_invalid" };
-    }
-    return {
-      parsed: {
-        imageId: parsed.imageId,
-        promptPackageId: parsed.promptPackageId,
-        predictionLabel: parsed.predictionLabel === "lower" ? "front" : "back",
-        confidence: parsed.confidence,
-        abstainReason: null,
-        reason: parsed.reason ?? null,
-      },
-      reason: null,
-    };
-  } catch {
-    return { parsed: null, reason: "pick3_prediction_json_invalid" };
-  }
-};
 
 const ensureRawOutputRef = (input: {
   artifactDir: string;
@@ -164,11 +81,12 @@ const buildInteraction = (input: {
   gatewayResult: AiFeedResult;
   image: Pick3ImageRecord;
   promptPackage: Pick3PlaybookPromptPackage;
-}): { interaction: Pick3AiInteractionRecord; parsed: ParsedPrediction | null } => {
+}): { interaction: Pick3AiInteractionRecord; parsed: ParsedPick3Prediction | null } => {
   const normalizedText = input.gatewayResult.normalizedText ?? "";
-  const parsed = parsePrediction({
+  const parsed = parsePick3Prediction({
     expectedImageId: input.image.imageId,
     expectedPromptPackageId: publicPromptPackageId(input.promptPackage),
+    promptMode: input.promptPackage.promptMode,
     rawText: normalizedText,
   });
   const parseFailureReason = parsed.reason
@@ -192,8 +110,8 @@ const buildInteraction = (input: {
       promptPackageId: input.gatewayInput.promptPackageId,
       promptContractId: input.gatewayInput.promptContractId,
       playbookVersionId: input.promptPackage.playbookVersionId,
-      providerKind: "gpt-web-chat",
-      modelId: input.gatewayResult.providerProof.modelName ?? "gpt-web-chat-manual",
+      providerKind: input.gatewayInput.providerKind as Pick3AiProviderKind,
+      modelId: input.gatewayResult.providerProof.modelName ?? `${input.gatewayResult.providerProof.providerKind}-manual`,
       temperature: 0,
       imageDetail: "high",
       promptHash: input.promptPackage.rawPromptHash,
@@ -212,7 +130,7 @@ const buildInteraction = (input: {
 
 const buildPrediction = (input: {
   interaction: Pick3AiInteractionRecord;
-  parsed: ParsedPrediction;
+  parsed: ParsedPick3Prediction;
   promptPackage: Pick3PlaybookPromptPackage;
 }): Pick3PredictionRecord => ({
   predictionId: `pick3_prediction_${randomUUID()}`,
@@ -235,18 +153,29 @@ const buildPrediction = (input: {
   predictionLabel: input.parsed.predictionLabel,
   confidence: input.parsed.confidence,
   confidenceIsProbability: false,
+  tailShapes: input.parsed.tailShapes,
+  zoneWeight: input.parsed.zoneWeight,
+  drivingEvidence: input.parsed.drivingEvidence,
+  discountedEvidence: input.parsed.discountedEvidence,
   abstainReason: input.parsed.abstainReason,
   reason: input.parsed.reason,
   predictedAt: input.interaction.createdAt,
   sealedBeforeReveal: true,
 });
 
+const RECOVERABLE_PARSE_FAILURE_REASONS = new Set<string>([
+  "pick3_prediction_label_invalid",
+  "pick3_provider_reported_image_missing",
+]);
+
+const PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS = 3;
+
 const gatewayInputForAttempt = (input: {
   gatewayInput: AiFeedInput;
   attempt: number;
 }): AiFeedInput => input.attempt === 0
   ? input.gatewayInput
-  : { ...input.gatewayInput, roundId: `${input.gatewayInput.roundId ?? "round"}:empty-retry-${input.attempt}` };
+  : { ...input.gatewayInput, roundId: `${input.gatewayInput.roundId ?? "round"}:retry-${input.attempt}` };
 
 const logPick3SendResult = (input: {
   result: AiFeedResult;
@@ -280,73 +209,171 @@ const pick3CleanupFailureStatus = (result: AiFeedResult): string | null => {
   return typeof status === "string" && /failed_[1-9]/.test(status) ? status : null;
 };
 
-const sendWithEmptyOutputRetry = async (input: {
+const recoverableRetryReason = (input: {
+  result: AiFeedResult;
+  interaction: Pick3AiInteractionRecord;
+}): string | null => {
+  if (pick3CleanupFailureStatus(input.result)) return null;
+  if (input.result.reviewRequiredReason?.includes("pre-image history cleanup failed")) return null;
+  const rawLen = (input.result.normalizedText ?? "").trim().length;
+  if (rawLen === 0) return "empty_raw_output";
+  const parseFailureReason = input.interaction.parseFailureReason;
+  return parseFailureReason && RECOVERABLE_PARSE_FAILURE_REASONS.has(parseFailureReason)
+    ? parseFailureReason
+    : null;
+};
+
+const sendWithRecoverableOutputRetry = async (input: {
+  artifactDir: string;
   sender: Pick3GatewaySender;
   gatewayInput: AiFeedInput;
+  image: Pick3ImageRecord;
+  promptPackage: Pick3PlaybookPromptPackage;
   imageId: string;
   position: string;
   seqLabel: string;
-}): Promise<AiFeedResult> => {
-  let lastResult: AiFeedResult | null = null;
+}): Promise<{ gatewayResult: AiFeedResult; result: { interaction: Pick3AiInteractionRecord; parsed: ParsedPick3Prediction | null } }> => {
+  let retryReason: string | null = null;
+  let last: { gatewayResult: AiFeedResult; result: { interaction: Pick3AiInteractionRecord; parsed: ParsedPick3Prediction | null } } | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (attempt > 0) {
-      terminalLog(`[${input.seqLabel}] retry_started imageId=${input.imageId} position=${input.position} attempt=${attempt + 1} reason=empty_raw_output`);
+      terminalLog(`[${input.seqLabel}] retry_started imageId=${input.imageId} position=${input.position} attempt=${attempt + 1} reason=${retryReason ?? "recoverable_output_contract_violation"}`);
     }
-    const result = await input.sender(gatewayInputForAttempt({ gatewayInput: input.gatewayInput, attempt }));
-    lastResult = result;
-    const rawLen = logPick3SendResult({ ...input, result, attempt });
-    if (result.status === "success" && rawLen > 0) {
-      return result;
-    }
+    const gatewayInput = gatewayInputForAttempt({ gatewayInput: input.gatewayInput, attempt });
+    const gatewayResult = await input.sender(gatewayInput);
+    const rawLen = logPick3SendResult({ ...input, result: gatewayResult, attempt });
+    const result = buildInteraction({
+      artifactDir: input.artifactDir,
+      gatewayInput: input.gatewayInput,
+      gatewayResult,
+      image: input.image,
+      promptPackage: input.promptPackage,
+    });
+    last = { gatewayResult, result };
+    if (result.parsed) return last;
     if (rawLen === 0) {
-      logPick3EmptyOutput({ ...input, result, attempt });
+      logPick3EmptyOutput({ ...input, result: gatewayResult, attempt });
     }
+    retryReason = recoverableRetryReason({ result: gatewayResult, interaction: result.interaction });
+    if (!retryReason || attempt === 1) return last;
   }
-  if (!lastResult) throw new Error("pick3_prompt_exchange_gateway_result_missing");
-  return lastResult;
+  if (!last) throw new Error("pick3_prompt_exchange_gateway_result_missing");
+  return last;
 };
 
-export const runPick3PromptExchange = async (input: {
+type Pick3PromptExchangeInput = {
   artifactDir: string;
   images: readonly Pick3ImageRecord[];
+  maxCompletionRounds?: number;
   promptPackages: readonly Pick3PlaybookPromptPackage[];
+  providerKind?: Pick3AiProviderKind;
+  repeatCount?: number;
   sender: Pick3GatewaySender;
-}): Promise<Pick3PromptExchangeResult> => {
+};
+
+type Pick3PromptExchangeWorkItem = {
+  completionRound: number;
+  gatewayInput: AiFeedInput;
+  image: Pick3ImageRecord;
+  promptPackage: Pick3PlaybookPromptPackage;
+  repeatIndex: number;
+  sequence: number;
+};
+
+const buildPromptExchangeQueue = (input: Pick3PromptExchangeInput, repeatCount: number): Pick3PromptExchangeWorkItem[] => {
   const packageByImage = new Map(input.promptPackages.map((promptPackage) => [promptPackage.imageRef.imageId, promptPackage]));
+  const queue: Pick3PromptExchangeWorkItem[] = [];
+  for (const image of input.images) {
+    const promptPackage = packageByImage.get(image.imageId);
+    if (!promptPackage) throw new Error("pick3_prompt_exchange_package_missing");
+    for (let repeatIndex = 1; repeatIndex <= repeatCount; repeatIndex += 1) {
+      const sequence = queue.length + 1;
+      const gatewayInput = buildPick3AiGatewayInput({
+        batchId: image.batchId,
+        image,
+        promptPackage,
+        providerKind: input.providerKind ?? "gpt-web-chat",
+      });
+      const sentGatewayInput = repeatIndex === 1 ? gatewayInput : { ...gatewayInput, roundId: `${gatewayInput.roundId ?? image.position}:repeat-${repeatIndex}` };
+      queue.push({ completionRound: 0, gatewayInput: sentGatewayInput, image, promptPackage, repeatIndex, sequence });
+    }
+  }
+  return queue;
+};
+
+const gatewayInputForCompletionRound = (item: Pick3PromptExchangeWorkItem): AiFeedInput => item.completionRound === 0
+  ? item.gatewayInput
+  : { ...item.gatewayInput, roundId: `${item.gatewayInput.roundId ?? item.image.position}:completion-${item.completionRound}` };
+
+const runPromptExchangeWorkItem = async (input: {
+  artifactDir: string;
+  item: Pick3PromptExchangeWorkItem;
+  sender: Pick3GatewaySender;
+  total: number;
+}): Promise<{
+  gatewayInput: AiFeedInput;
+  gatewayResult: AiFeedResult;
+  result: { interaction: Pick3AiInteractionRecord; parsed: ParsedPick3Prediction | null };
+}> => {
+  const item = input.item;
+  const seqLabel = `${item.sequence}/${input.total}`;
+  const gatewayInput = gatewayInputForCompletionRound(item);
+  terminalLog(`[${seqLabel}] send_started imageId=${item.image.imageId} position=${item.image.position} targetPhase=${item.image.targetPhase} repeatIndex=${item.repeatIndex} completionRound=${item.completionRound} promptPackageId=${gatewayInput.promptPackageId}`);
+  const exchangeAttempt = await sendWithRecoverableOutputRetry({
+    artifactDir: input.artifactDir,
+    sender: input.sender,
+    gatewayInput,
+    image: item.image,
+    promptPackage: item.promptPackage,
+    imageId: item.image.imageId,
+    position: item.image.position,
+    seqLabel,
+  });
+  const cleanupFailureStatus = pick3CleanupFailureStatus(exchangeAttempt.gatewayResult);
+  const rawLen = exchangeAttempt.result.interaction.rawResponseText.length;
+  terminalLog(`[${seqLabel}] parse_result imageId=${item.image.imageId} position=${item.image.position} repeatIndex=${item.repeatIndex} completionRound=${item.completionRound} parseStatus=${exchangeAttempt.result.interaction.parseStatus} parseFailureReason=${exchangeAttempt.result.interaction.parseFailureReason ?? "none"} rawLen=${rawLen} predictionLabel=${exchangeAttempt.result.parsed?.predictionLabel ?? "none"} confidence=${exchangeAttempt.result.parsed?.confidence ?? "none"} cleanupStatus=${cleanupFailureStatus ?? "none"}`);
+  return { gatewayInput, gatewayResult: exchangeAttempt.gatewayResult, result: exchangeAttempt.result };
+};
+
+export const runPick3PromptExchange = async (input: Pick3PromptExchangeInput): Promise<Pick3PromptExchangeResult> => {
   const gatewayInputs: AiFeedInput[] = [];
   const interactions: Pick3AiInteractionRecord[] = [];
   const predictions: Pick3PredictionRecord[] = [];
-  const total = input.images.length;
-  for (let idx = 0; idx < total; idx += 1) {
-    const image = input.images[idx]!;
-    const seqLabel = `${idx + 1}/${total}`;
-    const promptPackage = packageByImage.get(image.imageId);
-    if (!promptPackage) throw new Error("pick3_prompt_exchange_package_missing");
-    const gatewayInput = buildPick3AiGatewayInput({ batchId: image.batchId, image, promptPackage });
-    terminalLog(`[${seqLabel}] send_started imageId=${image.imageId} position=${image.position} targetPhase=${image.targetPhase} promptPackageId=${gatewayInput.promptPackageId}`);
-    const gatewayResult = await sendWithEmptyOutputRetry({
-      sender: input.sender,
-      gatewayInput,
-      imageId: image.imageId,
-      position: image.position,
-      seqLabel,
-    });
-    const result = buildInteraction({ artifactDir: input.artifactDir, gatewayInput, gatewayResult, image, promptPackage });
-    const cleanupFailureStatus = pick3CleanupFailureStatus(gatewayResult);
-    if (cleanupFailureStatus) {
-      result.interaction.parseStatus = "parse_failed_raw_available";
-      result.interaction.parseFailureReason = `pick3_provider_cleanup_failed_${cleanupFailureStatus}`;
-    }
-    const rawLen = result.interaction.rawResponseText.length;
-    terminalLog(`[${seqLabel}] parse_result imageId=${image.imageId} position=${image.position} parseStatus=${result.interaction.parseStatus} parseFailureReason=${result.interaction.parseFailureReason ?? "none"} rawLen=${rawLen} predictionLabel=${result.parsed?.predictionLabel ?? "none"} confidence=${result.parsed?.confidence ?? "none"}`);
-    gatewayInputs.push(gatewayInput);
-    interactions.push(result.interaction);
-    if (cleanupFailureStatus) {
-      return { gatewayInputs, interactions, predictions };
-    }
-    if (result.parsed) {
-      predictions.push(buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage }));
+  const repeatCount = input.repeatCount ?? 1;
+  const total = input.images.length * repeatCount;
+  const maxCompletionRounds = input.maxCompletionRounds ?? PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS;
+  let deferredRetryCount = 0;
+  let queue = buildPromptExchangeQueue(input, repeatCount);
+  while (queue.length > 0) {
+    const currentQueue = queue;
+    queue = [];
+    for (const item of currentQueue) {
+      const seqLabel = `${item.sequence}/${total}`;
+      const { gatewayInput, result } = await runPromptExchangeWorkItem({ artifactDir: input.artifactDir, item, sender: input.sender, total });
+      gatewayInputs.push(gatewayInput);
+      if (result.parsed) {
+        interactions.push(result.interaction);
+        predictions.push(buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage: item.promptPackage }));
+        continue;
+      }
+      if (item.completionRound < maxCompletionRounds) {
+        deferredRetryCount += 1;
+        terminalLog(`[${seqLabel}] deferred_retry_scheduled imageId=${item.image.imageId} position=${item.image.position} repeatIndex=${item.repeatIndex} nextCompletionRound=${item.completionRound + 1} reason=${result.interaction.parseFailureReason ?? "parse_failed_raw_available"}`);
+        queue.push({ ...item, completionRound: item.completionRound + 1 });
+        continue;
+      }
+      interactions.push(result.interaction);
     }
   }
-  return { gatewayInputs, interactions, predictions };
+  return {
+    gatewayInputs,
+    interactions,
+    predictions,
+    completion: {
+      expectedCount: total,
+      completedCount: predictions.length,
+      deferredRetryCount,
+      unresolvedCount: total - predictions.length,
+    },
+  };
 };

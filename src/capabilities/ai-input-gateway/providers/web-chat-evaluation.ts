@@ -42,6 +42,9 @@ const expectedCount = ${JSON.stringify(expectedCount)};
 const countBoundAttachments = (root) => {
   if (!root || typeof root.querySelectorAll !== "function") return 0;
   const selectors = [
+    "gem-media-attachment",
+    "uploader-file-preview",
+    "user-query-file-carousel",
     "img",
     "picture",
     "canvas",
@@ -67,10 +70,33 @@ const countBoundAttachments = (root) => {
   }
   return count;
 };
-const userMessages = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
+const countGeminiBoundAttachments = (messageNode) => {
+  if (!(messageNode instanceof HTMLElement)) return 0;
+  const roots = [messageNode];
+  let cursor = messageNode.parentElement;
+  for (let depth = 0; depth < 6 && cursor; depth += 1) {
+    roots.push(cursor);
+    const tagName = cursor.tagName.toLowerCase();
+    const className = String(cursor.className || "").toLowerCase();
+    if (tagName === "user-query" || className.includes("user-query")) break;
+    if (tagName === "main" || cursor.getAttribute("role") === "main") break;
+    cursor = cursor.parentElement;
+  }
+  for (const sibling of [messageNode.previousElementSibling, messageNode.nextElementSibling]) {
+    if (sibling instanceof HTMLElement) roots.push(sibling);
+  }
+  return Math.max(...roots.map((root) => countBoundAttachments(root)));
+};
+const chatGptUserMessages = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
   .filter((node) => node instanceof HTMLElement && isVisible(node));
+const geminiUserMessages = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node))
+  .filter((node) => clip(node.innerText || node.textContent || "").length > 0 || countGeminiBoundAttachments(node) > 0);
+const userMessages = chatGptUserMessages.length > 0 ? chatGptUserMessages : geminiUserMessages;
 const lastUserMessage = userMessages[userMessages.length - 1] || null;
-const boundAttachmentCount = countBoundAttachments(lastUserMessage);
+const boundAttachmentCount = chatGptUserMessages.length > 0
+  ? countBoundAttachments(lastUserMessage)
+  : countGeminiBoundAttachments(lastUserMessage);
 const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
 if (boundAttachmentCount >= expectedCount) {
   return {status: "success", message: "provider last submitted user message contains bound image attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
@@ -188,13 +214,15 @@ const promptStillInComposer = expectedPrefix.length > 0 && actual.includes(expec
 ${CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT}
 const composerClearedAfterVerifiedPaste = ${JSON.stringify(wasPromptVerifiedBeforeSubmit)}
   && !promptStillInComposer
-  && !pastedTextCardReady;
-if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generating || composerClearedAfterVerifiedPaste) {
+  && !pastedTextCardReady
+  && !location.hostname.includes("gemini.google.com");
+const generationStartedAfterSubmit = generating && !promptStillInComposer && !pastedTextCardReady;
+if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generationStartedAfterSubmit || composerClearedAfterVerifiedPaste) {
   return {
     status: "success",
     message: assistantCount > ${JSON.stringify(previousAssistantCount)}
       ? "provider assistant count increased after submit"
-      : generating
+      : generationStartedAfterSubmit
         ? "provider started generating after submit"
         : "provider composer cleared after verified submit",
     pageUrl: location.href,
@@ -225,23 +253,6 @@ return {
 
 export const EXTRACT_LAST_RESPONSE_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const rateLimitDialog = Array.from(document.querySelectorAll('[role="dialog"], [data-radix-portal], body'))
-  .filter((node) => isVisible(node))
-  .find((node) => {
-    const text = clip(node.textContent || "");
-    return (text.includes("请求过于频繁") && text.includes("请稍等"))
-      || /too many requests|request too frequent|try again later|temporarily limited/i.test(text);
-  });
-if (rateLimitDialog) {
-  return {
-    status: "review_required",
-    message: "provider_rate_limited_too_many_requests",
-    answerText: null,
-    pageUrl: location.href,
-    generating: false,
-    assistantCount: 0,
-  };
-}
 const extractNodeText = (node) => {
   if (!(node instanceof HTMLElement)) return clip(node?.textContent || "");
   return clip(node.innerText || node.textContent || "");
@@ -280,6 +291,73 @@ const dedupeCandidates = (candidates) => {
     return true;
   });
 };
+const extractLastJsonObject = (text) => {
+  const markerIndex = Math.max(
+    text.lastIndexOf('"predictionLabel"'),
+    text.lastIndexOf('"promptPackageId"'),
+    text.lastIndexOf('"imageId"'),
+  );
+  if (markerIndex < 0) return "";
+  const startIndex = text.lastIndexOf("{", markerIndex);
+  if (startIndex < 0) return "";
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = startIndex; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return clip(text.slice(startIndex, index + 1));
+    }
+  }
+  return "";
+};
+const extractFirstJsonObject = (text) => {
+  const startIndex = text.indexOf("{");
+  if (startIndex < 0) return "";
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = startIndex; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        const candidate = clip(text.slice(startIndex, index + 1));
+        return candidate.includes('"imageId"') && candidate.includes('"predictionLabel"') ? candidate : "";
+      }
+    }
+  }
+  return "";
+};
 const chatGptNodes = Array.from(document.querySelectorAll("[data-message-author-role='assistant']"));
 const geminiNodes = Array.from(document.querySelectorAll("[class*='turn'],[class*='message'],[class*='model-response'],[class*='modelResponse'],article,[role='listitem']"))
   .filter(isAssistantNode);
@@ -305,27 +383,69 @@ const rawIndexCandidates = dedupeCandidates(
 );
 const candidates = structuredCandidates.length > 0 ? structuredCandidates : rawIndexCandidates;
 const lastCandidate = candidates[candidates.length - 1] || null;
-const answerText = lastCandidate?.text || "";
+const geminiBodyText = document.body?.innerText || document.body?.textContent || "";
+const geminiAnswerStartIndex = geminiBodyText.lastIndexOf("Gemini said");
+const geminiBodyAnswer = location.hostname.includes("gemini.google.com") && geminiAnswerStartIndex >= 0
+  ? extractFirstJsonObject(geminiBodyText.slice(geminiAnswerStartIndex))
+  : "";
+const answerText = geminiBodyAnswer || lastCandidate?.text || "";
+const geminiStructuredJsonAnswer = location.hostname.includes("gemini.google.com") ? extractLastJsonObject(answerText) : "";
+const normalizedAnswerText = geminiStructuredJsonAnswer || answerText;
+const geminiPick3JsonMissing = location.hostname.includes("gemini.google.com")
+  && !geminiBodyAnswer
+  && !geminiStructuredJsonAnswer
+  && (normalizedAnswerText.length < 80 || !normalizedAnswerText.includes('"imageId"') || !normalizedAnswerText.includes('"predictionLabel"'));
+const promptTemplateAnswer = normalizedAnswerText.includes('"lower | upper | abstain"')
+  || normalizedAnswerText.includes('"number or null"')
+  || normalizedAnswerText.includes('"full visible-series analysis, not a short label"');
 const assistantCount = structuredCandidates.length > 0
   ? structuredCandidates.length
   : answerText
     ? 1
     : 0;
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
-if (!answerText && generating) {
+const responseGenerating = geminiBodyAnswer || geminiStructuredJsonAnswer ? false : generating;
+if (!normalizedAnswerText && responseGenerating) {
   return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount};
 }
-if (!answerText) {
-  return {status: "pending", message: "provider answer not found yet", answerText: null, pageUrl: location.href, generating, assistantCount};
+if (!normalizedAnswerText) {
+  const rateLimitDialog = Array.from(document.querySelectorAll('[role="dialog"], [data-radix-portal], body'))
+    .filter((node) => isVisible(node))
+    .find((node) => {
+      const text = clip(node.textContent || "");
+      return (text.includes("请求过于频繁") && text.includes("请稍等"))
+        || /too many requests|request too frequent|try again later|temporarily limited/i.test(text);
+    });
+  if (rateLimitDialog) {
+    return {
+      status: "review_required",
+      message: "provider_rate_limited_too_many_requests",
+      answerText: null,
+      pageUrl: location.href,
+      generating: false,
+      assistantCount,
+    };
+  }
+  return {status: "pending", message: "provider answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount};
+}
+if (geminiPick3JsonMissing) {
+  return {status: "pending", message: "gemini pick3 structured json answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount};
+}
+if (promptTemplateAnswer) {
+  return {status: "pending", message: "provider answer is still the prompt contract template", answerText: null, pageUrl: location.href, generating: true, assistantCount};
 }
 return {
   status: "success",
-  message: lastCandidate?.source === "visible_raw_capture"
+  message: geminiBodyAnswer
+    ? "answer extracted from gemini body json"
+    : geminiStructuredJsonAnswer
+    ? "answer extracted from gemini structured json"
+    : lastCandidate?.source === "visible_raw_capture"
     ? "answer extracted from visible assistant raw capture"
     : "answer extracted",
-  answerText,
+  answerText: normalizedAnswerText,
   pageUrl: location.href,
-  generating,
+  generating: responseGenerating,
   assistantCount,
 };
 `;

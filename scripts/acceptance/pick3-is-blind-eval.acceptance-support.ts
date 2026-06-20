@@ -84,6 +84,49 @@ export function buildFixtureAiResult(input: {
   };
 }
 
+export function buildRawTextFixtureAiResult(input: {
+  gatewayInput: AiFeedInput;
+  rawText: string;
+}): AiFeedResult {
+  const now = new Date().toISOString();
+  const inputHash = hashText(JSON.stringify(input.gatewayInput));
+  const outputHash = hashText(input.rawText);
+  return {
+    abilityGroupId: "ai-input-gateway",
+    childCapabilityId: "feed-gpt-web-chat-once",
+    providerKind: "gpt-web-chat",
+    status: "success",
+    normalizedText: input.rawText,
+    rawOutputRef: `artifact://pick3-fixture/${outputHash}`,
+    rawOutputHash: outputHash,
+    parseStatus: "json_invalid",
+    parsedJson: null,
+    schemaValidationStatus: "invalid",
+    providerProof: {
+      providerKind: "gpt-web-chat",
+      modelName: "fixture-gpt-chat",
+      inputHash,
+      outputHash,
+      inputRefs: input.gatewayInput.inputRefs.map((ref) => ref.id),
+      outputRefs: [`artifact://pick3-fixture/${outputHash}`],
+      startedAt: now,
+      endedAt: now,
+      durationMs: 0,
+      transport: "web-chat",
+      webChatUrl: "https://chatgpt.com/",
+      sourcePageUrlBeforeFeed: null,
+      restoredSourcePage: null,
+      retryCount: 0,
+      cooldownMs: 0,
+      estimatedInputTokens: null,
+      estimatedOutputTokens: null,
+      tokenEstimateUnavailableReason: "fixture",
+    },
+    failureReason: null,
+    reviewRequiredReason: null,
+  };
+}
+
 export function buildEmptyFixtureAiResult(input: {
   gatewayInput: AiFeedInput;
 }): AiFeedResult {

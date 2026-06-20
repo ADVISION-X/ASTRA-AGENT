@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T20:34:27.589Z",
+  "generatedAt": "2026-06-20T10:53:19.008Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -653,12 +653,16 @@
       "executionGroup": "domain",
       "lawIds": [
         "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+        "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
+        "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-        "GRASSEYE-PICK3-IS-BRAIN-006-V1"
+        "GRASSEYE-PICK3-IS-BRAIN-006-V1",
+        "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+        "GRASSEYE-PICK3-TREND-DISPLAY-010-V1"
       ],
       "clauseIds": [
         "primary",
@@ -672,10 +676,14 @@
         "blind-boundary+acceptance",
         "law+blueprint+acceptance",
         "model-metadata+baseline+calibration+acceptance",
+        "official-storage+app-shell+acceptance+chrome",
+        "official-sync+prompt-exchange+acceptance+audit",
+        "physical-delete+native-confirm+acceptance+chrome",
         "playbook+storage+acceptance+audit",
         "prompt-exchange+interaction+acceptance+audit",
         "prompt-version+audit",
-        "source-contract+acceptance"
+        "source-contract+acceptance",
+        "task-history+raw-ai-answer+acceptance+chrome"
       ],
       "blueprintRefs": [
         {
@@ -690,6 +698,7 @@
             "## AI Prediction Flow",
             "## Reveal And Scoring",
             "## Output Schema",
+            "## Official Trend Display",
             "## Failure Review Flow",
             "## Prompt Rewrite Flow",
             "## Failure Replay Flow",

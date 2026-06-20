@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-18T20:34:27.589Z",
+  "generatedAt": "2026-06-20T10:53:19.008Z",
   "summary": {
-    "activeLawCount": 223,
-    "coveredLawCount": 223,
+    "activeLawCount": 227,
+    "coveredLawCount": 227,
     "coveragePercent": 100
   },
   "coverage": [
@@ -1940,6 +1940,126 @@
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "official-source",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "blind-boundary",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-repair",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "agent-owned-playbook",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        },
+        {
+          "clauseId": "prompt-exchange",
+          "source": "scripts/audit/domains/pick3-is-blind-eval/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
       "capabilityDomain": "pick3-is-blind-eval",
       "clauses": [
         {

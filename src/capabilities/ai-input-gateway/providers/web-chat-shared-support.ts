@@ -12,7 +12,7 @@ import {
   resolveWebChatWorkspaceId,
   saveWorkspaceUrl,
 } from "./web-chat-workspace.js";
-import { cleanupStaleWorkspaceConversationHistory } from "./web-chat-pick3-history-cleanup.js";
+import { cleanupStaleWorkspaceConversationHistory, GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 
 export const restoreSourcePage = async (
   browser: BrowserController,
@@ -72,14 +72,27 @@ export const assertActiveProviderPage = async (input: {
   phase: string;
 }): Promise<void> => {
   const expectedHost = new URL(input.providerUrl).host;
-  const state = await input.browser.evaluateActiveTab<{ pageUrl: string; hostMatches: boolean }>({
-    description: `verify provider page remains active before ${input.phase}`,
-    script: `
+  const readState = (): Promise<{ pageUrl: string; hostMatches: boolean }> =>
+    input.browser.evaluateActiveTab<{ pageUrl: string; hostMatches: boolean }>({
+      description: `verify provider page remains active before ${input.phase}`,
+      script: `
 const expectedHost = ${JSON.stringify(expectedHost)};
 return {pageUrl: location.href, hostMatches: location.host === expectedHost};
 `,
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  });
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+    });
+  let state = await readState();
+  if (!state.hostMatches && input.phase === "attachment upload" && state.pageUrl.startsWith("chrome-error://")) {
+    const reopened = await input.browser.open({
+      url: input.providerUrl,
+      title: "recover provider page before attachment upload",
+      reusePolicy: "reuse-active-tab",
+    });
+    if (reopened.ok) {
+      await input.browser.wait(1_000);
+      state = await readState();
+    }
+  }
   if (!state.hostMatches) {
     throw new Error(`review_required: active Chrome tab left provider page before ${input.phase}; pageUrl=${state.pageUrl}`);
   }
@@ -143,6 +156,39 @@ export const persistWorkspaceAfterResponse = (input: {
   });
 };
 
+export const cleanupGeminiPick3HistoryBeforeNextImage = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+}): Promise<string | null> => {
+  const workspaceId = resolveWebChatWorkspaceId(input.request);
+  if (!workspaceId) return null;
+  if (
+    input.request.providerKind !== "gemini-web-chat"
+    || !input.request.promptContractId.startsWith("pick3-is-blind-eval")
+  ) {
+    return null;
+  }
+  return cleanupStaleWorkspaceConversationHistory({
+    browser: input.browser,
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId,
+    keepRecentCount: 1,
+    triggerThreshold: 1,
+    maxDeleteCount: GEMINI_STALE_CLEANUP_MAX_PER_RUN,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+};
+
+export const isBlockingGeminiPick3PreImageHistoryCleanupStatus = (status: string | null): boolean =>
+  status !== null
+  && (
+    /failed_[1-9]\d*/.test(status)
+    || status.includes("cleanup_failed")
+    || status.includes("verify_failed")
+  );
+
 export const cleanupProviderWorkspaceAfterResponse = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
@@ -151,6 +197,14 @@ export const cleanupProviderWorkspaceAfterResponse = async (input: {
 }): Promise<void> => {
   const workspaceId = resolveWebChatWorkspaceId(input.request);
   if (!workspaceId) return;
+  if (
+    input.request.providerKind === "gemini-web-chat"
+    && input.request.promptContractId.startsWith("pick3-is-blind-eval")
+  ) {
+    input.response.staleConversationHistoryCleanupStatus = "deferred_gemini_pick3_post_batch_cleanup_required";
+    input.response.staleConversationCleanupStatus = "deferred_gemini_pick3_post_batch_cleanup_required";
+    return;
+  }
   input.response.staleConversationHistoryCleanupStatus = await cleanupStaleWorkspaceConversationHistory({
     browser: input.browser,
     dataDir: input.context.dataDir,

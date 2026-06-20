@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-18T20:35:04.646Z",
+  "generatedAt": "2026-06-20T10:54:00.663Z",
   "status": "PASS",
-  "scannedFiles": 412,
+  "scannedFiles": 422,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -55,6 +55,9 @@
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-pick3-client.ts",
+    "src/app/workbench-home-pick3-history-client.ts",
+    "src/app/workbench-home-pick3-stability-client.ts",
+    "src/app/workbench-home-pick3-trend-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-media-processing-routes.ts",
@@ -392,9 +395,13 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/pick3-is-blind-eval/index.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-contract.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
@@ -402,8 +409,11 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.sync.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
@@ -434,7 +444,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 412,
+    "scannedFiles": 422,
     "emitCallCount": 47,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -445,7 +455,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 407,
+      "scannedFiles": 417,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -454,13 +464,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 319
+      "scannedFiles": 326
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 315,
+      "scannedFiles": 322,
       "metrics": {
         "emitCallCount": 36
       }
@@ -469,13 +479,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 315
+      "scannedFiles": 322
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 320,
+      "scannedFiles": 327,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -490,7 +500,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 320,
+      "scannedFiles": 327,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -511,7 +521,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 44
+      "scannedFiles": 46
     },
     {
       "name": "browser-action-log-contract",

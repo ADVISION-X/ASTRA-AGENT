@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T20:34:29.420Z",
+  "generatedAt": "2026-06-20T10:53:20.852Z",
   "status": "PASS",
   "inspectorFileCount": 23,
   "generatedPlanEntryCount": 23,
@@ -172,6 +172,8 @@
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/manifest.json",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector-human-review-history.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector-token-contracts.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",

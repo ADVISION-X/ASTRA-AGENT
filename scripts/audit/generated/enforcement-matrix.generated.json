@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T20:34:27.589Z",
+  "generatedAt": "2026-06-20T10:53:19.008Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -301,12 +301,16 @@
       "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
       "lawIds": [
         "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+        "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
+        "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
         "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-        "GRASSEYE-PICK3-IS-BRAIN-006-V1"
+        "GRASSEYE-PICK3-IS-BRAIN-006-V1",
+        "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+        "GRASSEYE-PICK3-TREND-DISPLAY-010-V1"
       ]
     },
     {

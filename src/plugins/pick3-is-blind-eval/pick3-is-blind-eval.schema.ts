@@ -12,11 +12,19 @@ export const Pick3ModeSchema = z.enum([
   "sync_only",
   "generate_batch",
   "full_pipeline",
+  "next_prediction_stability",
 ]);
 export type Pick3Mode = z.infer<typeof Pick3ModeSchema>;
 
+export const Pick3AiProviderKindSchema = z.enum(["gpt-web-chat", "gemini-web-chat"]);
+export type Pick3AiProviderKind = z.infer<typeof Pick3AiProviderKindSchema>;
+
+export const Pick3PromptModeSchema = z.enum(["playbook_v1", "free_analysis_strict_reasoning"]);
+
 export const Pick3InputSchema = z.object({
   mode: Pick3ModeSchema.default("generate_batch"),
+  providerKind: Pick3AiProviderKindSchema.default("gpt-web-chat"),
+  promptMode: Pick3PromptModeSchema.default("playbook_v1"),
   source: z.literal(PICK3_OFFICIAL_SOURCE).default(PICK3_OFFICIAL_SOURCE),
   lotteryType: z.literal(PICK3_LOTTERY_TYPE).default(PICK3_LOTTERY_TYPE),
   windowSize: z.literal(PICK3_WINDOW_SIZE).default(PICK3_WINDOW_SIZE),
@@ -54,8 +62,8 @@ export type Pick3ImageRecord = {
   visibleEndPhase: string;
   imagePath: string;
   imageSha256: string;
-  answerDigit: number;
-  answerLabel: "front" | "back";
+  answerDigit: number | null;
+  answerLabel: "front" | "back" | null;
 };
 
 export type Pick3PredictionLabel = "front" | "back" | "abstain";
@@ -68,7 +76,7 @@ export type Pick3AiInteractionRecord = {
   promptPackageId: string;
   promptContractId: string;
   playbookVersionId: string;
-  providerKind: "gpt-web-chat";
+  providerKind: Pick3AiProviderKind;
   modelId: string;
   temperature: number;
   imageDetail: string;
@@ -91,7 +99,7 @@ export type Pick3PredictionRecord = {
   imageId: string;
   position: Pick3Position;
   playbookVersionId: string;
-  providerKind: "gpt-web-chat";
+  providerKind: Pick3AiProviderKind;
   modelId: string;
   temperature: number;
   imageDetail: string;
@@ -105,6 +113,10 @@ export type Pick3PredictionRecord = {
   predictionLabel: Pick3PredictionLabel;
   confidence: number | null;
   confidenceIsProbability: false;
+  tailShapes: string[] | null;
+  zoneWeight: "lower_weighted" | "upper_weighted" | "balanced" | null;
+  drivingEvidence: string | null;
+  discountedEvidence: string | null;
   abstainReason: string | null;
   reason: string | null;
   predictedAt: string;
@@ -130,7 +142,7 @@ export type Pick3FailureReviewRecord = {
   predictionId: string;
   answerLabel: "front" | "back";
   answerDigit: number;
-  providerKind: "gpt-web-chat";
+  providerKind: Pick3AiProviderKind;
   modelId: string;
   temperature: number;
   imageDetail: string;
@@ -188,9 +200,31 @@ export type Pick3ScoringSummary = {
   }>;
 };
 
+type Pick3StabilityResult = {
+  position: Pick3Position;
+  imageId: string;
+  repeatIndex: number;
+  interactionId: string;
+  predictionId: string | null;
+  predictionLabel: Pick3PredictionLabel | null;
+  visiblePredictionLabel: "lower" | "upper" | "abstain" | null;
+  confidence: number | null;
+  parseStatus: Pick3AiInteractionRecord["parseStatus"];
+  parseFailureReason: string | null;
+  rawOutputRef: string;
+};
+
+type Pick3StabilitySummary = {
+  deferredRetryCount?: number;
+  repeatCount: number;
+  results: Pick3StabilityResult[];
+  unresolvedCount?: number;
+};
+
 export type Pick3TaskRecord = {
   taskId: string;
   mode: Pick3Mode;
+  promptMode: z.infer<typeof Pick3PromptModeSchema>;
   status: "success" | "partial_success" | "failed" | "review_required";
   reachedStep: string;
   reason: string | null;
@@ -199,4 +233,5 @@ export type Pick3TaskRecord = {
   sync: Pick3SyncSummary;
   batch: Pick3BatchSummary | null;
   scoring: Pick3ScoringSummary | null;
+  stability: Pick3StabilitySummary | null;
 };

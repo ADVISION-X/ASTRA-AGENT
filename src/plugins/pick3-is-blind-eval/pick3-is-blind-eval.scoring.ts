@@ -36,6 +36,9 @@ export const revealPick3Predictions = (input: {
     if (!image) {
       throw new Error("pick3_reveal_missing_image");
     }
+    if (image.answerDigit === null || image.answerLabel === null) {
+      throw new Error("pick3_reveal_requires_known_official_answer");
+    }
     return {
       revealId: `pick3_reveal_${randomUUID()}`,
       predictionId: prediction.predictionId,

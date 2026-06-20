@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T20:34:27.589Z",
+  "generatedAt": "2026-06-20T10:53:19.008Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3156,16 +3156,18 @@
         "AI-visible labels are lower, upper, and abstain only; front/back exist only after parser mapping for internal reveal/scoring.",
         "Prompt package metadata, rendered prompt, parser, acceptance, and audit must agree on lower/upper/abstain.",
         "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
-        "Empty web-chat raw output is retried once before Pick3 interaction persistence; non-empty invalid JSON remains review_required.",
-        "Pick3 GPT rate-limit dialogs trigger 10-minute, 30-minute, then 60-minute silent backoff before acknowledgement, refresh, new chat, and retry of the same governed one-image prompt.",
+        "Empty web-chat raw output is retried once inside the current one-image attempt before Pick3 interaction persistence; unresolved one-image requests are deferred to the bounded same-chain Prompt Exchange completion queue while remaining images/repeats continue.",
+        "Prompt Exchange exposes expectedCount, completedCount, deferredRetryCount, and unresolvedCount so full_pipeline and next_prediction_stability can prove batch convergence before completion.",
+        "Pick3 GPT rate-limit dialogs trigger a 10-minute silent backoff before acknowledgement, refresh, new chat, and retry of the same governed one-image prompt; repeated allowed recovery windows remain 10 minutes each.",
         "Pick3 GPT rate-limit backoff emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_PROGRESS, RECOVERY_COMPLETED, and RECOVERY_FAILED events for waiting, acknowledgement, refresh, new-chat reopen, and same-payload resend.",
         "Pick3 GPT rate-limit waiting is chunked into heartbeat waits and is not one opaque long sleep.",
         "Persistent Pick3 GPT rate limiting after the third backoff wait stops the batch before prediction sealing, reveal, or scoring.",
         "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
         "Pick3 GPT cleanup deletes stale recorded Pick3 ChatGPT sidebar conversation records, keeping the current and immediately previous conversation.",
         "Pick3 GPT legacy sidebar cleanup is limited to visible controlled training titles outside the current and immediately previous protected workspace URLs.",
-        "Pick3 GPT history cleanup refreshes ChatGPT home after deletion and fails the training run when non-protected Pick3 training history remains visible.",
-        "Any parse_failed_raw_available interaction blocks reveal and scoring for the batch."
+        "Pick3 web-chat history cleanup refreshes the correct provider home after deletion and fails the training run when non-protected Pick3 training history remains visible.",
+        "Pick3 Gemini web-chat training uses the same governed sidebar-history cleanup flow as GPT, with Gemini DOM selectors and `Delete chat?` confirmation.",
+        "Only final unresolved parse_failed_raw_available interactions after Prompt Exchange completion rounds are exhausted block reveal and scoring for the batch."
       ],
       "forbidden": [
         "Writing ai_predictions directly from pasted GPT text without an interaction record.",
@@ -3291,6 +3293,119 @@
       "blockIndex": 5
     },
     {
+      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "official-storage+app-shell+acceptance+chrome",
+      "summary": "Pick3 trend display must be a local Workbench read model over official pick3_draws with a fixed L80 visible window, three separated position rows, full hover draw facts, and drag navigation without altering blind AI execution.",
+      "required": [
+        "Trend data comes from existing Pick3 storage table pick3_draws through the Pick3 plugin owner.",
+        "The local route is /api/pick3-is-blind-eval/trend and is admitted by the existing Workbench API Boundary as local UI only.",
+        "The App Shell exposes a Pick3 Trend surface inside the existing Pick3 workspace.",
+        "The visible trend window size is fixed at 80 draws.",
+        "Hundreds, tens, and ones render as three separated rows.",
+        "Hover exposes phase, official drawn numbers, and expected prize time.",
+        "Mouse drag changes the historical start index while preserving the 80-draw window."
+      ],
+      "forbidden": [
+        "External mirror, DOM scraping, localStorage, fixture rows, or trend-intuition-brain as trend truth.",
+        "Second HTTP server, route bus, or trend-specific data store.",
+        "Mixed-position single-line trend display.",
+        "Trend UI mutating blind images, AI payloads, sealed predictions, reveal, or scoring."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "official-sync+prompt-exchange+acceptance+audit",
+      "summary": "Pick3 next-period stability mode must first prove latest official data, then send the same single next-period image per selected position multiple times through the existing Prompt Exchange and display only per-repeat results.",
+      "required": [
+        "The mode id is next_prediction_stability.",
+        "The latest official UAE Lottery Pick 3 sync must pass full official coverage before any next-period image or AI feed is created.",
+        "Each selected position produces exactly one next-period blind L80 image from the latest confirmed 80 official draws.",
+        "Every repeat uses the existing free_analysis_strict_reasoning prompt mode, not the position-specific playbook prompt package.",
+        "batchSize is the repeat-send count for that same image, not the number of generated target images.",
+        "Every repeat uses the existing Pick3 Prompt Exchange and AI Input Gateway one-image payload path.",
+        "The persisted/displayed stability result lists position, imageId, repeat index, interaction id, prediction label, confidence, parse status, and raw proof ref for each repeat.",
+        "The system must not produce a final selected label, majority-vote recommendation, betting advice, or user-choice instruction."
+      ],
+      "forbidden": [
+        "Running next-period stability without confirmed latest official data.",
+        "Generating multiple same-position images for the repeat count.",
+        "Using position-specific playbook prompts for next-period stability.",
+        "Creating a second AI transport, prediction table, scoring path, route, or result chain.",
+        "Reveal, scoring, hit rate, or accuracy claims for next-period stability before the official answer exists.",
+        "System-generated final recommendation or majority vote decision."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "task-history+raw-ai-answer+acceptance+chrome",
+      "summary": "Pick3 next-period stability runs must produce a human review history that shows the phase context, same-image repeat proof, every repeat result, and the full AI answer without generating a buying or voting recommendation.",
+      "required": [
+        "Workbench exposes a Pick3 History surface for persisted next_prediction_stability task records.",
+        "History rows show task id, batch id, status, created time, newest official phase, target phase, selected positions, provider, repeat count, and evidence completeness.",
+        "Task detail shows each generated next-period image with position, image id, image sha256, target phase, visible start phase, and visible end phase.",
+        "Task detail shows every repeat result with position, image id, repeat index, interaction id, prediction label, visible label, confidence, parse status, raw response hash, and raw proof ref.",
+        "The AI answer viewer shows raw_response_text, rendered prompt, prompt package id, prompt contract id, provider proof, raw response hash, and raw output ref from the existing pick3_ai_interactions record.",
+        "The primary source for AI answer review is the existing pick3_ai_interactions.raw_response_text field; raw output artifact refs are proof links only.",
+        "The human review surface may show observed distribution counts but must not compute or display a final selected label, majority-vote instruction, buying advice, or betting advice.",
+        "Observed distribution counts must be grouped by position. When a task selects more than one position, counts for different positions must never be summed into one shared total — mixing positions into a single count would let a human misread it as repeats of one position."
+      ],
+      "forbidden": [
+        "History visible only through latest-task.json or filesystem manual inspection.",
+        "History rows without newest official phase and target phase.",
+        "Repeat detail without full raw AI answer access.",
+        "Creating a second task history store, second AI answer store, or second result chain for human review.",
+        "System-generated buy, bet, wager, majority choice, final pick, or recommendation text."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "physical-delete+native-confirm+acceptance+chrome",
+      "summary": "Pick3 human review history deletion must be a deliberate irreversible physical delete guarded by a real browser confirmation dialog.",
+      "required": [
+        "Workbench History exposes a delete action for the selected Pick3 next_prediction_stability task.",
+        "Delete action must show a native browser confirmation dialog before any backend delete request is sent.",
+        "The confirmation copy must state that this is a physical delete, irreversible, and includes task evidence and AI answers.",
+        "Canceling the confirmation dialog must send no delete request and must leave the history record readable.",
+        "Confirming delete must physically remove the task directory and task.json.",
+        "Confirming delete must remove matching SQLite rows for the task batch from pick3_ai_interactions, ai_predictions, ai_reveals, failure_reviews, is_blind_images, and is_blind_batches.",
+        "Confirming delete must remove the task-owned artifact directory and raw output refs recorded by the task interactions when those paths are inside GrassEye runtime data.",
+        "If latest-task.json points to the deleted task, it must be physically removed or rewritten from the newest remaining task record.",
+        "Deleted task detail API must return not found after successful delete."
+      ],
+      "forbidden": [
+        "Soft delete, hide-only, archive-only, or deleted flag storage.",
+        "Custom in-page modal used as the only irreversible-delete confirmation.",
+        "Deleting without a native browser confirmation.",
+        "Leaving raw AI answer rows readable after a confirmed delete.",
+        "Deleting paths outside GrassEye runtime data.",
+        "Creating a second delete ledger, second history chain, or recoverable trash folder."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 9
+    },
+    {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
       "status": "active",
       "tier": "P1",
@@ -3310,7 +3425,7 @@
         "Replay overwrites original prediction or reveal."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 10
     },
     {
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",

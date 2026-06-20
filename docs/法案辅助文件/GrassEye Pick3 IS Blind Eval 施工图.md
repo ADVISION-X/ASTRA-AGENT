@@ -99,6 +99,32 @@ scripts/acceptance/pick3-is-blind-eval.acceptance.ts
 scripts/audit/domains/pick3-is-blind-eval/inspector.ts
 ```
 
+Next prediction stability extends the same Pick3 chain only:
+
+```txt
+pick3-is-blind-eval.schema.ts        add next_prediction_stability mode and result types
+pick3-is-blind-eval.image.ts         build next-period image from latest confirmed L80
+pick3-is-blind-eval.flow.ts          branch after official sync, before reveal/scoring
+pick3-is-blind-eval.ai.ts            repeat-send the same image through Prompt Exchange
+app-shell-layout.ts                  expose next_prediction_stability in the existing Pick3 form
+workbench-home-pick3-client.ts       render per-repeat results from the existing start/latest routes
+```
+
+No new route, runner, provider adapter, prediction table, scoring path, or external Playbook path.
+
+Official trend display extends the same Pick3 Workbench read model only:
+
+```txt
+pick3-is-blind-eval.trend.ts          read stored official pick3_draws and expose windowSize=80 metadata
+workbench-pick3-routes.ts             add GET /api/pick3-is-blind-eval/trend inside the existing Pick3 route handler
+workbench-api-boundary.ts             admit /api/pick3-is-blind-eval/trend as local UI only
+workbench-pick3-support.ts            expose listPick3TrendSnapshot from the existing Workbench handle
+app-shell-layout.ts                   expose Trend as an existing Pick3 workspace page
+workbench-home-pick3-trend-client.ts  render fixed 80-draw three-row SVG trend with hover and drag
+```
+
+No new official source, browser scraper, route bus, storage table, prediction path, image payload path, or AI-visible trend payload.
+
 ## Public API Helpers
 
 ### Base64 Message Encoding
@@ -418,6 +444,9 @@ CREATE TABLE ai_predictions (
   prediction_label TEXT NOT NULL,
   confidence REAL,
   confidence_is_probability INTEGER NOT NULL DEFAULT 0,
+  tail_shapes TEXT,
+  zone_weight TEXT,
+  driving_evidence TEXT,
   abstain_reason TEXT,
   reason TEXT,
   predicted_at TEXT NOT NULL,
@@ -533,6 +562,84 @@ No bridge prompt loader.
 No external prompt mirror.
 ```
 
+Playbook training phases:
+
+```txt
+Phase 1 — Evidence-Mandatory Exploration (current):
+  AI analyzes every chart and derives a direction conclusion from named visual evidence.
+  Guessing without named evidence is forbidden. Analysis is always mandatory.
+  AI must name specific shape words observed in the tail and state L80 zone weight for every prediction.
+  A prediction without named evidence is invalid output.
+  abstain is valid ONLY when analysis identifies both a named lower signal and a named upper signal
+    of equal weight that directly cancel each other out.
+  bare_low, kill_down, low_pressure are lower-leaning signals — analysis must conclude lower
+    unless a named upper signal of equal or greater weight is also present.
+  Confidence 0.51 = one named evidence item, no contradiction — valid analysis conclusion, not a guess.
+  Confidence range: 0.51–0.75.
+  Goal: collect named visual evidence from correct predictions and corrected wrong predictions.
+
+Phase 2 — Evidence-Calibrated (future, after Phase 1 data):
+  Built from Phase 1 correct evidence + corrected wrong-prediction evidence.
+  Abstain rules re-introduced based on empirically observed failure patterns.
+  Confidence recalibrated based on observed conditional accuracy.
+
+Evidence collection protocol (Phase 1 → Phase 2 transition):
+  Correct predictions: extract named shape words and zone weight as positive evidence.
+  Wrong predictions: DO NOT show AI the correct answer first.
+    Ask "what visual signal did you see that led to the wrong call, and what did you miss?"
+    Use the missed signal as the corrective evidence in Phase 2.
+  Do not ask AI to explain why the correct answer was correct — this produces hindsight rationalization.
+```
+
+Free Analysis Strict Reasoning experiment:
+
+```txt
+promptMode = free_analysis_strict_reasoning
+
+This is not a loose guess mode.
+It uses the same Pick3 Prompt Exchange, one-image blind payload, sealed prediction,
+reveal, and scoring chain.
+
+Workbench historical scoring entry:
+  mode = full_pipeline
+  promptMode = free_analysis_strict_reasoning
+  UI label = AI free analysis mode
+  This is the non-next-stability AI analysis mode. It must not create a second
+  free_analysis task mode, second Prompt Exchange, second scoring path, or second
+  prediction table.
+
+Required:
+  - no direction rules
+  - no fixed visual vocabulary
+  - no position-specific mapping
+  - no shape-to-label playbook constraints
+  - mandatory chartReading
+  - mandatory recentBehavior
+  - mandatory supportingEvidence
+  - mandatory counterEvidence
+  - mandatory decisionLogic
+  - mandatory zoneCount (lowerCount, upperCount as counted integers, not estimated labels)
+  - mandatory patternRecurrence (named-pattern occurrence count + how many of those occurrences matched the predicted direction)
+  - mandatory weakestLink (the single weakest assumption in the AI's own reasoning chain)
+
+  zoneCount / patternRecurrence / weakestLink are probing fields, not vocabulary or direction
+  rules. They force the AI to produce verifiable, countable intermediate output instead of an
+  impression-based narrative, while leaving full freedom over how to interpret what it counts.
+
+Parser rule:
+  Missing or shallow chartReading / recentBehavior / supportingEvidence / decisionLogic
+  is parse_failed_raw_available and blocks reveal/scoring.
+  Missing zoneCount (must be two non-negative integers), missing patternRecurrence,
+  or missing weakestLink is also parse_failed_raw_available.
+
+Forbidden:
+  - V1 tailShapes / zoneWeight / visual-grammar constraints inside Free Analysis
+  - second AI transport chain
+  - second prediction table
+  - second scoring path
+  - counting a run clean when any image lacks prompt-submitted and answer-captured proof
+```
+
 The active Playbook may contain:
 
 ```txt
@@ -542,7 +649,8 @@ position stream boundary
 visual grammar
 decision rules
 confidence discipline
-abstain rules
+abstain rules (Phase 2 only)
+evidence requirement
 failure risk language
 output schema
 ```
@@ -632,10 +740,28 @@ window = 80
 xGap = 30px
 leftMargin = 24px
 rightMargin = 24px
-canvasWidth = 24 + 79*30 + 24 = 2418px
+trailingBlank = 50px  ← blank space to the right of the last data point
+canvasWidth = 24 + 79*30 + 24 + 50 = 2468px
 canvasHeight = 300px
 yRange = 0..9
 shoulder = 4.5
+
+trailingBlank purpose: creates a visible "next-point space" on the right edge.
+The AI sees the line ending with open space ahead, signalling the series is incomplete
+and a continuation value is expected — improving spatial awareness of the prediction task.
+The midline extends into the trailing blank (x2 = canvasWidth - 24).
+Data points are unchanged; only the canvas is wider.
+
+shoulder = 4.5 is an internal rendering constant only. The chart has no axis labels, so
+prompt text sent to the AI must never name this position as "4.5" — that would give the AI
+an unverifiable number it cannot check against an unlabeled image. All AI-facing prompt and
+playbook text must call it "the red dashed horizontal line" instead.
+
+midlineStrokeColor = #dc2626 (red)
+midlineDashPattern = 8px 6px dash-gap (logical px, scaled by IMAGE_SCALE in code)
+midline was previously a solid gray (#d1d5db) line; switched to red dashed to increase
+contrast against the blue (#2563eb) solid data line, after observing the AI losing track
+of the midline when scanning dense oscillation regions.
 ```
 
 Strict blind-pixel rules:
@@ -687,6 +813,43 @@ digits = position sequence[targetIndex - 80 : targetIndex]
 answer = position sequence[targetIndex]
 ```
 
+### Next Prediction Stability Image
+
+Mode:
+
+```txt
+next_prediction_stability
+```
+
+This is a next-period stability observation mode, not historical scoring.
+
+Precondition:
+
+```txt
+PICK3_OFFICIAL_SYNC must return status=success with full official coverage.
+If latest official data is not fully confirmed, stop before image generation.
+```
+
+Image construction:
+
+```txt
+visible = latest confirmed 80 official draws
+targetPhase = next_after_<latest official phase>
+answerDigit = null
+answerLabel = null
+```
+
+For each selected position:
+
+```txt
+generate exactly 1 blind L80 image
+do not generate batchSize images
+do not persist reveal/scoring artifacts
+do not claim accuracy before the official answer exists
+```
+
+The blind-pixel rules are identical to historical batches: no title, axis, tick label, target phase, date, answer, Chart number, point count, position text, or watermark.
+
 ## AI Prediction Flow
 
 Prediction must use Pick3 Prompt Exchange. The exchange is intentionally aligned with Deep Research Analysis:
@@ -700,7 +863,7 @@ CAPTURE
   capture raw GPT/web-chat output
   capture providerProofJson
 PARSE
-  parse predictionLabel/confidence/reason/abstainReason
+  parse predictionLabel/confidence/tailShapes/zoneWeight/drivingEvidence/discountedEvidence/reason/abstainReason
   keep parse_failed_raw_available interactions
 PERSIST
   write pick3_ai_interactions first
@@ -747,6 +910,25 @@ App Shell must expose:
 mode = full_pipeline
 source label = Full pipeline via GPT web chat
 default zh label = 通过 GPT 网页聊天运行完整链路
+providerKind = gpt-web-chat | gemini-web-chat
+promptMode = playbook_v1 | free_analysis_strict_reasoning
+AI analysis mode = Playbook mode | AI free analysis mode
+Gemini DOM evidence:
+  composer = div[role="textbox"][contenteditable="true"][aria-label="Enter a prompt for Gemini"]
+  fresh conversation = navigate the existing Gemini workspace tab to https://gemini.google.com/app before every Pick3 image; verified empty state has userQueryCount=0 and no "Gemini said" answer text.
+  upload = same macOS clipboard file-object paste flow as GPT after focusing the Gemini composer
+  upload probe = after file-object paste, composer attachment preview was visible within about 1 second, while clipboard text paste still produced composerText=""
+  prompt entry = for Gemini, focus the verified Quill composer and use real clipboard paste immediately after upload; do not spend the generic 20s GPT clipboard-paste verification window before diagnosing Gemini prompt entry
+  composer readiness = for Gemini, wait up to 60s for the fresh /app composer; if one active-tab DOM probe times out at 10s, log provider_composer_ready_probe fallback and keep waiting inside the same composer-ready window
+  workspace URL persistence = if the active-tab DOM probe used to read the provider workspace URL times out after a completed provider response, fall back to browser.getSessionState().currentUrl rather than failing the one-image exchange
+  provider error page recovery = if Chrome reports chrome-error://chromewebdata/ before attachment upload, reopen the provider home in the same workspace tab and re-assert the provider host; do not do this after upload or prompt submission because it could clear an in-flight prompt
+  prompt paste retry = if Gemini paste verification returns composerChars=0 or prompt prefix missing, retry inside gemini_clipboard_prompt_paste with verified composer focus and replacing clipboard paste before escalating to one-image retry
+  pre-submit snapshot = skip for Gemini Pick3 because each image opens a fresh /app conversation; log pre_submit_snapshot skipped fresh_gemini_pick3_conversation instead of waiting for a stable assistant answer before prompt entry
+  prompt probe = direct textContent/execCommand writes do not reliably update Gemini's Quill editor for the 10k Pick3 prompt; real paste produced <p>short quill paste probe</p> in the composer DOM
+  timing logs = [GRASSEYE][AI-GATEWAY][WEB-CHAT] must show provider_composer_ready, upload_file_clipboard_paste, pre_submit_snapshot, prompt_prepare, gemini_clipboard_prompt_paste, verify_attachments_before_submit, and prompt_submit elapsedMs
+  submitted user message proof = user-query-content / .user-query-container contains both prompt text and an image/file preview
+  Gemini DOM selectors and submitted-message proof must stay in the Gemini web-chat provider layer, not inside GPT-specific recovery code.
+  Never stack multiple Pick3 images into one Gemini conversation; prior prompts/answers would contaminate blind isolation.
 ```
 
 Per image payload:
@@ -766,10 +948,33 @@ AI-visible required output:
   imageId: exact input imageId
   promptPackageId: exact input promptPackageId
   predictionLabel: lower | upper | abstain
-  confidence: number between 0.51 and 0.60 when lower/upper, null when abstain
+  confidence: number between 0.51 and 0.75 when lower/upper (Phase 1), null when abstain
   confidence_meaning: subjective_model_strength_not_probability
-  abstain_reason: required when prediction_label = abstain
-  reason: one sentence
+  tailShapes: array of named grammar shape/motion words observed in the last 3–8 points (required, min 1 item)
+             VOCABULARY RESTRICTION: values must be drawn exclusively from the visual-grammar.md word list.
+             Valid words: surge_up, rise, slow_rise, hold, slow_fall, upper_fall, kill_down,
+               sharp_top, sharp_bottom, bare_low, upward_inertia, downward_inertia,
+               shoulder_return, shoulder_reject, shoulder_hold, high_pressure, low_pressure,
+               high_to_shoulder_edge, oscillation_hold_upper, disordered_chop.
+             Informal descriptors (climb, ascending, drop, descend, etc.) are invalid and cause parse failure.
+  zoneWeight: "lower_weighted" | "upper_weighted" | "balanced" — L80 overall zone weight (required)
+  drivingEvidence: one sentence naming the specific shape that determined the direction (required)
+  discountedEvidence: one sentence naming any opposing signal noticed but not allowed to override the conclusion,
+                      or null if no opposing signal was observed (required; must not be empty string)
+                      CONTRARIAN RULE: when a position playbook applies a contrarian override (e.g. Stream B
+                      treats shoulder_hold as lower instead of upper), the standard grammar interpretation
+                      being overridden IS the discounted evidence — discountedEvidence must NOT be null.
+                      Example: "Standard grammar classifies shoulder_hold as upper evidence; Stream B
+                      contrarian overrides this because high_pressure is absent."
+  reason: full analytical summary — tail shapes observed, zone weight, conclusion chain (not one sentence; must be complete)
+  abstainReason: required when predictionLabel = abstain, must name both conflicting lower and upper signals
+
+Phase 1 output contract purpose:
+  tailShapes, zoneWeight, drivingEvidence, discountedEvidence are the V2 evidence extraction fields.
+  Every correct prediction: tailShapes + drivingEvidence become positive V2 rules.
+  Every wrong prediction: discountedEvidence reveals which opposing signal was noticed but overridden
+    — V2 correction rules are built from this WITHOUT showing the correct answer first (prevents hindsight rationalization).
+  reason provides the full analytical chain for human review.
 
 Internal mapping:
   lower -> front
@@ -784,21 +989,138 @@ Contract lock:
   acceptance and audit must fail if these layers disagree
 ```
 
+### Next Prediction Stability Flow
+
+Purpose:
+
+```txt
+Send the same next-period image to the selected AI provider multiple times
+so the operator can inspect output drift.
+```
+
+Execution order:
+
+```txt
+1. Sync official UAE Lottery Pick 3 data and verify full official coverage.
+2. Build exactly one next-period blind L80 image per selected position.
+3. Build the governed `free_analysis_strict_reasoning` prompt package for each image.
+4. Expand the AI Prompt Exchange request list by repeat index.
+5. Each repeat sends one image only through Pick3GatewaySender / AI Input Gateway.
+6. Persist each raw interaction and parsed prediction.
+7. Write stability_results.json.
+8. Stop; do not reveal, score, classify hit/miss, or write failure-review repair.
+```
+
+`batchSize` meaning in this mode:
+
+```txt
+batchSize = repeat-send count for the same image
+```
+
+It is not a target draw count.
+
+Result row shape:
+
+```ts
+type Pick3StabilityResult = {
+  position: "hundreds" | "tens" | "ones";
+  imageId: string;
+  repeatIndex: number;
+  interactionId: string;
+  predictionId: string | null;
+  predictionLabel: "front" | "back" | "abstain" | null;
+  visiblePredictionLabel: "lower" | "upper" | "abstain" | null;
+  confidence: number | null;
+  parseStatus: "parsed" | "parse_failed_raw_available";
+  parseFailureReason: string | null;
+  rawOutputRef: string;
+};
+```
+
+Display rule:
+
+```txt
+Show every position/repeat row.
+Do not show a final choice.
+Do not show "recommended", "should pick", "majority result", "vote winner", or betting wording.
+The operator makes the judgment manually.
+```
+
 Empty web-chat capture retry:
 
 ```txt
 If AI Input Gateway returns empty normalizedText:
   retry the same one-image prompt once through the same AI Input Gateway sender
   do not create a Pick3 interaction for the empty transport attempt
+  if the local retry still has no parsed result, defer that image/repeat into the same Prompt Exchange completion queue
+  continue sending the remaining images/repeats before returning to deferred work
+
+If response is structured JSON but predictionLabel is an explicit directional synonym (`rise`, `rising`, `up`, `upward`, `upper`, `fall`, `falling`, `down`, `downward`, or `lower`):
+  normalize through the directional alias whitelist
+  continue normal confidence and evidence validation
+  do not treat the normalized alias as a retry-worthy parse failure
+
+If response is structured JSON but predictionLabel is an explicitly non-directional invalid word (`hold`, `neutral`, `flat`, `sideways`, `unclear`, or `no_direction`):
+  normalize to internal abstain with null confidence
+  set abstainReason to non_directional_prediction_label_<word> when the provider omitted one
+  never map the non-directional word to lower/upper
+
+If response is structured JSON but predictionLabel is another invalid shape word:
+  retry the same one-image prompt once through the same AI Input Gateway sender
+  do not map the shape word to lower/upper
+  do not create a Pick3 interaction for the first invalid-label attempt
+  if the local retry still has no parsed result, defer that image/repeat into the same Prompt Exchange completion queue
 
 If retry still returns empty:
-  create parse_failed_raw_available from final raw response
-  stop before reveal/scoring
+  schedule deferred_retry_scheduled unless completion rounds are exhausted
+  after completion rounds are exhausted, create parse_failed_raw_available from final raw response
+  stop before reveal/scoring only if unresolvedCount > 0
 
 If response is non-empty but invalid JSON:
   do not guess repair
-  parse_status = parse_failed_raw_available
-  stop before reveal/scoring
+  defer through the same Prompt Exchange completion queue before persisting a final unresolved interaction
+  after completion rounds are exhausted, parse_status = parse_failed_raw_available
+  stop before reveal/scoring only if unresolvedCount > 0
+```
+
+### Prompt Exchange Completion Queue
+
+Production-grade Pick3 batches must converge inside the existing Prompt Exchange instead of stopping on the first one-image failure.
+
+```txt
+Initial pass:
+  build all image/repeat requests in the existing order
+  for each request, run the existing one-image send attempt and its local retry rules
+  parsed result -> persist the parsed interaction and sealed prediction
+  unresolved result -> do not persist as terminal yet; enqueue the same request for completion
+
+Completion pass:
+  keep using the same Pick3GatewaySender and AI Input Gateway one-image path
+  add a completion round suffix to roundId only for traceability
+  resend the same imageId + promptPackageId + one-image payload
+  continue until all requests parse or bounded completion rounds are exhausted
+
+Terminal rule:
+  expectedCount = images.length * repeatCount
+  completedCount = final parsed predictions
+  deferredRetryCount = number of queued completion retries
+  unresolvedCount = expectedCount - completedCount
+```
+
+If `unresolvedCount = 0`, full_pipeline may continue to reveal/scoring even if earlier transient web-chat sends failed before a later completion round recovered. Those transient failures are terminal-visible recovery evidence, not batch-failure truth.
+
+If `unresolvedCount > 0`, write the prompt-exchange failure artifacts and stop before reveal/scoring with `review_required`.
+
+Forbidden:
+
+```txt
+second provider adapter
+second transport path
+second prediction table
+second scoring path
+skipping remaining images because one image failed
+infinite retry loop
+persisting an interim failed attempt as the final result when a later completion round succeeds
 ```
 
 Submitted image binding proof:
@@ -873,8 +1195,11 @@ Terminal stdout format (every 30s heartbeat):
 
 Backoff schedule:
   first rate-limit occurrence:  wait 10 minutes (600_000 ms)
-  second rate-limit occurrence: wait 30 minutes (1_800_000 ms)
-  third rate-limit occurrence:  wait 60 minutes (3_600_000 ms)
+  second rate-limit occurrence: wait 10 minutes (600_000 ms)
+  third rate-limit occurrence:  wait 10 minutes (600_000 ms)
+
+The schedule must not escalate a recovered warning into a 30/60 minute wait.
+After each 10-minute wait, the runner must proceed to acknowledgement, refresh, new chat, and same-payload resend.
 
 Runtime logs and terminal stdout must include imageId, promptPackageId, missionKey, attempt, totalWaitSec, elapsedSec, remainingSec, and recoveryAction.
 
@@ -939,10 +1264,13 @@ Pick3 GPT workspace tab identity:
 workspaceId = pick3-is-blind-eval
 workspace tab anchor = https://chatgpt.com/
 conversation ledger entries = https://chatgpt.com/c/<conversation-id>
+Gemini workspace tab anchor = https://gemini.google.com/app
+Gemini conversation ledger entries = https://gemini.google.com/app/<conversation-id>
 
 The workspace tab anchor and conversation ledger are different facts.
 Do not save a /c/<conversation-id> URL as the workspace tab anchor.
 Do not use reuse-exact-url against a /c/<conversation-id> URL to find the Pick3 workspace tab.
+Record Gemini /app/<conversation-id> URLs in the same provider-specific conversation ledger after response capture, otherwise history cleanup cannot protect the current and immediately previous Gemini conversations.
 Use host/workspace tab reuse for Pick3:
   focus any existing chatgpt.com provider tab owned by the workspace when available
   otherwise open https://chatgpt.com/ with reuse-host-tab
@@ -953,6 +1281,14 @@ Provider proof must show:
   providerTabPolicy = reuse-single-provider-workspace-tab
 
 This is the production guard against one browser tab per image.
+```
+
+Pick3 source-restore policy:
+
+```txt
+If GPT raw output has already been captured, a post-response source page restoration failure must not erase the raw output.
+The provider proof must keep restoredSourcePage=false.
+This exception is Pick3-only because no downstream DOM action depends on the source workbench tab after one-image GPT capture.
 ```
 
 Every prediction call must persist:
@@ -1010,24 +1346,43 @@ GPT cleanup rule:
 AI Input Gateway keeps a Pick3 workspace conversation ledger.
 After a response is captured:
   record current ChatGPT conversation URL
+  retain up to 100 provider conversation URLs so a 25-batch three-position Gemini run can be cleaned from ledger evidence
   keep current and immediately previous Pick3 conversation tabs
   close only older recorded Pick3 conversation tabs
+  do not truncate the history-deletion ledger during stale tab closure
   delete older recorded Pick3 conversations from ChatGPT sidebar history
   delete legacy sidebar records only when visible title matches the controlled Pick3 training title allowlist
   never delete the current or immediately previous protected workspace URLs
   persist staleConversationHistoryCleanupStatus in provider proof
+  do not convert post-response cleanup failure into parse_failed_raw_available after the AI answer already parsed
+  log cleanupStatus beside parse_result so runtime hygiene failure stays visible without corrupting prediction parsing
+  for Gemini Pick3, use the same governed sidebar-history cleanup chain as GPT, but refresh/verify against https://gemini.google.com/app and delete through the verified Gemini Recent menu: Open menu for conversation actions -> Delete -> Delete chat? -> Delete
 
 Never close arbitrary user ChatGPT tabs.
 Never delete arbitrary user ChatGPT sidebar history.
 Never depend on browser tab title to identify Pick3 ownership.
-Never continue training when non-protected Pick3 training history remains visible after cleanup.
+Never hide non-protected Pick3 training history that remains visible after cleanup; record it in provider proof and terminal logs.
 
 Cleanup throttle rule (avoids ChatGPT history access rate limit):
   STALE_CLEANUP_TRIGGER_THRESHOLD = 15
   STALE_CLEANUP_MAX_PER_RUN = 3
+  GEMINI_STALE_CLEANUP_MAX_PER_RUN = 80
   If stale entry count < 15: skip cleanup, return history_cleanup_deferred_stale_N_below_threshold_15, continue training.
-  If stale entry count ≥ 15: execute deletion for at most 3 entries this run, then continue training.
-  Rationale: deleting every run triggers ChatGPT's "请求过于频繁" history access rate limit dialog; throttling to 3 max and deferring until 15 are accumulated reduces API pressure while keeping history bounded.
+  If stale entry count ≥ 15 on ChatGPT: execute deletion for at most 3 entries this run, then record cleanup verification status in provider proof.
+  If stale entry count ≥ 15 on Gemini: execute deletion for at most 80 entries this run through the verified Gemini Recent DOM path, then record cleanup verification status in provider proof.
+  Gemini sidebar precondition: before discovering or verifying Gemini Recent, click the visible "Open sidebar" control when present; a collapsed Gemini rail can hide Pick3 rows and must not be interpreted as empty history.
+  Gemini row menu guard: if a Gemini row action menu is already open and exposes `Delete`, click that `Delete` directly; do not click `More options` again because the second click closes the menu.
+  Gemini cleanup loop: after each deletion pass, rediscover Gemini Recent because older hidden Pick3 training rows can become visible after visible rows are deleted; delete newly visible rows in the same governed run until none remain or the 80-entry cap is exhausted.
+  Rationale: deleting every ChatGPT run triggers ChatGPT's "请求过于频繁" history access rate limit dialog; throttling ChatGPT to 3 max and deferring until 15 are accumulated reduces API pressure while keeping history bounded. Gemini uses a provider-specific cap because verified Gemini Recent deletion is required to keep 10/15/25 blind training batches from stopping on normal history volume.
+
+Gemini pre-image cleanup rule:
+  before every Gemini Pick3 attachment upload, run pre_image_history_cleanup in the existing Gemini workspace tab
+  keepRecentCount = 1 because the new current conversation has not been created yet; this protects only the immediately previous completed Gemini conversation
+  triggerThreshold = 1 and maxDeleteCount = GEMINI_STALE_CLEANUP_MAX_PER_RUN so the runner keeps deleting N-2-or-older completed Gemini Pick3 conversations until no non-protected Pick3 history remains visible
+  deletion path = open https://gemini.google.com/app, ensure Gemini sidebar is open, open the governed Recent row menu, Delete, confirm Delete chat?, refresh/verify against Gemini Recent
+  if a target history row is already gone, record not_found and continue; if real deletion failure is reported or any N-2-or-older Pick3 history remains visible after the cleanup pass, stop review_required before attachment upload
+  emit terminal-visible pre_image_history_cleanup timing logs with keepRecentCount, triggerThreshold, maxDeleteCount, and cleanup status
+  this pre-image rule is Gemini-only; ChatGPT keeps STALE_CLEANUP_TRIGGER_THRESHOLD = 15 and STALE_CLEANUP_MAX_PER_RUN = 3
 
 Controlled Pick3 training title allowlist:
   Pick3 Blind Eval
@@ -1289,6 +1644,7 @@ type Pick3IsBlindEvalMode =
 ```ts
 type Pick3IsBlindEvalInput = {
   mode: Pick3IsBlindEvalMode;
+  promptMode?: "playbook_v1" | "free_analysis_strict_reasoning";
   source: "theuaelottery";
   lotteryType?: 72;
   windowSize?: 80;
@@ -1352,6 +1708,94 @@ type Pick3IsBlindEvalResult = {
     promptHash: string;
   }>;
 };
+```
+
+## Official Trend Display
+
+Purpose:
+
+```txt
+Human review surface for latest official Pick3 trend data.
+It is not an AI prompt, not a blind image, not a prediction result, and not a recommendation surface.
+```
+
+Data chain:
+
+```txt
+official sync -> pick3_draws -> listPick3TrendSnapshot -> GET /api/pick3-is-blind-eval/trend -> Pick3 Trend App Shell surface
+```
+
+Required route:
+
+```txt
+GET /api/pick3-is-blind-eval/trend
+```
+
+Route rules:
+
+```txt
+localUiAllowed: true
+externalApiAllowed: false
+requiresApiKey: false
+jobOwner: pick3-is-blind-eval
+purpose: local_pick3_trend_snapshot
+```
+
+Trend snapshot shape:
+
+```ts
+type Pick3TrendSnapshot = {
+  source: "pick3_draws";
+  windowSize: 80;
+  drawCount: number;
+  latestPhase: string | null;
+  latestWindowStartIndex: number;
+  draws: Array<{
+    index: number;
+    phase: string;
+    expectedPrizeTime: string;
+    expectedPrizeTimestamp: string;
+    numbers: string;
+    positions: {
+      hundreds: number;
+      tens: number;
+      ones: number;
+    };
+  }>;
+};
+```
+
+UI contract:
+
+```txt
+Default view = latest 80 stored official draws.
+Visible window size = 80 and must not change during drag.
+Rows = hundreds, tens, ones as three separated rows.
+Hover point info = phase + official drawn numbers + expected prize time.
+Mouse drag = move historical start index over stored official draws.
+Dragging right/left changes the window location, not the 80-draw window size.
+Empty or insufficient data must show counts honestly; it must not synthesize missing draws.
+```
+
+Visual standard:
+
+```txt
+The Trend surface lives inside the existing Pick3 workspace page stack.
+The chart should use a dense workbench-style SVG surface, compact metrics, clear row labels, visible point targets, and a floating tooltip.
+It must stay readable on desktop and narrow workbench widths without overlapping text.
+```
+
+Forbidden:
+
+```txt
+No external lottery mirror.
+No browser DOM scraping for trend truth.
+No localStorage or fixture rows as production truth.
+No /Users/nexgen/Documents/trend-intuition-brain runtime read.
+No trend-specific storage table.
+No trend data mixed into blind image generation.
+No phase/date/answer text in AI blind images.
+No recommendation, final selected label, betting, stake, or purchase action.
 ```
 
 ## BrowserController Usage
@@ -1458,6 +1902,9 @@ Acceptance tests:
 11. active Playbook files are inside AGENT Pick3 plugin owner.
 12. AGENT code, law, and blueprint contain no runtime dependency on trend-intuition-brain.
 13. Playbook prompt package contains hashes and no target phase/date/answer fields.
+14. Trend snapshot reads pick3_draws, returns windowSize=80, and computes latestWindowStartIndex.
+15. Trend route is admitted only through the existing Workbench API Boundary as local_pick3_trend_snapshot.
+16. Trend UI exposes a fixed L80 three-row surface with hover point info and drag navigation.
 ```
 
 Manual Chrome acceptance:
@@ -1470,6 +1917,10 @@ Manual Chrome acceptance:
 5. click View More Results.
 6. verify /lottery/pick3/results and Recent Series filters.
 7. compare first visible row to qapi 660301 first row.
+8. open local Workbench Pick3 Trend surface.
+9. verify latest 80 draw window renders as three separated rows: hundreds, tens, ones.
+10. hover a point and verify phase + official drawn numbers + expected prize time.
+11. drag the trend surface and verify the phase range changes while the visible window remains 80.
 ```
 
 Verification commands:
@@ -1479,6 +1930,238 @@ npm run typecheck
 npm run lint
 npm run audit:pick3-is-blind-eval
 npm run acceptance:pick3-is-blind-eval
+```
+
+## Next Prediction Stability Human Review History
+
+Law:
+
+```txt
+GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1
+```
+
+Purpose:
+
+```txt
+Give the human reviewer the full evidence needed to decide manually:
+task history, phase context, same-image repeat proof, every repeat result,
+and the complete AI answer. The system does not choose, vote, recommend,
+or describe a buying action.
+```
+
+Single source chain:
+
+```txt
+task summary: runtime-data/pick3-is-blind-eval/tasks/<taskId>/task.json
+AI raw answer: pick3_ai_interactions.raw_response_text
+AI prompt/proof: pick3_ai_interactions rendered_prompt_text/provider_proof_json/raw_output_ref
+prediction row: ai_predictions joined by interaction_id
+image proof: task.batch.images imageId/imageSha256/targetPhase/visibleStartPhase/visibleEndPhase
+```
+
+No second chain:
+
+```txt
+Do not create a second history DB, second result file, second answer file,
+or second route family. History APIs are read-only projections over the
+existing task.json and SQLite interaction/prediction records.
+```
+
+Workbench API:
+
+```txt
+GET /api/pick3-is-blind-eval/history
+  returns persisted next_prediction_stability and full_pipeline task summaries.
+
+GET /api/pick3-is-blind-eval/task?taskId=<taskId>
+  returns phase context, image proof, repeat rows or full_pipeline answer rows,
+  observed distribution, phaseReports, evidence completeness, and AI answer payloads.
+
+GET /api/pick3-is-blind-eval/interaction?taskId=<taskId>&interactionId=<interactionId>
+  returns one raw AI answer payload for direct Inspector viewing.
+```
+
+History row fields:
+
+```txt
+taskId
+batchId
+status
+createdAt
+providerKind
+repeatCount
+selectedPositions
+newestOfficialPhase
+targetPhase
+visibleStartPhase
+visibleEndPhase
+expectedRepeatResults
+actualRepeatResults
+rawAnswerCount
+evidenceCompleteness
+taskMode
+scoring
+```
+
+Task detail fields:
+
+```txt
+images[]
+  position
+  imageId
+  imageSha256
+  targetPhase
+  visibleStartPhase
+  visibleEndPhase
+
+repeats[]
+  position
+  imageId
+  repeatIndex
+  interactionId
+  predictionId
+  predictionLabel
+  visiblePredictionLabel
+  confidence
+  parseStatus
+  parseFailureReason
+  rawResponseHash
+  rawOutputRef
+  sameImageForPosition
+  aiAnswer.rawResponseText
+  aiAnswer.renderedPromptText
+  aiAnswer.promptPackageId
+  aiAnswer.promptContractId
+  aiAnswer.providerProofJson
+
+phaseReports[] for full_pipeline historical scoring
+  phase
+  status: hit | miss | abstain | incomplete
+  errorReason
+  positions[]
+    position
+    predictionLabel
+    answerLabel
+    hit
+    confidence
+    errorReason
+```
+
+Full pipeline history value rule:
+
+```txt
+full_pipeline is historical scoring, so history must not hide it behind latest-task.json.
+For every target phase, combine hundreds/tens/ones into one phaseReports[] row.
+status = hit only when all three positions hit.
+status = miss when any non-abstain position is wrong.
+status = abstain when at least one position abstained and no position is missing.
+status = incomplete when any position is missing prediction/reveal proof.
+errorReason must explain the wrong or abstained position using failure review promptProblem,
+abstainReason, parseFailureReason, or a prediction-vs-answer fallback.
+```
+
+UI:
+
+```txt
+Pick3 workspace adds a History tab.
+History tab left column: task rows with phase and completeness.
+History tab right column: selected task context, phaseReports, images, repeat/answer table.
+Clicking a repeat opens Inspector with the full AI answer.
+Observed distribution may be shown as evidence counts only, grouped by position.
+No final selected label, majority instruction, betting advice, or buy text.
+```
+
+observedDistribution shape:
+
+```txt
+observedDistribution: Record<position, Record<visibleLabel, count>>
+e.g. { "hundreds": { "lower": 2, "upper": 3 }, "tens": { "lower": 5 } }
+```
+
+Counts for different positions must never be summed into one shared total. A task that
+selects multiple positions must show one count bucket per position, so a human reading
+the distribution for "hundreds" never sees votes that actually came from "tens" or "ones".
+
+Acceptance:
+
+```txt
+1. Create a next_prediction_stability fixture with batchSize=5 and one image.
+2. Persist task.json through existing Pick3 storage.
+3. Persist five pick3_ai_interactions through the existing Prompt Exchange path.
+4. Verify history returns newest official phase, target phase, selected position, repeat count, and completeness.
+5. Verify task detail returns five repeats tied to one image id.
+6. Verify every repeat exposes rawResponseText and prompt/proof metadata.
+7. Verify observedDistribution is present, grouped by position, and no final recommendation field exists.
+8. Create a second fixture selecting two positions and verify their counts land in separate observedDistribution buckets, never summed together.
+9. Create a full_pipeline fixture with one target phase and three positions, force one wrong position, and verify history lists the task, phaseReports[0].status = miss, and errorReason is visible.
+```
+
+## Human Review History Physical Delete
+
+Law:
+
+```txt
+GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1
+```
+
+Purpose:
+
+```txt
+Let the human reviewer permanently remove a bad/noisy/test Pick3 stability
+history record from the local evidence set. This is a destructive operation,
+not an archive or soft delete.
+```
+
+UI rule:
+
+```txt
+History detail exposes a Delete button for the selected task.
+Clicking Delete must call window.confirm before any DELETE request.
+The confirm copy must say physical delete, irreversible, task evidence,
+AI answers, and artifact files.
+Cancel means no backend request.
+Confirm means the backend DELETE route executes.
+```
+
+API:
+
+```txt
+DELETE /api/pick3-is-blind-eval/task?taskId=<taskId>
+```
+
+Physical delete scope:
+
+```txt
+runtime-data/pick3-is-blind-eval/tasks/<taskId>/
+runtime-data/pick3-is-blind-eval/latest-task.json when it points to taskId
+task.batch.artifactDir when it is inside GrassEye runtime data
+pick3_ai_interactions rows for task.batch.batchId
+ai_predictions rows for task.batch.batchId
+ai_reveals rows joined through ai_predictions for task.batch.batchId
+failure_reviews rows for task.batch.batchId
+is_blind_images rows for task.batch.batchId
+is_blind_batches row for task.batch.batchId
+rawOutputRef files recorded by pick3_ai_interactions when inside GrassEye runtime data
+```
+
+Path safety:
+
+```txt
+Only delete paths contained by the local GrassEye data directory.
+Never delete arbitrary absolute paths, provider profile paths, browser profile
+paths, or anything outside runtime data.
+```
+
+Acceptance:
+
+```txt
+1. Persist a next_prediction_stability fixture with task.json, batch rows, interaction rows, prediction rows, artifact dir, and raw output ref file.
+2. Call deletePick3HumanReviewTask(taskId).
+3. Verify task detail returns null.
+4. Verify history no longer lists taskId.
+5. Verify task directory, artifact dir, and raw output ref file no longer exist.
+6. Verify SQLite rows for the deleted batch no longer exist.
+7. Browser test must prove cancel keeps the record and confirm deletes it.
 ```
 
 ## Construction Order
