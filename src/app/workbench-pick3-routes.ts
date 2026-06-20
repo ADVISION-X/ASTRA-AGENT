@@ -67,6 +67,21 @@ const handlePick3DeleteTask = async (
   writeJson(response, result ? 200 : 404, result ?? { error: "pick3_human_review_task_not_found" });
 };
 
+const handlePick3ManualPlaybookReview = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<void> => {
+  const body = await readJsonBody(request) as { phase?: unknown; position?: unknown; taskId?: unknown };
+  const taskId = typeof body.taskId === "string" ? body.taskId : "";
+  const phase = typeof body.phase === "string" ? body.phase : "";
+  const position = typeof body.position === "string" ? body.position : "";
+  const result = taskId && phase && position
+    ? await workbench.reviewPick3PlaybookLessonManually({ phase, position, taskId })
+    : null;
+  writeJson(response, result ? 200 : 404, result ?? { error: "pick3_playbook_lesson_review_not_found" });
+};
+
 const handlePick3GetRequest = async (
   path: string,
   url: URL,
@@ -90,6 +105,7 @@ const handlePick3WriteRequest = async (
   workbench: GrassEyeWorkbenchHandle,
 ): Promise<boolean> => {
   if (request.method === "POST" && path === "/api/pick3-is-blind-eval/start") await handlePick3Start(request, response, workbench);
+  else if (request.method === "POST" && path === "/api/pick3-is-blind-eval/playbook-review") await handlePick3ManualPlaybookReview(request, response, workbench);
   else if (request.method === "DELETE" && path === "/api/pick3-is-blind-eval/task") await handlePick3DeleteTask(url, response, workbench);
   else return false;
   return true;

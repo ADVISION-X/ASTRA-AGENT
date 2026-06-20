@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T10:53:19.008Z",
+  "generatedAt": "2026-06-20T12:01:24.700Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -662,6 +662,7 @@
         "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
         "GRASSEYE-PICK3-IS-BRAIN-006-V1",
         "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+        "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
         "GRASSEYE-PICK3-TREND-DISPLAY-010-V1"
       ],
       "clauseIds": [
@@ -675,6 +676,7 @@
       "evidenceModes": [
         "blind-boundary+acceptance",
         "law+blueprint+acceptance",
+        "lesson-store+prompt-exchange+history-ui+acceptance+audit",
         "model-metadata+baseline+calibration+acceptance",
         "official-storage+app-shell+acceptance+chrome",
         "official-sync+prompt-exchange+acceptance+audit",

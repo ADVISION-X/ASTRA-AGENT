@@ -16,6 +16,8 @@ import {
   type Pick3RevealRecord,
   type Pick3TaskRecord,
 } from "./pick3-is-blind-eval.schema.js";
+import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
+import { insertPlaybookLessons, listPlaybookLessons, listPlaybookLessonsByPosition } from "./pick3-is-blind-eval.playbook-lesson-storage.js";
 import type { Pick3PlaybookRecord } from "./pick3-is-blind-eval.playbook.js";
 import { createPick3Schema, preparePick3Statements, type Pick3Statements } from "./pick3-is-blind-eval.storage-schema.js";
 
@@ -37,12 +39,15 @@ export type Pick3Storage = {
   insertPredictions: (predictions: readonly Pick3PredictionRecord[]) => void;
   insertReveals: (reveals: readonly Pick3RevealRecord[]) => void;
   insertFailureReviews: (reviews: readonly Pick3FailureReviewRecord[]) => void;
+  insertPlaybookLessons: (lessons: readonly Pick3PlaybookLessonRecord[]) => void;
   upsertPlaybooks: (playbooks: readonly Pick3PlaybookRecord[]) => void;
   listActivePlaybooks: () => Pick3PlaybookRecord[];
   listAiInteractions: (batchId: string) => Pick3AiInteractionRecord[];
   listPredictions: (batchId: string) => Pick3PredictionRecord[];
   listReveals: (batchId: string) => Pick3RevealRecord[];
   listFailureReviews: (batchId: string) => Pick3FailureReviewRecord[];
+  listPlaybookLessons: (batchId: string) => Pick3PlaybookLessonRecord[];
+  listPlaybookLessonsByPosition: (position: Pick3PlaybookLessonRecord["position"]) => Pick3PlaybookLessonRecord[];
   writeTask: (record: Pick3TaskRecord) => void;
   readLatestTask: () => Pick3TaskRecord | null;
 };
@@ -163,6 +168,32 @@ const rowToFailureReview = (row: Record<string, unknown>): Pick3FailureReviewRec
   failureType: String(row.failure_type),
   promptProblem: String(row.prompt_problem),
   repairInstruction: String(row.repair_instruction),
+  createdAt: String(row.created_at),
+});
+
+const rowToPlaybookLesson = (row: Record<string, unknown>): Pick3PlaybookLessonRecord => ({
+  lessonId: String(row.lesson_id),
+  batchId: String(row.batch_id),
+  taskId: String(row.task_id),
+  source: row.source as Pick3PlaybookLessonRecord["source"],
+  status: row.status as Pick3PlaybookLessonRecord["status"],
+  phase: String(row.phase),
+  position: row.position as Pick3PlaybookLessonRecord["position"],
+  imageId: String(row.image_id),
+  predictionId: String(row.prediction_id),
+  interactionId: String(row.interaction_id),
+  failureReviewId: String(row.failure_review_id),
+  promptPackageId: String(row.prompt_package_id),
+  playbookVersionId: String(row.playbook_version_id),
+  predictedLabel: row.predicted_label as Pick3PlaybookLessonRecord["predictedLabel"],
+  answerLabel: row.answer_label as Pick3PlaybookLessonRecord["answerLabel"],
+  aiReviewPrompt: String(row.ai_review_prompt),
+  aiReviewRawText: String(row.ai_review_raw_text),
+  aiReviewRawHash: String(row.ai_review_raw_hash),
+  rootCause: String(row.root_cause),
+  candidateLesson: String(row.candidate_lesson),
+  evidenceRefsJson: String(row.evidence_refs_json),
+  aggregateKey: String(row.aggregate_key),
   createdAt: String(row.created_at),
 });
 
@@ -407,6 +438,43 @@ const insertFailureReviews = (
   run();
 };
 
+const insertPlaybookLessons = (
+  db: Database.Database,
+  statements: Pick3Statements,
+  lessons: readonly Pick3PlaybookLessonRecord[],
+): void => {
+  const run = db.transaction(() => {
+    for (const lesson of lessons) {
+      statements.insertPlaybookLesson.run(
+        lesson.lessonId,
+        lesson.batchId,
+        lesson.taskId,
+        lesson.source,
+        lesson.status,
+        lesson.phase,
+        lesson.position,
+        lesson.imageId,
+        lesson.predictionId,
+        lesson.interactionId,
+        lesson.failureReviewId,
+        lesson.promptPackageId,
+        lesson.playbookVersionId,
+        lesson.predictedLabel,
+        lesson.answerLabel,
+        lesson.aiReviewPrompt,
+        lesson.aiReviewRawText,
+        lesson.aiReviewRawHash,
+        lesson.rootCause,
+        lesson.candidateLesson,
+        lesson.evidenceRefsJson,
+        lesson.aggregateKey,
+        lesson.createdAt,
+      );
+    }
+  });
+  run();
+};
+
 const upsertPlaybooks = (
   db: Database.Database,
   statements: Pick3Statements,
@@ -450,6 +518,15 @@ const listReveals = (statements: Pick3Statements, batchId: string): Pick3RevealR
 const listFailureReviews = (statements: Pick3Statements, batchId: string): Pick3FailureReviewRecord[] =>
   statements.listFailureReviews.all(batchId).map((row) => rowToFailureReview(row as Record<string, unknown>));
 
+const listPlaybookLessons = (statements: Pick3Statements, batchId: string): Pick3PlaybookLessonRecord[] =>
+  statements.listPlaybookLessons.all(batchId).map((row) => rowToPlaybookLesson(row as Record<string, unknown>));
+
+const listPlaybookLessonsByPosition = (
+  statements: Pick3Statements,
+  position: Pick3PlaybookLessonRecord["position"],
+): Pick3PlaybookLessonRecord[] =>
+  statements.listPlaybookLessonsByPosition.all(position).map((row) => rowToPlaybookLesson(row as Record<string, unknown>));
+
 const writeTaskRecord = (dataRoot: string, record: Pick3TaskRecord): void => {
   const taskDir = path.join(dataRoot, "tasks", record.taskId);
   mkdirSync(taskDir, { recursive: true });
@@ -485,12 +562,15 @@ export const openPick3Storage = (dataDir: string): Pick3Storage => {
     insertPredictions: (predictions) => insertPredictions(db, statements, predictions),
     insertReveals: (reveals) => insertReveals(db, statements, reveals),
     insertFailureReviews: (reviews) => insertFailureReviews(db, statements, reviews),
+    insertPlaybookLessons: (lessons) => insertPlaybookLessons(db, statements, lessons),
     upsertPlaybooks: (playbooks) => upsertPlaybooks(db, statements, playbooks),
     listActivePlaybooks: () => listActivePlaybooks(statements),
     listAiInteractions: (batchId) => listAiInteractions(statements, batchId),
     listPredictions: (batchId) => listPredictions(statements, batchId),
     listReveals: (batchId) => listReveals(statements, batchId),
     listFailureReviews: (batchId) => listFailureReviews(statements, batchId),
+    listPlaybookLessons: (batchId) => listPlaybookLessons(statements, batchId),
+    listPlaybookLessonsByPosition: (position) => listPlaybookLessonsByPosition(statements, position),
     writeTask: (record) => writeTaskRecord(dataRoot, record),
     readLatestTask: () => readLatestTaskRecord(dataRoot),
   };

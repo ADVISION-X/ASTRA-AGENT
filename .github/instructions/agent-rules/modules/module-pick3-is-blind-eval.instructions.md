@@ -148,6 +148,13 @@ UAE Lottery Pick 3 official source
 - Pick3 trend hover must expose the full draw information for the pointed draw: phase, official drawn numbers, and expected prize time.
 - Pick3 trend drag may move the historical window across older stored official draws, but the visible window size must remain fixed at 80 draws.
 - Pick3 trend display is a human UI read model only; it must not change blind image generation, AI payloads, prediction sealing, reveal, scoring, or next_prediction_stability output.
+- Pick3 full_pipeline Playbook-mode failed positions must automatically create position-specific Playbook lesson records after reveal/scoring.
+- Playbook lesson records must be stored in a dedicated lesson store, separate from task history, sealed predictions, reveals, and active Playbook payloads.
+- Playbook lessons must be separated by position (`hundreds`, `tens`, `ones`); different positions must never be merged into one shared lesson bucket or aggregate count.
+- Automatic Playbook review must return the failed image, historical prompt, raw AI reply, sealed prediction, revealed answer, and failure note to AI for post-mortem root-cause analysis only.
+- Manual Playbook review must remain available from the History surface for any failed full_pipeline position.
+- Playbook lessons may become candidate experience records only. Active Playbook rule changes require a later aggregation step after N position-specific lessons and must not be applied automatically.
+- Free Analysis Strict Reasoning results must not enter the Playbook lesson store.
 
 ## Forbidden
 
@@ -181,6 +188,10 @@ UAE Lottery Pick 3 official source
 - No generating multiple images for the same position to satisfy `next_prediction_stability` batchSize; batchSize is repeat-send count only.
 - No Pick3 trend data from external mirrors, browser DOM scraping, localStorage, fixture rows, or `/Users/nexgen/Documents/trend-intuition-brain`.
 - No trend display that changes the blind L80 image payload or leaks phase/date/answer text into AI blind images.
+- No Playbook lesson generated for free_analysis_strict_reasoning.
+- No Playbook lesson store that merges hundreds, tens, and ones into one shared bucket.
+- No automatic Playbook mutation from a single failure review or candidate lesson.
+- No Playbook review prompt that asks AI to re-predict the historical phase.
 
 ## Law IDs
 
@@ -450,6 +461,37 @@ UAE Lottery Pick 3 official source
     "Repeat detail without full raw AI answer access.",
     "Creating a second task history store, second AI answer store, or second result chain for human review.",
     "System-generated buy, bet, wager, majority choice, final pick, or recommendation text."
+  ]
+}
+```
+
+```apex-law
+{
+  "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "pick3-is-blind-eval",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "lesson-store+prompt-exchange+history-ui+acceptance+audit",
+  "summary": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records, saved separately from predictions and active Playbook payloads until enough lessons are aggregated for a later rule-version proposal.",
+  "required": [
+    "After full_pipeline reveal/scoring, every failed Playbook-mode position creates an automatic Playbook lesson review.",
+    "History must also expose a manual Playbook review action for failed full_pipeline positions.",
+    "The review evidence package includes the failed image, historical rendered prompt, historical raw AI reply, sealed prediction, revealed answer, failure review note, playbook version id, prompt package id, phase, and position.",
+    "Review prompts are post-mortem analysis prompts and must explicitly forbid a new prediction.",
+    "Lesson records are persisted in a dedicated pick3_playbook_lessons store.",
+    "Each lesson records position as hundreds, tens, or ones and has an aggregate key beginning with that position.",
+    "Lesson records preserve source as auto_review or manual_review and status as candidate, accepted, rejected, or promoted.",
+    "Candidate lessons do not mutate active Playbook files or active Playbook payloads.",
+    "Playbook rule-version proposals require a later N-lesson aggregation step."
+  ],
+  "forbidden": [
+    "Generating Playbook lessons from free_analysis_strict_reasoning.",
+    "Merging hundreds, tens, and ones lessons into one shared bucket.",
+    "Writing lesson results into ai_predictions, ai_reveals, or pick3_ai_interactions as if they were blind predictions.",
+    "Automatically modifying active Playbook files or active playbook payloads from a single lesson.",
+    "Review prompts that ask the AI to predict the historical answer again.",
+    "Second AI transport, second scoring path, second prediction table, or second history chain for lesson review."
   ]
 }
 ```

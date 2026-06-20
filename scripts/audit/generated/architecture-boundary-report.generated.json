@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T10:53:27.028Z",
+  "generatedAt": "2026-06-20T12:01:32.828Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -1118,6 +1118,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",

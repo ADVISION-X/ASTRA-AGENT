@@ -1,4 +1,4 @@
-generatedAt: "2026-06-20T10:53:19.008Z"
+generatedAt: "2026-06-20T12:01:24.700Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
@@ -257,6 +257,7 @@ rows:
       - "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1"
       - "GRASSEYE-PICK3-IS-BRAIN-006-V1"
       - "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1"
+      - "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1"
       - "GRASSEYE-PICK3-TREND-DISPLAY-010-V1"
   - capabilityDomain: "runtime-log-spine"
     manifestPath: "scripts/audit/domains/runtime-log-spine/manifest.json"

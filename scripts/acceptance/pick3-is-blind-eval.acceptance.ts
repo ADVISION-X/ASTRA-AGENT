@@ -10,7 +10,6 @@ import { buildPick3AiGatewayInput, runPick3PromptExchange, type Pick3GatewaySend
 import { reviewPick3Failures } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.js";
 import { listPick3TrendSnapshot } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.js";
 import { buildPick3PlaybookPromptPackage, loadBuiltInPick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
-import { writeCandidatePick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.js";
 import { revealPick3Predictions, scorePick3Predictions } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.js";
 import { openPick3Storage } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.js";
 import { buildDatedDraw, buildDraw, buildEmptyFixtureAiResult, buildFixtureAiResult, buildRawTextFixtureAiResult, oppositeLabel, toVisibleLabel, visiblePromptPackageId } from "./pick3-is-blind-eval.acceptance-support.js";
@@ -381,11 +380,6 @@ try {
   storage.insertFailureReviews(failureReviews);
   assert.deepEqual(failureReviews.map((review) => review.failureType), ["high_exhaustion_missed"]);
   assert.equal(storage.listFailureReviews("acceptance-batch").length, 1);
-  const candidatePlaybooks = writeCandidatePick3Playbooks({ artifactDir, activePlaybooks: playbooks, failureReviews });
-  storage.upsertPlaybooks(candidatePlaybooks);
-  assert.equal(candidatePlaybooks.length, 1);
-  assert.equal(candidatePlaybooks[0]?.status, "candidate");
-  assert.equal(readFileSync(candidatePlaybooks[0]!.contentPath, "utf8").includes("Do not memorize concrete answers"), true);
 
   const badExchange = await runPick3PromptExchange({ artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
     sender: async (input) => buildFixtureAiResult({

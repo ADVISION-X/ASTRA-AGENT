@@ -148,6 +148,7 @@ const appShellZhCopyEntries = [
   ["Observed distribution", "观察分布"],
   ["Scoring", "评分"],
   ["Phase Result", "单期结果"],
+  ["Playbook Lessons", "Playbook 经验库"],
   ["AI Answers", "AI 回答"],
   ["Statistical Honesty", "统计诚实性"],
   ["Confidence is not probability", "置信度不是概率"],

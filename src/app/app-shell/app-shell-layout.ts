@@ -326,6 +326,8 @@ const renderPick3HistorySurface = (): string => `
         </div>
         <h3>Phase Result</h3>
         <div class="record-list compact-record-list" data-pick3-history-phase-report-list></div>
+        <h3>Playbook Lessons</h3>
+        <div class="record-list compact-record-list" data-pick3-history-lesson-list></div>
         <h3>Images</h3>
         <div class="record-list compact-record-list" data-pick3-history-image-list></div>
         <h3>AI Answers</h3>

@@ -11,7 +11,10 @@ import type {
   Pick3RevealRecord,
   Pick3TaskRecord,
 } from "./pick3-is-blind-eval.schema.js";
+import type { Pick3GatewaySender } from "./pick3-is-blind-eval.ai.js";
+import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
 import { openPick3Storage } from "./pick3-is-blind-eval.storage.js";
+import { reviewPick3PlaybookLessons } from "./pick3-is-blind-eval.playbook-lessons.js";
 
 type EvidenceCompleteness = {
   actualRepeatResults: number;
@@ -76,6 +79,7 @@ export type Pick3HumanReviewPhasePosition = {
   confidence: number | null;
   errorReason: string | null;
   hit: boolean | null;
+  lessonStatus: string | null;
   position: string;
   predictionLabel: string | null;
 };
@@ -92,6 +96,7 @@ export type Pick3HumanReviewTaskDetail = {
   images: Pick3ImageRecord[];
   observedDistribution: Record<string, Record<string, number>>;
   phaseReports: Pick3HumanReviewPhaseReport[];
+  playbookLessons: Pick3PlaybookLessonRecord[];
   repeats: Pick3HumanReviewRepeat[];
   summary: Pick3HumanReviewHistorySummary;
   task: Pick3TaskRecord;
@@ -307,12 +312,14 @@ const buildPhaseReports = (
   predictions: readonly Pick3PredictionRecord[],
   reveals: readonly Pick3RevealRecord[],
   failureReviews: readonly Pick3FailureReviewRecord[],
+  lessons: readonly Pick3PlaybookLessonRecord[],
 ): Pick3HumanReviewPhaseReport[] => {
   if (task.mode !== "full_pipeline") return [];
   const interactionByImage = new Map(interactions.map((interaction) => [interaction.imageId, interaction]));
   const predictionByImage = new Map(predictions.map((prediction) => [prediction.imageId, prediction]));
   const revealByPrediction = new Map(reveals.map((reveal) => [reveal.predictionId, reveal]));
   const failureByPrediction = new Map(failureReviews.map((review) => [review.predictionId, review]));
+  const lessonByPrediction = new Map(lessons.map((lesson) => [lesson.predictionId, lesson]));
   const imagesByPhase = new Map<string, Pick3ImageRecord[]>();
   for (const image of task.batch?.images ?? []) imagesByPhase.set(image.targetPhase, [...(imagesByPhase.get(image.targetPhase) ?? []), image]);
   return [...imagesByPhase.entries()].map(([phase, images]) => {
@@ -326,6 +333,7 @@ const buildPhaseReports = (
         confidence: prediction?.confidence ?? null,
         errorReason: positionErrorReason({ failureReview, interaction, prediction, reveal }),
         hit: reveal?.hit ?? null,
+        lessonStatus: prediction ? lessonByPrediction.get(prediction.predictionId)?.status ?? null : null,
         position: image.position,
         predictionLabel: prediction?.predictionLabel ?? null,
       };
@@ -369,16 +377,53 @@ export const getPick3HumanReviewTask = (dataDir: string, taskId: string): Pick3H
     const predictions = batchId ? storage.listPredictions(batchId) : [];
     const reveals = batchId ? storage.listReveals(batchId) : [];
     const failureReviews = batchId ? storage.listFailureReviews(batchId) : [];
+    const playbookLessons = batchId ? storage.listPlaybookLessons(batchId) : [];
     const repeats = buildRepeats(task, interactions, predictions);
     return {
       evidenceCompleteness: buildCompleteness(task, interactions),
       images: task.batch?.images ?? [],
       observedDistribution: buildObservedDistribution(repeats),
-      phaseReports: buildPhaseReports(task, interactions, predictions, reveals, failureReviews),
+      phaseReports: buildPhaseReports(task, interactions, predictions, reveals, failureReviews, playbookLessons),
+      playbookLessons,
       repeats,
       summary: buildSummary(task, interactions),
       task,
     };
+  } finally {
+    storage.close();
+  }
+};
+
+export const reviewPick3PlaybookLessonManually = async (
+  dataDir: string,
+  input: { phase: string; position: string; sender: Pick3GatewaySender; taskId: string },
+): Promise<Pick3PlaybookLessonRecord | null> => {
+  const storage = openPick3Storage(dataDir);
+  try {
+    const task = readTaskRecord(path.join(storage.dataRoot, "tasks", input.taskId, "task.json"));
+    const batchId = task?.batch?.batchId;
+    if (!task || task.mode !== "full_pipeline" || task.promptMode !== "playbook_v1" || !batchId) return null;
+    const images = task.batch?.images ?? [];
+    const interactions = storage.listAiInteractions(batchId);
+    const predictions = storage.listPredictions(batchId);
+    const reveals = storage.listReveals(batchId);
+    const failureReviews = storage.listFailureReviews(batchId).filter((review) => {
+      const image = images.find((item) => item.imageId === review.imageId);
+      return image?.targetPhase === input.phase && image.position === input.position;
+    });
+    if (failureReviews.length === 0) return null;
+    const lessons = await reviewPick3PlaybookLessons({
+      failureReviews,
+      images,
+      interactions,
+      predictions,
+      reveals,
+      sender: input.sender,
+      source: "manual_review",
+      taskId: input.taskId,
+    });
+    storage.insertPlaybookLessons(lessons);
+    return lessons[0] ?? null;
   } finally {
     storage.close();
   }
@@ -402,6 +447,7 @@ DELETE FROM ai_reveals
 WHERE prediction_id IN (SELECT prediction_id FROM ai_predictions WHERE batch_id = ?)
 `).run(batchId);
       db.prepare("DELETE FROM failure_reviews WHERE batch_id = ?").run(batchId);
+      db.prepare("DELETE FROM pick3_playbook_lessons WHERE batch_id = ?").run(batchId);
       db.prepare("DELETE FROM ai_predictions WHERE batch_id = ?").run(batchId);
       db.prepare("DELETE FROM pick3_ai_interactions WHERE batch_id = ?").run(batchId);
       db.prepare("DELETE FROM is_blind_images WHERE batch_id = ?").run(batchId);

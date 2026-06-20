@@ -1,5 +1,66 @@
 {
-  "generatedAt": "2026-06-20T10:53:54.367Z",
-  "itemCount": 0,
-  "items": []
+  "generatedAt": "2026-06-20T12:02:03.984Z",
+  "itemCount": 6,
+  "items": [
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "acceptance",
+      "reason": "active executable source file has 539 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "acceptance-smoke",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "audit:pick3-is-blind-eval",
+      "reason": "active executable source file has 576 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "audit:pick3-is-blind-eval",
+      "reason": "Function near line 461 breaks function budget: physical line count 78 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "audit-inspector",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:pick3-is-blind-eval",
+      "reason": "Function near line 237 breaks function budget: physical line count 76 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:pick3-is-blind-eval",
+      "reason": "Named export count 25 exceeds red line 24.",
+      "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
+      "role": "job-schema",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:pick3-is-blind-eval",
+      "reason": "active executable source file has 577 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    }
+  ]
 }

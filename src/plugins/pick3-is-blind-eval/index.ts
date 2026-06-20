@@ -9,6 +9,7 @@ export {
   getPick3HumanReviewInteraction,
   getPick3HumanReviewTask,
   listPick3HumanReviewHistory,
+  reviewPick3PlaybookLessonManually,
 } from "./pick3-is-blind-eval.history.js";
 export {
   listPick3TrendSnapshot,

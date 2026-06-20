@@ -5,6 +5,7 @@ import {
   getPick3HumanReviewTask,
   listPick3TrendSnapshot,
   listPick3HumanReviewHistory,
+  reviewPick3PlaybookLessonManually,
   runPick3IsBlindEvalFlow,
   type Pick3TaskRecord,
 } from "../../plugins/pick3-is-blind-eval/index.js";
@@ -39,5 +40,11 @@ export const buildPick3IsBlindEvalHandle = (
   },
   async deletePick3HumanReviewTask(taskId: string) {
     return deletePick3HumanReviewTask(dataDir, taskId);
+  },
+  async reviewPick3PlaybookLessonManually(input: { phase: string; position: string; taskId: string }) {
+    return reviewPick3PlaybookLessonManually(dataDir, {
+      ...input,
+      sender: (feedInput) => assembly.aiInputGateway.execute(feedInput),
+    });
   },
 });

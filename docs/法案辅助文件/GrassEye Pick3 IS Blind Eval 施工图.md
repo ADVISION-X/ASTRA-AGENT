@@ -534,6 +534,46 @@ CREATE TABLE pick3_playbooks (
 );
 ```
 
+### pick3_playbook_lessons
+
+```sql
+CREATE TABLE pick3_playbook_lessons (
+  lesson_id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  source TEXT NOT NULL,
+  status TEXT NOT NULL,
+  phase TEXT NOT NULL,
+  position TEXT NOT NULL,
+  image_id TEXT NOT NULL,
+  prediction_id TEXT NOT NULL,
+  interaction_id TEXT NOT NULL,
+  failure_review_id TEXT NOT NULL,
+  prompt_package_id TEXT NOT NULL,
+  playbook_version_id TEXT NOT NULL,
+  predicted_label TEXT NOT NULL,
+  answer_label TEXT NOT NULL,
+  ai_review_prompt TEXT NOT NULL,
+  ai_review_raw_text TEXT NOT NULL,
+  ai_review_raw_hash TEXT NOT NULL,
+  root_cause TEXT NOT NULL,
+  candidate_lesson TEXT NOT NULL,
+  evidence_refs_json TEXT NOT NULL,
+  aggregate_key TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+Lesson store rules:
+
+```txt
+source: auto_review | manual_review
+status: candidate | accepted | rejected | promoted
+position: hundreds | tens | ones
+aggregate_key must begin with the position, e.g. tens:shoulder_false_break
+free_analysis_strict_reasoning must not write pick3_playbook_lessons
+```
+
 ## AGENT-Owned IS Brain
 
 The Pick3 IS Brain is not an external project dependency. The active brain source is:
@@ -1557,16 +1597,89 @@ momentum_overfollow: momentum, inertia, surge_up, kill_down
 unknown: only when no current Playbook visual grammar family is present
 ```
 
+## Playbook Lesson Store Flow
+
+Law:
+
+```txt
+GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1
+```
+
+Automatic path:
+
+```txt
+full_pipeline + promptMode=playbook_v1 completes reveal/scoring
+  -> compare sealed prediction with official answer
+  -> for every failed position, create failure_review
+  -> build one evidence package per failed position
+  -> send the same failed image plus historical prompt and raw AI reply to AI
+  -> persist pick3_playbook_lessons with source=auto_review and status=candidate
+```
+
+Manual path:
+
+```txt
+History tab phaseReports miss position
+  -> human clicks manual Playbook review for that phase + position
+  -> system rebuilds the same historical evidence package
+  -> AI returns a new post-mortem analysis
+  -> persist pick3_playbook_lessons with source=manual_review and status=candidate
+```
+
+Evidence package:
+
+```txt
+phase
+position
+failed image
+historical renderedPromptText
+historical rawResponseText
+sealed predictionLabel
+revealed answerLabel
+failureReview.promptProblem
+playbookVersionId
+promptPackageId
+rawResponseHash / rawOutputRef
+```
+
+AI review prompt boundary:
+
+```txt
+Do not make a new prediction.
+Do not change historical prediction.
+Do not propose a Playbook rewrite yet.
+Analyze only why this already sealed Playbook prediction was wrong.
+Return rootCause and candidateLesson.
+```
+
+Position isolation:
+
+```txt
+hundreds lessons aggregate only with hundreds lessons.
+tens lessons aggregate only with tens lessons.
+ones lessons aggregate only with ones lessons.
+Counts from different positions must never be merged into a shared N.
+```
+
+Promotion boundary:
+
+```txt
+Single lessons are experience records only.
+After N accepted lessons for the same position/aggregateKey, a later aggregation task may propose a Playbook rule version.
+No automatic active Playbook mutation happens in this flow.
+```
+
 ## Prompt Rewrite Flow
 
 For each position:
 
 ```txt
-1. group failure_reviews by failureType.
-2. build a prompt patch proposal.
-3. create new prompt version file or DB row.
-4. never overwrite old prompt version.
-5. mark new prompt status = candidate.
+1. read accepted pick3_playbook_lessons for that exact position.
+2. group lessons by aggregate_key.
+3. only when the group has at least N accepted lessons, build a rule-version proposal.
+4. create new prompt/playbook version file or DB row only in the later promotion task.
+5. never overwrite old prompt/playbook version.
+6. mark new prompt/playbook status = candidate until human promotion.
 ```
 
 Plugin should write candidate prompts as:
@@ -1577,7 +1690,7 @@ src/plugins/pick3-is-blind-eval/playbooks/candidates/is_tens_l80_v{n}.md
 src/plugins/pick3-is-blind-eval/playbooks/candidates/is_ones_l80_v{n}.md
 ```
 
-Human promotion can copy candidate to active prompt.
+Human promotion can copy candidate to active prompt. A single failed phase cannot directly create an active Playbook rule.
 
 ## Failure Replay Flow
 
@@ -1979,6 +2092,10 @@ GET /api/pick3-is-blind-eval/task?taskId=<taskId>
 
 GET /api/pick3-is-blind-eval/interaction?taskId=<taskId>&interactionId=<interactionId>
   returns one raw AI answer payload for direct Inspector viewing.
+
+POST /api/pick3-is-blind-eval/playbook-review
+  body: { taskId, phase, position }
+  manually creates a Playbook lesson for one failed full_pipeline playbook_v1 position.
 ```
 
 History row fields:
@@ -2045,6 +2162,21 @@ phaseReports[] for full_pipeline historical scoring
     hit
     confidence
     errorReason
+    lessonStatus
+
+playbookLessons[]
+  lessonId
+  phase
+  position
+  source
+  status
+  aggregateKey
+  predictedLabel
+  answerLabel
+  rootCause
+  candidateLesson
+  aiReviewRawText
+  evidenceRefsJson
 ```
 
 Full pipeline history value rule:
@@ -2065,8 +2197,10 @@ UI:
 ```txt
 Pick3 workspace adds a History tab.
 History tab left column: task rows with phase and completeness.
-History tab right column: selected task context, phaseReports, images, repeat/answer table.
+History tab right column: selected task context, phaseReports, playbookLessons, images, repeat/answer table.
 Clicking a repeat opens Inspector with the full AI answer.
+Clicking a lesson opens Inspector with the AI post-mortem result and evidence refs.
+For failed playbook_v1 positions, History exposes a manual Playbook review action.
 Observed distribution may be shown as evidence counts only, grouped by position.
 No final selected label, majority instruction, betting advice, or buy text.
 ```
@@ -2094,6 +2228,9 @@ Acceptance:
 7. Verify observedDistribution is present, grouped by position, and no final recommendation field exists.
 8. Create a second fixture selecting two positions and verify their counts land in separate observedDistribution buckets, never summed together.
 9. Create a full_pipeline fixture with one target phase and three positions, force one wrong position, and verify history lists the task, phaseReports[0].status = miss, and errorReason is visible.
+10. In a playbook_v1 full_pipeline fixture, verify automatic playbookLessons are created for failed positions only, each lesson keeps its own hundreds/tens/ones position, aggregateKey starts with that position, and candidate lessons do not create active Playbook mutations.
+11. Verify manual POST /api/pick3-is-blind-eval/playbook-review can create a source=manual_review lesson for the same failed phase/position.
+12. Verify free_analysis_strict_reasoning full_pipeline failures do not create playbookLessons.
 ```
 
 ## Human Review History Physical Delete

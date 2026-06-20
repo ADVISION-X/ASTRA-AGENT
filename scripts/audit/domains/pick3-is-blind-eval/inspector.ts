@@ -27,6 +27,7 @@ const aiContractPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-c
 const aiParsePath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts";
 const flowPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts";
 const historyPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts";
+const playbookLessonsPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts";
 const trendPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts";
 const stabilityPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts";
 const flowTypesPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow-types.ts";
@@ -70,6 +71,7 @@ const inspectedFiles = [
     aiParsePath,
     flowPath,
     historyPath,
+    playbookLessonsPath,
     trendPath,
     flowTypesPath,
     stabilityPath,
@@ -105,11 +107,11 @@ const requireTokens = (findings: InspectorFinding[], lawId: string, filePath: st
   }
 };
 
-type LawRefs = { agentBrainLaw: string; blindBoundaryLaw: string; humanReviewHistoryLaw: string; officialSourceLaw: string; primaryLaw: string; promptRepairLaw: string; promptExchangeLaw: string; statisticalHonestyLaw: string; trendDisplayLaw: string };
+type LawRefs = { agentBrainLaw: string; blindBoundaryLaw: string; humanReviewHistoryLaw: string; lessonStoreLaw: string; officialSourceLaw: string; primaryLaw: string; promptRepairLaw: string; promptExchangeLaw: string; statisticalHonestyLaw: string; trendDisplayLaw: string };
 
 const buildLawRefs = (lawIds: readonly string[]): LawRefs => {
   const primaryLaw = lawIds[0] ?? "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1";
-  return { primaryLaw, officialSourceLaw: lawIds.find((lawId) => lawId.endsWith("002-V1")) ?? primaryLaw, blindBoundaryLaw: lawIds.find((lawId) => lawId.endsWith("003-V1")) ?? primaryLaw, promptRepairLaw: lawIds.find((lawId) => lawId.endsWith("004-V1")) ?? primaryLaw, statisticalHonestyLaw: lawIds.find((lawId) => lawId.endsWith("005-V1")) ?? primaryLaw, agentBrainLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-IS-BRAIN-006-V1") ?? primaryLaw, promptExchangeLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1") ?? primaryLaw, humanReviewHistoryLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1") ?? primaryLaw, trendDisplayLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-TREND-DISPLAY-010-V1") ?? primaryLaw };
+  return { primaryLaw, officialSourceLaw: lawIds.find((lawId) => lawId.endsWith("002-V1")) ?? primaryLaw, blindBoundaryLaw: lawIds.find((lawId) => lawId.endsWith("003-V1")) ?? primaryLaw, promptRepairLaw: lawIds.find((lawId) => lawId.endsWith("004-V1")) ?? primaryLaw, statisticalHonestyLaw: lawIds.find((lawId) => lawId.endsWith("005-V1")) ?? primaryLaw, agentBrainLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-IS-BRAIN-006-V1") ?? primaryLaw, promptExchangeLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1") ?? primaryLaw, humanReviewHistoryLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1") ?? primaryLaw, lessonStoreLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1") ?? primaryLaw, trendDisplayLaw: lawIds.find((lawId) => lawId === "GRASSEYE-PICK3-TREND-DISPLAY-010-V1") ?? primaryLaw };
 };
 
 const inspectFilesExist = (findings: InspectorFinding[], primaryLaw: string): void => {
@@ -137,6 +139,7 @@ const inspectLawContract = (findings: InspectorFinding[], lawRefs: LawRefs, lawT
     "\"GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1\"",
     "\"GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1\"",
     "\"GRASSEYE-PICK3-TREND-DISPLAY-010-V1\"",
+    "\"GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1\"",
     "full official coverage",
     "Success status with missing earliest history",
     "No betting",
@@ -455,6 +458,85 @@ const inspectPick3TrendDisplay = (
   ]);
 };
 
+const inspectPick3PlaybookLessonStore = (
+  findings: InspectorFinding[],
+  lessonStoreLaw: string,
+  lawText: string,
+  blueprintText: string,
+): void => {
+  requireTokens(findings, lessonStoreLaw, lawPath, lawText, "pick3-is-blind-eval/playbook-lesson-law", [
+    "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
+    "automatically create position-specific Playbook lesson records",
+    "dedicated lesson store",
+    "`hundreds`, `tens`, `ones`",
+    "Manual Playbook review",
+    "Free Analysis Strict Reasoning results must not enter the Playbook lesson store",
+    "No automatic Playbook mutation",
+  ]);
+  requireTokens(findings, lessonStoreLaw, blueprintPath, blueprintText, "pick3-is-blind-eval/playbook-lesson-blueprint", [
+    "## Playbook Lesson Store Flow",
+    "pick3_playbook_lessons",
+    "source: auto_review | manual_review",
+    "position: hundreds | tens | ones",
+    "aggregate_key must begin with the position",
+    "free_analysis_strict_reasoning must not write pick3_playbook_lessons",
+    "POST /api/pick3-is-blind-eval/playbook-review",
+    "After N accepted lessons for the same position/aggregateKey",
+  ]);
+  requireTokens(findings, lessonStoreLaw, storageSchemaPath, readRepoTextIfExists(storageSchemaPath), "pick3-is-blind-eval/playbook-lesson-storage-schema", [
+    "CREATE TABLE IF NOT EXISTS pick3_playbook_lessons",
+    "position TEXT NOT NULL",
+    "aggregate_key TEXT NOT NULL",
+    "source TEXT NOT NULL",
+    "status TEXT NOT NULL",
+  ]);
+  requireTokens(findings, lessonStoreLaw, playbookLessonsPath, readRepoTextIfExists(playbookLessonsPath), "pick3-is-blind-eval/playbook-lesson-review-runtime", [
+    "reviewPick3PlaybookLessons",
+    "pick3-playbook-failure-review-v1",
+    "Do not make a new prediction",
+    "candidateLesson",
+    "aggregateKey: `${input.image.position}:",
+    "source: input.source",
+  ]);
+  requireTokens(findings, lessonStoreLaw, flowPath, readRepoTextIfExists(flowPath), "pick3-is-blind-eval/playbook-lesson-auto-flow", [
+    "input.batchInput.promptMode === \"playbook_v1\"",
+    "reviewPick3PlaybookLessons",
+    "source: \"auto_review\"",
+    "insertPlaybookLessons",
+    "Playbook changes require N accepted position-specific lessons",
+  ]);
+  requireTokens(findings, lessonStoreLaw, historyPath, readRepoTextIfExists(historyPath), "pick3-is-blind-eval/playbook-lesson-history-runtime", [
+    "playbookLessons",
+    "reviewPick3PlaybookLessonManually",
+    "task.promptMode !== \"playbook_v1\"",
+    "source: \"manual_review\"",
+    "lessonStatus",
+  ]);
+  requireTokens(findings, lessonStoreLaw, workbenchPick3RoutesPath, readRepoTextIfExists(workbenchPick3RoutesPath), "pick3-is-blind-eval/playbook-lesson-route", [
+    "/api/pick3-is-blind-eval/playbook-review",
+    "handlePick3ManualPlaybookReview",
+    "reviewPick3PlaybookLessonManually",
+  ]);
+  requireTokens(findings, lessonStoreLaw, workbenchApiBoundaryPath, readRepoTextIfExists(workbenchApiBoundaryPath), "pick3-is-blind-eval/playbook-lesson-api-boundary", [
+    "/api/pick3-is-blind-eval/playbook-review",
+    "local_pick3_playbook_lesson_manual_review",
+    "externalApiAllowed: false",
+  ]);
+  requireTokens(findings, lessonStoreLaw, pick3HistoryClientPath, readRepoTextIfExists(pick3HistoryClientPath), "pick3-is-blind-eval/playbook-lesson-ui", [
+    "data-pick3-history-lesson-list",
+    "runPick3ManualPlaybookReview",
+    "data-pick3-manual-playbook-review",
+    "renderPick3PlaybookLessons",
+  ]);
+  requireTokens(findings, lessonStoreLaw, fullHistoryAcceptancePath, readRepoTextIfExists(fullHistoryAcceptancePath), "pick3-is-blind-eval/playbook-lesson-acceptance", [
+    "free_analysis_strict_reasoning failures must not enter Playbook lessons",
+    "reviewPick3PlaybookLessons",
+    "aggregateKey.startsWith(\"tens:\")",
+    "reviewPick3PlaybookLessonManually",
+    "source, \"manual_review\"",
+  ]);
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawIds = context.planEntry.lawIds;
   const lawRefs = buildLawRefs(lawIds);
@@ -480,6 +562,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     humanReviewHistoryLaw: lawRefs.humanReviewHistoryLaw,
     lawText,
   });
+  inspectPick3PlaybookLessonStore(findings, lawRefs.lessonStoreLaw, lawText, blueprintText);
   inspectPick3TrendDisplay(findings, lawRefs.trendDisplayLaw, lawText, blueprintText);
   inspectPackageScripts(findings, lawRefs.primaryLaw, packageText);
 

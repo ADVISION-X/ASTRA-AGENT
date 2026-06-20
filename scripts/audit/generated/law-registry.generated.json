@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T10:53:19.008Z",
+  "generatedAt": "2026-06-20T12:01:24.700Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -3376,6 +3376,36 @@
       "blockIndex": 8
     },
     {
+      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "lesson-store+prompt-exchange+history-ui+acceptance+audit",
+      "summary": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records, saved separately from predictions and active Playbook payloads until enough lessons are aggregated for a later rule-version proposal.",
+      "required": [
+        "After full_pipeline reveal/scoring, every failed Playbook-mode position creates an automatic Playbook lesson review.",
+        "History must also expose a manual Playbook review action for failed full_pipeline positions.",
+        "The review evidence package includes the failed image, historical rendered prompt, historical raw AI reply, sealed prediction, revealed answer, failure review note, playbook version id, prompt package id, phase, and position.",
+        "Review prompts are post-mortem analysis prompts and must explicitly forbid a new prediction.",
+        "Lesson records are persisted in a dedicated pick3_playbook_lessons store.",
+        "Each lesson records position as hundreds, tens, or ones and has an aggregate key beginning with that position.",
+        "Lesson records preserve source as auto_review or manual_review and status as candidate, accepted, rejected, or promoted.",
+        "Candidate lessons do not mutate active Playbook files or active Playbook payloads.",
+        "Playbook rule-version proposals require a later N-lesson aggregation step."
+      ],
+      "forbidden": [
+        "Generating Playbook lessons from free_analysis_strict_reasoning.",
+        "Merging hundreds, tens, and ones lessons into one shared bucket.",
+        "Writing lesson results into ai_predictions, ai_reveals, or pick3_ai_interactions as if they were blind predictions.",
+        "Automatically modifying active Playbook files or active playbook payloads from a single lesson.",
+        "Review prompts that ask the AI to predict the historical answer again.",
+        "Second AI transport, second scoring path, second prediction table, or second history chain for lesson review."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+      "blockIndex": 9
+    },
+    {
       "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
       "status": "active",
       "tier": "P0",
@@ -3403,7 +3433,7 @@
         "Creating a second delete ledger, second history chain, or recoverable trash folder."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
@@ -3425,7 +3455,7 @@
         "Replay overwrites original prediction or reveal."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",

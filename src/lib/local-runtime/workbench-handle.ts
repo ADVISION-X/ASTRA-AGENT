@@ -53,6 +53,7 @@ type DeletePick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-ev
 type ListPick3HumanReviewHistory = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3HumanReviewHistory;
 type GetPick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewTask;
 type GetPick3HumanReviewInteraction = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewInteraction;
+type ReviewPick3PlaybookLessonManually = typeof import("../../plugins/pick3-is-blind-eval/index.js").reviewPick3PlaybookLessonManually;
 type ListPick3TrendSnapshot = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3TrendSnapshot;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
@@ -90,6 +91,7 @@ type Pick3HumanReviewDeleteResult = ReturnType<DeletePick3HumanReviewTask>;
 type Pick3HumanReviewHistoryResult = ReturnType<ListPick3HumanReviewHistory>;
 type Pick3HumanReviewTaskResult = ReturnType<GetPick3HumanReviewTask>;
 type Pick3HumanReviewInteractionResult = ReturnType<GetPick3HumanReviewInteraction>;
+type Pick3ManualPlaybookLessonResult = Awaited<ReturnType<ReviewPick3PlaybookLessonManually>>;
 type Pick3TrendSnapshotResult = ReturnType<ListPick3TrendSnapshot>;
 
 export type DeepResearchInputAttachmentStagingFile = {
@@ -254,4 +256,9 @@ export type GrassEyeWorkbenchHandle = {
   deletePick3HumanReviewTask: (
     taskId: string,
   ) => Promise<Pick3HumanReviewDeleteResult>;
+  reviewPick3PlaybookLessonManually: (input: {
+    phase: string;
+    position: string;
+    taskId: string;
+  }) => Promise<Pick3ManualPlaybookLessonResult>;
 };

@@ -6,6 +6,7 @@ export type Pick3Statements = {
   insertBatch: Database.Statement;
   insertDraw: Database.Statement;
   insertFailureReview: Database.Statement;
+  insertPlaybookLesson: Database.Statement;
   insertImage: Database.Statement;
   insertPrediction: Database.Statement;
   insertReveal: Database.Statement;
@@ -13,6 +14,8 @@ export type Pick3Statements = {
   listAiInteractions: Database.Statement;
   listDrawsAscending: Database.Statement;
   listFailureReviews: Database.Statement;
+  listPlaybookLessons: Database.Statement;
+  listPlaybookLessonsByPosition: Database.Statement;
   listPredictions: Database.Statement;
   listReveals: Database.Statement;
   updateDraw: Database.Statement;
@@ -165,6 +168,31 @@ const schemaSql = [
   repair_instruction TEXT NOT NULL,
   created_at TEXT NOT NULL
 )`,
+  `CREATE TABLE IF NOT EXISTS pick3_playbook_lessons (
+  lesson_id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  source TEXT NOT NULL,
+  status TEXT NOT NULL,
+  phase TEXT NOT NULL,
+  position TEXT NOT NULL,
+  image_id TEXT NOT NULL,
+  prediction_id TEXT NOT NULL,
+  interaction_id TEXT NOT NULL,
+  failure_review_id TEXT NOT NULL,
+  prompt_package_id TEXT NOT NULL,
+  playbook_version_id TEXT NOT NULL,
+  predicted_label TEXT NOT NULL,
+  answer_label TEXT NOT NULL,
+  ai_review_prompt TEXT NOT NULL,
+  ai_review_raw_text TEXT NOT NULL,
+  ai_review_raw_hash TEXT NOT NULL,
+  root_cause TEXT NOT NULL,
+  candidate_lesson TEXT NOT NULL,
+  evidence_refs_json TEXT NOT NULL,
+  aggregate_key TEXT NOT NULL,
+  created_at TEXT NOT NULL
+)`,
 ] as const;
 
 export const createPick3Schema = (db: Database.Database): void => {
@@ -237,7 +265,7 @@ INSERT OR REPLACE INTO is_blind_images (
 
 const preparePick3AiWriteStatements = (db: Database.Database): Pick<
   Pick3Statements,
-  "insertAiInteraction" | "insertFailureReview" | "insertPrediction" | "insertReveal"
+  "insertAiInteraction" | "insertFailureReview" | "insertPlaybookLesson" | "insertPrediction" | "insertReveal"
 > => ({
   insertAiInteraction: db.prepare(`
 INSERT OR REPLACE INTO pick3_ai_interactions (
@@ -269,6 +297,14 @@ INSERT OR REPLACE INTO failure_reviews (
   prompt_problem, repair_instruction, created_at
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `),
+  insertPlaybookLesson: db.prepare(`
+INSERT OR REPLACE INTO pick3_playbook_lessons (
+  lesson_id, batch_id, task_id, source, status, phase, position, image_id, prediction_id,
+  interaction_id, failure_review_id, prompt_package_id, playbook_version_id,
+  predicted_label, answer_label, ai_review_prompt, ai_review_raw_text, ai_review_raw_hash,
+  root_cause, candidate_lesson, evidence_refs_json, aggregate_key, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`),
 });
 
 const preparePick3WriteStatements = (db: Database.Database): Pick<
@@ -278,6 +314,7 @@ const preparePick3WriteStatements = (db: Database.Database): Pick<
   | "insertBatch"
   | "insertDraw"
   | "insertFailureReview"
+  | "insertPlaybookLesson"
   | "insertImage"
   | "insertPrediction"
   | "insertReveal"
@@ -291,7 +328,7 @@ const preparePick3WriteStatements = (db: Database.Database): Pick<
 
 const preparePick3ReadStatements = (db: Database.Database): Pick<
   Pick3Statements,
-  "listActivePlaybooks" | "listAiInteractions" | "listDrawsAscending" | "listFailureReviews" | "listPredictions" | "listReveals"
+  "listActivePlaybooks" | "listAiInteractions" | "listDrawsAscending" | "listFailureReviews" | "listPlaybookLessons" | "listPlaybookLessonsByPosition" | "listPredictions" | "listReveals"
 > => ({
   listDrawsAscending: db.prepare("SELECT * FROM pick3_draws ORDER BY expected_prize_timestamp ASC, phase ASC"),
   listActivePlaybooks: db.prepare("SELECT * FROM pick3_playbooks WHERE status = 'active' ORDER BY position ASC, version DESC"),
@@ -304,6 +341,8 @@ WHERE ai_predictions.batch_id = ?
 ORDER BY ai_reveals.revealed_at ASC, ai_reveals.image_id ASC
 `),
   listFailureReviews: db.prepare("SELECT * FROM failure_reviews WHERE batch_id = ? ORDER BY created_at ASC, image_id ASC"),
+  listPlaybookLessons: db.prepare("SELECT * FROM pick3_playbook_lessons WHERE batch_id = ? ORDER BY created_at ASC, position ASC, phase ASC"),
+  listPlaybookLessonsByPosition: db.prepare("SELECT * FROM pick3_playbook_lessons WHERE position = ? AND status != 'rejected' ORDER BY created_at ASC, phase ASC"),
 });
 
 export const preparePick3Statements = (db: Database.Database): Pick3Statements => ({

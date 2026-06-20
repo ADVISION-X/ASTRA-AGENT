@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T10:54:05.199Z",
+  "generatedAt": "2026-06-20T12:02:15.598Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -789,6 +789,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",

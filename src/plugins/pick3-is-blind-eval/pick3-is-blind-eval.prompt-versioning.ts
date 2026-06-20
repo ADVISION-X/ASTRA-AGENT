@@ -1,58 +1,50 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
 
-import type { Pick3PlaybookRecord } from "./pick3-is-blind-eval.playbook.js";
-import type { Pick3FailureReviewRecord, Pick3Position } from "./pick3-is-blind-eval.schema.js";
+export const PICK3_PLAYBOOK_LESSON_PROMOTION_THRESHOLD = 3;
 
-const hashText = (value: string): string => createHash("sha256").update(value).digest("hex");
-
-const positionSummary = (
-  position: Pick3Position,
-  reviews: readonly Pick3FailureReviewRecord[],
-): string => reviews
-  .filter((review) => review.position === position)
-  .map((review) => `- ${review.failureType}: ${review.repairInstruction}`)
-  .join("\n");
-
-export const writeCandidatePick3Playbooks = (input: {
-  artifactDir: string;
-  activePlaybooks: readonly Pick3PlaybookRecord[];
-  failureReviews: readonly Pick3FailureReviewRecord[];
-}): Pick3PlaybookRecord[] => {
-  if (input.failureReviews.length === 0) return [];
-  const candidateDir = path.join(input.artifactDir, "playbook_candidates");
-  mkdirSync(candidateDir, { recursive: true });
-  const candidates: Pick3PlaybookRecord[] = [];
-  for (const playbook of input.activePlaybooks) {
-    const summary = positionSummary(playbook.position, input.failureReviews);
-    if (!summary) continue;
-    const content = [
-      `# Pick3 ${playbook.position} L80 Candidate Playbook v${playbook.version + 1}`,
-      "",
-      "Status: candidate",
-      "Accuracy use: next sealed blind batch only.",
-      "",
-      "Repair instructions from failed cases:",
-      summary,
-      "",
-      "Do not memorize concrete answers. Use these repairs only as visual grammar constraints.",
-    ].join("\n");
-    const contentHash = hashText(content);
-    const contentPath = path.join(candidateDir, `is_${playbook.position}_l80_v${playbook.version + 1}_${contentHash.slice(0, 8)}.md`);
-    writeFileSync(contentPath, `${content}\n`);
-    candidates.push({
-      ...playbook,
-      playbookVersionId: `pick3_${playbook.position}_l80_v${playbook.version + 1}_candidate_${randomUUID()}`,
-      version: playbook.version + 1,
-      status: "candidate",
-      sourceKind: "agent_builtin",
-      contentPath,
-      contentHash,
-      parentPlaybookVersionId: playbook.playbookVersionId,
-      createdFromFailureReviewId: input.failureReviews.find((review) => review.position === playbook.position)?.failureReviewId ?? null,
-      notes: "Candidate repair Playbook. Not active until promoted and validated on a new sealed blind batch.",
-    });
+const groupLessonsByAggregateKey = (
+  lessons: readonly Pick3PlaybookLessonRecord[],
+): Map<string, Pick3PlaybookLessonRecord[]> => {
+  const groups = new Map<string, Pick3PlaybookLessonRecord[]>();
+  for (const lesson of lessons) {
+    if (lesson.status === "rejected") continue;
+    const group = groups.get(lesson.aggregateKey) ?? [];
+    group.push(lesson);
+    groups.set(lesson.aggregateKey, group);
   }
-  return candidates;
+  return groups;
+};
+
+const renderLessonGroup = (aggregateKey: string, group: readonly Pick3PlaybookLessonRecord[]): string => {
+  const latest = group[group.length - 1];
+  if (!latest) throw new Error("pick3_playbook_lesson_group_empty");
+  return [
+    `- Historical experience (${group.length} accumulated case${group.length === 1 ? "" : "s"}, aggregate \`${aggregateKey}\`):`,
+    `  Root cause pattern observed: ${latest.rootCause}`,
+    `  Candidate lesson: ${latest.candidateLesson}`,
+  ].join("\n");
+};
+
+/**
+ * Assembles a "historical experience" prompt section live from the current state of
+ * pick3_playbook_lessons. There is no saved candidate/promoted Playbook file: this section
+ * is recomputed from the database every time a prompt package is built, so the prompt always
+ * reflects the latest accumulated AI-reviewed experience without any intermediate file layer.
+ */
+export const assemblePick3ExperienceSection = (input: {
+  lessons: readonly Pick3PlaybookLessonRecord[];
+  threshold?: number;
+}): string | null => {
+  const threshold = input.threshold ?? PICK3_PLAYBOOK_LESSON_PROMOTION_THRESHOLD;
+  const groups = groupLessonsByAggregateKey(input.lessons);
+  const eligibleGroups = [...groups.entries()].filter(([, group]) => group.length >= threshold);
+  if (eligibleGroups.length === 0) return null;
+  return [
+    "Historical experience reference (not a hard rule, assembled live from accumulated AI-reviewed failure cases for this position; this is not a saved file, it is recomputed from current records every time):",
+    "Each entry below must still be weighed against the actual visual evidence in the current image — it is a tendency observed in past cases, not a mandatory mapping. Only patterns with enough accumulated cases are included.",
+    "",
+    eligibleGroups.map(([aggregateKey, group]) => renderLessonGroup(aggregateKey, group)).join("\n\n"),
+    "",
+    "Do not memorize concrete answers. Use these as visual-grammar-grounded tendencies only, weighed against the current image's own evidence.",
+  ].join("\n");
 };

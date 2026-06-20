@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { Pick3ImageRecord, Pick3Input, Pick3Position } from "./pick3-is-blind-eval.schema.js";
+import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
+import { assemblePick3ExperienceSection } from "./pick3-is-blind-eval.prompt-versioning.js";
 
 type Pick3PromptMode = Pick3Input["promptMode"];
 
@@ -120,13 +122,18 @@ export const buildPick3PlaybookPromptPackage = (
   playbook: Pick3PlaybookVersion,
   image: Pick3ImageRecord,
   promptMode: Pick3PromptMode = "playbook_v1",
+  experienceLessons: readonly Pick3PlaybookLessonRecord[] = [],
 ): Pick3PlaybookPromptPackage => {
   if (playbook.position !== image.position) {
     throw new Error("pick3_playbook_position_mismatch");
   }
+  const imagePayloadLine = "Image payload: inspect the attached image only. Do not use image id as evidence.";
+  const experienceSection = promptMode === "playbook_v1"
+    ? assemblePick3ExperienceSection({ lessons: experienceLessons })
+    : null;
   const businessPrompt = promptMode === "free_analysis_strict_reasoning"
-    ? [playbook.content, "Image payload: inspect the attached image only. Do not use image id as evidence."].join("\n\n")
-    : [playbook.visualGrammar, playbook.content, "Image payload: inspect the attached image only. Do not use image id as evidence."].join("\n\n");
+    ? [playbook.content, imagePayloadLine].join("\n\n")
+    : [playbook.visualGrammar, playbook.content, ...(experienceSection ? [experienceSection] : []), imagePayloadLine].join("\n\n");
   return {
     playbookVersionId: playbook.playbookVersionId,
     position: playbook.position,

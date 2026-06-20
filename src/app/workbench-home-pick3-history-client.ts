@@ -41,9 +41,11 @@ const clearPick3HistoryDetail = () => {
   setText("[data-pick3-history-distribution]", "-");
   const imageList = qs("[data-pick3-history-image-list]");
   const phaseReportList = qs("[data-pick3-history-phase-report-list]");
+  const lessonList = qs("[data-pick3-history-lesson-list]");
   const repeatList = qs("[data-pick3-history-repeat-list]");
   if (imageList) imageList.innerHTML = "";
   if (phaseReportList) phaseReportList.innerHTML = "";
+  if (lessonList) lessonList.innerHTML = "";
   if (repeatList) repeatList.innerHTML = "";
 };
 
@@ -77,13 +79,21 @@ const renderPick3ObservedDistribution = (distribution) => {
     : "-";
 };
 
-const renderPick3PhaseReports = (phaseReports) => {
+const runPick3ManualPlaybookReview = async (taskId, phase, position) => {
+  const result = await readJson("/api/pick3-is-blind-eval/playbook-review", {
+    method: "POST",
+    body: JSON.stringify({ taskId, phase, position }),
+  });
+  writeActivity("pick3 playbook lesson reviewed: " + result.position + " " + result.phase, "completed");
+  await loadPick3HistoryTask(taskId);
+};
+
+const renderPick3PhaseReports = (taskId, phaseReports) => {
   const list = qs("[data-pick3-history-phase-report-list]");
   if (!list) return;
   list.innerHTML = "";
   for (const report of phaseReports || []) {
-    const item = document.createElement("button");
-    item.type = "button";
+    const item = document.createElement("div");
     item.className = "record-item";
     const title = document.createElement("strong");
     title.textContent = (report.phase || "-") + " · " + (report.status || "-");
@@ -94,8 +104,51 @@ const renderPick3PhaseReports = (phaseReports) => {
     ).join("  |  ");
     const proof = document.createElement("div");
     proof.textContent = report.errorReason || "all three positions matched";
+    const actions = document.createElement("div");
+    actions.className = "record-actions";
+    const inspect = document.createElement("button");
+    inspect.type = "button";
+    inspect.className = "btn secondary";
+    inspect.textContent = "Inspect";
+    inspect.addEventListener("click", () => openInspector({ kind: "pick3 phase report", title: title.textContent, payload: report }));
+    actions.append(inspect);
+    for (const pos of report.positions || []) {
+      if (pos.hit !== false) continue;
+      const review = document.createElement("button");
+      review.type = "button";
+      review.className = "btn secondary";
+      review.setAttribute("data-pick3-manual-playbook-review", pos.position);
+      review.textContent = "Review " + pos.position;
+      review.addEventListener("click", () => runPick3ManualPlaybookReview(taskId, report.phase, pos.position).catch((error) => writeActivity("pick3 manual lesson review failed: " + error.message, "failed")));
+      actions.append(review);
+    }
+    item.append(title, meta, proof, actions);
+    list.append(item);
+  }
+};
+
+const renderPick3PlaybookLessons = (lessons) => {
+  const list = qs("[data-pick3-history-lesson-list]");
+  if (!list) return;
+  list.innerHTML = "";
+  for (const lesson of lessons || []) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "record-item";
+    item.dataset.pick3PlaybookLessonPosition = lesson.position;
+    const title = document.createElement("strong");
+    title.textContent = lesson.position + " · " + lesson.phase + " · " + lesson.status;
+    const meta = document.createElement("div");
+    meta.className = "record-meta";
+    meta.textContent = [
+      lesson.source,
+      lesson.aggregateKey,
+      lesson.predictedLabel + " -> " + lesson.answerLabel,
+    ].join(" · ");
+    const proof = document.createElement("div");
+    proof.textContent = lesson.candidateLesson || lesson.rootCause || "-";
     item.append(title, meta, proof);
-    item.addEventListener("click", () => openInspector({ kind: "pick3 phase report", title: title.textContent, payload: report }));
+    item.addEventListener("click", () => openInspector({ kind: "pick3 playbook lesson", title: title.textContent, payload: lesson }));
     list.append(item);
   }
 };
@@ -164,7 +217,8 @@ const renderPick3HistoryDetail = (detail) => {
   setText("[data-pick3-history-repeats]", String(summary.actualRepeatResults) + "/" + String(summary.expectedRepeatResults));
   setText("[data-pick3-history-completeness]", summary.evidenceCompleteness?.status || "-");
   renderPick3ObservedDistribution(detail.observedDistribution);
-  renderPick3PhaseReports(detail.phaseReports);
+  renderPick3PhaseReports(summary.taskId, detail.phaseReports);
+  renderPick3PlaybookLessons(detail.playbookLessons);
   renderPick3HistoryImages(detail.images);
   renderPick3HistoryRepeats(summary.taskId, detail.repeats);
 };

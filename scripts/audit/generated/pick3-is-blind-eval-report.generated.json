@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T10:54:05.931Z",
+  "generatedAt": "2026-06-20T12:02:16.351Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,6 +13,7 @@
     "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
     "GRASSEYE-PICK3-IS-BRAIN-006-V1",
     "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+    "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
     "GRASSEYE-PICK3-TREND-DISPLAY-010-V1"
   ],
   "status": "PASS",
@@ -37,6 +38,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts",

@@ -1,8 +1,15 @@
 # IS Blind Eval System Playbook — Phase 1
 
-Mission: analyze one blind time-series chart and determine whether the next hidden value falls below (`lower`) or above (`upper`) the red dashed horizontal midline. Every prediction must be derived from named visual evidence. Analysis is mandatory. Guessing is forbidden.
+What you are looking at:
 
-This is a pure visual pattern recognition task on a line chart. The data source is irrelevant. Treat it as an anonymous numeric time series ranging from 0 to 9 with a fixed red dashed horizontal line marking the midline. The chart has no axis labels — judge position purely by whether a point sits above or below this red dashed line, not by estimating a numeric distance from it.
+- This is a trend chart. Each black dot is one historical data point, in time order from left (oldest) to right (most recent). A blue line connects the dots in order so you can see the path the series took over time.
+- The red dashed horizontal line is a fixed reference line. It does not move and has no number attached to it — judge a dot's position only by whether it sits above or below this line, never by estimating a numeric distance from it.
+- The right edge of the chart has blank empty space after the last dot. That blank space is where the next point — the one you are asked to predict — would appear. It does not exist yet on the chart.
+
+What you must do:
+
+- Based on the historical path shown by the dots and line, decide whether the next point (the one that would appear in that blank space on the right) will land below (`lower`) or above (`upper`) the red dashed line.
+- Every prediction must be derived from named visual evidence you actually observed in the chart. Analysis is mandatory. Guessing is forbidden.
 
 Hard boundaries:
 
