@@ -19,6 +19,7 @@ import {
   waitForComposerFocused,
 } from "./web-chat-page-actions.js";
 import { clearComposer } from "./web-chat-upload-page-actions.js";
+import { acknowledgePick3RateLimitDialogIfVisible, isChatGptRateLimitDialogVisible, reservePick3RateLimitAttempt } from "./web-chat-pick3-recovery-log.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
@@ -78,6 +79,7 @@ const withWebChatStep = async <T>(
 const waitForPromptSubmitted = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  request: AiFeedInput;
   expectedPrefix: string;
   previousAssistantCount: number;
   wasPromptVerifiedBeforeSubmit: boolean;
@@ -86,6 +88,7 @@ const waitForPromptSubmitted = async (input: {
   const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider submit result was not checked";
   while (Date.now() < deadline) {
+    await acknowledgePick3SubmitRateLimitIfVisible(input);
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
       verifyPromptSubmitted(input.browser, input.context, {
         expectedPrefix: input.expectedPrefix,
@@ -105,12 +108,14 @@ const waitForPromptSubmitted = async (input: {
 const waitForSendButtonClick = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  request: AiFeedInput;
   step: "click_send_after_prompt_paste";
   timeoutMs: number;
 }): Promise<void> => {
   const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider send button was not checked";
   while (Date.now() < deadline) {
+    await acknowledgePick3SubmitRateLimitIfVisible(input);
     const clicked = await withWebChatStep(input.step, () =>
       clickChatGptSendButton(input.browser, input.context));
     lastMessage = `${clicked.status}: ${clicked.message}`;
@@ -128,6 +133,29 @@ type SubmitPromptViaClipboardInput = {
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   previousAssistantCount: number;
+};
+
+type Pick3RateLimitSubmitGuardInput = {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+};
+
+const isPick3GptSubmitRequest = (request: AiFeedInput): boolean =>
+  request.providerKind === "gpt-web-chat" && request.promptContractId.startsWith("pick3-is-blind-eval");
+
+// The only action on a visible rate-limit dialog is clicking acknowledgement, repeated
+// indefinitely until it is gone — no attempt cap, no escalation, no reopen, no resend.
+const acknowledgePick3SubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
+  if (!isPick3GptSubmitRequest(input.request)) return;
+  if (!await isChatGptRateLimitDialogVisible(input)) return;
+  const rateLimitAttempt = reservePick3RateLimitAttempt(input.request);
+  await acknowledgePick3RateLimitDialogIfVisible({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    attemptIndex: rateLimitAttempt,
+  });
 };
 
 type PreparedPromptComposer = {
@@ -175,6 +203,7 @@ const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): 
 const waitForPromptReady = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  request: AiFeedInput;
   expectedLength: number;
   expectedPrefix: string;
   expectedSuffix: string;
@@ -185,6 +214,7 @@ const waitForPromptReady = async (input: {
   let lastMessage = "provider prompt readiness was not checked";
   let lastEvaluation: WebChatEvaluation | null = null;
   while (Date.now() < deadline) {
+    await acknowledgePick3SubmitRateLimitIfVisible(input);
     const evaluation = await withWebChatStep(input.step, () =>
       verifyPromptPasted(input.browser, input.context, {
         expectedLength: input.expectedLength,
@@ -207,6 +237,7 @@ const waitForPromptReady = async (input: {
 const waitForSubmittedUserMessageAttachments = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
+  request: AiFeedInput;
   expectedCount: number;
   timeoutMs: number;
 }): Promise<void> => {
@@ -215,6 +246,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   let lastMessage = "provider submitted attachment binding was not checked";
   let lastEvaluation: WebChatEvaluation | null = null;
   while (Date.now() < deadline) {
+    await acknowledgePick3SubmitRateLimitIfVisible(input);
     const evaluation = await withWebChatStep("verify_last_user_message_bound_attachments", () =>
       verifyLastUserMessageAttachments(input.browser, input.context, input.expectedCount));
     lastEvaluation = evaluation;
@@ -285,6 +317,7 @@ const pastePromptIntoComposer = async (
       await waitForPromptReady({
         browser: input.browser,
         context: input.context,
+        request: input.request,
         expectedLength: input.expectedLength,
         expectedPrefix: input.expectedPrefix,
         expectedSuffix: input.expectedSuffix,
@@ -342,6 +375,7 @@ const preparePromptComposer = async (
   await waitForPromptReady({
     browser: input.browser,
     context: input.context,
+    request: input.request,
     expectedLength,
     expectedPrefix,
     expectedSuffix,
@@ -373,6 +407,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   const submittedAfterReturn = await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,
+    request: input.request,
     expectedPrefix: input.preparedPrompt.expectedPrefix,
     previousAssistantCount: input.previousAssistantCount,
     wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
@@ -382,6 +417,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     await waitForSubmittedUserMessageAttachments({
       browser: input.browser,
       context: input.context,
+      request: input.request,
       expectedCount: input.preparedPrompt.expectedAttachmentCount,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
     });
@@ -393,12 +429,14 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   await waitForSendButtonClick({
     browser: input.browser,
     context: input.context,
+    request: input.request,
     step: "click_send_after_prompt_paste",
     timeoutMs: input.request.timeoutMs,
   });
   const submittedAfterClick = await waitForPromptSubmitted({
     browser: input.browser,
     context: input.context,
+    request: input.request,
     expectedPrefix: input.preparedPrompt.expectedPrefix,
     previousAssistantCount: input.previousAssistantCount,
     wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
@@ -408,6 +446,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     await waitForSubmittedUserMessageAttachments({
       browser: input.browser,
       context: input.context,
+      request: input.request,
       expectedCount: input.preparedPrompt.expectedAttachmentCount,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
     });

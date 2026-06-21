@@ -116,6 +116,7 @@ const renderPick3Trend = () => {
 const refreshPick3Trend = async () => {
   state.pick3Trend = await readJson("/api/pick3-is-blind-eval/trend");
   pick3TrendView.startIndex = state.pick3Trend.latestWindowStartIndex || 0;
+  if (typeof renderPick3LastTargetPhaseOptions === "function") renderPick3LastTargetPhaseOptions();
   renderPick3Trend();
 };
 const bindPick3TrendDrag = () => {

@@ -30,6 +30,7 @@ export const Pick3InputSchema = z.object({
   windowSize: z.literal(PICK3_WINDOW_SIZE).default(PICK3_WINDOW_SIZE),
   positions: z.array(Pick3PositionSchema).default(["hundreds", "tens", "ones"]),
   batchSize: z.number().int().positive().max(30).default(3),
+  lastTargetPhase: z.string().trim().min(1).optional(),
   explicitTargetPhases: z.array(z.string().min(1)).optional(),
   artifactRoot: z.string().min(1).optional(),
   dryRun: z.boolean().default(true),
@@ -87,7 +88,7 @@ export type Pick3AiInteractionRecord = {
   rawResponseHash: string;
   rawOutputRef: string;
   providerProofJson: string;
-  parseStatus: "parsed" | "parse_failed_raw_available";
+  parseStatus: "parsed" | "parse_failed_raw_available" | "skipped_provider_reported_image_missing";
   parseFailureReason: string | null;
   createdAt: string;
 };

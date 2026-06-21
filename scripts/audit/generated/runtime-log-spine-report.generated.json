@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-20T12:02:09.465Z",
+  "generatedAt": "2026-06-20T23:06:37.528Z",
   "status": "PASS",
-  "scannedFiles": 423,
+  "scannedFiles": 426,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -57,6 +57,7 @@
     "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-pick3-history-client.ts",
     "src/app/workbench-home-pick3-stability-client.ts",
+    "src/app/workbench-home-pick3-target-client.ts",
     "src/app/workbench-home-pick3-trend-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
@@ -405,6 +406,8 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-storage.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
@@ -445,7 +448,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 423,
+    "scannedFiles": 426,
     "emitCallCount": 47,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -456,7 +459,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 418,
+      "scannedFiles": 421,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -465,13 +468,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 327
+      "scannedFiles": 329
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 323,
+      "scannedFiles": 325,
       "metrics": {
         "emitCallCount": 36
       }
@@ -480,13 +483,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 323
+      "scannedFiles": 325
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 328,
+      "scannedFiles": 330,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -501,7 +504,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 328,
+      "scannedFiles": 330,
       "metrics": {
         "failureWithoutClassCount": 0
       }

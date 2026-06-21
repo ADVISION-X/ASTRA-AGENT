@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T12:02:16.351Z",
+  "generatedAt": "2026-06-21T00:39:03.635Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,6 +23,8 @@
     "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施工图.md",
     "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector-playbook-lessons.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector-trend-display.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts",
     "package.json",
@@ -59,9 +61,6 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
     "src/plugins/pick3-is-blind-eval/playbooks/system.md",
     "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md",
-    "src/plugins/pick3-is-blind-eval/playbooks/free-analysis-strict-reasoning.md",
-    "src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md",
-    "src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md",
-    "src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md"
+    "src/plugins/pick3-is-blind-eval/playbooks/free-analysis-strict-reasoning.md"
   ]
 }

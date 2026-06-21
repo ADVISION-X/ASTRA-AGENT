@@ -13,9 +13,11 @@ import {
   type Pick3Draw,
   type Pick3ImageRecord,
   type Pick3Input,
+  type Pick3Position,
   type Pick3ScoringSummary,
   type Pick3TaskRecord,
 } from "./pick3-is-blind-eval.schema.js";
+import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
 import { runPick3PromptExchange, type Pick3GatewaySender } from "./pick3-is-blind-eval.ai.js";
 import { reviewPick3Failures } from "./pick3-is-blind-eval.failure-review.js";
 import {
@@ -85,6 +87,7 @@ const selectBatchTargets = (
   const drawsAscending = storage.listDrawsAscending();
   const targetDraws = storage.listTargetDraws({
     ...(input.explicitTargetPhases ? { phases: input.explicitTargetPhases } : {}),
+    ...(!input.explicitTargetPhases && input.lastTargetPhase ? { lastPhase: input.lastTargetPhase } : {}),
     batchSize: input.batchSize,
   });
   if (targetDraws.length === 0) {
@@ -171,7 +174,7 @@ const buildBatch = async (
       });
   const playbooks = loadBuiltInPick3Playbooks(input.promptMode);
   storage.upsertPlaybooks(playbooks);
-  const promptPackages = buildPromptPackages(images, playbooks, input.promptMode);
+  const promptPackages = buildPromptPackages(images, playbooks, input.promptMode, storage);
   const sealedAnswers = images.map((image) => ({
     imageId: image.imageId,
     position: image.position,
@@ -216,14 +219,8 @@ const writePipelineArtifacts = (input: {
   writeFileSync(path.join(input.batch.artifactDir, "public_results.json"), `${JSON.stringify(input.reveals, null, 2)}\n`);
   writeFileSync(path.join(input.batch.artifactDir, "failure_reviews.json"), `${JSON.stringify(input.failureReviews, null, 2)}\n`);
   writeFileSync(path.join(input.batch.artifactDir, "playbook_lessons.json"), `${JSON.stringify(input.playbookLessons, null, 2)}\n`);
-  writeFileSync(path.join(input.batch.artifactDir, "candidate_playbooks.json"), `${JSON.stringify({
-    status: "not_generated",
-    reason: "Playbook changes require N accepted position-specific lessons and a separate promotion step.",
-  }, null, 2)}\n`);
-  writeFileSync(path.join(input.batch.artifactDir, "next_blind_validation_plan.json"), `${JSON.stringify({
-    required: true,
-    status: "pending_new_sealed_batch",
-    reason: "Candidate Playbook repair is diagnostic until the next sealed blind batch is predicted and scored.",
+  writeFileSync(path.join(input.batch.artifactDir, "experience_assembly_note.json"), `${JSON.stringify({
+    note: "There is no saved candidate/promoted Playbook file. The historical-experience section sent to the AI for this batch was assembled live from pick3_playbook_lessons at prompt-build time and is recorded verbatim in ai_prompt_manifest.json businessPrompt for each image.",
   }, null, 2)}\n`);
 };
 
@@ -236,6 +233,40 @@ const writePromptExchangeFailureArtifacts = (input: {
   writeFileSync(path.join(input.batch.artifactDir, "ai_gateway_inputs.json"), `${JSON.stringify(input.gatewayInputs, null, 2)}\n`);
   writeFileSync(path.join(input.batch.artifactDir, "ai_interactions.json"), `${JSON.stringify(input.interactions, null, 2)}\n`);
   writeFileSync(path.join(input.batch.artifactDir, "ai_predictions.json"), `${JSON.stringify(input.predictions, null, 2)}\n`);
+};
+
+const revealScoreAndReviewPick3Batch = async (input: {
+  batch: BuiltPick3Batch;
+  batchInput: Pick3Input;
+  exchange: Awaited<ReturnType<typeof runPick3PromptExchange>>;
+  sender: Pick3GatewaySender;
+  storage: ReturnType<typeof openPick3Storage>;
+  taskId: string;
+}): Promise<{
+  failureReviews: ReturnType<typeof reviewPick3Failures>;
+  playbookLessons: Awaited<ReturnType<typeof reviewPick3PlaybookLessons>>;
+  reveals: ReturnType<typeof revealPick3Predictions>;
+  scoring: Pick3ScoringSummary;
+}> => {
+  const reveals = revealPick3Predictions({ images: input.batch.images, predictions: input.exchange.predictions });
+  input.storage.insertReveals(reveals);
+  const failureReviews = reviewPick3Failures({ images: input.batch.images, predictions: input.exchange.predictions, reveals });
+  input.storage.insertFailureReviews(failureReviews);
+  const playbookLessons = input.batchInput.promptMode === "playbook_v1"
+    ? await reviewPick3PlaybookLessons({
+        failureReviews,
+        images: input.batch.images,
+        interactions: input.exchange.interactions,
+        predictions: input.exchange.predictions,
+        reveals,
+        sender: input.sender,
+        source: "auto_review",
+        taskId: input.taskId,
+      })
+    : [];
+  input.storage.insertPlaybookLessons(playbookLessons);
+  const scoring = scorePick3Predictions({ predictions: input.exchange.predictions, reveals });
+  return { failureReviews, playbookLessons, reveals, scoring };
 };
 
 const runFullPipeline = async (input: {
@@ -266,7 +297,7 @@ const runFullPipeline = async (input: {
   input.storage.insertAiInteractions(exchange.interactions);
   input.storage.insertPredictions(exchange.predictions);
   const unresolvedFailures = exchange.interactions.filter((interaction) => interaction.parseStatus !== "parsed");
-  if (exchange.completion.unresolvedCount > 0 || exchange.predictions.length !== input.batch.images.length) {
+  if (exchange.completion.unresolvedCount > 0) {
     writePromptExchangeFailureArtifacts({
       batch: input.batch,
       gatewayInputs: exchange.gatewayInputs,
@@ -277,42 +308,18 @@ const runFullPipeline = async (input: {
     throw new Error(`pick3_prompt_exchange_parse_failed_${exchange.completion.unresolvedCount}_of_${input.batch.images.length}_${firstFailure?.parseFailureReason ?? "prediction_count_mismatch"}`);
   }
   const scoringStage = startPick3Stage({ flowLog: input.flowLog, stageName: "PICK3_REVEAL_AND_SCORING", refs: { batchId: input.batch.batchId }, metrics: { predictionCount: exchange.predictions.length } });
-  const reveals = revealPick3Predictions({
-    images: input.batch.images,
-    predictions: exchange.predictions,
-  });
-  input.storage.insertReveals(reveals);
-  const failureReviews = reviewPick3Failures({
-    images: input.batch.images,
-    predictions: exchange.predictions,
-    reveals,
-  });
-  input.storage.insertFailureReviews(failureReviews);
-  const playbookLessons = input.batchInput.promptMode === "playbook_v1"
-    ? await reviewPick3PlaybookLessons({
-        failureReviews,
-        images: input.batch.images,
-        interactions: exchange.interactions,
-        predictions: exchange.predictions,
-        reveals,
-        sender,
-        source: "auto_review",
-        taskId: input.taskId,
-      })
-    : [];
-  input.storage.insertPlaybookLessons(playbookLessons);
+  const reviewed = await revealScoreAndReviewPick3Batch({ ...input, exchange, sender });
   writePipelineArtifacts({
     batch: input.batch,
     gatewayInputs: exchange.gatewayInputs,
     interactions: exchange.interactions,
     predictions: exchange.predictions,
-    reveals,
-    failureReviews,
-    playbookLessons,
+    reveals: reviewed.reveals,
+    failureReviews: reviewed.failureReviews,
+    playbookLessons: reviewed.playbookLessons,
   });
-  const scoring = scorePick3Predictions({ predictions: exchange.predictions, reveals });
-  completePick3Stage({ stage: scoringStage, refs: { batchId: input.batch.batchId }, metrics: { revealCount: reveals.length, failureReviewCount: failureReviews.length, playbookLessonCount: playbookLessons.length, hitCount: scoring.hits, abstainCount: scoring.abstains, coverageRate: scoring.coverageRate } });
-  return scoring;
+  completePick3Stage({ stage: scoringStage, refs: { batchId: input.batch.batchId }, metrics: { revealCount: reviewed.reveals.length, failureReviewCount: reviewed.failureReviews.length, playbookLessonCount: reviewed.playbookLessons.length, hitCount: reviewed.scoring.hits, abstainCount: reviewed.scoring.abstains, coverageRate: reviewed.scoring.coverageRate } });
+  return reviewed.scoring;
 };
 
 const syncOfficialDrawsWithLog = async (input: {

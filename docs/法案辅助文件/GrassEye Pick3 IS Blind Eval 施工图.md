@@ -85,10 +85,9 @@ src/plugins/pick3-is-blind-eval/
   playbooks/
     system.md
     visual-grammar.md
-    is_hundreds_l80_v1.md
-    is_tens_l80_v1.md
-    is_ones_l80_v1.md
 ```
+
+Position-specific signal does not come from a hand-authored file. There is no is_hundreds_l80_v1.md / is_tens_l80_v1.md / is_ones_l80_v1.md (no "Stream A/B/C" files). All position-specific experience is assembled live from pick3_playbook_lessons; see "Prompt Rewrite Flow (Live Experience Assembly)".
 
 Optional audit/acceptance:
 
@@ -124,6 +123,19 @@ workbench-home-pick3-trend-client.ts  render fixed 80-draw three-row SVG trend w
 ```
 
 No new official source, browser scraper, route bus, storage table, prediction path, image payload path, or AI-visible trend payload.
+
+Historical target range selection extends the same Pick3 start payload only:
+
+```txt
+pick3-is-blind-eval.schema.ts        add optional lastTargetPhase to Pick3Input
+pick3-is-blind-eval.storage.ts       select eligible target draws ending at lastTargetPhase, walking backward by batchSize
+pick3-is-blind-eval.flow.ts          pass lastTargetPhase into existing target selection for historical batches
+app-shell-layout.ts                  expose Last target phase as a select in the existing Pick3 run form
+workbench-home-pick3-target-client.ts populate the selector from stored official pick3_draws via the existing trend read model
+workbench-home-pick3-client.ts       submit lastTargetPhase through POST /api/pick3-is-blind-eval/start when non-empty
+```
+
+No new route, runner, storage table, trend-driven execution path, or second target selector.
 
 ## Public API Helpers
 
@@ -587,10 +599,9 @@ Required active Playbook files:
 ```txt
 system.md
 visual-grammar.md
-is_hundreds_l80_v1.md
-is_tens_l80_v1.md
-is_ones_l80_v1.md
 ```
+
+No is_hundreds_l80_v1.md / is_tens_l80_v1.md / is_ones_l80_v1.md ("Stream A/B/C") files exist or are required. Position-specific signal comes only from the live-assembled experience pool, never a hand-written file.
 
 Runtime rules:
 
@@ -640,11 +651,11 @@ This is not a loose guess mode.
 It uses the same Pick3 Prompt Exchange, one-image blind payload, sealed prediction,
 reveal, and scoring chain.
 
-Workbench historical scoring entry:
-  mode = full_pipeline
-  promptMode = free_analysis_strict_reasoning
+Workbench AI analysis mode entry:
+  mode = full_pipeline or next_prediction_stability
+  promptMode = user-selected free_analysis_strict_reasoning
   UI label = AI free analysis mode
-  This is the non-next-stability AI analysis mode. It must not create a second
+  This is an AI analysis mode, not a task mode. It must not create a second
   free_analysis task mode, second Prompt Exchange, second scoring path, or second
   prediction table.
 
@@ -853,6 +864,43 @@ digits = position sequence[targetIndex - 80 : targetIndex]
 answer = position sequence[targetIndex]
 ```
 
+### Historical Target Range Selection
+
+Default historical batch selection:
+
+```txt
+eligible target draws = stored official pick3_draws where targetIndex >= 80
+targetDraws = latest eligible target draws limited by batchSize
+```
+
+Optional ending phase selection:
+
+```txt
+lastTargetPhase = operator-selected stored official phase
+eligible target draws = stored official pick3_draws where targetIndex >= 80 and targetIndex <= lastTargetPhase index
+targetDraws = last batchSize eligible draws ending at lastTargetPhase
+```
+
+Rules:
+
+```txt
+lastTargetPhase is selected from a Workbench dropdown populated from stored official pick3_draws through the existing Pick3 read model, then accepted only through the existing POST /api/pick3-is-blind-eval/start payload.
+The phase must resolve against stored official pick3_draws; no external source, fixture row, DOM scrape, or trend UI state may become target truth.
+The selected target phase itself is the answer/reveal phase; the blind image still uses only the 80 draws before it.
+If lastTargetPhase is empty, behavior stays latest eligible targets.
+If lastTargetPhase does not exist, or it exists before 80 prior draws are available, the batch is not generated.
+The UI must not use a free-form text box for lastTargetPhase in production.
+```
+
+Mode boundary:
+
+```txt
+generate_batch: lastTargetPhase may control historical target range.
+full_pipeline: lastTargetPhase may control historical target range.
+next_prediction_stability: lastTargetPhase is ignored; batchSize remains repeat-send count for the same next-period image.
+sync_only: lastTargetPhase has no effect.
+```
+
 ### Next Prediction Stability Image
 
 Mode:
@@ -886,6 +934,15 @@ generate exactly 1 blind L80 image
 do not generate batchSize images
 do not persist reveal/scoring artifacts
 do not claim accuracy before the official answer exists
+```
+
+AI analysis mode:
+
+```txt
+promptMode is the user-selected AI analysis mode.
+promptMode=playbook_v1 -> use the existing Playbook prompt package.
+promptMode=free_analysis_strict_reasoning -> use the existing Free Analysis Strict Reasoning prompt package.
+Do not hardcode, override, or silently coerce next_prediction_stability to one promptMode.
 ```
 
 The blind-pixel rules are identical to historical batches: no title, axis, tick label, target phase, date, answer, Chart number, point count, position text, or watermark.
@@ -1001,11 +1058,12 @@ AI-visible required output:
   drivingEvidence: one sentence naming the specific shape that determined the direction (required)
   discountedEvidence: one sentence naming any opposing signal noticed but not allowed to override the conclusion,
                       or null if no opposing signal was observed (required; must not be empty string)
-                      CONTRARIAN RULE: when a position playbook applies a contrarian override (e.g. Stream B
-                      treats shoulder_hold as lower instead of upper), the standard grammar interpretation
-                      being overridden IS the discounted evidence — discountedEvidence must NOT be null.
-                      Example: "Standard grammar classifies shoulder_hold as upper evidence; Stream B
-                      contrarian overrides this because high_pressure is absent."
+                      CONTRARIAN RULE: when the model's own analysis (informed by live-assembled
+                      experience or its own reading of the image) overrides the standard grammar
+                      interpretation of a named shape, the standard grammar interpretation being
+                      overridden IS the discounted evidence — discountedEvidence must NOT be null.
+                      Example: "Standard grammar classifies shoulder_hold as upper evidence; this
+                      override treats it as lower because high_pressure is absent in this image."
   reason: full analytical summary — tail shapes observed, zone weight, conclusion chain (not one sentence; must be complete)
   abstainReason: required when predictionLabel = abstain, must name both conflicting lower and upper signals
 
@@ -1043,7 +1101,7 @@ Execution order:
 ```txt
 1. Sync official UAE Lottery Pick 3 data and verify full official coverage.
 2. Build exactly one next-period blind L80 image per selected position.
-3. Build the governed `free_analysis_strict_reasoning` prompt package for each image.
+3. Build the governed prompt package selected by user `promptMode` for each image.
 4. Expand the AI Prompt Exchange request list by repeat index.
 5. Each repeat sends one image only through Pick3GatewaySender / AI Input Gateway.
 6. Persist each raw interaction and parsed prediction.
@@ -1111,6 +1169,17 @@ If response is structured JSON but predictionLabel is another invalid shape word
   do not create a Pick3 interaction for the first invalid-label attempt
   if the local retry still has no parsed result, defer that image/repeat into the same Prompt Exchange completion queue
 
+If provider-reported missing image text is returned (`未收到图片`, no image, cannot see image, or equivalent):
+  retry the same governed one-image prompt package and same image three local retries
+  do not map the missing-image text to abstain, lower, or upper
+  if one of the three local retries parses, persist only the parsed interaction and sealed prediction
+  if all three local retries still report missing image, persist one terminal skipped interaction:
+    parse_status = skipped_provider_reported_image_missing
+    parse_failure_reason = pick3_provider_reported_image_missing_retry_exhausted
+  skipped provider-reported-missing-image interactions do not create ai_predictions
+  skipped provider-reported-missing-image interactions do not reveal, score, or create Playbook lessons
+  continue sending the remaining images/repeats; this condition must not stop the full batch or next-stability task
+
 If retry still returns empty:
   schedule deferred_retry_scheduled unless completion rounds are exhausted
   after completion rounds are exhausted, create parse_failed_raw_available from final raw response
@@ -1132,6 +1201,7 @@ Initial pass:
   build all image/repeat requests in the existing order
   for each request, run the existing one-image send attempt and its local retry rules
   parsed result -> persist the parsed interaction and sealed prediction
+  skipped provider-reported-missing-image result -> persist the skipped interaction and continue
   unresolved result -> do not persist as terminal yet; enqueue the same request for completion
 
 Completion pass:
@@ -1142,12 +1212,13 @@ Completion pass:
 
 Terminal rule:
   expectedCount = images.length * repeatCount
-  completedCount = final parsed predictions
+  completedCount = final parsed predictions + skipped provider-reported-missing-image interactions
   deferredRetryCount = number of queued completion retries
+  skippedCount = number of skipped provider-reported-missing-image interactions
   unresolvedCount = expectedCount - completedCount
 ```
 
-If `unresolvedCount = 0`, full_pipeline may continue to reveal/scoring even if earlier transient web-chat sends failed before a later completion round recovered. Those transient failures are terminal-visible recovery evidence, not batch-failure truth.
+If `unresolvedCount = 0`, full_pipeline may continue to reveal/scoring even if earlier transient web-chat sends failed before a later completion round recovered or a provider-reported missing-image request was skipped after three local retries. Skipped requests are not predictions and are not valid for accuracy.
 
 If `unresolvedCount > 0`, write the prompt-exchange failure artifacts and stop before reveal/scoring with `review_required`.
 
@@ -1192,7 +1263,7 @@ If proof fails:
   do not create ai_predictions
   do not reveal
   do not score
-  delete/abandon the failed current ChatGPT conversation
+  abandon the failed current ChatGPT conversation without deleting provider history
   reopen new chat in the same pick3-is-blind-eval workspace tab
   resend the same governed one-image prompt package and image once
   if the second submit is still missing the bound image, stop as review_required
@@ -1200,7 +1271,7 @@ If proof fails:
   missingBoundImageRecovered flag prevents infinite loop (max 1 recovery attempt)
 ```
 
-Pick3 GPT rate-limit backoff:
+Pick3 GPT rate-limit immediate acknowledgement:
 
 ```txt
 If ChatGPT shows a rate-limit dialog:
@@ -1218,63 +1289,72 @@ It must not create ai_predictions.
 It must not reveal or score the batch.
 
 Handling:
-  immediately wait silently
-  do not click 明白了 / OK / Got it before the wait expires
-  emit Runtime Log Spine recovery event before the wait starts
-  emit terminal stdout line (process.stdout.write) every 30 seconds while waiting — mandatory
-  emit heartbeat recovery progress every 30 seconds to UI logger while waiting
-  after the wait expires, click 明白了 / OK / Got it through BrowserController native click
+  after the ChatGPT provider workspace opens, start startPick3RateLimitDialogWatcher on the same BrowserController
+  keep the watcher active until the web-chat feed exits
+  immediately click 明白了 / OK / Got it through BrowserController native click
+  verify the rate-limit dialog disappeared after the click
   emit terminal stdout line for ack result
-  refresh/reopen https://chatgpt.com/ in the same workspace tab
-  emit terminal stdout line for refresh result
-  open New Chat
-  retry the same governed one-image prompt package and current image
+  continue the existing web-chat loop that was interrupted by the dialog
+  do not refresh
+  do not reopen the provider page
+  do not open a new chat
+  do not restart the task
+  do not resend the image or prompt
+  do not create a second route inside the acknowledgement helper
 
-Terminal stdout format (every 30s heartbeat):
-  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=backoff_waiting totalWaitSec=600 elapsedSec=30 remainingSec=570 recoveryAction=pick3_rate_limit_backoff_waiting — still waiting, do NOT interrupt
+Terminal stdout format:
+  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=immediate_acknowledgement_result totalWaitSec=0 elapsedSec=0 remainingSec=0 recoveryAction=pick3_rate_limit_immediate_acknowledgement_completed — ackStatus=rate_limit_ack_clicked_and_dialog_closed
 
-Backoff schedule:
-  first rate-limit occurrence:  wait 10 minutes (600_000 ms)
-  second rate-limit occurrence: wait 10 minutes (600_000 ms)
-  third rate-limit occurrence:  wait 10 minutes (600_000 ms)
+Immediate acknowledgement rule:
+  first rate-limit occurrence:  click acknowledgement immediately
+  second rate-limit occurrence: click acknowledgement immediately
+  third rate-limit occurrence:  click acknowledgement immediately
+  every later visible occurrence: click acknowledgement immediately
 
-The schedule must not escalate a recovered warning into a 30/60 minute wait.
-After each 10-minute wait, the runner must proceed to acknowledgement, refresh, new chat, and same-payload resend.
+The schedule must not wait before clicking the acknowledgement.
+After each verified acknowledgement, the current web-chat loop must continue.
 
-Runtime logs and terminal stdout must include imageId, promptPackageId, missionKey, attempt, totalWaitSec, elapsedSec, remainingSec, and recoveryAction.
+Runtime logs and terminal stdout must include imageId, promptPackageId, missionKey, attempt, and recoveryAction.
 
-After each wait:
-  RECOVERY_STARTED reason=pick3_rate_limit_backoff_started
-  RECOVERY_PROGRESS reason=pick3_rate_limit_backoff_waiting remainingMs=<bounded>
-  RECOVERY_COMPLETED reason=pick3_rate_limit_backoff_elapsed
+After each detected rate-limit dialog:
+  RECOVERY_STARTED reason=pick3_rate_limit_immediate_acknowledgement_started
   click the rate-limit acknowledgement
-  RECOVERY_STARTED reason=pick3_rate_limit_acknowledgement_started
-  RECOVERY_COMPLETED / RECOVERY_FAILED reason=pick3_rate_limit_acknowledgement_completed|failed
-  refresh the same Pick3 ChatGPT workspace tab
-  RECOVERY_STARTED / RECOVERY_COMPLETED reason=pick3_rate_limit_chatgpt_refresh_started|completed
-  click New chat through openProviderPage
-  RECOVERY_COMPLETED reason=pick3_rate_limit_new_chat_reopened_for_resend
-  upload the same one image
-  RECOVERY_STARTED reason=pick3_rate_limit_same_payload_resend_started
-  resend the exact same prompt package
+  verify the dialog is closed
+  RECOVERY_COMPLETED / RECOVERY_FAILED reason=pick3_rate_limit_immediate_acknowledgement_completed|failed
 
-If rate limiting appears again after the third wait:
-  status = review_required
-  reached_step = ai_prompt_exchange_failed
-  no sealed prediction
-  no reveal
-  no scoring
+The following waits must call the visible-dialog acknowledgement guard before each poll:
+  pre-submit conversation snapshot
+  prompt pasted verification
+  prompt submitted verification
+  submitted user-message attachment verification
+  send-button readiness wait
+  response capture
+
+The lifecycle watcher covers the gaps between those waits:
+  attachment upload
+  composer focus
+  clipboard paste
+  provider generation
+  browser wait phases
+  any other in-feed pause while the ChatGPT workspace tab is active
+
+Forbidden rate-limit side effects:
+  no openProviderPage because of the rate-limit dialog
+  no new ChatGPT conversation because of the rate-limit dialog
+  no same-payload resend because of the rate-limit dialog
+  no providerRecoveryStatus that claims rate-limit resend recovery
+  no review_required merely because the acknowledgement count reached a cap
 
 Provider proof:
-  providerRecoveryStatus includes pick3_rate_limit_backoff_<ms>_ms
-  providerRecoveryAttemptCount equals the number of rate-limit backoff waits used
+  rate-limit acknowledgement is terminal/log proof only
+  providerRecoveryStatus is not used to claim a rate-limit resend recovery
 
 Implementation:
   logger source = Workbench runtimeLogger
   injection path = createWorkbenchAiInputGateway -> AiInputGatewayExecutionContext -> AiProviderAdapterContext
   helper = web-chat-pick3-recovery-log.ts
-  wait helper = waitWithPick3RateLimitHeartbeat
-  heartbeat interval = 30_000 ms
+  acknowledgement helper = acknowledgePick3RateLimitDialogIfVisible
+  lifecycle watcher = startPick3RateLimitDialogWatcher
   no private console.log / JSONL / second log chain
 ```
 
@@ -1283,7 +1363,7 @@ Pick3 GPT no-result recovery:
 ```txt
 If the Pick3 GPT web-chat prompt has been submitted and no provider result is captured after 200 seconds:
   refresh the current ChatGPT conversation URL in the same workspace tab
-  delete that current ChatGPT conversation history entry through the verified sidebar delete path
+  do not delete that current ChatGPT conversation history entry while provider history deletion is temporarily disabled
   reopen https://chatgpt.com/ in the same workspace tab
   click New chat through the existing AI Input Gateway openProviderPage path
   resend the same governed one-image prompt package exactly once
@@ -1293,9 +1373,9 @@ If the Pick3 GPT web-chat prompt has been submitted and no provider result is ca
 This recovery is Pick3-only.
 It must not create a second GPT browser tab per image.
 It must not delete untracked or user-owned ChatGPT history.
-If current conversation deletion is not verified after refresh/reopen:
-  status = review_required
-	  reason = pick3_no_result_recovery_delete_failed
+Current conversation history deletion status:
+  current_history_delete_temporarily_disabled
+  does not block same-workspace new-chat recovery
 ```
 
 Pick3 GPT workspace tab identity:
@@ -1389,40 +1469,37 @@ After a response is captured:
   retain up to 100 provider conversation URLs so a 25-batch three-position Gemini run can be cleaned from ledger evidence
   keep current and immediately previous Pick3 conversation tabs
   close only older recorded Pick3 conversation tabs
-  do not truncate the history-deletion ledger during stale tab closure
-  delete older recorded Pick3 conversations from ChatGPT sidebar history
-  delete legacy sidebar records only when visible title matches the controlled Pick3 training title allowlist
+  do not truncate the provider conversation ledger during stale tab closure
+  temporarily skip provider sidebar history deletion
+  return provider_history_delete_temporarily_disabled for stale provider-history cleanup
+  return current_history_delete_temporarily_disabled for current-conversation cleanup attempts
   never delete the current or immediately previous protected workspace URLs
   persist staleConversationHistoryCleanupStatus in provider proof
-  do not convert post-response cleanup failure into parse_failed_raw_available after the AI answer already parsed
-  log cleanupStatus beside parse_result so runtime hygiene failure stays visible without corrupting prediction parsing
-  for Gemini Pick3, use the same governed sidebar-history cleanup chain as GPT, but refresh/verify against https://gemini.google.com/app and delete through the verified Gemini Recent menu: Open menu for conversation actions -> Delete -> Delete chat? -> Delete
+  do not convert disabled cleanup into parse_failed_raw_available after the AI answer already parsed
+  log cleanupStatus beside parse_result so runtime hygiene status stays visible without corrupting prediction parsing
 
 Never close arbitrary user ChatGPT tabs.
 Never delete arbitrary user ChatGPT sidebar history.
+Never open provider history sidebars, click Delete, or confirm Delete chat? while provider history deletion is temporarily disabled.
 Never depend on browser tab title to identify Pick3 ownership.
-Never hide non-protected Pick3 training history that remains visible after cleanup; record it in provider proof and terminal logs.
 
-Cleanup throttle rule (avoids ChatGPT history access rate limit):
-  STALE_CLEANUP_TRIGGER_THRESHOLD = 15
-  STALE_CLEANUP_MAX_PER_RUN = 3
-  GEMINI_STALE_CLEANUP_MAX_PER_RUN = 80
-  If stale entry count < 15: skip cleanup, return history_cleanup_deferred_stale_N_below_threshold_15, continue training.
-  If stale entry count ≥ 15 on ChatGPT: execute deletion for at most 3 entries this run, then record cleanup verification status in provider proof.
-  If stale entry count ≥ 15 on Gemini: execute deletion for at most 80 entries this run through the verified Gemini Recent DOM path, then record cleanup verification status in provider proof.
-  Gemini sidebar precondition: before discovering or verifying Gemini Recent, click the visible "Open sidebar" control when present; a collapsed Gemini rail can hide Pick3 rows and must not be interpreted as empty history.
-  Gemini row menu guard: if a Gemini row action menu is already open and exposes `Delete`, click that `Delete` directly; do not click `More options` again because the second click closes the menu.
-  Gemini cleanup loop: after each deletion pass, rediscover Gemini Recent because older hidden Pick3 training rows can become visible after visible rows are deleted; delete newly visible rows in the same governed run until none remain or the 80-entry cap is exhausted.
-  Rationale: deleting every ChatGPT run triggers ChatGPT's "请求过于频繁" history access rate limit dialog; throttling ChatGPT to 3 max and deferring until 15 are accumulated reduces API pressure while keeping history bounded. Gemini uses a provider-specific cap because verified Gemini Recent deletion is required to keep 10/15/25 blind training batches from stopping on normal history volume.
+Temporary provider-history deletion disable rule:
+  reason = deleting provider conversation history triggers data-protection / history-access rate limits such as 请求过于频繁
+  stale provider-history cleanup status = provider_history_delete_temporarily_disabled
+  current provider-history cleanup status = current_history_delete_temporarily_disabled
+  preserve workspace conversation ledger
+  preserve stale provider-tab cleanup
+  do not open ChatGPT or Gemini history sidebars for deletion
+  do not click conversation menus
+  do not click Delete
+  do not confirm Delete chat?
+  continue training when this disabled cleanup status is returned
 
 Gemini pre-image cleanup rule:
   before every Gemini Pick3 attachment upload, run pre_image_history_cleanup in the existing Gemini workspace tab
-  keepRecentCount = 1 because the new current conversation has not been created yet; this protects only the immediately previous completed Gemini conversation
-  triggerThreshold = 1 and maxDeleteCount = GEMINI_STALE_CLEANUP_MAX_PER_RUN so the runner keeps deleting N-2-or-older completed Gemini Pick3 conversations until no non-protected Pick3 history remains visible
-  deletion path = open https://gemini.google.com/app, ensure Gemini sidebar is open, open the governed Recent row menu, Delete, confirm Delete chat?, refresh/verify against Gemini Recent
-  if a target history row is already gone, record not_found and continue; if real deletion failure is reported or any N-2-or-older Pick3 history remains visible after the cleanup pass, stop review_required before attachment upload
-  emit terminal-visible pre_image_history_cleanup timing logs with keepRecentCount, triggerThreshold, maxDeleteCount, and cleanup status
-  this pre-image rule is Gemini-only; ChatGPT keeps STALE_CLEANUP_TRIGGER_THRESHOLD = 15 and STALE_CLEANUP_MAX_PER_RUN = 3
+  return provider_history_delete_temporarily_disabled while provider history deletion is disabled
+  emit terminal-visible pre_image_history_cleanup timing logs with the cleanup status
+  do not block attachment upload for visible stale Gemini provider history while provider history deletion is disabled
 
 Controlled Pick3 training title allowlist:
   Pick3 Blind Eval
@@ -1506,13 +1583,7 @@ future rows
 neighboring target answers
 ```
 
-For 3 positions:
-
-```txt
-hundreds -> src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md
-tens     -> src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md
-ones     -> src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md
-```
+For all 3 positions (hundreds, tens, ones), the shared system.md + visual-grammar.md are used; each position's own experience comes only from filtering pick3_playbook_lessons by that position, not from a separate per-position file.
 
 ## Reveal And Scoring
 
@@ -1652,6 +1723,14 @@ Analyze only why this already sealed Playbook prediction was wrong.
 Return rootCause and candidateLesson.
 ```
 
+Reply parse failure handling:
+
+```txt
+If the reply does not parse into a valid {rootCause, candidateLesson} JSON object, retry the same failure up to PICK3_PLAYBOOK_REVIEW_MAX_ATTEMPTS = 3 attempts total.
+If all 3 attempts fail to parse, discard this failure entirely; do not store a placeholder lesson (no manual_review_required, no ai_review_raw_text_not_json content) in pick3_playbook_lessons.
+A discarded failure simply produces no lesson for that batch; it may be picked up again by a later manual review or a later auto_review run.
+```
+
 Position isolation:
 
 ```txt
@@ -1664,33 +1743,29 @@ Counts from different positions must never be merged into a shared N.
 Promotion boundary:
 
 ```txt
-Single lessons are experience records only.
-After N accepted lessons for the same position/aggregateKey, a later aggregation task may propose a Playbook rule version.
-No automatic active Playbook mutation happens in this flow.
+One accepted lesson is already experience: there is no minimum lesson count before a position/aggregateKey is extracted.
+Zero lessons for a position means there is nothing to extract yet, not that a count was withheld.
+Every non-rejected lesson is assembled live into the blind prompt payload at prompt-build time, as soon as it exists.
+A single failed phase already enters the blind prompt payload the next time a prompt is built; the only filter is rejected status, never a minimum-count gate or a human content judgment.
 ```
 
-## Prompt Rewrite Flow
+## Prompt Rewrite Flow (Live Experience Assembly)
 
-For each position:
+There is no candidate Playbook file, no human promotion step, and no minimum lesson count. Experience inclusion is purely mechanical (the lesson exists and is not rejected), because the content itself is AI-summarized experience, not a hand-written rule, so there is nothing for a human to approve and nothing to wait to accumulate.
+
+For each prompt package built (every batch, every image), at the moment `buildPick3PlaybookPromptPackage` runs:
 
 ```txt
-1. read accepted pick3_playbook_lessons for that exact position.
+1. read all non-rejected pick3_playbook_lessons for that exact position (storage.listPlaybookLessonsByPosition).
 2. group lessons by aggregate_key.
-3. only when the group has at least N accepted lessons, build a rule-version proposal.
-4. create new prompt/playbook version file or DB row only in the later promotion task.
-5. never overwrite old prompt/playbook version.
-6. mark new prompt/playbook status = candidate until human promotion.
+3. every group with at least one non-rejected lesson is included (assemblePick3ExperienceSection in pick3-is-blind-eval.prompt-versioning.ts) — no minimum count.
+3b. within an included group, every case is rendered in full — code never selects a "latest" or "representative" case and never summarizes multiple cases into one, no matter how many cases accumulate (1 case or 10,000 cases). Dead code has no standing to judge or compress dynamically generated AI content; only the AI reading the full text at prediction time may weigh which cases matter.
+4. render the included groups as a "historical experience reference, not a hard rule" text block.
+5. splice that block into businessPrompt, between visual-grammar.md and the position playbook file, before the image payload line.
+6. this recomputes from scratch every time; nothing is cached, saved as a file, or versioned as a separate Playbook artifact.
 ```
 
-Plugin should write candidate prompts as:
-
-```txt
-src/plugins/pick3-is-blind-eval/playbooks/candidates/is_hundreds_l80_v{n}.md
-src/plugins/pick3-is-blind-eval/playbooks/candidates/is_tens_l80_v{n}.md
-src/plugins/pick3-is-blind-eval/playbooks/candidates/is_ones_l80_v{n}.md
-```
-
-Human promotion can copy candidate to active prompt. A single failed phase cannot directly create an active Playbook rule.
+The active Playbook files under `src/plugins/pick3-is-blind-eval/playbooks/` (`system.md`, `visual-grammar.md`) are never edited or replaced by this flow. Only the assembled prompt text changes as lessons accumulate; the on-disk files stay fixed. Traceability comes from `pick3_ai_interactions.rendered_prompt_text` and `business_prompt_hash`, which capture exactly which experience text was used for every single image, every single time — not from a versioned candidate file.
 
 ## Failure Replay Flow
 

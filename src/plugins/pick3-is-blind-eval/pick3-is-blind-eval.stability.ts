@@ -30,20 +30,24 @@ export type Pick3StabilitySummary = {
   deferredRetryCount: number;
   repeatCount: number;
   results: Pick3StabilityResult[];
+  skippedCount: number;
   unresolvedCount: number;
 };
 
-const stabilityPromptMode = "free_analysis_strict_reasoning" as const;
-
-const buildFreeAnalysisPromptPackages = (
+const buildSelectedPromptPackages = (
   batch: BuiltPick3Batch,
+  promptMode: Pick3Input["promptMode"],
+  storage: Pick3Storage,
 ): BuiltPick3Batch["promptPackages"] => {
-  const freeAnalysisPlaybooks = loadBuiltInPick3Playbooks(stabilityPromptMode);
-  const playbookByPosition = new Map(freeAnalysisPlaybooks.map((playbook) => [playbook.position, playbook]));
+  const playbooks = loadBuiltInPick3Playbooks(promptMode);
+  const playbookByPosition = new Map(playbooks.map((playbook) => [playbook.position, playbook]));
+  const experienceLessonsByPosition = new Map<Pick3Position, ReturnType<Pick3Storage["listPlaybookLessonsByPosition"]>>(
+    (["hundreds", "tens", "ones"] as const).map((position) => [position, storage.listPlaybookLessonsByPosition(position)]),
+  );
   return batch.images.map((image) => {
     const playbook = playbookByPosition.get(image.position);
-    if (!playbook) throw new Error(`pick3_free_analysis_playbook_missing_${image.position}`);
-    return buildPick3PlaybookPromptPackage(playbook, image, stabilityPromptMode);
+    if (!playbook) throw new Error(`pick3_selected_playbook_missing_${image.position}`);
+    return buildPick3PlaybookPromptPackage(playbook, image, promptMode, experienceLessonsByPosition.get(image.position) ?? []);
   });
 };
 
@@ -58,9 +62,10 @@ const visiblePredictionLabel = (
 const assertCompleteStabilityExchange = (input: {
   expectedCount: number;
   results: Pick3StabilityResult[];
+  unresolvedCount: number;
 }): void => {
-  const firstFailure = input.results.find((result) => result.parseStatus !== "parsed");
-  if (firstFailure || input.results.length !== input.expectedCount) {
+  const firstFailure = input.results.find((result) => result.parseStatus === "parse_failed_raw_available");
+  if (firstFailure || input.unresolvedCount > 0 || input.results.length !== input.expectedCount) {
     throw new Error(`pick3_next_stability_exchange_incomplete_${input.results.length}_of_${input.expectedCount}_${firstFailure?.parseFailureReason ?? "result_count_mismatch"}`);
   }
 };
@@ -71,7 +76,7 @@ export const runPick3NextPredictionStability = async (input: {
   sender: Pick3GatewaySender;
   storage: Pick3Storage;
 }): Promise<Pick3StabilitySummary> => {
-  const promptPackages = buildFreeAnalysisPromptPackages(input.batch);
+  const promptPackages = buildSelectedPromptPackages(input.batch, input.batchInput.promptMode, input.storage);
   const exchange = await runPick3PromptExchange({
     artifactDir: input.batch.artifactDir,
     images: input.batch.images,
@@ -106,6 +111,7 @@ export const runPick3NextPredictionStability = async (input: {
     deferredRetryCount: exchange.completion.deferredRetryCount,
     repeatCount: input.batchInput.batchSize,
     results,
+    skippedCount: exchange.completion.skippedCount,
     unresolvedCount: exchange.completion.unresolvedCount,
   };
   writeFileSync(path.join(input.batch.artifactDir, "stability_results.json"), `${JSON.stringify(summary, null, 2)}\n`);
@@ -115,6 +121,7 @@ export const runPick3NextPredictionStability = async (input: {
   assertCompleteStabilityExchange({
     expectedCount: input.batch.images.length * input.batchInput.batchSize,
     results,
+    unresolvedCount: exchange.completion.unresolvedCount,
   });
   return summary;
 };

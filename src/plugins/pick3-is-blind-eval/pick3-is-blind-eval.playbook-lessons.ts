@@ -13,22 +13,61 @@ import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-l
 
 const hashText = (text: string): string => createHash("sha256").update(text).digest("hex");
 
-const parseReviewJson = (rawText: string): { candidateLesson: string; rootCause: string } => {
+/**
+ * The AI review prompt necessarily includes the concrete phase, imageId, and revealed answer as
+ * evidence for the post-mortem. Nothing stops the AI from echoing those concrete values back into
+ * its free-text rootCause/candidateLesson — and that free text is later spliced verbatim into
+ * future blind prompts by assemblePick3ExperienceSection. If a leak slips through, this is the
+ * last line of defense: it forces the lesson to status "rejected", which the live experience
+ * assembly already filters out, so a leaked lesson can never reach a future blind prompt.
+ */
+const detectPick3LessonLeak = (input: {
+  candidateLesson: string;
+  image: Pick3ImageRecord;
+  reveal: Pick3RevealRecord;
+  rootCause: string;
+}): string | null => {
+  const text = `${input.rootCause} ${input.candidateLesson}`;
+  const lowerText = text.toLowerCase();
+  if (text.includes(input.image.targetPhase)) return `leaked target phase ${input.image.targetPhase}`;
+  if (text.includes(input.image.imageId)) return "leaked imageId";
+  if (/\bfront\b/.test(lowerText) || /\bback\b/.test(lowerText)) return "leaked internal front/back reveal/scoring label";
+  for (const forbidden of ["targetphase", "answerdigit", "answerlabel", "expectedprizetime", "pick3", "uae", "lottery", "pick3-is-blind-eval"]) {
+    if (lowerText.includes(forbidden)) return `leaked forbidden token ${forbidden}`;
+  }
+  return null;
+};
+
+/**
+ * The review prompt must never hand the AI the literal words "front"/"back" as evidence text —
+ * predictionLabel/answerLabel are stored internally using those tokens, but if we interpolate them
+ * verbatim into the evidence package, the AI is reading the forbidden word in our own prompt right
+ * before we ask it not to write that word. Translating to the same upper/lower vocabulary the AI
+ * already used in its own raw reply removes the leak at the source instead of relying on an
+ * instruction to resist copying a word we just showed it.
+ */
+const toVisibleReviewLabel = (label: string): string => {
+  if (label === "front") return "lower";
+  if (label === "back") return "upper";
+  return label;
+};
+
+const PICK3_PLAYBOOK_REVIEW_MAX_ATTEMPTS = 3;
+
+/**
+ * Strict parse only: returns null instead of falling back to a placeholder. A post-mortem reply
+ * that does not parse into a real rootCause/candidateLesson is not "experience with missing
+ * fields" — it is no experience at all, and must trigger a retry rather than being stored as a
+ * placeholder lesson that would pollute the live-assembled experience pool with empty content.
+ */
+const parseStrictReviewJson = (rawText: string): { candidateLesson: string; rootCause: string } | null => {
   try {
     const parsed = JSON.parse(rawText) as { candidateLesson?: unknown; rootCause?: unknown };
-    return {
-      candidateLesson: typeof parsed.candidateLesson === "string" && parsed.candidateLesson.trim()
-        ? parsed.candidateLesson.trim()
-        : rawText.trim(),
-      rootCause: typeof parsed.rootCause === "string" && parsed.rootCause.trim()
-        ? parsed.rootCause.trim()
-        : "ai_review_root_cause_unstructured",
-    };
+    if (typeof parsed.rootCause !== "string" || !parsed.rootCause.trim()) return null;
+    if (typeof parsed.candidateLesson !== "string" || !parsed.candidateLesson.trim()) return null;
+    return { candidateLesson: parsed.candidateLesson.trim(), rootCause: parsed.rootCause.trim() };
   } catch {
-    return {
-      candidateLesson: rawText.trim() || "manual_review_required",
-      rootCause: "ai_review_raw_text_not_json",
-    };
+    return null;
   }
 };
 
@@ -46,6 +85,7 @@ Hard boundary:
 - Do not propose a playbook rewrite yet.
 - Analyze only why this already sealed Playbook prediction was wrong.
 - The lesson must apply only to position: ${input.image.position}.
+- Your rootCause and candidateLesson text will be reused in future blind prompts for other images. They must describe only visual-grammar shapes and reasoning (it is fine to say a pattern "leans upper" or "leans lower" as a tendency). They must NEVER mention the phase number or the imageId — writing either into your answer would leak a specific answer into a future blind evaluation, which is forbidden.
 
 Evidence package:
 - phase: ${input.image.targetPhase}
@@ -59,8 +99,8 @@ ${input.interaction.renderedPromptText}
 - historical AI raw reply:
 ${input.interaction.rawResponseText}
 
-- sealed prediction: ${input.prediction.predictionLabel}
-- revealed answer: ${input.reveal.answerLabel}
+- sealed prediction: ${toVisibleReviewLabel(input.prediction.predictionLabel)}
+- revealed answer: ${toVisibleReviewLabel(input.reveal.answerLabel)}
 - failure type: ${input.failureReview.failureType}
 - local failure note: ${input.failureReview.promptProblem}
 
@@ -77,7 +117,12 @@ const buildReviewGatewayInput = (input: {
 }): AiFeedInput => ({
   providerKind: input.failureReview.providerKind,
   promptPackageId: `pick3-playbook-review:${input.failureReview.batchId}:${input.failureReview.imageId}:${input.failureReview.failureReviewId}`,
-  promptContractId: "pick3-playbook-failure-review-v1",
+  // Must contain "pick3-is-blind-eval" so the web-chat tab-reuse, workspace resolution, and
+  // rate-limit dialog click-ack guards all recognize this as a Pick3 request — otherwise every
+  // gate keyed on that substring (resolveWebChatWorkspaceId, isPick3GptRateLimitGuardRequest,
+  // isPick3GptSubmitRequest) silently no-ops for review calls, opening a fresh tab every time and
+  // leaving rate-limit dialogs during review completely unhandled.
+  promptContractId: "pick3-is-blind-eval-playbook-failure-review-v1",
   expectedOutputSchemaRef: "pick3-playbook-failure-review-json-v1",
   textPrompt: input.aiReviewPrompt,
   inputRefs: [{
@@ -105,18 +150,25 @@ const buildLesson = (input: {
   failureReview: Pick3FailureReviewRecord;
   image: Pick3ImageRecord;
   interaction: Pick3AiInteractionRecord;
+  parsed: { candidateLesson: string; rootCause: string };
   prediction: Pick3PredictionRecord;
   reveal: Pick3RevealRecord;
   source: Pick3PlaybookLessonRecord["source"];
   taskId: string;
 }): Pick3PlaybookLessonRecord => {
-  const parsed = parseReviewJson(input.aiReviewRawText);
+  const parsed = input.parsed;
+  const leakReason = detectPick3LessonLeak({
+    candidateLesson: parsed.candidateLesson,
+    image: input.image,
+    reveal: input.reveal,
+    rootCause: parsed.rootCause,
+  });
   return {
     lessonId: `pick3_lesson_${randomUUID()}`,
     batchId: input.failureReview.batchId,
     taskId: input.taskId,
     source: input.source,
-    status: "candidate",
+    status: leakReason ? "rejected" : "candidate",
     phase: input.image.targetPhase,
     position: input.image.position,
     imageId: input.image.imageId,
@@ -130,7 +182,7 @@ const buildLesson = (input: {
     aiReviewPrompt: input.aiReviewPrompt,
     aiReviewRawText: input.aiReviewRawText,
     aiReviewRawHash: hashText(input.aiReviewRawText),
-    rootCause: parsed.rootCause,
+    rootCause: leakReason ? `[REJECTED: ${leakReason}] ${parsed.rootCause}` : parsed.rootCause,
     candidateLesson: parsed.candidateLesson,
     evidenceRefsJson: JSON.stringify({
       imagePath: input.image.imagePath,
@@ -166,21 +218,27 @@ export const reviewPick3PlaybookLessons = async (input: {
     if (!image || !interaction || !prediction || !reveal) continue;
     const aiReviewPrompt = buildReviewPrompt({ failureReview, image, interaction, prediction, reveal });
     let rawText = "";
-    try {
-      const result = await input.sender(buildReviewGatewayInput({ aiReviewPrompt, failureReview, image }));
-      rawText = result.normalizedText ?? "";
-    } catch (error) {
-      rawText = JSON.stringify({
-        rootCause: "ai_review_failed",
-        candidateLesson: `Manual ${image.position} review required: ${error instanceof Error ? error.message : String(error)}`,
-      });
+    let parsed: { candidateLesson: string; rootCause: string } | null = null;
+    for (let attempt = 1; attempt <= PICK3_PLAYBOOK_REVIEW_MAX_ATTEMPTS && !parsed; attempt += 1) {
+      try {
+        const result = await input.sender(buildReviewGatewayInput({ aiReviewPrompt, failureReview, image }));
+        rawText = result.normalizedText ?? "";
+      } catch {
+        rawText = "";
+      }
+      parsed = parseStrictReviewJson(rawText);
     }
+    // Retried PICK3_PLAYBOOK_REVIEW_MAX_ATTEMPTS times with no parseable reply: discard this
+    // failure entirely rather than storing a placeholder lesson that would pollute the live
+    // experience pool with no real content.
+    if (!parsed) continue;
     lessons.push(buildLesson({
       aiReviewPrompt,
       aiReviewRawText: rawText,
       failureReview,
       image,
       interaction,
+      parsed,
       prediction,
       reveal,
       source: input.source,

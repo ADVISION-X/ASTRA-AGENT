@@ -6,61 +6,16 @@
   "executionGroup": "foundation",
   "findings": [
     {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/pick3-is-blind-eval.acceptance.ts has 539 lines and exceeds the active executable source file red line.",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts exports emitPick3RateLimitRecoveryStep without any provable final consumer.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts has 576 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
-      "evidence": "{\"owner\":\"audit:pick3-is-blind-eval\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts has an over-line function near line 461.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
-      "evidence": "{\"owner\":\"audit:pick3-is-blind-eval\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts has an over-line function near line 237.",
-      "severity": "fatal",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
-      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/named-export-budget",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts exports 25 symbols and exceeds the red line 24.",
-      "severity": "fatal",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
-      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts has 577 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
-      "evidence": "{\"owner\":\"plugin:pick3-is-blind-eval\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"symbolName\":\"emitPick3RateLimitRecoveryStep\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-06-20T12:02:03.986Z",
+  "generatedAt": "2026-06-20T23:06:31.473Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -137,6 +92,7 @@
     "scripts/acceptance/pick3-is-blind-eval-completion-queue.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval-free-analysis.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts",
+    "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance-support.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
@@ -307,7 +263,9 @@
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector-human-review-history.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector-playbook-lessons.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector-token-contracts.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector-trend-display.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
@@ -422,6 +380,7 @@
     "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-pick3-history-client.ts",
     "src/app/workbench-home-pick3-stability-client.ts",
+    "src/app/workbench-home-pick3-target-client.ts",
     "src/app/workbench-home-pick3-trend-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
@@ -767,6 +726,8 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-storage.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
@@ -1242,6 +1203,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
+      "reason": "package.json script acceptance:pick3-is-blind-eval",
+      "scriptName": "acceptance:pick3-is-blind-eval"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
       "reason": "package.json script acceptance:pick3-is-blind-eval",
       "scriptName": "acceptance:pick3-is-blind-eval"
@@ -1481,25 +1448,43 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 2131,
+  "liveExportCount": 2136,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 724,
+  "reachableFileCount": 730,
   "status": "FAIL",
   "unreachableFileCount": 0,
-  "uselessCodeInventory": [],
-  "unprovenPublicExports": [],
+  "uselessCodeInventory": [
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts exports emitPick3RateLimitRecoveryStep without any provable final consumer."
+    }
+  ],
+  "unprovenPublicExports": [
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts exports emitPick3RateLimitRecoveryStep without any provable final consumer."
+    }
+  ],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 0,
+  "zombieExportCount": 1,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2131,
+    "liveExportCount": 2136,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 724,
+    "reachableFileCount": 730,
     "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 0,
-    "zombieExportCount": 0
+    "uselessCodeInventoryCount": 1,
+    "zombieExportCount": 1
   }
 }

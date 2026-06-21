@@ -33,6 +33,16 @@ const completeFreeAnalysisOutput = (input: Record<string, unknown>): Record<stri
   ...input,
 });
 
+const completePlaybookOutput = (input: Record<string, unknown>): Record<string, unknown> => ({
+  tailShapes: ["sharp_top"],
+  zoneWeight: "lower_weighted",
+  drivingEvidence: "sharp_top drove the lower conclusion",
+  discountedEvidence: null,
+  reason: "The tail shows sharp_top with lower_weighted zone pressure, so the visible evidence supports the selected continuation.",
+  abstainReason: null,
+  ...input,
+});
+
 const validExchange = await runPick3PromptExchange({
   artifactDir,
   images: [images[0]!],
@@ -186,7 +196,7 @@ try {
       mode: "next_prediction_stability",
       providerKind: "gemini-web-chat",
       source: "theuaelottery",
-      promptMode: "playbook_v1",
+      promptMode: "free_analysis_strict_reasoning",
       lotteryType: 72,
       windowSize: 80,
       batchSize: 5,
@@ -301,25 +311,23 @@ try {
     sender: async (input) => {
       multiStabilityInputs.push(input);
       const predictionLabel = input.roundId?.toString().startsWith("hundreds") ? "lower" : "upper";
-      return buildFixtureAiResult({ gatewayInput: input, rawText: JSON.stringify(completeFreeAnalysisOutput({
+      return buildFixtureAiResult({ gatewayInput: input, rawText: JSON.stringify(completePlaybookOutput({
         imageId: input.inputRefs[0]?.id,
         promptPackageId: visiblePromptPackageId(input),
         predictionLabel,
         confidence: 0.55,
-        chartReading: "The multi-position fixture keeps each position on its own anonymous L80 chart so the distribution grouping test can prove positions never get summed together.",
-        recentBehavior: "Each position's final visible segment is read independently of the other position's chart.",
-        supportingEvidence: ["position-specific recent segment shape"],
-        counterEvidence: ["the broader window for this position has some mixed movement"],
-        decisionLogic: "Each position's label is driven only by that position's own chart, never by the other position's chart, so distribution grouping can be verified per position.",
-        abstainReason: null,
       })) });
     },
   });
   assert.equal(multiStabilitySummary.results.length, 4);
+  assert.equal(multiStabilityInputs.length, 4);
+  assert.equal(multiStabilityInputs.every((input) => input.promptContractId === "pick3-is-blind-eval-one-image-v1"), true);
+  assert.equal(multiStabilityInputs.every((input) => input.textPrompt.includes("tailShapes") && input.textPrompt.includes("zoneWeight")), true);
+  assert.equal(multiStabilityInputs.some((input) => input.textPrompt.includes("Strict reasoning requirements")), false);
   const multiTaskRecord: Pick3TaskRecord = {
     taskId: "free-analysis-next-stability-multi-task",
     mode: "next_prediction_stability",
-    promptMode: "free_analysis_strict_reasoning",
+    promptMode: "playbook_v1",
     status: "success",
     reachedStep: "next_prediction_stability_complete",
     reason: null,

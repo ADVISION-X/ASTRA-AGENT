@@ -7,7 +7,7 @@ import type { AiFeedInput } from "../../src/capabilities/ai-input-gateway/index.
 import { runPick3PromptExchange } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.js";
 import { buildPick3PlaybookPromptPackage, loadBuiltInPick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
 import type { Pick3ImageRecord } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.js";
-import { buildFixtureAiResult, visiblePromptPackageId } from "./pick3-is-blind-eval.acceptance-support.js";
+import { buildFixtureAiResult, buildRawTextFixtureAiResult, visiblePromptPackageId } from "./pick3-is-blind-eval.acceptance-support.js";
 
 const buildImage = (imageId: string, position: Pick3ImageRecord["position"]): Pick3ImageRecord => ({
   imageId,
@@ -106,4 +106,35 @@ assert.equal(exhaustedExchange.completion.unresolvedCount, 1);
 assert.equal(exhaustedExchange.interactions.length, 1);
 assert.equal(exhaustedExchange.interactions[0]?.parseStatus, "parse_failed_raw_available");
 assert.equal(exhaustedExchange.predictions.length, 0);
+
+let missingImageSkipCalls = 0;
+const missingImageSkipExchange = await runPick3PromptExchange({
+  artifactDir,
+  images,
+  promptPackages,
+  sender: async (input) => {
+    if (input.inputRefs[0]?.id === images[0]?.imageId) {
+      missingImageSkipCalls += 1;
+      return buildRawTextFixtureAiResult({ gatewayInput: input, rawText: "未收到图片" });
+    }
+    return buildFixtureAiResult({
+      gatewayInput: input,
+      rawText: JSON.stringify(buildValidPredictionFixture({
+        imageId: input.inputRefs[0]?.id,
+        promptPackageId: visiblePromptPackageId(input),
+        predictionLabel: "upper",
+        confidence: 0.55,
+        reason: "batch continued after provider-reported missing image skip",
+      })),
+    });
+  },
+});
+
+assert.equal(missingImageSkipCalls, 4);
+assert.equal(missingImageSkipExchange.completion.completedCount, 2);
+assert.equal(missingImageSkipExchange.completion.skippedCount, 1);
+assert.equal(missingImageSkipExchange.completion.unresolvedCount, 0);
+assert.equal(missingImageSkipExchange.interactions[0]?.parseStatus, "skipped_provider_reported_image_missing");
+assert.equal(missingImageSkipExchange.interactions[0]?.parseFailureReason, "pick3_provider_reported_image_missing_retry_exhausted");
+assert.equal(missingImageSkipExchange.predictions.length, 1);
 console.log("pick3-is-blind-eval completion queue acceptance passed");

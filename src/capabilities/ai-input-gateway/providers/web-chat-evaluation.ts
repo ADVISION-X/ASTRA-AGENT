@@ -1,4 +1,5 @@
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
+import { WEB_CHAT_ATTACHMENT_COUNT_SCRIPT } from "./web-chat-composer-scripts.js";
 
 type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
 
@@ -36,18 +37,29 @@ const visibleStatusText = Array.from(document.querySelectorAll("[role='status'],
 const processing = /\\b(thinking|reasoning|analyzing|analysis|searching|processing|reading|browsing|uploading|working)\\b|思考|推理|分析|搜索|处理中|生成中|读取中|工作中/i.test(visibleStatusText);
 `;
 
-export const buildVerifyLastUserMessageAttachmentsScript = (expectedCount: number): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const expectedCount = ${JSON.stringify(expectedCount)};
+const WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT = `
+const isChatGptPastedTextTile = (node) => {
+  if (!(node instanceof HTMLElement)) return false;
+  const text = clip(node.getAttribute("aria-label") || node.textContent || "");
+  return /在文本字段中显示|show in text field|display in text field|pasted text|pasted content/i.test(text)
+    || Boolean(node.querySelector("button[aria-label*='在文本字段中显示'], button[aria-label*='show in text field' i], button[aria-label*='display in text field' i]"));
+};
+const isRealSubmittedAttachment = (node) => {
+  if (!(node instanceof HTMLElement) || isChatGptPastedTextTile(node)) return false;
+  const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
+  if (/add files?|添加文件|profile|avatar|account|menuitem|button|发送|send/i.test(label)) return false;
+  if (/移除文件\\d*|remove file\\d*/i.test(label)) return true;
+  if (node.matches("img, picture, canvas, [role='img'], gem-media-attachment, uploader-file-preview, user-query-file-carousel")) return true;
+  return /\\b(file|attachment|image)\\b|附件|图片|\\.png|\\.jpg|\\.jpeg|\\.webp/i.test(label);
+};
 const countBoundAttachments = (root) => {
   if (!root || typeof root.querySelectorAll !== "function") return 0;
   const selectors = [
-    "gem-media-attachment",
-    "uploader-file-preview",
-    "user-query-file-carousel",
-    "img",
-    "picture",
-    "canvas",
+    "gem-media-attachment", "uploader-file-preview", "user-query-file-carousel",
+    "[class*='file-tile' i]",
+    "[role='group'][aria-label]",
+    "button[aria-label*='在文本字段中显示']", "button[aria-label*='show in text field' i]", "button[aria-label*='display in text field' i]",
+    "img", "picture", "canvas",
     "[role='img']",
     "[data-testid*='attachment' i]",
     "[data-testid*='file' i]",
@@ -60,16 +72,39 @@ const countBoundAttachments = (root) => {
   for (const selector of selectors) {
     for (const node of Array.from(root.querySelectorAll(selector))) {
       if (!(node instanceof HTMLElement) || seen.has(node) || !isVisible(node)) continue;
-      seen.add(node);
-      const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
-      if (/add files?|添加文件|附加文件|profile|avatar|account|menuitem|button|发送|send/i.test(label)) continue;
       const rect = node.getBoundingClientRect();
+      const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
       if (rect.width < 12 && rect.height < 12 && label.length === 0) continue;
+      const tileRoot = findAttachmentTileRoot(node) || node;
+      if (seen.has(tileRoot) || !isRealSubmittedAttachment(tileRoot)) continue;
+      seen.add(tileRoot);
       count += 1;
     }
   }
   return count;
 };
+`;
+
+const CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT = `
+const countChatGptBoundAttachments = (messageNode) => {
+  if (!(messageNode instanceof HTMLElement)) return 0;
+  const roots = [messageNode];
+  let cursor = messageNode.parentElement;
+  for (let depth = 0; depth < 8 && cursor; depth += 1) {
+    roots.push(cursor);
+    const className = String(cursor.className || "").toLowerCase();
+    if (cursor.getAttribute("data-message-author-role") === "user" || className.includes("message")) break;
+    if (cursor.tagName.toLowerCase() === "main" || cursor.getAttribute("role") === "main") break;
+    cursor = cursor.parentElement;
+  }
+  for (const sibling of [messageNode.previousElementSibling, messageNode.nextElementSibling]) {
+    if (sibling instanceof HTMLElement) roots.push(sibling);
+  }
+  return Math.max(...roots.map((root) => countBoundAttachments(root)));
+};
+`;
+
+const GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT = `
 const countGeminiBoundAttachments = (messageNode) => {
   if (!(messageNode instanceof HTMLElement)) return 0;
   const roots = [messageNode];
@@ -87,6 +122,15 @@ const countGeminiBoundAttachments = (messageNode) => {
   }
   return Math.max(...roots.map((root) => countBoundAttachments(root)));
 };
+`;
+
+export const buildVerifyLastUserMessageAttachmentsScript = (expectedCount: number): string => `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
+const expectedCount = ${JSON.stringify(expectedCount)};
+${WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
+${CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
+${GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 const chatGptUserMessages = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
   .filter((node) => node instanceof HTMLElement && isVisible(node));
 const geminiUserMessages = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"))
@@ -95,7 +139,7 @@ const geminiUserMessages = Array.from(document.querySelectorAll("user-query, use
 const userMessages = chatGptUserMessages.length > 0 ? chatGptUserMessages : geminiUserMessages;
 const lastUserMessage = userMessages[userMessages.length - 1] || null;
 const boundAttachmentCount = chatGptUserMessages.length > 0
-  ? countBoundAttachments(lastUserMessage)
+  ? countChatGptBoundAttachments(lastUserMessage)
   : countGeminiBoundAttachments(lastUserMessage);
 const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
 if (boundAttachmentCount >= expectedCount) {
@@ -138,8 +182,10 @@ const composerRoot = findComposerRoot();
 const composerRootText = clip(composerRoot?.innerText || "");
 const hasPastedTextCard = Boolean(composerRoot)
   && (composerRootText.includes("已粘贴的文本")
+    || composerRootText.includes("在文本字段中显示")
     || composerRootText.toLowerCase().includes("pasted text")
-    || composerRootText.toLowerCase().includes("pasted content"));
+    || composerRootText.toLowerCase().includes("pasted content")
+    || Boolean(composerRoot.querySelector("button[aria-label*='在文本字段中显示'], button[aria-label*='show in text field' i], button[aria-label*='display in text field' i]")));
 const sendButton = composerRoot?.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']");
 const sendReady = sendButton instanceof HTMLButtonElement
   ? !sendButton.disabled && sendButton.getAttribute("aria-disabled") !== "true"
@@ -409,23 +455,10 @@ if (!normalizedAnswerText && responseGenerating) {
   return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount};
 }
 if (!normalizedAnswerText) {
-  const rateLimitDialog = Array.from(document.querySelectorAll('[role="dialog"], [data-radix-portal], body'))
-    .filter((node) => isVisible(node))
-    .find((node) => {
-      const text = clip(node.textContent || "");
-      return (text.includes("请求过于频繁") && text.includes("请稍等"))
-        || /too many requests|request too frequent|try again later|temporarily limited/i.test(text);
-    });
-  if (rateLimitDialog) {
-    return {
-      status: "review_required",
-      message: "provider_rate_limited_too_many_requests",
-      answerText: null,
-      pageUrl: location.href,
-      generating: false,
-      assistantCount,
-    };
-  }
+  // A visible ChatGPT rate-limit dialog is never escalated to review_required and never aborts
+  // polling: the parallel beforePoll click-ack (acknowledgePick3RateLimitIfVisible) is the ONLY
+  // action taken — click it away, then keep waiting in the same conversation for the same
+  // in-flight response. No reopen, no resend, no restart, no attempt cap.
   return {status: "pending", message: "provider answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount};
 }
 if (geminiPick3JsonMissing) {

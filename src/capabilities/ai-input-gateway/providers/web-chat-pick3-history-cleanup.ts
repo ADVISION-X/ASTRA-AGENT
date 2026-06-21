@@ -391,6 +391,7 @@ const discoverNextLegacyUrls = async (input: HistoryCleanupInput, attemptedUrls:
 };
 
 export const cleanupStaleWorkspaceConversationHistory = async (input: HistoryCleanupInput): Promise<string> => {
+  return `provider_history_delete_temporarily_disabled:${providerLabel(input.providerKind)}`;
   const staleUrls = await staleHistoryUrls(input);
   if (staleUrls.length === 0) return "history_not_needed";
   const triggerThreshold = staleCleanupTriggerThreshold(input);
@@ -446,46 +447,4 @@ export const cleanupStaleWorkspaceConversationHistory = async (input: HistoryCle
   failedCount += remainingLegacyUrls.length;
 
   return `history_deleted_${deletedCount}_not_found_${notFoundCount}_failed_${failedCount}`;
-};
-
-export const deletePick3WorkspaceConversationHistoryUrl = async (input: {
-  browser: BrowserController;
-  conversationUrl: string;
-  providerKind?: string;
-  abortSignal?: AbortSignal;
-}): Promise<string> => {
-  const providerKind = input.providerKind ?? "chatgpt-web-chat";
-  const menuStatus = await openHistoryMenuForUrl({
-    browser: input.browser,
-    staleUrl: input.conversationUrl,
-    providerKind,
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  });
-  if (menuStatus === "not_found") return "current_history_not_found";
-  if (menuStatus !== "menu_opened") return `current_history_${menuStatus}`;
-
-  await input.browser.wait(350);
-  const deleteStatus = await clickHistoryDeleteAction({
-    browser: input.browser,
-    providerKind,
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  });
-  if (deleteStatus !== "delete_action_clicked") return `current_history_${deleteStatus}`;
-
-  await input.browser.wait(350);
-  const confirmStatus = await confirmHistoryDeletion({
-    browser: input.browser,
-    providerKind,
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  });
-  if (confirmStatus !== "confirm_delete_clicked") return `current_history_${confirmStatus}`;
-
-  return await verifyHistoryDeleted({
-    browser: input.browser,
-    staleUrl: input.conversationUrl,
-    providerKind,
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  })
-    ? "current_history_deleted"
-    : "current_history_delete_verify_failed";
 };

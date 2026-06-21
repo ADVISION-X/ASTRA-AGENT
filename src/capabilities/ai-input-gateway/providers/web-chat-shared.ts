@@ -4,9 +4,9 @@ import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import { captureChatGptBusinessHtmlArtifact, isBusinessHtmlReportRequest } from "./web-chat-html-artifact-capture.js";
-import { isAmazonProductMiningGptRequest, isPick3GptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
-import { deletePick3WorkspaceConversationHistoryUrl, GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
-import { emitPick3RateLimitRecoveryStep, reservePick3RateLimitAttempt, resolvePick3RateLimitBackoffMs, waitAfterPick3RateLimit } from "./web-chat-pick3-recovery-log.js";
+import { isAmazonProductMiningGptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
+import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
+import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser, restoreSourcePage } from "./web-chat-shared-support.js";
@@ -47,11 +47,6 @@ const isPick3NoResultTimeoutError = (input: { error: unknown; providerUrl: strin
   isPick3WebChatRequest({ request: input.request })
   && input.error instanceof Error
   && input.error.message.includes("failed: provider response polling timed out");
-
-const isPick3RateLimitError = (input: { error: unknown; providerUrl: string; request: AiFeedInput }): boolean =>
-  isPick3GptRequest(input)
-  && input.error instanceof Error
-  && input.error.message.includes("provider_rate_limited_too_many_requests");
 
 const isPick3MissingBoundImageError = (input: { error: unknown; providerUrl: string; request: AiFeedInput }): boolean =>
   isPick3WebChatRequest({ request: input.request })
@@ -103,6 +98,7 @@ const extractWebChatConversation = async (input: { browser: BrowserController; r
       minAssistantCount: Math.max(1, input.previousAssistantCount + 1),
     }),
     previousAnswerText: input.previousAnswerText,
+    beforePoll: () => acknowledgePick3RateLimitIfVisible(input),
   });
   emitWebChatStage({ request: input.request, stage: "response_capture", status: extracted.status, startedAtMs: responseCaptureStartedAtMs, refs: {
     message: extracted.message,
@@ -135,6 +131,7 @@ const readPreSubmitConversationState = async (input: { browser: BrowserControlle
     timeoutMs: 1_000,
     pollIntervalMs: 250,
     stableRoundsRequired: 1,
+    beforePoll: () => acknowledgePick3RateLimitIfVisible(input),
   });
   emitWebChatStage({
     request: input.request,
@@ -271,14 +268,6 @@ const recoverPick3NoResultConversation = async (input: {
     reusePolicy: "reuse-active-tab",
   });
   await input.browser.wait(1_800);
-  const deleteStatus = await deletePick3WorkspaceConversationHistoryUrl({
-    browser: input.browser,
-    conversationUrl: timedOutUrl,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-  if (deleteStatus !== "current_history_deleted") {
-    throw new Error(`review_required: Pick3 timed-out ChatGPT conversation deletion failed: ${deleteStatus}`);
-  }
   const workspaceId = resolveWebChatWorkspaceId(input.request);
   if (workspaceId) {
     saveWorkspaceUrl({
@@ -295,7 +284,7 @@ const recoverPick3NoResultConversation = async (input: {
     context: input.context,
     request: input.request,
   });
-  return "pick3_no_result_recovery_refreshed_deleted_current_conversation_and_reopened_new_chat";
+  return "pick3_no_result_recovery_refreshed_without_history_delete_and_reopened_new_chat";
 };
 
 const recoverPick3MissingBoundImageConversation = async (input: {
@@ -306,7 +295,7 @@ const recoverPick3MissingBoundImageConversation = async (input: {
   runtimeName: string;
 }): Promise<string> => {
   await recoverPick3NoResultConversation(input);
-  return "pick3_missing_bound_image_recovery_deleted_current_conversation_and_reopened_new_chat";
+  return "pick3_missing_bound_image_recovery_without_history_delete_and_reopened_new_chat";
 };
 
 const restoreAfterWebChatFeed = async (input: {
@@ -345,45 +334,6 @@ const restoreAfterWebChatFeed = async (input: {
   }
 };
 
-const recoverAfterPick3RateLimit = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  runtimeName: string;
-}): Promise<string> => {
-  const rateLimitAttempt = reservePick3RateLimitAttempt(input.request);
-  const backoffMs = resolvePick3RateLimitBackoffMs(rateLimitAttempt);
-  if (backoffMs === null) {
-    throw new Error("review_required: Pick3 ChatGPT rate limit persisted after 3 backoff waits.");
-  }
-  const waitStatus = await waitAfterPick3RateLimit({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    attemptIndex: rateLimitAttempt,
-    backoffMs,
-  });
-  await openProviderPage(input);
-  emitPick3RateLimitRecoveryStep({
-    logger: input.context.runtimeLogger,
-    request: input.request,
-    attemptIndex: rateLimitAttempt,
-    reason: "pick3_rate_limit_new_chat_reopened_for_resend",
-    status: "success",
-    phase: "new_chat_reopened_for_resend",
-  });
-  emitPick3RateLimitRecoveryStep({
-    logger: input.context.runtimeLogger,
-    request: input.request,
-    attemptIndex: rateLimitAttempt,
-    reason: "pick3_rate_limit_same_payload_resend_started",
-    status: "started",
-    phase: "same_payload_resend_started",
-  });
-  return waitStatus;
-};
-
 const executeOpenedWebChatAdapter = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
@@ -400,11 +350,6 @@ const executeOpenedWebChatAdapter = async (input: {
       response = await executeWebChatConversation(input);
       break;
     } catch (error) {
-      if (isPick3RateLimitError({ error, providerUrl: input.providerUrl, request: input.request })) {
-        const waitStatus = await recoverAfterPick3RateLimit(input);
-        recoveryStatus = recoveryStatus ? `${recoveryStatus};${waitStatus}` : waitStatus;
-        continue;
-      }
       if (isPick3MissingBoundImageError({ error, providerUrl: input.providerUrl, request: input.request })) {
         if (missingBoundImageRecovered) {
           throw new Error("review_required: provider_missing_bound_image persisted after Pick3 recovery.");
@@ -423,8 +368,8 @@ const executeOpenedWebChatAdapter = async (input: {
     }
   }
   if (recoveryStatus) {
-    response.providerRecoveryAttemptCount = recoveryStatus.includes("pick3_rate_limit_backoff")
-      ? recoveryStatus.split("pick3_rate_limit_backoff").length - 1
+    response.providerRecoveryAttemptCount = recoveryStatus.includes("pick3_rate_limit_immediate_ack")
+      ? recoveryStatus.split("pick3_rate_limit_immediate_ack").length - 1
       : PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS;
     response.providerRecoveryStatus = recoveryStatus;
   }
@@ -458,6 +403,11 @@ export const runWebChatAdapter = async (input: {
     context: input.context,
     request: input.request,
   });
+  const rateLimitDialogWatcher = startPick3RateLimitDialogWatcher({
+    browser,
+    request: input.request,
+    context: input.context,
+  });
   try {
     response = await executeOpenedWebChatAdapter({
       browser,
@@ -469,6 +419,12 @@ export const runWebChatAdapter = async (input: {
     });
     return response;
   } finally {
+    let watcherFailure: unknown = null;
+    try {
+      await rateLimitDialogWatcher?.stop();
+    } catch (error) {
+      watcherFailure = error;
+    }
     await restoreAfterWebChatFeed({
       browser,
       context: input.context,
@@ -477,5 +433,6 @@ export const runWebChatAdapter = async (input: {
       sourcePageUrlBeforeFeed,
       response,
     });
+    if (watcherFailure) throw watcherFailure;
   }
 };

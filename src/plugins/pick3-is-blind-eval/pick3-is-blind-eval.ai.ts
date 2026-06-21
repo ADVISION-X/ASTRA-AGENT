@@ -27,6 +27,7 @@ export type Pick3PromptExchangeResult = {
     expectedCount: number;
     completedCount: number;
     deferredRetryCount: number;
+    skippedCount: number;
     unresolvedCount: number;
   };
 };
@@ -168,6 +169,7 @@ const RECOVERABLE_PARSE_FAILURE_REASONS = new Set<string>([
   "pick3_provider_reported_image_missing",
 ]);
 
+const PICK3_PROVIDER_REPORTED_MISSING_IMAGE_RETRY_COUNT = 3;
 const PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS = 3;
 
 const gatewayInputForAttempt = (input: {
@@ -223,6 +225,23 @@ const recoverableRetryReason = (input: {
     : null;
 };
 
+const maxAttemptsForRetryReason = (retryReason: string | null): number =>
+  retryReason === "pick3_provider_reported_image_missing"
+    ? 1 + PICK3_PROVIDER_REPORTED_MISSING_IMAGE_RETRY_COUNT
+    : 2;
+
+const isMissingImageRetryExhausted = (input: {
+  attempt: number;
+  retryReason: string | null;
+}): boolean => input.retryReason === "pick3_provider_reported_image_missing"
+  && input.attempt + 1 >= maxAttemptsForRetryReason(input.retryReason);
+
+const markMissingImageSkipped = (interaction: Pick3AiInteractionRecord): Pick3AiInteractionRecord => ({
+  ...interaction,
+  parseStatus: "skipped_provider_reported_image_missing",
+  parseFailureReason: "pick3_provider_reported_image_missing_retry_exhausted",
+});
+
 const sendWithRecoverableOutputRetry = async (input: {
   artifactDir: string;
   sender: Pick3GatewaySender;
@@ -235,7 +254,7 @@ const sendWithRecoverableOutputRetry = async (input: {
 }): Promise<{ gatewayResult: AiFeedResult; result: { interaction: Pick3AiInteractionRecord; parsed: ParsedPick3Prediction | null } }> => {
   let retryReason: string | null = null;
   let last: { gatewayResult: AiFeedResult; result: { interaction: Pick3AiInteractionRecord; parsed: ParsedPick3Prediction | null } } | null = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttemptsForRetryReason(retryReason); attempt += 1) {
     if (attempt > 0) {
       terminalLog(`[${input.seqLabel}] retry_started imageId=${input.imageId} position=${input.position} attempt=${attempt + 1} reason=${retryReason ?? "recoverable_output_contract_violation"}`);
     }
@@ -255,7 +274,18 @@ const sendWithRecoverableOutputRetry = async (input: {
       logPick3EmptyOutput({ ...input, result: gatewayResult, attempt });
     }
     retryReason = recoverableRetryReason({ result: gatewayResult, interaction: result.interaction });
-    if (!retryReason || attempt === 1) return last;
+    if (isMissingImageRetryExhausted({ attempt, retryReason })) {
+      last = {
+        gatewayResult,
+        result: {
+          ...result,
+          interaction: markMissingImageSkipped(result.interaction),
+        },
+      };
+      terminalLog(`[${input.seqLabel}] skipped_missing_image imageId=${input.imageId} position=${input.position} attempts=${attempt + 1} reason=pick3_provider_reported_image_missing_retry_exhausted`);
+      return last;
+    }
+    if (!retryReason || attempt + 1 >= maxAttemptsForRetryReason(retryReason)) return last;
   }
   if (!last) throw new Error("pick3_prompt_exchange_gateway_result_missing");
   return last;
@@ -339,6 +369,7 @@ export const runPick3PromptExchange = async (input: Pick3PromptExchangeInput): P
   const gatewayInputs: AiFeedInput[] = [];
   const interactions: Pick3AiInteractionRecord[] = [];
   const predictions: Pick3PredictionRecord[] = [];
+  let skippedCount = 0;
   const repeatCount = input.repeatCount ?? 1;
   const total = input.images.length * repeatCount;
   const maxCompletionRounds = input.maxCompletionRounds ?? PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS;
@@ -356,6 +387,11 @@ export const runPick3PromptExchange = async (input: Pick3PromptExchangeInput): P
         predictions.push(buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage: item.promptPackage }));
         continue;
       }
+      if (result.interaction.parseStatus === "skipped_provider_reported_image_missing") {
+        skippedCount += 1;
+        interactions.push(result.interaction);
+        continue;
+      }
       if (item.completionRound < maxCompletionRounds) {
         deferredRetryCount += 1;
         terminalLog(`[${seqLabel}] deferred_retry_scheduled imageId=${item.image.imageId} position=${item.image.position} repeatIndex=${item.repeatIndex} nextCompletionRound=${item.completionRound + 1} reason=${result.interaction.parseFailureReason ?? "parse_failed_raw_available"}`);
@@ -371,9 +407,10 @@ export const runPick3PromptExchange = async (input: Pick3PromptExchangeInput): P
     predictions,
     completion: {
       expectedCount: total,
-      completedCount: predictions.length,
+      completedCount: predictions.length + skippedCount,
       deferredRetryCount,
-      unresolvedCount: total - predictions.length,
+      skippedCount,
+      unresolvedCount: total - predictions.length - skippedCount,
     },
   };
 };

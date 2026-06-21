@@ -3,19 +3,7 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
-import {
-  PICK3_JOB_ID,
-  PICK3_LOTTERY_TYPE,
-  PICK3_OFFICIAL_SOURCE,
-  PICK3_WINDOW_SIZE,
-  type Pick3Draw,
-  type Pick3AiInteractionRecord,
-  type Pick3FailureReviewRecord,
-  type Pick3ImageRecord,
-  type Pick3PredictionRecord,
-  type Pick3RevealRecord,
-  type Pick3TaskRecord,
-} from "./pick3-is-blind-eval.schema.js";
+import { PICK3_JOB_ID, PICK3_LOTTERY_TYPE, PICK3_OFFICIAL_SOURCE, PICK3_WINDOW_SIZE, type Pick3AiInteractionRecord, type Pick3Draw, type Pick3FailureReviewRecord, type Pick3ImageRecord, type Pick3PredictionRecord, type Pick3RevealRecord, type Pick3TaskRecord } from "./pick3-is-blind-eval.schema.js";
 import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
 import { insertPlaybookLessons, listPlaybookLessons, listPlaybookLessonsByPosition } from "./pick3-is-blind-eval.playbook-lesson-storage.js";
 import type { Pick3PlaybookRecord } from "./pick3-is-blind-eval.playbook.js";
@@ -27,7 +15,7 @@ export type Pick3Storage = {
   dbPath: string;
   upsertDraws: (draws: readonly Pick3Draw[]) => { inserted: number; updated: number };
   listDrawsAscending: () => Pick3Draw[];
-  listTargetDraws: (input: { phases?: readonly string[]; batchSize: number }) => Pick3Draw[];
+  listTargetDraws: (input: { lastPhase?: string; phases?: readonly string[]; batchSize: number }) => Pick3Draw[];
   insertBatch: (input: {
     batchId: string;
     artifactDir: string;
@@ -171,32 +159,6 @@ const rowToFailureReview = (row: Record<string, unknown>): Pick3FailureReviewRec
   createdAt: String(row.created_at),
 });
 
-const rowToPlaybookLesson = (row: Record<string, unknown>): Pick3PlaybookLessonRecord => ({
-  lessonId: String(row.lesson_id),
-  batchId: String(row.batch_id),
-  taskId: String(row.task_id),
-  source: row.source as Pick3PlaybookLessonRecord["source"],
-  status: row.status as Pick3PlaybookLessonRecord["status"],
-  phase: String(row.phase),
-  position: row.position as Pick3PlaybookLessonRecord["position"],
-  imageId: String(row.image_id),
-  predictionId: String(row.prediction_id),
-  interactionId: String(row.interaction_id),
-  failureReviewId: String(row.failure_review_id),
-  promptPackageId: String(row.prompt_package_id),
-  playbookVersionId: String(row.playbook_version_id),
-  predictedLabel: row.predicted_label as Pick3PlaybookLessonRecord["predictedLabel"],
-  answerLabel: row.answer_label as Pick3PlaybookLessonRecord["answerLabel"],
-  aiReviewPrompt: String(row.ai_review_prompt),
-  aiReviewRawText: String(row.ai_review_raw_text),
-  aiReviewRawHash: String(row.ai_review_raw_hash),
-  rootCause: String(row.root_cause),
-  candidateLesson: String(row.candidate_lesson),
-  evidenceRefsJson: String(row.evidence_refs_json),
-  aggregateKey: String(row.aggregate_key),
-  createdAt: String(row.created_at),
-});
-
 const upsertDraws = (
   db: Database.Database,
   statements: Pick3Statements,
@@ -259,14 +221,20 @@ const listDrawsAscending = (statements: Pick3Statements): Pick3Draw[] =>
 
 const listTargetDraws = (
   statements: Pick3Statements,
-  input: { phases?: readonly string[]; batchSize: number },
+  input: { lastPhase?: string; phases?: readonly string[]; batchSize: number },
 ): Pick3Draw[] => {
   const draws = listDrawsAscending(statements);
   if (input.phases && input.phases.length > 0) {
     const wanted = new Set(input.phases);
     return draws.filter((draw, index) => wanted.has(draw.phase) && index >= PICK3_WINDOW_SIZE);
   }
-  return draws.filter((_, index) => index >= PICK3_WINDOW_SIZE).slice(-input.batchSize);
+  const lastIndex = input.lastPhase
+    ? draws.findIndex((draw) => draw.phase === input.lastPhase)
+    : draws.length - 1;
+  if (lastIndex < PICK3_WINDOW_SIZE) return [];
+  return draws
+    .filter((_, index) => index >= PICK3_WINDOW_SIZE && index <= lastIndex)
+    .slice(-input.batchSize);
 };
 
 const insertBatch = (
@@ -438,43 +406,6 @@ const insertFailureReviews = (
   run();
 };
 
-const insertPlaybookLessons = (
-  db: Database.Database,
-  statements: Pick3Statements,
-  lessons: readonly Pick3PlaybookLessonRecord[],
-): void => {
-  const run = db.transaction(() => {
-    for (const lesson of lessons) {
-      statements.insertPlaybookLesson.run(
-        lesson.lessonId,
-        lesson.batchId,
-        lesson.taskId,
-        lesson.source,
-        lesson.status,
-        lesson.phase,
-        lesson.position,
-        lesson.imageId,
-        lesson.predictionId,
-        lesson.interactionId,
-        lesson.failureReviewId,
-        lesson.promptPackageId,
-        lesson.playbookVersionId,
-        lesson.predictedLabel,
-        lesson.answerLabel,
-        lesson.aiReviewPrompt,
-        lesson.aiReviewRawText,
-        lesson.aiReviewRawHash,
-        lesson.rootCause,
-        lesson.candidateLesson,
-        lesson.evidenceRefsJson,
-        lesson.aggregateKey,
-        lesson.createdAt,
-      );
-    }
-  });
-  run();
-};
-
 const upsertPlaybooks = (
   db: Database.Database,
   statements: Pick3Statements,
@@ -517,15 +448,6 @@ const listReveals = (statements: Pick3Statements, batchId: string): Pick3RevealR
 
 const listFailureReviews = (statements: Pick3Statements, batchId: string): Pick3FailureReviewRecord[] =>
   statements.listFailureReviews.all(batchId).map((row) => rowToFailureReview(row as Record<string, unknown>));
-
-const listPlaybookLessons = (statements: Pick3Statements, batchId: string): Pick3PlaybookLessonRecord[] =>
-  statements.listPlaybookLessons.all(batchId).map((row) => rowToPlaybookLesson(row as Record<string, unknown>));
-
-const listPlaybookLessonsByPosition = (
-  statements: Pick3Statements,
-  position: Pick3PlaybookLessonRecord["position"],
-): Pick3PlaybookLessonRecord[] =>
-  statements.listPlaybookLessonsByPosition.all(position).map((row) => rowToPlaybookLesson(row as Record<string, unknown>));
 
 const writeTaskRecord = (dataRoot: string, record: Pick3TaskRecord): void => {
   const taskDir = path.join(dataRoot, "tasks", record.taskId);

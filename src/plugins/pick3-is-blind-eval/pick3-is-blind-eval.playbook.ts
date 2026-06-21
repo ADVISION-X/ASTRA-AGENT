@@ -51,11 +51,7 @@ export type Pick3PlaybookPromptPackage = {
 const pluginDir = path.dirname(fileURLToPath(import.meta.url));
 const playbookDir = path.join(pluginDir, "playbooks");
 
-const positionPlaybookFiles: Record<Pick3Position, string> = {
-  hundreds: "is_hundreds_l80_v1.md",
-  tens: "is_tens_l80_v1.md",
-  ones: "is_ones_l80_v1.md",
-};
+const PICK3_POSITIONS: readonly Pick3Position[] = ["hundreds", "tens", "ones"];
 const freeAnalysisPlaybookFile = "free-analysis-strict-reasoning.md";
 
 const hashText = (value: string): string => createHash("sha256").update(value).digest("hex");
@@ -68,12 +64,19 @@ const readPlaybookFile = (fileName: string): { content: string; contentPath: str
   };
 };
 
+/**
+ * There is no per-position static Playbook file (no Stream A/B/C content). The only
+ * fixed text is the shared system.md rules and visual-grammar.md vocabulary. Position-specific
+ * signal comes exclusively from the live-assembled experience pool in pick3_playbook_lessons,
+ * because hand-authored "historical pattern" text is not real experience — only failure cases
+ * that actually ran and were AI-reviewed count as experience.
+ */
 export const loadBuiltInPick3Playbooks = (promptMode: Pick3PromptMode = "playbook_v1"): Pick3PlaybookVersion[] => {
   if (promptMode === "free_analysis_strict_reasoning") {
     const free = readPlaybookFile(freeAnalysisPlaybookFile);
     const contentHash = hashText(free.content);
     const systemPrompt = "Analyze the attached anonymous L80 time-series chart. Follow the Free Analysis Strict Reasoning task instructions exactly.";
-    return (Object.keys(positionPlaybookFiles) as Pick3Position[]).map((position) => ({
+    return PICK3_POSITIONS.map((position) => ({
       playbookVersionId: `pick3_${position}_free_analysis_v1_${contentHash.slice(0, 12)}`,
       position,
       version: 1,
@@ -95,27 +98,23 @@ export const loadBuiltInPick3Playbooks = (promptMode: Pick3PromptMode = "playboo
   const visualGrammar = readPlaybookFile("visual-grammar.md");
   const systemPromptHash = hashText(system.content);
   const visualGrammarHash = hashText(visualGrammar.content);
-  return (Object.entries(positionPlaybookFiles) as Array<[Pick3Position, string]>).map(([position, fileName]) => {
-    const positionPlaybook = readPlaybookFile(fileName);
-    const contentHash = hashText(positionPlaybook.content);
-    return {
-      playbookVersionId: `pick3_${position}_l80_v1_${contentHash.slice(0, 12)}`,
-      position,
-      version: 1,
-      status: "active",
-      sourceKind: "agent_builtin",
-      contentPath: positionPlaybook.contentPath,
-      contentHash,
-      systemPromptHash,
-      visualGrammarHash,
-      parentPlaybookVersionId: null,
-      createdFromFailureReviewId: null,
-      notes: "AGENT-owned L80 active Playbook v1.",
-      content: positionPlaybook.content,
-      systemPrompt: system.content,
-      visualGrammar: visualGrammar.content,
-    };
-  });
+  return PICK3_POSITIONS.map((position) => ({
+    playbookVersionId: `pick3_${position}_l80_v1_${visualGrammarHash.slice(0, 12)}`,
+    position,
+    version: 1,
+    status: "active",
+    sourceKind: "agent_builtin",
+    contentPath: visualGrammar.contentPath,
+    contentHash: visualGrammarHash,
+    systemPromptHash,
+    visualGrammarHash,
+    parentPlaybookVersionId: null,
+    createdFromFailureReviewId: null,
+    notes: "AGENT-owned L80 active Playbook v1. No per-position static file; position-specific signal comes only from the live-assembled experience pool in pick3_playbook_lessons.",
+    content: "",
+    systemPrompt: system.content,
+    visualGrammar: visualGrammar.content,
+  }));
 };
 
 export const buildPick3PlaybookPromptPackage = (
@@ -129,11 +128,11 @@ export const buildPick3PlaybookPromptPackage = (
   }
   const imagePayloadLine = "Image payload: inspect the attached image only. Do not use image id as evidence.";
   const experienceSection = promptMode === "playbook_v1"
-    ? assemblePick3ExperienceSection({ lessons: experienceLessons })
+    ? assemblePick3ExperienceSection({ lessons: experienceLessons, currentPhase: image.targetPhase, currentImageId: image.imageId })
     : null;
   const businessPrompt = promptMode === "free_analysis_strict_reasoning"
     ? [playbook.content, imagePayloadLine].join("\n\n")
-    : [playbook.visualGrammar, playbook.content, ...(experienceSection ? [experienceSection] : []), imagePayloadLine].join("\n\n");
+    : [playbook.visualGrammar, ...(experienceSection ? [experienceSection] : []), imagePayloadLine].join("\n\n");
   return {
     playbookVersionId: playbook.playbookVersionId,
     position: playbook.position,

@@ -1,8 +1,9 @@
 import { renderPick3StabilityClient } from "./workbench-home-pick3-stability-client.js";
 import { renderPick3HistoryClient } from "./workbench-home-pick3-history-client.js";
+import { renderPick3TargetClient } from "./workbench-home-pick3-target-client.js";
 import { renderPick3TrendClient } from "./workbench-home-pick3-trend-client.js";
 
-export const renderPick3Client = (): string => `
+const renderPick3ImagesClient = (): string => `
 const renderPick3Images = (images) => {
   const list = qs("[data-pick3-image-list]");
   if (!list) return;
@@ -25,9 +26,9 @@ const renderPick3Images = (images) => {
     list.append(item);
   }
 };
-${renderPick3StabilityClient()}
-${renderPick3HistoryClient()}
-${renderPick3TrendClient()}
+`;
+
+const renderPick3TaskClient = (): string => `
 const renderPick3Task = (task) => {
   if (!task) return;
   state.pick3TaskId = task.taskId || state.pick3TaskId;
@@ -46,6 +47,9 @@ const renderPick3Task = (task) => {
   refreshPick3Trend().catch(() => undefined);
   refreshPick3History().catch(() => undefined);
 };
+`;
+
+const renderPick3StartClient = (): string => `
 const startPick3 = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -55,6 +59,7 @@ const startPick3 = async (event) => {
   if (form.ones.checked) positions.push("ones");
   if (positions.length === 0) return writeActivity("pick3 requires at least one position", "manual-required");
   writeActivity("task started: pick3 official sync", "running");
+  const lastTargetPhase = form.lastTargetPhase.value;
   const task = await readJson("/api/pick3-is-blind-eval/start", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -63,6 +68,7 @@ const startPick3 = async (event) => {
 		      providerKind: form.providerKind.value,
 		      promptMode: form.promptMode.value,
 		      batchSize: Number(form.batchSize.value),
+	      ...(lastTargetPhase ? { lastTargetPhase } : {}),
 	      positions,
 	      dryRun: form.mode.value !== "full_pipeline" && form.mode.value !== "next_prediction_stability",
 	    }),
@@ -71,8 +77,22 @@ const startPick3 = async (event) => {
   showWorkspacePage("pick3-is-blind-eval", task.mode === "next_prediction_stability" ? "history" : "images");
   writeActivity("pick3 task completed with status " + task.status, task.status === "success" ? "completed" : "manual-required");
 };
+`;
+
+const renderPick3LatestClient = (): string => `
 const refreshPick3Latest = async () => {
   const task = await readJson("/api/pick3-is-blind-eval/latest");
   renderPick3Task(task);
 };
 `;
+
+export const renderPick3Client = (): string => [
+  renderPick3ImagesClient(),
+  renderPick3StabilityClient(),
+  renderPick3HistoryClient(),
+  renderPick3TargetClient(),
+  renderPick3TrendClient(),
+  renderPick3TaskClient(),
+  renderPick3StartClient(),
+  renderPick3LatestClient(),
+].join("");

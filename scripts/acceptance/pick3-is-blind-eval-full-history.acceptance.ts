@@ -128,7 +128,7 @@ try {
     images: playbookImages,
     promptPackages: playbookPromptPackages,
     sender: async (input) => {
-      if (input.promptContractId === "pick3-playbook-failure-review-v1") {
+      if (input.promptContractId === "pick3-is-blind-eval-playbook-failure-review-v1") {
         return buildFixtureAiResult({
           gatewayInput: input,
           rawText: JSON.stringify({
@@ -179,6 +179,42 @@ try {
   assert.equal(autoLessons[0]?.aggregateKey.startsWith("tens:"), true);
   assert.equal(autoLessons[0]?.source, "auto_review");
   assert.match(autoLessons[0]?.candidateLesson ?? "", /tens only/);
+  const leakedFailedImage = playbookImages.find((image) => image.imageId === playbookFailureReviews[0]?.imageId)!;
+  const leakingLessons = await reviewPick3PlaybookLessons({
+    failureReviews: playbookFailureReviews,
+    images: playbookImages,
+    interactions: playbookExchange.interactions,
+    predictions: playbookExchange.predictions,
+    reveals: playbookReveals,
+    sender: async (input) => buildFixtureAiResult({
+      gatewayInput: input,
+      rawText: JSON.stringify({
+        rootCause: `This was wrong because phase ${leakedFailedImage.targetPhase} actually resolved front.`,
+        candidateLesson: "Trust the shoulder hold pattern next time.",
+      }),
+    }),
+    source: "auto_review",
+    taskId: "full-history-playbook-lesson-leak-task",
+  });
+  assert.equal(leakingLessons.length, 1, "leak test fixture must still produce exactly one lesson");
+  assert.equal(leakingLessons[0]?.status, "rejected", "a lesson that echoes the phase/answer must be force-rejected, never candidate");
+  assert.match(leakingLessons[0]?.rootCause ?? "", /^\[REJECTED:/, "a rejected lesson's rootCause must record the leak reason for audit");
+  let unparseableReviewAttempts = 0;
+  const unparseableLessons = await reviewPick3PlaybookLessons({
+    failureReviews: playbookFailureReviews,
+    images: playbookImages,
+    interactions: playbookExchange.interactions,
+    predictions: playbookExchange.predictions,
+    reveals: playbookReveals,
+    sender: async (input) => {
+      unparseableReviewAttempts += 1;
+      return buildFixtureAiResult({ gatewayInput: input, rawText: "this is not json at all" });
+    },
+    source: "auto_review",
+    taskId: "full-history-playbook-lesson-unparseable-task",
+  });
+  assert.equal(unparseableReviewAttempts, 3, "an unparseable post-mortem reply must be retried exactly 3 times total");
+  assert.equal(unparseableLessons.length, 0, "after 3 failed retries the failure must be discarded entirely, not stored as a placeholder lesson");
   const playbookNow = new Date().toISOString();
   const playbookTask: Pick3TaskRecord = {
     taskId: "full-history-playbook-lesson-task",

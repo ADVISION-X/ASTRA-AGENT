@@ -1,14 +1,13 @@
 import { strict as assert } from "node:assert";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
 
-import { loadBuiltInPick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
+import { buildPick3PlaybookPromptPackage, loadBuiltInPick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
+import { assemblePick3ExperienceSection } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.js";
 import type { Pick3PlaybookLessonRecord } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-types.js";
-import { writeCandidatePick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.js";
 
-const artifactDir = mkdtempSync(resolve(tmpdir(), "pick3-lesson-promotion-"));
 const playbooks = loadBuiltInPick3Playbooks("playbook_v1");
+const tensPlaybook = playbooks.find((playbook) => playbook.position === "tens");
+if (!tensPlaybook) throw new Error("pick3_acceptance_tens_playbook_missing");
+
 const lessonSeed: Pick3PlaybookLessonRecord = {
   lessonId: "acceptance-lesson-1",
   batchId: "acceptance-batch",
@@ -29,30 +28,88 @@ const lessonSeed: Pick3PlaybookLessonRecord = {
   aiReviewRawText: "{\"rootCause\":\"fixture\",\"candidateLesson\":\"fixture\"}",
   aiReviewRawHash: "fixture-review-hash",
   rootCause: "Fixture root cause pattern.",
-  candidateLesson: "Fixture candidate lesson for accumulated playbook promotion.",
+  candidateLesson: "Fixture candidate lesson for accumulated experience assembly.",
   evidenceRefsJson: "{}",
   aggregateKey: "tens:high_exhaustion_missed",
   createdAt: new Date().toISOString(),
 };
 
-const belowThreshold = writeCandidatePick3Playbooks({
-  artifactDir,
-  activePlaybooks: playbooks,
-  lessonsByPosition: new Map([["tens", [lessonSeed]]]),
-});
-assert.equal(belowThreshold.length, 0);
+const noLessons = assemblePick3ExperienceSection({ lessons: [] });
+assert.equal(noLessons, null, "zero lessons means nothing to extract yet, not a withheld threshold");
 
-const candidates = writeCandidatePick3Playbooks({
-  artifactDir,
-  activePlaybooks: playbooks,
-  lessonsByPosition: new Map([[
-    "tens",
-    [lessonSeed, { ...lessonSeed, lessonId: "acceptance-lesson-2" }, { ...lessonSeed, lessonId: "acceptance-lesson-3" }],
-  ]]),
-});
-assert.equal(candidates.length, 1);
-assert.equal(candidates[0]?.position, "tens");
-assert.equal(candidates[0]?.status, "candidate");
-assert.equal(readFileSync(candidates[0]!.contentPath, "utf8").includes("Do not memorize concrete answers"), true);
+const singleLesson = assemblePick3ExperienceSection({ lessons: [lessonSeed] });
+assert.notEqual(singleLesson, null, "a single accepted lesson must be included immediately, no minimum count required");
+assert.equal(singleLesson!.includes("Do not memorize concrete answers"), true);
+assert.equal(singleLesson!.includes("not a hard rule"), true);
+assert.equal(singleLesson!.includes("no minimum count before experience counts"), true);
+assert.equal(singleLesson!.includes(lessonSeed.aggregateKey), true);
+
+const eligibleLessons = [
+  lessonSeed,
+  { ...lessonSeed, lessonId: "acceptance-lesson-2", candidateLesson: "case-two-distinct-lesson-text", rootCause: "case-two-distinct-root-cause" },
+  { ...lessonSeed, lessonId: "acceptance-lesson-3", candidateLesson: "case-three-distinct-lesson-text", rootCause: "case-three-distinct-root-cause" },
+];
+const manyLessons = assemblePick3ExperienceSection({ lessons: eligibleLessons });
+assert.notEqual(manyLessons, null);
+assert.equal(manyLessons!.includes("3 accumulated cases"), true);
+for (const lesson of eligibleLessons) {
+  assert.equal(manyLessons!.includes(lesson.candidateLesson), true, `dead code must not select/summarize cases; case-specific text "${lesson.candidateLesson}" must appear in full no matter how many cases accumulate`);
+  assert.equal(manyLessons!.includes(lesson.rootCause), true, `dead code must not select/summarize cases; case-specific root cause "${lesson.rootCause}" must appear in full`);
+}
+
+const rejectedLessons = eligibleLessons.map((lesson) => ({ ...lesson, status: "rejected" as const }));
+assert.equal(assemblePick3ExperienceSection({ lessons: rejectedLessons }), null, "rejected lessons must never be extracted");
+
+// Self-healing read-time guard: a lesson that leaked into the table BEFORE the write-time guard
+// existed (status still "candidate"/"accepted", not "rejected") must still be excluded at assembly
+// time, purely by re-scanning its own stored phase/imageId/front-back text every time it is read.
+const legacyLeakedFrontLesson: Pick3PlaybookLessonRecord = {
+  ...lessonSeed,
+  lessonId: "acceptance-legacy-leak-front",
+  status: "candidate",
+  rootCause: "Pre-fix legacy row: this was wrong because the prior lower/front read should have been discounted.",
+};
+assert.equal(assemblePick3ExperienceSection({ lessons: [legacyLeakedFrontLesson] }), null, "a legacy row leaking the internal front/back label must be excluded at read time even if its status was never rejected");
+
+const legacyLeakedPhaseLesson: Pick3PlaybookLessonRecord = {
+  ...lessonSeed,
+  lessonId: "acceptance-legacy-leak-phase",
+  status: "accepted",
+  candidateLesson: `Pre-fix legacy row: in phase ${lessonSeed.phase} the shoulder hold pattern reversed.`,
+};
+assert.equal(assemblePick3ExperienceSection({ lessons: [legacyLeakedPhaseLesson] }), null, "a legacy row leaking its own phase must be excluded at read time even if its status was never rejected");
+
+const tensImage = {
+  imageId: "acceptance-image-tens",
+  batchId: "acceptance-batch",
+  position: "tens" as const,
+  targetPhase: "260101",
+  targetExpectedPrizeTime: "2026-06-20T00:00:00.000Z",
+  visibleStartPhase: "260021",
+  visibleEndPhase: "260100",
+  imagePath: "/tmp/acceptance-tens.png",
+  imageSha256: "acceptance-sha256",
+  answerDigit: 7,
+  answerLabel: "front" as const,
+};
+const noExperiencePackage = buildPick3PlaybookPromptPackage(tensPlaybook, tensImage, "playbook_v1", []);
+assert.equal(noExperiencePackage.businessPrompt.includes("assembled live from accumulated"), false);
+
+const withExperiencePackage = buildPick3PlaybookPromptPackage(tensPlaybook, tensImage, "playbook_v1", eligibleLessons);
+assert.equal(withExperiencePackage.businessPrompt.includes("assembled live from accumulated"), true);
+assert.equal(withExperiencePackage.businessPrompt.includes(lessonSeed.aggregateKey), true);
+assert.notEqual(withExperiencePackage.businessPromptHash, noExperiencePackage.businessPromptHash);
+
+// Self-prediction guard: a phase's blind chart is deterministic from official draws, so
+// re-targeting the SAME phase regenerates the identical chart. A lesson born from that exact
+// phase's own past failure must never be fed back into a prompt that predicts that same phase
+// again, even though its text contains no literal phase/imageId/front-back token.
+assert.equal(assemblePick3ExperienceSection({ lessons: [lessonSeed], currentPhase: lessonSeed.phase }), null, "a lesson born from the exact phase now being predicted must be excluded even with clean text");
+assert.equal(assemblePick3ExperienceSection({ lessons: [lessonSeed], currentImageId: lessonSeed.imageId }), null, "a lesson born from the exact image now being predicted must be excluded even with clean text");
+assert.notEqual(assemblePick3ExperienceSection({ lessons: [lessonSeed], currentPhase: "260999" }), null, "a lesson from a different phase must still be included normally");
+
+const samePhaseImage = { ...tensImage, targetPhase: lessonSeed.phase };
+const selfPredictionGuardedPackage = buildPick3PlaybookPromptPackage(tensPlaybook, samePhaseImage, "playbook_v1", [lessonSeed]);
+assert.equal(selfPredictionGuardedPackage.businessPrompt.includes("assembled live from accumulated"), false, "re-targeting the same phase the lesson came from must not leak that lesson back into the prompt");
 
 console.log("pick3-is-blind-eval playbook lessons acceptance passed");

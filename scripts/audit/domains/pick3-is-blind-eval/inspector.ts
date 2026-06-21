@@ -4,6 +4,8 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectPick3HumanReviewHistory } from "./inspector-human-review-history.js";
+import { inspectPick3PlaybookLessonStore } from "./inspector-playbook-lessons.js";
+import { inspectPick3TrendDisplay } from "./inspector-trend-display.js";
 import { blueprintTokenChecks } from "./inspector-token-contracts.js";
 
 const domain = "pick3-is-blind-eval";
@@ -12,6 +14,8 @@ const blueprintPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施�
 const misplacedLawPath = "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 法案.md";
 const manifestPath = "scripts/audit/domains/pick3-is-blind-eval/manifest.json";
 const selfPath = "scripts/audit/domains/pick3-is-blind-eval/inspector.ts";
+const lessonInspectorPath = "scripts/audit/domains/pick3-is-blind-eval/inspector-playbook-lessons.ts";
+const trendInspectorPath = "scripts/audit/domains/pick3-is-blind-eval/inspector-trend-display.ts";
 const acceptancePath = "scripts/acceptance/pick3-is-blind-eval.acceptance.ts";
 const fullHistoryAcceptancePath = "scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts";
 const packagePath = "package.json";
@@ -47,15 +51,15 @@ const storageSchemaPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.s
 const playbookSystemPath = "src/plugins/pick3-is-blind-eval/playbooks/system.md";
 const playbookGrammarPath = "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md";
 const playbookFreeAnalysisPath = "src/plugins/pick3-is-blind-eval/playbooks/free-analysis-strict-reasoning.md";
-const playbookHundredsPath = "src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md";
-const playbookTensPath = "src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md";
-const playbookOnesPath = "src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md";
+const removedPositionPlaybookPaths = ["src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md", "src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md", "src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md"];
 
 const inspectedFiles = [
   lawPath,
   blueprintPath,
   manifestPath,
   selfPath,
+  lessonInspectorPath,
+  trendInspectorPath,
   acceptancePath,
   fullHistoryAcceptancePath,
   packagePath,
@@ -66,15 +70,7 @@ const inspectedFiles = [
   pick3TrendClientPath,
   workbenchPick3SupportPath,
   playbookLoaderPath,
-    aiExchangePath,
-    aiContractPath,
-    aiParsePath,
-    flowPath,
-    historyPath,
-    playbookLessonsPath,
-    trendPath,
-    flowTypesPath,
-    stabilityPath,
+  aiExchangePath, aiContractPath, aiParsePath, flowPath, historyPath, playbookLessonsPath, trendPath, flowTypesPath, stabilityPath,
   aiGatewaySchemaPath,
   webChatOpenPath, webChatSharedPath, webChatSubmitPath, webChatEvaluationPath,
   webChatUploadPath,
@@ -86,7 +82,7 @@ const inspectedFiles = [
   scoringPath,
   failureReviewPath,
   promptVersioningPath,
-  storageSchemaPath, playbookSystemPath, playbookGrammarPath, playbookFreeAnalysisPath, playbookHundredsPath, playbookTensPath, playbookOnesPath,
+  storageSchemaPath, playbookSystemPath, playbookGrammarPath, playbookFreeAnalysisPath,
 ] as const;
 
 const pluginRuntimePaths = ["src/plugins/pick3-is-blind-eval/index.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-contract.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts", "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts"] as const;
@@ -145,7 +141,7 @@ const inspectLawContract = (findings: InspectorFinding[], lawRefs: LawRefs, lawT
     "No betting",
     "No login",
     "No China lottery",
-    "free_analysis_strict_reasoning",
+    "user-selected `promptMode`",
     "mode = full_pipeline",
     "next_prediction_stability",
     "batchSize is the repeat-send count",
@@ -154,6 +150,9 @@ const inspectLawContract = (findings: InspectorFinding[], lawRefs: LawRefs, lawT
     "fixed 80-draw window",
     "three separated rows",
     "Mouse drag changes the historical start index",
+    "lastTargetPhase",
+    "walk backward by `batchSize`",
+    "database-backed phase",
     "History rows show task id",
     "no direction rules",
     "chartReading",
@@ -185,7 +184,7 @@ const inspectAgentBrainContract = (findings: InspectorFinding[], lawRefs: LawRef
 };
 
 const inspectPlaybookFiles = (findings: InspectorFinding[], agentBrainLaw: string): void => {
-  for (const playbookPath of [playbookSystemPath, playbookGrammarPath, playbookFreeAnalysisPath, playbookHundredsPath, playbookTensPath, playbookOnesPath]) {
+  for (const playbookPath of [playbookSystemPath, playbookGrammarPath, playbookFreeAnalysisPath]) {
     const playbookText = existsRepoPath(playbookPath) ? readRepoText(playbookPath) : "";
     requireTokens(findings, agentBrainLaw, playbookPath, playbookText, "pick3-is-blind-eval/playbook-content", [
       "L80",
@@ -194,6 +193,11 @@ const inspectPlaybookFiles = (findings: InspectorFinding[], agentBrainLaw: strin
       if (playbookText.includes(forbidden)) {
         addFinding(findings, agentBrainLaw, playbookPath, "pick3-is-blind-eval/playbook-no-answer-leak", `${playbookPath} must not contain ${forbidden}.`);
       }
+    }
+  }
+  for (const removedPath of removedPositionPlaybookPaths) {
+    if (existsRepoPath(removedPath)) {
+      addFinding(findings, agentBrainLaw, removedPath, "pick3-is-blind-eval/no-hand-authored-position-playbook", `${removedPath} must not exist; hand-authored position playbook content was deleted by design. Real position-specific signal must come only from the live-assembled pick3_playbook_lessons pool, not from a static hand-written file.`);
     }
   }
 };
@@ -214,11 +218,8 @@ const inspectRuntimeExternalBrain = (findings: InspectorFinding[], agentBrainLaw
 };
 
 type PromptExchangeTexts = {
-  aiText: string;
-  aiContractText: string;
-  aiParseText: string;
-  flowText: string;
-  stabilityText: string;
+  aiText: string; aiContractText: string; aiParseText: string;
+  flowText: string; stabilityText: string;
   aiGatewaySchemaText: string;
   appShellLayoutText: string;
   webChatOpenText: string;
@@ -226,8 +227,7 @@ type PromptExchangeTexts = {
   webChatPick3HistoryCleanupText: string;
   webChatSharedSupportText: string; webChatWorkspaceText: string;
   workbenchPick3SupportText: string; playbookLoaderText: string;
-  storageSchemaText: string;
-  storageText: string;
+  storageSchemaText: string; storageText: string;
 };
 
 const readPromptExchangeTexts = (): PromptExchangeTexts => ({
@@ -255,13 +255,17 @@ const inspectPick3PromptExchangeCore = (
   texts: PromptExchangeTexts,
 ): void => {
   const promptExchangeRuntimeText = [texts.aiText, texts.aiParseText, texts.aiContractText].join("\n");
-  requireTokens(findings, promptExchangeLaw, aiExchangePath, promptExchangeRuntimeText, "pick3-is-blind-eval/prompt-exchange-runtime", ["Pick3GatewaySender", "buildPick3AiGatewayInput", "runPick3PromptExchange", "parse_failed_raw_available", "providerProofJson", "imageId", "promptPackageId", "RECOVERABLE_PARSE_FAILURE_REASONS", "pick3_prediction_label_invalid", "DIRECTIONAL_PREDICTION_LABEL_ALIASES", "normalizedDirectionalLabel", "NON_DIRECTIONAL_PREDICTION_LABELS", "non_directional_prediction_label_", "buildNonDirectionalLabelAbstainPrediction", "recoverableRetryReason", "sendWithRecoverableOutputRetry", "attempt < 2", "PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS", "deferred_retry_scheduled", "completionRound", "maxCompletionRounds", "unresolvedCount", "deferredRetryCount", "retry-", "pick3_prediction_image_id_mismatch", "pick3_prediction_prompt_package_id_mismatch", "parseFreeAnalysisEvidence", "pick3_free_analysis_chart_reading_missing", "repeatCount", "repeatIndex"]);
+  requireTokens(findings, promptExchangeLaw, aiExchangePath, promptExchangeRuntimeText, "pick3-is-blind-eval/prompt-exchange-runtime", ["Pick3GatewaySender", "buildPick3AiGatewayInput", "runPick3PromptExchange", "parse_failed_raw_available", "providerProofJson", "imageId", "promptPackageId", "RECOVERABLE_PARSE_FAILURE_REASONS", "pick3_prediction_label_invalid", "DIRECTIONAL_PREDICTION_LABEL_ALIASES", "normalizedDirectionalLabel", "NON_DIRECTIONAL_PREDICTION_LABELS", "non_directional_prediction_label_", "buildNonDirectionalLabelAbstainPrediction", "recoverableRetryReason", "sendWithRecoverableOutputRetry", "PICK3_PROVIDER_REPORTED_MISSING_IMAGE_RETRY_COUNT = 3", "maxAttemptsForRetryReason", "skipped_provider_reported_image_missing", "pick3_provider_reported_image_missing_retry_exhausted", "skippedCount", "PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS", "deferred_retry_scheduled", "completionRound", "maxCompletionRounds", "unresolvedCount", "deferredRetryCount", "retry-", "pick3_prediction_image_id_mismatch", "pick3_prediction_prompt_package_id_mismatch", "parseFreeAnalysisEvidence", "pick3_free_analysis_chart_reading_missing", "repeatCount", "repeatIndex"]);
   requireTokens(findings, promptExchangeLaw, aiContractPath, texts.aiContractText, "pick3-is-blind-eval/prompt-contract-runtime", ["Final output contract", "Do not return only `lower`, `upper`, or `abstain`", "lower | upper | abstain", "Never put a tail shape word", "blind_series_package_", "freeAnalysisPromptContractId"]);
   requireTokens(findings, promptExchangeLaw, playbookLoaderPath, texts.playbookLoaderText, "pick3-is-blind-eval/ai-visible-label-contract", ["allowedLabels: [\"lower\", \"upper\", \"abstain\"]"]);
-  requireTokens(findings, promptExchangeLaw, flowPath, texts.flowText, "pick3-is-blind-eval/parse-failure-stop", ["pick3_prompt_exchange_parse_failed", "ai_prompt_exchange_failed", "writePromptExchangeFailureArtifacts", "exchange.completion.unresolvedCount", "unresolvedFailures", "exchange.predictions.length !== input.batch.images.length"]);
+  requireTokens(findings, promptExchangeLaw, flowPath, texts.flowText, "pick3-is-blind-eval/parse-failure-stop", ["pick3_prompt_exchange_parse_failed", "ai_prompt_exchange_failed", "writePromptExchangeFailureArtifacts", "exchange.completion.unresolvedCount > 0", "unresolvedFailures"]);
+  if (texts.flowText.includes("exchange.predictions.length !== input.batch.images.length")) {
+    addFinding(findings, promptExchangeLaw, flowPath, "pick3-is-blind-eval/missing-image-skip-does-not-stop-batch", "full_pipeline must not stop solely because skipped provider-reported-missing-image interactions reduce prediction count.");
+  }
   requireTokens(findings, promptExchangeLaw, flowPath, texts.flowText, "pick3-is-blind-eval/runtime-log-stages", ["runtimeLogger?: RuntimeLogger", "PICK3_OFFICIAL_SYNC", "PICK3_BUILD_BLIND_BATCH", "PICK3_PROMPT_EXCHANGE", "PICK3_REVEAL_AND_SCORING", "PICK3_TASK"]);
   requireTokens(findings, promptExchangeLaw, flowPath, texts.flowText, "pick3-is-blind-eval/next-stability-single-chain", ["next_prediction_stability", "createPick3NextPredictionImages", "runPick3NextPredictionStability", "scoring: null"]);
-  requireTokens(findings, promptExchangeLaw, stabilityPath, texts.stabilityText, "pick3-is-blind-eval/next-stability-results", ["stability_results.json", "repeatCount: input.batchInput.batchSize", "visiblePredictionLabel", "free_analysis_strict_reasoning", "buildFreeAnalysisPromptPackages", "loadBuiltInPick3Playbooks(stabilityPromptMode)", "assertCompleteStabilityExchange", "pick3_next_stability_exchange_incomplete", "runPick3PromptExchange", "deferredRetryCount: exchange.completion.deferredRetryCount", "unresolvedCount: exchange.completion.unresolvedCount", "input.storage.insertAiInteractions", "input.storage.insertPredictions"]);
+  requireTokens(findings, promptExchangeLaw, stabilityPath, texts.stabilityText, "pick3-is-blind-eval/next-stability-results", ["stability_results.json", "repeatCount: input.batchInput.batchSize", "visiblePredictionLabel", "buildSelectedPromptPackages", "loadBuiltInPick3Playbooks(promptMode)", "input.batchInput.promptMode", "assertCompleteStabilityExchange", "pick3_next_stability_exchange_incomplete", "runPick3PromptExchange", "deferredRetryCount: exchange.completion.deferredRetryCount", "unresolvedCount: exchange.completion.unresolvedCount", "input.storage.insertAiInteractions", "input.storage.insertPredictions"]);
+  if (texts.stabilityText.includes("stabilityPromptMode =")) addFinding(findings, promptExchangeLaw, stabilityPath, "pick3-is-blind-eval/no-hardcoded-stability-prompt-mode", "next_prediction_stability must use input.batchInput.promptMode, not a hardcoded stabilityPromptMode.");
 };
 
 const inspectPick3WebChatWorkspace = (
@@ -270,8 +274,7 @@ const inspectPick3WebChatWorkspace = (
   texts: PromptExchangeTexts,
 ): void => {
   requireTokens(findings, promptExchangeLaw, webChatWorkspacePath, texts.webChatWorkspaceText, "pick3-is-blind-eval/single-gpt-workspace", ["PICK3_WORKSPACE_ID", "pick3-is-blind-eval", "recordWorkspaceConversationUrl", "cleanupStaleWorkspaceConversationTabs"]);
-  requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/sidebar-history-cleanup", ["cleanupStaleWorkspaceConversationHistory", "PICK3_TRAINING_HISTORY_TITLE_MARKERS", "Blind Time-Series", "remainingLegacyUrls", "protectedPaths", "keepRecentCount"]);
-  requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/gemini-history-sidebar-menu-guard", ["ensureProviderHistorySidebarOpen", "Open sidebar", "sidebar_open_located", "locateOpenHistoryDeleteAction", "already-open"]);
+  requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/provider-history-delete-disabled", ["cleanupStaleWorkspaceConversationHistory", "provider_history_delete_temporarily_disabled"]);
   requireTokens(findings, promptExchangeLaw, webChatOpenPath, texts.webChatOpenText, "pick3-is-blind-eval/no-tab-per-image", ["isPick3GptRequest", "isPick3GeminiRequest", "isPick3WebChatRequest", "workspaceId", "requiresFreshChatGptConversation", "reuse-host-tab", "reuse-active-tab", "isPick3WorkspaceId(input.workspaceId)"]);
   requireTokens(findings, promptExchangeLaw, webChatOpenPath, texts.webChatOpenText, "pick3-is-blind-eval/gemini-composer-ready-probe-retry", ["provider_composer_ready", "provider_composer_ready_probe", "PROVIDER_COMPOSER_READY_TIMEOUT_MS = 60_000", "status: \"fallback\""]);
   requireTokens(findings, promptExchangeLaw, webChatOpenPath, texts.webChatOpenText, "pick3-is-blind-eval/provider-url-read-fallback", ["read active provider workspace URL", "getSessionState().currentUrl"]);
@@ -280,9 +283,9 @@ const inspectPick3WebChatWorkspace = (
   requireTokens(findings, promptExchangeLaw, aiExchangePath, texts.aiText, "pick3-is-blind-eval/raw-preserving-cleanup-proof", ["pick3CleanupFailureStatus", "cleanupStatus=", "providerProofJson"]);
   requireTokens(findings, promptExchangeLaw, webChatWorkspacePath, texts.webChatWorkspaceText, "pick3-is-blind-eval/workspace-url-normalization", ["normalizeWorkspaceUrl", "isPick3WorkspaceId", "`${parsed.origin}/`"]);
   requireTokens(findings, promptExchangeLaw, aiGatewaySchemaPath, texts.aiGatewaySchemaText, "pick3-is-blind-eval/provider-proof-schema", ["webChatWorkspaceId", "providerTabPolicy", "providerRecoveryAttemptCount", "providerRecoveryStatus", "staleConversationCleanupStatus", "staleConversationHistoryCleanupStatus"]);
-  requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/gemini-provider-history-cleanup", ["historyHomeUrl", "gemini.google.com/app", "providerLabel", "Delete chat"]);
+  requireTokens(findings, promptExchangeLaw, lawPath, readRepoTextIfExists(lawPath), "pick3-is-blind-eval/provider-history-delete-disabled-law", ["Pick3 provider sidebar history deletion is temporarily disabled", "provider_history_delete_temporarily_disabled", "current_history_delete_temporarily_disabled"]);
   requireTokens(findings, promptExchangeLaw, webChatSharedSupportPath, texts.webChatSharedSupportText, "pick3-is-blind-eval/gemini-per-image-cleanup-deferred", ["providerKind === \"gemini-web-chat\"", "promptContractId.startsWith(\"pick3-is-blind-eval\")", "deferred_gemini_pick3_post_batch_cleanup_required"]);
-  requireTokens(findings, promptExchangeLaw, webChatSharedSupportPath, texts.webChatSharedSupportText, "pick3-is-blind-eval/gemini-pre-image-history-cleanup-helper", ["cleanupGeminiPick3HistoryBeforeNextImage", "keepRecentCount: 1", "triggerThreshold: 1", "maxDeleteCount: GEMINI_STALE_CLEANUP_MAX_PER_RUN", "isBlockingGeminiPick3PreImageHistoryCleanupStatus"]);
+  requireTokens(findings, promptExchangeLaw, webChatSharedSupportPath, texts.webChatSharedSupportText, "pick3-is-blind-eval/gemini-pre-image-history-cleanup-helper", ["cleanupGeminiPick3HistoryBeforeNextImage", "isBlockingGeminiPick3PreImageHistoryCleanupStatus"]);
   requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/gemini-pre-image-history-cleanup-stage", ["pre_image_history_cleanup", "delete_previous_stale_history_before_next_image", "before attachment upload"]);
 };
 
@@ -291,20 +294,36 @@ const inspectPick3WebChatRecovery = (
   promptExchangeLaw: string,
   texts: PromptExchangeTexts,
 ): void => {
-  requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", texts.webChatSharedText, "pick3-is-blind-eval/no-result-recovery", ["PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000", "PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1", "provider_rate_limited_too_many_requests", "reuse-active-tab", "isPick3NoResultTimeoutError", "recoverPick3NoResultConversation", "deletePick3WorkspaceConversationHistoryUrl", "pick3_no_result_recovery_reopened_gemini_new_chat", "pick3_no_result_recovery_refreshed_deleted_current_conversation_and_reopened_new_chat"]);
+  requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", texts.webChatSharedText, "pick3-is-blind-eval/no-result-recovery", ["PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000", "PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1", "reuse-active-tab", "isPick3NoResultTimeoutError", "recoverPick3NoResultConversation", "pick3_no_result_recovery_reopened_gemini_new_chat", "pick3_no_result_recovery_refreshed_without_history_delete_and_reopened_new_chat"]);
+  for (const forbiddenRateLimitEscalation of ["provider_rate_limited_too_many_requests", "recoverAfterPick3RateLimit", "pick3_rate_limit_same_payload_resend_started"]) if (texts.webChatSharedText.includes(forbiddenRateLimitEscalation)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", "pick3-is-blind-eval/rate-limit-click-only-no-resend", `${forbiddenRateLimitEscalation} must not appear in web-chat-shared.ts; the only action on a visible rate-limit dialog is click acknowledgement, never reopen/resend.`);
+  if (texts.webChatSharedText.includes("deletePick3WorkspaceConversationHistoryUrl")) {
+    addFinding(findings, promptExchangeLaw, webChatSharedPath, "pick3-is-blind-eval/no-runtime-provider-history-delete", "Pick3 web-chat runtime must not call provider history deletion while provider history deletion is temporarily disabled.");
+  }
   requireTokens(findings, promptExchangeLaw, webChatSubmitPath, existsRepoPath(webChatSubmitPath) ? readRepoText(webChatSubmitPath) : "", "pick3-is-blind-eval/submitted-image-binding", ["verifyLastUserMessageAttachments", "verify_last_user_message_bound_attachments", "provider_missing_bound_image"]);
   requireTokens(findings, promptExchangeLaw, webChatSubmitPath, existsRepoPath(webChatSubmitPath) ? readRepoText(webChatSubmitPath) : "", "pick3-is-blind-eval/gemini-prompt-submit-fallback", ["GEMINI_PROMPT_PASTE_VERIFY_TIMEOUT_MS = 5_000", "GEMINI_PROMPT_PASTE_RETRY_LIMIT = 3", "pasteTextReplacingInChrome", "gemini_clipboard_prompt_paste", "verify_gemini_prompt_pasted_before_submit"]);
   requireTokens(findings, promptExchangeLaw, webChatSubmitPath, existsRepoPath(webChatSubmitPath) ? readRepoText(webChatSubmitPath) : "", "pick3-is-blind-eval/gemini-prompt-timing-logs", ["[GRASSEYE][AI-GATEWAY][WEB-CHAT]", "gemini_clipboard_prompt_paste", "prompt_prepare", "verify_attachments_before_submit", "prompt_submit", "elapsedMs"]);
   requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/gemini-pre-submit-idle-guard", ["shouldSkipPreSubmitConversationState", "pre_submit_snapshot", "fresh_gemini_pick3_conversation"]);
-  requireTokens(findings, promptExchangeLaw, webChatEvaluationPath, existsRepoPath(webChatEvaluationPath) ? readRepoText(webChatEvaluationPath) : "", "pick3-is-blind-eval/submitted-image-binding-dom", ["buildVerifyLastUserMessageAttachmentsScript", "[data-message-author-role='user']", "user-query, user-query-content, .user-query-container", "countGeminiBoundAttachments", "provider last submitted user message contains bound image attachment"]);
-  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/missing-bound-image-recovery", ["isPick3MissingBoundImageError", "recoverPick3MissingBoundImageConversation", "pick3_missing_bound_image_recovery_deleted_current_conversation_and_reopened_new_chat"]);
-  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/rate-limit-resume-visible", ["emitPick3RateLimitRecoveryStep", "same_payload_resend_started"]);
-  const recoveryLogText = existsRepoPath("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") ? readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") : ""; requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", recoveryLogText, "pick3-is-blind-eval/rate-limit-recovery-logging", ["RuntimeLogEventType.RECOVERY_PROGRESS", "HEARTBEAT_MS = 30_000", "PICK3_RATE_LIMIT_BACKOFF_MS = [600_000, 600_000, 600_000]", "reservePick3RateLimitAttempt", "missionKey", "imageId", "promptPackageId", "totalWaitSec", "elapsedSec", "remainingSec", "recoveryAction", "pick3_rate_limit_backoff_waiting", "remainingMs, refs: { recoveryAction: \"pick3_rate_limit_backoff_waiting\" }", "pick3_rate_limit_acknowledgement_started", "pick3_rate_limit_chatgpt_refresh_completed", "and_refreshed", "querySelectorAll('[role=\"dialog\"], [data-radix-portal]')", "node.innerText"]); for (const forbiddenBackoff of ["1_800_000", "3_600_000", "180_000", "300_000"]) if (recoveryLogText.includes(forbiddenBackoff)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", "pick3-is-blind-eval/rate-limit-backoff-schedule", `Pick3 rate-limit schedule must not contain ${forbiddenBackoff}.`);
+  requireTokens(findings, promptExchangeLaw, webChatEvaluationPath, existsRepoPath(webChatEvaluationPath) ? readRepoText(webChatEvaluationPath) : "", "pick3-is-blind-eval/submitted-image-binding-dom", ["buildVerifyLastUserMessageAttachmentsScript", "[data-message-author-role='user']", "user-query, user-query-content, .user-query-container", "countGeminiBoundAttachments", "countChatGptBoundAttachments", "messageNode.parentElement", "messageNode.previousElementSibling", "WEB_CHAT_ATTACHMENT_COUNT_SCRIPT", "button[aria-label*='在文本字段中显示']", "[class*='file-tile' i]", "composerRootText.includes(\"在文本字段中显示\")", "isChatGptPastedTextTile", "isRealSubmittedAttachment", "findAttachmentTileRoot(node) || node", "provider last submitted user message contains bound image attachment"]);
+  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/missing-bound-image-recovery", ["isPick3MissingBoundImageError", "recoverPick3MissingBoundImageConversation", "pick3_missing_bound_image_recovery_without_history_delete_and_reopened_new_chat"]);
+  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/rate-limit-click-only-lifecycle", ["startPick3RateLimitDialogWatcher", "rateLimitDialogWatcher?.stop"]);
+  for (const forbiddenRateLimitResend of ["recoverAfterPick3RateLimit", "same_payload_resend_started", "pick3_rate_limit_new_chat_reopened_for_resend"]) if (texts.webChatSharedText.includes(forbiddenRateLimitResend)) addFinding(findings, promptExchangeLaw, webChatSharedPath, "pick3-is-blind-eval/rate-limit-click-only-no-resend", `Pick3 rate-limit dialog handling must not contain ${forbiddenRateLimitResend}; only acknowledgement clicks are allowed.`);
+  const recoveryLogText = existsRepoPath("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") ? readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") : ""; requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", recoveryLogText, "pick3-is-blind-eval/rate-limit-recovery-logging", ["PICK3_RATE_LIMIT_WATCH_INTERVAL_MS = 500", "reservePick3RateLimitAttempt", "no attempt cap", "No reopen, no resend, no restart", "missionKey", "imageId", "promptPackageId", "recoveryAction", "isChatGptRateLimitDialogVisible", "acknowledgePick3RateLimitDialogIfVisible", "acknowledgePick3RateLimitIfVisible", "startPick3RateLimitDialogWatcher", "pick3_rate_limit_dialog_watcher_started", "rate_limit_ack_clicked_and_dialog_closed", "rate_limit_dialog_still_visible_after_ack", "querySelectorAll('[role=\"dialog\"], [data-radix-portal]')", "node.innerText"]); for (const forbiddenBackoff of ["PICK3_RATE_LIMIT_MAX_ACK_ATTEMPTS", "acknowledgePick3RateLimitImmediately", "pick3_rate_limit_immediate_acknowledgement_retry_exhausted", "PICK3_RATE_LIMIT_BACKOFF_MS", "waitWithPick3RateLimitHeartbeat", "pick3_rate_limit_backoff_waiting", "remainingMs, refs: { recoveryAction: \"pick3_rate_limit_backoff_waiting\" }", "do NOT interrupt", "pick3_rate_limit_chatgpt_refresh_completed", "and_refreshed"]) if (recoveryLogText.includes(forbiddenBackoff)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", "pick3-is-blind-eval/rate-limit-no-backoff-before-ack", `Pick3 rate-limit recovery must not contain old backoff/refresh token ${forbiddenBackoff}.`);
+  const submitText = existsRepoPath(webChatSubmitPath) ? readRepoText(webChatSubmitPath) : ""; requireTokens(findings, promptExchangeLaw, webChatSubmitPath, submitText, "pick3-is-blind-eval/rate-limit-submit-guard", ["acknowledgePick3SubmitRateLimitIfVisible", "isChatGptRateLimitDialogVisible", "acknowledgePick3RateLimitDialogIfVisible"]);
+  inspectPick3WebChatUpload(findings, promptExchangeLaw, texts);
+};
+
+const inspectPick3WebChatUpload = (
+  findings: InspectorFinding[],
+  promptExchangeLaw: string,
+  texts: PromptExchangeTexts,
+): void => {
   const uploadText = existsRepoPath(webChatUploadPath) ? readRepoText(webChatUploadPath) : "";
+  const composerText = existsRepoPath(webChatSubmitPath.replace("web-chat-submit.ts", "web-chat-composer-scripts.ts")) ? readRepoText(webChatSubmitPath.replace("web-chat-submit.ts", "web-chat-composer-scripts.ts")) : "";
   const clipboardText = existsRepoPath(webChatClipboardPath) ? readRepoText(webChatClipboardPath) : "";
   const selectorPreludeText = existsRepoPath(webChatSelectorPreludePath) ? readRepoText(webChatSelectorPreludePath) : "";
   requireTokens(findings, promptExchangeLaw, webChatUploadPath, uploadText, "pick3-is-blind-eval/gemini-clipboard-file-upload", ["copyFileObjectToMacClipboard", "pasteMacClipboardIntoChrome", "uploadSingleFileByClipboardPaste"]);
   requireTokens(findings, promptExchangeLaw, webChatUploadPath, uploadText, "pick3-is-blind-eval/gemini-upload-timing-logs", ["[GRASSEYE][AI-GATEWAY][WEB-CHAT]", "upload_file_clipboard_paste", "inputRefId", "elapsedMs", "COMPOSER_FOCUS_RETRY_TIMEOUT_MS = 15_000"]);
+  requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts", composerText, "pick3-is-blind-eval/chatgpt-file-tile-attachment-count", ["WEB_CHAT_ATTACHMENT_COUNT_SCRIPT", "findAttachmentTileRoot", "file-tile", "在文本字段中显示", "移除文件", "seenTiles.add(findAttachmentTileRoot(node) || node)"]);
   for (const forbiddenNativeChooserToken of ["selectFilePathInNativeChooser", "Upload files"]) {
     if (uploadText.includes(forbiddenNativeChooserToken) || clipboardText.includes(forbiddenNativeChooserToken)) {
       addFinding(findings, promptExchangeLaw, webChatUploadPath, "pick3-is-blind-eval/no-gemini-native-chooser", `Gemini web-chat upload must not keep native chooser token ${forbiddenNativeChooserToken}.`);
@@ -314,7 +333,9 @@ const inspectPick3WebChatRecovery = (
     addFinding(findings, promptExchangeLaw, webChatClipboardPath, "pick3-is-blind-eval/no-gemini-native-chooser", "Gemini web-chat upload must not use the macOS native chooser Go to Folder path.");
   }
   requireTokens(findings, promptExchangeLaw, webChatSelectorPreludePath, selectorPreludeText, "pick3-is-blind-eval/gemini-composer-selector", ["aria-label='Enter a prompt for Gemini'", "button[aria-label='Upload and tools']"]);
-  requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/current-history-delete", ["deletePick3WorkspaceConversationHistoryUrl", "current_history_deleted", "current_history_delete_verify_failed"]);
+  if (texts.webChatPick3HistoryCleanupText.includes("deletePick3WorkspaceConversationHistoryUrl")) {
+    addFinding(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, "pick3-is-blind-eval/no-current-provider-history-delete-export", "Provider current-conversation history deletion export must not exist while provider history deletion is temporarily disabled.");
+  }
   requireTokens(findings, promptExchangeLaw, webChatWorkspacePath, texts.webChatWorkspaceText, "pick3-is-blind-eval/gemini-conversation-ledger", ["recordWorkspaceConversationUrl", "providerKind === \"gemini-web-chat\"", "https://gemini.google.com/app/", "PICK3_CONVERSATION_LEDGER_MAX_ENTRIES = 100", "slice(-PICK3_CONVERSATION_LEDGER_MAX_ENTRIES)"]);
   if (texts.webChatWorkspaceText.includes("const keptLedger = ledger.slice(-input.keepRecentCount)")) {
     addFinding(
@@ -325,16 +346,12 @@ const inspectPick3WebChatRecovery = (
       `${webChatWorkspacePath} must not truncate the history-deletion ledger during stale tab cleanup.`,
     );
   }
-  requireTokens(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, texts.webChatPick3HistoryCleanupText, "pick3-is-blind-eval/gemini-history-cleanup-cap", [
-    "GEMINI_STALE_CLEANUP_MAX_PER_RUN = 80",
-    "export const GEMINI_STALE_CLEANUP_MAX_PER_RUN",
-    "staleCleanupMaxPerRun",
-    "providerKind === \"gemini-web-chat\"",
-    "maxDeleteCount",
-    "triggerThreshold",
-    "attemptedUrls",
-    "notFoundAttemptsByUrl",
-    "newlyVisibleLegacyUrls",
+  requireTokens(findings, promptExchangeLaw, blueprintPath, readRepoTextIfExists(blueprintPath), "pick3-is-blind-eval/provider-history-delete-disabled-blueprint", [
+    "Temporary provider-history deletion disable rule",
+    "provider_history_delete_temporarily_disabled",
+    "current_history_delete_temporarily_disabled",
+    "do not click Delete",
+    "do not confirm Delete chat?",
   ]);
 };
 
@@ -395,154 +412,11 @@ const inspectPackageScripts = (findings: InspectorFinding[], primaryLaw: string,
   ]);
 };
 
-const inspectPick3TrendDisplay = (
-  findings: InspectorFinding[],
-  trendDisplayLaw: string,
-  lawText: string,
-  blueprintText: string,
-): void => {
-  requireTokens(findings, trendDisplayLaw, lawPath, lawText, "pick3-is-blind-eval/trend-law", [
-    "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-    "stored official `pick3_draws`",
-    "fixed 80-draw window",
-    "three separated rows",
-    "Hover exposes phase, official drawn numbers, and expected prize time",
-    "/api/pick3-is-blind-eval/trend",
-    "Mouse drag changes the historical start index",
-  ]);
-  requireTokens(findings, trendDisplayLaw, blueprintPath, blueprintText, "pick3-is-blind-eval/trend-blueprint", [
-    "## Official Trend Display",
-    "official sync -> pick3_draws -> listPick3TrendSnapshot",
-    "GET /api/pick3-is-blind-eval/trend",
-    "windowSize: 80",
-    "Default view = latest 80 stored official draws",
-    "Rows = hundreds, tens, ones as three separated rows",
-    "Hover point info = phase + official drawn numbers + expected prize time",
-    "Dragging right/left changes the window location",
-  ]);
-  requireTokens(findings, trendDisplayLaw, trendPath, readRepoTextIfExists(trendPath), "pick3-is-blind-eval/trend-read-model", [
-    "listPick3TrendSnapshot",
-    "openPick3Storage",
-    "storage.listDrawsAscending()",
-    "windowSize: PICK3_WINDOW_SIZE",
-    "source: \"pick3_draws\"",
-    "latestWindowStartIndex",
-  ]);
-  requireTokens(findings, trendDisplayLaw, workbenchPick3RoutesPath, readRepoTextIfExists(workbenchPick3RoutesPath), "pick3-is-blind-eval/trend-route", [
-    "handlePick3Trend",
-    "/api/pick3-is-blind-eval/trend",
-    "workbench.listPick3TrendSnapshot()",
-  ]);
-  requireTokens(findings, trendDisplayLaw, workbenchApiBoundaryPath, readRepoTextIfExists(workbenchApiBoundaryPath), "pick3-is-blind-eval/trend-api-boundary", [
-    "/api/pick3-is-blind-eval/trend",
-    "local_pick3_trend_snapshot",
-    "externalApiAllowed: false",
-  ]);
-  requireTokens(findings, trendDisplayLaw, workbenchPick3SupportPath, readRepoTextIfExists(workbenchPick3SupportPath), "pick3-is-blind-eval/trend-workbench-handle", [
-    "listPick3TrendSnapshot(dataDir)",
-  ]);
-  requireTokens(findings, trendDisplayLaw, appShellLayoutPath, readRepoTextIfExists(appShellLayoutPath), "pick3-is-blind-eval/trend-app-shell", [
-    "data-workspace-page=\"trend\"",
-    "data-pick3-trend-chart",
-    "data-pick3-trend-tooltip",
-    "data-pick3-trend-refresh",
-  ]);
-  requireTokens(findings, trendDisplayLaw, pick3TrendClientPath, readRepoTextIfExists(pick3TrendClientPath), "pick3-is-blind-eval/trend-ui-client", [
-    "pick3TrendPositions",
-    "windowSize || 80",
-    "showPick3TrendTooltip",
-    "formatPick3TrendInfo",
-    "bindPick3TrendDrag",
-    "dragStartIndex",
-    "/api/pick3-is-blind-eval/trend",
-  ]);
-};
-
-const inspectPick3PlaybookLessonStore = (
-  findings: InspectorFinding[],
-  lessonStoreLaw: string,
-  lawText: string,
-  blueprintText: string,
-): void => {
-  requireTokens(findings, lessonStoreLaw, lawPath, lawText, "pick3-is-blind-eval/playbook-lesson-law", [
-    "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-    "automatically create position-specific Playbook lesson records",
-    "dedicated lesson store",
-    "`hundreds`, `tens`, `ones`",
-    "Manual Playbook review",
-    "Free Analysis Strict Reasoning results must not enter the Playbook lesson store",
-    "No automatic Playbook mutation",
-  ]);
-  requireTokens(findings, lessonStoreLaw, blueprintPath, blueprintText, "pick3-is-blind-eval/playbook-lesson-blueprint", [
-    "## Playbook Lesson Store Flow",
-    "pick3_playbook_lessons",
-    "source: auto_review | manual_review",
-    "position: hundreds | tens | ones",
-    "aggregate_key must begin with the position",
-    "free_analysis_strict_reasoning must not write pick3_playbook_lessons",
-    "POST /api/pick3-is-blind-eval/playbook-review",
-    "After N accepted lessons for the same position/aggregateKey",
-  ]);
-  requireTokens(findings, lessonStoreLaw, storageSchemaPath, readRepoTextIfExists(storageSchemaPath), "pick3-is-blind-eval/playbook-lesson-storage-schema", [
-    "CREATE TABLE IF NOT EXISTS pick3_playbook_lessons",
-    "position TEXT NOT NULL",
-    "aggregate_key TEXT NOT NULL",
-    "source TEXT NOT NULL",
-    "status TEXT NOT NULL",
-  ]);
-  requireTokens(findings, lessonStoreLaw, playbookLessonsPath, readRepoTextIfExists(playbookLessonsPath), "pick3-is-blind-eval/playbook-lesson-review-runtime", [
-    "reviewPick3PlaybookLessons",
-    "pick3-playbook-failure-review-v1",
-    "Do not make a new prediction",
-    "candidateLesson",
-    "aggregateKey: `${input.image.position}:",
-    "source: input.source",
-  ]);
-  requireTokens(findings, lessonStoreLaw, flowPath, readRepoTextIfExists(flowPath), "pick3-is-blind-eval/playbook-lesson-auto-flow", [
-    "input.batchInput.promptMode === \"playbook_v1\"",
-    "reviewPick3PlaybookLessons",
-    "source: \"auto_review\"",
-    "insertPlaybookLessons",
-    "Playbook changes require N accepted position-specific lessons",
-  ]);
-  requireTokens(findings, lessonStoreLaw, historyPath, readRepoTextIfExists(historyPath), "pick3-is-blind-eval/playbook-lesson-history-runtime", [
-    "playbookLessons",
-    "reviewPick3PlaybookLessonManually",
-    "task.promptMode !== \"playbook_v1\"",
-    "source: \"manual_review\"",
-    "lessonStatus",
-  ]);
-  requireTokens(findings, lessonStoreLaw, workbenchPick3RoutesPath, readRepoTextIfExists(workbenchPick3RoutesPath), "pick3-is-blind-eval/playbook-lesson-route", [
-    "/api/pick3-is-blind-eval/playbook-review",
-    "handlePick3ManualPlaybookReview",
-    "reviewPick3PlaybookLessonManually",
-  ]);
-  requireTokens(findings, lessonStoreLaw, workbenchApiBoundaryPath, readRepoTextIfExists(workbenchApiBoundaryPath), "pick3-is-blind-eval/playbook-lesson-api-boundary", [
-    "/api/pick3-is-blind-eval/playbook-review",
-    "local_pick3_playbook_lesson_manual_review",
-    "externalApiAllowed: false",
-  ]);
-  requireTokens(findings, lessonStoreLaw, pick3HistoryClientPath, readRepoTextIfExists(pick3HistoryClientPath), "pick3-is-blind-eval/playbook-lesson-ui", [
-    "data-pick3-history-lesson-list",
-    "runPick3ManualPlaybookReview",
-    "data-pick3-manual-playbook-review",
-    "renderPick3PlaybookLessons",
-  ]);
-  requireTokens(findings, lessonStoreLaw, fullHistoryAcceptancePath, readRepoTextIfExists(fullHistoryAcceptancePath), "pick3-is-blind-eval/playbook-lesson-acceptance", [
-    "free_analysis_strict_reasoning failures must not enter Playbook lessons",
-    "reviewPick3PlaybookLessons",
-    "aggregateKey.startsWith(\"tens:\")",
-    "reviewPick3PlaybookLessonManually",
-    "source, \"manual_review\"",
-  ]);
-};
-
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawIds = context.planEntry.lawIds;
   const lawRefs = buildLawRefs(lawIds);
   const findings: InspectorFinding[] = [];
-  const selfSourceFile = context.project.getSourceFile(selfPath);
-  if (!selfSourceFile) {
+  if (!context.project.getSourceFile(selfPath)) {
     addFinding(findings, lawRefs.primaryLaw, selfPath, "pick3-is-blind-eval/inspector-project-loaded", `${selfPath} must be loaded in the audit ts-morph project.`);
   }
   const lawText = existsRepoPath(lawPath) ? readRepoText(lawPath) : "";
@@ -556,13 +430,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectPlaybookFiles(findings, lawRefs.agentBrainLaw);
   inspectRuntimeExternalBrain(findings, lawRefs.agentBrainLaw);
   inspectPromptExchangeRuntime(findings, lawRefs.promptExchangeLaw);
-  inspectPick3HumanReviewHistory({
-    blueprintText,
-    findings,
-    humanReviewHistoryLaw: lawRefs.humanReviewHistoryLaw,
-    lawText,
-  });
-  inspectPick3PlaybookLessonStore(findings, lawRefs.lessonStoreLaw, lawText, blueprintText);
+  inspectPick3HumanReviewHistory({ blueprintText, findings, humanReviewHistoryLaw: lawRefs.humanReviewHistoryLaw, lawText });
+  inspectPick3PlaybookLessonStore({ blueprintText, findings, lawText, lessonStoreLaw: lawRefs.lessonStoreLaw });
   inspectPick3TrendDisplay(findings, lawRefs.trendDisplayLaw, lawText, blueprintText);
   inspectPackageScripts(findings, lawRefs.primaryLaw, packageText);
 

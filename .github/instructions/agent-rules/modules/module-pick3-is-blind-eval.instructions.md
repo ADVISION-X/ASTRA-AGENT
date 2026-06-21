@@ -60,7 +60,7 @@ UAE Lottery Pick 3 official source
 - Failure library and replay records may store revealed answers, but they must not be merged into the active blind Playbook payload.
 - Pick3 Playbook training follows a two-phase methodology. Phase 1 is evidence-mandatory exploration — AI must analyze every chart, name specific visual grammar shape words, state L80 zone weight, and derive a direction conclusion from that named evidence; guessing without named evidence is forbidden. Phase 2 is evidence-calibrated mode — built from Phase 1 correct-prediction evidence plus corrected wrong-prediction evidence.
 - Pick3 may run a separate `free_analysis_strict_reasoning` experiment mode when explicitly requested. This mode must provide no direction rules, no fixed visual vocabulary, no position-specific mapping, and no shape-to-label playbook constraints; it must still require strict chart analysis before conclusion.
-- The Workbench must expose `free_analysis_strict_reasoning` as an AI analysis mode for non-next-stability historical scoring runs by submitting `mode = full_pipeline` plus `promptMode = free_analysis_strict_reasoning`; it must not create a separate `free_analysis` task mode or second pipeline.
+- The Workbench must expose `free_analysis_strict_reasoning` as an AI analysis mode by submitting the user-selected `promptMode`; it must work for `mode = full_pipeline` and `mode = next_prediction_stability` without creating a separate `free_analysis` task mode or second pipeline.
 - Free Analysis Strict Reasoning output must include `chartReading`, `recentBehavior`, `supportingEvidence`, `counterEvidence`, and `decisionLogic`; parser validation must reject missing or shallow analysis instead of allowing random lower/upper guesses.
 - Free Analysis Strict Reasoning output must additionally include three probing fields that force verifiable inspection instead of an impression-based narrative: `zoneCount` (two non-negative integers — how many visible points the AI can confidently classify above vs below the midline, counted not estimated), `patternRecurrence` (how many times the pattern named in `supportingEvidence` actually recurs in the visible window, and how many of those recurrences were followed by the predicted direction), and `weakestLink` (the single weakest assumption in the AI's own reasoning chain). These three fields guide the AI to deeper inspection through self-checking questions — they do not impose a fixed vocabulary or a direction rule, and must not be confused with the V1 evidence fields (`tailShapes`, `zoneWeight`, `drivingEvidence`, `discountedEvidence`).
 - Free Analysis Strict Reasoning must stay in the same Pick3 Prompt Exchange, one-image blind prediction, sealed prediction, reveal, and scoring chain. It must not create a second AI transport, second prediction table, second scoring path, or ungoverned manual answer path.
@@ -70,7 +70,7 @@ UAE Lottery Pick 3 official source
 - The `reason` field in Phase 1 must contain the full analytical chain — not one sentence. It must describe tail shapes observed, L80 zone weight, and how they produced the conclusion.
 - `tailShapes`, `zoneWeight`, `drivingEvidence`, and `discountedEvidence` must be stored in the prediction record and persisted to the database alongside predictionLabel and confidence. These are the V2 evidence extraction fields.
 - `discountedEvidence` purpose: when a prediction is wrong, this field reveals which opposing signal the AI noticed but overrode — enabling V2 correction rules without hindsight rationalization. `discountedEvidence` must be null when no opposing signal was observed, not an empty string.
-- When a position playbook applies a contrarian override (e.g., Stream B treats `shoulder_hold` as lower evidence instead of upper), the standard grammar interpretation being overridden IS the discounted evidence. `discountedEvidence` must NOT be null in this case — it must name the standard grammar signal that was overridden and why the contrarian rule replaced it. Example: "Standard grammar classifies shoulder_hold as upper evidence; Stream B contrarian overrides this because high_pressure is absent."
+- When the model's own analysis applies a contrarian override (e.g., treating `shoulder_hold` as lower evidence instead of upper because the live-assembled experience or the image's own tail evidence supports it), the standard grammar interpretation being overridden IS the discounted evidence. `discountedEvidence` must NOT be null in this case — it must name the standard grammar signal that was overridden and why the contrarian override replaced it. Example: "Standard grammar classifies shoulder_hold as upper evidence; this override treats it as lower because high_pressure is absent in this image." There is no position-specific playbook file driving this override; it comes only from the model's own evidence weighing, optionally informed by the live-assembled experience pool.
 - Parser must treat a response as parse_failed if tailShapes is missing or empty, or if zoneWeight is not one of the three valid values.
 - Phase 1 Playbook must NOT mechanically force abstain for bare_low, kill_down, or any single-stroke shape — these are lower-leaning signals and must produce a lower conclusion when no named upper evidence of equal weight is present.
 - Phase 1 confidence range is 0.51–0.75. Confidence 0.51 means one named evidence item with no contradiction — this is a valid analysis conclusion derived from that evidence, not a guess.
@@ -90,7 +90,7 @@ UAE Lottery Pick 3 official source
 - Pick3 web-chat provider-page assertion may reopen the provider home in the same workspace tab only when the active page is `chrome-error://...` before attachment upload; after upload or prompt submission it must fail instead of clearing an in-flight prompt.
 - Pick3 Gemini web-chat upload-to-prompt stages must emit terminal-visible AI Input Gateway timing logs for upload, pre-submit snapshot skip, prompt prepare, attachment verify, and prompt submit so a human can diagnose whether delay is upload, prompt entry, or provider submission.
 - Pick3 GPT workspace tab reuse must be host/workspace based, not exact conversation URL based; `/c/<conversation>` URLs may be recorded only in the conversation ledger, never saved as the workspace tab anchor.
-- Pick3 Gemini workspace tab reuse must record `https://gemini.google.com/app/<conversation>` URLs in the provider-specific conversation ledger after response capture so history cleanup can preserve the current and immediately previous Gemini conversations; the ledger must retain enough entries for a full 25-batch three-position run plus margin, and stale tab closure must not truncate the history-deletion ledger.
+- Pick3 Gemini workspace tab reuse must record `https://gemini.google.com/app/<conversation>` URLs in the provider-specific conversation ledger after response capture; the ledger must retain enough entries for a full 25-batch three-position run plus margin, and stale tab closure must not truncate the provider conversation ledger.
 - Pick3 GPT workspace opening must use `reuse-host-tab` or an equivalent host-level workspace lease; it must not use `reuse-exact-url` against saved `/c/<conversation>` URLs.
 - Pick3 prompt packages must include a non-secret `imageId` and `promptPackageId` identity binding, and GPT output must echo both values exactly.
 - Pick3 GPT web-chat transport must verify after submit that the last submitted user message contains the expected bound image attachment before accepting any GPT JSON output.
@@ -100,36 +100,30 @@ UAE Lottery Pick 3 official source
 - Pick3 Prompt Exchange must map AI-visible `lower -> front`, `upper -> back`, and `abstain -> abstain` after identity validation and before sealing.
 - Pick3 parsing must reject any response whose echoed `imageId` or `promptPackageId` does not match the active one-image request.
 - Pick3 prompt package metadata, rendered prompt output contract, parser, acceptance, and audit must agree on the same AI-visible label contract; mismatch is a blocking failure.
-- Pick3 Prompt Exchange may retry an empty web-chat raw output once inside the current one-image send attempt before creating the Pick3 interaction record. If that one-image send still fails, the batch must not stop immediately; the same request must be deferred into the existing Pick3 Prompt Exchange completion queue while remaining images/repeats continue. The completion queue may run bounded same-chain recovery rounds, must not create a second transport, route, runner, prediction table, or scoring path, and must persist only final per-request parsed interactions or final unresolved interactions after completion rounds are exhausted. If structured JSON puts an explicit directional synonym in `predictionLabel` (`rise`, `rising`, `up`, `upward`, `upper`, `fall`, `falling`, `down`, `downward`, or `lower`), it must normalize through a fixed directional alias whitelist before confidence/evidence validation. If the invalid label is explicitly non-directional (`hold`, `neutral`, `flat`, `sideways`, `unclear`, or `no_direction`), it must be normalized to internal `abstain` with null confidence and a non-directional abstain reason; it must never be mapped to lower/upper. If `predictionLabel` is another unrecognized shape word, Pick3 Prompt Exchange may retry `pick3_prediction_label_invalid` once inside the current one-image send attempt before deferring that request to the completion queue. Non-empty invalid JSON, identity mismatch, and prompt package mismatch must not be guessed or repaired, but they may be retried only through the bounded same-chain completion queue.
+- Pick3 Prompt Exchange may retry an empty web-chat raw output once inside the current one-image send attempt before creating the Pick3 interaction record. If that one-image send still fails, the batch must not stop immediately; the same request must be deferred into the existing Pick3 Prompt Exchange completion queue while remaining images/repeats continue. If a provider replies that the image was not received (`未收到图片`, no image, cannot see image, or equivalent provider-reported missing image text), Pick3 Prompt Exchange must retry the same governed one-image prompt package and same image three local retries in the same chain. If all three local retries still report missing image, that image/repeat must be persisted as `skipped_provider_reported_image_missing` with `pick3_provider_reported_image_missing_retry_exhausted`, must not create `ai_predictions`, must not reveal, must not score, must not create Playbook lessons, and must not stop the full batch or next-stability task. This skip is not `abstain` and is not valid for accuracy. The completion queue may run bounded same-chain recovery rounds, must not create a second transport, route, runner, prediction table, or scoring path, and must persist only final per-request parsed interactions, skipped provider-reported-missing-image interactions, or final unresolved interactions after completion rounds are exhausted. If structured JSON puts an explicit directional synonym in `predictionLabel` (`rise`, `rising`, `up`, `upward`, `upper`, `fall`, `falling`, `down`, `downward`, or `lower`), it must normalize through a fixed directional alias whitelist before confidence/evidence validation. If the invalid label is explicitly non-directional (`hold`, `neutral`, `flat`, `sideways`, `unclear`, or `no_direction`), it must be normalized to internal `abstain` with null confidence and a non-directional abstain reason; it must never be mapped to lower/upper. If `predictionLabel` is another unrecognized shape word, Pick3 Prompt Exchange may retry `pick3_prediction_label_invalid` once inside the current one-image send attempt before deferring that request to the completion queue. Non-empty invalid JSON, identity mismatch, and prompt package mismatch must not be guessed or repaired, but they may be retried only through the bounded same-chain completion queue.
 - Pick3 Prompt Exchange must emit a terminal stdout line via `process.stdout.write` with prefix `[GRASSEYE][PICK3][EXCHANGE]` for every image at these moments: send_started (imageId, position, targetPhase, seq N/total), send_result (status, rawLen, boundVerify, boundCount, recoveryStatus), empty_output WARN (reviewReason, failureReason), retry_started (attempt, reason), and parse_result (parseStatus, parseFailureReason, predictionLabel, confidence).
-- Pick3 Prompt Exchange completion queue must emit terminal-visible `deferred_retry_scheduled` lines with imageId, position, repeatIndex, nextCompletionRound, and reason, and the Prompt Exchange result must expose expectedCount, completedCount, deferredRetryCount, and unresolvedCount for flow/stability status proof.
+- Pick3 Prompt Exchange completion queue must emit terminal-visible `deferred_retry_scheduled` lines with imageId, position, repeatIndex, nextCompletionRound, and reason, and the Prompt Exchange result must expose expectedCount, completedCount, deferredRetryCount, skippedCount, and unresolvedCount for flow/stability status proof.
 - Pick3 Prompt Exchange terminal stdout must allow a human to reconstruct the exact send/receive/parse sequence for every image in a batch without opening any artifact file.
 - When Pick3 Prompt Exchange rawLen=0 appears in terminal stdout, the log must include the gateway status, reviewRequiredReason, and failureReason so the empty-output cause is diagnosable from the terminal alone.
 - Pick3 Prompt Exchange may keep an already captured raw GPT response when post-response source page restoration fails, but provider proof must record `restoredSourcePage=false`; this exception exists only because Pick3 does not use the restored source page for a downstream DOM action.
 - Pick3 failure review must classify current visual-grammar terms, including rebound/bottom, top/exhaustion, shoulder, and inertia/momentum families, before falling back to `unknown`.
 - Pick3 GPT Prompt Exchange must detect ChatGPT rate-limit dialogs such as `请求过于频繁` / `请稍等几分钟后再重试` / too-many-requests before parsing output.
-- When a Pick3 GPT rate-limit dialog appears, the runner must immediately enter a silent 10-minute backoff without clicking the dialog first; each allowed recovery window is 10 minutes, not an escalating 10/30/60 minute chain.
-- Pick3 GPT rate-limit backoff must emit Runtime Log Spine recovery events when detected, when backoff starts, during bounded heartbeat progress, when the wait elapses, when acknowledgement starts/completes/fails, when ChatGPT refresh starts/completes, when new chat is reopened, and when the same payload resend starts.
-- Pick3 GPT rate-limit backoff must also emit a terminal stdout line (via process.stdout.write) every 30 seconds showing attempt number, elapsed status, and remaining seconds; terminal visibility is mandatory, not optional.
-- Pick3 GPT rate-limit Runtime Log Spine events and terminal stdout must include `imageId`, `promptPackageId`, `missionKey`, `attempt`, `totalWaitSec`, `elapsedSec`, `remainingSec`, and `recoveryAction` so a human can prove which image is waiting and what will happen next.
-- Pick3 GPT rate-limit waiting must not be one opaque long sleep; it must be chunked into observable heartbeat waits without increasing request frequency.
-- After each Pick3 GPT rate-limit backoff expires, the runner must click the dialog acknowledgement, refresh/reopen ChatGPT in the same workspace tab, open a new chat, and resend the same governed one-image prompt and image.
-- If Pick3 GPT rate limiting persists after the third backoff wait, the batch must stop as `review_required` before prediction sealing, reveal, or scoring.
+- When a Pick3 GPT rate-limit dialog appears, the runner must immediately click the dialog acknowledgement such as `明白了` / OK / Got it; it must not wait for a backoff window before clicking.
+- Pick3 GPT rate-limit acknowledgement must verify that the rate-limit dialog disappeared after the click; if the acknowledgement cannot be located, clicked, or verified closed, the batch must stop as `review_required` before prediction sealing, reveal, or scoring.
+- Pick3 GPT rate-limit acknowledgement must emit Runtime Log Spine recovery events when detected and when immediate acknowledgement starts/completes/fails.
+- Pick3 GPT prompt paste, prompt submit, submitted-image verification, pre-submit snapshot, and response-capture waits must proactively check for the rate-limit dialog and immediately click the acknowledgement when it appears.
+- Pick3 GPT web-chat feed lifecycle must start a same-BrowserController rate-limit dialog watcher after the provider workspace opens and keep it active until the feed exits, so upload, focus, clipboard, provider-generation, and browser wait phases are also covered.
+- Pick3 GPT rate-limit dialog handling has exactly one allowed browser action: click the visible acknowledgement. It must not refresh, reopen the provider page, open a new chat, restart the task, or resend the image/prompt because of the rate-limit dialog.
+- Pick3 GPT rate-limit Runtime Log Spine events and terminal stdout must include `imageId`, `promptPackageId`, `missionKey`, `attempt`, and `recoveryAction` so a human can prove which image was blocked and what recovery happened.
+- After a successful Pick3 GPT rate-limit acknowledgement, the current web-chat loop must continue through the existing same-chain prompt submit or response-capture path; the acknowledgement helper must not create a second refresh route.
+- Pick3 GPT rate-limit acknowledgement must keep clicking visible rate-limit acknowledgements for the same in-flight feed; it must not impose an acknowledgement attempt cap that changes the action from click-only into review, refresh, restart, or resend.
 - Pick3 GPT workspace cleanup must close only stale conversation tabs that were previously recorded by the Pick3 workspace ledger, preserving the current and immediately previous conversation.
-- Pick3 GPT workspace cleanup must also delete stale ChatGPT sidebar conversation history entries recorded by the Pick3 workspace ledger, preserving the current and immediately previous conversation records.
-- Pick3 GPT workspace cleanup must delete stale visible ChatGPT sidebar history entries whose title matches the controlled Pick3 training title allowlist: `Pick3 Blind Eval`, `Blind Eval`, `Blind Chart`, `Blind Time-Series`, `Blind Series`, or `Visual Pattern Prediction`, while preserving the current and immediately previous protected workspace URLs.
-- Pick3 web-chat history cleanup must refresh/reopen the provider home sidebar after deletion and treat any remaining non-protected Pick3 training history entry as cleanup failure; ChatGPT must use `https://chatgpt.com/`, and Gemini must use `https://gemini.google.com/app`.
-- Pick3 GPT history cleanup must only execute deletions when the stale entry count reaches 15 or more; below this threshold the cleanup must be skipped (returning a deferred status) and training must continue uninterrupted.
-- Pick3 GPT history cleanup must delete at most 3 stale entries per training run, even when the total stale count exceeds the threshold, to avoid triggering ChatGPT's history access rate limit.
-- Pick3 Gemini history cleanup must use the same governed sidebar delete flow as GPT after DOM verification: open the conversation actions menu, choose `Delete`, confirm the `Delete chat?` dialog, and verify the stale visible Pick3 training title no longer remains in Gemini Recent.
-- Pick3 Gemini history cleanup must open the Gemini sidebar before discovering or verifying Recent entries; collapsed Gemini navigation is not proof that history is empty.
-- Pick3 Gemini history cleanup must detect an already-open row action menu and use its `Delete` item directly instead of clicking `More options` again, because clicking `More options` on an open Gemini row menu closes the menu.
-- Pick3 Gemini history cleanup may delete up to 80 stale Pick3 training entries per run through the verified Gemini Recent DOM path; it must not inherit ChatGPT's 3-entry safety cap because that cap exists for ChatGPT history rate-limit risk and causes Gemini blind training to stop under normal batch history volume.
-- Pick3 Gemini history cleanup must rediscover Gemini Recent after each deletion pass because deleting visible rows can reveal older hidden Pick3 training rows; those newly visible rows must be deleted within the same governed cleanup run until no non-protected Pick3 history remains or the Gemini cap is exhausted.
-- Pick3 Gemini pre-image history cleanup must run before attachment upload for every new Gemini Pick3 image, keep only the immediately previous completed Gemini Pick3 conversation because the new current conversation has not been created yet, and continue deleting stale Gemini Pick3 history until Gemini Recent confirms no N-2-or-older Pick3 conversation remains visible.
-- Pick3 Gemini pre-image history cleanup must emit terminal-visible `pre_image_history_cleanup` timing logs with `keepRecentCount=1`, `triggerThreshold=1`, and the Gemini cleanup cap; if any non-protected N-2-or-older Gemini Pick3 history remains visible or the governed Gemini Recent delete flow reports a real deletion failure before upload, the run must stop as `review_required` instead of sending a possibly contaminated image.
-- Pick3 Gemini pre-image history cleanup is Gemini-only and must not change ChatGPT's threshold-15 / max-3 history cleanup policy.
-- Pick3 training must preserve parsed prediction results when post-response history cleanup reports deletion failure; cleanup failure is provider-proof hygiene evidence and must be logged, but it must not overwrite `parseStatus=parsed` or become `parse_failed_raw_available` after the AI answer already parsed.
+- Pick3 provider sidebar history deletion is temporarily disabled because deleting provider conversation records can trigger ChatGPT/Gemini data-protection and history-access rate limits such as `请求过于频繁`.
+- Pick3 GPT/Gemini cleanup may keep the workspace conversation ledger and stale provider-tab cleanup, but it must not open provider history sidebars, click conversation menus, click `Delete`, confirm `Delete chat?`, or verify provider history deletion while this temporary disable is active.
+- Pick3 provider history cleanup must return and persist `provider_history_delete_temporarily_disabled` for stale-history cleanup and `current_history_delete_temporarily_disabled` for current-conversation cleanup attempts.
+- Pick3 GPT no-result and missing-bound-image recovery must refresh/reopen the same workspace tab and open a new chat through the existing AI Input Gateway path without deleting the timed-out/current provider conversation history entry.
+- Pick3 Gemini pre-image history cleanup must emit terminal-visible `pre_image_history_cleanup` timing logs with a temporarily-disabled cleanup status, then continue to attachment upload; visible stale Gemini provider history must not block the run while provider history deletion is disabled.
+- Pick3 training must preserve parsed prediction results when post-response provider history deletion is disabled; disabled cleanup is provider-proof hygiene evidence and must be logged, but it must not overwrite `parseStatus=parsed` or become `parse_failed_raw_available` after the AI answer already parsed.
 - Pick3 GPT sidebar history menu hover must dispatch JS `mouseenter` and `mouseover` events on the target conversation row as a mandatory co-trigger alongside any native hover, because native browser.move is optional-chained and may silently no-op; JS dispatch ensures the "…" menu button renders in the DOM.
 - Pick3 GPT sidebar history menu hover wait must be at least 600ms (not 250ms) after hover events before checking for the "…" button, and must poll for the button up to 1000ms total.
 - Pick3 GPT composer focus must dispatch an Escape keyboard event and blur the active element to dismiss any floating menus or context menus before calling focusComposer, because sidebar hover events can leave floating menus open that intercept keyboard input.
@@ -138,7 +132,7 @@ UAE Lottery Pick 3 official source
 - Pick3 full pipeline must stop before interaction persistence, prediction sealing, reveal, or scoring when the provider cannot prove the submitted user message contains the current image.
 - Pick3 may run `next_prediction_stability` only after the latest official sync has succeeded with full official coverage; if latest official draw data is not fully confirmed, the mode must stop before image generation and AI feed.
 - Pick3 `next_prediction_stability` generates exactly one next-period blind L80 image per selected position from the latest confirmed 80 official draws; there is no target answer, no reveal, no scoring, and no accuracy claim in this mode.
-- Pick3 `next_prediction_stability` must use the existing `free_analysis_strict_reasoning` prompt mode for every repeat; it must not use the position-specific playbook prompt package.
+- Pick3 `next_prediction_stability` must use the user-selected `promptMode` for every repeat. If the user selects `playbook_v1`, repeats must use the existing Playbook prompt package; if the user selects `free_analysis_strict_reasoning`, repeats must use the Free Analysis Strict Reasoning prompt package. The mode must not hardcode or override the user's AI analysis mode selection.
 - Pick3 `next_prediction_stability` treats `batchSize` as the repeat-send count for the same single image per position; it must not create `batchSize` different target images for one position.
 - Pick3 `next_prediction_stability` must send every repeat through the existing Pick3 Prompt Exchange and AI Input Gateway one-image path, preserving one image per AI payload and raw interaction proof for every repeat.
 - Pick3 `next_prediction_stability` output may display only per-position, per-repeat AI-visible result fields and proof refs; it must not compute, recommend, or persist a final user choice.
@@ -148,12 +142,15 @@ UAE Lottery Pick 3 official source
 - Pick3 trend hover must expose the full draw information for the pointed draw: phase, official drawn numbers, and expected prize time.
 - Pick3 trend drag may move the historical window across older stored official draws, but the visible window size must remain fixed at 80 draws.
 - Pick3 trend display is a human UI read model only; it must not change blind image generation, AI payloads, prediction sealing, reveal, scoring, or next_prediction_stability output.
+- Pick3 historical `generate_batch` and `full_pipeline` may accept an optional `lastTargetPhase` from the existing Workbench start payload. When present, the historical batch must end at that stored official target phase and walk backward by `batchSize` across eligible target draws; when absent, the default remains the latest eligible target draws.
+- Pick3 Workbench must populate the `lastTargetPhase` selector from stored official `pick3_draws` facts through the existing Pick3 read path; the operator selects a database-backed phase instead of typing a free-form phase.
+- `lastTargetPhase` must be resolved only from stored official `pick3_draws` facts and must preserve the L80 rule for every target draw. It must not apply to `next_prediction_stability`, where `batchSize` remains repeat-send count for the same next-period image.
 - Pick3 full_pipeline Playbook-mode failed positions must automatically create position-specific Playbook lesson records after reveal/scoring.
 - Playbook lesson records must be stored in a dedicated lesson store, separate from task history, sealed predictions, reveals, and active Playbook payloads.
 - Playbook lessons must be separated by position (`hundreds`, `tens`, `ones`); different positions must never be merged into one shared lesson bucket or aggregate count.
 - Automatic Playbook review must return the failed image, historical prompt, raw AI reply, sealed prediction, revealed answer, and failure note to AI for post-mortem root-cause analysis only.
 - Manual Playbook review must remain available from the History surface for any failed full_pipeline position.
-- Playbook lessons may become candidate experience records only. Active Playbook rule changes require a later aggregation step after N position-specific lessons and must not be applied automatically.
+- Every non-rejected Playbook lesson is assembled live into the blind prompt payload at prompt-build time as soon as it exists; there is no minimum lesson count, no candidate-file step, and no human promotion step. The active Playbook files on disk are never mutated.
 - Free Analysis Strict Reasoning results must not enter the Playbook lesson store.
 
 ## Forbidden
@@ -241,15 +238,17 @@ UAE Lottery Pick 3 official source
     "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
     "Empty web-chat raw output is retried once inside the current one-image attempt before Pick3 interaction persistence; unresolved one-image requests are deferred to the bounded same-chain Prompt Exchange completion queue while remaining images/repeats continue.",
     "Prompt Exchange exposes expectedCount, completedCount, deferredRetryCount, and unresolvedCount so full_pipeline and next_prediction_stability can prove batch convergence before completion.",
-    "Pick3 GPT rate-limit dialogs trigger a 10-minute silent backoff before acknowledgement, refresh, new chat, and retry of the same governed one-image prompt; repeated allowed recovery windows remain 10 minutes each.",
-    "Pick3 GPT rate-limit backoff emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_PROGRESS, RECOVERY_COMPLETED, and RECOVERY_FAILED events for waiting, acknowledgement, refresh, new-chat reopen, and same-payload resend.",
-    "Pick3 GPT rate-limit waiting is chunked into heartbeat waits and is not one opaque long sleep.",
-    "Persistent Pick3 GPT rate limiting after the third backoff wait stops the batch before prediction sealing, reveal, or scoring.",
+    "Pick3 GPT rate-limit dialogs trigger immediate acknowledgement click and verified dialog closure.",
+    "Pick3 GPT rate-limit acknowledgement emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_COMPLETED, and RECOVERY_FAILED events for immediate acknowledgement.",
+    "Pick3 GPT prompt paste, prompt submit, submitted-image verification, pre-submit snapshot, and response-capture waits proactively click a visible rate-limit acknowledgement.",
+    "Pick3 GPT web-chat feed lifecycle starts a same-BrowserController rate-limit dialog watcher after provider workspace open and stops it only when the feed exits.",
+    "Pick3 GPT rate-limit dialog handling performs only acknowledgement clicks and must not refresh, reopen, restart, or resend the image/prompt.",
+    "Pick3 GPT rate-limit recovery must not wait before clicking the acknowledgement.",
+    "Persistent Pick3 GPT rate-limit dialogs keep receiving acknowledgement clicks in the same in-flight feed without an acknowledgement attempt cap.",
     "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
-    "Pick3 GPT cleanup deletes stale recorded Pick3 ChatGPT sidebar conversation records, keeping the current and immediately previous conversation.",
-    "Pick3 GPT legacy sidebar cleanup is limited to visible controlled training titles outside the current and immediately previous protected workspace URLs.",
-    "Pick3 web-chat history cleanup refreshes the correct provider home after deletion and fails the training run when non-protected Pick3 training history remains visible.",
-    "Pick3 Gemini web-chat training uses the same governed sidebar-history cleanup flow as GPT, with Gemini DOM selectors and `Delete chat?` confirmation.",
+    "Pick3 provider sidebar history deletion is temporarily disabled and must return provider_history_delete_temporarily_disabled or current_history_delete_temporarily_disabled instead of clicking Delete or confirming Delete chat?.",
+    "Pick3 GPT no-result and missing-bound-image recovery refreshes/reopens the same workspace tab and opens a new chat without deleting provider conversation history.",
+    "Pick3 Gemini pre-image history cleanup records the temporarily-disabled cleanup status and must not block attachment upload while provider history deletion is disabled.",
     "Only final unresolved parse_failed_raw_available interactions after Prompt Exchange completion rounds are exhausted block reveal and scoring for the batch."
   ],
   "forbidden": [
@@ -265,7 +264,7 @@ UAE Lottery Pick 3 official source
     "Accepting GPT JSON when the last submitted user message does not contain the expected bound image attachment.",
     "Treating composer/global attachment counts as final Pick3 image-delivery proof.",
     "Allowing front/back to leak into the AI-visible output contract or prompt package allowedLabels.",
-    "Continuing Pick3 training after sidebar history cleanup reports failed deletion.",
+    "Opening provider history sidebars, clicking Delete, or confirming Delete chat? while provider history deletion is temporarily disabled.",
     "Closing untracked or user-owned ChatGPT tabs during Pick3 cleanup."
   ]
 }
@@ -395,13 +394,17 @@ UAE Lottery Pick 3 official source
     "The visible trend window size is fixed at 80 draws.",
     "Hundreds, tens, and ones render as three separated rows.",
     "Hover exposes phase, official drawn numbers, and expected prize time.",
-    "Mouse drag changes the historical start index while preserving the 80-draw window."
+    "Mouse drag changes the historical start index while preserving the 80-draw window.",
+    "Historical generate_batch and full_pipeline runs may select a stored official lastTargetPhase so the batch ends at that phase and walks backward by batchSize across eligible target draws.",
+    "The Workbench lastTargetPhase selector is populated from stored official pick3_draws facts instead of free-form user typing."
   ],
   "forbidden": [
     "External mirror, DOM scraping, localStorage, fixture rows, or trend-intuition-brain as trend truth.",
     "Second HTTP server, route bus, or trend-specific data store.",
     "Mixed-position single-line trend display.",
-    "Trend UI mutating blind images, AI payloads, sealed predictions, reveal, or scoring."
+    "Trend UI mutating blind images, AI payloads, sealed predictions, reveal, or scoring.",
+    "Free-form typed lastTargetPhase as production truth.",
+    "Applying lastTargetPhase to next_prediction_stability or using it to bypass the L80 history requirement."
   ]
 }
 ```
@@ -419,7 +422,7 @@ UAE Lottery Pick 3 official source
     "The mode id is next_prediction_stability.",
     "The latest official UAE Lottery Pick 3 sync must pass full official coverage before any next-period image or AI feed is created.",
     "Each selected position produces exactly one next-period blind L80 image from the latest confirmed 80 official draws.",
-    "Every repeat uses the existing free_analysis_strict_reasoning prompt mode, not the position-specific playbook prompt package.",
+    "Every repeat uses the user-selected promptMode: playbook_v1 uses the existing Playbook prompt package, and free_analysis_strict_reasoning uses the existing Free Analysis Strict Reasoning prompt package.",
     "batchSize is the repeat-send count for that same image, not the number of generated target images.",
     "Every repeat uses the existing Pick3 Prompt Exchange and AI Input Gateway one-image payload path.",
     "The persisted/displayed stability result lists position, imageId, repeat index, interaction id, prediction label, confidence, parse status, and raw proof ref for each repeat.",
@@ -428,7 +431,7 @@ UAE Lottery Pick 3 official source
   "forbidden": [
     "Running next-period stability without confirmed latest official data.",
     "Generating multiple same-position images for the repeat count.",
-    "Using position-specific playbook prompts for next-period stability.",
+    "Hardcoding or overriding the user's selected promptMode for next-period stability.",
     "Creating a second AI transport, prediction table, scoring path, route, or result chain.",
     "Reveal, scoring, hit rate, or accuracy claims for next-period stability before the official answer exists.",
     "System-generated final recommendation or majority vote decision."
@@ -473,25 +476,37 @@ UAE Lottery Pick 3 official source
   "capabilityDomain": "pick3-is-blind-eval",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "lesson-store+prompt-exchange+history-ui+acceptance+audit",
-  "summary": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records, saved separately from predictions and active Playbook payloads until enough lessons are aggregated for a later rule-version proposal.",
+  "summary": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records; every non-rejected lesson is assembled live into the blind prompt payload at prompt-build time as soon as it exists, with no minimum lesson count, no saved candidate file, and no human promotion step.",
   "required": [
     "After full_pipeline reveal/scoring, every failed Playbook-mode position creates an automatic Playbook lesson review.",
     "History must also expose a manual Playbook review action for failed full_pipeline positions.",
+    "The Playbook lesson review promptContractId must contain the substring `pick3-is-blind-eval`, exactly like the blind-prediction promptContractId. The web-chat tab-reuse, workspace resolution, and rate-limit dialog click-acknowledgement guards are all keyed on that substring; a review-only contract id that lacks it silently disables tab reuse and rate-limit handling for every review call, opening a new browser tab per review and leaving review-phase rate-limit dialogs unhandled.",
     "The review evidence package includes the failed image, historical rendered prompt, historical raw AI reply, sealed prediction, revealed answer, failure review note, playbook version id, prompt package id, phase, and position.",
     "Review prompts are post-mortem analysis prompts and must explicitly forbid a new prediction.",
     "Lesson records are persisted in a dedicated pick3_playbook_lessons store.",
     "Each lesson records position as hundreds, tens, or ones and has an aggregate key beginning with that position.",
     "Lesson records preserve source as auto_review or manual_review and status as candidate, accepted, rejected, or promoted.",
-    "Candidate lessons do not mutate active Playbook files or active Playbook payloads.",
-    "Playbook rule-version proposals require a later N-lesson aggregation step."
+    "Every non-rejected lesson for a position/aggregateKey is assembled live into the blind prompt payload at prompt-build time, every time a prompt package is built, directly from the current pick3_playbook_lessons rows. One accepted lesson is already experience and must be included immediately; zero lessons means nothing exists to extract yet, not that a count was withheld.",
+    "There is no saved candidate Playbook file and no human promotion step; experience inclusion is mechanical (the lesson exists and is not rejected), never a minimum-count gate or a judgment call on lesson content.",
+    "The active Playbook files under src/plugins/pick3-is-blind-eval/playbooks/ are never edited or replaced by lesson accumulation; only the live-assembled prompt payload changes as lessons accumulate.",
+    "Because the AI post-mortem review evidence package necessarily includes the concrete phase, imageId, and revealed answer, every generated lesson's rootCause and candidateLesson text must be scanned for leaked phase, imageId, or internal front/back reveal label before it is stored. A detected leak forces that lesson's status to rejected so it can never reach a future live-assembled blind prompt payload, regardless of what the AI review prompt itself instructed.",
+    "Live experience assembly must independently re-check every lesson's own stored phase, imageId, and front/back text for a leak at the moment of assembly, regardless of its stored status. This read-time self-heal guard protects against lesson rows written before the write-time guard existed, or that slipped through it for any other reason; a leaked lesson must never reach a future blind prompt no matter how it entered the table.",
+    "Because a phase's blind chart is deterministic from official draws, re-targeting the same phase regenerates a pixel-identical chart. Live experience assembly must therefore exclude any lesson whose own source phase or source imageId matches the phase/image currently being predicted, even when that lesson's text contains no literal leaked token — a lesson authored with hindsight knowledge of that exact chart's answer must never be fed back into predicting that same chart again.",
+    "Within an included aggregate-key group, every non-excluded case must be rendered into the prompt in full, in order, regardless of group size (one case or ten thousand cases). Code must never select a single 'latest' or 'representative' case to stand in for the group and must never code-summarize multiple cases into one synthesized case; that would be dead code passing judgment on dynamically generated AI content, which it has no standing to do. Only the AI reading the full case text at prediction time may weigh which cases matter.",
+    "If a post-mortem review reply does not parse into a valid rootCause/candidateLesson JSON object, the review must be retried up to 3 attempts total for that same failure. If all 3 attempts fail to parse, that failure must be discarded entirely and not stored as a lesson at all; a placeholder/unstructured lesson record must never be written to pick3_playbook_lessons."
   ],
   "forbidden": [
     "Generating Playbook lessons from free_analysis_strict_reasoning.",
     "Merging hundreds, tens, and ones lessons into one shared bucket.",
     "Writing lesson results into ai_predictions, ai_reveals, or pick3_ai_interactions as if they were blind predictions.",
-    "Automatically modifying active Playbook files or active playbook payloads from a single lesson.",
+    "Storing or assembling a lesson whose rootCause or candidateLesson text contains the concrete phase, imageId, or internal front/back reveal label without forcing status to rejected.",
+    "Writing a candidate or promoted Playbook file to disk from accumulated lessons.",
+    "A human review/approval gate before accumulated lessons enter the live-assembled prompt payload.",
+    "A minimum lesson count gate (e.g. requiring N occurrences) before a non-rejected lesson is extracted into the blind prompt payload.",
     "Review prompts that ask the AI to predict the historical answer again.",
-    "Second AI transport, second scoring path, second prediction table, or second history chain for lesson review."
+    "Second AI transport, second scoring path, second prediction table, or second history chain for lesson review.",
+    "Code-side selection of a single representative case or code-side summarization/merging of multiple cases within an aggregate-key group before sending to the AI.",
+    "Storing a placeholder lesson (e.g. an unparsed/unstructured rootCause or candidateLesson) after a post-mortem review reply fails to parse, instead of retrying up to 3 attempts and discarding the failure entirely on exhaustion."
   ]
 }
 ```

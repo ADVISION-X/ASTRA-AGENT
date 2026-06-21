@@ -17,6 +17,7 @@ type WaitForStableAnswerInput = {
   pollIntervalMs: number;
   stableRoundsRequired: number;
   minAssistantCount?: number;
+  beforePoll?: () => Promise<unknown>;
   previousAnswerText?: string | null;
 };
 
@@ -26,6 +27,7 @@ export const waitForStableAnswer = async (input: WaitForStableAnswerInput): Prom
   const hardDeadline = startedAt + Math.max(input.timeoutMs * 2, input.timeoutMs + 60_000);
   let state = createStableAnswerState();
   while (Date.now() < idleDeadline && Date.now() < hardDeadline) {
+    await input.beforePoll?.();
     const evaluation = await readAnswerEvaluation(input);
     if (!evaluation) continue;
     const now = Date.now();

@@ -209,12 +209,17 @@ const renderPick3RunForm = (): string => `
       </select>
     </div>
     <div class="field"><label>Batch size</label><input name="batchSize" type="number" min="1" max="30" value="20" required /></div>
+    <div class="field"><label>Last target phase</label><select name="lastTargetPhase" data-pick3-last-target-phase><option value="">Latest stored target</option></select></div>
     <label class="check"><input name="hundreds" type="checkbox" checked /> hundreds</label>
     <label class="check"><input name="tens" type="checkbox" checked /> tens</label>
     <label class="check"><input name="ones" type="checkbox" checked /> ones</label>
     <div class="notice wide">
       <b>Blind boundary</b>
       <span>L80 images contain no title, axis, phase, date, Chart number, point count, answer, or position text.</span>
+    </div>
+    <div class="notice wide">
+      <b>Historical range</b>
+      <span>For generated or full historical batches, choose a stored official Last target phase; the batch ends at that phase and walks backward by batch size.</span>
     </div>
     <div class="notice wide">
       <b>Next stability</b>

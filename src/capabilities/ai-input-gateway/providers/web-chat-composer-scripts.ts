@@ -2,10 +2,46 @@ import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js
 
 const GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE = "provider attachments ready by global lower-bound count";
 
-const WEB_CHAT_ATTACHMENT_COUNT_SCRIPT = `
+export const WEB_CHAT_ATTACHMENT_COUNT_SCRIPT = `
+const CHATGPT_FILE_TILE_TEXT_PATTERN = /在文本字段中显示|show in text field|display in text field/i;
+const CHATGPT_FILE_REMOVE_PATTERN = /移除文件\\d*|remove file\\d*/i;
+const isChatGptFileTileRoot = (node) => {
+  if (!(node instanceof HTMLElement)) return false;
+  const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
+  const className = String(node.className || "");
+  if (/composer-plus|add files?|添加文件/i.test(label) || /composer-plus/i.test(className)) return false;
+  return className.includes("file-tile")
+    || (node.getAttribute("role") === "group" && node.querySelector("button[aria-label*='在文本字段中显示'], button[aria-label*='show in text field' i], button[aria-label*='display in text field' i]"))
+    || CHATGPT_FILE_TILE_TEXT_PATTERN.test(label);
+};
+const findAttachmentTileRoot = (node) => {
+  if (!(node instanceof HTMLElement)) return null;
+  let cursor = node;
+  for (let depth = 0; depth < 7 && cursor; depth += 1) {
+    if (isChatGptFileTileRoot(cursor)) return cursor;
+    cursor = cursor.parentElement;
+  }
+  return null;
+};
+const isAttachmentCandidate = (node) => {
+  if (!(node instanceof HTMLElement)) return false;
+  const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
+  if (/composer-plus|add files?|添加文件|menuitem/i.test(label)) return false;
+  if (/uploading|loading|pending|progress|preparing|上传中|处理中/i.test(label)) return false;
+  if (CHATGPT_FILE_REMOVE_PATTERN.test(label) && findAttachmentTileRoot(node)) return true;
+  if (CHATGPT_FILE_TILE_TEXT_PATTERN.test(label) || isChatGptFileTileRoot(node)) return true;
+  return /\\b(file|attachment|image)\\b|附件|图片/i.test(label);
+};
 const countAttachmentCandidates = (root) => {
   if (!root || typeof root.querySelectorAll !== "function") return 0;
   const selectors = [
+    "[class*='file-tile' i]",
+    "[role='group'][aria-label]",
+    "button[aria-label*='在文本字段中显示']",
+    "button[aria-label*='show in text field' i]",
+    "button[aria-label*='display in text field' i]",
+    "button[aria-label*='移除文件']",
+    "button[aria-label*='remove file' i]",
     "[data-testid*='attachment' i]",
     "[data-testid*='file' i]",
     "[aria-label*='file' i]",
@@ -15,21 +51,19 @@ const countAttachmentCandidates = (root) => {
     "[role='img']",
     "img[src^='data:']"
   ];
-  const seen = new Set();
-  let count = 0;
+  const seenNodes = new Set();
+  const seenTiles = new Set();
   for (const selector of selectors) {
     for (const node of Array.from(root.querySelectorAll(selector))) {
-      if (!(node instanceof HTMLElement) || seen.has(node)) continue;
-      seen.add(node);
-      const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
-      if (/add files?|添加文件|button|menuitem/i.test(label)) continue;
-      if (/uploading|loading|pending|progress|preparing|上传中|处理中/i.test(label)) continue;
+      if (!(node instanceof HTMLElement) || seenNodes.has(node) || !isAttachmentCandidate(node)) continue;
+      seenNodes.add(node);
       const rect = node.getBoundingClientRect();
+      const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
       if (rect.width <= 0 && rect.height <= 0 && label.length === 0) continue;
-      count += 1;
+      seenTiles.add(findAttachmentTileRoot(node) || node);
     }
   }
-  return count;
+  return seenTiles.size;
 };
 const findBestAttachmentScope = () => {
   const input = resolveComposerInput();
