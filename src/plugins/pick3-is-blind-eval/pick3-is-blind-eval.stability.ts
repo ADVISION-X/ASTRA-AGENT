@@ -26,12 +26,46 @@ export type Pick3StabilityResult = {
   rawOutputRef: string;
 };
 
+export type Pick3StabilityConsensus = {
+  position: Pick3Position;
+  consensusLabel: Pick3StabilityResult["visiblePredictionLabel"] | null;
+  isStable: boolean;
+  labels: ReadonlyArray<Pick3StabilityResult["visiblePredictionLabel"]>;
+};
+
 export type Pick3StabilitySummary = {
+  consensus: Pick3StabilityConsensus[];
   deferredRetryCount: number;
   repeatCount: number;
   results: Pick3StabilityResult[];
   skippedCount: number;
   unresolvedCount: number;
+};
+
+/**
+ * next_prediction_stability sends the SAME chart repeatCount times specifically to check whether
+ * the AI gives the same direction every time. If the repeats disagree for a position, there is no
+ * single trustworthy call to act on for that position — a flat per-repeat list forces a human to
+ * manually notice the disagreement by comparing rows. Consensus requires unanimous agreement across
+ * every repeat for that position; any disagreement makes the position unstable with consensusLabel
+ * null, meaning do not act on it.
+ */
+const buildPick3StabilityConsensus = (results: readonly Pick3StabilityResult[]): Pick3StabilityConsensus[] => {
+  const positions: readonly Pick3Position[] = ["hundreds", "tens", "ones"];
+  return positions
+    .map((position) => {
+      const labels = results.filter((result) => result.position === position).map((result) => result.visiblePredictionLabel);
+      if (labels.length === 0) return null;
+      const distinctLabels = new Set(labels);
+      const isStable = distinctLabels.size === 1 && !labels.includes(null);
+      return {
+        position,
+        consensusLabel: isStable ? labels[0]! : null,
+        isStable,
+        labels,
+      };
+    })
+    .filter((consensus): consensus is Pick3StabilityConsensus => consensus !== null);
 };
 
 const buildSelectedPromptPackages = (
@@ -108,6 +142,7 @@ export const runPick3NextPredictionStability = async (input: {
     };
   });
   const summary = {
+    consensus: buildPick3StabilityConsensus(results),
     deferredRetryCount: exchange.completion.deferredRetryCount,
     repeatCount: input.batchInput.batchSize,
     results,

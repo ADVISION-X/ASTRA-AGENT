@@ -362,7 +362,7 @@ try {
       })),
     });
   };
-  const exchange = await runPick3PromptExchange({ artifactDir, images, promptPackages, sender });
+  const exchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images, promptPackages, sender });
   assert.equal(observedInputs.length, images.length);
   assert.equal(exchange.interactions.length, images.length);
   assert.equal(exchange.predictions.length, images.length);
@@ -389,7 +389,7 @@ try {
   assert.deepEqual(failureReviews.map((review) => review.failureType), ["high_exhaustion_missed"]);
   assert.equal(storage.listFailureReviews("acceptance-batch").length, 1);
 
-  const badExchange = await runPick3PromptExchange({ artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
+  const badExchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
     sender: async (input) => buildFixtureAiResult({
       gatewayInput: input,
       rawText: JSON.stringify({
@@ -406,7 +406,7 @@ try {
   assert.equal(badExchange.interactions[0]?.parseStatus, "parse_failed_raw_available");
   assert.equal(badExchange.predictions.length, 0);
   let nonDirectionalLabelCalls = 0;
-  const nonDirectionalLabelExchange = await runPick3PromptExchange({ artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
+  const nonDirectionalLabelExchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
     sender: async (input) => {
       nonDirectionalLabelCalls += 1;
       return buildFixtureAiResult({
@@ -429,7 +429,7 @@ try {
   assert.equal(nonDirectionalLabelExchange.predictions[0]?.confidence, null);
   assert.equal(nonDirectionalLabelExchange.predictions[0]?.abstainReason, "non_directional_prediction_label_hold");
 
-  const directionalAliasExchange = await runPick3PromptExchange({ artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
+  const directionalAliasExchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
     sender: async (input) => buildFixtureAiResult({
       gatewayInput: input,
       rawText: JSON.stringify(buildValidPredictionFixture({
@@ -445,7 +445,7 @@ try {
   assert.equal(directionalAliasExchange.predictions[0]?.predictionLabel, "back");
 
   let emptyRetryCalls = 0;
-  const emptyRetryExchange = await runPick3PromptExchange({ artifactDir, images: [images[1]!], promptPackages: [promptPackages[1]!],
+  const emptyRetryExchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images: [images[1]!], promptPackages: [promptPackages[1]!],
     sender: async (input) => {
       emptyRetryCalls += 1;
       if (emptyRetryCalls === 1) {
@@ -468,7 +468,7 @@ try {
 	  assert.equal(emptyRetryExchange.interactions[0]?.parseStatus, "parsed");
 	  assert.equal(emptyRetryExchange.predictions.length, 1);
   let missingImageRetryCalls = 0;
-  const missingImageRetryExchange = await runPick3PromptExchange({ artifactDir, images: [images[1]!], promptPackages: [promptPackages[1]!],
+  const missingImageRetryExchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images: [images[1]!], promptPackages: [promptPackages[1]!],
     sender: async (input) => {
       missingImageRetryCalls += 1;
       if (missingImageRetryCalls <= 3) return buildRawTextFixtureAiResult({ gatewayInput: input, rawText: "未收到图片" });
@@ -479,7 +479,7 @@ try {
   assert.equal(missingImageRetryExchange.interactions.length, 1);
   assert.equal(missingImageRetryExchange.interactions[0]?.parseStatus, "parsed");
   assert.equal(missingImageRetryExchange.predictions.length, 1);
-  const mismatchedIdentityExchange = await runPick3PromptExchange({ artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
+  const mismatchedIdentityExchange = await runPick3PromptExchange({ postParseDelayMsOverride: 0, artifactDir, images: [images[0]!], promptPackages: [promptPackages[0]!],
     sender: async (input) => buildFixtureAiResult({
       gatewayInput: input,
       rawText: JSON.stringify({

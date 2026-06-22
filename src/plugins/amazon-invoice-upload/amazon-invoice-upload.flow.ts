@@ -12,6 +12,8 @@ import {
   openUploadInvoiceEntry,
   uploadApprovedInvoice,
 } from "./amazon-invoice-upload-steps.js";
+import type { AmazonInvoiceAmountCheck } from "./amazon-invoice-upload-amount-check.js";
+import { verifyInvoiceAmountBeforeUpload } from "./amazon-invoice-upload-amount-check.js";
 import { verifyAlreadyUploadedInvoice } from "./amazon-invoice-upload-existing.js";
 import { verifyUploadSuccess } from "./amazon-invoice-upload-verify.js";
 import {
@@ -34,6 +36,7 @@ export type AmazonInvoiceUploadTaskResult = {
   evidenceRef?: string;
   domTraceRef?: string;
   reviewRequired?: boolean;
+  amountCheck?: AmazonInvoiceAmountCheck;
 };
 
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
@@ -75,6 +78,9 @@ async function continueInvoiceUpload(
 
   const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
   if (alreadyUploaded) return alreadyUploaded;
+
+  const amountGate = await verifyInvoiceAmountBeforeUpload(browser, runtimeLogger, mission);
+  if (amountGate) return amountGate;
 
   const uploadEntryResult = await runUploadStepWithRetries({
     browser,

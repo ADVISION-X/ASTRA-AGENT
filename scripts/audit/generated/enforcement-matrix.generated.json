@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T23:05:53.521Z",
+  "generatedAt": "2026-06-21T11:44:59.911Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -18,7 +18,8 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"
       ]
     },
     {
@@ -276,6 +277,14 @@
         "APEX-LOCAL-APP-SHELL-003-V1",
         "APEX-LOCAL-APP-SHELL-004-V1",
         "APEX-LOCAL-APP-SHELL-005-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "lottery-ticket-plan",
+      "manifestPath": "scripts/audit/domains/lottery-ticket-plan/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1"
       ]
     },
     {

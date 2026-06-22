@@ -2,6 +2,7 @@ import { renderDeepResearchPanel } from "../workbench-deep-research-panel.js";
 import { renderAmazonProductMiningWorkspace } from "../skills/amazon-product-mining/amazon-product-mining-workspace.js";
 import { renderMediaOptimizerWorkspace } from "../skills/media-optimizer/media-optimizer-workspace.js";
 import { renderAmazonInvoiceWorkspace } from "./amazon-invoice-workspace.js";
+import { renderLotteryTicketPlanWorkspace } from "./lottery-ticket-plan-workspace.js";
 
 const renderFacebookWorkspace = (): string => `
 <section class="skill-workspace hidden" data-skill-workspace="facebook-video-mining" data-job-panel="facebook">
@@ -208,7 +209,7 @@ const renderPick3RunForm = (): string => `
         <option value="free_analysis_strict_reasoning">AI free analysis mode</option>
       </select>
     </div>
-    <div class="field"><label>Batch size</label><input name="batchSize" type="number" min="1" max="30" value="20" required /></div>
+    <div class="field"><label>Batch size</label><input name="batchSize" type="number" min="1" max="100" value="20" required /></div>
     <div class="field"><label>Last target phase</label><select name="lastTargetPhase" data-pick3-last-target-phase><option value="">Latest stored target</option></select></div>
     <label class="check"><input name="hundreds" type="checkbox" checked /> hundreds</label>
     <label class="check"><input name="tens" type="checkbox" checked /> tens</label>
@@ -373,6 +374,7 @@ export const renderMainWorkspace = (): string => `
     ${renderDeepResearchPanel()}
   </section>
   ${renderPick3Workspace()}
+  ${renderLotteryTicketPlanWorkspace()}
   ${renderVideoDownloadWorkspace()}
   ${renderMediaOptimizerWorkspace()}
   ${renderAmazonInvoiceWorkspace()}

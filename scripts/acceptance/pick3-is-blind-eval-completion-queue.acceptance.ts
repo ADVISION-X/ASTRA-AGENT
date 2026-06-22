@@ -62,6 +62,7 @@ const artifactDir = mkdtempSync(resolve(tmpdir(), "pick3-completion-queue-"));
 
 let convergenceCalls = 0;
 const convergenceExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images,
   promptPackages,
@@ -93,6 +94,7 @@ assert.equal(convergenceExchange.interactions.length, 2);
 assert.equal(convergenceExchange.predictions.length, 2);
 
 const exhaustedExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images: [images[0]!],
   maxCompletionRounds: 1,
@@ -109,6 +111,7 @@ assert.equal(exhaustedExchange.predictions.length, 0);
 
 let missingImageSkipCalls = 0;
 const missingImageSkipExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images,
   promptPackages,

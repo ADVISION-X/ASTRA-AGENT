@@ -6,6 +6,20 @@ const terminalLog = (line: string): void => {
   process.stdout.write(`[GRASSEYE][PICK3][EXCHANGE] ${line}\n`);
 };
 
+const PICK3_POST_PARSE_MIN_DELAY_MS = 5_000;
+const PICK3_POST_PARSE_MAX_DELAY_MS = 30_000;
+
+/**
+ * GPT/Gemini web-chat surfaces rate-limit popups when requests land too close together. A fixed
+ * delay is itself a fingerprint-able pattern, so the wait after each successfully parsed reply is
+ * randomized within [5s, 30s] rather than a constant — this only fires after a successful parse,
+ * never after a failed/retried attempt, since those already lose time to the retry path itself.
+ */
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const randomPick3PostParseDelayMs = (): number =>
+  Math.floor(Math.random() * (PICK3_POST_PARSE_MAX_DELAY_MS - PICK3_POST_PARSE_MIN_DELAY_MS + 1)) + PICK3_POST_PARSE_MIN_DELAY_MS;
+
 import type { AiFeedInput, AiFeedResult } from "../../capabilities/ai-input-gateway/index.js";
 import { parsePick3Prediction, type ParsedPick3Prediction } from "./pick3-is-blind-eval.ai-parse.js";
 import type { Pick3PlaybookPromptPackage } from "./pick3-is-blind-eval.playbook.js";
@@ -295,6 +309,12 @@ type Pick3PromptExchangeInput = {
   artifactDir: string;
   images: readonly Pick3ImageRecord[];
   maxCompletionRounds?: number;
+  /**
+   * Overrides the post-parse throttle delay (ms). Production callers must leave this unset so the
+   * real randomized 5-30s wait applies. Acceptance/unit tests pass 0 so fixture-sender runs are not
+   * slowed down by a wait that exists only to avoid tripping real ChatGPT/Gemini rate limits.
+   */
+  postParseDelayMsOverride?: number;
   promptPackages: readonly Pick3PlaybookPromptPackage[];
   providerKind?: Pick3AiProviderKind;
   repeatCount?: number;
@@ -385,6 +405,9 @@ export const runPick3PromptExchange = async (input: Pick3PromptExchangeInput): P
       if (result.parsed) {
         interactions.push(result.interaction);
         predictions.push(buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage: item.promptPackage }));
+        const postParseDelayMs = input.postParseDelayMsOverride ?? randomPick3PostParseDelayMs();
+        terminalLog(`[${seqLabel}] post_parse_throttle_delay imageId=${item.image.imageId} position=${item.image.position} delayMs=${postParseDelayMs}`);
+        await sleep(postParseDelayMs);
         continue;
       }
       if (result.interaction.parseStatus === "skipped_provider_reported_image_missing") {

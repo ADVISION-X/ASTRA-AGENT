@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T21:55:41.468Z",
+  "generatedAt": "2026-06-21T11:24:22.857Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -31,6 +31,7 @@
     "src/app/app-shell/command-bar.ts",
     "src/app/app-shell/inspector.ts",
     "src/app/app-shell/localization.ts",
+    "src/app/app-shell/lottery-ticket-plan-workspace.ts",
     "src/app/app-shell/runtime-console.ts",
     "src/app/app-shell/sidebar.ts",
     "src/app/app-shell/skill-registry.ts",
@@ -67,6 +68,7 @@
     "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-lottery-ticket-plan-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-pick3-history-client.ts",
@@ -75,6 +77,7 @@
     "src/app/workbench-home-pick3-trend-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
+    "src/app/workbench-lottery-ticket-plan-routes.ts",
     "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",

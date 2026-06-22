@@ -9,6 +9,7 @@ import { handleAmazonProductSyncRequest } from "./workbench-amazon-product-sync-
 import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from "./workbench-api-boundary.js";
 import { handleDeepResearchRequest } from "./workbench-deep-research-routes.js";
 import { handleFacebookRequest } from "./workbench-facebook-routes.js";
+import { handleLotteryTicketPlanRequest } from "./workbench-lottery-ticket-plan-routes.js";
 import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
@@ -182,6 +183,9 @@ const handleKnownWorkbenchApiRequest = async (input: {
     return true;
   }
   if (await handleFacebookRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleLotteryTicketPlanRequest(input.request, input.response, input.workbench)) {
     return true;
   }
   return handleInventoryWorkbenchApiRequest(input);

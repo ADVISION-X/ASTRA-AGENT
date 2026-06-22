@@ -426,3 +426,40 @@ Download completion is not upload completion. Website status return is not task 
   ]
 }
 ```
+
+## [GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1] Invoice Amount Pre-Upload Hard Gate
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-invoice-upload",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "flow+pdf+dom+acceptance+audit+chrome",
+  "summary": "Before any approved invoice PDF is attached or submitted, Amazon invoice upload must compare the PDF gross payable amount with the live Seller Central order DOM total and skip the item on mismatch or unreadable evidence.",
+  "appliesTo": [
+    "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/audit/domains/amazon-invoice-upload/**",
+    "scripts/acceptance/amazon-invoice-upload*.ts",
+    "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+  ],
+  "required": [
+    "The amount gate runs inside the existing amazon-invoice-upload flow after the target order detail and already-uploaded state are proven, and before opening the upload invoice entry.",
+    "The PDF amount source is the task-approved invoice PDF only; filename, website export amount, APP row amount, or caller-provided amount must not be upload truth.",
+    "The Seller Central amount source is the live order detail DOM total, such as Sales proceeds Total or 销售收益 总和, read from the existing browser session at upload time.",
+    "PDF and DOM amounts must be normalized to currency plus minor units before comparison.",
+    "On mismatch, unreadable PDF amount, or unreadable DOM order total, the flow returns amount_mismatch_skipped with reviewRequired true and must not attach the file, click upload, or submit.",
+    "The task record and ledger reason must include a concise safe skip reason without logging raw PDF text, raw DOM HTML, cookies, browser storage, or local absolute PDF paths.",
+    "API-triggered uploads and App Shell batch uploads must both pass through the same single-upload amount gate."
+  ],
+  "forbidden": [
+    "Opening the upload dialog before the amount gate passes.",
+    "Calling uploadApprovedInvoice before the amount gate passes.",
+    "Treating filename, APP amount, website export amount, or caller-provided amount as order total truth.",
+    "Running a separate APP-only or API-only amount checker that can disagree with the flow result.",
+    "Uploading when PDF total or Seller Central DOM total is unreadable.",
+    "Logging raw PDF text, full DOM HTML, cookies, browser storage, or local absolute invoicePdfPath as amount evidence."
+  ]
+}
+```

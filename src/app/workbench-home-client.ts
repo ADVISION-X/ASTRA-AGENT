@@ -1,6 +1,7 @@
 import { renderAmazonInvoiceClient } from "./workbench-home-amazon-invoice-client.js";
 import { renderAmazonProductMiningReviewClient } from "./workbench-home-amazon-product-mining-review-client.js";
 import { renderPick3Client } from "./workbench-home-pick3-client.js";
+import { renderLotteryTicketPlanClient } from "./workbench-home-lottery-ticket-plan-client.js";
 
 const WORKBENCH_HOME_CLIENT = `
 const state = {
@@ -35,6 +36,7 @@ const skillLabels = {
   "tiktok-product-mining": "TikTok Product Mining",
   "deep-research-analysis": "Deep Research Analysis",
   "pick3-is-blind-eval": "Pick3 IS Blind Eval",
+  "lottery-ticket-plan": "Lottery Ticket Plan",
   "video-downloader": "Video Downloader",
   "media-optimizer": "Media Optimizer",
   "amazon-invoice-upload": "Amazon Invoice Upload",
@@ -49,7 +51,7 @@ const jobToSkill = {
   "media-optimizer": "media-optimizer",
   "deep-research": "deep-research-analysis",
   "deep-research-analysis": "deep-research-analysis",
-  "pick3-is-blind-eval": "pick3-is-blind-eval",
+  "pick3-is-blind-eval": "pick3-is-blind-eval", "lottery-ticket-plan": "lottery-ticket-plan",
   amazon: "amazon-invoice-upload",
   "amazon-invoice-upload": "amazon-invoice-upload",
 };
@@ -229,6 +231,7 @@ ${renderAmazonInvoiceClient({
   uploadLedger: "/api/plugins/amazon-invoice-upload/ledger",
 })}
 ${renderPick3Client()}
+${renderLotteryTicketPlanClient()}
 const renderLedger = (payload, options = {}) => {
   const record = payload?.record || payload?.task || payload;
   if (!record || typeof record !== "object") return;
@@ -473,6 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-facebook-latest]")?.addEventListener("click", refreshFacebookLatest);
   qs("[data-facebook-export]")?.addEventListener("click", exportFacebookSelection);
   qs("[data-pick3-form]")?.addEventListener("submit", startPick3);
+  qs("[data-lottery-ticket-plan-form]")?.addEventListener("submit", generateLotteryTicketPlan);
   qs("[data-pick3-latest]")?.addEventListener("click", refreshPick3Latest);
   qs("[data-pick3-trend-refresh]")?.addEventListener("click", () => {
     refreshPick3Trend().catch((error) => writeActivity("pick3 trend refresh failed: " + error.message, "failed"));

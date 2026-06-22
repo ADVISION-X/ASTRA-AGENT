@@ -1347,6 +1347,13 @@ Forbidden rate-limit side effects:
 
 Provider proof:
   rate-limit acknowledgement is terminal/log proof only
+
+Pick3 post-parse throttle delay (pick3-is-blind-eval.ai.ts):
+  trigger: result.parsed is truthy in runPick3PromptExchange's queue loop (a successful parse)
+  delayMs = randomPick3PostParseDelayMs() = random integer in [5000, 30000], re-rolled every time
+  terminal log: post_parse_throttle_delay imageId=<imageId> position=<position> delayMs=<delayMs>
+  purpose: sending too fast triggers ChatGPT rate-limit popups (请求过于频繁) more often
+  scope: only after a successful parse; a failed/retried attempt does not get this extra delay on top of its own retry path
   providerRecoveryStatus is not used to claim a rate-limit resend recovery
 
 Implementation:

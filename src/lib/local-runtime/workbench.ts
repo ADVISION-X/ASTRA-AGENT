@@ -24,6 +24,7 @@ import { buildAmazonInvoiceHandle } from "./workbench-amazon-invoice-handle.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import { buildDeepResearchAttachmentStagingHandle } from "./workbench-deep-research-input-attachments.js";
 import { buildPick3IsBlindEvalHandle } from "./workbench-pick3-support.js";
+import { buildLotteryTicketPlanHandle } from "./workbench-lottery-ticket-plan-support.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
   exportFacebookProductVideoMiningSelectionRecords,
@@ -448,6 +449,7 @@ const buildWorkbenchHandle = (
     ...buildAmazonProductFeeSyncHandle(assembly, dataDir),
     ...buildDeepResearchAnalysisHandle(assembly, dataDir),
     ...buildPick3IsBlindEvalHandle(assembly, dataDir),
+    ...buildLotteryTicketPlanHandle(),
   };
 };
 

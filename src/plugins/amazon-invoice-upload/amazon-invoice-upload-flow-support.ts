@@ -70,6 +70,7 @@ export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok"> & {
       invoiceNo: input.invoiceNo,
     }),
     ...(input.reviewRequired ? { reviewRequired: true } : {}),
+    ...(input.amountCheck ? { amountCheck: input.amountCheck } : {}),
   };
 }
 

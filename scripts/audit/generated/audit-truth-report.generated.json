@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-20T23:05:55.449Z",
+  "generatedAt": "2026-06-21T11:23:39.289Z",
   "status": "PASS",
-  "inspectorFileCount": 23,
-  "generatedPlanEntryCount": 23,
+  "inspectorFileCount": 24,
+  "generatedPlanEntryCount": 24,
   "inspectedFiles": [
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
@@ -11,6 +11,7 @@
     "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
@@ -169,6 +170,8 @@
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "scripts/audit/domains/local-app-shell/manifest.json",
+    "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+    "scripts/audit/domains/lottery-ticket-plan/manifest.json",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/manifest.json",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",

@@ -49,6 +49,7 @@ try {
   const playbooks = loadBuiltInPick3Playbooks("free_analysis_strict_reasoning");
   const promptPackages = images.map((image) => buildPick3PlaybookPromptPackage(playbooks.find((item) => item.position === image.position)!, image, "free_analysis_strict_reasoning"));
   const exchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
     artifactDir,
     images,
     promptPackages,
@@ -124,6 +125,7 @@ try {
   const playbooksV1 = loadBuiltInPick3Playbooks("playbook_v1");
   const playbookPromptPackages = playbookImages.map((image) => buildPick3PlaybookPromptPackage(playbooksV1.find((item) => item.position === image.position)!, image, "playbook_v1"));
   const playbookExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
     artifactDir: playbookArtifactDir,
     images: playbookImages,
     promptPackages: playbookPromptPackages,
@@ -180,7 +182,8 @@ try {
   assert.equal(autoLessons[0]?.source, "auto_review");
   assert.match(autoLessons[0]?.candidateLesson ?? "", /tens only/);
   const leakedFailedImage = playbookImages.find((image) => image.imageId === playbookFailureReviews[0]?.imageId)!;
-  const leakingLessons = await reviewPick3PlaybookLessons({
+  const verbatimRootCause = `This was wrong because phase ${leakedFailedImage.targetPhase} actually resolved front.`;
+  const verbatimLessons = await reviewPick3PlaybookLessons({
     failureReviews: playbookFailureReviews,
     images: playbookImages,
     interactions: playbookExchange.interactions,
@@ -189,16 +192,16 @@ try {
     sender: async (input) => buildFixtureAiResult({
       gatewayInput: input,
       rawText: JSON.stringify({
-        rootCause: `This was wrong because phase ${leakedFailedImage.targetPhase} actually resolved front.`,
+        rootCause: verbatimRootCause,
         candidateLesson: "Trust the shoulder hold pattern next time.",
       }),
     }),
     source: "auto_review",
-    taskId: "full-history-playbook-lesson-leak-task",
+    taskId: "full-history-playbook-lesson-verbatim-task",
   });
-  assert.equal(leakingLessons.length, 1, "leak test fixture must still produce exactly one lesson");
-  assert.equal(leakingLessons[0]?.status, "rejected", "a lesson that echoes the phase/answer must be force-rejected, never candidate");
-  assert.match(leakingLessons[0]?.rootCause ?? "", /^\[REJECTED:/, "a rejected lesson's rootCause must record the leak reason for audit");
+  assert.equal(verbatimLessons.length, 1, "review must produce exactly one lesson");
+  assert.equal(verbatimLessons[0]?.status, "candidate", "the AI's summarized text is stored as-is; code must not judge or reject it");
+  assert.equal(verbatimLessons[0]?.rootCause, verbatimRootCause, "rootCause must be stored exactly as the AI wrote it, with no rewriting or rejection prefix");
   let unparseableReviewAttempts = 0;
   const unparseableLessons = await reviewPick3PlaybookLessons({
     failureReviews: playbookFailureReviews,

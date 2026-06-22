@@ -1,0 +1,23 @@
+{
+  "capabilityDomain": "lottery-ticket-plan",
+  "ownerInspectorPath": "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Lottery Ticket Plan 施工图.md",
+      "requiredAnchors": [
+        "## Local Plan Boundary",
+        "## Plugin File Plan",
+        "## App Shell Surface",
+        "## QA Plan"
+      ]
+    }
+  ],
+  "description": "Local lottery ticket plan generator governance audit."
+}

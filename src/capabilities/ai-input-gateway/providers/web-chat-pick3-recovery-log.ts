@@ -118,11 +118,6 @@ const terminalRecoveryLog = (input: Pick3RecoveryLogInput & { phase: string }): 
   terminalLog(`mission=${refs.missionKey} imageId=${refs.imageId} promptPackageId=${refs.promptPackageId} attempt=${refs.attempt} phase=${input.phase} totalWaitSec=${refs.totalWaitSec} elapsedSec=${refs.elapsedSec} remainingSec=${refs.remainingSec} recoveryAction=${refs.recoveryAction} — ${input.reason}`);
 };
 
-export const emitPick3RateLimitRecoveryStep = (input: Pick3RecoveryLogInput & { phase: string }): void => {
-  emitPick3RateLimitRecoveryLog(input);
-  terminalRecoveryLog(input);
-};
-
 const acknowledgeChatGptRateLimitDialog = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;

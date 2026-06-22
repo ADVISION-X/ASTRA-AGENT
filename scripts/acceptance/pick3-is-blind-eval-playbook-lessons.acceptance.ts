@@ -60,24 +60,27 @@ for (const lesson of eligibleLessons) {
 const rejectedLessons = eligibleLessons.map((lesson) => ({ ...lesson, status: "rejected" as const }));
 assert.equal(assemblePick3ExperienceSection({ lessons: rejectedLessons }), null, "rejected lessons must never be extracted");
 
-// Self-healing read-time guard: a lesson that leaked into the table BEFORE the write-time guard
-// existed (status still "candidate"/"accepted", not "rejected") must still be excluded at assembly
-// time, purely by re-scanning its own stored phase/imageId/front-back text every time it is read.
-const legacyLeakedFrontLesson: Pick3PlaybookLessonRecord = {
+// No read-time (or write-time) text-content judgment: a lesson's rootCause/candidateLesson is
+// never scanned for the words "front"/"back" or for its own phase string. Code has no standing to
+// judge dynamically generated AI content by keyword match — that approach false-positives on the
+// AI's ordinary English usage (e.g. "rebound back toward the shoulder"). Only the structural
+// self-prediction guard (same phase/imageId as what is currently being predicted) and an explicit
+// status of "rejected" may exclude a lesson; text content itself is always included verbatim.
+const ordinaryEnglishUsageLesson: Pick3PlaybookLessonRecord = {
   ...lessonSeed,
-  lessonId: "acceptance-legacy-leak-front",
+  lessonId: "acceptance-ordinary-english-usage",
   status: "candidate",
-  rootCause: "Pre-fix legacy row: this was wrong because the prior lower/front read should have been discounted.",
+  rootCause: "This was wrong because the tail surged back toward the shoulder before the prior lower read should have been discounted.",
 };
-assert.equal(assemblePick3ExperienceSection({ lessons: [legacyLeakedFrontLesson] }), null, "a legacy row leaking the internal front/back label must be excluded at read time even if its status was never rejected");
+assert.notEqual(assemblePick3ExperienceSection({ lessons: [ordinaryEnglishUsageLesson] }), null, "a lesson using the ordinary English word 'back' must be included verbatim, never excluded by keyword match");
 
-const legacyLeakedPhaseLesson: Pick3PlaybookLessonRecord = {
+const phaseMentioningLesson: Pick3PlaybookLessonRecord = {
   ...lessonSeed,
-  lessonId: "acceptance-legacy-leak-phase",
+  lessonId: "acceptance-phase-mentioning-text",
   status: "accepted",
-  candidateLesson: `Pre-fix legacy row: in phase ${lessonSeed.phase} the shoulder hold pattern reversed.`,
+  candidateLesson: `In phase ${lessonSeed.phase} the shoulder hold pattern reversed.`,
 };
-assert.equal(assemblePick3ExperienceSection({ lessons: [legacyLeakedPhaseLesson] }), null, "a legacy row leaking its own phase must be excluded at read time even if its status was never rejected");
+assert.notEqual(assemblePick3ExperienceSection({ lessons: [phaseMentioningLesson] }), null, "lesson text is never content-scanned for its own phase string either; only status and the structural self-prediction guard may exclude a lesson");
 
 const tensImage = {
   imageId: "acceptance-image-tens",

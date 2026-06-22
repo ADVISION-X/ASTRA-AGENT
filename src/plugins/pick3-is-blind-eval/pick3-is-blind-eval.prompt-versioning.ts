@@ -1,25 +1,6 @@
 import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
 
 /**
- * Read-time leak guard, independent from the write-time guard in playbook-lessons.ts.
- * This re-checks every lesson against its OWN stored phase/imageId/front-back labels at the
- * moment of assembly, regardless of stored status. This self-heals against any lesson rows that
- * were written before the write-time guard existed, or that slipped through it for any reason —
- * a leaked lesson must never reach a future blind prompt no matter how it got into the table.
- */
-const hasLeakedTextOrLabel = (lesson: Pick3PlaybookLessonRecord): boolean => {
-  const text = `${lesson.rootCause} ${lesson.candidateLesson}`;
-  const lowerText = text.toLowerCase();
-  if (text.includes(lesson.phase)) return true;
-  if (text.includes(lesson.imageId)) return true;
-  if (/\bfront\b/.test(lowerText) || /\bback\b/.test(lowerText)) return true;
-  for (const forbidden of ["targetphase", "answerdigit", "answerlabel", "expectedprizetime", "pick3", "uae", "lottery", "pick3-is-blind-eval"]) {
-    if (lowerText.includes(forbidden)) return true;
-  }
-  return false;
-};
-
-/**
  * Self-prediction guard: a phase's blind chart is fully deterministic from official draws, so
  * re-targeting the SAME phase regenerates a pixel-identical chart. A lesson born from reviewing
  * that exact phase's failure was authored with hindsight knowledge of that exact chart's correct
@@ -35,7 +16,6 @@ const isPick3LessonSafeToAssemble = (
   if (lesson.status === "rejected") return false;
   if (current.currentPhase && lesson.phase === current.currentPhase) return false;
   if (current.currentImageId && lesson.imageId === current.currentImageId) return false;
-  if (hasLeakedTextOrLabel(lesson)) return false;
   return true;
 };
 

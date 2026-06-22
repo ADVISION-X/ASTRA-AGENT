@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-06-21T11:24:24.017Z",
+  "capabilityDomain": "lottery-ticket-plan",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "inspectedFiles": [
+    ".github/instructions/agent-rules/modules/module-lottery-ticket-plan.instructions.md",
+    "docs/法案辅助文件/GrassEye Lottery Ticket Plan 施工图.md",
+    "scripts/audit/domains/lottery-ticket-plan/manifest.json",
+    "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+    "scripts/acceptance/lottery-ticket-plan.acceptance.ts",
+    "package.json",
+    "src/plugins/lottery-ticket-plan/index.ts",
+    "src/plugins/lottery-ticket-plan/lottery-ticket-plan.schema.ts",
+    "src/plugins/lottery-ticket-plan/lottery-ticket-plan.flow.ts",
+    "src/app/app-shell/lottery-ticket-plan-workspace.ts",
+    "src/app/workbench-home-lottery-ticket-plan-client.ts",
+    "src/app/workbench-lottery-ticket-plan-routes.ts",
+    "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts"
+  ]
+}

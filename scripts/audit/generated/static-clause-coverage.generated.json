@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-20T23:05:53.521Z",
+  "generatedAt": "2026-06-21T11:44:59.911Z",
   "summary": {
-    "activeLawCount": 228,
-    "coveredLawCount": 228,
+    "activeLawCount": 230,
+    "coveredLawCount": 230,
     "coveragePercent": 100
   },
   "coverage": [
@@ -128,6 +128,16 @@
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "capabilityDomain": "amazon-invoice-upload",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-invoice-upload/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
       "capabilityDomain": "amazon-invoice-upload",
       "clauses": [
         {
@@ -1685,6 +1695,16 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "capabilityDomain": "lottery-ticket-plan",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/lottery-ticket-plan/manifest.json"
         }
       ]
     },

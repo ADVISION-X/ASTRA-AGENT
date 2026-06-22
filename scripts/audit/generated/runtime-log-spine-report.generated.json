@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-20T23:06:37.528Z",
+  "generatedAt": "2026-06-21T11:24:20.252Z",
   "status": "PASS",
-  "scannedFiles": 426,
+  "scannedFiles": 434,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -17,6 +17,7 @@
     "src/app/app-shell/command-bar.ts",
     "src/app/app-shell/inspector.ts",
     "src/app/app-shell/localization.ts",
+    "src/app/app-shell/lottery-ticket-plan-workspace.ts",
     "src/app/app-shell/runtime-console.ts",
     "src/app/app-shell/sidebar.ts",
     "src/app/app-shell/skill-registry.ts",
@@ -53,6 +54,7 @@
     "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-lottery-ticket-plan-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-pick3-client.ts",
     "src/app/workbench-home-pick3-history-client.ts",
@@ -61,6 +63,7 @@
     "src/app/workbench-home-pick3-trend-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
+    "src/app/workbench-lottery-ticket-plan-routes.ts",
     "src/app/workbench-media-processing-routes.ts",
     "src/app/workbench-media-processing-task-store.ts",
     "src/app/workbench-multipart.ts",
@@ -211,6 +214,7 @@
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
@@ -248,6 +252,7 @@
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
@@ -391,6 +396,9 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
     "src/plugins/facebook-product-video-mining/index.ts",
+    "src/plugins/lottery-ticket-plan/index.ts",
+    "src/plugins/lottery-ticket-plan/lottery-ticket-plan.flow.ts",
+    "src/plugins/lottery-ticket-plan/lottery-ticket-plan.schema.ts",
     "src/plugins/media-processing-artifact/index.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
@@ -448,7 +456,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 426,
+    "scannedFiles": 434,
     "emitCallCount": 47,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -459,7 +467,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 421,
+      "scannedFiles": 429,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -468,13 +476,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 329
+      "scannedFiles": 334
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 325,
+      "scannedFiles": 330,
       "metrics": {
         "emitCallCount": 36
       }
@@ -483,13 +491,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 325
+      "scannedFiles": 330
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 330,
+      "scannedFiles": 335,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -504,7 +512,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 330,
+      "scannedFiles": 335,
       "metrics": {
         "failureWithoutClassCount": 0
       }

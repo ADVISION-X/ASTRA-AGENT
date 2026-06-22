@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T23:06:38.435Z",
+  "generatedAt": "2026-06-21T11:24:20.360Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -15,7 +15,8 @@
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+    "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -24,11 +25,13 @@
     "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
     "docs/法案辅助文件/amazon_invoice_upload_process.md",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
+    "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
@@ -45,6 +48,8 @@
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+    "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",

@@ -1,4 +1,4 @@
-generatedAt: "2026-06-20T23:05:53.521Z"
+generatedAt: "2026-06-21T11:44:59.911Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
@@ -17,6 +17,7 @@ rows:
       - "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1"
       - "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"
       - "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"
+      - "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"
   - capabilityDomain: "amazon-product-fee-sync"
     manifestPath: "scripts/audit/domains/amazon-product-fee-sync/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/amazon-product-fee-sync/inspector.ts"
@@ -229,6 +230,11 @@ rows:
       - "APEX-LOCAL-APP-SHELL-003-V1"
       - "APEX-LOCAL-APP-SHELL-004-V1"
       - "APEX-LOCAL-APP-SHELL-005-V1"
+  - capabilityDomain: "lottery-ticket-plan"
+    manifestPath: "scripts/audit/domains/lottery-ticket-plan/manifest.json"
+    ownerInspectorPath: "scripts/audit/domains/lottery-ticket-plan/inspector.ts"
+    lawIds:
+      - "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1"
   - capabilityDomain: "media-processing-capability"
     manifestPath: "scripts/audit/domains/media-processing-capability/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/media-processing-capability/inspector.ts"

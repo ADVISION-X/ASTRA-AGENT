@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T21:55:42.717Z",
+  "generatedAt": "2026-06-21T11:24:23.753Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -116,6 +116,7 @@
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",

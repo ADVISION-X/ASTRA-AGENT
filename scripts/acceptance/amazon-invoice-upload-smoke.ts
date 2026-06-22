@@ -17,6 +17,7 @@ import {
   runAmazonInvoiceUpload,
   startAmazonInvoiceUploadTask,
 } from "../../src/plugins/amazon-invoice-upload/index.js";
+import { parsePdfTotalAmount } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.js";
 
 const smokeFixtureHtml = `
 <html><head><title>Seller Central Local Dry Run</title></head>
@@ -27,6 +28,13 @@ const smokeFixtureHtml = `
   <table id="orders">
     <tr id="order-row"><td>123-1234567-1234567</td><td>Buyer</td><td>Ship</td></tr>
   </table>
+  <aside class="order-details-bordered-box-sale-proceeds">
+    <h2>销售收益</h2>
+    <table>
+      <tr><td>商品总计:</td><td>AED 59.50</td></tr>
+      <tr><td>总和:</td><td>AED 59.50</td></tr>
+    </table>
+  </aside>
   <div id="upload-invoice" role="button" tabindex="0"></div>
   <section id="upload-panel" hidden>
     <label for="invoice-file">Choose file</label>
@@ -77,10 +85,31 @@ const createSmokeFixturePaths = (): SmokeFixturePaths => {
   const tmp = mkdtempSync(join(tmpdir(), "grasseye-amazon-smoke-"));
   const htmlPath = join(tmp, "seller-central.html");
   const pdfPath = join(tmp, "invoice.pdf");
-  writeFileSync(pdfPath, "local smoke pdf");
+  writeFileSync(pdfPath, buildInvoicePdf("59.50"));
   writeFileSync(htmlPath, smokeFixtureHtml);
   return { tmp, htmlPath, pdfPath };
 };
+
+const buildInvoicePdf = (amount: string): Buffer => Buffer.from(`%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
+4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+5 0 obj << /Length 96 >> stream
+BT /F1 12 Tf 72 720 Td (Gross amount payable) Tj 0 -16 Td (AED) Tj 0 -16 Td (${amount}) Tj ET
+endstream endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+455
+%%EOF`);
 
 const assertSmokeResult = (result: Awaited<ReturnType<typeof runAmazonInvoiceUpload>>): void => {
   if (result.status === "upload_success" && result.reachedStep === "upload success verified") {
@@ -116,8 +145,74 @@ async function main(): Promise<void> {
     if (browser.orderDetailRefreshOpenCount !== 1) {
       throw new Error(`Amazon invoice smoke must execute exactly one conditional recovery refresh; orderDetailRefreshOpenCount=${browser.orderDetailRefreshOpenCount}`);
     }
+    assertBackendPdfTextAmountReadable();
+    await assertAmountMismatchSkipsBeforeUpload(runtimeLogger);
+    await assertUnreadablePdfSkipsBeforeUpload(runtimeLogger);
     await assertTaskServiceTimeoutGuard(runtimeLogger);
     process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success with retained tab lifecycle\n");
+  } finally {
+    await launched.close();
+  }
+}
+
+function assertBackendPdfTextAmountReadable(): void {
+  const amount = parsePdfTotalAmount(`G R O S S A M O U N T P AYA B L E
+( A E D )
+59.50`);
+  if (amount?.amountMinor !== 5950) {
+    throw new Error(`Backend-rendered PDF text must be amount-readable: ${JSON.stringify(amount)}`);
+  }
+}
+
+async function assertUnreadablePdfSkipsBeforeUpload(runtimeLogger: ReturnType<typeof createRuntimeLogger>): Promise<void> {
+  const fixture = createSmokeFixturePaths();
+  const unreadablePdfPath = join(fixture.tmp, "unreadable.pdf");
+  writeFileSync(unreadablePdfPath, Buffer.from("%PDF-1.4\n% unreadable amount fixture\n"));
+  const launched = await chromium.launch({ headless: true });
+  const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
+  const browser = new AmazonSmokeBrowserAdapter(page, fixture.tmp);
+  try {
+    const result = await runAmazonInvoiceUpload(browser, runtimeLogger, {
+      missionType: "amazon_invoice_upload",
+      marketplace: "AE",
+      amazonOrderId: "123-1234567-1234567",
+      invoiceNo: "INV-UNREADABLE",
+      invoicePdfPath: unreadablePdfPath,
+      sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
+    });
+    if (result.status !== "amount_mismatch_skipped" || result.amountCheck?.status !== "pdf_unreadable") {
+      throw new Error(`Unreadable PDF amount must skip before upload: ${JSON.stringify(result)}`);
+    }
+    if (browser.fileInputSetCalls !== 0) {
+      throw new Error(`Unreadable PDF must not attach a file; fileInputSetCalls=${browser.fileInputSetCalls}`);
+    }
+  } finally {
+    await launched.close();
+  }
+}
+
+async function assertAmountMismatchSkipsBeforeUpload(runtimeLogger: ReturnType<typeof createRuntimeLogger>): Promise<void> {
+  const fixture = createSmokeFixturePaths();
+  const mismatchPdfPath = join(fixture.tmp, "mismatch.pdf");
+  writeFileSync(mismatchPdfPath, buildInvoicePdf("39.07"));
+  const launched = await chromium.launch({ headless: true });
+  const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
+  const browser = new AmazonSmokeBrowserAdapter(page, fixture.tmp);
+  try {
+    const result = await runAmazonInvoiceUpload(browser, runtimeLogger, {
+      missionType: "amazon_invoice_upload",
+      marketplace: "AE",
+      amazonOrderId: "123-1234567-1234567",
+      invoiceNo: "INV-MISMATCH",
+      invoicePdfPath: mismatchPdfPath,
+      sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
+    });
+    if (result.status !== "amount_mismatch_skipped" || result.reachedStep !== "verify invoice amount against order total") {
+      throw new Error(`Amount mismatch must skip before upload: ${JSON.stringify(result)}`);
+    }
+    if (browser.fileInputSetCalls !== 0) {
+      throw new Error(`Amount mismatch must not attach a PDF; fileInputSetCalls=${browser.fileInputSetCalls}`);
+    }
   } finally {
     await launched.close();
   }
@@ -201,6 +296,7 @@ async function buildGeometrySnapshot(page: Page): Promise<BrowserGeometrySnapsho
 
 class AmazonSmokeBrowserAdapter implements BrowserController {
   closeActiveTabCalls = 0;
+  fileInputSetCalls = 0;
   openReusePolicies: string[] = [];
   private fileUrlOpenCount = 0;
   orderDetailRefreshOpenCount = 0;
@@ -274,6 +370,7 @@ class AmazonSmokeBrowserAdapter implements BrowserController {
     }, input.script) as Promise<T>;
   }
   async setFileInputFiles(input: { elementRef: { selector: string; targetKind: "file-input" }; filePath: string; description: string }): Promise<BrowserActionResult> {
+    this.fileInputSetCalls += 1;
     await this.page.locator(input.elementRef.selector).setInputFiles(input.filePath);
     return action(`set approved file for ${input.description}`);
   }

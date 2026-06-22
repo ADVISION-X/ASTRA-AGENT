@@ -17,6 +17,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
+import { inspectAmazonInvoiceAmountGate } from "./inspector-amount-gate.js";
 import { inspectAmazonInvoiceBatchGuard } from "./inspector-batch.js";
 import { inspectDownloadFlow } from "./inspector-download-flow.js";
 import { inspectAmazonInvoiceUploadLedgerGuard } from "./inspector-ledger.js";
@@ -30,11 +31,13 @@ const processPath = "docs/法案辅助文件/amazon_invoice_upload_process.md";
 const ownerRoot = "src/plugins/amazon-invoice-upload";
 const missionSchemaPath = `${ownerRoot}/mission.schema.ts`;
 const uploadFlowPath = `${ownerRoot}/amazon-invoice-upload.flow.ts`;
+const amountGatePath = `${ownerRoot}/amazon-invoice-upload-amount-check.ts`;
 const orderDetailPath = `${ownerRoot}/amazon-invoice-upload-order-detail.ts`;
 const taskServicePath = `${ownerRoot}/amazon-invoice-upload-task-service.ts`;
 const uploadLedgerPath = `${ownerRoot}/amazon-invoice-upload-ledger.ts`;
 const uploadStoragePath = `${ownerRoot}/amazon-invoice-upload-storage.ts`;
 const uploadVerifyPath = `${ownerRoot}/amazon-invoice-upload-verify.ts`;
+const uploadStatusPath = `${ownerRoot}/amazon-result-detector.ts`;
 const existingUploadPath = `${ownerRoot}/amazon-invoice-upload-existing.ts`;
 const existingEvidencePath = `${ownerRoot}/amazon-existing-invoice-evidence.ts`;
 const downloadFlowPath = `${ownerRoot}/amazon-tax-invoice-download.flow.ts`;
@@ -55,11 +58,13 @@ const inspectedFiles = [
   blueprintPath,
   processPath,
   uploadFlowPath,
+  amountGatePath,
   orderDetailPath,
   taskServicePath,
   uploadLedgerPath,
   uploadStoragePath,
   uploadVerifyPath,
+  uploadStatusPath,
   existingUploadPath,
   existingEvidencePath,
   downloadFlowPath,
@@ -76,6 +81,8 @@ const inspectedFiles = [
   appShellClientPath,
   "src/app/workbench-home-amazon-invoice-client.ts",
   "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+  "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
@@ -367,6 +374,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     conditionalRefresh: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1"),
     batchLedgerPreflight: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"),
     apiFocusReturn: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"),
+    amountGate: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"),
   };
   const findings: InspectorFinding[] = [];
   inspectRequiredFiles(findings, lawIds.owner);
@@ -404,6 +412,14 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     apiFocusReturnLawId: lawIds.apiFocusReturn,
   });
   inspectAmazonInvoiceBatchGuard(context, findings, lawIds.batchLedgerPreflight);
+  inspectAmazonInvoiceAmountGate({
+    flowFile: source(context.project, uploadFlowPath),
+    amountGateFile: source(context.project, amountGatePath),
+    statusFile: source(context.project, uploadStatusPath),
+    smokeAcceptanceFile: source(context.project, "scripts/acceptance/amazon-invoice-upload-smoke.ts"),
+    findings,
+    lawId: lawIds.amountGate,
+  });
 
   return {
     capabilityDomain: domain,

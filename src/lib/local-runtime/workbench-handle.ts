@@ -55,6 +55,7 @@ type GetPick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/
 type GetPick3HumanReviewInteraction = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewInteraction;
 type ReviewPick3PlaybookLessonManually = typeof import("../../plugins/pick3-is-blind-eval/index.js").reviewPick3PlaybookLessonManually;
 type ListPick3TrendSnapshot = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3TrendSnapshot;
+type GenerateLotteryTicketPlan = typeof import("../../plugins/lottery-ticket-plan/index.js").generateLotteryTicketPlan;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -93,6 +94,7 @@ type Pick3HumanReviewTaskResult = ReturnType<GetPick3HumanReviewTask>;
 type Pick3HumanReviewInteractionResult = ReturnType<GetPick3HumanReviewInteraction>;
 type Pick3ManualPlaybookLessonResult = Awaited<ReturnType<ReviewPick3PlaybookLessonManually>>;
 type Pick3TrendSnapshotResult = ReturnType<ListPick3TrendSnapshot>;
+type LotteryTicketPlanResult = ReturnType<GenerateLotteryTicketPlan>;
 
 export type DeepResearchInputAttachmentStagingFile = {
   fileName: string;
@@ -261,4 +263,7 @@ export type GrassEyeWorkbenchHandle = {
     position: string;
     taskId: string;
   }) => Promise<Pick3ManualPlaybookLessonResult>;
+  generateLotteryTicketPlan: (
+    input: unknown,
+  ) => LotteryTicketPlanResult;
 };

@@ -30,6 +30,7 @@ Website / App Shell UI
                   -> TAX_INVOICE_CSV_DOWNLOAD
                   -> DOWNLOAD_ARTIFACT_PERSIST
                   -> APPROVED_INVOICE_UPLOAD
+                      -> VERIFY_PDF_AMOUNT_AGAINST_ORDER_DOM_TOTAL
                       -> Task Record / Artifact / Evidence / Runtime Logs
                           -> Agent Upload Ledger
                           -> Website polling or callback
@@ -164,6 +165,66 @@ fileSize
 sha256
 createdAt
 ```
+
+## 7.5 Upload Amount Hard Gate
+
+上传前硬门用于防止把错误 PDF 发票上传到订单页面。
+
+唯一合法链路：
+
+```txt
+open approved order detail
+  -> verify already uploaded
+  -> verify invoice amount against order total
+      -> read task-approved PDF gross payable amount
+      -> read live Seller Central DOM order total
+      -> normalize AED minor units
+      -> compare
+  -> open upload invoice entry
+```
+
+硬门位置必须在 `verifyAlreadyUploadedInvoice` 之后、`openUploadInvoiceEntry` 之前。
+
+金额来源：
+
+```txt
+PDF truth: task-approved invoice PDF gross amount payable
+Order truth: live Seller Central order DOM Sales proceeds Total / 销售收益 总和
+```
+
+禁止来源：
+
+```txt
+filename
+APP table amount
+website export amount
+caller-provided amount
+cached order amount
+screenshots
+ledger history
+```
+
+失败行为：
+
+```txt
+status: amount_mismatch_skipped
+reviewRequired: true
+reachedStep: verify invoice amount against order total
+no file attach
+no upload dialog submit
+safe reason persisted to task record and ledger
+```
+
+安全证据只允许记录：
+
+```txt
+pdf currency + amountMinor + display
+order currency + amountMinor + display
+skip reason
+domTraceRef
+```
+
+禁止记录 raw PDF text、full DOM HTML、cookies、browser storage、local absolute invoicePdfPath。
 
 ## 8. Route 变化
 

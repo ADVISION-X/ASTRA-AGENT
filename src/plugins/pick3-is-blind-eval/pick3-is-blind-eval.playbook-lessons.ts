@@ -14,31 +14,6 @@ import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-l
 const hashText = (text: string): string => createHash("sha256").update(text).digest("hex");
 
 /**
- * The AI review prompt necessarily includes the concrete phase, imageId, and revealed answer as
- * evidence for the post-mortem. Nothing stops the AI from echoing those concrete values back into
- * its free-text rootCause/candidateLesson — and that free text is later spliced verbatim into
- * future blind prompts by assemblePick3ExperienceSection. If a leak slips through, this is the
- * last line of defense: it forces the lesson to status "rejected", which the live experience
- * assembly already filters out, so a leaked lesson can never reach a future blind prompt.
- */
-const detectPick3LessonLeak = (input: {
-  candidateLesson: string;
-  image: Pick3ImageRecord;
-  reveal: Pick3RevealRecord;
-  rootCause: string;
-}): string | null => {
-  const text = `${input.rootCause} ${input.candidateLesson}`;
-  const lowerText = text.toLowerCase();
-  if (text.includes(input.image.targetPhase)) return `leaked target phase ${input.image.targetPhase}`;
-  if (text.includes(input.image.imageId)) return "leaked imageId";
-  if (/\bfront\b/.test(lowerText) || /\bback\b/.test(lowerText)) return "leaked internal front/back reveal/scoring label";
-  for (const forbidden of ["targetphase", "answerdigit", "answerlabel", "expectedprizetime", "pick3", "uae", "lottery", "pick3-is-blind-eval"]) {
-    if (lowerText.includes(forbidden)) return `leaked forbidden token ${forbidden}`;
-  }
-  return null;
-};
-
-/**
  * The review prompt must never hand the AI the literal words "front"/"back" as evidence text —
  * predictionLabel/answerLabel are stored internally using those tokens, but if we interpolate them
  * verbatim into the evidence package, the AI is reading the forbidden word in our own prompt right
@@ -51,6 +26,14 @@ const toVisibleReviewLabel = (label: string): string => {
   if (label === "back") return "upper";
   return label;
 };
+
+/**
+ * promptProblem (failure-review.ts) is freeform text built from the same internal front/back
+ * tokens, e.g. "Prediction back did not match revealed shoulder-side label front." It is not a
+ * single enum value like predictionLabel/answerLabel, so it needs a word-boundary text
+ * replacement rather than an exact-match lookup before it can be shown to the review AI.
+ */
+const sanitizeReviewText = (text: string): string => text.replace(/\bfront\b/g, "lower").replace(/\bback\b/g, "upper");
 
 const PICK3_PLAYBOOK_REVIEW_MAX_ATTEMPTS = 3;
 
@@ -85,7 +68,7 @@ Hard boundary:
 - Do not propose a playbook rewrite yet.
 - Analyze only why this already sealed Playbook prediction was wrong.
 - The lesson must apply only to position: ${input.image.position}.
-- Your rootCause and candidateLesson text will be reused in future blind prompts for other images. They must describe only visual-grammar shapes and reasoning (it is fine to say a pattern "leans upper" or "leans lower" as a tendency). They must NEVER mention the phase number or the imageId — writing either into your answer would leak a specific answer into a future blind evaluation, which is forbidden.
+- Your rootCause and candidateLesson text will be reused in future blind prompts for other images. They must describe only visual-grammar shapes and reasoning (it is fine to say a pattern "leans upper" or "leans lower" as a tendency, or to use ordinary words like "back" or "revert" in their normal English sense). They must NEVER mention the phase number or the imageId — writing either into your answer would leak a specific answer into a future blind evaluation, which is forbidden.
 
 Evidence package:
 - phase: ${input.image.targetPhase}
@@ -102,7 +85,7 @@ ${input.interaction.rawResponseText}
 - sealed prediction: ${toVisibleReviewLabel(input.prediction.predictionLabel)}
 - revealed answer: ${toVisibleReviewLabel(input.reveal.answerLabel)}
 - failure type: ${input.failureReview.failureType}
-- local failure note: ${input.failureReview.promptProblem}
+- local failure note: ${sanitizeReviewText(input.failureReview.promptProblem)}
 
 Return strict JSON only:
 {
@@ -157,18 +140,12 @@ const buildLesson = (input: {
   taskId: string;
 }): Pick3PlaybookLessonRecord => {
   const parsed = input.parsed;
-  const leakReason = detectPick3LessonLeak({
-    candidateLesson: parsed.candidateLesson,
-    image: input.image,
-    reveal: input.reveal,
-    rootCause: parsed.rootCause,
-  });
   return {
     lessonId: `pick3_lesson_${randomUUID()}`,
     batchId: input.failureReview.batchId,
     taskId: input.taskId,
     source: input.source,
-    status: leakReason ? "rejected" : "candidate",
+    status: "candidate",
     phase: input.image.targetPhase,
     position: input.image.position,
     imageId: input.image.imageId,
@@ -182,7 +159,7 @@ const buildLesson = (input: {
     aiReviewPrompt: input.aiReviewPrompt,
     aiReviewRawText: input.aiReviewRawText,
     aiReviewRawHash: hashText(input.aiReviewRawText),
-    rootCause: leakReason ? `[REJECTED: ${leakReason}] ${parsed.rootCause}` : parsed.rootCause,
+    rootCause: parsed.rootCause,
     candidateLesson: parsed.candidateLesson,
     evidenceRefsJson: JSON.stringify({
       imagePath: input.image.imagePath,

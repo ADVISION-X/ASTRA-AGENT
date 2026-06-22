@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T23:05:53.521Z",
+  "generatedAt": "2026-06-21T11:44:59.911Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -19,7 +19,8 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"
       ],
       "clauseIds": [
         "primary"
@@ -31,6 +32,7 @@
         "audit+acceptance+ci-full",
         "evidence-map+ast",
         "flow+ast+acceptance+chrome",
+        "flow+pdf+dom+acceptance+audit+chrome",
         "fs+ast",
         "ledger+app-shell+acceptance+audit",
         "runtime-log+acceptance+audit",
@@ -599,6 +601,32 @@
             "## 当前法门入口",
             "## Video Download 输入面",
             "## 对口质检"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "lottery-ticket-plan",
+      "manifestPath": "scripts/audit/domains/lottery-ticket-plan/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "law+blueprint+acceptance+audit"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Lottery Ticket Plan 施工图.md",
+          "requiredAnchors": [
+            "## Local Plan Boundary",
+            "## Plugin File Plan",
+            "## App Shell Surface",
+            "## QA Plan"
           ]
         }
       ]

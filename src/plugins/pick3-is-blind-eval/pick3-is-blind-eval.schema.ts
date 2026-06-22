@@ -29,7 +29,7 @@ export const Pick3InputSchema = z.object({
   lotteryType: z.literal(PICK3_LOTTERY_TYPE).default(PICK3_LOTTERY_TYPE),
   windowSize: z.literal(PICK3_WINDOW_SIZE).default(PICK3_WINDOW_SIZE),
   positions: z.array(Pick3PositionSchema).default(["hundreds", "tens", "ones"]),
-  batchSize: z.number().int().positive().max(30).default(3),
+  batchSize: z.number().int().positive().max(100).default(3),
   lastTargetPhase: z.string().trim().min(1).optional(),
   explicitTargetPhases: z.array(z.string().min(1)).optional(),
   artifactRoot: z.string().min(1).optional(),

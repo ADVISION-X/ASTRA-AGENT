@@ -44,6 +44,7 @@ const completePlaybookOutput = (input: Record<string, unknown>): Record<string, 
 });
 
 const validExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images: [images[0]!],
   promptPackages: [promptPackage],
@@ -80,6 +81,7 @@ assert.equal(freeAnalysisFullPipelineInput.promptMode, "free_analysis_strict_rea
 assert.notEqual(String(freeAnalysisFullPipelineInput.mode), "next_prediction_stability");
 
 const percentageConfidenceExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images: [images[0]!],
   promptPackages: [promptPackage],
@@ -102,6 +104,7 @@ assert.equal(percentageConfidenceExchange.predictions[0]?.predictionLabel, "back
 assert.equal(percentageConfidenceExchange.predictions[0]?.confidence, 0.65);
 
 const validAbstainExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images: [images[0]!],
   promptPackages: [promptPackage],
@@ -124,6 +127,7 @@ assert.equal(validAbstainExchange.predictions[0]?.predictionLabel, "abstain");
 assert.match(validAbstainExchange.predictions[0]?.drivingEvidence ?? "", /balanced at the midline/);
 
 const invalidExchange = await runPick3PromptExchange({
+    postParseDelayMsOverride: 0,
   artifactDir,
   images: [images[0]!],
   promptPackages: [promptPackage],

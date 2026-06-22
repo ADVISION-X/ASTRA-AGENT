@@ -17,6 +17,7 @@ const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
   "file_attached",
   "upload_submitted",
   "submit_failed",
+  "amount_mismatch_skipped",
   "upload_success",
   "already_uploaded",
   "review_required",

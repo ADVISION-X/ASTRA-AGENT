@@ -1,18 +1,5 @@
 {
-  "generatedAt": "2026-06-20T23:06:31.472Z",
-  "itemCount": 1,
-  "items": [
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export emitPick3RateLimitRecoveryStep has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "symbolName": "emitPick3RateLimitRecoveryStep",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-06-21T11:24:14.935Z",
+  "itemCount": 0,
+  "items": []
 }
