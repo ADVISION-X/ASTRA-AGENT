@@ -669,13 +669,22 @@ Required:
   - mandatory supportingEvidence
   - mandatory counterEvidence
   - mandatory decisionLogic
-  - mandatory zoneCount (lowerCount, upperCount as counted integers, not estimated labels)
-  - mandatory patternRecurrence (named-pattern occurrence count + how many of those occurrences matched the predicted direction)
+  - mandatory zoneCount (lowerCount, upperCount, uncertainCount as counted integers, not estimated
+    labels; a point too close to the midline to confidently classify goes into uncertainCount, not
+    forced into lowerCount or upperCount)
+  - mandatory patternRecurrence (only cites a recurring pattern if simple/visually well-defined/not
+    overly specific to the terminal segment, with occurrence count + how many matched the predicted
+    direction; if no reliable recurring pattern applies, must say so explicitly instead of inventing one)
   - mandatory weakestLink (the single weakest assumption in the AI's own reasoning chain)
 
   zoneCount / patternRecurrence / weakestLink are probing fields, not vocabulary or direction
   rules. They force the AI to produce verifiable, countable intermediate output instead of an
   impression-based narrative, while leaving full freedom over how to interpret what it counts.
+
+  abstain is reserved for genuinely balanced/cancelling evidence, not weak evidence; weak evidence
+  must produce a low-confidence directional prediction instead. No numeric confidence threshold for
+  abstain and no recency-weighting rule — either would reintroduce a direction rule into the one
+  mode whose value depends on having none (the playbook-vs-free_analysis comparison control group).
 
 Parser rule:
   Missing or shallow chartReading / recentBehavior / supportingEvidence / decisionLogic
@@ -1233,6 +1242,73 @@ skipping remaining images because one image failed
 infinite retry loop
 persisting an interim failed attempt as the final result when a later completion round succeeds
 ```
+
+### Prompt Exchange Persistent Checkpoint And Resume
+
+Long Pick3 tasks must survive process stop, terminal interruption, or GPT quota waits without losing completed one-image work.
+
+```txt
+Start:
+  create taskId once
+  write task.json immediately with status = running
+  build one batchId, images, prompt packages, and artifact manifests once
+  create checkpoint work items from the same Prompt Exchange queue
+
+Checkpoint row:
+  taskId
+  batchId
+  imageId
+  promptPackageId
+  repeatIndex
+  sequence
+  completionRound
+  status = pending | running | completed | skipped | paused_rate_limited | unresolved
+  interactionId
+  predictionId
+  pauseReason
+  resumeAfter
+  updatedAt
+
+After each governed one-image work item:
+  parsed result -> insert pick3_ai_interactions + ai_predictions, then mark checkpoint completed
+  skipped provider-reported missing image -> insert pick3_ai_interactions, then mark checkpoint skipped
+  unresolved but retryable -> schedule existing completion round and keep checkpoint pending
+  final unresolved -> persist final interaction and mark checkpoint unresolved
+```
+
+Resume:
+
+```txt
+POST /api/pick3-is-blind-eval/task/resume
+  read original taskId
+  read original batchId, images, prompt packages, and artifact hashes
+  fail review_required if the batch/prompt/image manifest cannot be proven
+  skip checkpoint rows whose status is completed or skipped
+  honor paused_rate_limited resumeAfter before continuing
+  continue only pending / paused work items through the same runPick3PromptExchange chain
+```
+
+Resume is not a second execution chain. It re-enters the existing Pick3 flow and existing Pick3 Prompt Exchange. It must not create a new task id, batch id, provider transport, prediction table, scoring path, or task history store.
+
+### Quota Exhausted 40 Minute Pause
+
+ChatGPT quota exhaustion is not the same as the ordinary acknowledgement dialog.
+
+```txt
+ordinary rate-limit acknowledgement:
+  visible text includes 请求过于频繁 / 请稍等几分钟后再重试 / too many requests
+  action = click 明白了 / OK / Got it immediately
+  no wait before click
+
+quota exhausted:
+  visible text explicitly indicates usage limit exhausted, message cap reached, or come back later
+  action = persist checkpoint status paused_rate_limited
+  resumeAfter = detectedAt + 40 minutes
+  emit RECOVERY_PROGRESS with remainingSec while waiting
+  after resumeAfter continue the same one-image work item
+```
+
+If the process exits during the 40 minute wait, the next resume reads `resumeAfter`; it waits only the remaining time if the timestamp is still in the future, otherwise continues immediately.
 
 Submitted image binding proof:
 
@@ -2280,6 +2356,8 @@ UI:
 Pick3 workspace adds a History tab.
 History tab left column: task rows with phase and completeness.
 History tab right column: selected task context, phaseReports, playbookLessons, images, repeat/answer table.
+History tab Continue button is disabled until a task row is selected, and remains enabled only when the selected task status is running or paused_rate_limited.
+Continue calls POST /api/pick3-is-blind-eval/task/resume for the same selected task id; success/completed, failed, and review_required rows stay non-resumable.
 Clicking a repeat opens Inspector with the full AI answer.
 Clicking a lesson opens Inspector with the AI post-mortem result and evidence refs.
 For failed playbook_v1 positions, History exposes a manual Playbook review action.

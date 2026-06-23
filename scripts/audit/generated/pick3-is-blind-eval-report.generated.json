@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-21T20:35:13.291Z",
+  "generatedAt": "2026-06-22T02:09:27.812Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -36,9 +36,15 @@
     "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-checkpoint.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-quota.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-throttle.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-contract.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.progress.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.task.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.task-record.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts",
@@ -59,6 +65,8 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-checkpoint.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-task.ts",
     "src/plugins/pick3-is-blind-eval/playbooks/system.md",
     "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md",
     "src/plugins/pick3-is-blind-eval/playbooks/free-analysis-strict-reasoning.md"

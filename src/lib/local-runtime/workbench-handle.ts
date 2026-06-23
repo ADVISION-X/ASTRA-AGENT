@@ -47,7 +47,9 @@ type GetLatestAmazonProductSyncTask = typeof import("../../plugins/amazon-produc
 type StartAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").startAmazonProductFeeSyncTask;
 type GetAmazonProductFeeSyncTaskStatus = typeof import("../../plugins/amazon-product-fee-sync/index.js").getAmazonProductFeeSyncTaskStatus;
 type GetLatestAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").getLatestAmazonProductFeeSyncTask;
-type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").runPick3IsBlindEvalFlow;
+type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").startPick3IsBlindEvalTask;
+type ResumePick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").resumePick3IsBlindEvalTask;
+type GetPick3IsBlindEvalTaskStatus = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3IsBlindEvalTaskStatus;
 type GetLatestPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getLatestPick3IsBlindEvalTask;
 type DeletePick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").deletePick3HumanReviewTask;
 type ListPick3HumanReviewHistory = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3HumanReviewHistory;
@@ -86,7 +88,9 @@ type AmazonProductFeeSyncStartInput = Parameters<StartAmazonProductFeeSyncTask>[
 type AmazonProductFeeSyncTaskRecord = Awaited<ReturnType<GetAmazonProductFeeSyncTaskStatus>>;
 type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductFeeSyncTask>>;
 type Pick3IsBlindEvalStartInput = Parameters<StartPick3IsBlindEvalTask>[0];
+type Pick3IsBlindEvalResumeInput = Parameters<ResumePick3IsBlindEvalTask>[0];
 type Pick3IsBlindEvalTaskRecord = Awaited<ReturnType<StartPick3IsBlindEvalTask>>;
+type Pick3IsBlindEvalStatusRecord = ReturnType<GetPick3IsBlindEvalTaskStatus>;
 type Pick3IsBlindEvalLatestTaskRecord = ReturnType<GetLatestPick3IsBlindEvalTask>;
 type Pick3HumanReviewDeleteResult = ReturnType<DeletePick3HumanReviewTask>;
 type Pick3HumanReviewHistoryResult = ReturnType<ListPick3HumanReviewHistory>;
@@ -245,6 +249,12 @@ export type GrassEyeWorkbenchHandle = {
   startPick3IsBlindEvalTask: (
     input: Pick3IsBlindEvalStartInput,
   ) => Promise<Pick3IsBlindEvalTaskRecord>;
+  resumePick3IsBlindEvalTask: (
+    input: Pick3IsBlindEvalResumeInput,
+  ) => Promise<Pick3IsBlindEvalTaskRecord>;
+  getPick3IsBlindEvalTaskStatus: (
+    taskId: string,
+  ) => Promise<Pick3IsBlindEvalStatusRecord>;
   getLatestPick3IsBlindEvalTask: () => Promise<Pick3IsBlindEvalLatestTaskRecord>;
   listPick3TrendSnapshot: () => Promise<Pick3TrendSnapshotResult>;
   listPick3HumanReviewHistory: () => Promise<Pick3HumanReviewHistoryResult>;

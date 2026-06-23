@@ -53,8 +53,10 @@ export type Pick3StabilitySummary = {
 const buildPick3StabilityConsensus = (results: readonly Pick3StabilityResult[]): Pick3StabilityConsensus[] => {
   const positions: readonly Pick3Position[] = ["hundreds", "tens", "ones"];
   return positions
-    .map((position) => {
-      const labels = results.filter((result) => result.position === position).map((result) => result.visiblePredictionLabel);
+    .map((position): Pick3StabilityConsensus | null => {
+      const labels: Pick3StabilityConsensus["labels"] = results
+        .filter((result) => result.position === position)
+        .map((result) => result.visiblePredictionLabel);
       if (labels.length === 0) return null;
       const distinctLabels = new Set(labels);
       const isStable = distinctLabels.size === 1 && !labels.includes(null);

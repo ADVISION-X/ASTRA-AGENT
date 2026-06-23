@@ -9,6 +9,7 @@ export type Pick3Statements = {
   insertPlaybookLesson: Database.Statement;
   insertImage: Database.Statement;
   insertPrediction: Database.Statement;
+  insertPromptExchangeCheckpoint: Database.Statement;
   insertReveal: Database.Statement;
   listActivePlaybooks: Database.Statement;
   listAiInteractions: Database.Statement;
@@ -17,7 +18,9 @@ export type Pick3Statements = {
   listPlaybookLessons: Database.Statement;
   listPlaybookLessonsByPosition: Database.Statement;
   listPredictions: Database.Statement;
+  listPromptExchangeCheckpoints: Database.Statement;
   listReveals: Database.Statement;
+  markPromptExchangeCheckpoint: Database.Statement;
   updateDraw: Database.Statement;
   upsertPlaybook: Database.Statement;
 };
@@ -193,6 +196,22 @@ const schemaSql = [
   aggregate_key TEXT NOT NULL,
   created_at TEXT NOT NULL
 )`,
+  `CREATE TABLE IF NOT EXISTS pick3_prompt_exchange_checkpoints (
+  task_id TEXT NOT NULL,
+  batch_id TEXT NOT NULL,
+  image_id TEXT NOT NULL,
+  prompt_package_id TEXT NOT NULL,
+  repeat_index INTEGER NOT NULL,
+  sequence INTEGER NOT NULL,
+  completion_round INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  interaction_id TEXT,
+  prediction_id TEXT,
+  pause_reason TEXT,
+  resume_after TEXT,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (task_id, image_id, repeat_index, completion_round)
+)`,
 ] as const;
 
 export const createPick3Schema = (db: Database.Database): void => {
@@ -266,6 +285,7 @@ INSERT OR REPLACE INTO is_blind_images (
 const preparePick3AiWriteStatements = (db: Database.Database): Pick<
   Pick3Statements,
   "insertAiInteraction" | "insertFailureReview" | "insertPlaybookLesson" | "insertPrediction" | "insertReveal"
+  | "insertPromptExchangeCheckpoint" | "markPromptExchangeCheckpoint"
 > => ({
   insertAiInteraction: db.prepare(`
 INSERT OR REPLACE INTO pick3_ai_interactions (
@@ -305,6 +325,22 @@ INSERT OR REPLACE INTO pick3_playbook_lessons (
   root_cause, candidate_lesson, evidence_refs_json, aggregate_key, created_at
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `),
+  insertPromptExchangeCheckpoint: db.prepare(`
+INSERT OR REPLACE INTO pick3_prompt_exchange_checkpoints (
+  task_id, batch_id, image_id, prompt_package_id, repeat_index, sequence,
+  completion_round, status, interaction_id, prediction_id, pause_reason, resume_after, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`),
+  markPromptExchangeCheckpoint: db.prepare(`
+UPDATE pick3_prompt_exchange_checkpoints SET
+  status = ?,
+  interaction_id = ?,
+  prediction_id = ?,
+  pause_reason = ?,
+  resume_after = ?,
+  updated_at = ?
+WHERE task_id = ? AND image_id = ? AND repeat_index = ? AND completion_round = ?
+`),
 });
 
 const preparePick3WriteStatements = (db: Database.Database): Pick<
@@ -317,7 +353,9 @@ const preparePick3WriteStatements = (db: Database.Database): Pick<
   | "insertPlaybookLesson"
   | "insertImage"
   | "insertPrediction"
+  | "insertPromptExchangeCheckpoint"
   | "insertReveal"
+  | "markPromptExchangeCheckpoint"
   | "updateDraw"
   | "upsertPlaybook"
 > => ({
@@ -328,12 +366,13 @@ const preparePick3WriteStatements = (db: Database.Database): Pick<
 
 const preparePick3ReadStatements = (db: Database.Database): Pick<
   Pick3Statements,
-  "listActivePlaybooks" | "listAiInteractions" | "listDrawsAscending" | "listFailureReviews" | "listPlaybookLessons" | "listPlaybookLessonsByPosition" | "listPredictions" | "listReveals"
+  "listActivePlaybooks" | "listAiInteractions" | "listDrawsAscending" | "listFailureReviews" | "listPlaybookLessons" | "listPlaybookLessonsByPosition" | "listPredictions" | "listPromptExchangeCheckpoints" | "listReveals"
 > => ({
   listDrawsAscending: db.prepare("SELECT * FROM pick3_draws ORDER BY expected_prize_timestamp ASC, phase ASC"),
   listActivePlaybooks: db.prepare("SELECT * FROM pick3_playbooks WHERE status = 'active' ORDER BY position ASC, version DESC"),
   listAiInteractions: db.prepare("SELECT * FROM pick3_ai_interactions WHERE batch_id = ? ORDER BY created_at ASC, image_id ASC"),
   listPredictions: db.prepare("SELECT * FROM ai_predictions WHERE batch_id = ? ORDER BY predicted_at ASC, image_id ASC"),
+  listPromptExchangeCheckpoints: db.prepare("SELECT * FROM pick3_prompt_exchange_checkpoints WHERE task_id = ? ORDER BY sequence ASC, completion_round ASC"),
   listReveals: db.prepare(`
 SELECT ai_reveals.* FROM ai_reveals
 JOIN ai_predictions ON ai_predictions.prediction_id = ai_reveals.prediction_id

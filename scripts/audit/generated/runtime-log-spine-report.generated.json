@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-21T11:24:20.252Z",
+  "generatedAt": "2026-06-22T02:09:23.652Z",
   "status": "PASS",
-  "scannedFiles": 434,
+  "scannedFiles": 444,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -404,9 +404,14 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/pick3-is-blind-eval/index.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-checkpoint.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-contract.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-quota.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-throttle.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.checkpoint-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
@@ -418,13 +423,18 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-types.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.progress.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-checkpoint.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-task.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.sync.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.task-record.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.task.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts",
     "src/plugins/video-download-artifact/index.ts",
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
@@ -456,7 +466,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 434,
+    "scannedFiles": 444,
     "emitCallCount": 47,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -467,7 +477,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 429,
+      "scannedFiles": 439,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -476,13 +486,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 334
+      "scannedFiles": 344
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 330,
+      "scannedFiles": 340,
       "metrics": {
         "emitCallCount": 36
       }
@@ -491,13 +501,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 330
+      "scannedFiles": 340
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335,
+      "scannedFiles": 345,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -512,7 +522,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335,
+      "scannedFiles": 345,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -533,7 +543,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 46
+      "scannedFiles": 50
     },
     {
       "name": "browser-action-log-contract",

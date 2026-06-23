@@ -213,19 +213,19 @@ assert.equal(lawText2.includes("opposing signal"), true, "law must explain disco
 assert.equal(lawText2.includes("V2 correction rules"), true, "law must state discountedEvidence purpose for V2 correction rules");
 assert.equal(lawText2.includes("contrarian override"), true, "law must address contrarian override and discountedEvidence non-null requirement");
 assert.equal(lawText2.includes("standard grammar interpretation being overridden IS the discounted evidence"), true, "law must state that overridden standard grammar = discounted evidence");
-for (const token of ["zoneCount", "patternRecurrence", "weakestLink", "counted not estimated", "must not be confused with the V1 evidence fields"]) {
+for (const token of ["zoneCount", "patternRecurrence", "weakestLink", "counted not estimated", "must not be confused with the V1 evidence fields", "uncertainCount", "reserved for genuinely balanced or mutually cancelling evidence"]) {
   assert.equal(lawText2.includes(token), true, `law must include Free Analysis probing field token ${token}`);
 }
 const blueprintText2 = readRepoText(blueprintPath);
-for (const token of ["mandatory zoneCount", "mandatory patternRecurrence", "mandatory weakestLink", "probing fields, not vocabulary or direction"]) {
+for (const token of ["mandatory zoneCount", "mandatory patternRecurrence", "mandatory weakestLink", "probing fields, not vocabulary or direction", "uncertainCount", "abstain is reserved for genuinely balanced"]) {
   assert.equal(blueprintText2.includes(token), true, `blueprint must include Free Analysis probing field token ${token}`);
 }
 const freeAnalysisPlaybookText = readRepoText("src/plugins/pick3-is-blind-eval/playbooks/free-analysis-strict-reasoning.md");
-for (const token of ["zoneCount", "patternRecurrence", "weakestLink", "Self-check before you answer", "a single occurrence is weak evidence, not a rule"]) {
+for (const token of ["zoneCount", "patternRecurrence", "weakestLink", "Self-check before you answer", "no reliable recurring pattern", "uncertainCount", "do not invent one"]) {
   assert.equal(freeAnalysisPlaybookText.includes(token), true, `free-analysis playbook must include probing field token ${token}`);
 }
 const aiContractText = readRepoText("src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-contract.ts");
-for (const token of ["lowerCount", "upperCount", "patternRecurrence", "weakestLink", "zoneCount must be two non-negative integers"]) {
+for (const token of ["lowerCount", "upperCount", "uncertainCount", "patternRecurrence", "weakestLink", "zoneCount must be three non-negative integers"]) {
   assert.equal(aiContractText.includes(token), true, `ai-contract output shape must include Free Analysis probing field token ${token}`);
 }
 // Contrarian-override discountedEvidence contract now lives only in system.md (asserted above);

@@ -50,6 +50,18 @@ const renderPick3Task = (task) => {
 `;
 
 const renderPick3StartClient = (): string => `
+const pollPick3Task = async (taskId) => {
+  let task = await readJson("/api/pick3-is-blind-eval/status?taskId=" + encodeURIComponent(taskId));
+  renderPick3Task(task);
+  while (task.status === "running" || task.status === "paused_rate_limited") {
+    writeActivity("pick3 task " + task.status + ": " + task.taskId, "running");
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    task = await readJson("/api/pick3-is-blind-eval/status?taskId=" + encodeURIComponent(taskId));
+    renderPick3Task(task);
+  }
+  writeActivity("pick3 task completed with status " + task.status, task.status === "success" ? "completed" : "manual-required");
+};
+
 const startPick3 = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -75,6 +87,10 @@ const startPick3 = async (event) => {
   });
   renderPick3Task(task);
   showWorkspacePage("pick3-is-blind-eval", task.mode === "next_prediction_stability" ? "history" : "images");
+  if (task.status === "running" || task.status === "paused_rate_limited") {
+    await pollPick3Task(task.taskId);
+    return;
+  }
   writeActivity("pick3 task completed with status " + task.status, task.status === "success" ? "completed" : "manual-required");
 };
 `;

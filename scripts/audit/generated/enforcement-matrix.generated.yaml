@@ -1,4 +1,4 @@
-generatedAt: "2026-06-21T11:44:59.911Z"
+generatedAt: "2026-06-23T09:56:47.303Z"
 rows:
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"

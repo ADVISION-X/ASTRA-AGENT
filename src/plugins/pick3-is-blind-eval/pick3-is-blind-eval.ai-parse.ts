@@ -34,7 +34,7 @@ type FreeAnalysisProbeFields = {
   supportingEvidence: string[];
   counterEvidence: string[];
   decisionLogic: string;
-  zoneCount: { lowerCount: number; upperCount: number };
+  zoneCount: { lowerCount: number; upperCount: number; uncertainCount: number };
   patternRecurrence: string;
   weakestLink: string;
   abstainReason: string | null;
@@ -91,13 +91,13 @@ const readStringArray = (value: unknown): string[] | null => {
   return strings.length === value.length ? strings : null;
 };
 
-const readZoneCount = (value: unknown): { lowerCount: number; upperCount: number } | null => {
+const readZoneCount = (value: unknown): { lowerCount: number; upperCount: number; uncertainCount: number } | null => {
   if (typeof value !== "object" || value === null) return null;
-  const { lowerCount, upperCount } = value as Record<string, unknown>;
-  if (typeof lowerCount !== "number" || typeof upperCount !== "number") return null;
-  if (!Number.isInteger(lowerCount) || !Number.isInteger(upperCount)) return null;
-  if (lowerCount < 0 || upperCount < 0) return null;
-  return { lowerCount, upperCount };
+  const { lowerCount, upperCount, uncertainCount } = value as Record<string, unknown>;
+  if (typeof lowerCount !== "number" || typeof upperCount !== "number" || typeof uncertainCount !== "number") return null;
+  if (!Number.isInteger(lowerCount) || !Number.isInteger(upperCount) || !Number.isInteger(uncertainCount)) return null;
+  if (lowerCount < 0 || upperCount < 0 || uncertainCount < 0) return null;
+  return { lowerCount, upperCount, uncertainCount };
 };
 
 const readFreeAnalysisProbeFields = (parsed: RawParsedPrediction, label: string): { fields: FreeAnalysisProbeFields | null; reason: string | null } => {
@@ -138,7 +138,7 @@ const buildFreeAnalysisEvidence = (fields: FreeAnalysisProbeFields): ParsedEvide
 });
 
 const buildFreeAnalysisReason = (fields: FreeAnalysisProbeFields): string =>
-  `chartReading: ${fields.chartReading}\nrecentBehavior: ${fields.recentBehavior}\ndecisionLogic: ${fields.decisionLogic}\nzoneCount: lower=${fields.zoneCount.lowerCount} upper=${fields.zoneCount.upperCount}\npatternRecurrence: ${fields.patternRecurrence}\nweakestLink: ${fields.weakestLink}`;
+  `chartReading: ${fields.chartReading}\nrecentBehavior: ${fields.recentBehavior}\ndecisionLogic: ${fields.decisionLogic}\nzoneCount: lower=${fields.zoneCount.lowerCount} upper=${fields.zoneCount.upperCount} uncertain=${fields.zoneCount.uncertainCount}\npatternRecurrence: ${fields.patternRecurrence}\nweakestLink: ${fields.weakestLink}`;
 
 const parseFreeAnalysisEvidence = (parsed: RawParsedPrediction, label: string): { evidence: ParsedEvidenceFields; reason: string } | { evidence: null; reason: string } => {
   const probe = readFreeAnalysisProbeFields(parsed, label);

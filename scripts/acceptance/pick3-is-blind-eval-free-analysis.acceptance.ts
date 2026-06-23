@@ -27,7 +27,7 @@ for (const forbidden of ["sharp_top", "bare_low", "shoulder_hold", "tailShapes",
 for (const required of ["Strict reasoning requirements", "chartReading", "recentBehavior", "supportingEvidence", "counterEvidence", "decisionLogic"]) assert.equal(gatewayInput.textPrompt.includes(required), true, `Free Analysis prompt must include ${required}`);
 
 const completeFreeAnalysisOutput = (input: Record<string, unknown>): Record<string, unknown> => ({
-  zoneCount: { lowerCount: 41, upperCount: 39 },
+  zoneCount: { lowerCount: 41, upperCount: 39, uncertainCount: 0 },
   patternRecurrence: "The cited behavior appears four times in the L80 window, and three of those occurrences support the selected continuation.",
   weakestLink: "The weakest link is that the final visible movement could still be short-term noise rather than durable continuation.",
   ...input,
@@ -167,8 +167,9 @@ const validFreeAnalysisFixture = completeFreeAnalysisOutput({
 });
 assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify(validFreeAnalysisFixture) }).parsed !== null, true);
 assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, zoneCount: undefined }) }).reason, "pick3_free_analysis_zone_count_invalid");
-assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, zoneCount: { lowerCount: 29, upperCount: 26 } }) }).parsed !== null, true);
-assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, zoneCount: { lowerCount: 41.5, upperCount: 39 } }) }).reason, "pick3_free_analysis_zone_count_invalid");
+assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, zoneCount: { lowerCount: 29, upperCount: 26, uncertainCount: 5 } }) }).parsed !== null, true);
+assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, zoneCount: { lowerCount: 41.5, upperCount: 39, uncertainCount: 0 } }) }).reason, "pick3_free_analysis_zone_count_invalid");
+assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, zoneCount: { lowerCount: 29, upperCount: 26 } }) }).reason, "pick3_free_analysis_zone_count_invalid", "uncertainCount is now a required third zoneCount field, not optional");
 assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, patternRecurrence: undefined }) }).reason, "pick3_free_analysis_pattern_recurrence_missing");
 assert.equal(parsePick3Prediction({ ...freeAnalysisParseInput, rawText: JSON.stringify({ ...validFreeAnalysisFixture, weakestLink: undefined }) }).reason, "pick3_free_analysis_weakest_link_missing");
 

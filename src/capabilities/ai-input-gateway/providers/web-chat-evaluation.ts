@@ -451,6 +451,12 @@ const assistantCount = structuredCandidates.length > 0
     : 0;
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
 const responseGenerating = geminiBodyAnswer || geminiStructuredJsonAnswer ? false : generating;
+const quotaExhaustedText = String(document.body?.innerText || document.body?.textContent || "");
+const quotaExhaustedVisible = /usage limit|message cap|limit reached|come back later|try again in|额度|上限|用完|已达到.*限制|稍后再回来/i.test(quotaExhaustedText)
+  && !/请求过于频繁|请稍等几分钟后再重试|too many requests|request too frequent/i.test(quotaExhaustedText);
+if (quotaExhaustedVisible) {
+  return {status: "review_required", message: "pick3_quota_exhausted_wait_required", answerText: null, pageUrl: location.href, generating: false, assistantCount};
+}
 if (!normalizedAnswerText && responseGenerating) {
   return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount};
 }

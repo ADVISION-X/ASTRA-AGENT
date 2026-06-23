@@ -6,45 +6,28 @@ const terminalLog = (line: string): void => {
   process.stdout.write(`[GRASSEYE][PICK3][EXCHANGE] ${line}\n`);
 };
 
-const PICK3_POST_PARSE_MIN_DELAY_MS = 5_000;
-const PICK3_POST_PARSE_MAX_DELAY_MS = 30_000;
-
-/**
- * GPT/Gemini web-chat surfaces rate-limit popups when requests land too close together. A fixed
- * delay is itself a fingerprint-able pattern, so the wait after each successfully parsed reply is
- * randomized within [5s, 30s] rather than a constant — this only fires after a successful parse,
- * never after a failed/retried attempt, since those already lose time to the retry path itself.
- */
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-const randomPick3PostParseDelayMs = (): number =>
-  Math.floor(Math.random() * (PICK3_POST_PARSE_MAX_DELAY_MS - PICK3_POST_PARSE_MIN_DELAY_MS + 1)) + PICK3_POST_PARSE_MIN_DELAY_MS;
-
 import type { AiFeedInput, AiFeedResult } from "../../capabilities/ai-input-gateway/index.js";
 import { parsePick3Prediction, type ParsedPick3Prediction } from "./pick3-is-blind-eval.ai-parse.js";
+import {
+  buildInitialCheckpoints,
+  checkpointForWorkItem,
+  checkpointKey,
+  checkpointKeyForItem,
+  isCheckpointTerminal,
+  type Pick3PromptExchangeWorkItem,
+} from "./pick3-is-blind-eval.ai-checkpoint.js";
+import { isPick3QuotaExhaustedResult, PICK3_QUOTA_EXHAUSTED_WAIT_MS } from "./pick3-is-blind-eval.ai-quota.js";
+import { randomPick3PostParseDelayMs, sleep } from "./pick3-is-blind-eval.ai-throttle.js";
 import type { Pick3PlaybookPromptPackage } from "./pick3-is-blind-eval.playbook.js";
 import { hashText, pick3PromptContractMetadata, publicPromptPackageId, renderPick3PredictionPrompt } from "./pick3-is-blind-eval.ai-contract.js";
+import type { Pick3GatewaySender, Pick3PromptExchangeInput, Pick3PromptExchangeResult } from "./pick3-is-blind-eval.ai-types.js";
 import type {
   Pick3AiInteractionRecord,
   Pick3AiProviderKind,
   Pick3ImageRecord,
   Pick3PredictionRecord,
 } from "./pick3-is-blind-eval.schema.js";
-
-export type Pick3GatewaySender = (input: AiFeedInput) => Promise<AiFeedResult>;
-
-export type Pick3PromptExchangeResult = {
-  gatewayInputs: AiFeedInput[];
-  interactions: Pick3AiInteractionRecord[];
-  predictions: Pick3PredictionRecord[];
-  completion: {
-    expectedCount: number;
-    completedCount: number;
-    deferredRetryCount: number;
-    skippedCount: number;
-    unresolvedCount: number;
-  };
-};
+export type { Pick3GatewaySender, Pick3PromptExchangeInput, Pick3PromptExchangeResult } from "./pick3-is-blind-eval.ai-types.js";
 
 export const buildPick3AiGatewayInput = (input: {
   batchId: string;
@@ -305,31 +288,6 @@ const sendWithRecoverableOutputRetry = async (input: {
   return last;
 };
 
-type Pick3PromptExchangeInput = {
-  artifactDir: string;
-  images: readonly Pick3ImageRecord[];
-  maxCompletionRounds?: number;
-  /**
-   * Overrides the post-parse throttle delay (ms). Production callers must leave this unset so the
-   * real randomized 5-30s wait applies. Acceptance/unit tests pass 0 so fixture-sender runs are not
-   * slowed down by a wait that exists only to avoid tripping real ChatGPT/Gemini rate limits.
-   */
-  postParseDelayMsOverride?: number;
-  promptPackages: readonly Pick3PlaybookPromptPackage[];
-  providerKind?: Pick3AiProviderKind;
-  repeatCount?: number;
-  sender: Pick3GatewaySender;
-};
-
-type Pick3PromptExchangeWorkItem = {
-  completionRound: number;
-  gatewayInput: AiFeedInput;
-  image: Pick3ImageRecord;
-  promptPackage: Pick3PlaybookPromptPackage;
-  repeatIndex: number;
-  sequence: number;
-};
-
 const buildPromptExchangeQueue = (input: Pick3PromptExchangeInput, repeatCount: number): Pick3PromptExchangeWorkItem[] => {
   const packageByImage = new Map(input.promptPackages.map((promptPackage) => [promptPackage.imageRef.imageId, promptPackage]));
   const queue: Pick3PromptExchangeWorkItem[] = [];
@@ -385,55 +343,150 @@ const runPromptExchangeWorkItem = async (input: {
   return { gatewayInput, gatewayResult: exchangeAttempt.gatewayResult, result: exchangeAttempt.result };
 };
 
+const preparePromptExchangeQueue = (input: {
+  exchangeInput: Pick3PromptExchangeInput;
+  repeatCount: number;
+}): {
+  existingCheckpoints: Map<string, NonNullable<Pick3PromptExchangeInput["resumeCheckpoints"]>[number]>;
+  queue: Pick3PromptExchangeWorkItem[];
+  resumedCompletedCount: number;
+  resumedSkippedCount: number;
+} => {
+  const existingCheckpoints = new Map((input.exchangeInput.resumeCheckpoints ?? []).map((checkpoint) => [
+    checkpointKey({ completionRound: checkpoint.completionRound, imageId: checkpoint.imageId, repeatIndex: checkpoint.repeatIndex }),
+    checkpoint,
+  ]));
+  let queue = buildPromptExchangeQueue(input.exchangeInput, input.repeatCount);
+  if (!input.exchangeInput.taskId) return { existingCheckpoints, queue, resumedCompletedCount: 0, resumedSkippedCount: 0 };
+  const missingInitial = buildInitialCheckpoints({ items: queue, taskId: input.exchangeInput.taskId })
+    .filter((checkpoint) => !existingCheckpoints.has(checkpointKey({ completionRound: checkpoint.completionRound, imageId: checkpoint.imageId, repeatIndex: checkpoint.repeatIndex })));
+  input.exchangeInput.onCheckpointCreate?.(missingInitial);
+  for (const checkpoint of missingInitial) {
+    existingCheckpoints.set(checkpointKey({ completionRound: checkpoint.completionRound, imageId: checkpoint.imageId, repeatIndex: checkpoint.repeatIndex }), checkpoint);
+  }
+  queue = queue.filter((item) => !isCheckpointTerminal(existingCheckpoints.get(checkpointKeyForItem(item))));
+  return {
+    existingCheckpoints,
+    queue,
+    resumedCompletedCount: [...existingCheckpoints.values()].filter((checkpoint) => checkpoint.status === "completed").length,
+    resumedSkippedCount: [...existingCheckpoints.values()].filter((checkpoint) => checkpoint.status === "skipped").length,
+  };
+};
+
+const buildPromptExchangeResult = (input: {
+  deferredRetryCount: number;
+  gatewayInputs: AiFeedInput[];
+  interactions: Pick3AiInteractionRecord[];
+  predictions: Pick3PredictionRecord[];
+  resumedCompletedCount: number;
+  resumedSkippedCount: number;
+  skippedCount: number;
+  total: number;
+}): Pick3PromptExchangeResult => ({
+  gatewayInputs: input.gatewayInputs,
+  interactions: input.interactions,
+  predictions: input.predictions,
+  completion: {
+    expectedCount: input.total,
+    completedCount: input.resumedCompletedCount + input.resumedSkippedCount + input.predictions.length + input.skippedCount,
+    deferredRetryCount: input.deferredRetryCount,
+    skippedCount: input.resumedSkippedCount + input.skippedCount,
+    unresolvedCount: input.total - input.resumedCompletedCount - input.resumedSkippedCount - input.predictions.length - input.skippedCount,
+  },
+});
+
+type PromptExchangeLoopState = {
+  deferredRetryCount: number;
+  existingCheckpoints: Map<string, NonNullable<Pick3PromptExchangeInput["resumeCheckpoints"]>[number]>;
+  gatewayInputs: AiFeedInput[];
+  interactions: Pick3AiInteractionRecord[];
+  maxCompletionRounds: number;
+  predictions: Pick3PredictionRecord[];
+  queue: Pick3PromptExchangeWorkItem[];
+  skippedCount: number;
+  total: number;
+};
+
+const processPromptExchangeItem = async (
+  input: Pick3PromptExchangeInput,
+  state: PromptExchangeLoopState,
+  item: Pick3PromptExchangeWorkItem,
+): Promise<void> => {
+  const seqLabel = `${item.sequence}/${state.total}`;
+  const checkpoint = input.taskId ? checkpointForWorkItem({ item, taskId: input.taskId }) : null;
+  const { gatewayInput, gatewayResult, result } = await runPromptExchangeWorkItem({ artifactDir: input.artifactDir, item, sender: input.sender, total: state.total });
+  state.gatewayInputs.push(gatewayInput);
+  if (isPick3QuotaExhaustedResult(gatewayResult) && checkpoint) {
+    const waitMs = input.quotaWaitMsOverride ?? PICK3_QUOTA_EXHAUSTED_WAIT_MS;
+    const resumeAfter = new Date(Date.now() + waitMs).toISOString();
+    input.onCheckpointPause?.({ checkpoint, resumeAfter, reason: "pick3_quota_exhausted_wait_required" });
+    terminalLog(`[${seqLabel}] quota_wait_scheduled imageId=${item.image.imageId} position=${item.image.position} waitMs=${waitMs} resumeAfter=${resumeAfter}`);
+    await sleep(waitMs);
+    state.queue.push(item);
+    return;
+  }
+  if (result.parsed) {
+    state.interactions.push(result.interaction);
+    const prediction = buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage: item.promptPackage });
+    state.predictions.push(prediction);
+    if (checkpoint) input.onWorkItemFinal?.({ checkpoint, interaction: result.interaction, prediction, status: "completed" });
+    const postParseDelayMs = input.postParseDelayMsOverride ?? randomPick3PostParseDelayMs();
+    terminalLog(`[${seqLabel}] post_parse_throttle_delay imageId=${item.image.imageId} position=${item.image.position} delayMs=${postParseDelayMs}`);
+    await sleep(postParseDelayMs);
+    return;
+  }
+  if (result.interaction.parseStatus === "skipped_provider_reported_image_missing") {
+    state.skippedCount += 1;
+    state.interactions.push(result.interaction);
+    if (checkpoint) input.onWorkItemFinal?.({ checkpoint, interaction: result.interaction, prediction: null, status: "skipped" });
+    return;
+  }
+  if (item.completionRound < state.maxCompletionRounds) {
+    state.deferredRetryCount += 1;
+    terminalLog(`[${seqLabel}] deferred_retry_scheduled imageId=${item.image.imageId} position=${item.image.position} repeatIndex=${item.repeatIndex} nextCompletionRound=${item.completionRound + 1} reason=${result.interaction.parseFailureReason ?? "parse_failed_raw_available"}`);
+    const nextItem = { ...item, completionRound: item.completionRound + 1 };
+    if (input.taskId && !state.existingCheckpoints.has(checkpointKeyForItem(nextItem))) {
+      const nextCheckpoint = checkpointForWorkItem({ item: nextItem, taskId: input.taskId });
+      input.onCheckpointCreate?.([nextCheckpoint]);
+      state.existingCheckpoints.set(checkpointKeyForItem(nextItem), nextCheckpoint);
+    }
+    state.queue.push(nextItem);
+    return;
+  }
+  state.interactions.push(result.interaction);
+  if (checkpoint) input.onWorkItemFinal?.({ checkpoint, interaction: result.interaction, prediction: null, status: "unresolved" });
+};
+
 export const runPick3PromptExchange = async (input: Pick3PromptExchangeInput): Promise<Pick3PromptExchangeResult> => {
-  const gatewayInputs: AiFeedInput[] = [];
-  const interactions: Pick3AiInteractionRecord[] = [];
-  const predictions: Pick3PredictionRecord[] = [];
-  let skippedCount = 0;
   const repeatCount = input.repeatCount ?? 1;
   const total = input.images.length * repeatCount;
-  const maxCompletionRounds = input.maxCompletionRounds ?? PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS;
-  let deferredRetryCount = 0;
-  let queue = buildPromptExchangeQueue(input, repeatCount);
-  while (queue.length > 0) {
-    const currentQueue = queue;
-    queue = [];
+  const prepared = preparePromptExchangeQueue({ exchangeInput: input, repeatCount });
+  const state: PromptExchangeLoopState = {
+    deferredRetryCount: 0,
+    existingCheckpoints: prepared.existingCheckpoints,
+    gatewayInputs: [],
+    interactions: [],
+    maxCompletionRounds: input.maxCompletionRounds ?? PICK3_PROMPT_EXCHANGE_COMPLETION_ROUNDS,
+    predictions: [],
+    queue: prepared.queue,
+    skippedCount: 0,
+    total,
+  };
+  while (state.queue.length > 0) {
+    const currentQueue = state.queue;
+    state.queue = [];
     for (const item of currentQueue) {
-      const seqLabel = `${item.sequence}/${total}`;
-      const { gatewayInput, result } = await runPromptExchangeWorkItem({ artifactDir: input.artifactDir, item, sender: input.sender, total });
-      gatewayInputs.push(gatewayInput);
-      if (result.parsed) {
-        interactions.push(result.interaction);
-        predictions.push(buildPrediction({ interaction: result.interaction, parsed: result.parsed, promptPackage: item.promptPackage }));
-        const postParseDelayMs = input.postParseDelayMsOverride ?? randomPick3PostParseDelayMs();
-        terminalLog(`[${seqLabel}] post_parse_throttle_delay imageId=${item.image.imageId} position=${item.image.position} delayMs=${postParseDelayMs}`);
-        await sleep(postParseDelayMs);
-        continue;
-      }
-      if (result.interaction.parseStatus === "skipped_provider_reported_image_missing") {
-        skippedCount += 1;
-        interactions.push(result.interaction);
-        continue;
-      }
-      if (item.completionRound < maxCompletionRounds) {
-        deferredRetryCount += 1;
-        terminalLog(`[${seqLabel}] deferred_retry_scheduled imageId=${item.image.imageId} position=${item.image.position} repeatIndex=${item.repeatIndex} nextCompletionRound=${item.completionRound + 1} reason=${result.interaction.parseFailureReason ?? "parse_failed_raw_available"}`);
-        queue.push({ ...item, completionRound: item.completionRound + 1 });
-        continue;
-      }
-      interactions.push(result.interaction);
+      await processPromptExchangeItem(input, state, item);
     }
   }
-  return {
-    gatewayInputs,
-    interactions,
-    predictions,
-    completion: {
-      expectedCount: total,
-      completedCount: predictions.length + skippedCount,
-      deferredRetryCount,
-      skippedCount,
-      unresolvedCount: total - predictions.length - skippedCount,
-    },
-  };
+  return buildPromptExchangeResult({
+    deferredRetryCount: state.deferredRetryCount,
+    gatewayInputs: state.gatewayInputs,
+    interactions: state.interactions,
+    predictions: state.predictions,
+    resumedCompletedCount: prepared.resumedCompletedCount,
+    resumedSkippedCount: prepared.resumedSkippedCount,
+    skippedCount: state.skippedCount,
+    total,
+  });
 };

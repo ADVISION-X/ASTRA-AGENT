@@ -313,6 +313,7 @@ const renderPick3HistorySurface = (): string => `
       <div class="actions">
         <span class="status-badge status-active" data-pick3-history-count>0</span>
         <button class="btn secondary" type="button" data-pick3-history-refresh>Refresh</button>
+        <button class="btn secondary" type="button" data-pick3-history-continue disabled>Continue</button>
         <button class="btn secondary" type="button" data-pick3-history-delete>Delete</button>
       </div>
     </div>

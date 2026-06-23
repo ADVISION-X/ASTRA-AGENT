@@ -68,7 +68,7 @@ try {
           supportingEvidence: ["fixture evidence for history reporting"],
           counterEvidence: ["fixture counter evidence"],
           decisionLogic: "This fixture intentionally makes one position wrong so the history report can prove phase-level miss and reason surfacing.",
-          zoneCount: { lowerCount: 40, upperCount: 40 },
+          zoneCount: { lowerCount: 40, upperCount: 40, uncertainCount: 0 },
           patternRecurrence: "The fixture pattern recurs three times and two earlier recurrences match the chosen direction.",
           weakestLink: "The fixture weakest link is intentionally synthetic.",
           abstainReason: null,

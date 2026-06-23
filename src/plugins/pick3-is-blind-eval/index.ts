@@ -1,9 +1,14 @@
 export { type Pick3TaskRecord } from "./pick3-is-blind-eval.schema.js";
 export {
-  getLatestPick3IsBlindEvalTask,
   runPick3IsBlindEvalFlow,
   type RunPick3Context,
 } from "./pick3-is-blind-eval.flow.js";
+export {
+  getLatestPick3IsBlindEvalTask,
+  getPick3IsBlindEvalTaskStatus,
+  resumePick3IsBlindEvalTask,
+  startPick3IsBlindEvalTask,
+} from "./pick3-is-blind-eval.task.js";
 export {
   deletePick3HumanReviewTask,
   getPick3HumanReviewInteraction,

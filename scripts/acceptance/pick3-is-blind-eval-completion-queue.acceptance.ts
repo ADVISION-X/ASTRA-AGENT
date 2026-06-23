@@ -5,9 +5,10 @@ import { resolve } from "node:path";
 
 import type { AiFeedInput } from "../../src/capabilities/ai-input-gateway/index.js";
 import { runPick3PromptExchange } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.js";
+import type { Pick3PromptExchangeCheckpoint } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.checkpoint-types.js";
 import { buildPick3PlaybookPromptPackage, loadBuiltInPick3Playbooks } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.js";
 import type { Pick3ImageRecord } from "../../src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.js";
-import { buildFixtureAiResult, buildRawTextFixtureAiResult, visiblePromptPackageId } from "./pick3-is-blind-eval.acceptance-support.js";
+import { buildEmptyFixtureAiResult, buildFixtureAiResult, buildRawTextFixtureAiResult, visiblePromptPackageId } from "./pick3-is-blind-eval.acceptance-support.js";
 
 const buildImage = (imageId: string, position: Pick3ImageRecord["position"]): Pick3ImageRecord => ({
   imageId,
@@ -140,4 +141,77 @@ assert.equal(missingImageSkipExchange.completion.unresolvedCount, 0);
 assert.equal(missingImageSkipExchange.interactions[0]?.parseStatus, "skipped_provider_reported_image_missing");
 assert.equal(missingImageSkipExchange.interactions[0]?.parseFailureReason, "pick3_provider_reported_image_missing_retry_exhausted");
 assert.equal(missingImageSkipExchange.predictions.length, 1);
+
+const checkpointCreates: Pick3PromptExchangeCheckpoint[] = [];
+const checkpointPauses: Array<{ checkpoint: Pick3PromptExchangeCheckpoint; resumeAfter: string; reason: string }> = [];
+const checkpointFinals: Array<{ checkpoint: Pick3PromptExchangeCheckpoint; status: string }> = [];
+let quotaCalls = 0;
+const quotaExchange = await runPick3PromptExchange({
+  artifactDir,
+  images: [images[0]!],
+  postParseDelayMsOverride: 0,
+  promptPackages: [promptPackages[0]!],
+  quotaWaitMsOverride: 1,
+  sender: async (input) => {
+    quotaCalls += 1;
+    if (quotaCalls <= 2) {
+      return {
+        ...buildEmptyFixtureAiResult({ gatewayInput: input }),
+        failureReason: "pick3_quota_exhausted_wait_required",
+        reviewRequiredReason: "pick3_quota_exhausted_wait_required",
+      };
+    }
+    return buildFixtureAiResult({
+      gatewayInput: input,
+      rawText: JSON.stringify(buildValidPredictionFixture({
+        imageId: input.inputRefs[0]?.id,
+        promptPackageId: visiblePromptPackageId(input),
+        predictionLabel: "lower",
+        confidence: 0.57,
+        reason: "quota wait resumed the same work item",
+      })),
+    });
+  },
+  taskId: "checkpoint-task-quota",
+  onCheckpointCreate: (checkpoints) => checkpointCreates.push(...checkpoints),
+  onCheckpointPause: (pause) => checkpointPauses.push(pause),
+  onWorkItemFinal: (final) => checkpointFinals.push({ checkpoint: final.checkpoint, status: final.status }),
+});
+assert.equal(quotaCalls, 3);
+assert.equal(checkpointCreates.length, 1);
+assert.equal(checkpointPauses.length, 1);
+assert.equal(checkpointPauses[0]?.reason, "pick3_quota_exhausted_wait_required");
+assert.ok(checkpointPauses[0]?.resumeAfter);
+assert.equal(checkpointFinals.length, 1);
+assert.equal(checkpointFinals[0]?.status, "completed");
+assert.equal(quotaExchange.completion.completedCount, 1);
+assert.equal(quotaExchange.completion.unresolvedCount, 0);
+
+let resumeCalls = 0;
+const resumedCheckpoint = { ...checkpointCreates[0]!, status: "completed" as const, interactionId: "done", predictionId: "done", updatedAt: new Date().toISOString() };
+const resumeExchange = await runPick3PromptExchange({
+  artifactDir,
+  images: [images[0]!],
+  postParseDelayMsOverride: 0,
+  promptPackages: [promptPackages[0]!],
+  resumeCheckpoints: [resumedCheckpoint],
+  sender: async (input) => {
+    resumeCalls += 1;
+    return buildFixtureAiResult({
+      gatewayInput: input,
+      rawText: JSON.stringify(buildValidPredictionFixture({
+        imageId: input.inputRefs[0]?.id,
+        promptPackageId: visiblePromptPackageId(input),
+        predictionLabel: "upper",
+        confidence: 0.58,
+        reason: "completed checkpoint should skip this sender",
+      })),
+    });
+  },
+  taskId: "checkpoint-task-quota",
+});
+assert.equal(resumeCalls, 0);
+assert.equal(resumeExchange.completion.expectedCount, 1);
+assert.equal(resumeExchange.completion.completedCount, 1);
+assert.equal(resumeExchange.completion.unresolvedCount, 0);
 console.log("pick3-is-blind-eval completion queue acceptance passed");

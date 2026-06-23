@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Pick3TaskProgress } from "./pick3-is-blind-eval.checkpoint-types.js";
 
 export const PICK3_JOB_ID = "pick3-is-blind-eval" as const;
 export const PICK3_OFFICIAL_SOURCE = "theuaelottery" as const;
@@ -215,20 +216,30 @@ type Pick3StabilityResult = {
   rawOutputRef: string;
 };
 
+type Pick3StabilityConsensus = {
+  position: Pick3Position;
+  consensusLabel: Pick3StabilityResult["visiblePredictionLabel"] | null;
+  isStable: boolean;
+  labels: ReadonlyArray<Pick3StabilityResult["visiblePredictionLabel"]>;
+};
+
 type Pick3StabilitySummary = {
-  deferredRetryCount?: number;
+  consensus: Pick3StabilityConsensus[];
+  deferredRetryCount: number;
   repeatCount: number;
   results: Pick3StabilityResult[];
-  unresolvedCount?: number;
+  skippedCount: number;
+  unresolvedCount: number;
 };
 
 export type Pick3TaskRecord = {
   taskId: string;
   mode: Pick3Mode;
   promptMode: z.infer<typeof Pick3PromptModeSchema>;
-  status: "success" | "partial_success" | "failed" | "review_required";
+  status: "running" | "paused_rate_limited" | "success" | "partial_success" | "failed" | "review_required";
   reachedStep: string;
   reason: string | null;
+  progress?: Pick3TaskProgress | null;
   createdAt: string;
   updatedAt: string;
   sync: Pick3SyncSummary;

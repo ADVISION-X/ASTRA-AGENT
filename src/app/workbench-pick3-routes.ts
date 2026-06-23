@@ -20,6 +20,16 @@ const handlePick3Latest = async (
   writeJson(response, latest ? 200 : 404, latest ?? { error: "pick3_task_not_found" });
 };
 
+const handlePick3Status = async (
+  url: URL,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<void> => {
+  const taskId = url.searchParams.get("taskId") ?? "";
+  const task = taskId ? await workbench.getPick3IsBlindEvalTaskStatus(taskId) : null;
+  writeJson(response, task ? 200 : 404, task ?? { error: "pick3_task_not_found" });
+};
+
 const handlePick3History = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -82,7 +92,28 @@ const handlePick3ManualPlaybookReview = async (
   writeJson(response, result ? 200 : 404, result ?? { error: "pick3_playbook_lesson_review_not_found" });
 };
 
-const handlePick3GetRequest = async (
+const handlePick3Resume = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<void> => {
+  const body = await readJsonBody(request);
+  writeJson(response, 200, await workbench.resumePick3IsBlindEvalTask(body));
+};
+
+const handlePick3ReviewGetRequest = async (
+  path: string,
+  url: URL,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  if (path === "/api/pick3-is-blind-eval/task") await handlePick3ReviewTask(url, response, workbench);
+  else if (path === "/api/pick3-is-blind-eval/interaction") await handlePick3ReviewInteraction(url, response, workbench);
+  else return false;
+  return true;
+};
+
+const handlePick3StateGetRequest = async (
   path: string,
   url: URL,
   response: ServerResponse,
@@ -90,9 +121,23 @@ const handlePick3GetRequest = async (
 ): Promise<boolean> => {
   if (path === "/api/pick3-is-blind-eval/history") await handlePick3History(response, workbench);
   else if (path === "/api/pick3-is-blind-eval/trend") await handlePick3Trend(response, workbench);
-  else if (path === "/api/pick3-is-blind-eval/task") await handlePick3ReviewTask(url, response, workbench);
-  else if (path === "/api/pick3-is-blind-eval/interaction") await handlePick3ReviewInteraction(url, response, workbench);
   else if (path === "/api/pick3-is-blind-eval/latest") await handlePick3Latest(response, workbench);
+  else if (path === "/api/pick3-is-blind-eval/status") await handlePick3Status(url, response, workbench);
+  else return handlePick3ReviewGetRequest(path, url, response, workbench);
+  return true;
+};
+
+const handlePick3TaskWriteRequest = async (
+  request: IncomingMessage,
+  path: string,
+  url: URL,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  if (request.method === "POST" && path === "/api/pick3-is-blind-eval/start") await handlePick3Start(request, response, workbench);
+  else if (request.method === "POST" && path === "/api/pick3-is-blind-eval/task/resume") await handlePick3Resume(request, response, workbench);
+  else if (request.method === "POST" && path === "/api/pick3-is-blind-eval/playbook-review") await handlePick3ManualPlaybookReview(request, response, workbench);
+  else if (request.method === "DELETE" && path === "/api/pick3-is-blind-eval/task") await handlePick3DeleteTask(url, response, workbench);
   else return false;
   return true;
 };
@@ -103,13 +148,7 @@ const handlePick3WriteRequest = async (
   url: URL,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  if (request.method === "POST" && path === "/api/pick3-is-blind-eval/start") await handlePick3Start(request, response, workbench);
-  else if (request.method === "POST" && path === "/api/pick3-is-blind-eval/playbook-review") await handlePick3ManualPlaybookReview(request, response, workbench);
-  else if (request.method === "DELETE" && path === "/api/pick3-is-blind-eval/task") await handlePick3DeleteTask(url, response, workbench);
-  else return false;
-  return true;
-};
+): Promise<boolean> => handlePick3TaskWriteRequest(request, path, url, response, workbench);
 
 export const handlePick3Request = async (
   request: IncomingMessage,
@@ -118,6 +157,6 @@ export const handlePick3Request = async (
 ): Promise<boolean> => {
   const path = request.url?.split("?")[0] ?? "";
   const url = new URL(request.url ?? "/", "http://localhost");
-  if (request.method === "GET") return handlePick3GetRequest(path, url, response, workbench);
+  if (request.method === "GET") return handlePick3StateGetRequest(path, url, response, workbench);
   return handlePick3WriteRequest(request, path, url, response, workbench);
 };

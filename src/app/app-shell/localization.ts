@@ -54,6 +54,7 @@ const appShellZhCopyEntries = [
   ["Start", "开始"],
   ["Latest", "最新"],
   ["Export", "导出"],
+  ["Continue", "继续"],
   ["Delete", "删除"],
   ["Runtime Events", "运行事件"],
   ["Use the bottom console for live events", "使用底部控制台查看实时事件"],

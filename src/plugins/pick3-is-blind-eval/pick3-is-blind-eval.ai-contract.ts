@@ -29,8 +29,8 @@ const freeAnalysisOutputShape = (promptPackage: Pick3PlaybookPromptPackage): str
   supportingEvidence: ["concrete visual evidence supporting the chosen label"],
   counterEvidence: ["concrete opposing evidence, or empty array"],
   decisionLogic: "why the supporting evidence outweighs counter-evidence, or why evidence is balanced",
-  zoneCount: { lowerCount: "integer: visible points below the midline, counted not estimated", upperCount: "integer: visible points above the midline, counted not estimated" },
-  patternRecurrence: "name the pattern cited in supportingEvidence, how many times it recurs in the full window, and how many of those recurrences matched the predicted direction",
+  zoneCount: { lowerCount: "integer: visible points below the midline, counted not estimated", upperCount: "integer: visible points above the midline, counted not estimated", uncertainCount: "integer: visible points too close to the midline to confidently classify either side; use 0 if none" },
+  patternRecurrence: "name a simple, visually well-defined recurring pattern cited in supportingEvidence and how many times it recurs and matches the predicted direction; if no reliable recurring pattern applies, state that explicitly instead of inventing one",
   weakestLink: "the single weakest assumption in your own reasoning chain",
   abstainReason: "string or null - required if abstain",
 }, null, 2);
@@ -61,7 +61,7 @@ export const renderPick3PredictionPrompt = (promptPackage: Pick3PlaybookPromptPa
   "Return exactly this JSON object shape, with your chosen values:",
   promptPackage.promptMode === "free_analysis_strict_reasoning" ? freeAnalysisOutputShape(promptPackage) : playbookOutputShape(promptPackage),
   promptPackage.promptMode === "free_analysis_strict_reasoning"
-    ? "Important: `predictionLabel` must be exactly one of `lower`, `upper`, or `abstain`. `confidence` must be a decimal from 0 to 1, for example 0.65, not 65. Deep analysis is mandatory; a conclusion without chartReading, recentBehavior, supportingEvidence, decisionLogic, zoneCount, patternRecurrence, and weakestLink is invalid. zoneCount must be two non-negative integers counted from visible points you can classify by zone."
+    ? "Important: `predictionLabel` must be exactly one of `lower`, `upper`, or `abstain`. `confidence` must be a decimal from 0 to 1, for example 0.65, not 65. Deep analysis is mandatory; a conclusion without chartReading, recentBehavior, supportingEvidence, decisionLogic, zoneCount, patternRecurrence, and weakestLink is invalid. zoneCount must be three non-negative integers (lowerCount, upperCount, uncertainCount) counted from visible points; a point too close to the midline to confidently classify goes into uncertainCount, not into lowerCount or upperCount."
     : "Important: `predictionLabel` must be exactly one of `lower`, `upper`, or `abstain`. Never put a tail shape word such as `hold`, `rise`, `bare_low`, or `shoulder_hold` in `predictionLabel`; shape words belong only in `tailShapes`.",
   "Final reminder: output must start with `{` and end with `}`. Do not include markdown fences, file paths, target phase, date, answer digit, or action instructions.",
 ].join("\n\n");

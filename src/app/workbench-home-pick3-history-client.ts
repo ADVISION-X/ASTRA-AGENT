@@ -1,4 +1,22 @@
 const PICK3_HISTORY_CLIENT = `
+const isPick3ResumableStatus = (status) => status === "running" || status === "paused_rate_limited";
+
+const updatePick3HistoryContinueButton = (summary) => {
+  const button = qs("[data-pick3-history-continue]");
+  if (!button) return;
+  const canContinue = Boolean(summary?.taskId && isPick3ResumableStatus(summary.status));
+  button.disabled = !canContinue;
+  button.dataset.pick3HistorySelectedTaskId = summary?.taskId || "";
+};
+
+const markPick3HistorySelectedRow = (taskId) => {
+  document.querySelectorAll("button.record-item[data-pick3-history-task-id]").forEach((item) => {
+    const selected = item.dataset.pick3HistoryTaskId === taskId;
+    item.classList.toggle("selected", selected);
+    item.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+};
+
 const renderPick3HistoryRows = (tasks) => {
   const list = qs("[data-pick3-history-list]");
   if (!list) return;
@@ -10,6 +28,9 @@ const renderPick3HistoryRows = (tasks) => {
     item.type = "button";
     item.className = "record-item";
     item.dataset.pick3HistoryTaskId = task.taskId;
+    item.dataset.pick3HistoryStatus = task.status || "";
+    item.dataset.pick3HistoryResumable = isPick3ResumableStatus(task.status) ? "true" : "false";
+    item.setAttribute("aria-pressed", "false");
     const title = document.createElement("strong");
     title.textContent = (task.newestOfficialPhase || "-") + " -> " + (task.targetPhase || "-");
     const meta = document.createElement("div");
@@ -30,6 +51,9 @@ const renderPick3HistoryRows = (tasks) => {
 };
 
 const clearPick3HistoryDetail = () => {
+  state.pick3HistorySelectedTask = null;
+  updatePick3HistoryContinueButton(null);
+  markPick3HistorySelectedRow("");
   setText("[data-pick3-history-task-id]", "-");
   setText("[data-pick3-history-status]", "-");
   setText("[data-pick3-history-phase]", "-");
@@ -208,6 +232,9 @@ const renderPick3HistoryDetail = (detail) => {
   if (!detail?.summary) return;
   const summary = detail.summary;
   state.pick3TaskId = summary.taskId || state.pick3TaskId;
+  state.pick3HistorySelectedTask = summary;
+  updatePick3HistoryContinueButton(summary);
+  markPick3HistorySelectedRow(summary.taskId || "");
   setText("[data-pick3-history-task-id]", summary.taskId);
   setText("[data-pick3-history-status]", summary.status);
   setText("[data-pick3-history-phase]", (summary.newestOfficialPhase || "-") + " -> " + (summary.targetPhase || "-"));
@@ -245,6 +272,32 @@ const deletePick3SelectedHistoryTask = async () => {
   writeActivity("pick3 history physically deleted: " + result.taskId, "completed");
   await refreshPick3History();
 };
+
+const continuePick3SelectedHistoryTask = async () => {
+  const selected = state.pick3HistorySelectedTask;
+  const taskId = selected?.taskId;
+  if (!taskId) return writeActivity("pick3 history task id is required", "manual-required");
+  if (!isPick3ResumableStatus(selected.status)) {
+    updatePick3HistoryContinueButton(selected);
+    return writeActivity("pick3 history continue is allowed only for unfinished tasks", "manual-required");
+  }
+  writeActivity("pick3 history continue started: " + taskId, "running");
+  const payload = { taskId };
+  if (selected.providerKind) payload.providerKind = selected.providerKind;
+  const task = await readJson("/api/pick3-is-blind-eval/task/resume", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  renderPick3Task(task);
+  await refreshPick3History();
+  if (task?.taskId && (task.status === "running" || task.status === "paused_rate_limited")) {
+    await pollPick3Task(task.taskId);
+  }
+};
+
+document.addEventListener("click", (event) => {
+  if (event.target?.closest?.("[data-pick3-history-continue]")) continuePick3SelectedHistoryTask().catch((error) => writeActivity("pick3 history continue failed: " + error.message, "failed"));
+});
 `;
 
 export const renderPick3HistoryClient = (): string => PICK3_HISTORY_CLIENT;

@@ -1,13 +1,19 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
-
 import Database from "better-sqlite3";
-
+import type { Pick3PromptExchangeCheckpoint } from "./pick3-is-blind-eval.checkpoint-types.js";
 import { PICK3_JOB_ID, PICK3_LOTTERY_TYPE, PICK3_OFFICIAL_SOURCE, PICK3_WINDOW_SIZE, type Pick3AiInteractionRecord, type Pick3Draw, type Pick3FailureReviewRecord, type Pick3ImageRecord, type Pick3PredictionRecord, type Pick3RevealRecord, type Pick3TaskRecord } from "./pick3-is-blind-eval.schema.js";
 import type { Pick3PlaybookLessonRecord } from "./pick3-is-blind-eval.playbook-lesson-types.js";
 import { insertPlaybookLessons, listPlaybookLessons, listPlaybookLessonsByPosition } from "./pick3-is-blind-eval.playbook-lesson-storage.js";
 import type { Pick3PlaybookRecord } from "./pick3-is-blind-eval.playbook.js";
 import { createPick3Schema, preparePick3Statements, type Pick3Statements } from "./pick3-is-blind-eval.storage-schema.js";
+import {
+  insertPromptExchangeCheckpoints,
+  listPromptExchangeCheckpoints,
+  markPromptExchangeCheckpoint,
+  type Pick3PromptExchangeCheckpointPatch,
+} from "./pick3-is-blind-eval.storage-checkpoint.js";
+import { readLatestTaskRecord, readTaskRecordById, writeTaskRecord } from "./pick3-is-blind-eval.storage-task.js";
 
 export type Pick3Storage = {
   close: () => void;
@@ -25,6 +31,7 @@ export type Pick3Storage = {
   insertImages: (images: readonly Pick3ImageRecord[]) => void;
   insertAiInteractions: (interactions: readonly Pick3AiInteractionRecord[]) => void;
   insertPredictions: (predictions: readonly Pick3PredictionRecord[]) => void;
+  insertPromptExchangeCheckpoints: (checkpoints: readonly Pick3PromptExchangeCheckpoint[]) => void;
   insertReveals: (reveals: readonly Pick3RevealRecord[]) => void;
   insertFailureReviews: (reviews: readonly Pick3FailureReviewRecord[]) => void;
   insertPlaybookLessons: (lessons: readonly Pick3PlaybookLessonRecord[]) => void;
@@ -32,10 +39,13 @@ export type Pick3Storage = {
   listActivePlaybooks: () => Pick3PlaybookRecord[];
   listAiInteractions: (batchId: string) => Pick3AiInteractionRecord[];
   listPredictions: (batchId: string) => Pick3PredictionRecord[];
+  listPromptExchangeCheckpoints: (taskId: string) => Pick3PromptExchangeCheckpoint[];
   listReveals: (batchId: string) => Pick3RevealRecord[];
   listFailureReviews: (batchId: string) => Pick3FailureReviewRecord[];
   listPlaybookLessons: (batchId: string) => Pick3PlaybookLessonRecord[];
   listPlaybookLessonsByPosition: (position: Pick3PlaybookLessonRecord["position"]) => Pick3PlaybookLessonRecord[];
+  markPromptExchangeCheckpoint: (checkpoint: Pick3PromptExchangeCheckpointPatch) => void;
+  readTask: (taskId: string) => Pick3TaskRecord | null;
   writeTask: (record: Pick3TaskRecord) => void;
   readLatestTask: () => Pick3TaskRecord | null;
 };
@@ -449,21 +459,6 @@ const listReveals = (statements: Pick3Statements, batchId: string): Pick3RevealR
 const listFailureReviews = (statements: Pick3Statements, batchId: string): Pick3FailureReviewRecord[] =>
   statements.listFailureReviews.all(batchId).map((row) => rowToFailureReview(row as Record<string, unknown>));
 
-const writeTaskRecord = (dataRoot: string, record: Pick3TaskRecord): void => {
-  const taskDir = path.join(dataRoot, "tasks", record.taskId);
-  mkdirSync(taskDir, { recursive: true });
-  writeFileSync(path.join(taskDir, "task.json"), `${JSON.stringify(record, null, 2)}\n`);
-  writeFileSync(path.join(dataRoot, "latest-task.json"), `${JSON.stringify(record, null, 2)}\n`);
-};
-
-const readLatestTaskRecord = (dataRoot: string): Pick3TaskRecord | null => {
-  try {
-    return JSON.parse(readFileSync(path.join(dataRoot, "latest-task.json"), "utf8")) as Pick3TaskRecord;
-  } catch {
-    return null;
-  }
-};
-
 export const openPick3Storage = (dataDir: string): Pick3Storage => {
   const dataRoot = path.join(dataDir, "runtime-data", PICK3_JOB_ID);
   mkdirSync(dataRoot, { recursive: true });
@@ -482,6 +477,7 @@ export const openPick3Storage = (dataDir: string): Pick3Storage => {
     insertImages: (images) => insertImages(db, statements, images),
     insertAiInteractions: (interactions) => insertAiInteractions(db, statements, interactions),
     insertPredictions: (predictions) => insertPredictions(db, statements, predictions),
+    insertPromptExchangeCheckpoints: (checkpoints) => insertPromptExchangeCheckpoints(db, statements, checkpoints),
     insertReveals: (reveals) => insertReveals(db, statements, reveals),
     insertFailureReviews: (reviews) => insertFailureReviews(db, statements, reviews),
     insertPlaybookLessons: (lessons) => insertPlaybookLessons(db, statements, lessons),
@@ -489,10 +485,13 @@ export const openPick3Storage = (dataDir: string): Pick3Storage => {
     listActivePlaybooks: () => listActivePlaybooks(statements),
     listAiInteractions: (batchId) => listAiInteractions(statements, batchId),
     listPredictions: (batchId) => listPredictions(statements, batchId),
+    listPromptExchangeCheckpoints: (taskId) => listPromptExchangeCheckpoints(statements, taskId),
     listReveals: (batchId) => listReveals(statements, batchId),
     listFailureReviews: (batchId) => listFailureReviews(statements, batchId),
     listPlaybookLessons: (batchId) => listPlaybookLessons(statements, batchId),
     listPlaybookLessonsByPosition: (position) => listPlaybookLessonsByPosition(statements, position),
+    markPromptExchangeCheckpoint: (checkpoint) => markPromptExchangeCheckpoint(statements, checkpoint),
+    readTask: (taskId) => readTaskRecordById(dataRoot, taskId),
     writeTask: (record) => writeTaskRecord(dataRoot, record),
     readLatestTask: () => readLatestTaskRecord(dataRoot),
   };
