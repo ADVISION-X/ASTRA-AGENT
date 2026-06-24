@@ -36,33 +36,34 @@ return (() => {
     if (!lower.includes("inventory") && !text.includes("库存") && !text.includes("SKU")) return "review_required";
     return "ready";
   };
-  const walkOpenDom = (root, visit) => {
-    const stack = [root];
-    while (stack.length > 0) {
+  const findInventorySearchHost = () => {
+    const direct = Array.from(document.querySelectorAll("kat-input"))
+      .find((el) => el.getAttribute("placeholder") === inventorySearchPlaceholder);
+    if (direct) return direct;
+    const startedAt = Date.now();
+    const stack = [document];
+    let visited = 0;
+    while (stack.length > 0 && visited < 1800 && Date.now() - startedAt < 120) {
       const node = stack.pop();
+      visited += 1;
       if (!node) continue;
-      visit(node);
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node;
+        if (el.tagName.toLowerCase() === "kat-input" && el.getAttribute("placeholder") === inventorySearchPlaceholder) return el;
+      }
       if (node.shadowRoot) stack.push(node.shadowRoot);
       if (node.children) {
         const children = Array.from(node.children);
-        for (let index = children.length - 1; index >= 0; index -= 1) stack.push(children[index]);
+        for (let index = Math.min(children.length, 80) - 1; index >= 0; index -= 1) stack.push(children[index]);
       }
     }
+    return null;
   };
   const topForm = document.querySelector(topGlobalSearchFormSelector);
   const topInput = document.querySelector(topGlobalSearchInputSelector);
   const topButton = document.querySelector(topGlobalSearchButtonSelector);
-  let searchHost = null;
-  let shadowInputFound = false;
-  walkOpenDom(document, (node) => {
-    if (!node || node.nodeType !== Node.ELEMENT_NODE) return;
-    const el = node;
-    const placeholder = el.getAttribute("placeholder");
-    if (placeholder === inventorySearchPlaceholder && el.tagName.toLowerCase() === "kat-input") {
-      searchHost = el;
-      shadowInputFound = Boolean(el.shadowRoot && el.shadowRoot.querySelector("input[type='text']"));
-    }
-  });
+  const searchHost = findInventorySearchHost();
+  const shadowInputFound = Boolean(searchHost && searchHost.shadowRoot && searchHost.shadowRoot.querySelector("input[type='text']"));
   const hostInsideTopSearch = Boolean(searchHost && topForm && topForm.contains(searchHost));
   const group = searchHost ? searchHost.closest("kat-input-group") : null;
   const button = group ? group.querySelector('[class*="SearchBox-module__searchButton"]') : null;

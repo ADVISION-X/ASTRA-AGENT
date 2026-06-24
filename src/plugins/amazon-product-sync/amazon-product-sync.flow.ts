@@ -81,7 +81,7 @@ const buildDiagnostic = (input: {
   pageUrlPath: pageUrlPath(input.url),
 });
 
-const buildMissingItem = (
+export const buildMissingItem = (
   inputItem: AmazonProductSyncInput["items"][number],
   snapshotAt: string,
   reason: string,
@@ -178,6 +178,7 @@ export const runAmazonProductSyncFlow = async (input: {
   onProgress?: ProgressReporter;
 }): Promise<AmazonProductSyncTaskRecord> => {
   const now = new Date().toISOString();
+  await input.onProgress?.({ reachedStep: "seller_central_inventory_opening", reason: "progress_continues" });
   await input.browser.open({
     url: MARKETPLACE_INVENTORY_URL[input.mission.marketplace],
     title: "Seller Central inventory",

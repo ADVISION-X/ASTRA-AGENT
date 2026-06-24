@@ -1,7 +1,7 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import { createId } from "../../lib/local-runtime/ids.js";
 import { RuntimeFailureClass, RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { runAmazonProductSyncFlow, type AmazonProductSyncFlowProgress } from "./amazon-product-sync.flow.js";
+import { buildMissingItem, runAmazonProductSyncFlow, type AmazonProductSyncFlowProgress } from "./amazon-product-sync.flow.js";
 import {
   AmazonProductSyncInputSchema,
   type AmazonProductSyncInput,
@@ -355,7 +355,7 @@ const logStaleRunningTask = (
 };
 
 const resolveFlowTimeoutMs = (runtime: AmazonProductSyncRuntime, mission: AmazonProductSyncInput): number =>
-  runtime.flowTimeoutMs ?? Math.min(720_000, 45_000 + mission.items.length * 15_000);
+  runtime.flowTimeoutMs ?? Math.min(900_000, 120_000 + mission.items.length * 60_000);
 
 const isRunningTaskStale = (task: AmazonProductSyncTaskRecord, nowMs = Date.now()): boolean => {
   if (task.status !== "queued" && task.status !== "running") return false;
@@ -446,12 +446,17 @@ export const startAmazonProductSyncTask = async (
     })
     .catch((error) => {
       logFlowFailed(runtime, mission, running, error);
+      const reason = error instanceof Error ? error.message : String(error);
+      const items = reason.startsWith(flowTimeoutReasonPrefix) && latestProgress.items.length === 0
+        ? mission.items.map((item) => buildMissingItem(item, new Date().toISOString(), reason, "blocked"))
+        : latestProgress.items;
       return persistAmazonProductSyncTask(runtime.dataDir, {
         ...latestProgress,
         ok: false,
         status: "failed",
-        reason: error instanceof Error ? error.message : String(error),
-        reachedStep: "flow_failed",
+        reason,
+        reachedStep: latestProgress.reachedStep,
+        items,
         updatedAt: new Date().toISOString(),
       });
     });
