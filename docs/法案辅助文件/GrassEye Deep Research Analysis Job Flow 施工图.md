@@ -63,10 +63,13 @@ HTML REPORT
    - fullCaseFileMarkdown
    - inputAttachments sent with the HTML report prompt package
    - runtime HTML format shell
+   - bind report to current fullCaseFile.job.jobId
    - visible summary answer
    - visible forensics process
    - final conclusion before N-stage appendix
    - N-stage questions and answers after the conclusion
+   - each N-stage item cites raw response hash
+   - N-stage appendix visible text preserves at least 80% of persisted N-stage source material
    - persist business-report.html
    ↓
 EXPORT
@@ -289,7 +292,10 @@ n-stage-questions-and-answers
 3. `business-conclusion` 必须保留最终裁决含义，位于正文靠后位置，并出现在 N 阶段问答附录之前。
 4. `n-stage-questions-and-answers` 必须逐条展示已持久化的子问题、问题文本、清洁答案或 raw-preserved 状态、解析状态与可用原文摘要。
 5. 如果 structured answer 缺失但 raw response 存在，HTML 必须显示 raw-preserved / parse status，不得把该问题隐藏。
-6. 这些是展示与追溯结构，不是业务判断 schema；不得引入 runtime-owned `confidence`、`finalVerdict`、`rankedConclusions`、`directAnswer` 等业务字段。
+6. HTML 必须显式绑定当前 `fullCaseFile.job.jobId`。如果捕获到的 HTML 是另一个 job 的报告，即使 section id 齐全也必须拒绝。
+7. `n-stage-questions-and-answers` 中每个 N 阶段条目必须引用该条持久化 raw response hash，作为可复核引用。
+8. `n-stage-questions-and-answers` 的可见正文不能成为极简领导式摘要。按当前案卷计算，N 阶段可见文本长度必须不低于持久化 N 阶段源材料的 80%。源材料优先使用 structured `answerText`，缺 structured 但 raw 存在时使用 raw response。
+9. 这些是展示与追溯结构，不是业务判断 schema；不得引入 runtime-owned `confidence`、`finalVerdict`、`rankedConclusions`、`directAnswer` 等业务字段。
 
 ## App 页面：Deep Research Case Reader
 

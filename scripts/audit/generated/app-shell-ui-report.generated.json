@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T02:09:26.179Z",
+  "generatedAt": "2026-06-24T12:09:00.851Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -43,6 +43,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/skills/media-optimizer/media-optimizer-client.ts",
     "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+    "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
     "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",

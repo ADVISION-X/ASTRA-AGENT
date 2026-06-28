@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T10:56:20.951Z",
+  "generatedAt": "2026-06-28T00:15:52.285Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -49,6 +49,44 @@
             "## 10. App Shell UI Download Surface 变化",
             "## 11. Website API Integration: Amazon Tax Invoice Download",
             "## 16. 禁止第二链路清单"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "manifestPath": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast+chrome+acceptance",
+        "ast+fs",
+        "ast+fs+acceptance",
+        "chrome-dom+acceptance",
+        "generated-plan+acceptance"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Amazon Listing Edit Read Sync 施工图.md",
+          "requiredAnchors": [
+            "## 目标",
+            "## 单链路",
+            "## Step 1: 打开库存管理页面",
+            "## Step 5: 读取每个 TAB 的 DOM",
+            "## 当前已实测成立"
           ]
         }
       ]
@@ -450,7 +488,8 @@
         "GRASSEYE-DEEP-RESEARCH-056-V1",
         "GRASSEYE-DEEP-RESEARCH-057-V1",
         "GRASSEYE-DEEP-RESEARCH-058-V1",
-        "GRASSEYE-DEEP-RESEARCH-059-V1"
+        "GRASSEYE-DEEP-RESEARCH-059-V1",
+        "GRASSEYE-DEEP-RESEARCH-060-V1"
       ],
       "clauseIds": [
         "primary"

@@ -52,6 +52,7 @@ import {
   getLatestAmazonProductFeeSyncTask,
   startAmazonProductFeeSyncTask,
 } from "../../plugins/amazon-product-fee-sync/index.js";
+import { buildAmazonListingEditReadSyncHandle } from "./workbench-amazon-listing-edit-read-sync-support.js";
 import {
   deepResearchAnalysisPublicFacade,
   type DeepResearchAnalysisStartInput,
@@ -447,6 +448,7 @@ const buildWorkbenchHandle = (
     ...buildAmazonMiningHandle(assembly, dataDir),
     ...buildAmazonProductSyncHandle(assembly, dataDir),
     ...buildAmazonProductFeeSyncHandle(assembly, dataDir),
+    ...buildAmazonListingEditReadSyncHandle(assembly, dataDir),
     ...buildDeepResearchAnalysisHandle(assembly, dataDir),
     ...buildPick3IsBlindEvalHandle(assembly, dataDir),
     ...buildLotteryTicketPlanHandle(),

@@ -226,10 +226,38 @@ SKU == requestedSku
 
 本步骤仍有待补实测：
 
-- 生产 BrowserController DOM 事件路径是否能让 Seller Central 搜索结果收敛。
 - ASIN 作为搜索词是否能稳定收敛。
 
+2026-06-24 Chrome 插件实测 `GG-65PF-KA2I`：
+
+- `input#sc-search-field[name="query"][placeholder="搜索"]` 是 Seller Central 顶部全局搜索，点击 `button.sc-search-button[aria-label="搜索"]` 后 URL 短暂回到 `/myinventory/inventory`，结果 DOM 不构成库存 SKU 搜索成功证据。
+- 可见 DOM 中真实库存筛选搜索框为 `input[placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"]`，位于快速筛选行。
+- 该输入框属于 Katal 组件；普通 `document.querySelectorAll("input")` 不足以稳定发现内部输入节点，生产 DOM script 必须使用 `kat-input[placeholder="搜索 SKU、商品名称/关键词、FNSKU、ASIN、UPC/EAN"] -> shadowRoot -> input[type='text'], input`。
+- Chrome DOM-CUA 直接点击可见 `node_id=32` 并输入 SKU 后，页面仍显示 `1 - 11 共 11`，目标 SKU 只是出现在未收敛的全表 DOM 中；这不能作为搜索成功。
+- DOM-CUA 点击相邻 `node_id=35` 实测打开筛选条件区域，并未触发搜索收敛；这条路径禁止作为生产提交路径。
+
+生产提交路径必须复用 `amazon-product-sync` 已实测机制：
+
+1. 排除顶部全局搜索：`form#sc-global-search-form`、`input#sc-search-field`、`button.sc-search-button` 只能作为排除证据。
+2. 定位库存筛选 `kat-input` host，并确认不在 `form#sc-global-search-form` 内。
+3. 写入 `shadowRoot` 内部 `input[type='text'], input`。
+4. 在 `kat-input` host 上安装 configurable own `value` getter，使 React `onInput` retarget 到 host 时读取到目标 SKU。
+5. 对 shadow input 和 host 派发 composed `input` / `change`。
+6. 等待 1000-2000 ms。
+7. 对同一 `kat-input-group` 内 `[class*="SearchBox-module__searchButton"]` 派发 `pointerdown` / `mousedown` / `pointerup` / `mouseup` / `click` MouseEvents。
+8. 轮询结果 DOM；只有 `exact SKU row visible` 成立，才允许进入 Step 4。
+
+代码安全闸：
+
+- `safetyMode: "inventory-only"`：只读展开后的库存 ASIN/SKU，停止。
+- `safetyMode: "single-sku-search-only"`：只对单个 SKU 执行上述库存内搜索并验证 exact SKU row，停止；不得打开 SKU Central。
+- `safetyMode: "single-sku-sku-central-only"`：必须先通过上述搜索验证，再从搜索结果 DOM 读取唯一 SKU Central href，打开 SKU Central 读取 SKU/ASIN/FNSKU/编辑按钮可见性，然后停止；不得点击编辑按钮。
+- `safetyMode: "single-sku-edit-tabs"`：必须先通过上述搜索验证，才允许进入 Step 4。
+- `safetyMode: "all-inventory-edit-tabs"`：只允许配合 `scope: "all-inventory-pages"`；先分页读取库存页全部可见 ASIN/SKU，再按 SKU 顺序逐个重新打开库存页、执行已实测库存筛选搜索、读取 SKU Central 和编辑页 TAB。默认 `stopOnFirstIssue: true`，任一 SKU/TAB 出现未读、阻断、登录、验证码、复核或解析失败，必须停止并返回 `review_required`。
+
 ## Step 4: 点击搜索结果 ASIN 的编辑产品信息，进入编辑页面
+
+### Step 4a: 从搜索结果进入 SKU Central
 
 从库存行可见 SKU 链接进入 SKU Central 的路径已实测：
 
@@ -237,12 +265,38 @@ SKU == requestedSku
 https://sellercentral.amazon.ae/skucentral?mSku=7Y-PMQW-FOAE&condition=New&ref_=myp_skuc
 ```
 
+2026-06-24 对 `GG-65PF-KA2I` 复测：
+
+- 搜索结果页 DOM 已收敛为 `1 - 1 共 1`。
+- 唯一 SKU Central 链接：
+
+```text
+<a href="/skucentral?mSku=GG-65PF-KA2I&condition=New&ref_=myp_skuc" target="_blank">GG-65PF-KA2I</a>
+```
+
+- Playwright locator click 和 DOM-CUA node click 后当前库存页不会导航，因为该链接 `target="_blank"`。
+- Chrome 标签列表实测出现新标签：
+
+```text
+https://sellercentral.amazon.ae/skucentral?mSku=GG-65PF-KA2I&condition=New&ref_=myp_skuc
+```
+
+生产代码不得假设当前 tab 导航。必须先从搜索结果 DOM 读取唯一 `/skucentral?mSku=...` href，并确认唯一性；随后用该真实 href 打开受控 Seller Central tab 读取 SKU Central DOM。
+
 SKU Central DOM 实测字段：
 
 ```text
 SKU：7Y-PMQW-FOAE
 ASIN：B0DB6K6WJ5
 FNSKU：X0023A7G4B
+```
+
+2026-06-24 `GG-65PF-KA2I` SKU Central DOM 实测字段：
+
+```text
+SKU：GG-65PF-KA2I
+ASIN：B0F2P3JK2H
+FNSKU：X002M9UFJ1
 ```
 
 SKU Central 上实测存在按钮：
@@ -264,6 +318,54 @@ kat-button[label="编辑商品信息"]
     button[type="button"]
       text = 编辑商品信息
 ```
+
+### Step 4b: 点击 SKU Central 的编辑商品信息
+
+2026-06-24 对 `GG-65PF-KA2I` 实测：
+
+前置 DOM：
+
+```json
+{
+  "url": "https://sellercentral.amazon.ae/skucentral?mSku=GG-65PF-KA2I&condition=New&ref_=myp_skuc",
+  "sku": "GG-65PF-KA2I",
+  "asin": "B0F2P3JK2H",
+  "fnsku": "X002M9UFJ1",
+  "editButton": {
+    "tag": "kat-button",
+    "label": "编辑商品信息",
+    "class": "sku-action-button",
+    "shadowButtonText": "编辑商品信息",
+    "shadowButtonType": "button"
+  }
+}
+```
+
+点击 `kat-button[label="编辑商品信息"]` 一次后：
+
+```text
+SKU Central 当前 tab 未导航。
+新开 tab:
+https://sellercentral.amazon.ae/abis/listing/edit?ref_=obo_el_skuc_ac&productType=SHOWERHEAD&sku=GG-65PF-KA2I&asin=B0F2P3JK2H#offer
+```
+
+新编辑页随后稳定到：
+
+```text
+https://sellercentral.amazon.ae/abis/listing/edit/images?ref_=obo_el_skuc_ac&productType=SHOWERHEAD&sku=GG-65PF-KA2I&asin=B0F2P3JK2H#images
+```
+
+已读 DOM：
+
+- ASIN 可见：`B0F2P3JK2H`
+- tab 链接可见：
+  - `/abis/listing/edit/images?...#images`
+  - `/abis/listing/edit/variations?...#variations`
+  - `/abis/listing/edit/offer?...#offer`
+  - `/abis/listing/edit/safety_and_compliance?...#safety_and_compliance`
+- 可见写动作按钮：`kat-button[label="保存并完成"]`
+
+本步骤只验证进入编辑页和只读 DOM。禁止点击 `保存并完成`、上传、删除图片、替换图片、移动图片或修改字段。
 
 本轮未成立的路径：
 
@@ -313,6 +415,41 @@ TAB href 实测形态：
 ```
 
 Seller Central 编辑页是 SPA/慢导航混合页面。实测进入 `images` 时，常规导航等待可能超时，但等待后 DOM 可读。因此不能把 `load` / `domcontentloaded` 事件当作页面真实完成信号。必须以目标 TAB DOM 内容作为完成证据。
+
+2026-06-24 对 `GG-65PF-KA2I / B0F2P3JK2H / SHOWERHEAD` 跑生产路径 `single-sku-edit-tabs`，任务：
+
+```text
+amazon_listing_edit_read_sync_83925c15-4a6f-42d1-82bf-6946d4e592b4
+```
+
+实测结论：
+
+```json
+{
+  "status": "success",
+  "reachedStep": "flow_finished",
+  "sku": "GG-65PF-KA2I",
+  "asin": "B0F2P3JK2H",
+  "fnsku": "X002M9UFJ1",
+  "tabs": {
+    "product_details": { "status": "read", "controls": 41, "images": 3, "visibleText": 6000, "headings": 1 },
+    "images": { "status": "read", "controls": 8, "images": 21, "visibleText": 6000, "headings": 3 },
+    "variations": { "status": "read", "controls": 8, "images": 3, "visibleText": 6000, "headings": 1 },
+    "offer": { "status": "read", "controls": 34, "images": 3, "visibleText": 6000, "headings": 2 },
+    "safety_and_compliance": { "status": "read", "controls": 42, "images": 3, "visibleText": 6000, "headings": 1 }
+  }
+}
+```
+
+本次复测发现 `product_details` 进入后约 4.5 秒可能只显示页脚；等待约 12 秒后才出现商品名称、品牌、GTIN、型号、制造商、描述、关键词等真实 DOM。生产代码必须轮询 TAB DOM 内容，不能用固定 900ms 等待，也不能把页脚语言控件当作 `read`。
+
+TAB artifact 必须保存给 AI 分析用的 bounded 基础数据：
+
+- `headings`
+- `visibleText`
+- `controls`
+- `imageUrls`
+- `saveActionLabels`，只作为风险提示记录，不得点击
 
 ### 产品详情 TAB
 
@@ -570,6 +707,31 @@ safety_and_compliance_dom_read
 asin_sku_completed
 ```
 
+2026-06-24 全量生产模式施工约束：
+
+1. 打开库存页第 1 页，读取 `1 - N 共 T` 计数文本。
+2. 从 `pageSize` 和总数 `T` 推导分页数；逐页打开 `page=1...pageCount`。
+3. 每页执行父体展开并读取同页结构化 ASIN/SKU。
+4. 聚合时用 `ASIN::SKU` 去重，不用整行 contains。
+5. 每个 SKU 开始前必须重新打开库存页基础 URL，避免上一 SKU 留在 SKU Central 或编辑页导致搜索脚本误跑。
+6. 每个 SKU 搜索必须重新证明：
+   - 排除顶部全局搜索。
+   - Katal shadow input 值写入成立。
+   - 搜索按钮 DOM MouseEvents 已派发。
+   - 结果 DOM 中 exact SKU row 成立。
+   - 结果 DOM 中唯一 `/skucentral` href 成立。
+7. 进入 SKU Central 后读取 SKU/ASIN/FNSKU 和 `编辑商品信息` 按钮可见性。
+8. 进入每个编辑 TAB 后轮询到真实业务 DOM；不得把页脚/语言控件当作已读。
+9. TAB artifact 必须保留空字段值。空值不是失败，字段缺失、TAB 未加载或无法读才是失败。
+10. 如果 Seller Central 对某个 TAB 只返回页脚/语言控件且没有业务 DOM，记录为 `not_available`，不得伪造成 `read`。`not_available` 是 Amazon 未提供该 TAB 字段的生产事实。
+11. 任一 SKU 非 `matched` 或任一 TAB 为 `blocked`，在 `stopOnFirstIssue: true` 下立即停止，持久化已完成项目和失败原因，等待修复后重启。
+
+当前全量模式仍必须实测验证：
+
+- 跨分页读取是否覆盖库存页全部 `共 T` 商品。
+- `productType` 对全部 SKU 是否都能打开真实编辑 TAB。
+- 每个 SKU 的五个 TAB 是否都能读取 Amazon 提供的全部可见字段。
+
 每个 ASIN/SKU 输出一条 bounded result：
 
 ```json
@@ -644,8 +806,6 @@ review_required
 
 ## 当前未实测成立，禁止当作生产事实
 
-- 库存筛选搜索提交后结果 DOM 收敛。
-- ASIN 搜索词收敛。
 - 点击 SKU Central `编辑商品信息` 后跳转到编辑页。
 - 对所有 SKU 的 offer TAB 均可读。
 - 读取隐藏/折叠/懒加载的全部编辑字段。

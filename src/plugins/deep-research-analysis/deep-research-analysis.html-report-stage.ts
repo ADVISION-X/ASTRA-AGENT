@@ -60,6 +60,8 @@ export const DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS = [
   "n-stage-questions-and-answers",
 ] as const;
 
+export const DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR = 0.8 as const;
+
 const isHtmlAttributeWhitespace = (value: string): boolean =>
   value === " " || value === "\n" || value === "\r" || value === "\t" || value === "\f";
 
@@ -113,6 +115,137 @@ const hasRequiredBusinessHtmlReviewSections = (htmlDocument: string): boolean =>
   return true;
 };
 
+const findHtmlSectionSource = (htmlDocument: string, sectionId: string): string => {
+  const idIndex = findHtmlSectionIdIndex(htmlDocument, sectionId);
+  if (idIndex < 0) {
+    return "";
+  }
+  const lower = htmlDocument.toLowerCase();
+  const sectionStart = lower.lastIndexOf("<section", idIndex);
+  const start = sectionStart >= 0 ? sectionStart : idIndex;
+  const nextSection = lower.indexOf("<section", idIndex + sectionId.length);
+  const endMain = lower.indexOf("</main", idIndex + sectionId.length);
+  const endBody = lower.indexOf("</body", idIndex + sectionId.length);
+  const candidates = [nextSection, endMain, endBody].filter((index) => index >= 0);
+  const end = candidates.length > 0 ? Math.min(...candidates) : htmlDocument.length;
+  return htmlDocument.slice(start, end);
+};
+
+const stripHtmlTagContent = (value: string, openTag: string, closeTag: string): string => {
+  let output = value;
+  let searchFrom = 0;
+  const lowerOpenTag = openTag.toLowerCase();
+  const lowerCloseTag = closeTag.toLowerCase();
+  while (searchFrom < output.length) {
+    const lower = output.toLowerCase();
+    const start = lower.indexOf(lowerOpenTag, searchFrom);
+    if (start < 0) break;
+    const end = lower.indexOf(lowerCloseTag, start + lowerOpenTag.length);
+    if (end < 0) {
+      output = output.slice(0, start);
+      break;
+    }
+    output = output.slice(0, start) + " " + output.slice(end + closeTag.length);
+    searchFrom = start + 1;
+  }
+  return output;
+};
+
+const stripHtmlTags = (value: string): string => {
+  let output = "";
+  let insideTag = false;
+  for (const character of value) {
+    if (character === "<") {
+      insideTag = true;
+      output += " ";
+      continue;
+    }
+    if (character === ">") {
+      insideTag = false;
+      output += " ";
+      continue;
+    }
+    if (!insideTag) {
+      output += character;
+    }
+  }
+  return output;
+};
+
+const decodeMinimalHtmlEntities = (value: string): string =>
+  value
+    .split("&nbsp;").join(" ")
+    .split("&#160;").join(" ")
+    .split("&amp;").join("&")
+    .split("&lt;").join("<")
+    .split("&gt;").join(">")
+    .split("&quot;").join("\"")
+    .split("&#39;").join("'");
+
+const normalizeVisibleText = (value: string): string =>
+  decodeMinimalHtmlEntities(
+    stripHtmlTags(
+      stripHtmlTagContent(
+        stripHtmlTagContent(value, "<script", "</script>"),
+        "<style",
+        "</style>",
+      ),
+    ),
+  )
+    .trim()
+    .split(/\s+/u)
+    .join(" ");
+
+const readNStageSourceText = (entry: DeepResearchFullCaseFile["subQuestionAnalyses"][number]): string =>
+  typeof (entry.structuredAnswer as { answerText?: unknown } | null)?.answerText === "string"
+    ? (entry.structuredAnswer as { answerText: string }).answerText
+    : (entry.promptInteraction?.rawResponseText ?? "");
+
+const buildNStageRetentionStats = (fullCaseFile: DeepResearchFullCaseFile, nStageSectionSource: string): {
+  htmlVisibleTextLength: number;
+  ratio: number;
+  sourceTextLength: number;
+} => {
+  const sourceTextLength = fullCaseFile.subQuestionAnalyses.reduce((total, entry) => total + normalizeVisibleText(readNStageSourceText(entry)).length, 0);
+  const htmlVisibleTextLength = normalizeVisibleText(nStageSectionSource).length;
+  return {
+    htmlVisibleTextLength,
+    ratio: sourceTextLength === 0 ? 1 : htmlVisibleTextLength / sourceTextLength,
+    sourceTextLength,
+  };
+};
+
+const readMissingNStageCitation = (fullCaseFile: DeepResearchFullCaseFile, nStageSectionSource: string): string | null => {
+  const sectionText = normalizeVisibleText(nStageSectionSource);
+  for (const entry of fullCaseFile.subQuestionAnalyses) {
+    const responseHash = entry.promptInteraction?.rawResponseHash;
+    const sourceText = readNStageSourceText(entry).trim();
+    if (!sourceText) {
+      continue;
+    }
+    if (!responseHash || !sectionText.includes(responseHash)) {
+      return entry.subQuestionId;
+    }
+  }
+  return null;
+};
+
+const readBusinessHtmlCaseFileFailure = (htmlDocument: string, fullCaseFile: DeepResearchFullCaseFile): string | null => {
+  if (!htmlDocument.includes(fullCaseFile.job.jobId)) {
+    return "business_html_case_file_job_id_missing";
+  }
+  const nStageSectionSource = findHtmlSectionSource(htmlDocument, "n-stage-questions-and-answers");
+  const missingCitationSubQuestionId = readMissingNStageCitation(fullCaseFile, nStageSectionSource);
+  if (missingCitationSubQuestionId) {
+    return `business_html_n_stage_citation_missing:${missingCitationSubQuestionId}`;
+  }
+  const retention = buildNStageRetentionStats(fullCaseFile, nStageSectionSource);
+  if (retention.ratio < DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR) {
+    return `business_html_n_stage_retention_below_80:${retention.htmlVisibleTextLength}/${retention.sourceTextLength}`;
+  }
+  return null;
+};
+
 const isBusinessHtmlArtifactText = (value: string): boolean => {
   const trimmed = value.trim();
   const lower = trimmed.toLowerCase();
@@ -157,6 +290,7 @@ export const buildBusinessHtmlReportOutputPath = (
 );
 
 export const parseAndPersistBusinessHtmlReport = (input: {
+  fullCaseFile: DeepResearchFullCaseFile;
   rawText: string;
   outputPath: string;
 }): DeepResearchParserResult<DeepResearchBusinessHtmlReportRecord> => {
@@ -167,6 +301,15 @@ export const parseAndPersistBusinessHtmlReport = (input: {
       normalizedText,
       rawResponseHash,
       "business_html_document_missing",
+      "partial_review_required",
+    );
+  }
+  const caseFileFailure = readBusinessHtmlCaseFileFailure(normalizedText, input.fullCaseFile);
+  if (caseFileFailure) {
+    return buildFailure(
+      normalizedText,
+      rawResponseHash,
+      caseFileFailure,
       "partial_review_required",
     );
   }
@@ -288,6 +431,7 @@ export const runBusinessHtmlReportPhase = async (
       persist: "HTML_REPORT_PERSIST",
     },
     parse: (rawText: string) => parseAndPersistBusinessHtmlReport({
+      fullCaseFile,
       rawText,
       outputPath,
     }),

@@ -592,3 +592,40 @@ Forbidden:
 - Using raw `textContent` as the primary composer truth for ProseMirror / rich-text editors.
 - Submitting after an unverified paste.
 - Adding a retry/fallback/second provider submission chain to hide paste verification failure.
+
+### [GRASSEYE-DEEP-RESEARCH-060-V1] Business HTML Case Binding and N-Stage Retention
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "prompt+ast+acceptance+export",
+  "summary": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix."
+}
+```
+
+`business-report.html` must not pass validation only because it has the required section ids.
+
+The HTML artifact must be machine-bound to the current full case file:
+
+```txt
+current jobId visible in the HTML
+same fullCaseFile job as the parser input
+no report from another job accepted
+```
+
+The `n-stage-questions-and-answers` section must cite every persisted N-stage answer with its persisted raw response hash.
+
+The `n-stage-questions-and-answers` section must preserve N-stage answer material. Its normalized visible text length must be at least 80 percent of the normalized persisted N-stage source material:
+
+```txt
+structured answerText when available
+raw response text when structured answer is missing but raw exists
+```
+
+This 80 percent rule is a retention floor, not a business conclusion schema. It does not authorize runtime-owned conclusions, rankings, or confidence fields.
+
+If the HTML belongs to a different job, lacks N-stage citations, hides a persisted sub-question, or compresses N-stage material below the retention floor, the HTML report parse must fail and the job must not be marked production-complete.

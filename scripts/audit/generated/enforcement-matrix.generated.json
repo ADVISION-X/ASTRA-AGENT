@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T10:56:20.951Z",
+  "generatedAt": "2026-06-28T00:15:52.285Z",
   "rows": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -20,6 +20,21 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "manifestPath": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
+      "lawIds": [
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1"
       ]
     },
     {
@@ -213,7 +228,8 @@
         "GRASSEYE-DEEP-RESEARCH-056-V1",
         "GRASSEYE-DEEP-RESEARCH-057-V1",
         "GRASSEYE-DEEP-RESEARCH-058-V1",
-        "GRASSEYE-DEEP-RESEARCH-059-V1"
+        "GRASSEYE-DEEP-RESEARCH-059-V1",
+        "GRASSEYE-DEEP-RESEARCH-060-V1"
       ]
     },
     {

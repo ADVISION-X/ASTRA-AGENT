@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-06-24T14:28:05.941Z",
+  "capabilityDomain": "amazon-listing-edit-read-sync",
+  "executionGroup": "domain",
+  "lawIds": [
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "inspectedFiles": [
+    ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+    "docs/法案辅助文件/GrassEye Amazon Listing Edit Read Sync 施工图.md",
+    "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json",
+    "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.urls.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",
+    "src/plugins/amazon-listing-edit-read-sync/index.ts",
+    "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/create-workbench-server.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
+    "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts",
+    "scripts/audit/config/plugin-status.json",
+    "scripts/audit/ci-full-phase-plan.ts",
+    "package.json"
+  ]
+}

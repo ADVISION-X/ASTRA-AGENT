@@ -14,8 +14,10 @@ import {
 } from "./amazon-product-sync.storage.js";
 
 const flowTimeoutReasonPrefix = "amazon_product_sync_flow_timeout_after_";
-const runningProgressStaleMs = 3_000;
-const runningProgressStaleReason = `amazon_product_sync_running_progress_stale_after_${runningProgressStaleMs}ms`;
+const startupProgressStaleMs = 60_000;
+const activeProgressStaleMs = 45_000;
+const startupProgressWaitMs = 5_000;
+const runningProgressStaleReasonPrefix = "amazon_product_sync_running_progress_stale_after_";
 const accountSecurityReasons = new Set(["login_required", "captcha_or_2fa_required", "review_required"]);
 
 export type AmazonProductSyncRuntime = {
@@ -323,6 +325,7 @@ const logFlowFailed = (
 const logStaleRunningTask = (
   runtimeLogger: RuntimeLogger | undefined,
   task: AmazonProductSyncTaskRecord,
+  staleMs: number,
 ): void => {
   runtimeLogger?.emit({
     traceId: task.taskId,
@@ -334,7 +337,7 @@ const logStaleRunningTask = (
     runId: task.requestId,
     stepId: "flow_progress_stale",
     status: "failed",
-    reason: runningProgressStaleReason,
+    reason: runningProgressStaleReason(staleMs),
     refs: {
       module: "amazon-product-sync",
       source: "grasseye-agent",
@@ -357,11 +360,19 @@ const logStaleRunningTask = (
 const resolveFlowTimeoutMs = (runtime: AmazonProductSyncRuntime, mission: AmazonProductSyncInput): number =>
   runtime.flowTimeoutMs ?? Math.min(900_000, 120_000 + mission.items.length * 60_000);
 
+const runningProgressStaleReason = (staleMs: number): string =>
+  `${runningProgressStaleReasonPrefix}${staleMs}ms`;
+
+const resolveRunningProgressStaleMs = (task: AmazonProductSyncTaskRecord): number =>
+  task.reachedStep === "queued" || task.reachedStep === "flow_started"
+    ? startupProgressStaleMs
+    : activeProgressStaleMs;
+
 const isRunningTaskStale = (task: AmazonProductSyncTaskRecord, nowMs = Date.now()): boolean => {
   if (task.status !== "queued" && task.status !== "running") return false;
   const updatedAtMs = Date.parse(task.updatedAt);
   if (!Number.isFinite(updatedAtMs)) return true;
-  return nowMs - updatedAtMs > runningProgressStaleMs;
+  return nowMs - updatedAtMs > resolveRunningProgressStaleMs(task);
 };
 
 const failStaleRunningTask = (
@@ -369,16 +380,32 @@ const failStaleRunningTask = (
   task: AmazonProductSyncTaskRecord,
   runtimeLogger?: RuntimeLogger,
 ): Promise<AmazonProductSyncTaskRecord> => {
-  logStaleRunningTask(runtimeLogger, task);
+  const staleMs = resolveRunningProgressStaleMs(task);
+  logStaleRunningTask(runtimeLogger, task, staleMs);
   return persistAmazonProductSyncTask(dataDir, {
     ...task,
     ok: false,
     status: "failed",
-    reason: runningProgressStaleReason,
+    reason: runningProgressStaleReason(staleMs),
     reachedStep: "flow_progress_stale",
     updatedAt: new Date().toISOString(),
   });
 };
+
+const waitForStartupProgress = (
+  onTimeout: () => AmazonProductSyncTaskRecord,
+  progressReady: Promise<AmazonProductSyncTaskRecord>,
+): Promise<AmazonProductSyncTaskRecord> =>
+  new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(onTimeout()), startupProgressWaitMs);
+    progressReady.then((task) => {
+      clearTimeout(timeout);
+      resolve(task);
+    }).catch(() => {
+      clearTimeout(timeout);
+      resolve(onTimeout());
+    });
+  });
 
 const runFlowWithTimeout = (
   runtime: AmazonProductSyncRuntime,
@@ -426,6 +453,11 @@ export const startAmazonProductSyncTask = async (
     updatedAt: new Date().toISOString(),
   });
   let latestProgress = running;
+  let firstProgressResolved = false;
+  let resolveFirstProgress: (task: AmazonProductSyncTaskRecord) => void = () => undefined;
+  const firstProgressReady = new Promise<AmazonProductSyncTaskRecord>((resolve) => {
+    resolveFirstProgress = resolve;
+  });
   const persistProgress = async (progress: AmazonProductSyncFlowProgress): Promise<void> => {
     logProgress(runtime, mission, latestProgress, progress);
     latestProgress = await persistAmazonProductSyncTask(runtime.dataDir, {
@@ -437,6 +469,10 @@ export const startAmazonProductSyncTask = async (
       items: [...(progress.items ?? latestProgress.items)],
       updatedAt: new Date().toISOString(),
     });
+    if (!firstProgressResolved) {
+      firstProgressResolved = true;
+      resolveFirstProgress(latestProgress);
+    }
   };
   void runFlowWithTimeout(runtime, mission, queued, persistProgress)
     .then((result) => {
@@ -460,7 +496,7 @@ export const startAmazonProductSyncTask = async (
         updatedAt: new Date().toISOString(),
       });
     });
-  return running;
+  return waitForStartupProgress(() => latestProgress, firstProgressReady);
 };
 
 export const getAmazonProductSyncTaskStatus = async (

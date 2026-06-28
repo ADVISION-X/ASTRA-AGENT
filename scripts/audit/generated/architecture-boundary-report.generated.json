@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T02:08:49.471Z",
+  "generatedAt": "2026-06-24T12:08:21.736Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -16,6 +16,7 @@
   ],
   "actualPluginIds": [
     "amazon-invoice-upload",
+    "amazon-listing-edit-read-sync",
     "amazon-product-fee-sync",
     "amazon-product-mining",
     "amazon-product-sync",
@@ -126,6 +127,31 @@
       ],
       "lawSourceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "amazon-listing-edit-read-sync",
+      "status": "active",
+      "owner": "plugin:amazon-listing-edit-read-sync",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-listing-edit-read-sync"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-listing-edit-read-sync",
+        "audit:amazon-listing-edit-read-sync"
+      ],
+      "exposureTokens": [
+        "amazon-listing-edit-read-sync"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md"
       ]
     },
     {
@@ -291,6 +317,10 @@
       "src/app/workbench-amazon-product-fee-sync-routes.ts",
       "src/lib/local-runtime/workbench.ts"
     ],
+    "amazon-listing-edit-read-sync": [
+      "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
+      "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts"
+    ],
     "pick3-is-blind-eval": [
       "src/app/workbench-pick3-routes.ts",
       "src/lib/local-runtime/workbench-pick3-support.ts"
@@ -322,6 +352,7 @@
     "acceptance:amazon-invoice-upload-batch",
     "acceptance:amazon-invoice-upload-download",
     "acceptance:amazon-invoice-upload-smoke",
+    "acceptance:amazon-listing-edit-read-sync",
     "acceptance:amazon-product-fee-sync",
     "acceptance:amazon-product-mining",
     "acceptance:amazon-product-sync",
@@ -371,6 +402,7 @@
   "findings": [],
   "inspectedFiles": [
     ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
+    ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
     ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
@@ -383,6 +415,7 @@
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts",
     "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
     "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
@@ -552,6 +585,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+    "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
     "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
     "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
@@ -780,6 +814,7 @@
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/skills/media-optimizer/media-optimizer-client.ts",
     "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+    "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
     "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",
@@ -958,6 +993,7 @@
     "src/lib/local-runtime/structured-log-terminal.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
     "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+    "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
@@ -1025,6 +1061,12 @@
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts",
+    "src/plugins/amazon-listing-edit-read-sync/index.ts",
     "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
     "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
     "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",

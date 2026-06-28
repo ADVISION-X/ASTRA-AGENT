@@ -17,7 +17,8 @@ import {
   runAmazonInvoiceUpload,
   startAmazonInvoiceUploadTask,
 } from "../../src/plugins/amazon-invoice-upload/index.js";
-import { parsePdfTotalAmount } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.js";
+import { extractOrderDomTotalAmount, parsePdfTotalAmount } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.js";
+import type { DomSnapshot } from "../../src/types/dom-automation.js";
 
 const smokeFixtureHtml = `
 <html><head><title>Seller Central Local Dry Run</title></head>
@@ -146,6 +147,7 @@ async function main(): Promise<void> {
       throw new Error(`Amazon invoice smoke must execute exactly one conditional recovery refresh; orderDetailRefreshOpenCount=${browser.orderDetailRefreshOpenCount}`);
     }
     assertBackendPdfTextAmountReadable();
+    assertSplitSellerCentralOrderTotalReadable();
     await assertAmountMismatchSkipsBeforeUpload(runtimeLogger);
     await assertUnreadablePdfSkipsBeforeUpload(runtimeLogger);
     await assertTaskServiceTimeoutGuard(runtimeLogger);
@@ -162,6 +164,47 @@ function assertBackendPdfTextAmountReadable(): void {
   if (amount?.amountMinor !== 5950) {
     throw new Error(`Backend-rendered PDF text must be amount-readable: ${JSON.stringify(amount)}`);
   }
+}
+
+function assertSplitSellerCentralOrderTotalReadable(): void {
+  const amount = extractOrderDomTotalAmount({
+    url: "https://sellercentral.amazon.ae/orders-v3/order/402-2948017-0456349",
+    title: "亚马逊",
+    forms: [],
+    inputs: [],
+    buttons: [],
+    links: [],
+    fileInputs: [],
+    dialogs: [],
+    frames: [],
+    textBlocks: [
+      textBlock("销售收益"),
+      textBlock("商品总计:"),
+      textBlock("AED 59.50"),
+      textBlock("运费总额:"),
+      textBlock("AED 2.50"),
+      textBlock("促销总额:"),
+      textBlock("-AED 2.50"),
+      textBlock("总和:"),
+      textBlock("AED 59.50"),
+    ],
+    tableRows: [],
+    roleRows: [],
+    genericClickableElements: [],
+    dropdownTriggers: [],
+    overlays: [],
+    loadingIndicators: [],
+    stickyElements: [],
+    detectedStates: [],
+    capturedAt: "1970-01-01T00:00:00.000Z",
+  });
+  if (amount?.amountMinor !== 5950) {
+    throw new Error(`Split Seller Central total must be amount-readable: ${JSON.stringify(amount)}`);
+  }
+}
+
+function textBlock(visibleText: string): DomSnapshot["textBlocks"][number] {
+  return { tagName: "div", visibleText, disabled: false, hidden: false, selectorCandidate: "div", candidateKind: "text" };
 }
 
 async function assertUnreadablePdfSkipsBeforeUpload(runtimeLogger: ReturnType<typeof createRuntimeLogger>): Promise<void> {

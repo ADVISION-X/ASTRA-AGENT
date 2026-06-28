@@ -16,6 +16,8 @@ const requiredPromptMarkers = [
   "forensics-process section",
   "n-stage-questions-and-answers",
   "raw-preserved parse failures",
+  "raw response hash",
+  "80 percent",
 ] as const;
 
 const stringLiteralValue = (node: Node): string | null => {
@@ -191,6 +193,26 @@ const inspectHtmlArtifactValidation = (input: {
       message: "Business HTML artifact parser must call the full-process section validator.",
     });
   }
+  const parseBody = findFunctionLikeBody(input.sourceFile, "parseAndPersistBusinessHtmlReport");
+  if (!hasDirectCall(parseBody, "readBusinessHtmlCaseFileFailure")) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath,
+      checkId: "deep-research/business-html-full-process/case-file-binding-symbol",
+      message: "Business HTML parser must validate case-file binding, N-stage citations, and retention before persistence.",
+    });
+  }
+  const retentionInitializer = findVariableInitializer(input.sourceFile, "DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR");
+  if (!retentionInitializer || !retentionInitializer.getText().includes("0.8")) {
+    pushFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath,
+      checkId: "deep-research/business-html-full-process/retention-floor-symbol",
+      message: "Business HTML parser must keep the N-stage retention floor at 0.8.",
+    });
+  }
 };
 
 const inspectAcceptanceAndCiWiring = (input: {
@@ -203,6 +225,9 @@ const inspectAcceptanceAndCiWiring = (input: {
   const acceptancePath = "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts";
   for (const marker of [
     "business_html_document_missing",
+    "business_html_case_file_job_id_missing",
+    "business_html_n_stage_citation_missing",
+    "business_html_n_stage_retention_below_80",
     "One-voice HTML must not persist as a business report.",
     "Full-process HTML must persist.",
   ]) {

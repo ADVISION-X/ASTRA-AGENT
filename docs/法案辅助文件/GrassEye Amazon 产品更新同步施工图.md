@@ -77,7 +77,7 @@ ON-THE-WAY Amazon Manage 或已授权 App 页面
 1. 接收网站侧或 App 页面请求，校验 `site`、`requestId`、`marketplace`、`items[].sellerSku`、`items[].requiredFields`；每个 SKU 必须固定请求 `mainImage`、`asin`、`availableInventory`、`actualInventory`。
 2. 打开对应 marketplace 的 Seller Central 库存管理页，例如 `https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all`。
 3. 每个关键动作必须写回同一个 task JSON 的 `reachedStep`：打开库存页、开始 SKU 搜索、完成搜索框 probe、开始写入 shadow input、提交搜索、等待搜索结果 DOM 落地、展开变体、开始 DOM 抽取、完成 DOM 抽取、单 SKU 完成。网站侧 status 轮询必须能观察到运行进度，不能只停在 `flow_started`。
-4. `/status/:taskId` 和 `/latest` 读取 queued/running task 时，如果 `updatedAt` 超过 3 秒没有推进，AGENT 必须把同一个 task 固化为 `failed`，reason 为 `amazon_product_sync_running_progress_stale_after_3000ms`，`reachedStep` 为 `flow_progress_stale`。AGENT 重启后旧 running task 不得继续堵住网站按钮。
+4. `start` 返回 running 前必须等待第一条可观察 progress，或在 5 秒启动等待后返回当前 running 状态；如果浏览器 flow 随后仍未推进，必须由 status stale 规则收口。`/status/:taskId` 和 `/latest` 读取 queued/running task 时，必须按阶段阈值固化 stale：`queued` / `flow_started` 启动阶段使用 60 秒，已进入 Seller Central 具体步骤后使用 45 秒。固化后 reason 使用 `amazon_product_sync_running_progress_stale_after_<threshold>ms`，`reachedStep` 为 `flow_progress_stale`。禁止固定 3 秒全局 stale，因为真实 Seller Central tab 复用、页面打开和本地浏览器调度可能合法超过 3 秒。AGENT 重启后旧 running task 不得继续堵住网站按钮。
 5. 如果出现 login、captcha、2FA、权限页或 Seller Central 页面未就绪，不返回 success，按结构化 status 结束该 item 或 task。
 6. 运行搜索框 probe：必须定位库存筛选条内的 Katal 搜索输入，必须证明顶部全局搜索框被排除。
 7. 通过 AGENT 内置 DOM 脚本定位库存筛选区 Katal host 的 open shadow input `input[type='text'], input`，同时写入 host value 与 shadow input value，派发 composed `input` / `change` 事件，然后仍在页面 DOM 上重新定位库存筛选区搜索按钮并派发鼠标事件。外部请求不得传 selector、坐标、命令或 action plan。禁止用坐标 focus + OS textInput 或外部坐标点击作为 SKU 提交方式，因为实测会聚焦/点击但不保证更新并提交 Katal React state。
@@ -109,7 +109,7 @@ Amazon product sync 必须接入 Runtime Log Spine，不允许用私有 JSONL、
 - 每次已有 `persistProgress` 进度推进写 1 条 `amazon_product_sync.progress`，不额外轮询刷日志。
 - 每个 terminal item 写 1 条 `amazon_product_sync.item_summary`。
 - 每个 task terminal 写 1 条 `amazon_product_sync.flow_finished` 或 `amazon_product_sync.flow_failed`。
-- `/status/:taskId` 或 `/latest` 发现 queued/running stale 并固化 failed 前，写 1 条 `amazon_product_sync.stale_running_task_failed`。
+- `/status/:taskId` 或 `/latest` 发现 queued/running stale 并固化 failed 前，写 1 条 `amazon_product_sync.stale_running_task_failed`，日志 reason 必须包含本阶段实际阈值。
 
 所有事件必须 `modeVisibility` 包含 `FLOW`，`owner` 使用既有 `local-runtime`，并在 `refs.module` 标明 `amazon-product-sync`。
 
@@ -289,7 +289,7 @@ inspector 必须检查 `amazon_product_sync.progress` 和 review `amazon_product
 - mainImage 需求必须触发 BrowserController `screenshotRegion`，不能用公共图片 URL 伪造成 evidence。
 - AGENT 必须复用 Seller Central host tab，禁止把网站当前 active tab 当作 Seller Central 执行页。
 - background task 必须有可观察运行进度和终态；浏览器打开、点击、DOM 读取挂起时必须落到 `failed`，不能永久停在 `running` / `flow_started`。
-- status/latest 必须把 3 秒未推进的 queued/running task 固化为 failed，避免 AGENT 重启或浏览器卡死后网站按钮永久 `更新中`。
+- status/latest 必须按阶段阈值把未推进的 queued/running task 固化为 failed：`queued` / `flow_started` 启动阶段 60 秒，已进入 Seller Central 具体步骤后 45 秒，避免 AGENT 重启或浏览器卡死后网站按钮永久 `更新中`，同时避免 3 秒固定阈值误杀真实页面打开。
 - `/status/:taskId` 可轮询 terminal result；第一阶段网站回传使用既有 task status JSON 轮询链，不允许插件直接 fetch 网站 callbackUrl。
 - audit 必须阻断旧的全文兜底抽取、SKU contains 主匹配、Seller Central 写入动作和第二链路。
 - Chrome 验收报告必须写明 `CHROME_VERIFIED`、入口 URL、实际步骤、观察结果和主图 evidence ref。

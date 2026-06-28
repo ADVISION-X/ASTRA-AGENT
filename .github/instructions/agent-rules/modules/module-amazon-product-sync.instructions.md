@@ -33,7 +33,8 @@ Workbench API Boundary
 - `availableInventory` must be the exact `现货（亚马逊物流）` value. `actualInventory` must be derived from the same verified Seller Central row as `availableFbaUnits + reservedUnits + unfulfillableUnits`; if any source component is missing it must be `null`, and zero values must remain numeric `0`.
 - Login, captcha, 2FA, missing inventory search control, failed search submission, ambiguous rows, and missing rows must be represented as structured statuses.
 - The flow must persist observable task progress for key Seller Central actions, and a started background flow must reach a terminal persisted status instead of staying forever at `running` / `flow_started`.
-- Status reads must fail stale queued/running tasks that have not advanced recently; a restarted AGENT must not leave the website blocked by an old `running` task.
+- Task start must return only after the first observable progress is persisted or after a bounded startup wait; it must not expose a silent `running` task that immediately becomes stale before Seller Central can open.
+- Status reads must fail stale queued/running tasks by stage-specific thresholds, not a fixed sub-10-second global timeout. Startup/opening stages must allow real Seller Central tab reuse and page open latency, while later active stages must still fail stale progress. A restarted AGENT must not leave the website blocked by an old `running` task.
 - Evidence refs must be opaque local refs, not public URLs and not raw HTML.
 - Main image evidence refs must be backed by a real BrowserController screenshot capture for that task. A public image URL or string fabricated from `img[src]` is not valid evidence.
 - Main image product update completion must be backed by transferred image bytes uploaded to the requested ON-THE-WAY image API. Seller Central public URLs, DOM `img[src]`, and screenshot evidence refs are not valid website product image values.
@@ -107,6 +108,7 @@ Workbench API Boundary
     "Agent or website narrows the product update field set based on local missing-field inference.",
     "Agent accepts multiple SKU items in one product sync task.",
     "Browser flow remains running indefinitely without observable progress or a terminal task status.",
+    "A fixed 3-second global stale timeout kills legitimate Seller Central startup/opening latency.",
     "Main image evidence fabricated from public img src.",
     "Website product main image written from public img src or screenshot evidence ref.",
     "Plugin directly fetches arbitrary website callbackUrl.",

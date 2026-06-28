@@ -33,6 +33,10 @@ const ORDER_TOTAL_LABELS = [
   "总和",
   "Total",
 ] as const;
+const ORDER_TOTAL_SECTION_LABELS = [
+  "销售收益",
+  "Sales proceeds",
+] as const;
 
 export async function verifyInvoiceAmountBeforeUpload(
   browser: BrowserController,
@@ -115,6 +119,19 @@ export function extractOrderDomTotalAmount(snapshot: DomSnapshot): AmazonInvoice
       continue;
     }
     const match = moneyMatches(row).at(-1);
+    if (match) return match;
+  }
+  const joinedRows = rows.filter(Boolean).join(" ");
+  return amountAfterLabels(joinedRows, ORDER_TOTAL_LABELS, 260)
+    ?? amountAfterLabels(joinedRows, ORDER_TOTAL_SECTION_LABELS, 700);
+}
+
+function amountAfterLabels(text: string, labels: readonly string[], windowLength: number): AmazonInvoiceMoney | null {
+  const lower = text.toLowerCase();
+  for (const label of labels) {
+    const labelIndex = lower.lastIndexOf(label.toLowerCase());
+    if (labelIndex < 0) continue;
+    const match = moneyMatches(text.slice(labelIndex, labelIndex + windowLength)).at(-1);
     if (match) return match;
   }
   return null;

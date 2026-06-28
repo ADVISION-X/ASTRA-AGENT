@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T02:09:27.064Z",
+  "generatedAt": "2026-06-28T00:16:25.871Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -25,7 +25,8 @@
     "GRASSEYE-DEEP-RESEARCH-056-V1",
     "GRASSEYE-DEEP-RESEARCH-057-V1",
     "GRASSEYE-DEEP-RESEARCH-058-V1",
-    "GRASSEYE-DEEP-RESEARCH-059-V1"
+    "GRASSEYE-DEEP-RESEARCH-059-V1",
+    "GRASSEYE-DEEP-RESEARCH-060-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -109,6 +110,7 @@
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
     "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+    "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",

@@ -1,0 +1,24 @@
+{
+  "capabilityDomain": "amazon-listing-edit-read-sync",
+  "ownerInspectorPath": "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Amazon Listing Edit Read Sync 施工图.md",
+      "requiredAnchors": [
+        "## 目标",
+        "## 单链路",
+        "## Step 1: 打开库存管理页面",
+        "## Step 5: 读取每个 TAB 的 DOM",
+        "## 当前已实测成立"
+      ]
+    }
+  ],
+  "description": "Amazon listing edit read sync read-only Seller Central DOM export owner audit."
+}

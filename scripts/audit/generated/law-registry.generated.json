@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T10:56:20.951Z",
+  "generatedAt": "2026-06-28T00:15:52.285Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -386,6 +386,94 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 13
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs+acceptance",
+      "summary": "Listing edit read sync must run as an independent plugin owner, not through amazon-product-sync or amazon-product-fee-sync.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+chrome+acceptance",
+      "summary": "Seller Central interactions are limited to navigation, read-only variation expansion, and DOM value extraction.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "chrome-dom+acceptance",
+      "summary": "Inventory export evidence must come from Seller Central DOM label/value rows after parent variation expansion.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "chrome-dom+acceptance",
+      "summary": "Each listing edit tab read must record bounded DOM controls and diagnostics, never fabricated values.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+fs",
+      "summary": "Task artifacts must use bounded business evidence and redacted evidence refs.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "generated-plan+acceptance",
+      "summary": "The capability must have owner audit, acceptance, generated plan registration, and ci:full integration.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "chrome-dom+acceptance",
+      "summary": "Live Seller Central runs must advance one proven step at a time: inventory-only by default, single SKU search-only before any edit tab mode.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "chrome-dom+acceptance",
+      "summary": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 7
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
@@ -1072,6 +1160,7 @@
         "Agent or website narrows the product update field set based on local missing-field inference.",
         "Agent accepts multiple SKU items in one product sync task.",
         "Browser flow remains running indefinitely without observable progress or a terminal task status.",
+        "A fixed 3-second global stale timeout kills legitimate Seller Central startup/opening latency.",
         "Main image evidence fabricated from public img src.",
         "Website product main image written from public img src or screenshot evidence ref.",
         "Plugin directly fetches arbitrary website callbackUrl.",
@@ -2422,6 +2511,17 @@
       "summary": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 22
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "prompt+ast+acceptance+export",
+      "summary": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 23
     },
     {
       "lawId": "APEX-DOM-001-V1",

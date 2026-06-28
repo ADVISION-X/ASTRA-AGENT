@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-22T02:08:43.174Z",
+  "generatedAt": "2026-06-24T12:08:14.494Z",
   "status": "PASS",
-  "inspectorFileCount": 24,
-  "generatedPlanEntryCount": 24,
+  "inspectorFileCount": 25,
+  "generatedPlanEntryCount": 25,
   "inspectedFiles": [
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
@@ -20,6 +20,8 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/manifest.json",
+    "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
+    "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json",
     "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
     "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
     "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",

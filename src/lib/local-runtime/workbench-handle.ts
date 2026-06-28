@@ -47,6 +47,9 @@ type GetLatestAmazonProductSyncTask = typeof import("../../plugins/amazon-produc
 type StartAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").startAmazonProductFeeSyncTask;
 type GetAmazonProductFeeSyncTaskStatus = typeof import("../../plugins/amazon-product-fee-sync/index.js").getAmazonProductFeeSyncTaskStatus;
 type GetLatestAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").getLatestAmazonProductFeeSyncTask;
+type StartAmazonListingEditReadSyncTask = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").startAmazonListingEditReadSyncTask;
+type GetAmazonListingEditReadSyncTaskStatus = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").getAmazonListingEditReadSyncTaskStatus;
+type GetLatestAmazonListingEditReadSyncTask = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").getLatestAmazonListingEditReadSyncTask;
 type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").startPick3IsBlindEvalTask;
 type ResumePick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").resumePick3IsBlindEvalTask;
 type GetPick3IsBlindEvalTaskStatus = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3IsBlindEvalTaskStatus;
@@ -87,6 +90,9 @@ type AmazonProductSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProdu
 type AmazonProductFeeSyncStartInput = Parameters<StartAmazonProductFeeSyncTask>[0];
 type AmazonProductFeeSyncTaskRecord = Awaited<ReturnType<GetAmazonProductFeeSyncTaskStatus>>;
 type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductFeeSyncTask>>;
+type AmazonListingEditReadSyncStartInput = Parameters<StartAmazonListingEditReadSyncTask>[0];
+type AmazonListingEditReadSyncTaskRecord = Awaited<ReturnType<GetAmazonListingEditReadSyncTaskStatus>>;
+type AmazonListingEditReadSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonListingEditReadSyncTask>>;
 type Pick3IsBlindEvalStartInput = Parameters<StartPick3IsBlindEvalTask>[0];
 type Pick3IsBlindEvalResumeInput = Parameters<ResumePick3IsBlindEvalTask>[0];
 type Pick3IsBlindEvalTaskRecord = Awaited<ReturnType<StartPick3IsBlindEvalTask>>;
@@ -246,6 +252,13 @@ export type GrassEyeWorkbenchHandle = {
     taskId: string,
   ) => Promise<AmazonProductFeeSyncTaskRecord>;
   getLatestAmazonProductFeeSyncTask: () => Promise<AmazonProductFeeSyncLatestTaskRecord>;
+  startAmazonListingEditReadSyncTask: (
+    input: AmazonListingEditReadSyncStartInput,
+  ) => Promise<NonNullable<AmazonListingEditReadSyncTaskRecord>>;
+  getAmazonListingEditReadSyncTaskStatus: (
+    taskId: string,
+  ) => Promise<AmazonListingEditReadSyncTaskRecord>;
+  getLatestAmazonListingEditReadSyncTask: () => Promise<AmazonListingEditReadSyncLatestTaskRecord>;
   startPick3IsBlindEvalTask: (
     input: Pick3IsBlindEvalStartInput,
   ) => Promise<Pick3IsBlindEvalTaskRecord>;

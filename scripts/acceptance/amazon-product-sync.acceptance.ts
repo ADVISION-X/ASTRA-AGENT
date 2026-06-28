@@ -409,15 +409,15 @@ await persistAmazonProductSyncTask(staleDataDir, {
   reason: null,
   reachedStep: "flow_started",
   items: [],
-  createdAt: new Date(Date.now() - 10_000).toISOString(),
-  updatedAt: new Date(Date.now() - 10_000).toISOString(),
+  createdAt: new Date(Date.now() - 70_000).toISOString(),
+  updatedAt: new Date(Date.now() - 70_000).toISOString(),
 });
 const staleStatus = await getAmazonProductSyncTaskStatus({
   dataDir: staleDataDir,
   taskId: "amazon_product_sync_stale_acceptance",
 });
 assert.equal(staleStatus?.status, "failed");
-assert.equal(staleStatus?.reason, "amazon_product_sync_running_progress_stale_after_3000ms");
+assert.equal(staleStatus?.reason, "amazon_product_sync_running_progress_stale_after_60000ms");
 
 globalThis.fetch = originalFetch;
 process.stdout.write("[AMAZON-PRODUCT-SYNC][PASS] inventory filter SKU search acceptance passed\n");

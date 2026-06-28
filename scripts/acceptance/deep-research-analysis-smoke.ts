@@ -16,6 +16,7 @@ import {
     parseDeepResearchFinalAdjudicationResponse,
     parseDeepResearchSubQuestionAnalysisResponse,
 } from "../../src/plugins/deep-research-analysis/deep-research-analysis.parser.js";
+import { buildDeepResearchTextHash } from "../../src/plugins/deep-research-analysis/deep-research-analysis.prompts.js";
 import { buildDeepResearchStructuredIndex } from "../../src/plugins/deep-research-analysis/deep-research-analysis.structured-index.js";
 import {
     verifyPersistedResearchState,
@@ -179,21 +180,39 @@ const FIXTURE_RESPONSES = [
 ] as const;
 
 const buildInlineHtmlFixture = (input: {
+  jobId: string;
   title: string;
   body: string;
 }): string => {
+  const firstAnalysis = FIXTURE_RESPONSES[1];
+  const secondAnalysis = FIXTURE_RESPONSES[2];
+  const firstHash = buildDeepResearchTextHash(firstAnalysis.trim());
+  const secondHash = buildDeepResearchTextHash(secondAnalysis.trim());
   return [
     "<!DOCTYPE html>",
     "<html>",
     `<head><meta charset="utf-8"><title>${input.title}</title><style>body{font-family:sans-serif;}</style></head>`,
     `<body><main><h1>${input.title}</h1>`,
-    `<section id="summary-answer"><h2>Summary Answer</h2><p>${input.body}</p></section>`,
-    `<section id="forensics-process"><h2>Forensics Process</h2><p>Decomposition, N-stage analysis, final adjudication, and export evidence were preserved.</p></section>`,
+    `<section id="summary-answer"><h2>Summary Answer</h2><p>${input.body}</p><p>Job ID ${input.jobId}</p></section>`,
+    `<section id="forensics-process"><h2>Forensics Process</h2><p>Job ID ${input.jobId}; decomposition, N-stage analysis, final adjudication, and export evidence were preserved.</p></section>`,
     `<section id="business-conclusion"><h2>Final Conclusion</h2><p>${input.body}</p></section>`,
-    `<section id="n-stage-questions-and-answers"><h2>N-stage Questions and Answers</h2><p>Q1 demand analysis and Q2 execution analysis are available in the full case file.</p></section>`,
+    `<section id="n-stage-questions-and-answers"><h2>N-stage Questions and Answers</h2>`,
+    `<article><h3>Q1 Demand durability</h3><p>Question: How durable is warehouse robotics demand over the next 24 months?</p><p>Raw response hash: ${firstHash}</p><pre>${firstAnalysis}</pre></article>`,
+    `<article><h3>Q2 Execution feasibility</h3><p>Question: What execution constraints are most likely to block a successful entry?</p><p>Raw response hash: ${secondHash}</p><pre>${secondAnalysis}</pre></article>`,
+    "</section>",
     "</main></body>",
     "</html>",
   ].join("");
+};
+
+const readJobIdFromHtmlPrompt = (textPrompt: string): string => {
+  const marker = "Job ID:";
+  const markerIndex = textPrompt.indexOf(marker);
+  if (markerIndex < 0) {
+    return "deep_research_job_missing";
+  }
+  const afterMarker = textPrompt.slice(markerIndex + marker.length).trim();
+  return afterMarker.split(/\s+/u)[0] ?? "deep_research_job_missing";
 };
 
 const REQUIRED_SMOKE_EXPORT_KINDS = [
@@ -222,6 +241,7 @@ class SequentialFixtureAdapter implements AiProviderAdapter {
     let rawText = FIXTURE_RESPONSES[this.cursor];
     if (!rawText && input.promptPackageId.includes("business-html-report")) {
       rawText = buildInlineHtmlFixture({
+        jobId: readJobIdFromHtmlPrompt(input.textPrompt),
         title: "Business Report",
         body: "The company should consider entering, but only through a staged partner-led beachhead.",
       });

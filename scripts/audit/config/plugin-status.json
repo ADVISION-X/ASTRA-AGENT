@@ -102,6 +102,31 @@
       ]
     },
     {
+      "pluginId": "amazon-listing-edit-read-sync",
+      "status": "active",
+      "owner": "plugin:amazon-listing-edit-read-sync",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:amazon-listing-edit-read-sync"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:amazon-listing-edit-read-sync",
+        "audit:amazon-listing-edit-read-sync"
+      ],
+      "exposureTokens": [
+        "amazon-listing-edit-read-sync"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md"
+      ]
+    },
+    {
       "pluginId": "pick3-is-blind-eval",
       "status": "active",
       "owner": "plugin:pick3-is-blind-eval",

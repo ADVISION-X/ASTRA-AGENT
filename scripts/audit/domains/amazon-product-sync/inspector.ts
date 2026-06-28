@@ -322,8 +322,11 @@ const inspectTaskService = (taskService: SourceFile | undefined, findings: Inspe
   for (const required of ["AmazonProductSyncFlowProgress", "persistProgress", "latestProgress"]) {
     if (!hasIdentifier(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must persist observable running progress: ${required}`);
   }
-  for (const required of ["runningProgressStaleMs", "runningProgressStaleReason", "flow_progress_stale"]) {
+  for (const required of ["startupProgressStaleMs", "activeProgressStaleMs", "resolveRunningProgressStaleMs", "runningProgressStaleReason", "flow_progress_stale"]) {
     if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must fail stale running progress: ${required}`);
+  }
+  for (const required of ["startupProgressWaitMs", "waitForStartupProgress", "firstProgressReady"]) {
+    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must return only after observable startup progress or bounded startup wait: ${required}`);
   }
   for (const required of ["diagnosticValue", "itemAuthGate", "resolveFailureClass", "ACCOUNT_SECURITY_BLOCKER", ...requiredDiagnosticRefs]) {
     if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service missing auth/page diagnostic log token: ${required}`);
@@ -437,7 +440,7 @@ const inspectAcceptance = (acceptance: SourceFile | undefined, findings: Inspect
   for (const required of ["waitForRunningProgress", "seller_central_inventory_"]) {
     if (!hasIdentifier(acceptance, required) && !hasStringToken(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing observable progress assertion token: ${required}`);
   }
-  if (!hasStringToken(acceptance, "amazon_product_sync_running_progress_stale_after_3000ms")) addFinding(findings, lawId, acceptancePath, "acceptance missing stale running progress failure assertion");
+  if (!hasStringToken(acceptance, "amazon_product_sync_running_progress_stale_after_60000ms")) addFinding(findings, lawId, acceptancePath, "acceptance missing startup stale running progress failure assertion");
   if (!hasIdentifier(acceptance, "screenshotRegion")) addFinding(findings, lawId, acceptancePath, "acceptance must exercise screenshotRegion for main image evidence");
   for (const required of requiredMainImageUploadTokens) {
     if (!hasStringToken(acceptance, required) && !hasIdentifier(acceptance, required)) addFinding(findings, lawId, acceptancePath, `acceptance missing main image upload assertion token: ${required}`);

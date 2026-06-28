@@ -15,6 +15,9 @@ import {
   locateManageInvoiceEntry,
 } from "./amazon-existing-invoice-evidence.js";
 
+const existingInvoiceEvidenceTimeoutMs = 8000;
+const existingInvoiceEvidencePollMs = 250;
+
 type AlreadyUploadedRetainedTabInput = {
   runtimeLogger: RuntimeLogger;
   mission: AmazonInvoiceUploadMissionInput;
@@ -137,7 +140,7 @@ async function waitForExistingInvoiceEvidence(
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<string | undefined> {
   const startedAt = Date.now();
-  while (Date.now() - startedAt < 2500) {
+  while (Date.now() - startedAt < existingInvoiceEvidenceTimeoutMs) {
     const snapshot = await readSnapshot(browser);
     if (hasExistingInvoiceEvidence(snapshot, mission)) {
       const evidenceRef = `amazon-existing-invoice:${mission.amazonOrderId}:${Date.now()}`;
@@ -152,7 +155,7 @@ async function waitForExistingInvoiceEvidence(
       });
       return evidenceRef;
     }
-    await browser.wait(200);
+    await browser.wait(existingInvoiceEvidencePollMs);
   }
   return undefined;
 }

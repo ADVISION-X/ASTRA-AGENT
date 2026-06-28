@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-23T10:56:20.951Z",
+  "generatedAt": "2026-06-28T00:15:52.285Z",
   "summary": {
-    "activeLawCount": 230,
-    "coveredLawCount": 230,
+    "activeLawCount": 239,
+    "coveredLawCount": 239,
     "coveragePercent": 100
   },
   "coverage": [
@@ -143,6 +143,86 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/amazon-invoice-upload/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
         }
       ]
     },
@@ -1340,6 +1420,16 @@
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
+      "capabilityDomain": "deep-research-analysis",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/deep-research-analysis/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
       "capabilityDomain": "deep-research-analysis",
       "clauses": [
         {

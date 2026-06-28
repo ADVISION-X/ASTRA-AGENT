@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { handleAmazonListingEditReadSyncRequest } from "./workbench-amazon-listing-edit-read-sync-routes.js";
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
 import { handleAmazonProductMiningRequest } from "./workbench-amazon-product-mining-routes.js";
 import { handleAmazonProductFeeSyncRequest } from "./workbench-amazon-product-fee-sync-routes.js";
@@ -156,6 +157,9 @@ const handleInventoryWorkbenchApiRequest = async (input: {
     return true;
   }
   if (await handleAmazonProductFeeSyncRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleAmazonListingEditReadSyncRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
   if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {

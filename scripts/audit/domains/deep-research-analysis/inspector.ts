@@ -228,6 +228,17 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-057-V1"),
   });
+  inspectBusinessHtmlFullProcessReviewability({
+    promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
+    htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
+    ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
+    ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
+    ownerComponentFile: getSourceFile(context, "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts"),
+    findings,
+    inspectedFiles,
+    lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-060-V1"),
+  });
   inspectHtmlArtifactCaptureChain({
     captureFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts"),
     exportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
