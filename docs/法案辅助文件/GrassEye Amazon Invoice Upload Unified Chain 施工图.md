@@ -361,6 +361,8 @@ selector / browserCommand / flowStep
 documentId / downloadUrl
 ```
 
+Upload task record API responses from `/start`, `/status`, `/resume`, and `/latest` must use the same safe response boundary: the task record may include business status, reason, evidence refs, taskId, order id, and invoice number, but must redact `mission.invoicePdfPath` before JSON leaves Workbench routes. Internal task storage may retain the approved local PDF path only for upload execution and resume.
+
 Website integration rule:
 
 ```txt
@@ -485,12 +487,15 @@ WHY HAPPEN:
 6. 每次刷新和每次重试必须通过 `recordAmazonDomStepTrace` 留下结构化调试证据，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
 7. AGENT 发票上传执行链禁止默认或主动停在人工最终提交；`requireHumanFinalSubmit` 不再属于上传执行契约，UI/client/schema/service 均不得发送或保留该字段。外部旧 payload 若携带该字段，只能在 upload route 清洗后进入既有单张上传链路，生产执行必须继续自动点击 Seller Central 弹窗底部最终 `上传` / `Upload`。
 8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传强证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`由卖家生成` / `Seller generated`。`管理发票` / `Manage invoice` / `Pending` / `待处理` 只能定位发票动作或进入复核，不得作为 `upload_success` 或 `already_uploaded` 的充分证据。
+9. 点击 `管理发票` / `Manage invoice` 后，已上传确认必须等待至少 45 秒的有界生产窗口读取发票列表强证据；Seller Central 弹层仍在 loading 或慢返回时，不得用短超时把该订单批量降级为 `review_required`，也不得把弱入口文案伪造成成功。
+10. 首轮强证据窗口仍未确认时，只允许执行一次同 tab 订单详情恢复刷新，重新定位并点击 `管理发票` / `Manage invoice`，再等待一次 45 秒强证据窗口；两轮都没有强证据时才允许返回 `review_required`。
 
 生产落点：
 
 ```txt
 src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts
 src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
+src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts
 ```
 
 防复发落点：

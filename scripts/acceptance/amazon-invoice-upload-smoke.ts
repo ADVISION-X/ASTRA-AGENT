@@ -148,6 +148,7 @@ async function main(): Promise<void> {
     }
     assertBackendPdfTextAmountReadable();
     assertSplitSellerCentralOrderTotalReadable();
+    assertLongSellerCentralOrderTotalReadable();
     await assertAmountMismatchSkipsBeforeUpload(runtimeLogger);
     await assertUnreadablePdfSkipsBeforeUpload(runtimeLogger);
     await assertTaskServiceTimeoutGuard(runtimeLogger);
@@ -200,6 +201,35 @@ function assertSplitSellerCentralOrderTotalReadable(): void {
   });
   if (amount?.amountMinor !== 5950) {
     throw new Error(`Split Seller Central total must be amount-readable: ${JSON.stringify(amount)}`);
+  }
+}
+
+function assertLongSellerCentralOrderTotalReadable(): void {
+  const amount = extractOrderDomTotalAmount({
+    url: "https://sellercentral.amazon.ae/orders-v3/order/402-2948017-0456349",
+    title: "Amazon",
+    forms: [],
+    inputs: [],
+    buttons: [],
+    links: [],
+    fileInputs: [],
+    dialogs: [],
+    frames: [],
+    textBlocks: [
+      textBlock(`Sales proceeds ${"Adjustment AED 0.00 ".repeat(18)} Total AED 59.50`),
+    ],
+    tableRows: [],
+    roleRows: [],
+    genericClickableElements: [],
+    dropdownTriggers: [],
+    overlays: [],
+    loadingIndicators: [],
+    stickyElements: [],
+    detectedStates: [],
+    capturedAt: "1970-01-01T00:00:00.000Z",
+  });
+  if (amount?.amountMinor !== 5950) {
+    throw new Error(`Long Seller Central total must be amount-readable: ${JSON.stringify(amount)}`);
   }
 }
 

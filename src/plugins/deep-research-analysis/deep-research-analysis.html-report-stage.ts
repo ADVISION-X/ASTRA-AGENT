@@ -131,6 +131,17 @@ const findHtmlSectionSource = (htmlDocument: string, sectionId: string): string 
   return htmlDocument.slice(start, end);
 };
 
+const findHtmlSectionClosingIndex = (htmlDocument: string, sectionId: string): number => {
+  const idIndex = findHtmlSectionIdIndex(htmlDocument, sectionId);
+  if (idIndex < 0) {
+    return -1;
+  }
+  const lower = htmlDocument.toLowerCase();
+  const sectionStart = lower.lastIndexOf("<section", idIndex);
+  const searchFrom = sectionStart >= 0 ? sectionStart : idIndex;
+  return lower.indexOf("</section", searchFrom);
+};
+
 const stripHtmlTagContent = (value: string, openTag: string, closeTag: string): string => {
   let output = value;
   let searchFrom = 0;
@@ -181,6 +192,14 @@ const decodeMinimalHtmlEntities = (value: string): string =>
     .split("&gt;").join(">")
     .split("&quot;").join("\"")
     .split("&#39;").join("'");
+
+const escapeHtmlText = (value: string): string =>
+  value
+    .split("&").join("&amp;")
+    .split("<").join("&lt;")
+    .split(">").join("&gt;")
+    .split("\"").join("&quot;")
+    .split("'").join("&#39;");
 
 const normalizeVisibleText = (value: string): string =>
   decodeMinimalHtmlEntities(
@@ -246,6 +265,44 @@ const readBusinessHtmlCaseFileFailure = (htmlDocument: string, fullCaseFile: Dee
   return null;
 };
 
+const buildCanonicalNStageRetentionAppendix = (fullCaseFile: DeepResearchFullCaseFile): string => {
+  const blocks = fullCaseFile.subQuestionAnalyses.map((entry, index) => {
+    const responseHash = entry.promptInteraction?.rawResponseHash ?? "raw_response_hash_missing";
+    const sourceText = readNStageSourceText(entry);
+    return [
+      `<article class="canonical-n-stage-answer" data-sub-question-id="${escapeHtmlText(entry.subQuestionId)}">`,
+      `<h3>完整 N 阶段证据 Q${index + 1}：${escapeHtmlText(entry.title ?? entry.modelQuestionId ?? entry.subQuestionId)}</h3>`,
+      `<p><strong>问题文本：</strong>${escapeHtmlText(entry.questionText)}</p>`,
+      `<p><strong>解析状态：</strong>${escapeHtmlText(entry.structuredAnswerStatus)}</p>`,
+      `<p><strong>Raw Response Hash：</strong>${escapeHtmlText(responseHash)}</p>`,
+      `<pre>${escapeHtmlText(sourceText)}</pre>`,
+      "</article>",
+    ].join("\n");
+  }).join("\n");
+  return [
+    '<div class="canonical-n-stage-retention-appendix" data-generated-from="full-case-file">',
+    "<h2>系统追加：完整 N 阶段证据附录</h2>",
+    "<p>本附录由系统从 full case file 的持久化 N 阶段回答确定性追加，用于防止最终报告稀释 N 阶段材料；它不是模型二次总结。</p>",
+    blocks,
+    "</div>",
+  ].join("\n");
+};
+
+const ensureCanonicalNStageRetentionAppendix = (
+  htmlDocument: string,
+  fullCaseFile: DeepResearchFullCaseFile,
+): string => {
+  if (htmlDocument.includes('class="canonical-n-stage-retention-appendix"')) {
+    return htmlDocument;
+  }
+  const insertionIndex = findHtmlSectionClosingIndex(htmlDocument, "n-stage-questions-and-answers");
+  if (insertionIndex < 0) {
+    return htmlDocument;
+  }
+  const appendix = buildCanonicalNStageRetentionAppendix(fullCaseFile);
+  return `${htmlDocument.slice(0, insertionIndex)}\n${appendix}\n${htmlDocument.slice(insertionIndex)}`;
+};
+
 const isBusinessHtmlArtifactText = (value: string): boolean => {
   const trimmed = value.trim();
   const lower = trimmed.toLowerCase();
@@ -294,7 +351,10 @@ export const parseAndPersistBusinessHtmlReport = (input: {
   rawText: string;
   outputPath: string;
 }): DeepResearchParserResult<DeepResearchBusinessHtmlReportRecord> => {
-  const normalizedText = input.rawText.trim();
+  const normalizedText = ensureCanonicalNStageRetentionAppendix(
+    input.rawText.trim(),
+    input.fullCaseFile,
+  );
   const rawResponseHash = buildHtmlTextHash(normalizedText);
   if (!isBusinessHtmlArtifactText(normalizedText)) {
     return buildFailure(

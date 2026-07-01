@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T12:09:02.580Z",
+  "generatedAt": "2026-06-28T04:47:03.327Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,8 +16,33 @@
     "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
     "GRASSEYE-PICK3-TREND-DISPLAY-010-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "pick3-is-blind-eval/rate-limit-recovery-logging",
+      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts must contain rate_limit_dialog_still_visible_after_ack.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts"
+    },
+    {
+      "checkId": "pick3-is-blind-eval/rate-limit-recovery-logging",
+      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts must contain querySelectorAll('[role=\"dialog\"], [data-radix-portal]').",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts"
+    },
+    {
+      "checkId": "pick3-is-blind-eval/rate-limit-recovery-logging",
+      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts must contain node.innerText.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts"
+    }
+  ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
     "docs/法案辅助文件/GrassEye Pick3 IS Blind Eval 施工图.md",

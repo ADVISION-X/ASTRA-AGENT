@@ -176,6 +176,47 @@ function inspectLedgerServiceAndRoute(taskServiceFile: SourceFile, routesFile: S
   if (!literalCorpus(routesFile).includes(uploadLedgerRoute) || !routeCallsLedger) {
     addFinding(findings, lawId, routesPath, "amazon-invoice-upload/ledger-route-handler", "Workbench Amazon routes must expose GET upload ledger through the existing amazon-invoice-upload route family.");
   }
+  inspectUploadTaskRecordResponseSanitizer(routesFile, findings, lawId);
+}
+
+function inspectUploadTaskRecordResponseSanitizer(routesFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
+  const sanitizer = routesFile.getFunction("sanitizeAmazonInvoiceUploadTaskRecordForResponse");
+  if (!sanitizer
+    || !sanitizer.getText().includes("redacted-local-invoice-pdf-path")
+    || !sanitizer.getText().includes("invoicePdfPath")) {
+    addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-response-sanitizer", "Upload task record API responses must redact mission.invoicePdfPath before leaving Workbench routes.");
+  }
+  for (const functionName of [
+    "handleAmazonTaskCreateRequest",
+    "handleAmazonPluginStartRequest",
+    "handleAmazonTaskResumeRequest",
+    "handleAmazonTaskStatusRequest",
+    "handleAmazonPluginStatusRequest",
+    "handleAmazonLatestRequest",
+    "handleAmazonPluginLatestRequest",
+  ]) {
+    const routeHandler = routesFile.getFunction(functionName) ?? routesFile.getVariableDeclaration(functionName)?.getInitializer();
+    const callsSanitizer = routeHandler?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+      Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "sanitizeAmazonInvoiceUploadTaskRecordForResponse");
+    if (!callsSanitizer) {
+      addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-route-sanitizer", `${functionName} must return only sanitized upload task records.`);
+    }
+  }
+  const forbiddenRawResponses = [
+    "writeJson(response, 200, result)",
+    "writeJson(response, 200, await workbench.getAmazonInvoiceUploadTaskStatus(taskId))",
+    "writeJson(response, 200, { task: result })",
+    "writeJson(response, 200, record ? { found: true, record } : { found: false })",
+  ];
+  for (const functionName of ["handleAmazonTaskCreateRequest", "handleAmazonTaskResumeRequest", "handleAmazonPluginLatestRequest"]) {
+    const routeHandler = routesFile.getFunction(functionName) ?? routesFile.getVariableDeclaration(functionName)?.getInitializer();
+    const routeText = routeHandler?.getText() ?? "";
+    for (const forbidden of forbiddenRawResponses) {
+      if (routeText.includes(forbidden)) {
+        addFinding(findings, lawId, routesPath, "amazon-invoice-upload/raw-task-record-response", `Workbench upload route must not expose raw task record response: ${forbidden}`);
+      }
+    }
+  }
 }
 
 function inspectLedgerAppShell(appShellFile: SourceFile, appClientFile: SourceFile, findings: InspectorFinding[], lawId: string): void {

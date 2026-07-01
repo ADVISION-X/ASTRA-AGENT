@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import type { AmazonInvoiceUploadTaskRecord } from "../plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 
@@ -38,6 +39,18 @@ function readOptionalRawString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function sanitizeAmazonInvoiceUploadTaskRecordForResponse(
+  record: AmazonInvoiceUploadTaskRecord,
+): AmazonInvoiceUploadTaskRecord {
+  return {
+    ...record,
+    mission: {
+      ...record.mission,
+      invoicePdfPath: "redacted-local-invoice-pdf-path",
+    },
+  };
+}
+
 const handleAmazonMissionRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -56,7 +69,7 @@ const handleAmazonTaskCreateRequest = async (
 ): Promise<boolean> => {
   const input = await readJsonBody(request);
   const result = await workbench.startAmazonInvoiceUploadTask(input as Parameters<typeof workbench.startAmazonInvoiceUploadTask>[0]);
-  writeJson(response, 200, result);
+  writeJson(response, 200, sanitizeAmazonInvoiceUploadTaskRecordForResponse(result));
   return true;
 };
 
@@ -76,7 +89,7 @@ async function handleAmazonPluginStartRequest(
     mission: sanitizeAmazonInvoiceUploadMission(missionText, request),
     invoicePdf,
   });
-  writeJson(response, 200, result);
+  writeJson(response, 200, sanitizeAmazonInvoiceUploadTaskRecordForResponse(result));
   return true;
 }
 
@@ -100,7 +113,7 @@ const handleAmazonTaskResumeRequest = async (
 ): Promise<boolean> => {
   const input = await readJsonBody(request);
   const result = await workbench.resumeAmazonInvoiceUploadTask(input as Parameters<typeof workbench.resumeAmazonInvoiceUploadTask>[0]);
-  writeJson(response, 200, result);
+  writeJson(response, 200, sanitizeAmazonInvoiceUploadTaskRecordForResponse(result));
   return true;
 };
 
@@ -114,7 +127,7 @@ const handleAmazonTaskStatusRequest = async (
     writeJson(response, 400, { error: "missing_task_id" });
     return true;
   }
-  writeJson(response, 200, await workbench.getAmazonInvoiceUploadTaskStatus(taskId));
+  writeJson(response, 200, sanitizeAmazonInvoiceUploadTaskRecordForResponse(await workbench.getAmazonInvoiceUploadTaskStatus(taskId)));
   return true;
 };
 
@@ -123,7 +136,7 @@ const handleAmazonPluginStatusRequest = async (
   workbench: GrassEyeWorkbenchHandle,
   taskId: string,
 ): Promise<boolean> => {
-  writeJson(response, 200, await workbench.getAmazonInvoiceUploadTaskStatus(taskId));
+  writeJson(response, 200, sanitizeAmazonInvoiceUploadTaskRecordForResponse(await workbench.getAmazonInvoiceUploadTaskStatus(taskId)));
   return true;
 };
 
@@ -151,7 +164,7 @@ const handleAmazonLatestRequest = async (
     amazonOrderId,
     ...(invoiceNo ? { invoiceNo } : {}),
   });
-  writeJson(response, 200, { task: result });
+  writeJson(response, 200, { task: result ? sanitizeAmazonInvoiceUploadTaskRecordForResponse(result) : null });
   return true;
 };
 
@@ -170,7 +183,7 @@ const handleAmazonPluginLatestRequest = async (
     amazonOrderId,
     ...(invoiceNo ? { invoiceNo } : {}),
   });
-  writeJson(response, 200, record ? { found: true, record } : { found: false });
+  writeJson(response, 200, record ? { found: true, record: sanitizeAmazonInvoiceUploadTaskRecordForResponse(record) } : { found: false });
   return true;
 };
 

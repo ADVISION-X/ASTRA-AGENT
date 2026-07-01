@@ -37,6 +37,9 @@ const ORDER_TOTAL_SECTION_LABELS = [
   "销售收益",
   "Sales proceeds",
 ] as const;
+const ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT = 240;
+const ORDER_TOTAL_READ_ATTEMPTS = 3;
+const ORDER_TOTAL_READ_RETRY_MS = 1000;
 
 export async function verifyInvoiceAmountBeforeUpload(
   browser: BrowserController,
@@ -51,17 +54,17 @@ export async function verifyInvoiceAmountBeforeUpload(
       reachedStep: "verify invoice amount against order total",
     });
   }
-  const snapshot = await readSnapshot(browser, { maxTextLengthPerNode: 240 });
-  const orderAmount = extractOrderDomTotalAmount(snapshot);
+  const orderEvidence = await readOrderDomTotalAmountWithRetry(browser);
+  const orderAmount = orderEvidence.orderAmount;
   recordAmazonDomStepTrace({
     runtimeLogger,
     mission,
     stepName: "verify invoice amount against order total",
     status: orderAmount ? "success" : "failed",
-    snapshot,
+    snapshot: orderEvidence.snapshot,
     reason: orderAmount
       ? `Seller Central order total read as ${orderAmount.display}.`
-      : "Seller Central order total was not readable from the live DOM.",
+      : `Seller Central order total was not readable from the live DOM after ${orderEvidence.attempts} bounded snapshot attempt(s).`,
   });
   if (!orderAmount) {
     return amountGateFailure(runtimeLogger, mission, {
@@ -81,6 +84,21 @@ export async function verifyInvoiceAmountBeforeUpload(
     });
   }
   return null;
+}
+
+async function readOrderDomTotalAmountWithRetry(browser: BrowserController): Promise<{
+  readonly attempts: number;
+  readonly orderAmount: AmazonInvoiceMoney | null;
+  readonly snapshot: DomSnapshot;
+}> {
+  let snapshot = await readSnapshot(browser, { maxTextLengthPerNode: ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT });
+  for (let attempt = 1; attempt <= ORDER_TOTAL_READ_ATTEMPTS; attempt += 1) {
+    const orderAmount = extractOrderDomTotalAmount(snapshot);
+    if (orderAmount || attempt === ORDER_TOTAL_READ_ATTEMPTS) return { attempts: attempt, orderAmount, snapshot };
+    await browser.wait(ORDER_TOTAL_READ_RETRY_MS);
+    snapshot = await readSnapshot(browser, { maxTextLengthPerNode: ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT });
+  }
+  return { attempts: ORDER_TOTAL_READ_ATTEMPTS, orderAmount: null, snapshot };
 }
 
 export async function extractInvoicePdfTotalAmount(pdfPath: string): Promise<AmazonInvoiceMoney | null> {

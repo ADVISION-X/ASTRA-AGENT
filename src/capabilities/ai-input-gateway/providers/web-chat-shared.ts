@@ -3,10 +3,15 @@ import type { AiProviderAdapterContext, AiProviderRawResponse } from "../contrac
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
-import { captureChatGptBusinessHtmlArtifact, isBusinessHtmlReportRequest } from "./web-chat-html-artifact-capture.js";
+import {
+  captureChatGptBusinessHtmlArtifact,
+  captureInlineChatGptBusinessHtmlArtifact,
+  isBusinessHtmlReportRequest,
+} from "./web-chat-html-artifact-capture.js";
 import { isAmazonProductMiningGptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
+import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser, restoreSourcePage } from "./web-chat-shared-support.js";
@@ -57,6 +62,21 @@ const shouldSkipPreSubmitConversationState = (request: AiFeedInput): boolean =>
   request.providerKind === "gemini-web-chat"
   && isPick3WebChatRequest({ request });
 
+const acknowledgeWebChatRateLimitIfVisible = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+}): Promise<void> => {
+  if (input.request.providerKind === "gpt-web-chat") {
+    await acknowledgeChatGptRateLimitDialogIfVisible({
+      browser: input.browser,
+      context: input.context,
+    });
+    return;
+  }
+  await acknowledgePick3RateLimitIfVisible(input);
+};
+
 const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number }): Promise<void> => {
   await assertActiveProviderPage({
     browser: input.browser,
@@ -98,7 +118,7 @@ const extractWebChatConversation = async (input: { browser: BrowserController; r
       minAssistantCount: Math.max(1, input.previousAssistantCount + 1),
     }),
     previousAnswerText: input.previousAnswerText,
-    beforePoll: () => acknowledgePick3RateLimitIfVisible(input),
+    beforePoll: () => acknowledgeWebChatRateLimitIfVisible(input),
   });
   emitWebChatStage({ request: input.request, stage: "response_capture", status: extracted.status, startedAtMs: responseCaptureStartedAtMs, refs: {
     message: extracted.message,
@@ -131,7 +151,7 @@ const readPreSubmitConversationState = async (input: { browser: BrowserControlle
     timeoutMs: 1_000,
     pollIntervalMs: 250,
     stableRoundsRequired: 1,
-    beforePoll: () => acknowledgePick3RateLimitIfVisible(input),
+    beforePoll: () => acknowledgeWebChatRateLimitIfVisible(input),
   });
   emitWebChatStage({
     request: input.request,
@@ -212,12 +232,19 @@ const executeWebChatConversation = async (
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
-  const htmlArtifact = await captureChatGptBusinessHtmlArtifact({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    conversationUrl: conversation.extracted.pageUrl ?? null,
-  });
+  const inlineHtmlArtifact = isBusinessHtmlReportRequest(input.request)
+    ? captureInlineChatGptBusinessHtmlArtifact({
+      answerText: conversation.answerText,
+      pageUrl: conversation.extracted.pageUrl ?? null,
+    })
+    : null;
+  const htmlArtifact = inlineHtmlArtifact
+    ?? await captureChatGptBusinessHtmlArtifact({
+      browser: input.browser,
+      request: input.request,
+      context: input.context,
+      conversationUrl: conversation.extracted.pageUrl ?? null,
+    });
   if (isBusinessHtmlReportRequest(input.request) && !htmlArtifact) {
     throw new Error("review_required: provider did not produce a business-report.html artifact.");
   }

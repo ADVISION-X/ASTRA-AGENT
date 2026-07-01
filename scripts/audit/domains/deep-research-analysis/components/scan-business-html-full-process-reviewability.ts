@@ -71,6 +71,14 @@ const collectArrayLiteralValues = (initializer: Expression | undefined): string[
   return unwrapped.getElements().map(stringLiteralValue).filter((value): value is string => value !== null);
 };
 
+const readNumericLiteralValue = (initializer: Expression | undefined): number | null => {
+  const unwrapped = unwrapExpression(initializer);
+  if (!Node.isNumericLiteral(unwrapped)) {
+    return null;
+  }
+  return Number(unwrapped.getLiteralText());
+};
+
 const getCallExpressionName = (callExpression: CallExpression): string | null => {
   const expression = callExpression.getExpression();
   if (Node.isIdentifier(expression)) {
@@ -203,8 +211,8 @@ const inspectHtmlArtifactValidation = (input: {
       message: "Business HTML parser must validate case-file binding, N-stage citations, and retention before persistence.",
     });
   }
-  const retentionInitializer = findVariableInitializer(input.sourceFile, "DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR");
-  if (!retentionInitializer || !retentionInitializer.getText().includes("0.8")) {
+  const retentionFloor = readNumericLiteralValue(findVariableInitializer(input.sourceFile, "DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR"));
+  if (retentionFloor !== 0.8) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,

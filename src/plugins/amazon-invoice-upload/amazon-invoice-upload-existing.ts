@@ -14,9 +14,12 @@ import {
   hasExistingInvoiceEvidence,
   locateManageInvoiceEntry,
 } from "./amazon-existing-invoice-evidence.js";
+import { buildApprovedOrderDetailUrl } from "./amazon-invoice-upload-order-detail.js";
 
-const existingInvoiceEvidenceTimeoutMs = 8000;
+const existingInvoiceEvidenceTimeoutMs = 45_000;
 const existingInvoiceEvidencePollMs = 250;
+const existingInvoiceEvidenceRecoveryAttempts = 1;
+const existingInvoiceEvidenceRecoverySettleMs = 3_000;
 
 type AlreadyUploadedRetainedTabInput = {
   runtimeLogger: RuntimeLogger;
@@ -45,6 +48,31 @@ export async function verifyAlreadyUploadedInvoice(
   if (manageEntry !== null) return manageEntry === "not-found" ? null : manageEntry;
 
   const evidenceRef = await waitForExistingInvoiceEvidence(browser, runtimeLogger, mission);
+  if (evidenceRef) {
+    return alreadyUploadedWithRetainedTab({
+      runtimeLogger,
+      mission,
+      reason: "existing invoice verified from Amazon invoice list",
+      evidenceRef,
+    });
+  }
+
+  for (let attempt = 1; attempt <= existingInvoiceEvidenceRecoveryAttempts; attempt += 1) {
+    await recoverExistingInvoiceList(browser, runtimeLogger, mission, attempt);
+    const recoveredSnapshot = await readSnapshot(browser);
+    const recoveredManageEntry = await openManageInvoiceList(browser, runtimeLogger, mission, recoveredSnapshot);
+    if (recoveredManageEntry !== null) return recoveredManageEntry === "not-found" ? null : recoveredManageEntry;
+    const recoveredEvidenceRef = await waitForExistingInvoiceEvidence(browser, runtimeLogger, mission);
+    if (recoveredEvidenceRef) {
+      return alreadyUploadedWithRetainedTab({
+        runtimeLogger,
+        mission,
+        reason: "existing invoice verified from Amazon invoice list after recovery refresh",
+        evidenceRef: recoveredEvidenceRef,
+      });
+    }
+  }
+
   return evidenceRef
     ? alreadyUploadedWithRetainedTab({
       runtimeLogger,
@@ -123,10 +151,33 @@ function traceManageInvoiceClick(
   });
 }
 
+async function recoverExistingInvoiceList(
+  browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  attempt: number,
+): Promise<void> {
+  await browser.open({
+    url: buildApprovedOrderDetailUrl(mission),
+    title: "Amazon Seller Central manage invoice recovery refresh",
+    reusePolicy: "reuse-active-tab",
+  });
+  await browser.wait(existingInvoiceEvidenceRecoverySettleMs);
+  const snapshot = await readSnapshot(browser);
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "recover existing invoice list",
+    status: "snapshot",
+    snapshot,
+    reason: `Manage invoice list did not expose strong evidence within ${existingInvoiceEvidenceTimeoutMs}ms; recovery refresh attempt ${attempt}/${existingInvoiceEvidenceRecoveryAttempts}.`,
+  });
+}
+
 function existingInvoiceNeedsReview(mission: AmazonInvoiceUploadMissionInput): AmazonInvoiceUploadTaskResult {
   return taskResult({
     status: "review_required",
-    reason: "Amazon exposes a manage-invoice entry, but the invoice list did not confirm the expected invoice.",
+    reason: `Amazon exposes a manage-invoice entry, but the invoice list did not confirm the expected invoice within ${existingInvoiceEvidenceTimeoutMs}ms.`,
     reachedStep: "verify existing invoice",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,

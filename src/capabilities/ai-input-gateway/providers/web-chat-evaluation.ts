@@ -451,7 +451,11 @@ const assistantCount = structuredCandidates.length > 0
     : 0;
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
 const responseGenerating = geminiBodyAnswer || geminiStructuredJsonAnswer ? false : generating;
-const quotaExhaustedText = String(document.body?.innerText || document.body?.textContent || "");
+const quotaExhaustedText = Array.from(document.querySelectorAll("[role='dialog'], [data-radix-portal], [role='alert'], [aria-live], [role='status']"))
+  .filter((node) => isVisible(node) && !node.closest("[data-message-author-role='assistant'], [data-message-author-role='user'], main article, form, footer, header, nav, aside"))
+  .map((node) => clip(node.textContent || ""))
+  .filter((text) => text.length > 0)
+  .join(" ");
 const quotaExhaustedVisible = /usage limit|message cap|limit reached|come back later|try again in|额度|上限|用完|已达到.*限制|稍后再回来/i.test(quotaExhaustedText)
   && !/请求过于频繁|请稍等几分钟后再重试|too many requests|request too frequent/i.test(quotaExhaustedText);
 if (quotaExhaustedVisible) {

@@ -19,7 +19,11 @@ import {
   waitForComposerFocused,
 } from "./web-chat-page-actions.js";
 import { clearComposer } from "./web-chat-upload-page-actions.js";
-import { acknowledgePick3RateLimitDialogIfVisible, isChatGptRateLimitDialogVisible, reservePick3RateLimitAttempt } from "./web-chat-pick3-recovery-log.js";
+import { acknowledgePick3RateLimitDialogIfVisible, reservePick3RateLimitAttempt } from "./web-chat-pick3-recovery-log.js";
+import {
+  acknowledgeChatGptRateLimitDialogIfVisible,
+  isChatGptRateLimitDialogVisible,
+} from "./web-chat-rate-limit-dialog.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
@@ -88,7 +92,7 @@ const waitForPromptSubmitted = async (input: {
   const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider submit result was not checked";
   while (Date.now() < deadline) {
-    await acknowledgePick3SubmitRateLimitIfVisible(input);
+    await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
       verifyPromptSubmitted(input.browser, input.context, {
         expectedPrefix: input.expectedPrefix,
@@ -115,7 +119,7 @@ const waitForSendButtonClick = async (input: {
   const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider send button was not checked";
   while (Date.now() < deadline) {
-    await acknowledgePick3SubmitRateLimitIfVisible(input);
+    await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const clicked = await withWebChatStep(input.step, () =>
       clickChatGptSendButton(input.browser, input.context));
     lastMessage = `${clicked.status}: ${clicked.message}`;
@@ -158,6 +162,23 @@ const acknowledgePick3SubmitRateLimitIfVisible = async (input: Pick3RateLimitSub
   });
 };
 
+const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
+  if (input.request.providerKind !== "gpt-web-chat") return;
+  const ackStatus = await acknowledgeChatGptRateLimitDialogIfVisible({
+    browser: input.browser,
+    context: input.context,
+  });
+  if (!ackStatus) return;
+  terminalStageLog(formatStageRefs({
+    stage: "rate_limit_acknowledgement",
+    status: ackStatus === "rate_limit_ack_clicked_and_dialog_closed" ? "success" : "fallback",
+    providerKind: input.request.providerKind,
+    promptPackageId: input.request.promptPackageId,
+    promptContractId: input.request.promptContractId,
+    ackStatus,
+  }));
+};
+
 type PreparedPromptComposer = {
   expectedLength: number;
   expectedPrefix: string;
@@ -189,8 +210,10 @@ if (floating.length > 0) {
 };
 
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+  await acknowledgeChatGptSubmitRateLimitIfVisible(input);
   await dismissFloatingMenus(input);
   await input.browser.wait(200);
+  await acknowledgeChatGptSubmitRateLimitIfVisible(input);
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
     focusComposer(input.browser, input.context));
   if (focused.status !== "success") {
@@ -214,7 +237,7 @@ const waitForPromptReady = async (input: {
   let lastMessage = "provider prompt readiness was not checked";
   let lastEvaluation: WebChatEvaluation | null = null;
   while (Date.now() < deadline) {
-    await acknowledgePick3SubmitRateLimitIfVisible(input);
+    await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const evaluation = await withWebChatStep(input.step, () =>
       verifyPromptPasted(input.browser, input.context, {
         expectedLength: input.expectedLength,
@@ -246,7 +269,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   let lastMessage = "provider submitted attachment binding was not checked";
   let lastEvaluation: WebChatEvaluation | null = null;
   while (Date.now() < deadline) {
-    await acknowledgePick3SubmitRateLimitIfVisible(input);
+    await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const evaluation = await withWebChatStep("verify_last_user_message_bound_attachments", () =>
       verifyLastUserMessageAttachments(input.browser, input.context, input.expectedCount));
     lastEvaluation = evaluation;

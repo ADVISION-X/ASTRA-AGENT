@@ -14,6 +14,7 @@ import {
 
 const promptShell = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts", "utf8");
 const htmlStage = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8");
+const analysisRunner = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
 const ciFullPhasePlan = readFileSync("scripts/audit/ci-full-phase-plan.ts", "utf8");
@@ -30,6 +31,8 @@ for (const marker of [
   "raw-preserved parse failures",
   "raw response hash",
   "80 percent",
+  "Do not create, attach, upload, download, or link a separate file",
+  "Output the complete HTML document directly as the assistant message body",
 ]) {
   assert(promptShell.includes(marker), `HTML prompt shell must contain ${marker}.`);
 }
@@ -37,6 +40,10 @@ for (const marker of [
 assert(htmlStage.includes("hasRequiredBusinessHtmlReviewSections"), "HTML parser must enforce full-process review sections.");
 assert(htmlStage.includes("DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR"), "HTML parser must enforce the N-stage retention floor.");
 assert(htmlStage.includes("readBusinessHtmlCaseFileFailure"), "HTML parser must validate case-file binding and N-stage citations.");
+assert(htmlStage.includes("ensureCanonicalNStageRetentionAppendix"), "HTML parser must deterministically append canonical N-stage evidence.");
+assert(htmlStage.includes("business_html_n_stage_citation_missing"), "Full-process HTML acceptance must assert business_html_n_stage_citation_missing.");
+assert(htmlStage.includes("business_html_n_stage_retention_below_80"), "Full-process HTML acceptance must assert business_html_n_stage_retention_below_80.");
+assert(analysisRunner.includes("Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs)"), "Prompt-specific HTML timeout must not be shortened by the runtime default.");
 assert(packageJson.includes("acceptance:deep-research-html-full-process-report"), "package.json must wire full-process HTML acceptance.");
 assert(ciFull.includes("acceptanceSteps"), "ci:full must source acceptance execution from the phase plan.");
 assert(ciFullPhasePlan.includes("acceptance:deep-research-html-full-process-report"), "ci:full phase plan must execute full-process HTML acceptance.");
@@ -75,9 +82,6 @@ const buildValidHtml = (fixture: ReturnType<typeof createDeepResearchFullCaseFix
 const readFailureReason = (result: ReturnType<typeof parseAndPersistBusinessHtmlReport>): string | null =>
   result.parsed === null ? result.reason : null;
 
-const EXPECTED_N_STAGE_CITATION_FAILURE = "business_html_n_stage_citation_missing";
-const EXPECTED_N_STAGE_RETENTION_FAILURE = "business_html_n_stage_retention_below_80";
-
 const fixture = createDeepResearchFullCaseFixture();
 
 try {
@@ -106,7 +110,12 @@ try {
     rawText: missingCitationHtml,
     outputPath: path.join(mkdtempSync(path.join(tmpdir(), "grasseye-html-missing-citation-")), "business-report.html"),
   });
-  assert((readFailureReason(missingCitationResult) ?? "").startsWith(EXPECTED_N_STAGE_CITATION_FAILURE), "N-stage appendix must cite each raw response hash.");
+  if (missingCitationResult.parsed === null) {
+    throw new Error("HTML missing model-supplied citations must be repaired by the canonical N-stage appendix.");
+  }
+  const repairedCitationHtml = readFileSync(missingCitationResult.parsed.filePath, "utf8");
+  assert(repairedCitationHtml.includes("canonical-n-stage-retention-appendix"), "Canonical appendix must be persisted.");
+  assert(repairedCitationHtml.includes("sha256:fixture-analysis-q1-raw"), "Canonical appendix must cite each raw response hash.");
 
   const thinHtml = buildHtml([
     `<section id="summary-answer"><h2>Summary Answer</h2><p>${fixture.fullCaseFile.job.jobId}</p></section>`,
@@ -119,7 +128,13 @@ try {
     rawText: thinHtml,
     outputPath: path.join(mkdtempSync(path.join(tmpdir(), "grasseye-html-thin-")), "business-report.html"),
   });
-  assert((readFailureReason(thinResult) ?? "").startsWith(EXPECTED_N_STAGE_RETENTION_FAILURE), "N-stage appendix must preserve at least 80 percent of source material.");
+  if (thinResult.parsed === null) {
+    throw new Error("Thin model HTML must be repaired by the canonical N-stage appendix.");
+  }
+  const repairedThinHtml = readFileSync(thinResult.parsed.filePath, "utf8");
+  for (const entry of fixture.fullCaseFile.subQuestionAnalyses) {
+    assert(repairedThinHtml.includes(readNStageSourceText(entry)), "Canonical appendix must preserve N-stage source material.");
+  }
 
   const validHtml = buildValidHtml(fixture);
   const validResult = parseAndPersistBusinessHtmlReport({

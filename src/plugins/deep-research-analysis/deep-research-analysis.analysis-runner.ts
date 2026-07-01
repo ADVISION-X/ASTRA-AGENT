@@ -165,7 +165,7 @@ export const buildGatewaySender = (
       textPrompt: promptPackage.promptText,
       inputRefs: promptPackage.inputRefs.map(toAiGatewayInputRef),
       modelName: context.modelName ?? null,
-      timeoutMs: context.timeoutMs ?? promptPackage.timeoutMs,
+      timeoutMs: Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs),
       maxInputChars: promptPackage.maxInputChars,
       maxFileCount: promptPackage.maxFileCount,
       maxFileBytes: promptPackage.maxFileBytes,

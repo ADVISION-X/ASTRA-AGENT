@@ -19,7 +19,11 @@ const SECONDARY_CHATGPT_DOWNLOAD_LABEL = "下载代码文件";
 
 type CapturedHtmlArtifact = {
   htmlDocument: string;
-  source: "chatgpt-primary-file-entry" | "chatgpt-preview-download";
+  source:
+    | "chatgpt-primary-file-entry"
+    | "chatgpt-preview-download"
+    | "chatgpt-blocked-estuary-fetch"
+    | "chatgpt-inline-assistant-message";
   outputRef: string;
   sha256: string;
   byteSize: number;
@@ -67,6 +71,82 @@ const getDownloadsDir = (): string => path.join(os.homedir(), "Downloads");
 
 const hashText = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
+
+const extractInlineHtmlDocument = (value: string): string | null => {
+  const doctypeIndex = value.toLowerCase().indexOf("<!doctype html");
+  const htmlIndex = value.toLowerCase().indexOf("<html");
+  const startIndex = doctypeIndex >= 0
+    ? doctypeIndex
+    : htmlIndex;
+  const endIndex = value.toLowerCase().lastIndexOf("</html>");
+  if (startIndex < 0 || endIndex < startIndex) {
+    return null;
+  }
+  const candidate = value.slice(startIndex, endIndex + "</html>".length).trim();
+  return isHtmlDocumentText(candidate) ? candidate : null;
+};
+
+export const captureInlineChatGptBusinessHtmlArtifact = (input: {
+  answerText: string;
+  pageUrl: string | null;
+}): CapturedHtmlArtifact | null => {
+  const htmlDocument = extractInlineHtmlDocument(input.answerText);
+  if (!htmlDocument) {
+    return null;
+  }
+  return {
+    htmlDocument,
+    source: "chatgpt-inline-assistant-message",
+    outputRef: input.pageUrl ?? "chatgpt-inline-assistant-message",
+    sha256: hashText(htmlDocument),
+    byteSize: Buffer.byteLength(htmlDocument, "utf8"),
+  };
+};
+
+const decodeMinimalHtmlEntities = (value: string): string =>
+  value
+    .split("&amp;").join("&")
+    .split("&lt;").join("<")
+    .split("&gt;").join(">")
+    .split("&quot;").join("\"")
+    .split("&#39;").join("'");
+
+const readBlockedChatGptBusinessHtmlUrl = (htmlDocument: string): string | null => {
+  if (!htmlDocument.includes("ERR_BLOCKED_BY_CLIENT") || !htmlDocument.includes("business-report.html")) {
+    return null;
+  }
+  const match = htmlDocument.match(/reloadUrl":"([^"]*business-report\.html[^"]*)"/u);
+  const rawUrl = match?.[1];
+  if (!rawUrl) {
+    return null;
+  }
+  const decodedUrl = decodeMinimalHtmlEntities(rawUrl);
+  return decodedUrl.startsWith("https://chatgpt.com/backend-api/estuary/content?")
+    ? decodedUrl
+    : null;
+};
+
+const fetchBlockedChatGptBusinessHtml = async (htmlDocument: string): Promise<CapturedHtmlArtifact | null> => {
+  const url = readBlockedChatGptBusinessHtmlUrl(htmlDocument);
+  if (!url) {
+    return null;
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    return null;
+  }
+  const fetchedHtmlDocument = await response.text();
+  if (!isHtmlDocumentText(fetchedHtmlDocument)) {
+    return null;
+  }
+  return {
+    htmlDocument: fetchedHtmlDocument,
+    source: "chatgpt-blocked-estuary-fetch",
+    outputRef: url,
+    sha256: hashText(fetchedHtmlDocument),
+    byteSize: Buffer.byteLength(fetchedHtmlDocument, "utf8"),
+  };
+};
 
 const listBusinessHtmlDownloads = async (): Promise<DownloadCandidate[]> => {
   const entries = await readdir(getDownloadsDir(), { withFileTypes: true });
@@ -243,7 +323,7 @@ return {htmlDocument, pageUrl: location.href};
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
   if (!captured.htmlDocument || !isHtmlDocumentText(captured.htmlDocument)) {
-    return null;
+    return captured.htmlDocument ? fetchBlockedChatGptBusinessHtml(captured.htmlDocument) : null;
   }
   if (captured.pageUrl.startsWith("https://chatgpt.com/")) {
     return null;

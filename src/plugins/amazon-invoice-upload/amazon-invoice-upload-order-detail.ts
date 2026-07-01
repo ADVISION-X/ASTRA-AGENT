@@ -75,7 +75,7 @@ function isSameOrderWorkerHost(currentUrl: string, targetUrl: string): boolean {
   }
 }
 
-function buildApprovedOrderDetailUrl(mission: AmazonInvoiceUploadMissionInput): string {
+export function buildApprovedOrderDetailUrl(mission: AmazonInvoiceUploadMissionInput): string {
   const url = new URL(mission.sellerCentralEntryUrl);
   if (url.protocol === "file:") return mission.sellerCentralEntryUrl;
   url.pathname = `/orders-v3/order/${encodeURIComponent(mission.amazonOrderId)}`;

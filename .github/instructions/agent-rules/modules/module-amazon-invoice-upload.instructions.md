@@ -257,6 +257,7 @@ Download completion is not upload completion. Website status return is not task 
     "Agent upload ledger persists under dataDir/plugin-tasks/amazon-invoice-upload.",
     "saveTaskRecord writes the upload ledger using the existing task record path.",
     "GET /api/plugins/amazon-invoice-upload/ledger returns safe ledger records for website status sync.",
+    "Upload task record responses from start, status, resume, and latest routes must redact mission.invoicePdfPath before returning to external callers.",
     "Ledger external route is exact, externalApiAllowed true, requiresApiKey true, and jobOwner amazon-invoice-upload.",
     "Ledger response excludes raw invoice PDF bytes, local invoicePdfPath, cookies, Seller Central profile paths, selectors, browser commands, documentId, and downloadUrl."
   ],
@@ -265,6 +266,7 @@ Download completion is not upload completion. Website status return is not task 
     "Website infers upload success without reading Agent ledger.",
     "Second upload ledger outside amazon-invoice-upload owner.",
     "Ledger route outside /api/plugins/amazon-invoice-upload/ledger.",
+    "Upload start/status/resume/latest route response leaking local invoicePdfPath.",
     "Ledger response leaking invoicePdfPath or raw PDF/local file paths."
   ]
 }
@@ -366,6 +368,9 @@ Download completion is not upload completion. Website status return is not task 
     "Only ledger records with status upload_success or already_uploaded may be skipped before opening Seller Central.",
     "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
     "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
+    "After opening Manage invoice / 管理发票 for existing-invoice verification, the flow must wait a bounded production window of at least 45 seconds for strong invoice-list evidence before returning review_required.",
+    "If the Manage invoice list remains unconfirmed after the first evidence window, the flow may perform exactly one same-tab order-detail recovery refresh, reopen Manage invoice, and wait one more bounded strong-evidence window before returning review_required.",
+    "A still-loading or slow Seller Central invoice list must not be collapsed into already_uploaded, upload_success, or a short-timeout review_required result.",
     "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
     "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
     "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf."

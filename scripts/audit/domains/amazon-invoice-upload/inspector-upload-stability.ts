@@ -145,6 +145,7 @@ function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
     ...collectUploadRetryGuardGaps(files.flowFile),
     ...collectNoHumanFinalSubmitContractGaps(files.taskServiceFile, files.missionSchemaFile),
     ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingUploadFile, files.existingEvidenceFile),
+    ...collectExistingInvoiceEvidenceWaitGaps(files.existingUploadFile),
   ];
 }
 
@@ -155,6 +156,7 @@ function uploadStabilityFindingPath(item: string): string {
   if (apiFocusPath) return apiFocusPath;
   if (item.startsWith("english-success-evidence")) return verifyPath;
   if (item.startsWith("english-existing-evidence")) return existingEvidencePath;
+  if (item.startsWith("existing-invoice-evidence")) return existingUploadPath;
   if (item.startsWith("no-human-final-submit-schema")) return missionSchemaPath;
   if (item.startsWith("no-human-final-submit-service")) return taskServicePath;
   if (isOrderRefreshFinding(item)) return orderDetailPath;
@@ -380,6 +382,26 @@ function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUpload
   const existingHintsText = existingEvidenceFile.getVariableDeclaration("EXISTING_INVOICE_HINTS")?.getInitializer()?.getText() ?? "";
   for (const weakValue of ["Manage invoice", "Manage invoices", "Pending", "管理发票", "待处理"]) {
     if (existingHintsText.includes(weakValue)) missing.push(`weak-existing-evidence-forbidden:${weakValue}`);
+  }
+  return missing;
+}
+
+function collectExistingInvoiceEvidenceWaitGaps(existingUploadFile: SourceFile): string[] {
+  const missing: string[] = [];
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceTimeoutMs", "45_000")) {
+    missing.push("existing-invoice-evidence-timeout-45000");
+  }
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", "250")) {
+    missing.push("existing-invoice-evidence-poll-250");
+  }
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceRecoveryAttempts", "1")) {
+    missing.push("existing-invoice-evidence-single-recovery");
+  }
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceRecoverySettleMs", "3_000")) {
+    missing.push("existing-invoice-evidence-recovery-settle-3000");
+  }
+  if (!existingUploadFile.getFunction("recoverExistingInvoiceList")) {
+    missing.push("existing-invoice-evidence-recovery-helper");
   }
   return missing;
 }

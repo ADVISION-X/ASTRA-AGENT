@@ -9,6 +9,7 @@ import {
   FOCUS_COMPOSER_SCRIPT,
   VERIFY_COMPOSER_FOCUSED_SCRIPT,
 } from "./web-chat-composer-scripts.js";
+import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
 
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 15_000;
 
@@ -52,6 +53,7 @@ export const waitForComposerFocused = async (
   const deadline = Date.now() + Math.min(timeoutMs, 5_000);
   let lastMessage = "provider input focus was not checked";
   while (Date.now() < deadline) {
+    await acknowledgeChatGptRateLimitDialogIfVisible({ browser, context });
     const evaluation = await verifyComposerFocused(browser, context);
     lastMessage = `${evaluation.status}: ${evaluation.message}`;
     if (evaluation.status === "success") return;
