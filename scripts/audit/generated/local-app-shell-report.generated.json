@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-28T04:47:02.801Z",
+  "generatedAt": "2026-07-09T12:48:24.143Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,8 +9,18 @@
     "APEX-LOCAL-APP-SHELL-004-V1",
     "APEX-LOCAL-APP-SHELL-005-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "local-app-shell/private-owner-import",
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-amazon-routes.ts imports job or ability owner code directly.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-amazon-routes.ts",
+      "evidence": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-29T20:09:41.591Z",
+  "generatedAt": "2026-07-09T12:46:24.427Z",
   "entries": [
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -66,12 +66,15 @@
         "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
         "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
         "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
-        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1"
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+        "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1"
       ],
       "clauseIds": [
         "primary"
       ],
       "evidenceModes": [
+        "ast+acceptance+visual",
         "ast+chrome+acceptance",
         "ast+fs",
         "ast+fs+acceptance",
@@ -84,6 +87,8 @@
           "requiredAnchors": [
             "## 目标",
             "## 单链路",
+            "## App Shell 页面",
+            "## 受控目标执行",
             "## Step 1: 打开库存管理页面",
             "## Step 5: 读取每个 TAB 的 DOM",
             "## 当前已实测成立"
@@ -968,6 +973,33 @@
             "## 4. 新增文件",
             "## 14. 审计规则",
             "## 15. 验收测试"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "xuanyuan",
+      "manifestPath": "scripts/audit/domains/xuanyuan/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-XUANYUAN-001-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "law+blueprint+acceptance+audit"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Xuanyuan API 临时实现施工图.md",
+          "requiredAnchors": [
+            "## Xuanyuan Boundary",
+            "## API Flow",
+            "## Plugin File Plan",
+            "## Route Plan",
+            "## QA Plan"
           ]
         }
       ]

@@ -6,13 +6,85 @@
   "executionGroup": "foundation",
   "findings": [
     {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "scripts/acceptance/amazon-invoice-upload-smoke.ts has 530 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts has an over-line function near line 173.",
+      "message": "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts has an over-line function near line 186.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+      "evidence": "{\"owner\":\"audit:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts has an over-line function near line 152.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
+      "evidence": "{\"owner\":\"audit:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts has an over-line function near line 1.",
+      "severity": "fatal",
+      "filePath": "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/app/app-shell/app-shell-workspace-styles.ts has 534 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/app/app-shell/app-shell-workspace-styles.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/app/app-shell/localization.ts has 519 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/app/app-shell/localization.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts has an over-line function near line 1.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/app/workbench-home-client.ts has 502 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/app/workbench-home-client.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts has an over-line function near line 220.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
@@ -33,10 +105,19 @@
       "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
+      "checkId": "code-purity/file-budget-red-line",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has 617 lines and exceeds the active executable source file red line.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 304.",
+      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 103.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
       "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -45,10 +126,28 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 401.",
+      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 439.",
       "severity": "fatal",
       "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
       "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 538.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts has an over-line function near line 56.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/file-budget-red-line",
@@ -87,7 +186,7 @@
       "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"ability-group\",\"symbolName\":\"acknowledgePick3SubmitRateLimitIfVisible\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-06-28T04:46:53.555Z",
+  "generatedAt": "2026-07-09T12:47:44.742Z",
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -179,6 +278,7 @@
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -380,6 +480,7 @@
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+    "scripts/audit/domains/xuanyuan/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
     "scripts/audit/shared/inspector-contracts.ts",
@@ -408,6 +509,7 @@
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
     "src/app/app-shell/amazon-invoice-workspace.ts",
+    "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -453,6 +555,7 @@
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
+    "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-lottery-ticket-plan-client.ts",
@@ -471,6 +574,7 @@
     "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
+    "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
@@ -484,6 +588,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -847,6 +952,9 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+    "src/plugins/xuanyuan/index.ts",
+    "src/plugins/xuanyuan/xuanyuan.flow.ts",
+    "src/plugins/xuanyuan/xuanyuan.schema.ts",
     "src/types/dom-automation-inputs.ts",
     "src/types/dom-automation.ts",
     "src/types/evidence.ts",
@@ -1386,6 +1494,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/xuanyuan.acceptance.ts",
+      "reason": "package.json script acceptance:xuanyuan",
+      "scriptName": "acceptance:xuanyuan"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/audit/ci-full.ts",
       "reason": "package.json script ci:full",
       "scriptName": "ci:full"
@@ -1565,6 +1679,12 @@
       "scriptName": "audit:workbench-api-boundary"
     },
     {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
       "entryKind": "package-script",
       "filePath": "scripts/startup/launch-grasseye.mjs",
       "reason": "package.json script grasseye:start",
@@ -1577,9 +1697,9 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 2250,
+  "liveExportCount": 2283,
   "orphanDeclarationCount": 2,
-  "reachableFileCount": 763,
+  "reachableFileCount": 772,
   "status": "FAIL",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [
@@ -1608,9 +1728,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2250,
+    "liveExportCount": 2283,
     "orphanDeclarationCount": 2,
-    "reachableFileCount": 763,
+    "reachableFileCount": 772,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 2,
     "zombieExportCount": 0

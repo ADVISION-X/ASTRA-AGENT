@@ -232,6 +232,66 @@ input:focus, select:focus, button:focus-visible {
   border-radius: 8px;
   background: #fff;
 }
+.listing-edit-read-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 430px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.listing-edit-read-form-panel {
+  max-width: none;
+}
+.listing-edit-read-tabs {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0;
+  padding: 10px;
+}
+.listing-edit-read-tabs legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 680;
+}
+.listing-edit-read-table-shell {
+  min-width: 0;
+  max-height: calc(100vh - 390px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.compact-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+}
+.compact-data-table th,
+.compact-data-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compact-data-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--panel-subtle);
+}
+.compact-data-table td {
+  white-space: nowrap;
+}
+.compact-data-table button {
+  min-height: 26px;
+}
 .history-empty-panel {
   min-height: 260px;
   display: grid;

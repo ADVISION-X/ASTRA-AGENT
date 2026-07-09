@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-28T04:47:01.595Z",
+  "generatedAt": "2026-07-09T12:48:22.244Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -22,6 +22,7 @@
     "scripts/audit/domains/app-shell-ui/inspector-skill-registry.ts",
     "scripts/audit/domains/app-shell-ui/inspector.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
+    "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -67,6 +68,7 @@
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
+    "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-lottery-ticket-plan-client.ts",
@@ -84,6 +86,7 @@
     "src/app/workbench-multipart.ts",
     "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
-    "src/app/workbench-video-download-routes.ts"
+    "src/app/workbench-video-download-routes.ts",
+    "src/app/workbench-xuanyuan-routes.ts"
   ]
 }

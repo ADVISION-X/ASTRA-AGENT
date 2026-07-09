@@ -8,6 +8,7 @@ import {
 import {
   AmazonListingEditReadSyncInputSchema,
   type AmazonListingEditReadSyncInput,
+  type AmazonListingEditReadSyncTargetResolution,
   type AmazonListingEditReadSyncTaskRecord,
 } from "./amazon-listing-edit-read-sync.schema.js";
 import {
@@ -25,6 +26,19 @@ export type AmazonListingEditReadSyncRuntime = {
 
 const flowTimeoutReasonPrefix = "amazon_listing_edit_read_sync_flow_timeout_after_";
 
+const initialTargetResolution = (
+  mission: AmazonListingEditReadSyncInput,
+): AmazonListingEditReadSyncTargetResolution => ({
+  mode: mission.targetMode,
+  status: mission.targetMode === "inventory" || mission.targetMode === "all-inventory" ? "not_required" : "not_found",
+  reason: mission.targetMode === "inventory" || mission.targetMode === "all-inventory" ? null : "target_resolution_not_started",
+  candidateCount: 0,
+  requested: mission.target,
+  matchedParent: null,
+  matchedChild: null,
+  evidenceRefs: [],
+});
+
 const initialTask = (
   mission: AmazonListingEditReadSyncInput,
   taskId = createId("amazon_listing_edit_read_sync"),
@@ -40,6 +54,7 @@ const initialTask = (
     status: "queued",
     reason: null,
     reachedStep: "queued",
+    targetResolution: initialTargetResolution(mission),
     inventoryItems: [],
     items: [],
     createdAt: now,
@@ -288,6 +303,7 @@ export const startAmazonListingEditReadSyncTask = async (
       status: "running",
       reason: progress.reason ?? null,
       reachedStep: progress.reachedStep,
+      targetResolution: progress.targetResolution ?? latestProgress.targetResolution,
       inventoryItems: [...(progress.inventoryItems ?? latestProgress.inventoryItems)],
       items: [...(progress.items ?? latestProgress.items)],
       ...(progress.diagnostic ? { diagnostic: progress.diagnostic } : {}),

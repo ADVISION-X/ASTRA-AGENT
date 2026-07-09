@@ -62,6 +62,13 @@ import {
   type DeepResearchTimelineSnapshot,
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
 import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
+import {
+  getLatestXuanyuanTask,
+  getXuanyuanTaskStatus,
+  listXuanyuanHistory,
+  startXuanyuanTask,
+  startXuanyuanTaskAsync,
+} from "../../plugins/xuanyuan/index.js";
 
 type DeepResearchExecutionState = {
   status: DeepResearchJobSnapshot["job"]["status"];
@@ -452,6 +459,17 @@ const buildWorkbenchHandle = (
     ...buildDeepResearchAnalysisHandle(assembly, dataDir),
     ...buildPick3IsBlindEvalHandle(assembly, dataDir),
     ...buildLotteryTicketPlanHandle(),
+    startXuanyuanTask: (input) => startXuanyuanTask({
+      aiInputGateway: assembly.aiInputGateway,
+      dataDir,
+    }, input),
+    startXuanyuanTaskAsync: (input) => startXuanyuanTaskAsync({
+      aiInputGateway: assembly.aiInputGateway,
+      dataDir,
+    }, input),
+    getXuanyuanTaskStatus: (taskId) => getXuanyuanTaskStatus({ dataDir }, taskId),
+    getLatestXuanyuanTask: () => getLatestXuanyuanTask({ dataDir }),
+    listXuanyuanHistory: () => listXuanyuanHistory({ dataDir }),
   };
 };
 

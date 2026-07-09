@@ -1,13 +1,14 @@
 {
-  "generatedAt": "2026-06-28T04:46:58.867Z",
+  "generatedAt": "2026-07-09T12:48:18.206Z",
   "status": "PASS",
-  "scannedFiles": 454,
+  "scannedFiles": 461,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/inspector.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
+    "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -53,6 +54,7 @@
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
+    "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-lottery-ticket-plan-client.ts",
@@ -71,6 +73,7 @@
     "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
+    "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
@@ -84,6 +87,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -450,6 +454,9 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+    "src/plugins/xuanyuan/index.ts",
+    "src/plugins/xuanyuan/xuanyuan.flow.ts",
+    "src/plugins/xuanyuan/xuanyuan.schema.ts",
     "src/types/dom-automation-inputs.ts",
     "src/types/dom-automation.ts",
     "src/types/evidence.ts",
@@ -476,7 +483,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 454,
+    "scannedFiles": 461,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -487,7 +494,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 449,
+      "scannedFiles": 456,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -496,13 +503,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 353
+      "scannedFiles": 357
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 349,
+      "scannedFiles": 353,
       "metrics": {
         "emitCallCount": 41
       }
@@ -511,13 +518,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 349
+      "scannedFiles": 353
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 354,
+      "scannedFiles": 358,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -532,7 +539,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 354,
+      "scannedFiles": 358,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -553,7 +560,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 51
+      "scannedFiles": 52
     },
     {
       "name": "browser-action-log-contract",

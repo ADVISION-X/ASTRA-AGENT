@@ -20,6 +20,11 @@ const composer = resolveComposerInput();
 return {status: composer ? "success" : "pending", message: composer ? "provider composer ready" : "provider composer pending", pageUrl: location.href};
 `;
 
+const isChromeAppleEventsJavaScriptDisabled = (message: string): boolean =>
+  (message.includes("AppleScript") && message.includes("JavaScript") && message.includes("关闭"))
+  || message.includes("Allow JavaScript from Apple Events")
+  || message.includes("允许 Apple 事件中的 JavaScript");
+
 const emitWebChatOpenStage = (input: {
   request: AiFeedInput;
   stage: string;
@@ -139,6 +144,9 @@ const waitForProviderComposer = async (input: {
       });
     } catch (error) {
       lastMessage = error instanceof Error ? error.message : String(error);
+      if (isChromeAppleEventsJavaScriptDisabled(lastMessage)) {
+        throw new Error(`review_required: Chrome Apple Events JavaScript is disabled; enable Google Chrome menu 显示/开发者/允许 Apple 事件中的 JavaScript before using web-chat provider. last=${lastMessage}`);
+      }
       emitWebChatOpenStage({
         request: input.request,
         stage: "provider_composer_ready_probe",

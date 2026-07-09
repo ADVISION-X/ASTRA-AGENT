@@ -19,6 +19,10 @@ const storagePath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-ed
 const taskServicePath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts";
 const indexPath = "src/plugins/amazon-listing-edit-read-sync/index.ts";
 const routePath = "src/app/workbench-amazon-listing-edit-read-sync-routes.ts";
+const workspacePath = "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts";
+const appShellPath = "src/app/app-shell/app-shell.ts";
+const skillRegistryPath = "src/app/app-shell/skill-registry.ts";
+const clientPath = "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts";
 const apiBoundaryPath = "src/app/workbench-api-boundary.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const runtimePath = "src/lib/local-runtime/workbench.ts";
@@ -42,6 +46,10 @@ const inspectedFiles = [
   taskServicePath,
   indexPath,
   routePath,
+  workspacePath,
+  appShellPath,
+  skillRegistryPath,
+  clientPath,
   apiBoundaryPath,
   serverPath,
   runtimePath,
@@ -139,6 +147,8 @@ const inspectLawAndRegistration = (
     "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
     "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
     "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
   ]) {
     if (!textHas(sources.law, requiredLawId)) {
       addFinding(findings, lawId, lawPath, "amazon-listing-edit-read-sync/law-id", `${requiredLawId} must be present.`);
@@ -158,13 +168,18 @@ const inspectLawAndRegistration = (
 };
 
 const inspectSchema = (source: SourceFile | null, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["inventory-only", "single-sku-search-only", "single-sku-sku-central-only", "single-sku-edit-tabs", "all-inventory-edit-tabs", "visible-inventory-page", "all-inventory-pages", "product_details", "images", "variations", "offer", "safety_and_compliance"]) {
+  for (const required of ["inventory-only", "single-sku-search-only", "single-sku-sku-central-only", "single-sku-edit-tabs", "all-inventory-edit-tabs", "visible-inventory-page", "all-inventory-pages", "inventory", "asin", "sku", "parent", "child", "all-inventory", "product_details", "images", "variations", "offer", "safety_and_compliance"]) {
     if (!hasLiteral(source, required)) {
       addFinding(findings, lawId, schemaPath, "amazon-listing-edit-read-sync/schema-contract", `${required} must be in schema.`);
     }
   }
   if (!hasIdentifier(source, "stopOnFirstIssue")) {
     addFinding(findings, lawId, schemaPath, "amazon-listing-edit-read-sync/schema-contract", "stopOnFirstIssue must be in schema.");
+  }
+  for (const required of ["targetMode", "target", "parentAsin", "parentSku", "childAsin", "childSku", "targetResolution", "requireParentChildProof"]) {
+    if (!hasIdentifier(source, required)) {
+      addFinding(findings, lawId, schemaPath, "amazon-listing-edit-read-sync/schema-contract", `${required} must be in schema.`);
+    }
   }
 };
 
@@ -189,6 +204,8 @@ const inspectDomSafety = (source: SourceFile | null, findings: InspectorFinding[
     "pointerdown",
     "a[href*=\"/skucentral\"]",
     "sku_central_link_not_unique",
+    "parentAsin",
+    "parentSku",
   ]) {
     if (!hasLiteralContaining(source, required)) {
       addFinding(findings, lawId, domScriptsPath, "amazon-listing-edit-read-sync/dom-anchor", `DOM script must include ${required}.`);
@@ -222,15 +239,70 @@ const inspectFlow = (
     "batch_stopped_on_first_issue",
     "inventory_page_read",
     "all-inventory-pages",
+    "child_parent_mismatch",
+    "parent_not_proven",
   ]) {
     if (!hasLiteralContaining(source, required)) {
       addFinding(findings, lawId, flowPath, "amazon-listing-edit-read-sync/flow-contract", `Flow must include ${required}.`);
     }
   }
+  if (!hasIdentifier(source, "targetResolution")) {
+    addFinding(findings, lawId, flowPath, "amazon-listing-edit-read-sync/flow-contract", "Flow must include targetResolution.");
+  }
   for (const required of ["/abis/listing/edit", "obo_el_skuc_ac"]) {
     if (!hasLiteralContaining(urlsSource, required)) {
       addFinding(findings, lawId, urlsPath, "amazon-listing-edit-read-sync/url-contract", `URL helper must include ${required}.`);
     }
+  }
+};
+
+const inspectAppShellSurface = (
+  sources: {
+    appShell: SourceFile | null;
+    client: SourceFile | null;
+    registry: SourceFile | null;
+    workspace: SourceFile | null;
+  },
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  for (const required of [
+    "amazon-listing-edit-read-sync",
+    "Amazon Listing Edit Read",
+  ]) {
+    if (!hasLiteralContaining(sources.registry, required)) {
+      addFinding(findings, lawId, skillRegistryPath, "amazon-listing-edit-read-sync/app-shell-registry", `${required} must be registered in Skill Registry.`);
+    }
+  }
+  for (const required of [
+    "data-listing-edit-read-form",
+    "targetMode",
+    "parentAsin",
+    "parentSku",
+    "childAsin",
+    "childSku",
+    "data-listing-edit-read-status",
+    "data-listing-edit-read-items",
+  ]) {
+    if (!hasLiteralContaining(sources.workspace, required)) {
+      addFinding(findings, lawId, workspacePath, "amazon-listing-edit-read-sync/app-workspace", `${required} must be in App Shell workspace.`);
+    }
+  }
+  for (const forbidden of ["selector", "browserCommand", "rawHtml", "document.cookie", "localStorage", "sessionStorage"]) {
+    if (hasLiteralContaining(sources.workspace, forbidden) || hasLiteralContaining(sources.client, forbidden)) {
+      addFinding(findings, lawId, workspacePath, "amazon-listing-edit-read-sync/app-forbidden-input", `App Shell must not expose ${forbidden}.`);
+    }
+  }
+  for (const forbidden of ["Save", "Submit", "Publish", "Upload", "Delete", "保存", "提交", "发布", "上传", "删除"]) {
+    if (hasLiteral(sources.workspace, forbidden)) {
+      addFinding(findings, lawId, workspacePath, "amazon-listing-edit-read-sync/app-write-action", `App Shell must not expose ${forbidden} action.`);
+    }
+  }
+  if (!hasIdentifier(sources.appShell, "renderAmazonListingEditReadSyncClient")) {
+    addFinding(findings, lawId, appShellPath, "amazon-listing-edit-read-sync/app-client", "App Shell must load listing edit read sync client.");
+  }
+  if (!hasLiteralContaining(sources.client, "/api/plugins/amazon-listing-edit-read-sync/start")) {
+    addFinding(findings, lawId, clientPath, "amazon-listing-edit-read-sync/app-api", "Client must call existing start route.");
   }
 };
 
@@ -294,6 +366,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   requireSourceFile(context, findings, lawId, taskServicePath);
   requireSourceFile(context, findings, lawId, indexPath);
   requireSourceFile(context, findings, lawId, routePath);
+  const workspace = requireSourceFile(context, findings, lawId, workspacePath);
+  const appShell = requireSourceFile(context, findings, lawId, appShellPath);
+  const skillRegistry = requireSourceFile(context, findings, lawId, skillRegistryPath);
+  const client = requireSourceFile(context, findings, lawId, clientPath);
   const apiBoundary = requireSourceFile(context, findings, lawId, apiBoundaryPath);
   const server = requireSourceFile(context, findings, lawId, serverPath);
   const runtime = requireSourceFile(context, findings, lawId, runtimePath);
@@ -308,6 +384,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectSchema(schema, findings, lawId);
   inspectDomSafety(domScripts, findings, lawId);
   inspectFlow(flow, urls, findings, lawId);
+  inspectAppShellSurface({ appShell, client, registry: skillRegistry, workspace }, findings, lawId);
   inspectApiSurface({ apiBoundary, server, runtime, runtimeSupport, runtimeHandle }, findings, lawId);
   inspectIsolation(context, findings, lawId);
 

@@ -197,3 +197,72 @@ Forbidden for full inventory batch:
 - using a guessed SKU Central link when the inventory search result DOM did not expose exactly one `/skucentral` href
 - using a second browser controller, second route, second evidence store, or hidden fallback flow
 - clicking save, submit, publish, upload, delete, image movement, price update, inventory update, send inventory, or any write action
+
+## App Shell Skill Workspace Gate
+
+```apex-law
+{
+  "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-listing-edit-read-sync",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+acceptance+visual",
+  "summary": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI."
+}
+```
+
+Required:
+
+- App Shell Skill Registry must register `amazon-listing-edit-read-sync` as an active skill.
+- The skill workspace must expose structured controls for marketplace, safety mode, target mode, ASIN/SKU parent-child target fields, product type, tabs, max items, and stop-on-first-issue.
+- The workspace must call the existing `/api/plugins/amazon-listing-edit-read-sync/start`, `/status/:taskId`, and `/latest` routes only.
+- The workspace must display task status, reached step, reason, target resolution, inventory count, item count, tab status, and evidence refs.
+- Detail inspection must use the existing App Shell Inspector or bounded workspace tables.
+
+Forbidden:
+
+- selector, coordinate, browser command, raw HTML, cookie, storage, or full page dump inputs
+- save, submit, publish, upload, delete, price, inventory, or image-mutation buttons
+- browser-controller buttons, DOM-controller buttons, or app-shell-owned workflow order
+- a second app shell, second route tree, or second listing-edit UI chain
+
+## Controlled Target Execution Gate
+
+```apex-law
+{
+  "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-listing-edit-read-sync",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "chrome-dom+acceptance",
+  "summary": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read."
+}
+```
+
+Allowed target modes:
+
+- `inventory`
+- `asin`
+- `sku`
+- `parent`
+- `child`
+- `all-inventory`
+
+Required:
+
+- Target input must be structured as bounded ASIN/SKU fields, not selectors or browser commands.
+- `asin` target mode must resolve exactly one inventory item by DOM ASIN evidence.
+- `sku` target mode must resolve exactly one inventory item by DOM SKU evidence.
+- `parent` target mode must match a parent row or parent hint, expand its variation group, and record child item evidence.
+- `child` target mode must match a child row and, when parent fields are supplied, prove the child belongs to the supplied parent group.
+- Ambiguous, missing, cross-label, or unproven target resolution must stop as `review_required` before SKU Central or edit tabs.
+- The task artifact must persist bounded target resolution evidence: mode, requested fields, status, reason, matched parent, matched child, candidate count, and evidence refs.
+
+Forbidden:
+
+- trusting user-provided parent/child claims without Seller Central DOM proof
+- opening SKU Central for a guessed child when target resolution is ambiguous
+- treating parent rows as child listing results
+- claiming a complete variation matrix from the `variations` edit tab unless child table DOM proof exists

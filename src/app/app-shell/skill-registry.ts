@@ -144,6 +144,19 @@ export const skillRegistry: AppShellSkillRegistryItem[] = [
     allowedActions: ["Start Download", "Latest Download", "Open Artifact", "Start", "Resume", "Latest"],
     forbiddenActions: [...forbiddenAppShellActionGroups],
   },
+  {
+    id: "amazon-listing-edit-read-sync",
+    label: "Amazon Listing Edit Read",
+    category: "system",
+    description: "Read-only Seller Central parent, child, SKU Central, and listing edit tab export.",
+    route: "/skills/amazon-listing-edit-read-sync",
+    status: "active",
+    primarySurface: "amazon-listing-edit-read-sync-workspace",
+    historySurface: "amazon-listing-edit-read-sync-status",
+    detailSurface: "amazon-listing-edit-read-sync-inspector",
+    allowedActions: ["Start", "Latest", "Refresh", "Open Detail"],
+    forbiddenActions: [...forbiddenAppShellActionGroups, "save", "submit", "publish", "upload", "delete", "price-update", "inventory-update"],
+  },
 ];
 
 export const getDefaultSkill = (): AppShellSkillRegistryItem => {

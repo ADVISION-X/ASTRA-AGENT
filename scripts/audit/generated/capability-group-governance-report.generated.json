@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-28T04:46:25.092Z",
+  "generatedAt": "2026-07-09T12:46:38.075Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -43,8 +43,27 @@
     "src/lib/runtime-logs",
     "src/lib/storage"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "capability-group/external-private-import",
+      "lawId": "APEX-CAPABILITY-GROUP-003-V1",
+      "clauseId": "primary",
+      "message": "scripts/acceptance/xuanyuan.acceptance.ts imports private capability implementation src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts.",
+      "severity": "fatal",
+      "filePath": "scripts/acceptance/xuanyuan.acceptance.ts",
+      "evidence": "src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts"
+    },
+    {
+      "checkId": "capability-group/external-private-import",
+      "lawId": "APEX-CAPABILITY-GROUP-003-V1",
+      "clauseId": "primary",
+      "message": "scripts/acceptance/xuanyuan.acceptance.ts imports private capability implementation src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts.",
+      "severity": "fatal",
+      "filePath": "scripts/acceptance/xuanyuan.acceptance.ts",
+      "evidence": "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts"
+    }
+  ],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -197,6 +216,7 @@
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -398,6 +418,7 @@
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+    "scripts/audit/domains/xuanyuan/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
     "scripts/audit/shared/inspector-contracts.ts",
@@ -426,6 +447,7 @@
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
     "src/app/app-shell/amazon-invoice-workspace.ts",
+    "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
@@ -471,6 +493,7 @@
     "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
+    "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-lottery-ticket-plan-client.ts",
@@ -489,6 +512,7 @@
     "src/app/workbench-pick3-routes.ts",
     "src/app/workbench-video-download-client.ts",
     "src/app/workbench-video-download-routes.ts",
+    "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
@@ -502,6 +526,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -868,6 +893,9 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+    "src/plugins/xuanyuan/index.ts",
+    "src/plugins/xuanyuan/xuanyuan.flow.ts",
+    "src/plugins/xuanyuan/xuanyuan.schema.ts",
     "src/types/dom-automation-inputs.ts",
     "src/types/dom-automation.ts",
     "src/types/evidence.ts",

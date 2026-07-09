@@ -42,6 +42,19 @@ const inventorySearchProbeFixture = <T>(): T => ({
   reason: null,
 }) as T;
 
+const inventorySearchMissingProbeFixture = <T>(): T => ({
+  url: fixtureInventoryUrl,
+  title: "Manage Your Inventory",
+  detectedState: "review_required",
+  topGlobalSearchPresent: true,
+  topGlobalSearchExcluded: false,
+  inventorySearchPlaceholder: null,
+  inventorySearchUsesShadowInput: false,
+  inventorySearchInputPoint: null,
+  inventorySearchButtonPoint: null,
+  reason: "inventory_filter_katal_search_missing",
+}) as T;
+
 const inventorySearchSubmitFixture = <T>(): T => ({
   url: fixtureInventoryUrl,
   title: "Manage Your Inventory",
@@ -222,6 +235,22 @@ class AmazonProductSyncHangingBrowser extends AmazonProductSyncFakeBrowser {
   }
 }
 
+class AmazonProductSyncDelayedInventoryBrowser extends AmazonProductSyncFakeBrowser {
+  inventoryProbeCount = 0;
+
+  override async evaluateActiveTab<T>(input: { description: string; script: string }): Promise<T> {
+    if (input.description.includes("locate inventory filter SKU search")) {
+      this.inventoryProbeCount += 1;
+      this.evaluateDescriptions.push(input.description);
+      this.evaluateScripts.push(input.script);
+      return this.inventoryProbeCount === 1
+        ? inventorySearchMissingProbeFixture<T>()
+        : inventorySearchProbeFixture<T>();
+    }
+    return super.evaluateActiveTab<T>(input);
+  }
+}
+
 const waitForTerminal = async (dataDir: string, taskId: string) => {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const task = await getAmazonProductSyncTaskStatus({ dataDir, taskId });
@@ -338,6 +367,28 @@ assert.ok(browser.evaluateScripts.some((script) => script.includes("SearchBox-mo
 assert.ok(browser.evaluateScripts.some((script) => script.includes("pointerdown")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("clickEventDispatched")));
 assert.ok(browser.evaluateScripts.some((script) => script.includes("searchClickDelayMs")));
+
+const delayedDataDir = mkdtempSync(join(tmpdir(), "amazon-product-sync-delayed-inventory-acceptance-"));
+const delayedBrowser = new AmazonProductSyncDelayedInventoryBrowser();
+const delayedStarted = await startAmazonProductSyncTask({
+  site: "ontheway-amazon-manage",
+  requestId: "acceptance-amazon-product-sync-delayed-inventory",
+  marketplace: "amazon.ae",
+  scope: "selected-skus",
+  items: [{
+    sourceKeyType: "sku",
+    sourceKey: "DL-UG6I-2OWL",
+    sellerSku: "DL-UG6I-2OWL",
+    requiredFields: ["mainImage", "asin", "availableInventory", "actualInventory"],
+    mainImageUpload: {
+      endpoint: `http://127.0.0.1:3000/api/apex/amazon-manage/products/images/sku/${fixtureSku}`,
+      token: "acceptance-image-token",
+    },
+  }],
+}, { dataDir: delayedDataDir, browser: delayedBrowser, runtimeLogger });
+const delayedTerminal = await waitForTerminal(delayedDataDir, delayedStarted.taskId);
+assert.equal(delayedTerminal.status, "success");
+assert.equal(delayedBrowser.inventoryProbeCount, 2);
 
 await assert.rejects(
   () => startAmazonProductSyncTask({

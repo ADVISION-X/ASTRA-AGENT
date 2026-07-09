@@ -6,6 +6,7 @@ import type {
   AmazonListingEditReadSyncItemResult,
   AmazonListingEditReadSyncPageState,
   AmazonListingEditReadSyncTabRead,
+  AmazonListingEditReadSyncTargetResolution,
   AmazonListingEditReadSyncTaskRecord,
 } from "./amazon-listing-edit-read-sync.schema.js";
 import {
@@ -31,6 +32,7 @@ export type AmazonListingEditReadSyncFlowProgress = {
   readonly reason?: string | null;
   readonly inventoryItems?: readonly AmazonListingEditReadSyncInventoryItem[];
   readonly items?: readonly AmazonListingEditReadSyncItemResult[];
+  readonly targetResolution?: AmazonListingEditReadSyncTargetResolution;
   readonly diagnostic?: AmazonListingEditReadSyncDiagnostic;
 };
 
@@ -65,6 +67,137 @@ const terminalStatusFromState = (state: AmazonListingEditReadSyncPageState): Ama
 
 const resultEvidenceRef = (taskId: string, sku: string): string =>
   `evidence://amazon-listing-edit-read-sync/${taskId}/${encodeURIComponent(sku)}`;
+
+const buildDefaultTargetResolution = (
+  mission: AmazonListingEditReadSyncInput,
+): AmazonListingEditReadSyncTargetResolution => ({
+  mode: mission.targetMode,
+  status: mission.targetMode === "inventory" || mission.targetMode === "all-inventory" ? "not_required" : "not_found",
+  reason: mission.targetMode === "inventory" || mission.targetMode === "all-inventory" ? null : "target_resolution_not_started",
+  candidateCount: 0,
+  requested: mission.target,
+  matchedParent: null,
+  matchedChild: null,
+  evidenceRefs: [],
+});
+
+const normalize = (value: string | null | undefined): string =>
+  (value ?? "").trim().toUpperCase();
+
+const matchesAsin = (item: AmazonListingEditReadSyncInventoryItem, asin: string | null | undefined): boolean =>
+  Boolean(asin && normalize(item.asin) === normalize(asin));
+
+const matchesSku = (item: AmazonListingEditReadSyncInventoryItem, sku: string | null | undefined): boolean =>
+  Boolean(sku && normalize(item.sku) === normalize(sku));
+
+const matchesParent = (item: AmazonListingEditReadSyncInventoryItem, input: AmazonListingEditReadSyncInput): boolean =>
+  matchesAsin(item, input.target.parentAsin)
+  || matchesSku(item, input.target.parentSku)
+  || Boolean(input.target.parentAsin && normalize(item.parentAsin) === normalize(input.target.parentAsin))
+  || Boolean(input.target.parentSku && normalize(item.parentSku) === normalize(input.target.parentSku));
+
+const matchesChild = (item: AmazonListingEditReadSyncInventoryItem, input: AmazonListingEditReadSyncInput): boolean =>
+  matchesAsin(item, input.target.childAsin ?? input.target.asin)
+  || matchesSku(item, input.target.childSku ?? input.target.sku);
+
+const buildTargetResolution = (
+  mission: AmazonListingEditReadSyncInput,
+  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
+): AmazonListingEditReadSyncTargetResolution => {
+  if (mission.targetMode === "inventory" || mission.targetMode === "all-inventory") {
+    return {
+      ...buildDefaultTargetResolution(mission),
+      candidateCount: inventoryItems.length,
+      evidenceRefs: inventoryItems.map((item) => item.evidenceRef),
+    };
+  }
+  const parentRows = inventoryItems.filter((item) => item.rowKind === "parent" && matchesParent(item, mission));
+  const childRows = inventoryItems.filter((item) => item.rowKind !== "parent" && matchesChild(item, mission));
+  if (mission.targetMode === "asin" || mission.targetMode === "sku") {
+    const candidates = inventoryItems.filter((item) =>
+      mission.targetMode === "asin" ? matchesAsin(item, mission.target.asin) : matchesSku(item, mission.target.sku));
+    return buildResolutionFromCandidates(mission, candidates, null);
+  }
+  if (mission.targetMode === "parent") {
+    const children = inventoryItems.filter((item) =>
+      item.rowKind === "child" && (matchesParent(item, mission) || parentRows.some((parent) => normalize(parent.asin) === normalize(item.parentAsin) || normalize(parent.sku) === normalize(item.parentSku))));
+    if (parentRows.length === 0) {
+      return buildFailedResolution(mission, "parent_not_proven", "parent_target_not_found", 0);
+    }
+    return buildResolutionFromCandidates(mission, children, parentRows[0] ?? null);
+  }
+  if (mission.targetMode === "child") {
+    if (childRows.length !== 1) return buildResolutionFromCandidates(mission, childRows, null);
+    const child = childRows[0]!;
+    const parentRequired = Boolean(mission.target.parentAsin || mission.target.parentSku);
+    if (parentRequired && !matchesParent(child, mission)) {
+      return {
+        ...buildFailedResolution(mission, "child_parent_mismatch", "child_parent_proof_failed", childRows.length),
+        matchedChild: child,
+        evidenceRefs: [child.evidenceRef],
+      };
+    }
+    const matchedParent = inventoryItems.find((item) => item.rowKind === "parent" && (normalize(item.asin) === normalize(child.parentAsin) || normalize(item.sku) === normalize(child.parentSku))) ?? null;
+    return buildMatchedResolution(mission, childRows, matchedParent, child);
+  }
+  return buildFailedResolution(mission, "not_found", "invalid_target_mode", 0);
+};
+
+const buildFailedResolution = (
+  mission: AmazonListingEditReadSyncInput,
+  status: AmazonListingEditReadSyncTargetResolution["status"],
+  reason: string,
+  candidateCount: number,
+): AmazonListingEditReadSyncTargetResolution => ({
+  mode: mission.targetMode,
+  status,
+  reason,
+  candidateCount,
+  requested: mission.target,
+  matchedParent: null,
+  matchedChild: null,
+  evidenceRefs: [],
+});
+
+const buildMatchedResolution = (
+  mission: AmazonListingEditReadSyncInput,
+  candidates: readonly AmazonListingEditReadSyncInventoryItem[],
+  matchedParent: AmazonListingEditReadSyncInventoryItem | null,
+  matchedChild: AmazonListingEditReadSyncInventoryItem,
+): AmazonListingEditReadSyncTargetResolution => ({
+  mode: mission.targetMode,
+  status: "matched",
+  reason: null,
+  candidateCount: candidates.length,
+  requested: mission.target,
+  matchedParent,
+  matchedChild,
+  evidenceRefs: [matchedChild.evidenceRef, ...(matchedParent ? [matchedParent.evidenceRef] : [])],
+});
+
+const buildResolutionFromCandidates = (
+  mission: AmazonListingEditReadSyncInput,
+  candidates: readonly AmazonListingEditReadSyncInventoryItem[],
+  matchedParent: AmazonListingEditReadSyncInventoryItem | null,
+): AmazonListingEditReadSyncTargetResolution => {
+  if (candidates.length === 0) return buildFailedResolution(mission, "not_found", "target_not_found", 0);
+  if (candidates.length > 1) return buildFailedResolution(mission, "ambiguous", "target_ambiguous", candidates.length);
+  return buildMatchedResolution(mission, candidates, matchedParent, candidates[0]!);
+};
+
+const selectInventoryItems = (
+  mission: AmazonListingEditReadSyncInput,
+  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
+  targetResolution: AmazonListingEditReadSyncTargetResolution,
+): readonly AmazonListingEditReadSyncInventoryItem[] => {
+  if (targetResolution.status === "matched" && targetResolution.matchedChild) {
+    return [targetResolution.matchedChild];
+  }
+  if (mission.targetMode === "inventory" || mission.targetMode === "all-inventory") {
+    return inventoryItems.filter((item) => item.rowKind !== "parent").slice(0, mission.maxItems);
+  }
+  return [];
+};
 
 const readInventoryPage = async (
   input: FlowInput,
@@ -261,6 +394,7 @@ const buildBatchStoppedTask = (
   input: FlowInput,
   inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
   items: readonly AmazonListingEditReadSyncItemResult[],
+  targetResolution: AmazonListingEditReadSyncTargetResolution,
   diagnostic: AmazonListingEditReadSyncDiagnostic,
   reason: string,
 ): AmazonListingEditReadSyncTaskRecord => ({
@@ -272,6 +406,7 @@ const buildBatchStoppedTask = (
   status: items.some((candidate) => candidate.status === "matched") ? "partial_success" : "review_required",
   reason,
   reachedStep: "batch_stopped_on_first_issue",
+  targetResolution,
   inventoryItems,
   items,
   diagnostic,
@@ -379,6 +514,7 @@ const resolveStatus = (items: readonly AmazonListingEditReadSyncItemResult[]): A
 const buildInventoryTerminalTask = (
   input: FlowInput,
   inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
+  targetResolution: AmazonListingEditReadSyncTargetResolution,
   diagnostic: AmazonListingEditReadSyncDiagnostic,
   status: AmazonListingEditReadSyncTaskRecord["status"],
   reason: string,
@@ -391,6 +527,7 @@ const buildInventoryTerminalTask = (
   status,
   reason: status === "success" ? null : reason,
   reachedStep: status === "success" ? "inventory_only_finished" : "inventory_expanded_asin_sku_read",
+  targetResolution,
   inventoryItems,
   items: [],
   diagnostic,
@@ -405,21 +542,26 @@ export const runAmazonListingEditReadSyncFlow = async (
   const inventory = input.mission.scope === "all-inventory-pages" ? await readAllInventoryPages(input) : await readInventory(input);
   const diagnostic = buildDiagnostic("inventory_expand_and_read", inventory);
   const terminal = terminalStatusFromState(inventory.detectedState);
-  const selectedInventoryItems = inventory.items.slice(0, input.mission.maxItems);
+  const targetResolution = buildTargetResolution(input.mission, inventory.items);
+  const selectedInventoryItems = selectInventoryItems(input.mission, inventory.items, targetResolution);
   await input.onProgress?.({
     reachedStep: "inventory_expanded_asin_sku_read",
     reason: inventory.reason,
     inventoryItems: selectedInventoryItems,
+    targetResolution,
     diagnostic,
   });
   if (terminal) {
-    return buildInventoryTerminalTask(input, selectedInventoryItems, diagnostic, terminal, terminal);
+    return buildInventoryTerminalTask(input, selectedInventoryItems, targetResolution, diagnostic, terminal, terminal);
+  }
+  if (targetResolution.status !== "matched" && targetResolution.status !== "not_required") {
+    return buildInventoryTerminalTask(input, selectedInventoryItems, targetResolution, diagnostic, "review_required", targetResolution.reason ?? "target_resolution_failed");
   }
   if (selectedInventoryItems.length === 0) {
-    return buildInventoryTerminalTask(input, [], diagnostic, "review_required", inventory.reason ?? "inventory_asin_sku_rows_not_found");
+    return buildInventoryTerminalTask(input, [], targetResolution, diagnostic, "review_required", inventory.reason ?? "inventory_asin_sku_rows_not_found");
   }
   if (input.mission.safetyMode === "inventory-only") {
-    return buildInventoryTerminalTask(input, selectedInventoryItems, diagnostic, "success", "");
+    return buildInventoryTerminalTask(input, selectedInventoryItems, targetResolution, diagnostic, "success", "");
   }
   const results: AmazonListingEditReadSyncItemResult[] = [];
   for (const item of selectedInventoryItems) {
@@ -430,7 +572,7 @@ export const runAmazonListingEditReadSyncFlow = async (
       const blocked = buildBlockedItemResult(input, item, search.reason);
       results.push(blocked);
       if (input.mission.safetyMode === "all-inventory-edit-tabs" && input.mission.stopOnFirstIssue) {
-        return buildBatchStoppedTask(input, selectedInventoryItems, results, search.diagnostic, blocked.reason ?? "batch_stopped_on_first_issue");
+        return buildBatchStoppedTask(input, selectedInventoryItems, results, targetResolution, search.diagnostic, blocked.reason ?? "batch_stopped_on_first_issue");
       }
       continue;
     }
@@ -449,7 +591,7 @@ export const runAmazonListingEditReadSyncFlow = async (
     results.push(itemResult);
     await input.onProgress?.({ reachedStep: "item_edit_tabs_read", reason: item.sku, inventoryItems: selectedInventoryItems, items: results });
     if (input.mission.safetyMode === "all-inventory-edit-tabs" && input.mission.stopOnFirstIssue && itemResult.status !== "matched") {
-      return buildBatchStoppedTask(input, selectedInventoryItems, results, diagnostic, itemResult.reason ?? "batch_stopped_on_first_issue");
+      return buildBatchStoppedTask(input, selectedInventoryItems, results, targetResolution, diagnostic, itemResult.reason ?? "batch_stopped_on_first_issue");
     }
   }
   const status = input.mission.safetyMode === "single-sku-search-only"
@@ -464,6 +606,7 @@ export const runAmazonListingEditReadSyncFlow = async (
     status,
     reason: status === "success" ? null : input.mission.safetyMode === "single-sku-search-only" ? "inventory_sku_search_not_verified" : "not_all_listing_edit_tabs_read",
     reachedStep: input.mission.safetyMode === "single-sku-search-only" ? "inventory_sku_search_only_finished" : input.mission.safetyMode === "single-sku-sku-central-only" ? "sku_central_only_finished" : "flow_finished",
+    targetResolution,
     inventoryItems: selectedInventoryItems,
     items: results,
     diagnostic,

@@ -1,0 +1,24 @@
+{
+  "capabilityDomain": "xuanyuan",
+  "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Xuanyuan API 临时实现施工图.md",
+      "requiredAnchors": [
+        "## Xuanyuan Boundary",
+        "## API Flow",
+        "## Plugin File Plan",
+        "## Route Plan",
+        "## QA Plan"
+      ]
+    }
+  ],
+  "description": "Xuanyuan temporary AI API simulation governance audit."
+}

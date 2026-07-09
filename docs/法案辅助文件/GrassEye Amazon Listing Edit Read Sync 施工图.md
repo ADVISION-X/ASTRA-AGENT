@@ -1,13 +1,13 @@
 # GrassEye Amazon Listing Edit Read Sync 施工图
 
-本文档是 `amazon-listing-edit-read-sync` 的施工图草案。
+本文档是 `amazon-listing-edit-read-sync` 的生产施工图。
 
-状态：Chrome 实测施工图草案，非 active law。  
+状态：active law 辅助施工图。  
 实测日期：2026-06-24。  
 实测站点：`sellercentral.amazon.ae`。  
 实测方式：Chrome 插件接管真实 Chrome 标签页，只读 DOM 读取；只执行库存父体展开、页面导航、TAB 打开，不修改字段、不保存、不提交。
 
-本文档不能高于 active law。后续进入实现前，必须补 active law、audit owner、acceptance、`ci:full` 接入。当前存在 LAW-GAP。
+本文档不能高于 active law。源真相是 `module-amazon-listing-edit-read-sync.instructions.md`；本文档只描述实现地图和实测边界。
 
 ## 目标
 
@@ -20,6 +20,8 @@
 5. 进入商品编辑页。
 6. 读取每个编辑 TAB 的可见 DOM 字段。
 7. 对所有 ASIN/SKU 重复执行，产出只读证据包。
+8. 在 App Shell 中提供受控任务页面，允许用户指定 ASIN、SKU、父体或子体目标。
+9. 在进入 SKU Central 或编辑页前，用 Seller Central DOM 证明目标唯一、父子关系成立。
 
 禁止写入 Seller Central。禁止保存、提交、改价、改库存、上传图片、删除图片、发送库存、设置补货提醒。
 
@@ -34,6 +36,7 @@ Workbench API Boundary
 -> amazon-listing-edit-read-sync explicit flow
 -> existing BrowserController / DOM read path
 -> Seller Central inventory DOM
+-> target resolution DOM proof
 -> Seller Central edit TAB DOM
 -> bounded local evidence package
 -> task status JSON
@@ -47,6 +50,94 @@ Workbench API Boundary
 - 私有 evidence chain
 - fallback / shadow / compatibility flow
 - 复用 `amazon-product-sync` 作为隐藏 owner
+
+## App Shell 页面
+
+页面归属：
+
+```text
+App Shell Skill Registry
+-> amazon-listing-edit-read-sync workspace
+-> existing /api/plugins/amazon-listing-edit-read-sync/start
+-> existing status/latest APIs
+-> Inspector / bounded tables
+```
+
+页面必须提供：
+
+- marketplace：`amazon.ae`、`amazon.sa`、`amazon.com`、`amazon.co.uk`、`amazon.co.jp`
+- safetyMode：`inventory-only`、`single-sku-search-only`、`single-sku-sku-central-only`、`single-sku-edit-tabs`、`all-inventory-edit-tabs`
+- targetMode：`inventory`、`asin`、`sku`、`parent`、`child`、`all-inventory`
+- target fields：ASIN、SKU、parent ASIN、parent SKU、child ASIN、child SKU
+- productType
+- tabs 多选：`product_details`、`images`、`variations`、`offer`、`safety_and_compliance`
+- maxItems
+- stopOnFirstIssue
+- start/latest/status refresh
+
+页面必须展示：
+
+- taskId、status、reachedStep、reason
+- target resolution status、candidate count、matched parent、matched child
+- inventoryItems count、items count
+- tab read/not_available/blocked 状态
+- evidenceRef、skuCentralUrlPath、diagnostic
+- raw JSON 只能作为折叠审计视图
+
+页面禁止：
+
+- selector、coordinate、browserCommand、rawHtml、cookie、storage 输入
+- 保存、提交、发布、上传、删除、改价、改库存、图片移动按钮
+- 浏览器控制按钮
+- 自己决定流程步骤
+
+## 受控目标执行
+
+输入结构：
+
+```json
+{
+  "targetMode": "sku",
+  "target": {
+    "asin": "B0XXXXXXXX",
+    "sku": "SELLER-SKU",
+    "parentAsin": "B0XXXXXXXX",
+    "parentSku": "PARENT-SKU",
+    "childAsin": "B0XXXXXXXX",
+    "childSku": "CHILD-SKU"
+  }
+}
+```
+
+规则：
+
+1. `inventory`：只读取库存页；不进入 SKU Central。
+2. `sku`：必须在库存 DOM 中唯一匹配 SKU。
+3. `asin`：必须在库存 DOM 中唯一匹配 ASIN。
+4. `parent`：必须识别父体 row 或 parent hint，展开父体，记录其下 child candidates。
+5. `child`：必须匹配 child row；如果提供 parent ASIN/SKU，必须证明 child 属于该 parent group。
+6. `all-inventory`：必须显式 `safetyMode: "all-inventory-edit-tabs"` 且 `scope: "all-inventory-pages"`。
+
+目标解析输出：
+
+```json
+{
+  "mode": "child",
+  "status": "matched",
+  "reason": null,
+  "candidateCount": 1,
+  "requested": {},
+  "matchedParent": {},
+  "matchedChild": {},
+  "evidenceRefs": ["inventory-row:..."]
+}
+```
+
+失败策略：
+
+- `not_found`、`ambiguous`、`parent_not_proven`、`child_parent_mismatch`、`invalid_target_mode` 均停止为 `review_required`。
+- 未证明目标唯一前，不得打开 SKU Central。
+- 未证明 parent/child 关系前，不得声称读取指定子体。
 
 ## Step 1: 打开库存管理页面
 

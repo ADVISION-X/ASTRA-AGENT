@@ -341,22 +341,26 @@ const readField = (row, label) => {
 const rows = Array.from(document.querySelectorAll('[class*="JanusTable-module__tableContentRow"]'));
 const items = [];
 const seen = new Set();
+let currentParent = null;
 for (const row of rows) {
   const sku = readField(row, "SKU");
   const asin = readField(row, "ASIN");
   if (!sku || !asin) continue;
-  const key = asin + "::" + sku;
-  if (seen.has(key)) continue;
-  seen.add(key);
   const rowText = textOf(row);
   const rowKind = rowText.includes("子 ASIN") || rowText.includes("Child ASIN")
     ? "child"
     : row.querySelector('[class*="VariationExpander-module__expanderHeader"]') ? "parent" : "unknown";
+  if (rowKind === "parent") currentParent = { asin, sku };
+  const key = asin + "::" + sku;
+  if (seen.has(key)) continue;
+  seen.add(key);
   items.push({
     asin,
     sku,
     title: readField(row, "商品名称") || readField(row, "Product name") || null,
     rowKind,
+    parentAsin: rowKind === "child" && currentParent ? currentParent.asin : null,
+    parentSku: rowKind === "child" && currentParent ? currentParent.sku : null,
     evidenceRef: "inventory-row:" + encodeURIComponent(sku),
   });
 }

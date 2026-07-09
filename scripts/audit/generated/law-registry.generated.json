@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-29T20:09:41.591Z",
+  "generatedAt": "2026-07-09T12:46:24.427Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -479,6 +479,28 @@
       "summary": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics.",
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
       "blockIndex": 7
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance+visual",
+      "summary": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "chrome-dom+acceptance",
+      "summary": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read.",
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+      "blockIndex": 9
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
@@ -4405,6 +4427,28 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
       "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "xuanyuan",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+acceptance+audit",
+      "summary": "Xuanyuan must be the single governed AI API simulation owner for external websites, entering through Workbench API Boundary and calling AI Input Gateway without provider direct calls or website-held provider keys.",
+      "required": [
+        "Known xuanyuan routes exist and are admitted by Workbench API Boundary.",
+        "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
+        "External website contract stays provider-agnostic for later real API-key switching."
+      ],
+      "forbidden": [
+        "second HTTP server or API gateway",
+        "website direct provider call or website-held provider key",
+        "xuanyuan direct provider SDK or web-chat DOM operation",
+        "fake success when provider or parsing fails"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
+      "blockIndex": 0
     }
   ]
 }

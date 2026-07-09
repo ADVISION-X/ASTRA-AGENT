@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-28T04:46:59.114Z",
+  "generatedAt": "2026-07-09T12:48:18.617Z",
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,7 +10,9 @@
     "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
     "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
     "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
-    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1"
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+    "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -27,6 +29,10 @@
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",
     "src/plugins/amazon-listing-edit-read-sync/index.ts",
     "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
+    "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
+    "src/app/app-shell/app-shell.ts",
+    "src/app/app-shell/skill-registry.ts",
+    "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/create-workbench-server.ts",
     "src/lib/local-runtime/workbench.ts",

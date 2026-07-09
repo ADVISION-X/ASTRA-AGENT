@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-07-09T12:49:15.257Z",
+  "capabilityDomain": "xuanyuan",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-XUANYUAN-001-V1"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "inspectedFiles": [
+    ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
+    "docs/法案辅助文件/GrassEye Xuanyuan API 临时实现施工图.md",
+    "scripts/audit/domains/xuanyuan/manifest.json",
+    "scripts/audit/domains/xuanyuan/inspector.ts",
+    "scripts/acceptance/xuanyuan.acceptance.ts",
+    "package.json",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/create-workbench-server.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/app/workbench-xuanyuan-routes.ts",
+    "src/plugins/xuanyuan/index.ts",
+    "src/plugins/xuanyuan/xuanyuan.schema.ts",
+    "src/plugins/xuanyuan/xuanyuan.flow.ts"
+  ]
+}

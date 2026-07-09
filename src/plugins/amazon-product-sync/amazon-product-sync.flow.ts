@@ -46,6 +46,8 @@ export type AmazonProductSyncFlowProgress = { readonly reachedStep: string; read
 type ProgressReporter = (progress: AmazonProductSyncFlowProgress) => Promise<void>;
 
 const MARKETPLACE_INVENTORY_URL: Record<AmazonProductSyncInput["marketplace"], string> = { "amazon.ae": "https://sellercentral.amazon.ae/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.sa": "https://sellercentral.amazon.sa/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.com": "https://sellercentral.amazon.com/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.co.uk": "https://sellercentral.amazon.co.uk/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all", "amazon.co.jp": "https://sellercentral.amazon.co.jp/myinventory/inventory?fulfilledBy=all&page=1&pageSize=25&sort=date_created_desc&status=all" };
+const inventorySearchProbeAttempts = 8;
+const inventorySearchProbeRetryMs = 900;
 
 const normalizeSku = (value: string): string => value.trim().toUpperCase();
 
@@ -246,40 +248,57 @@ type ReadyInventorySearchProbe = InventorySearchProbe & {
 const locateInventorySearch = async (
   input: SearchAndExtractInput,
 ): Promise<ReadyInventorySearchProbe | AmazonProductSyncResultItem> => {
-  await input.onProgress?.({
-    reachedStep: `seller_central_inventory_filter_probe_started:${input.item.sellerSku}`,
-  });
-  const probe = await input.browser.evaluateActiveTab<InventorySearchProbe>({
-    description: "amazon-product-sync locate inventory filter SKU search and exclude top global search",
-    script: buildInventorySearchProbeScript(),
-  });
-  const diagnostic = buildDiagnostic({
-    detectedState: probe.detectedState,
-    stageName: "seller_central_inventory_filter_probe",
-    title: probe.title,
-    url: probe.url,
-  });
-  await input.onProgress?.({
-    reachedStep: `seller_central_inventory_filter_probe_finished:${input.item.sellerSku}`,
-    reason: probe.reason ?? (probe.detectedState === "ready" ? "inventory_filter_probe_ready" : probe.detectedState),
-    authGate: diagnostic.authGate,
-    detectedState: diagnostic.detectedState,
-    diagnosticStage: diagnostic.diagnosticStage,
-    pageTitle: diagnostic.pageTitle,
-    pageUrlPath: diagnostic.pageUrlPath,
-  });
-  const terminalStatus = terminalTaskStatusFromPage(probe.detectedState);
-  if (terminalStatus) {
-    return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked", diagnostic);
+  let lastProbe: InventorySearchProbe | null = null;
+  let lastDiagnostic: AmazonProductSyncItemDiagnostic | null = null;
+  for (let attempt = 0; attempt < inventorySearchProbeAttempts; attempt += 1) {
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_filter_probe_started:${input.item.sellerSku}:${attempt}`,
+    });
+    const probe = await input.browser.evaluateActiveTab<InventorySearchProbe>({
+      description: "amazon-product-sync locate inventory filter SKU search and exclude top global search",
+      script: buildInventorySearchProbeScript(),
+    });
+    const diagnostic = buildDiagnostic({
+      detectedState: probe.detectedState,
+      stageName: "seller_central_inventory_filter_probe",
+      title: probe.title,
+      url: probe.url,
+    });
+    lastProbe = probe;
+    lastDiagnostic = diagnostic;
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_filter_probe_finished:${input.item.sellerSku}:${attempt}`,
+      reason: probe.reason ?? (probe.detectedState === "ready" ? "inventory_filter_probe_ready" : probe.detectedState),
+      authGate: diagnostic.authGate,
+      detectedState: diagnostic.detectedState,
+      diagnosticStage: diagnostic.diagnosticStage,
+      pageTitle: diagnostic.pageTitle,
+      pageUrlPath: diagnostic.pageUrlPath,
+    });
+    const terminalStatus = terminalTaskStatusFromPage(probe.detectedState);
+    if (terminalStatus && terminalStatus !== "review_required") {
+      return buildMissingItem(input.item, input.snapshotAt, terminalStatus, "blocked", diagnostic);
+    }
+    if (probe.inventorySearchInputPoint && probe.inventorySearchButtonPoint && probe.topGlobalSearchExcluded) {
+      return {
+        ...probe,
+        inventorySearchButtonPoint: probe.inventorySearchButtonPoint,
+        inventorySearchInputPoint: probe.inventorySearchInputPoint,
+      };
+    }
+    await input.onProgress?.({
+      reachedStep: `seller_central_inventory_filter_probe_wait:${input.item.sellerSku}:${attempt}`,
+      reason: probe.reason ?? "inventory_filter_waiting_for_katal_search",
+    });
+    await input.browser.wait(inventorySearchProbeRetryMs);
   }
-  if (!probe.inventorySearchInputPoint || !probe.inventorySearchButtonPoint || !probe.topGlobalSearchExcluded) {
-    return buildMissingItem(input.item, input.snapshotAt, probe.reason ?? "inventory_filter_search_not_found", "blocked", diagnostic);
-  }
-  return {
-    ...probe,
-    inventorySearchButtonPoint: probe.inventorySearchButtonPoint,
-    inventorySearchInputPoint: probe.inventorySearchInputPoint,
-  };
+  return buildMissingItem(
+    input.item,
+    input.snapshotAt,
+    lastProbe?.reason ?? "inventory_filter_search_not_found",
+    "blocked",
+    lastDiagnostic ?? undefined,
+  );
 };
 
 const submitInventorySearch = async (

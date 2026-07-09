@@ -40,6 +40,7 @@ const skillLabels = {
   "video-downloader": "Video Downloader",
   "media-optimizer": "Media Optimizer",
   "amazon-invoice-upload": "Amazon Invoice Upload",
+  "amazon-listing-edit-read-sync": "Amazon Listing Edit Read",
 };
 const jobToSkill = {
   "amazon-product-mining": "amazon-product-mining",
@@ -54,6 +55,7 @@ const jobToSkill = {
   "pick3-is-blind-eval": "pick3-is-blind-eval", "lottery-ticket-plan": "lottery-ticket-plan",
   amazon: "amazon-invoice-upload",
   "amazon-invoice-upload": "amazon-invoice-upload",
+  "amazon-listing-edit-read-sync": "amazon-listing-edit-read-sync",
 };
 const qs = (selector) => document.querySelector(selector);
 const setText = (selector, value) => { const node = qs(selector); if (node) node.textContent = value ?? "-"; };

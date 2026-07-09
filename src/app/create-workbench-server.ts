@@ -17,6 +17,7 @@ import { handleMediaProcessingRequest } from "./workbench-media-processing-route
 import { readMultipartFormData } from "./workbench-multipart.js";
 import { handlePick3Request } from "./workbench-pick3-routes.js";
 import { handleVideoDownloadRequest } from "./workbench-video-download-routes.js";
+import { handleXuanyuanRequest } from "./workbench-xuanyuan-routes.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
 
@@ -190,6 +191,9 @@ const handleKnownWorkbenchApiRequest = async (input: {
     return true;
   }
   if (await handleLotteryTicketPlanRequest(input.request, input.response, input.workbench)) {
+    return true;
+  }
+  if (await handleXuanyuanRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
   return handleInventoryWorkbenchApiRequest(input);

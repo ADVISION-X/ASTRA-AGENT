@@ -127,6 +127,30 @@
       ]
     },
     {
+      "pluginId": "xuanyuan",
+      "status": "active",
+      "owner": "plugin:xuanyuan",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/app/workbench-xuanyuan-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:xuanyuan"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:xuanyuan",
+        "audit:xuanyuan"
+      ],
+      "exposureTokens": [
+        "xuanyuan"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md"
+      ]
+    },
+    {
       "pluginId": "pick3-is-blind-eval",
       "status": "active",
       "owner": "plugin:pick3-is-blind-eval",

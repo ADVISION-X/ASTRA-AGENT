@@ -1,6 +1,7 @@
 import { renderWorkbenchDeepResearchClient } from "../workbench-deep-research-client.js";
 import { renderWorkbenchDeepResearchStyles } from "../workbench-deep-research-styles.js";
 import { renderMediaOptimizerClient } from "../skills/media-optimizer/media-optimizer-client.js";
+import { renderAmazonListingEditReadSyncClient } from "../workbench-home-amazon-listing-edit-read-sync-client.js";
 import { renderWorkbenchHomeClient } from "../workbench-home-client.js";
 import { renderWorkbenchHomeStyles } from "../workbench-home-styles.js";
 import { renderWorkbenchVideoDownloadClient } from "../workbench-video-download-client.js";
@@ -29,6 +30,6 @@ export const renderAppShell = (): string => `<!doctype html>
     </div>
     ${renderRuntimeConsole()}
   </div>
-  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderWorkbenchVideoDownloadClient()}${renderMediaOptimizerClient()}${renderWorkbenchDeepResearchClient()}</script>
+  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderAmazonListingEditReadSyncClient()}${renderWorkbenchVideoDownloadClient()}${renderMediaOptimizerClient()}${renderWorkbenchDeepResearchClient()}</script>
 </body>
 </html>`;

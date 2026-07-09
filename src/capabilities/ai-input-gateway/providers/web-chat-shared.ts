@@ -8,6 +8,11 @@ import {
   captureInlineChatGptBusinessHtmlArtifact,
   isBusinessHtmlReportRequest,
 } from "./web-chat-html-artifact-capture.js";
+import {
+  captureChatGptJsonArtifact,
+  captureInlineChatGptJsonArtifact,
+  isJsonArtifactRequest,
+} from "./web-chat-json-artifact-capture.js";
 import { isAmazonProductMiningGptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
@@ -248,14 +253,32 @@ const executeWebChatConversation = async (
   if (isBusinessHtmlReportRequest(input.request) && !htmlArtifact) {
     throw new Error("review_required: provider did not produce a business-report.html artifact.");
   }
+  const inlineJsonArtifact = !htmlArtifact && isJsonArtifactRequest(input.request)
+    ? captureInlineChatGptJsonArtifact({
+      answerText: conversation.answerText,
+      pageUrl: conversation.extracted.pageUrl ?? null,
+    })
+    : null;
+  const jsonArtifact = inlineJsonArtifact
+    ?? (!htmlArtifact
+      ? await captureChatGptJsonArtifact({
+        browser: input.browser,
+        request: input.request,
+        context: input.context,
+        conversationUrl: conversation.extracted.pageUrl ?? null,
+      })
+      : null);
   return buildWebChatRawResponse({
     request: input.request,
     runtimeName: input.runtimeName,
     providerUrl: input.providerUrl,
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     extracted: conversation.extracted,
-    answerText: htmlArtifact?.htmlDocument ?? conversation.answerText,
-    outputRefs: htmlArtifact ? [htmlArtifact.outputRef] : [],
+    answerText: htmlArtifact?.htmlDocument ?? jsonArtifact?.jsonText ?? conversation.answerText,
+    outputRefs: [
+      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
+      ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
+    ],
   });
 };
 

@@ -18,17 +18,61 @@ export const AmazonListingEditReadSyncAllTabs = [
   "safety_and_compliance",
 ] as const;
 
+export const AmazonListingEditReadSyncTargetModeSchema = z.enum([
+  "inventory",
+  "asin",
+  "sku",
+  "parent",
+  "child",
+  "all-inventory",
+]);
+
+export type AmazonListingEditReadSyncTargetMode = z.infer<typeof AmazonListingEditReadSyncTargetModeSchema>;
+
+export const AmazonListingEditReadSyncTargetSchema = z.object({
+  asin: z.string().trim().regex(/^B[0-9A-Z]{9}$/).optional(),
+  sku: z.string().trim().min(1).max(128).optional(),
+  parentAsin: z.string().trim().regex(/^B[0-9A-Z]{9}$/).optional(),
+  parentSku: z.string().trim().min(1).max(128).optional(),
+  childAsin: z.string().trim().regex(/^B[0-9A-Z]{9}$/).optional(),
+  childSku: z.string().trim().min(1).max(128).optional(),
+}).strict();
+
+export type AmazonListingEditReadSyncTarget = z.infer<typeof AmazonListingEditReadSyncTargetSchema>;
+
 export const AmazonListingEditReadSyncInputSchema = z.object({
   site: z.string().min(1).max(120),
   requestId: z.string().min(1).max(160),
   marketplace: z.enum(["amazon.ae", "amazon.sa", "amazon.com", "amazon.co.uk", "amazon.co.jp"]).default("amazon.ae"),
   safetyMode: z.enum(["inventory-only", "single-sku-search-only", "single-sku-sku-central-only", "single-sku-edit-tabs", "all-inventory-edit-tabs"]).default("inventory-only"),
   scope: z.enum(["visible-inventory-page", "all-inventory-pages"]).default("visible-inventory-page"),
+  targetMode: AmazonListingEditReadSyncTargetModeSchema.default("inventory"),
+  target: AmazonListingEditReadSyncTargetSchema.default({}),
+  requireParentChildProof: z.boolean().default(true),
   maxItems: z.number().int().min(1).max(200).default(1),
   productType: z.string().min(1).max(80).optional(),
   stopOnFirstIssue: z.boolean().default(true),
   tabs: z.array(AmazonListingEditReadSyncTabSchema).min(1).max(5).default([...AmazonListingEditReadSyncAllTabs]),
 }).strict().superRefine((input, context) => {
+  if (input.targetMode === "all-inventory" && input.safetyMode !== "all-inventory-edit-tabs") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["safetyMode"],
+      message: "all-inventory target mode requires all-inventory-edit-tabs safetyMode",
+    });
+  }
+  if (input.targetMode === "asin" && !input.target.asin) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["target", "asin"], message: "asin target mode requires target.asin" });
+  }
+  if (input.targetMode === "sku" && !input.target.sku) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["target", "sku"], message: "sku target mode requires target.sku" });
+  }
+  if (input.targetMode === "parent" && !input.target.parentAsin && !input.target.parentSku) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["target"], message: "parent target mode requires target.parentAsin or target.parentSku" });
+  }
+  if (input.targetMode === "child" && !input.target.childAsin && !input.target.childSku && !input.target.asin && !input.target.sku) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["target"], message: "child target mode requires child or item ASIN/SKU" });
+  }
   if (input.safetyMode.startsWith("single-sku") && input.maxItems !== 1) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
@@ -70,7 +114,20 @@ export type AmazonListingEditReadSyncInventoryItem = {
   readonly sku: string;
   readonly title: string | null;
   readonly rowKind: "parent" | "child" | "single" | "unknown";
+  readonly parentAsin: string | null;
+  readonly parentSku: string | null;
   readonly evidenceRef: string;
+};
+
+export type AmazonListingEditReadSyncTargetResolution = {
+  readonly mode: AmazonListingEditReadSyncTargetMode;
+  readonly status: "matched" | "not_found" | "ambiguous" | "parent_not_proven" | "child_parent_mismatch" | "not_required";
+  readonly reason: string | null;
+  readonly candidateCount: number;
+  readonly requested: AmazonListingEditReadSyncTarget;
+  readonly matchedParent: AmazonListingEditReadSyncInventoryItem | null;
+  readonly matchedChild: AmazonListingEditReadSyncInventoryItem | null;
+  readonly evidenceRefs: readonly string[];
 };
 
 export type AmazonListingEditReadSyncControl = {
@@ -124,6 +181,7 @@ export type AmazonListingEditReadSyncTaskRecord = {
   readonly status: AmazonListingEditReadSyncTaskStatus;
   readonly reason: string | null;
   readonly reachedStep: string;
+  readonly targetResolution: AmazonListingEditReadSyncTargetResolution;
   readonly inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[];
   readonly items: readonly AmazonListingEditReadSyncItemResult[];
   readonly diagnostic?: AmazonListingEditReadSyncDiagnostic;

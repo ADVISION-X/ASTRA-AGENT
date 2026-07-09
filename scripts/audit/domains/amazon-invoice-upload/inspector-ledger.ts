@@ -59,6 +59,10 @@ const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeN
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
     .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName);
 
+const functionHasStringLiteral = (file: SourceFile, functionName: string, value: string): boolean =>
+  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.StringLiteral) ?? [])
+    .some((literal) => literal.getLiteralText() === value);
+
 export function inspectAmazonInvoiceUploadLedgerGuard(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
   inspectLedgerBoundary(source(context, boundaryPath), findings, lawId);
   inspectLedgerFiles({
@@ -182,8 +186,8 @@ function inspectLedgerServiceAndRoute(taskServiceFile: SourceFile, routesFile: S
 function inspectUploadTaskRecordResponseSanitizer(routesFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
   const sanitizer = routesFile.getFunction("sanitizeAmazonInvoiceUploadTaskRecordForResponse");
   if (!sanitizer
-    || !sanitizer.getText().includes("redacted-local-invoice-pdf-path")
-    || !sanitizer.getText().includes("invoicePdfPath")) {
+    || !functionHasStringLiteral(routesFile, "sanitizeAmazonInvoiceUploadTaskRecordForResponse", "redacted-local-invoice-pdf-path")
+    || !sanitizer.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "invoicePdfPath")) {
     addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-response-sanitizer", "Upload task record API responses must redact mission.invoicePdfPath before leaving Workbench routes.");
   }
   for (const functionName of [
@@ -202,19 +206,21 @@ function inspectUploadTaskRecordResponseSanitizer(routesFile: SourceFile, findin
       addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-route-sanitizer", `${functionName} must return only sanitized upload task records.`);
     }
   }
-  const forbiddenRawResponses = [
-    "writeJson(response, 200, result)",
-    "writeJson(response, 200, await workbench.getAmazonInvoiceUploadTaskStatus(taskId))",
-    "writeJson(response, 200, { task: result })",
-    "writeJson(response, 200, record ? { found: true, record } : { found: false })",
-  ];
   for (const functionName of ["handleAmazonTaskCreateRequest", "handleAmazonTaskResumeRequest", "handleAmazonPluginLatestRequest"]) {
     const routeHandler = routesFile.getFunction(functionName) ?? routesFile.getVariableDeclaration(functionName)?.getInitializer();
-    const routeText = routeHandler?.getText() ?? "";
-    for (const forbidden of forbiddenRawResponses) {
-      if (routeText.includes(forbidden)) {
-        addFinding(findings, lawId, routesPath, "amazon-invoice-upload/raw-task-record-response", `Workbench upload route must not expose raw task record response: ${forbidden}`);
-      }
+    const rawWriteJsonCall = routeHandler?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+      const expression = call.getExpression();
+      if (!Node.isIdentifier(expression) || expression.getText() !== "writeJson") return false;
+      const args = call.getArguments();
+      const statusArg = args[1];
+      const payloadArg = args[2];
+      const payloadIsRawRecordIdentifier = Node.isIdentifier(payloadArg) && ["result", "record"].includes(payloadArg.getText());
+      return statusArg?.getKind() === SyntaxKind.NumericLiteral
+        && statusArg.getText() === "200"
+        && Boolean(payloadIsRawRecordIdentifier);
+    }) ?? false;
+    if (rawWriteJsonCall) {
+      addFinding(findings, lawId, routesPath, "amazon-invoice-upload/raw-task-record-response", `${functionName} must not expose raw upload task records.`);
     }
   }
 }

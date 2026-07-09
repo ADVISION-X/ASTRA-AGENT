@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-29T20:09:41.591Z",
+  "generatedAt": "2026-07-09T12:46:24.427Z",
   "summary": {
-    "activeLawCount": 239,
-    "coveredLawCount": 239,
+    "activeLawCount": 242,
+    "coveredLawCount": 242,
     "coveragePercent": 100
   },
   "coverage": [
@@ -218,6 +218,26 @@
     },
     {
       "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "capabilityDomain": "amazon-listing-edit-read-sync",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/amazon-listing-edit-read-sync/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
       "capabilityDomain": "amazon-listing-edit-read-sync",
       "clauses": [
         {
@@ -2785,6 +2805,16 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/workbench-api-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-001-V1",
+      "capabilityDomain": "xuanyuan",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/xuanyuan/manifest.json"
         }
       ]
     }

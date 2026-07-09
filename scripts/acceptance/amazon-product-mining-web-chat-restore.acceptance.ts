@@ -111,6 +111,17 @@ try {
 
   await new Promise((resolve) => setTimeout(resolve, 2_050));
 
+  const baziResult = await abilityGroup.execute(createRequest("bazi-professional-report-v0.1"));
+
+  assert.equal(
+    baziResult.status,
+    "success",
+    "Bazi professional report must preserve captured GPT Web Chat output even when source tab restoration fails.",
+  );
+  assert.equal(baziResult.providerProof.restoredSourcePage, false);
+
+  await new Promise((resolve) => setTimeout(resolve, 2_050));
+
   const nonAmazonResult = await abilityGroup.execute(createRequest("deep-research.final-adjudication-v1"));
 
   assert.equal(

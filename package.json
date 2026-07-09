@@ -81,7 +81,9 @@
     "audit:pick3-is-blind-eval": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['pick3-is-blind-eval'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
     "acceptance:pick3-is-blind-eval": "node --import tsx scripts/acceptance/pick3-is-blind-eval.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-free-analysis.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-completion-queue.acceptance.ts",
     "audit:lottery-ticket-plan": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['lottery-ticket-plan'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
-    "acceptance:lottery-ticket-plan": "node --import tsx scripts/acceptance/lottery-ticket-plan.acceptance.ts"
+    "acceptance:lottery-ticket-plan": "node --import tsx scripts/acceptance/lottery-ticket-plan.acceptance.ts",
+    "audit:xuanyuan": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['xuanyuan'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "acceptance:xuanyuan": "node --import tsx scripts/acceptance/xuanyuan.acceptance.ts"
   },
   "dependencies": {
     "@img/sharp-darwin-arm64": "^0.35.2",
