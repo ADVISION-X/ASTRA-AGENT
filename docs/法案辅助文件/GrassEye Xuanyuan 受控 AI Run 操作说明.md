@@ -92,6 +92,20 @@ evidence: .grasseye-local/runtime-data/xuanyuan/tasks/xuanyuan_c61e3d0e-8b33-4d5
 
 反馈原因为 Chrome 未开启“允许 Apple 事件中的 JavaScript”。本次没有 `rawOutputRef` 或 `rawOutputHash`，不能判定成功；调用链已真实进入 `xuanyuan -> feed-gpt-web-chat-once`。
 
+随后在隔离数据目录、真实 GUI Chrome 用户配置下重跑，验证了修复后的完整链路：
+
+```text
+requestId: controlled-xuanyuan-smoke-20260711-07
+taskId: xuanyuan_6855b0e6-0368-4af7-8367-ac38fae3ff6a
+status: succeeded
+normalizedText: {"ok":true,"scope":"controlled-xuanyuan-smoke"}
+providerProof.webChatUrl: https://chatgpt.com/c/6a5227a4-69ec-83ed-9b42-8b0881715da7
+rawOutputHash: 2cff0d7b6e53a088c24df2c443c2ee25442a705cbffd196db2071ce4a2946961
+rawOutputRef: /tmp/grasseye-xuanyuan-smoke/runtime-data/ai-input-gateway/feed-gpt-web-chat-once-28394fc8-8c32-4099-8d6e-4d522c1db516.txt
+```
+
+这证明无需 provider API key，`xuanyuan` 可以自动完成 Web GPT 投喂、回答捕获、原始输出落盘和哈希留证。隔离数据目录只用于受控 smoke，不代表书籍生产批次已经通过。
+
 ## 7. 禁止事项与验收
 
 - 业务端直接调用 ChatGPT/Gemini 页面、SDK、provider adapter 或 gateway 子能力；
