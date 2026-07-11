@@ -16,7 +16,7 @@ import {
 import { isAmazonProductMiningGptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
-import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
+import { acknowledgeChatGptRateLimitDialogIfVisible, startChatGptAcknowledgementWatcher } from "./web-chat-rate-limit-dialog.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser, restoreSourcePage } from "./web-chat-shared-support.js";
@@ -458,6 +458,11 @@ export const runWebChatAdapter = async (input: {
     request: input.request,
     context: input.context,
   });
+  const chatGptAcknowledgementWatcher = startChatGptAcknowledgementWatcher({
+    browser,
+    request: input.request,
+    context: input.context,
+  });
   try {
     response = await executeOpenedWebChatAdapter({
       browser,
@@ -474,6 +479,11 @@ export const runWebChatAdapter = async (input: {
       await rateLimitDialogWatcher?.stop();
     } catch (error) {
       watcherFailure = error;
+    }
+    try {
+      await chatGptAcknowledgementWatcher?.stop();
+    } catch (error) {
+      watcherFailure ??= error;
     }
     await restoreAfterWebChatFeed({
       browser,

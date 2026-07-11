@@ -49,13 +49,17 @@ const emitWebChatOpenStage = (input: {
 };
 
 const CHATGPT_NEW_CHAT_SCRIPT = `
-const candidates = Array.from(document.querySelectorAll("a,button"));
+const candidates = Array.from(document.querySelectorAll('a,button,[role="link"],[role="button"]'));
 const target = candidates.find((element) => {
-  const label = [element.getAttribute("aria-label"), element.textContent].filter(Boolean).join(" ");
-  return label.includes("新聊天") || label.includes("New chat");
+  const label = [element.getAttribute("aria-label"), element.getAttribute("title"), element.textContent]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\\s+/gu, " ")
+    .trim();
+  return label.includes("新聊天") || label.toLowerCase().includes("new chat");
 });
 if (!target) {
-  return {status: "review_required", message: "ChatGPT new chat control was not found", pageUrl: location.href};
+  return {status: "review_required", message: "ChatGPT new chat control was not found", pageUrl: location.href, candidateCount: candidates.length};
 }
 target.click();
 return {status: "success", message: "clicked ChatGPT new chat", pageUrl: location.href};
@@ -100,7 +104,8 @@ const requiresFreshChatGptConversation = (input: {
   providerUrl: string;
   request: AiFeedInput;
 }): boolean =>
-  isDeepResearchGptRequest(input)
+  (new URL(input.providerUrl).host === "chatgpt.com" && input.request.providerKind === "gpt-web-chat")
+  || isDeepResearchGptRequest(input)
   || isAmazonProductMiningGptRequest(input)
   || isPick3GptRequest(input)
   || isPick3GeminiRequest(input);
@@ -110,11 +115,10 @@ const resolveProviderReusePolicy = (input: {
   request: AiFeedInput;
   workspaceId: string | null;
 }): "reuse-exact-url" | "open-new-tab" | "reuse-host-tab" =>
-  isPick3WorkspaceId(input.workspaceId)
-    ? "reuse-host-tab"
-    : requiresFreshChatGptConversation(input) && !input.workspaceId
-      ? "open-new-tab"
-      : "reuse-exact-url";
+  // All provider workspaces stay in one host tab. Fresh GPT conversations are
+  // created in-place by startFreshChatGptConversation; opening a tab per run
+  // causes uncontrolled Chrome tab growth and leaves stale provider pages.
+  "reuse-host-tab";
 
 const waitForProviderComposer = async (input: {
   browser: BrowserController;
@@ -203,13 +207,23 @@ const startFreshChatGptConversation = async (input: {
     });
     return;
   }
-  const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "click ChatGPT new chat before isolated GPT prompt",
-    script: CHATGPT_NEW_CHAT_SCRIPT,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-  if (state.status !== "success") {
-    throw new Error(`${state.status}: ${state.message}`);
+  const deadline = Date.now() + 10_000;
+  let lastState: WebChatEvaluation | null = null;
+  while (Date.now() < deadline) {
+    const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+      description: "click ChatGPT new chat before isolated GPT prompt",
+      script: CHATGPT_NEW_CHAT_SCRIPT,
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+    lastState = state;
+    if (state.status === "success") break;
+    if (state.status !== "review_required" || !state.message.includes("not found")) {
+      throw new Error(`${state.status}: ${state.message}`);
+    }
+    await input.browser.wait(300);
+  }
+  if (lastState?.status !== "success") {
+    throw new Error(`${lastState?.status ?? "review_required"}: ${lastState?.message ?? "ChatGPT new chat control was not found"}`);
   }
   await input.browser.wait(1_000);
   await waitForProviderComposer({
