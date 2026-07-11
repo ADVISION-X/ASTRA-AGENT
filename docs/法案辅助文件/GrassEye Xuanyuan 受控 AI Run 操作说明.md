@@ -4,6 +4,20 @@
 > 适用范围：xuanxue-web 及其他业务系统调用 AGENT 执行 AI 任务
 > 当前原则：业务端只调用 `xuanyuan`；不得直接调用 provider、浏览器控制器或 AI Input Gateway 子能力。
 
+## 0. 启动 AGENT
+
+在执行任何受控 run 前，先启动 AGENT：
+
+```bash
+cd "/Users/nexgen/Documents/AGENT"
+GRASSEYE_LOG_MODE=DEBUG \
+GRASSEYE_STRUCTURED_LOG_STDOUT=1 \
+GRASSEYE_STRUCTURED_LOG_LEVEL=debug \
+npm run grasseye:start
+```
+
+启动日志出现 `waiting for human command` 后，才向 AGENT 发送 Xuanyuan API 请求。测试 Web GPT 时必须使用已登录的 GUI Chrome，并在 Chrome 中开启：`显示 → 开发者 → 允许 Apple 事件中的 JavaScript`。本流程不要求、也不应在业务项目配置 provider API key；provider key 若未来启用直连 API，也只能放在 AGENT provider 层。
+
 ## 1. 唯一调用链
 
 ```text
