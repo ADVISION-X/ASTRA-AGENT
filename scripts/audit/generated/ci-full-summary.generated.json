@@ -1,59 +1,59 @@
 {
-  "generatedAt": "2026-07-09T12:48:25.488Z",
+  "generatedAt": "2026-07-21T00:35:58.467Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "domain-audit-runner",
     "command": "internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: [\"audit-truth\"] })",
-    "lawId": "APEX-CAPABILITY-GROUP-003-V1",
-    "filePath": "scripts/acceptance/xuanyuan.acceptance.ts",
-    "message": "scripts/acceptance/xuanyuan.acceptance.ts imports private capability implementation src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts.",
+    "lawId": "APEX-CODE-PURITY-001-V1",
+    "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "message": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts has 502 lines and exceeds the active executable source file red line.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 1983,
-      "endedAt": "2026-07-09T12:46:23.991Z",
+      "durationMs": 221,
+      "endedAt": "2026-07-21T00:35:08.138Z",
       "name": "codex-entry-gate",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-07-09T12:46:22.008Z",
+      "startedAt": "2026-07-21T00:35:07.917Z",
       "status": "PASS"
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 426,
-      "endedAt": "2026-07-09T12:46:24.441Z",
+      "durationMs": 28,
+      "endedAt": "2026-07-21T00:35:08.167Z",
       "name": "build-audit-artifacts",
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-07-09T12:46:24.015Z",
+      "startedAt": "2026-07-21T00:35:08.139Z",
       "status": "PASS"
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
-      "durationMs": 14,
-      "endedAt": "2026-07-09T12:46:24.455Z",
+      "durationMs": 1,
+      "endedAt": "2026-07-21T00:35:08.168Z",
       "name": "active-law-full-coverage",
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-07-09T12:46:24.441Z",
+      "startedAt": "2026-07-21T00:35:08.167Z",
       "status": "PASS"
     },
     {
       "command": "internal:runGeneratedPlanFiltered({ capabilityDomains: [\"audit-truth\"] })",
-      "durationMs": 3273,
-      "endedAt": "2026-07-09T12:46:27.732Z",
+      "durationMs": 1997,
+      "endedAt": "2026-07-21T00:35:10.165Z",
       "name": "meta-quality",
       "phase": "meta-quality",
-      "startedAt": "2026-07-09T12:46:24.459Z",
+      "startedAt": "2026-07-21T00:35:08.168Z",
       "status": "PASS"
     },
     {
       "command": "npm run typecheck",
-      "durationMs": 6990,
-      "endedAt": "2026-07-09T12:46:34.722Z",
+      "durationMs": 4124,
+      "endedAt": "2026-07-21T00:35:14.289Z",
       "name": "typecheck",
       "phase": "typecheck",
-      "startedAt": "2026-07-09T12:46:27.732Z",
+      "startedAt": "2026-07-21T00:35:10.165Z",
       "status": "PASS"
     }
   ],

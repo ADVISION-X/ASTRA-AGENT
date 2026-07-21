@@ -117,6 +117,15 @@ const decompositionResponse = JSON.stringify({
   },
 });
 
+const readJobIdFromHtmlPrompt = (textPrompt: string): string => {
+  const marker = "- Job ID: ";
+  const start = textPrompt.indexOf(marker);
+  if (start < 0) throw new Error("HTML report fixture prompt is missing the full-case-file Job ID.");
+  const valueStart = start + marker.length;
+  const lineEnd = textPrompt.indexOf("\n", valueStart);
+  return textPrompt.slice(valueStart, lineEnd < 0 ? undefined : lineEnd).trim();
+};
+
 class EmptyAnalysisAdapter implements AiProviderAdapter {
   readonly providerKind = "gemini-api" as const;
 
@@ -163,7 +172,7 @@ class RawParseFailureAnalysisAdapter implements AiProviderAdapter {
 
   public callCount = 0;
 
-  async feed(_input: AiFeedInput, _context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
+  async feed(input: AiFeedInput, _context: AiProviderAdapterContext): Promise<AiProviderRawResponse> {
     this.callCount += 1;
     const responses = [
       decompositionResponse,
@@ -183,13 +192,14 @@ class RawParseFailureAnalysisAdapter implements AiProviderAdapter {
       [
         "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Report</title></head><body><main><h1>Report</h1>",
         "<section id=\"summary-answer\"><h2>Summary Answer</h2><p>Raw-available analysis reached final delivery.</p></section>",
-        "<section id=\"forensics-process\"><h2>Forensics Process</h2><p>Q1 raw response was preserved after parser rejection and Q2 parsed successfully.</p></section>",
+        "<section id=\"forensics-process\"><h2>Forensics Process</h2><p>Job ID __JOB_ID__. Q1 raw response was preserved after parser rejection and Q2 parsed successfully.</p></section>",
         "<section id=\"business-conclusion\"><h2>Final Conclusion</h2><p>Continue with raw-preserved evidence visible.</p></section>",
         "<section id=\"n-stage-questions-and-answers\"><h2>N-stage Questions and Answers</h2><p>Q1 raw-only and Q2 structured materials are available.</p></section>",
         "</main></body></html>",
       ].join(""),
     ];
-    const rawText = responses[this.callCount - 1];
+    const response = responses[this.callCount - 1];
+    const rawText = response?.replace("__JOB_ID__", this.callCount === 5 ? readJobIdFromHtmlPrompt(input.textPrompt) : "");
     if (rawText === undefined) {
       throw new Error(`Unexpected prompt call ${this.callCount}.`);
     }
@@ -279,7 +289,7 @@ async function verifyRawParseFailureContinues(): Promise<void> {
   );
 
   assert.equal(adapter.callCount, 5, "Raw analysis parse failure must continue through Q2, final adjudication, and HTML report.");
-  assert.equal(result.status, "success", "Non-empty raw analysis parse failure must not terminate the job.");
+  assert.equal(result.status, "success", `Non-empty raw analysis parse failure must not terminate the job; reviewReason=${String(result.reviewReason)}.`);
   assert.equal(result.jobStatus, "completed", "Persisted job status must complete when raw parse failure reaches final delivery.");
   assert.equal(result.phase, "COMPLETE", "Raw parse failure continuation must finish the primary chain.");
   assert(result.finalAdjudication, "Final adjudication must exist after raw parse failure continuation.");

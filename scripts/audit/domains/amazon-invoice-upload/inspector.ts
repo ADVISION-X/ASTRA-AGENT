@@ -52,6 +52,7 @@ const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellClientPath = "src/app/workbench-home-client.ts";
 const selfPath = "scripts/audit/domains/amazon-invoice-upload/inspector.ts";
+const smokeAcceptanceSupportPath = "scripts/acceptance/amazon-invoice-upload-smoke-support.ts";
 
 const inspectedFiles = [
   lawPath,
@@ -78,6 +79,7 @@ const inspectedFiles = [
   chromeWindowControlPath,
   appShellLayoutPath,
   appShellAmazonInvoiceWorkspacePath,
+  smokeAcceptanceSupportPath,
   appShellClientPath,
   "src/app/workbench-home-amazon-invoice-client.ts",
   "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -417,6 +419,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     amountGateFile: source(context.project, amountGatePath),
     statusFile: source(context.project, uploadStatusPath),
     smokeAcceptanceFile: source(context.project, "scripts/acceptance/amazon-invoice-upload-smoke.ts"),
+    smokeAcceptanceSupportFile: source(context.project, smokeAcceptanceSupportPath),
     findings,
     lawId: lawIds.amountGate,
   });

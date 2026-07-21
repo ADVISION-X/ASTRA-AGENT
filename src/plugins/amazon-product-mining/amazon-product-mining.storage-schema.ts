@@ -13,6 +13,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     requested_keyword_count INTEGER NOT NULL,
     language_preference TEXT NOT NULL,
     provider_kind TEXT NOT NULL DEFAULT 'gpt-web-chat',
+    keyword_history_policy TEXT NOT NULL DEFAULT 'new_keywords_only',
     status TEXT NOT NULL,
     failure_reason TEXT,
     package_json_path TEXT,
@@ -30,6 +31,7 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     source TEXT NOT NULL DEFAULT 'ai_generated',
     ai_run_id TEXT,
     reason TEXT,
+    keyword_history_relation TEXT NOT NULL DEFAULT 'new_keyword',
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT

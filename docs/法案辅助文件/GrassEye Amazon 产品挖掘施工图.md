@@ -202,16 +202,18 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 
 | 项 | 内容 |
 | -- | -- |
-| 输入 | `amazonMarketplace, targetMarket, productDirection, requestedKeywordCount, languagePreference, firstPageOnly=true` |
-| 动作 | 校验输入 / 创建 taskId / 读取历史已挖掘关键词 / 保存 task scope / 进入 keyword_generating |
-| 输出 | `taskId, taskStatus=keyword_generating, existingMinedKeywords` |
+| 输入 | `amazonMarketplace, targetMarket, productDirection, requestedKeywordCount, languagePreference, keywordHistoryPolicy=new_keywords_only, firstPageOnly=true` |
+| 动作 | 校验输入 / 创建 taskId / 读取历史已挖掘关键词 / 保存 task scope 与 keywordHistoryPolicy / 进入 keyword_generating |
+| 输出 | `taskId, taskStatus=keyword_generating, existingMinedKeywords, keywordHistoryPolicy` |
 | owner | flow.ts + storage.ts |
 | 异常处理 | marketplace 缺 → 拒绝创建；targetMarket 缺 → 拒绝创建 |
-| 禁止 | 默认值替代用户选择 / 跳过历史关键词读取 / AI 自主决定站点 |
+| 禁止 | 默认值替代用户选择 / 跳过历史关键词读取 / AI 自主决定站点 / 用前端状态代替持久化 keywordHistoryPolicy |
 
 断点续跑约束：
 
 - 新建任务时保存 provider、scope 与初始状态。
+- 新建任务必须保存 `keywordHistoryPolicy`；默认是 `new_keywords_only`。
+- `refresh_historical_keywords` 只表示历史行情刷新，不表示删除历史、不表示关闭治理、不表示把历史关键词伪装成新关键词。
 - 如果同一 taskId 已存在，必须进入 Continue 语义，不得重新 create task 或重新生成已存在关键词。
 - App 必须允许用户在任务运行中暂停、继续、终止。
 - 系统重启后自动继续非终态运行状态；`paused` 与 `terminated` 不自动继续。
@@ -222,7 +224,7 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 
 | 项 | 内容 |
 | -- | -- |
-| AI 输入 | marketplace, targetMarket, productDirection, existingMinedKeywords, requestedKeywordCount, doNotRepeatInstruction, structuredOutputSchema |
+| AI 输入 | marketplace, targetMarket, productDirection, existingMinedKeywords, requestedKeywordCount, keywordHistoryPolicy, doNotRepeatOrRefreshInstruction, structuredOutputSchema |
 | AI 输出契约 | `newKeywords[] = { keyword, reason?, expectedCategory? }` |
 | 动作 | 通过 ai-input-gateway 发送 / 保存 raw response / 解析 / 失败保存 failure record |
 | 状态 | task: keyword_generating |
@@ -231,7 +233,7 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 
 关键词生成 prompt 边界：
 
-- 系统只提供用户原始 `productDirection`、marketplace、targetMarket、language、历史关键词、去重要求和 JSON 格式。
+- 系统只提供用户原始 `productDirection`、marketplace、targetMarket、language、历史关键词、keywordHistoryPolicy、去重/刷新要求和 JSON 格式。
 - 系统不得代替用户或 AI 增加尺寸、重量、小件、轻量、紧凑、易运输、价格带、材质、包装、利润或采购假设。
 - “中国供应商背景”只能作为 sourcing background，不得自动收窄成小件轻货、低体积或易运输关键词。
 - 关键词是否适合进入候选名单，只能在关键词完成后的 full package review 阶段判断。
@@ -242,11 +244,17 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 
 | 项 | 内容 |
 | -- | -- |
-| 动作 | 提取 keyword 文本 / 清理空格无效字符 / 统一大小写比较规则 / 过滤空 / 历史去重 / 本任务去重 / 保存 keyword queue |
+| 动作 | 提取 keyword 文本 / 清理空格无效字符 / 统一大小写比较规则 / 过滤空 / 按 keywordHistoryPolicy 历史去重或历史刷新标记 / 本任务去重 / 保存 keyword queue |
 | 输出 | `keywordQueue[], keywordStatus=pending` |
-| 状态 | task: keyword_ready 或 failed（无新增关键词 → `no_new_keywords` 终态） |
+| 状态 | task: keyword_ready 或 failed（默认模式无新增关键词 → `no_new_keywords`；刷新模式无可刷新/新增关键词 → `no_refreshable_historical_keywords`） |
 | owner | keyword.ts |
-| 禁止 | 为凑数自行编造 / 不记录 AI source run |
+| 禁止 | 为凑数自行编造 / 不记录 AI source run / 刷新模式不写 `keywordHistoryRelation=historical_refresh` |
+
+策略细则：
+
+- `new_keywords_only`：历史关键词和近似重复关键词必须过滤；本任务内重复必须过滤；不足 requestedKeywordCount 时真实失败。
+- `refresh_historical_keywords`：历史匹配关键词允许进入同一生产队列，但必须标记 `keywordHistoryRelation=historical_refresh`；非历史匹配关键词标记 `keywordHistoryRelation=new_keyword`；本任务内重复仍必须过滤。
+- 刷新模式不得新增第二 flow、第二 route、第二 AI prompt contract、第二 package root。
 
 ---
 
@@ -971,6 +979,7 @@ App 不得使用 localStorage 作为历史表真相源
 App 不得常驻 fixture / demo rows
 App 不得扫描 raw package 生成 verdict
 App 不得在前端计算 PASS / WATCH / REJECT / INSUFFICIENT_DATA
+App 不得把历史行情刷新选项表达为删除历史、清空历史或关闭治理
 ```
 
 ### 18.7 Route / Read Model 契约
@@ -992,6 +1001,16 @@ product count
 review count
 task-level report refs
 ```
+
+任务发布区必须提供：
+
+```txt
+keywordHistoryPolicy:
+  new_keywords_only（默认，仅挖掘新关键词）
+  refresh_historical_keywords（刷新历史关键词行情）
+```
+
+App 只负责把该字段提交给 route；持久化真相必须来自 task record。
 
 ### 18.8 App UI Flow
 

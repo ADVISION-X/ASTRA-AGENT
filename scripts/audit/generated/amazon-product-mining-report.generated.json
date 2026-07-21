@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:19.990Z",
+  "generatedAt": "2026-07-21T00:35:55.357Z",
   "capabilityDomain": "amazon-product-mining",
   "status": "PASS",
   "findingCount": 0,
@@ -89,7 +89,6 @@
     "src/app/workbench-home-page.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",

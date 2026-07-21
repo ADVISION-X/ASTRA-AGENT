@@ -292,6 +292,7 @@ try {
       requestedKeywordCount: 2,
       languagePreference: "en",
       providerKind: "gpt-web-chat",
+      keywordHistoryPolicy: "new_keywords_only",
     },
     reviewMaxPages: 1,
   });

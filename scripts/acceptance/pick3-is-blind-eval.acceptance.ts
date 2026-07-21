@@ -65,7 +65,6 @@ const workbenchPick3SupportText = readRepoText(workbenchPick3SupportPath), aiGat
 const workbenchPick3RoutesText = readRepoText(workbenchPick3RoutesPath), workbenchApiBoundaryText = readRepoText(workbenchApiBoundaryPath);
 const webChatOpenText = readRepoText(webChatOpenPath), webChatWorkspaceText = readRepoText(webChatWorkspacePath), webChatSharedText = readRepoText(webChatSharedPath);
 const webChatSharedSupportText = readRepoText(webChatSharedSupportPath), webChatPick3HistoryCleanupText = readRepoText(webChatPick3HistoryCleanupPath);
-const webChatRestorePolicyText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts");
 const webChatUploadText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts");
 const webChatClipboardText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts");
 const webChatComposerText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts");
@@ -177,8 +176,7 @@ const webChatPageActionsText = readRepoText("src/capabilities/ai-input-gateway/p
 for (const token of ["provider_history_delete_temporarily_disabled"]) assert.equal(webChatPick3HistoryCleanupText.includes(token), true, `history cleanup must safely disable provider deletion with ${token}`);
 for (const token of ["PICK3_CONVERSATION_LEDGER_MAX_ENTRIES = 100", "slice(-PICK3_CONVERSATION_LEDGER_MAX_ENTRIES)"]) assert.equal(webChatWorkspaceText.includes(token), true, `Pick3 conversation ledger must retain full-run cleanup evidence with ${token}`); assert.equal(webChatWorkspaceText.includes("const keptLedger = ledger.slice(-input.keepRecentCount)"), false, "stale tab cleanup must not truncate the history-deletion ledger.");
 assert.equal(webChatSharedSupportText.includes("Pick3 ChatGPT sidebar cleanup failed"), false, "raw output must not be dropped by post-response sidebar cleanup failure"); assert.equal(aiExchangeText.includes("cleanupStatus="), true, "Pick3 exchange must log provider cleanup failure without overwriting parsed predictions"); assert.equal(aiExchangeText.includes("pick3_provider_cleanup_failed_"), false, "Pick3 exchange must not convert cleanup failure into parse failure");
-assert.equal(webChatRestorePolicyText.includes("PICK3_PROMPT_CONTRACT_PREFIX"), true, "Pick3 raw output must survive post-response source restore failure.");
-assert.equal(webChatRestorePolicyText.includes("pick3-is-blind-eval"), true, "Pick3 source restore exception must be Pick3 contract-scoped.");
+assert.equal(webChatSharedText.includes("SOURCE_PAGE_RESTORE_FAILED"), true, "Every captured raw output must survive source restore failure as a transport warning.");
 for (const playbookPath of playbookPaths) { const playbookText = readRepoText(playbookPath); for (const forbidden of ["0-4", "5-9", "0-2", "7-9", "Pick3", "UAE", "lottery", "pick3-is-blind-eval"]) assert.equal(playbookText.includes(forbidden), false, `${playbookPath} must not contain numeric bucket ${forbidden}`); }
 const systemPlaybookText = readRepoText("src/plugins/pick3-is-blind-eval/playbooks/system.md");
 const visualGrammarText = readRepoText("src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md");

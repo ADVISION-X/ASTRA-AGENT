@@ -10,8 +10,8 @@ const isChatGptFileTileRoot = (node) => {
   const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
   const className = String(node.className || "");
   if (/composer-plus|add files?|添加文件/i.test(label) || /composer-plus/i.test(className)) return false;
-  return className.includes("file-tile")
-    || (node.getAttribute("role") === "group" && node.querySelector("button[aria-label*='在文本字段中显示'], button[aria-label*='show in text field' i], button[aria-label*='display in text field' i]"))
+  return /(?:^|\\s)(?:group\\/)?file-tile(?:\\s|$)/u.test(className)
+    || (node.getAttribute("role") === "group" && node.querySelector("button[aria-label*='在文本字段中显示'], button[aria-label*='show in text field' i], button[aria-label*='display in text field' i], button[aria-label*='移除文件'], button[aria-label*='remove file' i]"))
     || CHATGPT_FILE_TILE_TEXT_PATTERN.test(label);
 };
 const findAttachmentTileRoot = (node) => {
@@ -32,8 +32,41 @@ const isAttachmentCandidate = (node) => {
   if (CHATGPT_FILE_TILE_TEXT_PATTERN.test(label) || isChatGptFileTileRoot(node)) return true;
   return /\\b(file|attachment|image)\\b|附件|图片/i.test(label);
 };
+const ATTACHMENT_FILE_NAME_PATTERN = /([^/\\\\\\n]+?\\.(?:jsonl?|md|txt|zip|pdf|csv|png|jpe?g|webp|gif|mp4|mov|webm))/iu;
+const attachmentFileName = (tile) => {
+  if (!(tile instanceof HTMLElement)) return null;
+  const values = [
+    tile.getAttribute("aria-label"),
+    tile.getAttribute("data-testid"),
+    ...Array.from(tile.querySelectorAll("button, [aria-label], [data-testid]"))
+      .flatMap((node) => [node.textContent, node.getAttribute("aria-label"), node.getAttribute("data-testid")]),
+    tile.textContent,
+  ]
+    .map((value) => clip(value || ""))
+    .filter((value) => value.length > 0)
+    .map((value) => value.replace(/^(?:移除文件\\d*|remove file\\d*)\\s*[:：]?\\s*/iu, ""));
+  const candidates = values
+    .map((value) => value.match(ATTACHMENT_FILE_NAME_PATTERN)?.[1] || null)
+    .filter((value) => typeof value === "string" && value.length > 0);
+  if (candidates.length === 0) return null;
+  return candidates.sort((left, right) => left.length - right.length)[0];
+};
 const countAttachmentCandidates = (root) => {
-  if (!root || typeof root.querySelectorAll !== "function") return 0;
+  if (!root || typeof root.querySelectorAll !== "function") return {count: 0, names: []};
+  const explicitTiles = new Set();
+  for (const node of Array.from(root.querySelectorAll("[class*='file-tile' i], [role='group'][aria-label], button[aria-label*='移除文件'], button[aria-label*='remove file' i]"))) {
+    if (!(node instanceof HTMLElement)) continue;
+    const tile = findAttachmentTileRoot(node);
+    if (tile) explicitTiles.add(tile);
+  }
+  if (explicitTiles.size > 0) {
+    return {
+      count: explicitTiles.size,
+      names: Array.from(explicitTiles)
+        .map((tile) => attachmentFileName(tile))
+        .filter((name) => typeof name === "string" && name.length > 0),
+    };
+  }
   const selectors = [
     "[class*='file-tile' i]",
     "[role='group'][aria-label]",
@@ -63,26 +96,31 @@ const countAttachmentCandidates = (root) => {
       seenTiles.add(findAttachmentTileRoot(node) || node);
     }
   }
-  return seenTiles.size;
+  return {
+    count: seenTiles.size,
+    names: Array.from(seenTiles)
+      .map((tile) => attachmentFileName(tile))
+      .filter((name) => typeof name === "string" && name.length > 0),
+  };
 };
 const findBestAttachmentScope = () => {
   const input = resolveComposerInput();
   let bestRoot = null;
-  let bestCount = 0;
+  let bestResult = {count: 0, names: []};
   if (input instanceof HTMLElement) {
     let cursor = input;
     for (let depth = 0; depth < 10 && cursor; depth += 1) {
-      const currentCount = countAttachmentCandidates(cursor);
-      if (currentCount > bestCount) {
+      const currentResult = countAttachmentCandidates(cursor);
+      if (currentResult.count > bestResult.count) {
         bestRoot = cursor;
-        bestCount = currentCount;
+        bestResult = currentResult;
       }
       cursor = cursor.parentElement;
     }
   }
-  if (bestCount > 0) return {count: bestCount, scope: "input", input};
-  const globalCount = countAttachmentCandidates(document.body);
-  return {count: globalCount, scope: globalCount > 0 ? "global" : "none", input};
+  if (bestResult.count > 0) return {...bestResult, scope: "input", input};
+  const globalResult = countAttachmentCandidates(document.body);
+  return {...globalResult, scope: globalResult.count > 0 ? "global" : "none", input};
 };
 `;
 
@@ -93,12 +131,36 @@ const expectedCount = ${JSON.stringify(expectedCount)};
 const result = findBestAttachmentScope();
 const inputFocused = Boolean(result.input instanceof HTMLElement && (document.activeElement === result.input || result.input.contains(document.activeElement)));
 if (result.count >= expectedCount && result.scope === "input") {
-  return {status: "success", message: "provider attachments ready", pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
+  return {status: "success", message: "provider attachments ready", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, attachmentScope: result.scope, inputFocused};
 }
 if (result.count >= expectedCount && result.scope === "global") {
-  return {status: "success", message: ${JSON.stringify(GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE)}, pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
+  return {status: "success", message: ${JSON.stringify(GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE)}, pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, attachmentScope: result.scope, inputFocused};
 }
-return {status: "pending", message: "waiting for provider attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentScope: result.scope, inputFocused};
+return {status: "pending", message: "waiting for provider attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, attachmentScope: result.scope, inputFocused};
+`;
+
+export const buildWaitForExactAttachmentCountScript = (
+  expectedCount: number,
+  expectedFileNames: readonly string[] = [],
+): string => `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
+const expectedCount = ${JSON.stringify(expectedCount)};
+const expectedFileNames = ${JSON.stringify(expectedFileNames)};
+const result = findBestAttachmentScope();
+const inputFocused = Boolean(result.input instanceof HTMLElement && (document.activeElement === result.input || result.input.contains(document.activeElement)));
+const missingFileNames = expectedFileNames.filter((name) => !result.names.includes(name));
+const unexpectedFileNames = result.names.filter((name) => !expectedFileNames.includes(name));
+if (result.count > expectedCount) {
+  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+}
+if (result.count === expectedCount && result.scope === "input" && expectedFileNames.length > 0 && (missingFileNames.length > 0 || unexpectedFileNames.length > 0)) {
+  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+}
+if (result.count === expectedCount && result.scope === "input") {
+  return {status: "success", message: "provider exact attachment count and file names ready", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+}
+return {status: "pending", message: "waiting for provider exact attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
 `;
 
 export const CLICK_CHATGPT_SEND_BUTTON_SCRIPT = `

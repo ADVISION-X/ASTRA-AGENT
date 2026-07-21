@@ -9,6 +9,7 @@ export type AmazonTaskRunConfig = {
   productDirection: string;
   requestedKeywordCount: number;
   languagePreference: string;
+  keywordHistoryPolicy: string;
   createdAt: string;
 };
 
@@ -16,6 +17,7 @@ export type AmazonTaskKeywordProgress = {
   keywordId: string;
   keyword: string;
   status: string;
+  keywordHistoryRelation: string;
   searchResultCount: number;
   productDetailCount: number;
   reviewCount: number;
@@ -75,6 +77,7 @@ export const createKeywordProgress = (
   keywordId: keyword.keywordId,
   keyword: keyword.keyword,
   status: keyword.status,
+  keywordHistoryRelation: keyword.keywordHistoryRelation,
   searchResultCount: counts.searchResultCount,
   productDetailCount: counts.productDetailCount,
   reviewCount: counts.reviewCount,
@@ -99,6 +102,7 @@ export const taskRecordToResult = (
     productDirection: task.productDirection,
     requestedKeywordCount: task.requestedKeywordCount,
     languagePreference: task.languagePreference,
+    keywordHistoryPolicy: task.keywordHistoryPolicy,
     createdAt: task.createdAt,
   },
   keywords: snapshot.keywords,

@@ -26,7 +26,7 @@ const extractAnswer = (
 
 const isTransientNavigationExtractionError = (error: unknown): boolean =>
   error instanceof Error
-  && /missing value|execution context|navigation|loading|not valid JSON/iu.test(error.message);
+  && /missing value|execution context|navigation|loading|not valid JSON|active-tab evaluation.*timed out/iu.test(error.message);
 
 const updateStableAnswerState = (input: {
   evaluation: WebChatEvaluation;
@@ -151,7 +151,7 @@ export const buildTimedOutAnswerEvaluation = (
   status: lastText && !lastGenerating ? "success" : "failed",
   message: lastText && !lastGenerating
     ? "answer extracted at timeout boundary"
-    : "provider response polling timed out",
+    : "GPT_RESPONSE_TIMEOUT; provider response polling timed out",
   answerText: lastText || null,
   pageUrl: browser.getSessionState().currentUrl,
   generating: lastGenerating,

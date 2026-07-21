@@ -8,6 +8,7 @@ import type { AiFeedInput } from "../schema.js";
 const FACEBOOK_WORKSPACE_ID = "facebook";
 const DEEP_RESEARCH_WORKSPACE_ID = "deep-research";
 const PICK3_WORKSPACE_ID = "pick3-is-blind-eval";
+const FULL_CORPUS_WORKSPACE_ID = "full-corpus";
 
 const escapeAppleScriptText = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
@@ -47,6 +48,8 @@ export const resolveWebChatWorkspaceId = (request: AiFeedInput): string | null =
       ? DEEP_RESEARCH_WORKSPACE_ID
       : request.promptContractId.includes("pick3-is-blind-eval")
         ? PICK3_WORKSPACE_ID
+        : request.promptContractId.startsWith("full-corpus-")
+          ? FULL_CORPUS_WORKSPACE_ID
         : null;
 
 export const readSavedWorkspaceUrl = (input: {
@@ -198,7 +201,7 @@ export const ensureProviderWorkspaceFocused = async (input: {
     providerHost: new URL(input.providerUrl).host,
     workspaceId,
     savedUrl,
-    allowAnyProviderTab: false || isPick3WorkspaceId(workspaceId) || input.allowAnyProviderTab === true,
+    allowAnyProviderTab: isPick3WorkspaceId(workspaceId) || workspaceId === "full-corpus" || input.allowAnyProviderTab === true,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
   if (!focused) {

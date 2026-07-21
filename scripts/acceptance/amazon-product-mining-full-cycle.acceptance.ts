@@ -226,6 +226,7 @@ try {
       requestedKeywordCount: 1,
       languagePreference: "zh-CN",
       providerKind: "gpt-web-chat",
+      keywordHistoryPolicy: "new_keywords_only",
     },
     reviewMaxPages: 2,
   });
@@ -281,6 +282,7 @@ try {
         requestedKeywordCount: 1,
         languagePreference: "zh-CN",
         providerKind: "gpt-web-chat",
+        keywordHistoryPolicy: "new_keywords_only",
       },
       reviewMaxPages: 1,
     });

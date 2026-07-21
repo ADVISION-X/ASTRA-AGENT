@@ -79,6 +79,7 @@ const buildCoverLines = (input: {
   `Target Market: ${input.task.targetMarket ?? "unknown"}`,
   `Product Direction: ${input.task.productDirection ?? "unknown"}`,
   `Language Preference: ${input.task.languagePreference ?? "unknown"}`,
+  `Keyword History Policy: ${input.task.keywordHistoryPolicy ?? "new_keywords_only"}`,
   `Generated At: ${input.generatedAt}`,
   `Package Version: ${input.packageVersion}`,
   "Front Boundary Notice",
@@ -153,6 +154,7 @@ const renderTaskSummaryGrid = (input: {
       <div class="card"><strong>Target Market</strong><br />${escapeHtml(input.task.targetMarket ?? "unknown")}</div>
       <div class="card"><strong>Product Direction</strong><br />${escapeHtml(input.task.productDirection ?? "unknown")}</div>
       <div class="card"><strong>Language Preference</strong><br />${escapeHtml(input.task.languagePreference ?? "unknown")}</div>
+      <div class="card"><strong>Keyword History Policy</strong><br />${escapeHtml(input.task.keywordHistoryPolicy ?? "new_keywords_only")}</div>
       <div class="card"><strong>Generated At</strong><br />${escapeHtml(input.generatedAt)}</div>
       <div class="card"><strong>Package Version</strong><br />${escapeHtml(input.reportVersion)}</div>
     </section>`;

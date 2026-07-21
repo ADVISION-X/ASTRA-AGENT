@@ -12,7 +12,7 @@ import {
   clickAt,
   escapeAppleScriptText,
 } from "./current-chrome-browser-controller-primitives.js";
-import { runAppleScript } from "./current-chrome-window-control.js";
+import { runAppleScript, runJxa } from "./current-chrome-window-control.js";
 import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
 import { executeCurrentChromeFieldInput } from "./current-chrome-browser-field-input.js";
 import { setFileInputFilesWithCurrentChromeCdp } from "./current-chrome-cdp-file-input.js";
@@ -40,6 +40,48 @@ ${script}
   return JSON.stringify(result ?? null);
 })()
 `;
+
+const controlledHttpOrigin = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.origin : null;
+  } catch {
+    return null;
+  }
+};
+
+const buildControlledTabEvaluationScript = (javascript: string, controlledUrl: string | null): string => {
+  const origin = controlledHttpOrigin(controlledUrl);
+  if (!origin) {
+    return `const chrome = Application("Google Chrome");\nconst window = chrome.windows()[0];\nconst result = window.activeTab().execute({ javascript: ${JSON.stringify(javascript)} });\nresult;`;
+  }
+  return `
+const chrome = Application("Google Chrome");
+const windows = chrome.windows();
+const targetOrigin = ${JSON.stringify(origin)};
+let targetWindow = null;
+let targetTab = null;
+let targetTabIndex = -1;
+for (let windowIndex = 0; windowIndex < windows.length && targetTab === null; windowIndex += 1) {
+  const candidateTabs = windows[windowIndex].tabs();
+  for (let tabIndex = 0; tabIndex < candidateTabs.length; tabIndex += 1) {
+    const candidateUrl = String(candidateTabs[tabIndex].url() || "");
+    if (candidateUrl === targetOrigin || candidateUrl.startsWith(targetOrigin + "/")) {
+      targetWindow = windows[windowIndex];
+      targetTab = candidateTabs[tabIndex];
+      targetTabIndex = tabIndex + 1;
+      break;
+    }
+  }
+}
+if (targetTab === null || targetWindow === null) throw new Error("controlled Chrome tab is not available");
+targetWindow.activeTabIndex = targetTabIndex;
+targetWindow.index = 1;
+chrome.activate();
+const result = targetTab.execute({ javascript: ${JSON.stringify(javascript)} });
+result;`;
+};
 
 
 type CloseActiveTabSnapshot = {
@@ -137,10 +179,18 @@ export const evaluateActiveTab = async <T>(
   input.abortSignal?.addEventListener("abort", abortInput, { once: true });
   let raw: string;
   try {
-    raw = await runAppleScript(
-      `tell application "Google Chrome" to execute front window's active tab javascript "${escapeAppleScriptText(buildWrappedActiveTabScript(input.script))}"`,
-      { signal: controller.signal },
-    );
+    const javascript = buildWrappedActiveTabScript(input.script);
+    try {
+      raw = await runJxa(
+        buildControlledTabEvaluationScript(javascript, state.controlledUrl),
+        { signal: controller.signal },
+      );
+    } catch (jxaError) {
+      raw = await runAppleScript(
+        `tell application "Google Chrome" to execute front window's active tab javascript "${escapeAppleScriptText(javascript)}"`,
+        { signal: controller.signal },
+      ).catch(() => { throw jxaError; });
+    }
   } catch (error) {
     if (controller.signal.aborted) {
       throw new Error(`Active-tab evaluation "${input.description}" timed out after ${timeoutMs}ms.`);

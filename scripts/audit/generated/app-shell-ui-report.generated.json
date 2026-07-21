@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:22.244Z",
+  "generatedAt": "2026-07-21T00:35:56.391Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -26,11 +26,13 @@
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
+    "src/app/app-shell/app-shell-pick3-trend-styles.ts",
     "src/app/app-shell/app-shell-styles.ts",
     "src/app/app-shell/app-shell-workspace-styles.ts",
     "src/app/app-shell/app-shell.ts",
     "src/app/app-shell/command-bar.ts",
     "src/app/app-shell/inspector.ts",
+    "src/app/app-shell/localization-client-runtime.ts",
     "src/app/app-shell/localization.ts",
     "src/app/app-shell/lottery-ticket-plan-workspace.ts",
     "src/app/app-shell/runtime-console.ts",
@@ -78,6 +80,7 @@
     "src/app/workbench-home-pick3-stability-client.ts",
     "src/app/workbench-home-pick3-target-client.ts",
     "src/app/workbench-home-pick3-trend-client.ts",
+    "src/app/workbench-home-skill-map-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-lottery-ticket-plan-routes.ts",

@@ -15,6 +15,7 @@ const prompt = buildKeywordFullPackagePrompt({
     status: "completed",
     aiRunId: "run-1",
     reason: "acceptance fixture",
+    keywordHistoryRelation: "new_keyword",
     createdAt: new Date().toISOString(),
     updatedAt: null,
   },

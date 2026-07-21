@@ -12,7 +12,6 @@ import {
   type AiInputGatewayChildCapabilityId,
 } from "../schema.js";
 import type { AiFeedInputPackage } from "./ai-feed-input-package.js";
-import type { AiFeedParsedOutput } from "./ai-feed-output-parser.js";
 
 const hashValue = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
@@ -32,6 +31,41 @@ const writeRawOutput = async (input: {
   return filePath;
 };
 
+const conversationProof = (
+  request: AiFeedInput,
+  response: Partial<AiProviderRawResponse>,
+): Pick<AiFeedProviderProof,
+  "webChatUrl" | "continuationPriorTaskId" | "continuationPriorRawOutputHash"
+  | "continuationRequestedUrl" | "continuationActualUrl" | "continuationVerified"
+  | "webChatWorkspaceId" | "providerTabPolicy" | "providerRecoveryAttemptCount"
+  | "providerRecoveryStatus" | "staleConversationCleanupStatus"
+  | "staleConversationHistoryCleanupStatus" | "sourcePageUrlBeforeFeed" | "restoredSourcePage"
+> => ({
+  webChatUrl: response.webChatUrl ?? null,
+  continuationPriorTaskId: request.providerContinuationRef?.priorTaskId ?? null,
+  continuationPriorRawOutputHash: request.providerContinuationRef?.priorRawOutputHash ?? null,
+  continuationRequestedUrl: request.providerContinuationRef?.providerPageUrl ?? null,
+  continuationActualUrl: response.continuationActualUrl ?? null,
+  continuationVerified: response.continuationVerified ?? null,
+  webChatWorkspaceId: response.webChatWorkspaceId ?? null,
+  providerTabPolicy: response.providerTabPolicy ?? null,
+  providerRecoveryAttemptCount: response.providerRecoveryAttemptCount ?? null,
+  providerRecoveryStatus: response.providerRecoveryStatus ?? null,
+  staleConversationCleanupStatus: response.staleConversationCleanupStatus ?? null,
+  staleConversationHistoryCleanupStatus: response.staleConversationHistoryCleanupStatus ?? null,
+  sourcePageUrlBeforeFeed: response.sourcePageUrlBeforeFeed ?? null,
+  restoredSourcePage: response.restoredSourcePage ?? null,
+});
+
+const uploadProof = (
+  inputPackage: AiFeedInputPackage,
+  response: Partial<AiProviderRawResponse>,
+): Pick<AiFeedProviderProof, "uploadedFileRefs" | "uploadedFiles"> => ({
+  uploadedFileRefs: response.uploadedFiles?.map((file) => file.inputRefId)
+    ?? (response.transport === "api" ? inputPackage.uploadableFiles.map((file) => file.id) : []),
+  uploadedFiles: response.uploadedFiles ?? [],
+});
+
 const buildProviderProof = (input: {
   request: AiFeedInput;
   childCapabilityId: AiInputGatewayChildCapabilityId;
@@ -43,12 +77,15 @@ const buildProviderProof = (input: {
   endedAt: string;
   durationMs: number;
   cooldownMs: number;
+  providerLeaseId: string | null;
 }): AiFeedProviderProof => ({
   providerKind: input.request.providerKind,
+  providerLeaseId: input.providerLeaseId,
   modelName: input.response.modelName ?? input.request.modelName,
   inputHash: input.inputPackage.inputHash,
   outputHash: input.outputHash,
   inputRefs: input.inputPackage.inputRefIds,
+  ...uploadProof(input.inputPackage, input.response),
   outputRefs: [
     ...(input.rawOutputRef ? [input.rawOutputRef] : []),
     ...(input.response.outputRefs ?? []),
@@ -57,15 +94,8 @@ const buildProviderProof = (input: {
   endedAt: input.endedAt,
   durationMs: input.durationMs,
   transport: input.response.transport,
-    webChatUrl: input.response.webChatUrl,
-    webChatWorkspaceId: input.response.webChatWorkspaceId ?? null,
-    providerTabPolicy: input.response.providerTabPolicy ?? null,
-    providerRecoveryAttemptCount: input.response.providerRecoveryAttemptCount ?? null,
-    providerRecoveryStatus: input.response.providerRecoveryStatus ?? null,
-    staleConversationCleanupStatus: input.response.staleConversationCleanupStatus ?? null,
-    staleConversationHistoryCleanupStatus: input.response.staleConversationHistoryCleanupStatus ?? null,
-    sourcePageUrlBeforeFeed: input.response.sourcePageUrlBeforeFeed,
-  restoredSourcePage: input.response.restoredSourcePage,
+  ...conversationProof(input.request, input.response),
+  transportWarnings: input.response.transportWarnings ?? [],
   retryCount: 0,
   cooldownMs: input.cooldownMs,
   estimatedInputTokens: input.response.estimatedInputTokens ?? null,
@@ -73,34 +103,30 @@ const buildProviderProof = (input: {
   tokenEstimateUnavailableReason: input.response.tokenEstimateUnavailableReason ?? null,
 });
 
-const successStatus = (parsedOutput: AiFeedParsedOutput): "success" | "failed" =>
-  parsedOutput.schemaValidationStatus === "invalid" ? "failed" : "success";
-
-const successFailureReason = (parsedOutput: AiFeedParsedOutput): string | null =>
-  parsedOutput.schemaValidationStatus === "invalid"
-    ? "AI feed output failed requested parsing."
-    : null;
-
 const buildSuccessResult = (input: {
   request: AiFeedInput;
   childCapabilityId: AiInputGatewayChildCapabilityId;
-  parsedOutput: AiFeedParsedOutput;
   providerProof: AiFeedProviderProof;
   rawOutputRef: string;
   outputHash: string;
+  rawResponseText: string;
+  transportWarnings: string[];
 }): AiFeedResult => AiFeedResultSchema.parse({
     abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
     childCapabilityId: input.childCapabilityId,
     providerKind: input.request.providerKind,
-    status: successStatus(input.parsedOutput),
-    normalizedText: input.parsedOutput.normalizedText,
+    status: "success",
+    rawResponseText: input.rawResponseText,
+    transportWarnings: input.transportWarnings,
+    // 兼容旧调用方的同字节投影；运输层不再解析、截取、修复或挑选 JSON。
+    normalizedText: input.rawResponseText,
     rawOutputRef: input.rawOutputRef,
     rawOutputHash: input.outputHash,
-    parseStatus: input.parsedOutput.parseStatus,
-    parsedJson: input.parsedOutput.parsedJson,
-    schemaValidationStatus: input.parsedOutput.schemaValidationStatus,
+    parseStatus: "not_requested",
+    parsedJson: null,
+    schemaValidationStatus: "not_applicable",
     providerProof: input.providerProof,
-    failureReason: successFailureReason(input.parsedOutput),
+    failureReason: null,
     reviewRequiredReason: null,
   });
 
@@ -110,9 +136,9 @@ export const buildAiFeedSuccess = async (input: {
   childCapabilityId: AiInputGatewayChildCapabilityId;
   inputPackage: AiFeedInputPackage;
   response: AiProviderRawResponse;
-  parsedOutput: AiFeedParsedOutput;
   startedAt: string;
   cooldownMs: number;
+  providerLeaseId: string | null;
 }): Promise<AiFeedResult> => {
   const rawOutputRef = await writeRawOutput({
     dataDir: input.dataDir,
@@ -125,6 +151,8 @@ export const buildAiFeedSuccess = async (input: {
     ...input,
     rawOutputRef,
     outputHash,
+    rawResponseText: input.response.rawText,
+    transportWarnings: input.response.transportWarnings ?? [],
     providerProof: buildProviderProof({
       ...input,
       rawOutputRef,
@@ -142,27 +170,23 @@ const buildFailureProviderProof = (input: {
   endedAt: string;
   transport: "api" | "web-chat";
   cooldownMs?: number;
+  providerLeaseId?: string | null;
   response?: Partial<AiProviderRawResponse>;
 }): AiFeedProviderProof => ({
   providerKind: input.request.providerKind,
+  providerLeaseId: input.providerLeaseId ?? null,
   modelName: input.request.modelName,
   inputHash: input.inputPackage.inputHash,
   outputHash: null,
   inputRefs: input.inputPackage.inputRefIds,
+  ...uploadProof(input.inputPackage, input.response ?? {}),
   outputRefs: [],
   startedAt: input.startedAt,
   endedAt: input.endedAt,
   durationMs: Date.parse(input.endedAt) - Date.parse(input.startedAt),
   transport: input.transport,
-    webChatUrl: input.response?.webChatUrl ?? null,
-    webChatWorkspaceId: input.response?.webChatWorkspaceId ?? null,
-    providerTabPolicy: input.response?.providerTabPolicy ?? null,
-    providerRecoveryAttemptCount: input.response?.providerRecoveryAttemptCount ?? null,
-    providerRecoveryStatus: input.response?.providerRecoveryStatus ?? null,
-    staleConversationCleanupStatus: input.response?.staleConversationCleanupStatus ?? null,
-    staleConversationHistoryCleanupStatus: input.response?.staleConversationHistoryCleanupStatus ?? null,
-  sourcePageUrlBeforeFeed: input.response?.sourcePageUrlBeforeFeed ?? null,
-  restoredSourcePage: input.response?.restoredSourcePage ?? null,
+  ...conversationProof(input.request, input.response ?? {}),
+  transportWarnings: input.response?.transportWarnings ?? [],
   retryCount: 0,
   cooldownMs: input.cooldownMs ?? 0,
   estimatedInputTokens: null,
@@ -181,6 +205,8 @@ const buildFailureResult = (input: {
     childCapabilityId: input.childCapabilityId,
     providerKind: input.request.providerKind,
     status: input.status,
+    rawResponseText: null,
+    transportWarnings: input.providerProof.transportWarnings,
     normalizedText: null,
     rawOutputRef: null,
     rawOutputHash: null,
@@ -201,6 +227,7 @@ export const buildAiFeedFailure = (input: {
   status: "failed" | "review_required";
   reason: string;
   cooldownMs?: number;
+  providerLeaseId?: string | null;
   response?: Partial<AiProviderRawResponse>;
 }): AiFeedResult => {
   const endedAt = new Date().toISOString();

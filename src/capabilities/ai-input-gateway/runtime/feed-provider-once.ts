@@ -1,19 +1,22 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
+import type {
+  AiProviderAdapter,
+  AiProviderRawResponse,
+  AiProviderUploadedFileProof,
+} from "../contracts/ai-provider-adapter.contract.js";
 import type {
   AiFeedInput,
   AiFeedResult,
   AiInputGatewayChildCapabilityId,
 } from "../schema.js";
 import { buildAiFeedInputPackage, type AiFeedInputPackage } from "./ai-feed-input-package.js";
-import { parseAiFeedOutput } from "./ai-feed-output-parser.js";
 import {
   buildAiFeedFailure,
   buildAiFeedSuccess,
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
-import { canContinueAfterWebChatSourceRestoreFailure } from "../providers/web-chat-restore-policy.js";
+import { acquireWebChatProviderLease } from "./web-chat-provider-lease.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -28,6 +31,26 @@ type ExecuteAiFeedOnceInput = {
 
 const reviewRequiredFromError = (error: unknown): boolean =>
   error instanceof Error && /review_required|login|verification|captcha|security/iu.test(error.message);
+
+const uploadedFilesFromError = (error: unknown): AiProviderUploadedFileProof[] => {
+  if (typeof error !== "object" || error === null || !("uploadedFiles" in error)) return [];
+  const files = (error as { uploadedFiles?: unknown }).uploadedFiles;
+  if (!Array.isArray(files)) return [];
+  return files.filter((file): file is AiProviderUploadedFileProof => (
+    typeof file === "object"
+    && file !== null
+    && typeof (file as Partial<AiProviderUploadedFileProof>).inputRefId === "string"
+    && typeof (file as Partial<AiProviderUploadedFileProof>).step === "number"
+    && typeof (file as Partial<AiProviderUploadedFileProof>).fileName === "string"
+    && typeof (file as Partial<AiProviderUploadedFileProof>).sha256 === "string"
+    && typeof (file as Partial<AiProviderUploadedFileProof>).byteCount === "number"
+  ));
+};
+
+const responseEvidenceFromError = (error: unknown): Partial<AiProviderRawResponse> | undefined => {
+  const uploadedFiles = uploadedFilesFromError(error);
+  return uploadedFiles.length > 0 ? { uploadedFiles } : undefined;
+};
 
 const buildRateGuardFailure = (input: {
   request: AiFeedInput;
@@ -46,6 +69,7 @@ const buildRateGuardFailure = (input: {
     status: "review_required",
     reason: input.reason ?? "AI feed rate guard blocked request.",
     cooldownMs: input.cooldownMs,
+    providerLeaseId: null,
   });
 
 const buildProviderFailure = (input: {
@@ -56,7 +80,10 @@ const buildProviderFailure = (input: {
   transport: "api" | "web-chat";
   cooldownMs: number;
   error: unknown;
-}): AiFeedResult => buildAiFeedFailure({
+  providerLeaseId: string | null;
+}): AiFeedResult => {
+  const response = responseEvidenceFromError(input.error);
+  return buildAiFeedFailure({
     request: input.request,
     childCapabilityId: input.childCapabilityId,
     inputPackage: input.inputPackage,
@@ -65,31 +92,10 @@ const buildProviderFailure = (input: {
     status: reviewRequiredFromError(input.error) ? "review_required" : "failed",
     reason: input.error instanceof Error ? input.error.message : String(input.error),
     cooldownMs: input.cooldownMs,
+    providerLeaseId: input.providerLeaseId,
+    ...(response ? { response } : {}),
   });
-
-const buildRestoreFailure = (input: {
-  request: AiFeedInput;
-  childCapabilityId: AiInputGatewayChildCapabilityId;
-  inputPackage: AiFeedInputPackage;
-  startedAt: string;
-  transport: "api" | "web-chat";
-  cooldownMs: number;
-  response: {
-    webChatUrl: string | null;
-    sourcePageUrlBeforeFeed: string | null;
-    restoredSourcePage: boolean | null;
-  };
-}): AiFeedResult => buildAiFeedFailure({
-    request: input.request,
-    childCapabilityId: input.childCapabilityId,
-    inputPackage: input.inputPackage,
-    startedAt: input.startedAt,
-    transport: input.transport,
-    status: "review_required",
-    reason: "review_required: source page restoration failed after web chat feed.",
-    cooldownMs: input.cooldownMs,
-    response: input.response,
-  });
+};
 
 const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
   dataDir: input.dataDir,
@@ -110,32 +116,17 @@ const buildProviderSuccess = async (input: {
   startedAt: string;
   cooldownMs: number;
   response: Awaited<ReturnType<AiProviderAdapter["feed"]>>;
+  providerLeaseId: string | null;
 }): Promise<AiFeedResult> => {
-  if (
-    input.response.transport === "web-chat"
-    && input.response.sourcePageUrlBeforeFeed
-    && input.response.restoredSourcePage === false
-    && !canContinueAfterWebChatSourceRestoreFailure({ request: input.request })
-  ) {
-    return buildRestoreFailure({
-      request: input.request,
-      childCapabilityId: input.childCapabilityId,
-      inputPackage: input.inputPackage,
-      startedAt: input.startedAt,
-      transport: input.response.transport,
-      cooldownMs: input.cooldownMs,
-      response: input.response,
-    });
-  }
   return buildAiFeedSuccess({
     dataDir: input.dataDir,
     request: input.request,
     childCapabilityId: input.childCapabilityId,
     inputPackage: input.inputPackage,
     response: input.response,
-    parsedOutput: parseAiFeedOutput(input.response.rawText, input.request.expectedOutputSchemaRef),
     startedAt: input.startedAt,
     cooldownMs: input.cooldownMs,
+    providerLeaseId: input.providerLeaseId,
   });
 };
 
@@ -150,7 +141,15 @@ export const executeAiFeedOnce = async (
     transport: input.transport,
   });
   if (!rate.ok) return buildRateGuardFailure({ ...input, inputPackage, startedAt, ...rate });
+  let lease: Awaited<ReturnType<typeof acquireWebChatProviderLease>> | null = null;
   try {
+    if (input.transport === "web-chat") {
+      lease = await acquireWebChatProviderLease({
+        dataDir: input.dataDir,
+        timeoutMs: input.request.timeoutMs,
+        ...(input.signal ? { signal: input.signal } : {}),
+      });
+    }
     return await buildProviderSuccess({
       request: input.request,
       dataDir: input.dataDir,
@@ -158,9 +157,12 @@ export const executeAiFeedOnce = async (
       inputPackage,
       startedAt,
       cooldownMs: rate.cooldownMs,
+      providerLeaseId: lease?.providerLeaseId ?? null,
       response: await executeProviderFeed(input),
     });
   } catch (error) {
-    return buildProviderFailure({ ...input, inputPackage, startedAt, cooldownMs: rate.cooldownMs, error });
+    return buildProviderFailure({ ...input, inputPackage, startedAt, cooldownMs: rate.cooldownMs, providerLeaseId: lease?.providerLeaseId ?? null, error });
+  } finally {
+    await lease?.release();
   }
 };

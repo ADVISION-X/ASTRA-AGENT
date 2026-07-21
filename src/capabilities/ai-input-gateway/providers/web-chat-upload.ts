@@ -1,14 +1,23 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
+import type {
+  AiProviderAdapterContext,
+  AiProviderUploadedFileProof,
+} from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import type { UploadableAiFeedInputRef } from "../runtime/ai-feed-input-package.js";
+import {
+  buildAiFeedInputPackage,
+  type UploadableAiFeedInputRef,
+} from "../runtime/ai-feed-input-package.js";
 import {
   copyFileObjectToMacClipboard,
   pasteMacClipboardIntoChrome,
 } from "./web-chat-clipboard.js";
 import {
   focusComposer,
-  waitForAttachmentCountAtLeast,
+  waitForExactAttachmentCount,
   waitForComposerFocused,
 } from "./web-chat-page-actions.js";
 import {
@@ -16,8 +25,17 @@ import {
 } from "./web-chat-upload-page-actions.js";
 
 const CLIPBOARD_UPLOAD_TIMEOUT_MS = 20_000;
-const CLIPBOARD_PASTE_RETRY_LIMIT = 3;
 const COMPOSER_FOCUS_RETRY_TIMEOUT_MS = 15_000;
+
+export class WebChatUploadFailure extends Error {
+  readonly uploadedFiles: AiProviderUploadedFileProof[];
+
+  constructor(message: string, uploadedFiles: AiProviderUploadedFileProof[]) {
+    super(message);
+    this.name = "WebChatUploadFailure";
+    this.uploadedFiles = uploadedFiles;
+  }
+}
 
 const terminalUploadStageLog = (line: string): void => {
   process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] ${line}\n`);
@@ -63,7 +81,8 @@ const uploadFileViaClipboardPaste = async (
   context: AiProviderAdapterContext,
   filePath: string,
   expectedAttachmentCount: number,
-): Promise<void> => {
+  expectedFileNames: readonly string[],
+) => {
   const focusDeadline = Date.now() + COMPOSER_FOCUS_RETRY_TIMEOUT_MS;
   let lastFocusMessage = "provider input box was not checked";
   while (Date.now() < focusDeadline) {
@@ -71,9 +90,7 @@ const uploadFileViaClipboardPaste = async (
       const focused = await focusComposer(browser, context);
       lastFocusMessage = `${focused.status}: ${focused.message}`;
       if (focused.status === "success") break;
-      if (focused.status === "failed") {
-        throw new Error(lastFocusMessage);
-      }
+      if (focused.status === "failed") throw new Error(lastFocusMessage);
     } catch (error) {
       lastFocusMessage = error instanceof Error ? error.message : String(error);
     }
@@ -83,36 +100,27 @@ const uploadFileViaClipboardPaste = async (
     throw new Error(`review_required: provider input box not ready for upload; last=${lastFocusMessage}`);
   }
   await waitForComposerFocused(browser, context, 2_000);
-  for (let attempt = 1; attempt <= CLIPBOARD_PASTE_RETRY_LIMIT; attempt += 1) {
-    await withUploadTimeout(
-      "provider clipboard file paste",
-      CLIPBOARD_UPLOAD_TIMEOUT_MS,
-      copyFileObjectToMacClipboard(filePath, context.abortSignal)
-        .then(() => focusComposer(browser, context))
-        .then(() => waitForComposerFocused(browser, context, 2_000))
-        .then(() => pasteMacClipboardIntoChrome(context.abortSignal)),
-    );
-    try {
-      await waitForAttachmentCountAtLeast(browser, context, expectedAttachmentCount, 8_000);
-      return;
-    } catch (error) {
-      if (attempt >= CLIPBOARD_PASTE_RETRY_LIMIT) throw error;
-      await browser.wait(300);
-    }
-  }
+  await withUploadTimeout(
+    "provider one-file Command+C then Command+V",
+    CLIPBOARD_UPLOAD_TIMEOUT_MS,
+    copyFileObjectToMacClipboard(filePath, context.abortSignal)
+      .then(() => focusComposer(browser, context))
+      .then(() => waitForComposerFocused(browser, context, 2_000))
+      .then(() => pasteMacClipboardIntoChrome(context.abortSignal)),
+  );
+  return waitForExactAttachmentCount(browser, context, expectedAttachmentCount, expectedFileNames, 8_000);
 };
 
-const listUploadableRefs = (request: AiFeedInput): UploadableAiFeedInputRef[] =>
-  request.inputRefs.flatMap((ref) => (
-    ref.filePath
-      ? [{
-          id: ref.id,
-          filePath: ref.filePath,
-          mimeType: ref.mimeType ?? null,
-          summary: ref.summary,
-        }]
-      : []
-  ));
+const assertFileStillMatches = async (ref: UploadableAiFeedInputRef): Promise<void> => {
+  const bytes = await readFile(ref.filePath);
+  const actualSha256 = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+  if (bytes.byteLength !== ref.byteCount) {
+    throw new Error(`GPT_ATTACHMENT_HASH_MISMATCH; input_ref=${ref.id}; expected_bytes=${ref.byteCount}; actual_bytes=${bytes.byteLength}`);
+  }
+  if (actualSha256 !== ref.sha256) {
+    throw new Error(`GPT_ATTACHMENT_HASH_MISMATCH; input_ref=${ref.id}; expected_sha256=${ref.sha256}; actual_sha256=${actualSha256}`);
+  }
+};
 
 const uploadSingleFileByClipboardPaste = async (input: {
   browser: BrowserController;
@@ -120,7 +128,8 @@ const uploadSingleFileByClipboardPaste = async (input: {
   request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
   expectedAttachmentCount: number;
-}): Promise<void> => {
+  expectedFileNames: readonly string[];
+}): Promise<AiProviderUploadedFileProof> => {
   const startedAtMs = Date.now();
   emitUploadStage({
     request: input.request,
@@ -129,10 +138,20 @@ const uploadSingleFileByClipboardPaste = async (input: {
     startedAtMs: null,
     refs: {
       inputRefId: input.ref.id,
+      fileName: input.ref.fileName,
+      sha256: input.ref.sha256,
+      byteCount: input.ref.byteCount,
       expectedAttachmentCount: input.expectedAttachmentCount,
     },
   });
-  await uploadFileViaClipboardPaste(input.browser, input.context, input.ref.filePath, input.expectedAttachmentCount);
+  await assertFileStillMatches(input.ref);
+  const evaluation = await uploadFileViaClipboardPaste(
+    input.browser,
+    input.context,
+    input.ref.filePath,
+    input.expectedAttachmentCount,
+    input.expectedFileNames,
+  );
   emitUploadStage({
     request: input.request,
     stage: "upload_file_clipboard_paste",
@@ -140,21 +159,61 @@ const uploadSingleFileByClipboardPaste = async (input: {
     startedAtMs,
     refs: {
       inputRefId: input.ref.id,
+      fileName: input.ref.fileName,
+      sha256: input.ref.sha256,
+      byteCount: input.ref.byteCount,
       expectedAttachmentCount: input.expectedAttachmentCount,
+      detectedAttachmentCount: evaluation.attachmentCount ?? null,
     },
   });
+  return {
+    inputRefId: input.ref.id,
+    step: input.expectedAttachmentCount,
+    expectedAttachmentCount: input.expectedAttachmentCount,
+    detectedAttachmentCount: evaluation.attachmentCount ?? input.expectedAttachmentCount,
+    fileName: input.ref.fileName,
+    sha256: input.ref.sha256,
+    byteCount: input.ref.byteCount,
+  };
 };
 
 export const uploadFiles = async (
   browser: BrowserController,
   request: AiFeedInput,
   context: AiProviderAdapterContext,
-): Promise<void> => {
-  const refs = listUploadableRefs(request);
+): Promise<AiProviderUploadedFileProof[]> => {
+  const refs = (await buildAiFeedInputPackage(request)).uploadableFiles;
+  const uploadedFiles: AiProviderUploadedFileProof[] = [];
   if (refs.length > 0) {
     await clearComposer(browser, context);
   }
   for (const [index, ref] of refs.entries()) {
-    await uploadSingleFileByClipboardPaste({ browser, context, request, ref, expectedAttachmentCount: index + 1 });
+    try {
+      uploadedFiles.push(await uploadSingleFileByClipboardPaste({
+        browser,
+        context,
+        request,
+        ref,
+        expectedAttachmentCount: index + 1,
+        expectedFileNames: refs.slice(0, index + 1).map((candidate) => candidate.fileName),
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      emitUploadStage({
+        request,
+        stage: "upload_file_clipboard_paste",
+        status: "failed",
+        startedAtMs: null,
+        refs: {
+          inputRefId: ref.id,
+          fileName: ref.fileName,
+          expectedAttachmentCount: index + 1,
+          completedAttachmentCount: uploadedFiles.length,
+          reason: message,
+        },
+      });
+      throw new WebChatUploadFailure(message, uploadedFiles);
+    }
   }
+  return uploadedFiles;
 };

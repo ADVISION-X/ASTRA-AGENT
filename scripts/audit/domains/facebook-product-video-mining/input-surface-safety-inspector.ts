@@ -14,6 +14,7 @@ const webChatPageActionsPath = "src/capabilities/ai-input-gateway/providers/web-
 const webChatSharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts";
 const webChatSubmitPath = "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts";
 const webChatUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
+const webChatUploadPageActionsPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts";
 const webChatWorkspacePath = "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts";
 
 const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
@@ -25,6 +26,7 @@ type WebChatSafetySources = {
   shared: string;
   submit: string;
   upload: string;
+  uploadPageActions: string;
   workspace: string;
 };
 
@@ -44,8 +46,12 @@ const inspectWorkspaceGuards = (findings: InspectorFinding[], lawId: string, sou
 };
 
 const inspectWaitBudgetGuards = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
-  if (!containsAll(sources.pageActions, ["MAX_ATTACHMENT_COUNT_WAIT_MS", "15_000"]) || !containsAll(sources.upload, ["CLIPBOARD_UPLOAD_TIMEOUT_MS", "20_000"])) {
-    findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatPageActionsPath, message: "Facebook web-chat clipboard paste and attachment verification waits must not consume the whole judgment timeout." }));
+  const boundedAttachmentWait = containsAll(sources.pageActions, ["MAX_ATTACHMENT_COUNT_WAIT_MS", "15_000"])
+    && containsAll(sources.uploadPageActions, ["MAX_ATTACHMENT_COUNT_WAIT_MS", "15_000"]);
+  const boundedProviderInput = containsAll(sources.upload, ["copyFileObjectToMacClipboard", "pasteMacClipboardIntoChrome", "waitForExactAttachmentCount", "8_000"])
+    && !containsAny(sources.upload, ["setFileInputFiles", "targetKind: \"file-input\""]);
+  if (!boundedAttachmentWait || !boundedProviderInput) {
+    findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatUploadPath, message: "Facebook web-chat file-object clipboard upload and attachment verification waits must stay bounded, and provider file-input upload must remain absent." }));
   }
   if (!containsAll(sources.submit, ["MAX_SUBMIT_BUTTON_WAIT_MS", "45_000"])) {
     findings.push(createFinding({ checkId: "facebook-mining/submit-wait-short-cap", lawId, filePath: webChatSubmitPath, message: "Facebook web-chat submit button wait must not consume the whole judgment timeout." }));
@@ -83,6 +89,7 @@ export const inspectFacebookSafetyDefaults = (
     webChatSharedPath,
     webChatSubmitPath,
     webChatUploadPath,
+    webChatUploadPageActionsPath,
     webChatWorkspacePath,
   ];
   for (const repoPath of paths) inspectedFiles.add(repoPath);
@@ -100,6 +107,7 @@ export const inspectFacebookSafetyDefaults = (
     shared: readRepoText(webChatSharedPath),
     submit: readRepoText(webChatSubmitPath),
     upload: readRepoText(webChatUploadPath),
+    uploadPageActions: readRepoText(webChatUploadPageActionsPath),
     workspace: readRepoText(webChatWorkspacePath),
   });
 };

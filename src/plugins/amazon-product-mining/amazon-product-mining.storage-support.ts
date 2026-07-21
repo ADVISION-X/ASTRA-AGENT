@@ -48,6 +48,10 @@ const ensureTableColumns = (
 export const ensureAmazonMiningStorageColumns = (db: Database.Database): void => {
   ensureTableColumns(db, "amazon_mining_tasks", [
     { columnName: "provider_kind", definition: "TEXT NOT NULL DEFAULT 'gpt-web-chat'" },
+    { columnName: "keyword_history_policy", definition: "TEXT NOT NULL DEFAULT 'new_keywords_only'" },
+  ]);
+  ensureTableColumns(db, "amazon_mining_keywords", [
+    { columnName: "keyword_history_relation", definition: "TEXT NOT NULL DEFAULT 'new_keyword'" },
   ]);
   ensureTableColumns(db, "amazon_mining_search_results", [
     { columnName: "field_disclosure_json", definition: "TEXT" },
@@ -91,6 +95,7 @@ export const rowToTask = (row: StorageRow): AmazonTaskRecord => ({
   requestedKeywordCount: row["requested_keyword_count"] as number,
   languagePreference: row["language_preference"] as string,
   providerKind: (row["provider_kind"] as AmazonTaskRecord["providerKind"] | null) ?? "gpt-web-chat",
+  keywordHistoryPolicy: (row["keyword_history_policy"] as AmazonTaskRecord["keywordHistoryPolicy"] | null) ?? "new_keywords_only",
   status: row["status"] as AmazonTaskStatus,
   failureReason: (row["failure_reason"] as string | null) ?? null,
   packageJsonPath: (row["package_json_path"] as string | null) ?? null,
@@ -109,6 +114,7 @@ export const rowToKeyword = (row: StorageRow): AmazonKeywordRecord => ({
   source: "ai_generated",
   aiRunId: (row["ai_run_id"] as string | null) ?? null,
   reason: (row["reason"] as string | null) ?? null,
+  keywordHistoryRelation: (row["keyword_history_relation"] as AmazonKeywordRecord["keywordHistoryRelation"] | null) ?? "new_keyword",
   status: row["status"] as AmazonKeywordStatus,
   createdAt: row["created_at"] as string,
   updatedAt: (row["updated_at"] as string | null) ?? null,

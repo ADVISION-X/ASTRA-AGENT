@@ -1,26 +1,20 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import type { AiProviderAdapterContext, AiProviderRawResponse } from "../contracts/ai-provider-adapter.contract.js";
+import type {
+  AiProviderAdapterContext,
+  AiProviderRawResponse,
+  AiProviderUploadedFileProof,
+} from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
-import {
-  captureChatGptBusinessHtmlArtifact,
-  captureInlineChatGptBusinessHtmlArtifact,
-  isBusinessHtmlReportRequest,
-} from "./web-chat-html-artifact-capture.js";
-import {
-  captureChatGptJsonArtifact,
-  captureInlineChatGptJsonArtifact,
-  isJsonArtifactRequest,
-} from "./web-chat-json-artifact-capture.js";
 import { isAmazonProductMiningGptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
 import { acknowledgeChatGptRateLimitDialogIfVisible, startChatGptAcknowledgementWatcher } from "./web-chat-rate-limit-dialog.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
-import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
+import { uploadFiles } from "./web-chat-upload.js";
 import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser, restoreSourcePage } from "./web-chat-shared-support.js";
-import { canContinueAfterWebChatSourceRestoreFailure } from "./web-chat-restore-policy.js";
+import { captureWebChatResponseArtifacts } from "./web-chat-response-artifacts.js";
 import { ensureProviderWorkspaceFocused, resolveWebChatWorkspaceId, saveWorkspaceUrl } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
@@ -175,7 +169,11 @@ type OpenedWebChatConversationInput = { browser: BrowserController; request: AiF
 
 const prepareWebChatConversation = async (
   input: OpenedWebChatConversationInput,
-): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
+): Promise<{
+  previousAssistantCount: number;
+  previousAnswerText: string | null;
+  uploadedFiles: AiProviderUploadedFileProof[];
+}> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   const preImageCleanupStartedAtMs = Date.now();
   const preImageCleanupStatus = await cleanupGeminiPick3HistoryBeforeNextImage({
@@ -207,14 +205,17 @@ const prepareWebChatConversation = async (
     phase: "attachment upload",
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
-  await pasteFilesViaClipboard(input.browser, input.request, input.context);
+  const uploadedFiles = await uploadFiles(input.browser, input.request, input.context);
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
-  return readPreSubmitConversationState({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    providerUrl: input.providerUrl,
-  });
+  return {
+    ...await readPreSubmitConversationState({
+      browser: input.browser,
+      request: input.request,
+      context: input.context,
+      providerUrl: input.providerUrl,
+    }),
+    uploadedFiles,
+  };
 };
 
 const executeWebChatConversation = async (
@@ -237,37 +238,14 @@ const executeWebChatConversation = async (
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
-  const inlineHtmlArtifact = isBusinessHtmlReportRequest(input.request)
-    ? captureInlineChatGptBusinessHtmlArtifact({
-      answerText: conversation.answerText,
-      pageUrl: conversation.extracted.pageUrl ?? null,
-    })
-    : null;
-  const htmlArtifact = inlineHtmlArtifact
-    ?? await captureChatGptBusinessHtmlArtifact({
-      browser: input.browser,
-      request: input.request,
-      context: input.context,
-      conversationUrl: conversation.extracted.pageUrl ?? null,
-    });
-  if (isBusinessHtmlReportRequest(input.request) && !htmlArtifact) {
-    throw new Error("review_required: provider did not produce a business-report.html artifact.");
-  }
-  const inlineJsonArtifact = !htmlArtifact && isJsonArtifactRequest(input.request)
-    ? captureInlineChatGptJsonArtifact({
-      answerText: conversation.answerText,
-      pageUrl: conversation.extracted.pageUrl ?? null,
-    })
-    : null;
-  const jsonArtifact = inlineJsonArtifact
-    ?? (!htmlArtifact
-      ? await captureChatGptJsonArtifact({
-        browser: input.browser,
-        request: input.request,
-        context: input.context,
-        conversationUrl: conversation.extracted.pageUrl ?? null,
-      })
-      : null);
+  const conversationUrl = conversation.extracted.pageUrl ?? null;
+  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    answerText: conversation.answerText,
+    conversationUrl,
+  });
   return buildWebChatRawResponse({
     request: input.request,
     runtimeName: input.runtimeName,
@@ -275,6 +253,7 @@ const executeWebChatConversation = async (
     sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
     extracted: conversation.extracted,
     answerText: htmlArtifact?.htmlDocument ?? jsonArtifact?.jsonText ?? conversation.answerText,
+    uploadedFiles: preSubmit.uploadedFiles,
     outputRefs: [
       ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
       ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
@@ -360,27 +339,42 @@ const restoreAfterWebChatFeed = async (input: {
     return;
   }
   if (shouldCloseProviderTabAfterResponse({ providerUrl: input.providerUrl, request: input.request })) {
-    await assertActiveProviderPage({
-      browser: input.browser,
-      providerUrl: input.providerUrl,
-      phase: "provider tab close",
-      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    });
-    const closeResult = await input.browser.closeActiveTab({
-      reason: "AI provider answer captured",
-      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    });
-    if (!closeResult.ok) {
-      throw new Error(`review_required: provider tab close failed after web chat feed: ${closeResult.message}`);
+    try {
+      await assertActiveProviderPage({
+        browser: input.browser,
+        providerUrl: input.providerUrl,
+        phase: "provider tab close",
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      });
+      const closeResult = await input.browser.closeActiveTab({
+        reason: "AI provider answer captured",
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      });
+      if (!closeResult.ok) {
+        input.response.transportWarnings = [
+          ...(input.response.transportWarnings ?? []),
+          `PROVIDER_TAB_CLOSE_FAILED:${closeResult.message}`,
+        ];
+      }
+    } catch (error) {
+      input.response.transportWarnings = [
+        ...(input.response.transportWarnings ?? []),
+        `PROVIDER_TAB_CLOSE_FAILED:${error instanceof Error ? error.message : String(error)}`,
+      ];
     }
   }
-  const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
-  input.response.restoredSourcePage = restoredSourcePage;
-  if (
-    restoredSourcePage === false
-    && !canContinueAfterWebChatSourceRestoreFailure({ request: input.request })
-  ) {
-    throw new Error("review_required: source page restoration failed after web chat feed.");
+  try {
+    const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
+    input.response.restoredSourcePage = restoredSourcePage;
+    if (restoredSourcePage === false) {
+      input.response.transportWarnings = [...(input.response.transportWarnings ?? []), "SOURCE_PAGE_RESTORE_FAILED"];
+    }
+  } catch (error) {
+    input.response.restoredSourcePage = false;
+    input.response.transportWarnings = [
+      ...(input.response.transportWarnings ?? []),
+      `SOURCE_PAGE_RESTORE_FAILED:${error instanceof Error ? error.message : String(error)}`,
+    ];
   }
 };
 

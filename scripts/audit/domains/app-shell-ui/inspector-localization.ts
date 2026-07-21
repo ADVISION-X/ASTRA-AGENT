@@ -6,6 +6,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 
 const localizationPath = "src/app/app-shell/localization.ts";
+const localizationRuntimePath = "src/app/app-shell/localization-client-runtime.ts";
 const appShellPath = "src/app/app-shell/app-shell.ts";
 const commandBarPath = "src/app/app-shell/command-bar.ts";
 
@@ -50,9 +51,10 @@ export const inspectAppShellLocalization = (
   lawId: string,
 ): void => {
   const localization = sourcePath(context, localizationPath);
+  const localizationRuntime = sourcePath(context, localizationRuntimePath);
   const appShell = sourcePath(context, appShellPath);
   const commandBar = sourcePath(context, commandBarPath);
-  for (const sourceFile of [localization, appShell, commandBar]) {
+  for (const sourceFile of [localization, localizationRuntime, appShell, commandBar]) {
     if (sourceFile) inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
   for (const [repoPath, sourceFile, token, checkId] of [
@@ -63,7 +65,8 @@ export const inspectAppShellLocalization = (
     [localizationPath, localization, "appShellZhCopy", "app-shell-ui/localization-copy"],
     [localizationPath, localization, "renderLocaleToggle", "app-shell-ui/localization-toggle"],
     [localizationPath, localization, "renderAppShellLocalizationClient", "app-shell-ui/localization-client"],
-    [localizationPath, localization, "MutationObserver", "app-shell-ui/localization-dynamic"],
+    [localizationPath, localization, "renderLocalizationClientRuntime", "app-shell-ui/localization-runtime-wiring"],
+    [localizationRuntimePath, localizationRuntime, "MutationObserver", "app-shell-ui/localization-dynamic"],
     [localizationPath, localization, "grasseye-app-locale", "app-shell-ui/localization-cookie"],
     [localizationPath, localization, "locale", "app-shell-ui/localization-search-param"],
     [localizationPath, localization, "AGENT 工作台", "app-shell-ui/localization-zh-copy"],
@@ -74,7 +77,7 @@ export const inspectAppShellLocalization = (
   ] as const) {
     requireToken({ findings, lawId, repoPath, sourceFile, token, checkId });
   }
-  if (hasLiteral(localization, "localStorage")) {
+  if (hasLiteral(localization, "localStorage") || hasLiteral(localizationRuntime, "localStorage")) {
     findings.push(createFinding({
       checkId: "app-shell-ui/localization-no-localstorage",
       lawId,

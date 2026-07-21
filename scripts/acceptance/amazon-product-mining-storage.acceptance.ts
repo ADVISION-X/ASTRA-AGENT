@@ -21,9 +21,11 @@ try {
     requestedKeywordCount: 5,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "refresh_historical_keywords",
   });
   assert.equal(input.amazonMarketplace, "amazon.com");
   assert.equal(input.requestedKeywordCount, 5);
+  assert.equal(input.keywordHistoryPolicy, "refresh_historical_keywords");
 
   // --- Storage: create task ---
   const storage = createAmazonMiningStorage(dataDir);
@@ -38,6 +40,7 @@ try {
     requestedKeywordCount: 5,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "new_keywords_only",
     status: "created",
     failureReason: null,
     packageJsonPath: null,
@@ -66,6 +69,7 @@ try {
   const updated = storage.getTask(taskId);
   assert.equal(updated?.status, "keyword_generating");
   assert.equal(updated?.providerKind, "gpt-web-chat");
+  assert.equal(updated?.keywordHistoryPolicy, "new_keywords_only");
   assert.equal(storage.listTasksByStatuses(["keyword_generating"]).some((record) => record.taskId === taskId), true);
   storage.updateTaskStatus({ taskId, status: "paused" });
   assert.equal(storage.getTask(taskId)?.status, "paused");
@@ -85,12 +89,13 @@ try {
   const keywordId1 = randomUUID();
   const keywordId2 = randomUUID();
   storage.saveKeywords([
-    { keywordId: keywordId1, taskId, keyword: "lightweight tent", source: "ai_generated", aiRunId: "run1", reason: null, status: "pending", createdAt: now, updatedAt: null },
-    { keywordId: keywordId2, taskId, keyword: "camping cookware", source: "ai_generated", aiRunId: "run1", reason: null, status: "pending", createdAt: now, updatedAt: null },
+    { keywordId: keywordId1, taskId, keyword: "lightweight tent", source: "ai_generated", aiRunId: "run1", reason: null, keywordHistoryRelation: "new_keyword", status: "pending", createdAt: now, updatedAt: null },
+    { keywordId: keywordId2, taskId, keyword: "camping cookware", source: "ai_generated", aiRunId: "run1", reason: null, keywordHistoryRelation: "historical_refresh", status: "pending", createdAt: now, updatedAt: null },
   ]);
   const keywords = storage.getKeywordsForTask(taskId);
   assert.equal(keywords.length, 2);
   assert.ok(keywords.some((k) => k.keyword === "lightweight tent"), "Should find 'lightweight tent'");
+  assert.equal(keywords.find((k) => k.keyword === "camping cookware")?.keywordHistoryRelation, "historical_refresh");
 
   // --- Storage: dedup history must include queued keywords for the same marketplace/target market ---
   const allMined = storage.getMinedKeywordHistoryForDedup({ amazonMarketplace: "amazon.com", targetMarket: "outdoor enthusiasts" });
@@ -244,6 +249,7 @@ try {
     requestedKeywordCount: 5,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "new_keywords_only",
     status: "package_completed",
     failureReason: null,
     packageJsonPath: null,
@@ -293,6 +299,7 @@ try {
     requestedKeywordCount: 5,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "new_keywords_only",
     status: "package_completed",
     failureReason: null,
     packageJsonPath: null,
@@ -310,6 +317,7 @@ try {
     source: "ai_generated",
     aiRunId: "uae-run",
     reason: null,
+    keywordHistoryRelation: "new_keyword",
     status: "completed",
     createdAt: now,
     updatedAt: null,

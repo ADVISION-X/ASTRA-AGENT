@@ -6,7 +6,13 @@ import {
   normalizeAmazonKeywordText,
   normalizeAmazonTargetMarketKey,
 } from "./amazon-product-mining.keyword-dedup.js";
-import type { AmazonKeywordProviderKind, AmazonKeywordRecord, AmazonMiningInput } from "./amazon-product-mining.schema.js";
+import type {
+  AmazonKeywordHistoryPolicy,
+  AmazonKeywordHistoryRelation,
+  AmazonKeywordProviderKind,
+  AmazonKeywordRecord,
+  AmazonMiningInput,
+} from "./amazon-product-mining.schema.js";
 
 type KeywordGenerationResult = {
   runs: KeywordGenerationRun[];
@@ -40,6 +46,7 @@ export const AMAZON_KEYWORD_GENERATION_FORBIDDEN_SYSTEM_ASSUMPTIONS = [
   "easy-to-ship",
 ] as const;
 export const AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON = "keyword_generation_insufficient_new_keywords";
+export const AMAZON_KEYWORD_GENERATION_NO_REFRESHABLE_KEYWORDS_REASON = "no_refreshable_historical_keywords";
 
 const buildKeywordPrompt = (input: {
   amazonMarketplace: string;
@@ -48,11 +55,21 @@ const buildKeywordPrompt = (input: {
   requestedKeywordCount: number;
   languagePreference: string;
   existingMinedKeywords: string[];
+  keywordHistoryPolicy: AmazonKeywordHistoryPolicy;
 }): string => {
   const targetMarketCanonicalKey = normalizeAmazonTargetMarketKey(input.targetMarket);
+  const historyLabel = input.keywordHistoryPolicy === "refresh_historical_keywords"
+    ? "Historical keyword refresh pool"
+    : "Historical keyword exclusions";
   const existingList = input.existingMinedKeywords.length > 0
-    ? `\n\nHistorical keyword exclusions for this canonical marketplace/target market (${targetMarketCanonicalKey}); count=${input.existingMinedKeywords.length}:\n${input.existingMinedKeywords.map((k) => `- ${k}`).join("\n")}`
+    ? `\n\n${historyLabel} for this canonical marketplace/target market (${targetMarketCanonicalKey}); count=${input.existingMinedKeywords.length}:\n${input.existingMinedKeywords.map((k) => `- ${k}`).join("\n")}`
     : `\n\nNo previously mined keywords found for this canonical marketplace/target market (${targetMarketCanonicalKey}).`;
+  const historyInstruction = input.keywordHistoryPolicy === "refresh_historical_keywords"
+    ? "- This task is historical market refresh mode: you may repeat historical keywords only when they are still relevant to refreshing current Amazon market evidence"
+    : "- Must NOT repeat any already-mined keyword";
+  const taskInstruction = input.keywordHistoryPolicy === "refresh_historical_keywords"
+    ? `Generate exactly ${input.requestedKeywordCount} Amazon search keywords for current market refresh; historical keywords are allowed only for refreshing market evidence.`
+    : `Generate exactly ${input.requestedKeywordCount} NEW Amazon search keywords for this product direction.`;
 
   return `You are helping mine Amazon product search keywords for a specific market opportunity.
 
@@ -61,12 +78,13 @@ Target Market / Customer Segment: ${input.targetMarket}
 Product Direction: ${input.productDirection}
 Requested Keyword Count: ${input.requestedKeywordCount}
 Language Preference: ${input.languagePreference}
+Keyword History Policy: ${input.keywordHistoryPolicy}
 ${existingList}
 
-TASK: Generate exactly ${input.requestedKeywordCount} NEW Amazon search keywords for this product direction.
+TASK: ${taskInstruction}
 
 CONSTRAINTS:
-- Must NOT repeat any already-mined keyword
+${historyInstruction}
 - Keywords should be actual Amazon search terms buyers would type
 - Do NOT include brand names unless the user's product direction explicitly asks for brand terms
 - ${AMAZON_KEYWORD_GENERATION_NEUTRALITY_POLICY}
@@ -90,6 +108,7 @@ const buildKeywordRefillPrompt = (input: {
   languagePreference: string;
   existingMinedKeywords: string[];
   acceptedKeywords: string[];
+  keywordHistoryPolicy: AmazonKeywordHistoryPolicy;
 }): string => buildKeywordPrompt({
   amazonMarketplace: input.amazonMarketplace,
   targetMarket: input.targetMarket,
@@ -97,6 +116,7 @@ const buildKeywordRefillPrompt = (input: {
   requestedKeywordCount: input.requestedKeywordCount,
   languagePreference: input.languagePreference,
   existingMinedKeywords: [...input.existingMinedKeywords, ...input.acceptedKeywords],
+  keywordHistoryPolicy: input.keywordHistoryPolicy,
 });
 
 const parseKeywordsFromResponse = (rawResponse: string): string[] => {
@@ -120,6 +140,7 @@ export const deduplicateKeywords = (
   candidates: string[],
   existingMinedKeywords: string[],
   currentTaskKeywords: string[],
+  keywordHistoryPolicy: AmazonKeywordHistoryPolicy = "new_keywords_only",
 ): string[] => {
   const existingNormalized = new Set([
     ...existingMinedKeywords.map(normalizeKeyword),
@@ -127,18 +148,20 @@ export const deduplicateKeywords = (
   ]);
   const result: string[] = [];
   const seenInBatch = new Set<string>();
+  const currentTaskNormalized = new Set(currentTaskKeywords.map(normalizeKeyword));
   for (const candidate of candidates) {
     const normalized = normalizeKeyword(candidate);
-    if (existingNormalized.has(normalized)) continue;
+    if (currentTaskNormalized.has(normalized)) continue;
+    if (keywordHistoryPolicy === "new_keywords_only" && existingNormalized.has(normalized)) continue;
     if (seenInBatch.has(normalized)) continue;
-    if (hasNearDuplicateAmazonKeyword(candidate, [...existingMinedKeywords, ...currentTaskKeywords, ...result])) continue;
+    if (keywordHistoryPolicy === "new_keywords_only" && hasNearDuplicateAmazonKeyword(candidate, [...existingMinedKeywords, ...currentTaskKeywords, ...result])) continue;
     seenInBatch.add(normalized);
     result.push(candidate);
   }
   return result;
 };
 
-const runKeywordGenerationAttempt = async (input: {
+type KeywordGenerationAttemptInput = {
   miningInput: AmazonMiningInput;
   taskId: string;
   existingMinedKeywords: string[];
@@ -146,9 +169,10 @@ const runKeywordGenerationAttempt = async (input: {
   requestedKeywordCount: number;
   aiInputGateway: AiInputGatewayAbilityGroup;
   providerKind: AmazonKeywordProviderKind;
-}): Promise<KeywordGenerationRun> => {
-  const runId = randomUUID();
-  const promptText = input.currentTaskKeywords.length > 0
+};
+
+const buildKeywordGenerationPrompt = (input: KeywordGenerationAttemptInput): string =>
+  input.currentTaskKeywords.length > 0
     ? buildKeywordRefillPrompt({
         amazonMarketplace: input.miningInput.amazonMarketplace,
         targetMarket: input.miningInput.targetMarket,
@@ -157,6 +181,7 @@ const runKeywordGenerationAttempt = async (input: {
         languagePreference: input.miningInput.languagePreference,
         existingMinedKeywords: input.existingMinedKeywords,
         acceptedKeywords: input.currentTaskKeywords,
+        keywordHistoryPolicy: input.miningInput.keywordHistoryPolicy,
       })
     : buildKeywordPrompt({
         amazonMarketplace: input.miningInput.amazonMarketplace,
@@ -165,7 +190,12 @@ const runKeywordGenerationAttempt = async (input: {
         requestedKeywordCount: input.requestedKeywordCount,
         languagePreference: input.miningInput.languagePreference,
         existingMinedKeywords: input.existingMinedKeywords,
+        keywordHistoryPolicy: input.miningInput.keywordHistoryPolicy,
       });
+
+const runKeywordGenerationAttempt = async (input: KeywordGenerationAttemptInput): Promise<KeywordGenerationRun> => {
+  const runId = randomUUID();
+  const promptText = buildKeywordGenerationPrompt(input);
 
   let rawResponse = "";
   try {
@@ -188,7 +218,12 @@ const runKeywordGenerationAttempt = async (input: {
     });
     rawResponse = result.normalizedText ?? "";
     const parsedKeywords = parseKeywordsFromResponse(rawResponse);
-    const dedupedKeywords = deduplicateKeywords(parsedKeywords, input.existingMinedKeywords, input.currentTaskKeywords);
+    const dedupedKeywords = deduplicateKeywords(
+      parsedKeywords,
+      input.existingMinedKeywords,
+      input.currentTaskKeywords,
+      input.miningInput.keywordHistoryPolicy,
+    );
     return {
       runId,
       promptText,
@@ -235,9 +270,13 @@ export const runKeywordGeneration = async (input: {
   const parsedKeywords = runs.flatMap((run) => run.parsedKeywords);
   const lastRun = runs.at(-1)!;
   const reachedRequestedCount = acceptedKeywords.length >= input.miningInput.requestedKeywordCount;
-  const failureReason = reachedRequestedCount
+  const refreshModeHasKeywords = input.miningInput.keywordHistoryPolicy === "refresh_historical_keywords" && acceptedKeywords.length > 0;
+  const success = reachedRequestedCount || refreshModeHasKeywords;
+  const failureReason = success
     ? null
-    : `${AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON}:requested=${input.miningInput.requestedKeywordCount};deduped=${acceptedKeywords.length}`;
+    : input.miningInput.keywordHistoryPolicy === "refresh_historical_keywords"
+      ? `${AMAZON_KEYWORD_GENERATION_NO_REFRESHABLE_KEYWORDS_REASON}:requested=${input.miningInput.requestedKeywordCount};deduped=${acceptedKeywords.length}`
+      : `${AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON}:requested=${input.miningInput.requestedKeywordCount};deduped=${acceptedKeywords.length}`;
   return {
     runs,
     runId: lastRun.runId,
@@ -245,7 +284,7 @@ export const runKeywordGeneration = async (input: {
     rawResponse: lastRun.rawResponse,
     parsedKeywords,
     dedupedKeywords: acceptedKeywords,
-    status: reachedRequestedCount ? "success" : "failed",
+    status: success ? "success" : "failed",
     failureReason,
   };
 };
@@ -254,8 +293,15 @@ export const buildKeywordRecords = (input: {
   taskId: string;
   keywords: string[];
   aiRunId: string;
+  existingMinedKeywords?: string[];
+  keywordHistoryPolicy?: AmazonKeywordHistoryPolicy;
 }): AmazonKeywordRecord[] => {
   const now = new Date().toISOString();
+  const existingNormalized = new Set((input.existingMinedKeywords ?? []).map(normalizeKeyword));
+  const relationForKeyword = (keyword: string): AmazonKeywordHistoryRelation =>
+    input.keywordHistoryPolicy === "refresh_historical_keywords" && existingNormalized.has(normalizeKeyword(keyword))
+      ? "historical_refresh"
+      : "new_keyword";
   return input.keywords.map((keyword) => ({
     keywordId: randomUUID(),
     taskId: input.taskId,
@@ -263,6 +309,7 @@ export const buildKeywordRecords = (input: {
     source: "ai_generated" as const,
     aiRunId: input.aiRunId,
     reason: null,
+    keywordHistoryRelation: relationForKeyword(keyword),
     status: "pending" as const,
     createdAt: now,
     updatedAt: null,

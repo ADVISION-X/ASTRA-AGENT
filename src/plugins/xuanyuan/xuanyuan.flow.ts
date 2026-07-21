@@ -37,7 +37,9 @@ const buildTextPrompt = (request: XuanyuanRequest): string => {
   ].filter((part): part is string => Boolean(part)).join("\n\n").trim();
 };
 
-const toAiFeedInput = (request: XuanyuanRequest): AiFeedInput => ({
+type XuanyuanContinuation = NonNullable<AiFeedInput["providerContinuationRef"]>;
+
+const toAiFeedInput = (request: XuanyuanRequest, continuation?: XuanyuanContinuation): AiFeedInput => ({
   providerKind: request.providerKind,
   promptPackageId: request.promptPackageId,
   promptContractId: request.promptContractId,
@@ -53,13 +55,13 @@ const toAiFeedInput = (request: XuanyuanRequest): AiFeedInput => ({
   runId: request.requestId,
   roundId: `${XUANYUAN_JOB_ID}:${request.requestId}`,
   modelName: null,
+  ...(continuation ? { providerContinuationRef: continuation } : {}),
 });
 
 const statusFromAiFeedResult = (result: AiFeedResult): XuanyuanTaskStatus => {
   if (result.status === "review_required") return "review_required";
-  if (result.status === "failed" && result.rawOutputRef) return "parse_failed_raw_available";
   if (result.status === "failed") return "failed";
-  return "succeeded";
+  return "response_captured";
 };
 
 const buildInitialRecord = (input: {
@@ -85,13 +87,13 @@ const buildInitialRecord = (input: {
       inputRefs: input.request.inputRefs,
     },
     aiFeedResult: null,
-    normalizedText: null,
+    rawResponseText: null,
     rawOutputRef: null,
     rawOutputHash: null,
-    parseStatus: null,
-    schemaValidationStatus: null,
-    parsedJson: null,
+    transportWarnings: [],
     providerProof: null,
+    continuationTaskId: input.request.continuationTaskId ?? null,
+    conversationProof: null,
     failureReason: null,
     reviewRequiredReason: null,
     createdAt,
@@ -106,13 +108,18 @@ const withAiFeedResult = (
   ...record,
   status: statusFromAiFeedResult(result),
   aiFeedResult: result,
-  normalizedText: result.normalizedText,
+  rawResponseText: result.rawResponseText ?? null,
   rawOutputRef: result.rawOutputRef,
   rawOutputHash: result.rawOutputHash,
-  parseStatus: result.parseStatus,
-  schemaValidationStatus: result.schemaValidationStatus,
-  parsedJson: result.parsedJson,
+  transportWarnings: result.transportWarnings ?? [],
   providerProof: result.providerProof,
+  conversationProof: record.continuationTaskId ? {
+    priorTaskId: record.continuationTaskId,
+    priorRawOutputHash: record.requestSnapshot.continuationResponseHash!,
+    requestedProviderPageUrl: result.providerProof.continuationRequestedUrl ?? "",
+    actualProviderPageUrl: result.providerProof.continuationActualUrl ?? result.providerProof.webChatUrl,
+    verified: result.providerProof.continuationVerified === true,
+  } : null,
   failureReason: result.failureReason,
   reviewRequiredReason: result.reviewRequiredReason,
   updatedAt: nowIso(),
@@ -146,6 +153,23 @@ const readTask = async (dataDir: string, taskId: string): Promise<XuanyuanTaskRe
   }
 };
 
+const resolveContinuation = async (dataDir: string, request: XuanyuanRequest): Promise<XuanyuanContinuation | undefined> => {
+  if (!request.continuationTaskId || !request.continuationResponseHash) return undefined;
+  const prior = await readTask(dataDir, request.continuationTaskId);
+  if (!prior) throw new Error("XUANYUAN_CONTINUATION_TASK_NOT_FOUND");
+  if (prior.sourceProject !== request.sourceProject) throw new Error("XUANYUAN_CONTINUATION_SOURCE_PROJECT_MISMATCH");
+  if (prior.providerKind !== request.providerKind) throw new Error("XUANYUAN_CONTINUATION_PROVIDER_MISMATCH");
+  if (prior.status !== "response_captured") throw new Error("XUANYUAN_CONTINUATION_PRIOR_RESPONSE_NOT_CAPTURED");
+  if (!prior.rawOutputHash || prior.rawOutputHash !== request.continuationResponseHash) throw new Error("XUANYUAN_CONTINUATION_RESPONSE_HASH_MISMATCH");
+  const providerPageUrl = prior.providerProof?.webChatUrl;
+  if (!providerPageUrl) throw new Error("XUANYUAN_CONTINUATION_PROVIDER_URL_MISSING");
+  const parsed = new URL(providerPageUrl);
+  if (parsed.protocol !== "https:" || parsed.host !== "chatgpt.com" || !parsed.pathname.includes("/c/")) {
+    throw new Error("XUANYUAN_CONTINUATION_PROVIDER_URL_INVALID");
+  }
+  return { priorTaskId: prior.taskId, priorRawOutputHash: prior.rawOutputHash, providerPageUrl };
+};
+
 export const startXuanyuanTask = async (
   runtime: XuanyuanRuntime,
   rawRequest: unknown,
@@ -153,18 +177,15 @@ export const startXuanyuanTask = async (
   const request = XuanyuanRequestSchema.parse(rawRequest);
   const textPrompt = buildTextPrompt(request);
   if (!textPrompt) throw new Error("xuanyuan_text_prompt_required");
+  const continuation = await resolveContinuation(runtime.dataDir, request);
   const taskId = `${XUANYUAN_JOB_ID}_${randomUUID()}`;
   const initial = await writeTask(runtime.dataDir, buildInitialRecord({ request, taskId, textPrompt }));
   const running = await writeTask(runtime.dataDir, { ...initial, status: "running", updatedAt: nowIso() });
   const aiFeedResult = await runtime.aiInputGateway.execute(toAiFeedInput({
     ...request,
     textPrompt,
-  }));
-  return writeTask(runtime.dataDir, withAiFeedResult({
-    ...running,
-    status: "provider_answer_captured",
-    updatedAt: nowIso(),
-  }, aiFeedResult));
+  }, continuation));
+  return writeTask(runtime.dataDir, withAiFeedResult(running, aiFeedResult));
 };
 
 export const startXuanyuanTaskAsync = async (
@@ -174,18 +195,15 @@ export const startXuanyuanTaskAsync = async (
   const request = XuanyuanRequestSchema.parse(rawRequest);
   const textPrompt = buildTextPrompt(request);
   if (!textPrompt) throw new Error("xuanyuan_text_prompt_required");
+  const continuation = await resolveContinuation(runtime.dataDir, request);
   const taskId = `${XUANYUAN_JOB_ID}_${randomUUID()}`;
   const initial = await writeTask(runtime.dataDir, buildInitialRecord({ request, taskId, textPrompt }));
   const running = await writeTask(runtime.dataDir, { ...initial, status: "running", updatedAt: nowIso() });
   void runtime.aiInputGateway.execute(toAiFeedInput({
     ...request,
     textPrompt,
-  })).then((aiFeedResult) =>
-    writeTask(runtime.dataDir, withAiFeedResult({
-      ...running,
-      status: "provider_answer_captured",
-      updatedAt: nowIso(),
-    }, aiFeedResult)),
+  }, continuation)).then((aiFeedResult) =>
+    writeTask(runtime.dataDir, withAiFeedResult(running, aiFeedResult)),
   ).catch((error) =>
     writeTask(runtime.dataDir, withFailure(running, error)).then(() => undefined),
   );

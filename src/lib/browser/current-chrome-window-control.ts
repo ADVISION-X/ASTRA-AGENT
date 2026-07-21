@@ -16,6 +16,8 @@ type ChromeOpenReusePolicy = "reuse-exact-url" | "focus-existing-exact-url" | "f
 
 const FOCUS_ONLY_MISSING_TAB_RESULT = "no_existing_tab";
 const FOCUS_ONLY_SAME_PATH_TAB_RESULT = "focused_existing_same_path_tab";
+const TRANSIENT_CHROME_EVENT_RETRY_LIMIT = 3;
+const TRANSIENT_CHROME_EVENT_RETRY_DELAY_MS = 250;
 
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
@@ -46,10 +48,21 @@ const runSpawn = async (command: string, args: string[], options?: { signal?: Ab
 
 const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-e", script], options);
 
-const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => {
-  if (script.length < 1_000) {
-    return runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
-  }
+const isTransientChromeApplicationError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("(-600)")
+    || message.includes("应用程序没有运行")
+    || message.includes("Application isn’t running")
+    || message.includes("Application isn't running");
+};
+
+const waitForTransientChromeRetry = async (signal?: AbortSignal): Promise<void> => {
+  if (signal?.aborted) throw signal.reason ?? new Error("Chrome operation aborted");
+  await new Promise<void>((resolve) => setTimeout(resolve, TRANSIENT_CHROME_EVENT_RETRY_DELAY_MS));
+};
+
+const runJxaOnce = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => {
+  if (script.length < 1_000) return runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
   const tempDir = mkdtempSync(path.join(tmpdir(), "grasseye-jxa-"));
   const scriptPath = path.join(tempDir, "script.jxa");
   writeFileSync(scriptPath, script);
@@ -58,6 +71,20 @@ const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promi
   } finally {
     rmSync(tempDir, { force: true, recursive: true });
   }
+};
+
+const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= TRANSIENT_CHROME_EVENT_RETRY_LIMIT; attempt += 1) {
+    try {
+      return await runJxaOnce(script, options);
+    } catch (error) {
+      lastError = error;
+      if (!isTransientChromeApplicationError(error) || attempt >= TRANSIENT_CHROME_EVENT_RETRY_LIMIT) throw error;
+      await waitForTransientChromeRetry(options?.signal);
+    }
+  }
+  throw lastError;
 };
 
 const buildOpenUrlScript = (

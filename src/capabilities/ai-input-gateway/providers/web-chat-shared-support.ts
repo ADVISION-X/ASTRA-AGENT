@@ -2,6 +2,7 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
+  AiProviderUploadedFileProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
@@ -21,21 +22,31 @@ export const restoreSourcePage = async (
 ): Promise<boolean | null> => {
   if (!sourceUrl || sourceUrl === "about:blank") return null;
   const focused = await focusExistingSourceTab({ sourceUrl, ...(abortSignal ? { abortSignal } : {}) });
-  if (!focused) return false;
-  try {
-    const parsed = new URL(sourceUrl);
-    const parsedSource = parsed.protocol === "blob:"
-      ? (() => {
-          try {
-            return new URL(parsed.pathname);
-          } catch {
-            return parsed;
-          }
-        })()
-      : parsed;
-    const restoredState = await browser.evaluateActiveTab<{ pageUrl: string; sourceMatches: boolean }>({
-      description: "verify source page restored after AI feed",
-      script: `
+  if (!focused) {
+    const reopened = await browser.open({
+      url: sourceUrl,
+      title: "restore source page after AI feed",
+      reusePolicy: "reuse-active-tab",
+      ...(abortSignal ? { abortSignal } : {}),
+    });
+    if (!reopened.ok) return false;
+    await browser.wait(500);
+  }
+  const parsed = new URL(sourceUrl);
+  const parsedSource = parsed.protocol === "blob:"
+    ? (() => {
+        try {
+          return new URL(parsed.pathname);
+        } catch {
+          return parsed;
+        }
+      })()
+    : parsed;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const restoredState = await browser.evaluateActiveTab<{ pageUrl: string; sourceMatches: boolean }>({
+        description: "verify source page restored after AI feed",
+        script: `
 const expectedUrl = ${JSON.stringify(sourceUrl)};
 const expectedHost = ${JSON.stringify(parsedSource.host)};
 const expectedOrigin = ${JSON.stringify(parsedSource.origin)};
@@ -44,11 +55,15 @@ return {
   sourceMatches: location.href === expectedUrl || location.host === expectedHost || location.origin === expectedOrigin,
 };
 `,
-    });
-    return restoredState.sourceMatches;
-  } catch {
-    return false;
+      });
+      if (restoredState.sourceMatches) return true;
+    } catch {
+      // The AppleScript tab focus and the active-tab DOM probe are asynchronous.
+      // Retry within the same restoration attempt; failure still fails closed below.
+    }
+    if (attempt < 4) await browser.wait(500);
   }
+  return false;
 };
 
 export const readActivePageUrl = async (
@@ -112,6 +127,7 @@ export const buildWebChatRawResponse = (input: {
   sourcePageUrlBeforeFeed: string | null;
   extracted: WebChatEvaluation;
   answerText: string;
+  uploadedFiles?: AiProviderUploadedFileProof[];
   outputRefs?: string[];
 }): AiProviderRawResponse => ({
   webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
@@ -127,8 +143,17 @@ export const buildWebChatRawResponse = (input: {
   runtimeName: input.runtimeName,
   transport: "web-chat",
   webChatUrl: input.extracted.pageUrl ?? input.providerUrl,
+  continuationActualUrl: input.request.providerContinuationRef ? input.extracted.pageUrl ?? input.providerUrl : null,
+  continuationVerified: input.request.providerContinuationRef
+    ? (() => {
+        const requested = new URL(input.request.providerContinuationRef.providerPageUrl);
+        const actual = new URL(input.extracted.pageUrl ?? input.providerUrl);
+        return requested.origin === actual.origin && requested.pathname === actual.pathname;
+      })()
+    : null,
   sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
   restoredSourcePage: null,
+  uploadedFiles: input.uploadedFiles ?? [],
   outputRefs: input.outputRefs ?? [],
   estimatedInputTokens: null,
   estimatedOutputTokens: null,

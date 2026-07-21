@@ -25,7 +25,16 @@ const AiFeedInputRefSchema = z.object({
   summary: z.string().min(1),
   filePath: z.string().min(1).optional(),
   mimeType: z.string().min(1).optional(),
+  fileName: z.string().min(1).optional(),
+  sha256: z.string().regex(/^(?:sha256:)?[a-f0-9]{64}$/iu).optional(),
+  byteCount: z.number().int().nonnegative().optional(),
   uploadStatus: z.enum(["pending", "uploading", "completed", "failed"]).optional(),
+}).strict();
+
+const AiFeedProviderContinuationRefSchema = z.object({
+  priorTaskId: z.string().min(1),
+  priorRawOutputHash: z.string().min(1),
+  providerPageUrl: z.string().url(),
 }).strict();
 
 export const AiFeedInputSchema = z.object({
@@ -44,20 +53,40 @@ export const AiFeedInputSchema = z.object({
   missionId: z.string().min(1).nullable().default(null),
   runId: z.string().min(1).nullable().default(null),
   roundId: z.string().min(1).nullable().default(null),
+  providerContinuationRef: AiFeedProviderContinuationRefSchema.optional(),
 }).strict();
 
-const AiFeedProviderProofSchema = z.object({
+const AiFeedProviderProofIdentitySchema = z.object({
   providerKind: AiInputGatewayProviderKindSchema,
+  providerLeaseId: z.string().min(1).nullable().optional(),
   modelName: z.string().min(1).nullable(),
   inputHash: z.string().min(1),
   outputHash: z.string().min(1).nullable(),
   inputRefs: z.array(z.string().min(1)).default([]),
+  uploadedFileRefs: z.array(z.string().min(1)).optional(),
+  uploadedFiles: z.array(z.object({
+    inputRefId: z.string().min(1),
+    step: z.number().int().positive(),
+    expectedAttachmentCount: z.number().int().positive(),
+    detectedAttachmentCount: z.number().int().positive(),
+    fileName: z.string().min(1),
+    sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+    byteCount: z.number().int().nonnegative(),
+  }).strict()).optional(),
   outputRefs: z.array(z.string().min(1)).default([]),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: z.number().int().nonnegative(),
   transport: AiFeedTransportSchema,
+}).strict();
+
+const AiFeedProviderProofConversationSchema = z.object({
   webChatUrl: z.string().url().nullable().default(null),
+  continuationPriorTaskId: z.string().min(1).nullable().optional(),
+  continuationPriorRawOutputHash: z.string().min(1).nullable().optional(),
+  continuationRequestedUrl: z.string().url().nullable().optional(),
+  continuationActualUrl: z.string().url().nullable().optional(),
+  continuationVerified: z.boolean().nullable().optional(),
   webChatWorkspaceId: z.string().min(1).nullable().optional(),
   providerTabPolicy: z.string().min(1).nullable().optional(),
   providerRecoveryAttemptCount: z.number().int().nonnegative().nullable().optional(),
@@ -66,6 +95,10 @@ const AiFeedProviderProofSchema = z.object({
   staleConversationHistoryCleanupStatus: z.string().min(1).nullable().optional(),
   sourcePageUrlBeforeFeed: z.string().min(1).nullable().default(null),
   restoredSourcePage: z.boolean().nullable().default(null),
+}).strict();
+
+const AiFeedProviderProofRuntimeSchema = z.object({
+  transportWarnings: z.array(z.string().min(1)).optional(),
   retryCount: z.number().int().nonnegative().default(0),
   cooldownMs: z.number().int().nonnegative().default(0),
   estimatedInputTokens: z.number().int().nonnegative().nullable().default(null),
@@ -73,11 +106,19 @@ const AiFeedProviderProofSchema = z.object({
   tokenEstimateUnavailableReason: z.string().min(1).nullable().default(null),
 }).strict();
 
+const AiFeedProviderProofSchema = z.object({
+  ...AiFeedProviderProofIdentitySchema.shape,
+  ...AiFeedProviderProofConversationSchema.shape,
+  ...AiFeedProviderProofRuntimeSchema.shape,
+}).strict();
+
 export const AiFeedResultSchema = z.object({
   abilityGroupId: z.literal(AI_INPUT_GATEWAY_ABILITY_GROUP_ID),
   childCapabilityId: AiInputGatewayChildCapabilityIdSchema,
   providerKind: AiInputGatewayProviderKindSchema,
   status: AiFeedStatusSchema,
+  rawResponseText: z.string().nullable().optional(),
+  transportWarnings: z.array(z.string().min(1)).optional(),
   normalizedText: z.string().nullable(),
   rawOutputRef: z.string().min(1).nullable(),
   rawOutputHash: z.string().min(1).nullable(),

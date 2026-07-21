@@ -3,6 +3,7 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import {
   waitForAttachmentCountAtLeast as waitForAttachmentCountAtLeastImpl,
+  waitForExactAttachmentCount as waitForExactAttachmentCountImpl,
 } from "./web-chat-upload-page-actions.js";
 import {
   CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
@@ -45,6 +46,20 @@ export const waitForAttachmentCountAtLeast = (
   Math.min(timeoutMs, MAX_ATTACHMENT_COUNT_WAIT_MS),
 );
 
+export const waitForExactAttachmentCount = (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+  expectedCount: number,
+  expectedFileNames: readonly string[],
+  timeoutMs: number,
+): Promise<WebChatEvaluation> => waitForExactAttachmentCountImpl(
+  browser,
+  context,
+  expectedCount,
+  expectedFileNames,
+  Math.min(timeoutMs, MAX_ATTACHMENT_COUNT_WAIT_MS),
+);
+
 export const waitForComposerFocused = async (
   browser: BrowserController,
   context: AiProviderAdapterContext,
@@ -54,6 +69,12 @@ export const waitForComposerFocused = async (
   let lastMessage = "provider input focus was not checked";
   while (Date.now() < deadline) {
     await acknowledgeChatGptRateLimitDialogIfVisible({ browser, context });
+    const focusEvaluation = await focusComposer(browser, context);
+    lastMessage = `${focusEvaluation.status}: ${focusEvaluation.message}`;
+    if (focusEvaluation.status === "review_required" || focusEvaluation.status === "failed") {
+      throw new Error(lastMessage);
+    }
+    await browser.wait(100);
     const evaluation = await verifyComposerFocused(browser, context);
     lastMessage = `${evaluation.status}: ${evaluation.message}`;
     if (evaluation.status === "success") return;

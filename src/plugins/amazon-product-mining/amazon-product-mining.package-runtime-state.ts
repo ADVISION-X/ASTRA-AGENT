@@ -223,6 +223,7 @@ export const buildTaskScopeArtifact = (input: {
   productDirection: input.task?.productDirection ?? "unknown",
   requestedKeywordCount: input.task?.requestedKeywordCount ?? input.keywords.length,
   languagePreference: input.task?.languagePreference ?? "en",
+  keywordHistoryPolicy: input.task?.keywordHistoryPolicy ?? "new_keywords_only",
   status: input.task?.status ?? "unknown",
   failureReason: input.task?.failureReason ?? null,
   handoffStatus: input.task?.handoffStatus ?? "not_started",

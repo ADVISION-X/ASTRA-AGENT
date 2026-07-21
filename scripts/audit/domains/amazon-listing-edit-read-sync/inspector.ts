@@ -14,6 +14,8 @@ const selfPath = "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.
 const schemaPath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts";
 const domScriptsPath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts";
 const flowPath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts";
+const inventorySearchPath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.inventory-search.ts";
+const targetResolutionPath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.target-resolution.ts";
 const urlsPath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.urls.ts";
 const storagePath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts";
 const taskServicePath = "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts";
@@ -41,6 +43,8 @@ const inspectedFiles = [
   schemaPath,
   domScriptsPath,
   flowPath,
+  inventorySearchPath,
+  targetResolutionPath,
   urlsPath,
   storagePath,
   taskServicePath,
@@ -219,13 +223,13 @@ const inspectDomSafety = (source: SourceFile | null, findings: InspectorFinding[
 };
 
 const inspectFlow = (
-  source: SourceFile | null,
+  sources: readonly (SourceFile | null)[],
   urlsSource: SourceFile | null,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
   for (const forbiddenCall of ["click", "textInput", "setFileInputFiles"]) {
-    if (hasCallName(source, forbiddenCall)) {
+    if (sources.some((source) => hasCallName(source, forbiddenCall))) {
       addFinding(findings, lawId, flowPath, "amazon-listing-edit-read-sync/read-only-flow", `Flow must not call browser.${forbiddenCall}.`);
     }
   }
@@ -242,12 +246,16 @@ const inspectFlow = (
     "child_parent_mismatch",
     "parent_not_proven",
   ]) {
-    if (!hasLiteralContaining(source, required)) {
+    if (!sources.some((source) => hasLiteralContaining(source, required))) {
       addFinding(findings, lawId, flowPath, "amazon-listing-edit-read-sync/flow-contract", `Flow must include ${required}.`);
     }
   }
-  if (!hasIdentifier(source, "targetResolution")) {
+  if (!sources.some((source) => hasIdentifier(source, "targetResolution"))) {
     addFinding(findings, lawId, flowPath, "amazon-listing-edit-read-sync/flow-contract", "Flow must include targetResolution.");
+  }
+  const flowSource = sources[0];
+  if (!hasCallName(flowSource, "runInventorySkuSearch")) {
+    addFinding(findings, lawId, flowPath, "amazon-listing-edit-read-sync/flow-job-step-wiring", "Flow must call the governed runInventorySkuSearch job step.");
   }
   for (const required of ["/abis/listing/edit", "obo_el_skuc_ac"]) {
     if (!hasLiteralContaining(urlsSource, required)) {
@@ -383,7 +391,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectLawAndRegistration({ law, packageJson, pluginStatus, ciPhase }, findings, lawId);
   inspectSchema(schema, findings, lawId);
   inspectDomSafety(domScripts, findings, lawId);
-  inspectFlow(flow, urls, findings, lawId);
+  inspectFlow([
+    flow,
+    sourceFile(context, inventorySearchPath) ?? null,
+    sourceFile(context, targetResolutionPath) ?? null,
+  ], urls, findings, lawId);
   inspectAppShellSurface({ appShell, client, registry: skillRegistry, workspace }, findings, lawId);
   inspectApiSurface({ apiBoundary, server, runtime, runtimeSupport, runtimeHandle }, findings, lawId);
   inspectIsolation(context, findings, lawId);

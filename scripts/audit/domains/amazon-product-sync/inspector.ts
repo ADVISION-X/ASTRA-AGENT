@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -29,7 +28,10 @@ import {
   selfPath,
   serverPath,
   taskServicePath,
+  taskConfigPath,
 } from "./inspector-constants.js";
+import { countDomainPluginStatusEntries, findMissingRequiredFiles } from "./inspector-files.js";
+import { inspectTaskService } from "./inspector-task-service.js";
 
 const addFinding = (findings: InspectorFinding[], lawId: string, filePath: string, message: string): void => {
   findings.push(createFinding({ checkId: "amazon-product-sync/contract", filePath, lawId, message }));
@@ -163,26 +165,9 @@ const hasRouteRule = (sourceFile: SourceFile | undefined, path: string, method: 
     && booleanLiteral(objectLiteral, "requiresApiKey") === true,
   ));
 
-const pluginStatusCount = (): number => {
-  const raw = JSON.parse(readFileSync(resolveFromRepo(pluginStatusPath), "utf8")) as unknown;
-  const visit = (value: unknown): number => {
-    if (Array.isArray(value)) return value.reduce((sum, item) => sum + visit(item), 0);
-    if (!value || typeof value !== "object") return 0;
-    const record = value as Record<string, unknown>;
-    let count = record["pluginId"] === domain ? 1 : 0;
-    for (const item of Object.values(record)) {
-      count += visit(item);
-    }
-    return count;
-  };
-  return visit(raw);
-};
-
 const inspectRequiredFiles = (findings: InspectorFinding[], lawId: string): void => {
-  for (const file of requiredFiles) {
-    if (!existsSync(resolveFromRepo(file))) {
-      addFinding(findings, lawId, file, `missing required file: ${file}`);
-    }
+  for (const file of findMissingRequiredFiles(requiredFiles)) {
+    addFinding(findings, lawId, file, `missing required file: ${file}`);
   }
 };
 
@@ -315,24 +300,6 @@ const inspectSubmitSearchDiagnostic = (flow: SourceFile | undefined, findings: I
   }
 };
 
-const inspectTaskService = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
-  for (const required of ["flowTimeoutMs", "resolveFlowTimeoutMs", "amazon_product_sync_flow_timeout_after_"]) {
-    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service missing bounded terminal timeout token: ${required}`);
-  }
-  for (const required of ["AmazonProductSyncFlowProgress", "persistProgress", "latestProgress"]) {
-    if (!hasIdentifier(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must persist observable running progress: ${required}`);
-  }
-  for (const required of ["startupProgressStaleMs", "activeProgressStaleMs", "resolveRunningProgressStaleMs", "runningProgressStaleReason", "flow_progress_stale"]) {
-    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must fail stale running progress: ${required}`);
-  }
-  for (const required of ["startupProgressWaitMs", "waitForStartupProgress", "firstProgressReady"]) {
-    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service must return only after observable startup progress or bounded startup wait: ${required}`);
-  }
-  for (const required of ["diagnosticValue", "itemAuthGate", "resolveFailureClass", "ACCOUNT_SECURITY_BLOCKER", ...requiredDiagnosticRefs]) {
-    if (!hasIdentifier(taskService, required) && !hasStringToken(taskService, required)) addFinding(findings, lawId, taskServicePath, `task service missing auth/page diagnostic log token: ${required}`);
-  }
-};
-
 const inspectRequiredLogEvents = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
   const emitObjects = runtimeEmitObjects(taskService);
   if (emitObjects.length < requiredLogEvents.length) {
@@ -457,6 +424,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const flow = source(context.project, flowPath);
   const imageTransfer = source(context.project, imageTransferPath);
   const taskService = source(context.project, taskServicePath);
+  const taskConfig = source(context.project, taskConfigPath);
   const domScripts = source(context.project, domScriptsPath);
   const acceptance = source(context.project, acceptancePath);
 
@@ -464,12 +432,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectBoundary(boundary, findings, lawId);
   inspectSchema(schema, findings, lawId);
   inspectFlow(flow, imageTransfer, findings, lawId);
-  inspectTaskService(taskService, findings, lawId);
+  inspectTaskService(taskService, taskConfig, findings, lawId);
   inspectLogMatrix(taskService, findings, logLawId);
   inspectDomScripts(flow, domScripts, findings, lawId);
   inspectAcceptance(acceptance, findings, lawId);
   if (!hasIdentifier(server, "handleAmazonProductSyncRequest")) addFinding(findings, lawId, serverPath, "server must route through handleAmazonProductSyncRequest");
-  if (pluginStatusCount() !== 1) addFinding(findings, lawId, pluginStatusPath, "plugin-status must register amazon-product-sync exactly once");
+  if (countDomainPluginStatusEntries() !== 1) addFinding(findings, lawId, pluginStatusPath, "plugin-status must register amazon-product-sync exactly once");
 
   return {
     capabilityDomain: domain,

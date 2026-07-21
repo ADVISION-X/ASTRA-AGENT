@@ -13,19 +13,13 @@ import {
   buildBlockedTabRead,
   buildEditTabReadScript,
   buildInventoryExpandAndReadScript,
-  buildInventorySearchButtonClickScript,
-  buildInventorySearchProbeScript,
-  buildInventorySearchSubmitScript,
-  buildInventorySkuCentralLinkReadScript,
   buildSkuCentralReadScript,
-  type InventorySkuCentralLinkScriptResult,
-  type InventorySearchButtonClickScriptResult,
-  type InventorySearchProbeScriptResult,
-  type InventorySearchSubmitScriptResult,
   type InventoryReadScriptResult,
   type SkuCentralReadScriptResult,
 } from "./amazon-listing-edit-read-sync.dom-scripts.js";
 import { editTabUrl, inventoryUrlForPage, pageUrlPath } from "./amazon-listing-edit-read-sync.urls.js";
+import { buildTargetResolution, selectInventoryItems } from "./amazon-listing-edit-read-sync.target-resolution.js";
+import { runInventorySkuSearch } from "./amazon-listing-edit-read-sync.inventory-search.js";
 
 export type AmazonListingEditReadSyncFlowProgress = {
   readonly reachedStep: string;
@@ -49,7 +43,7 @@ const authGateFromState = (state: AmazonListingEditReadSyncPageState): AmazonLis
 
 const buildDiagnostic = (
   stage: string,
-  page: Pick<InventoryReadScriptResult | SkuCentralReadScriptResult | InventorySearchProbeScriptResult | InventorySkuCentralLinkScriptResult, "detectedState" | "title" | "url">,
+  page: Pick<InventoryReadScriptResult | SkuCentralReadScriptResult, "detectedState" | "title" | "url">,
 ): AmazonListingEditReadSyncDiagnostic => ({
   authGate: authGateFromState(page.detectedState),
   detectedState: page.detectedState,
@@ -67,137 +61,6 @@ const terminalStatusFromState = (state: AmazonListingEditReadSyncPageState): Ama
 
 const resultEvidenceRef = (taskId: string, sku: string): string =>
   `evidence://amazon-listing-edit-read-sync/${taskId}/${encodeURIComponent(sku)}`;
-
-const buildDefaultTargetResolution = (
-  mission: AmazonListingEditReadSyncInput,
-): AmazonListingEditReadSyncTargetResolution => ({
-  mode: mission.targetMode,
-  status: mission.targetMode === "inventory" || mission.targetMode === "all-inventory" ? "not_required" : "not_found",
-  reason: mission.targetMode === "inventory" || mission.targetMode === "all-inventory" ? null : "target_resolution_not_started",
-  candidateCount: 0,
-  requested: mission.target,
-  matchedParent: null,
-  matchedChild: null,
-  evidenceRefs: [],
-});
-
-const normalize = (value: string | null | undefined): string =>
-  (value ?? "").trim().toUpperCase();
-
-const matchesAsin = (item: AmazonListingEditReadSyncInventoryItem, asin: string | null | undefined): boolean =>
-  Boolean(asin && normalize(item.asin) === normalize(asin));
-
-const matchesSku = (item: AmazonListingEditReadSyncInventoryItem, sku: string | null | undefined): boolean =>
-  Boolean(sku && normalize(item.sku) === normalize(sku));
-
-const matchesParent = (item: AmazonListingEditReadSyncInventoryItem, input: AmazonListingEditReadSyncInput): boolean =>
-  matchesAsin(item, input.target.parentAsin)
-  || matchesSku(item, input.target.parentSku)
-  || Boolean(input.target.parentAsin && normalize(item.parentAsin) === normalize(input.target.parentAsin))
-  || Boolean(input.target.parentSku && normalize(item.parentSku) === normalize(input.target.parentSku));
-
-const matchesChild = (item: AmazonListingEditReadSyncInventoryItem, input: AmazonListingEditReadSyncInput): boolean =>
-  matchesAsin(item, input.target.childAsin ?? input.target.asin)
-  || matchesSku(item, input.target.childSku ?? input.target.sku);
-
-const buildTargetResolution = (
-  mission: AmazonListingEditReadSyncInput,
-  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
-): AmazonListingEditReadSyncTargetResolution => {
-  if (mission.targetMode === "inventory" || mission.targetMode === "all-inventory") {
-    return {
-      ...buildDefaultTargetResolution(mission),
-      candidateCount: inventoryItems.length,
-      evidenceRefs: inventoryItems.map((item) => item.evidenceRef),
-    };
-  }
-  const parentRows = inventoryItems.filter((item) => item.rowKind === "parent" && matchesParent(item, mission));
-  const childRows = inventoryItems.filter((item) => item.rowKind !== "parent" && matchesChild(item, mission));
-  if (mission.targetMode === "asin" || mission.targetMode === "sku") {
-    const candidates = inventoryItems.filter((item) =>
-      mission.targetMode === "asin" ? matchesAsin(item, mission.target.asin) : matchesSku(item, mission.target.sku));
-    return buildResolutionFromCandidates(mission, candidates, null);
-  }
-  if (mission.targetMode === "parent") {
-    const children = inventoryItems.filter((item) =>
-      item.rowKind === "child" && (matchesParent(item, mission) || parentRows.some((parent) => normalize(parent.asin) === normalize(item.parentAsin) || normalize(parent.sku) === normalize(item.parentSku))));
-    if (parentRows.length === 0) {
-      return buildFailedResolution(mission, "parent_not_proven", "parent_target_not_found", 0);
-    }
-    return buildResolutionFromCandidates(mission, children, parentRows[0] ?? null);
-  }
-  if (mission.targetMode === "child") {
-    if (childRows.length !== 1) return buildResolutionFromCandidates(mission, childRows, null);
-    const child = childRows[0]!;
-    const parentRequired = Boolean(mission.target.parentAsin || mission.target.parentSku);
-    if (parentRequired && !matchesParent(child, mission)) {
-      return {
-        ...buildFailedResolution(mission, "child_parent_mismatch", "child_parent_proof_failed", childRows.length),
-        matchedChild: child,
-        evidenceRefs: [child.evidenceRef],
-      };
-    }
-    const matchedParent = inventoryItems.find((item) => item.rowKind === "parent" && (normalize(item.asin) === normalize(child.parentAsin) || normalize(item.sku) === normalize(child.parentSku))) ?? null;
-    return buildMatchedResolution(mission, childRows, matchedParent, child);
-  }
-  return buildFailedResolution(mission, "not_found", "invalid_target_mode", 0);
-};
-
-const buildFailedResolution = (
-  mission: AmazonListingEditReadSyncInput,
-  status: AmazonListingEditReadSyncTargetResolution["status"],
-  reason: string,
-  candidateCount: number,
-): AmazonListingEditReadSyncTargetResolution => ({
-  mode: mission.targetMode,
-  status,
-  reason,
-  candidateCount,
-  requested: mission.target,
-  matchedParent: null,
-  matchedChild: null,
-  evidenceRefs: [],
-});
-
-const buildMatchedResolution = (
-  mission: AmazonListingEditReadSyncInput,
-  candidates: readonly AmazonListingEditReadSyncInventoryItem[],
-  matchedParent: AmazonListingEditReadSyncInventoryItem | null,
-  matchedChild: AmazonListingEditReadSyncInventoryItem,
-): AmazonListingEditReadSyncTargetResolution => ({
-  mode: mission.targetMode,
-  status: "matched",
-  reason: null,
-  candidateCount: candidates.length,
-  requested: mission.target,
-  matchedParent,
-  matchedChild,
-  evidenceRefs: [matchedChild.evidenceRef, ...(matchedParent ? [matchedParent.evidenceRef] : [])],
-});
-
-const buildResolutionFromCandidates = (
-  mission: AmazonListingEditReadSyncInput,
-  candidates: readonly AmazonListingEditReadSyncInventoryItem[],
-  matchedParent: AmazonListingEditReadSyncInventoryItem | null,
-): AmazonListingEditReadSyncTargetResolution => {
-  if (candidates.length === 0) return buildFailedResolution(mission, "not_found", "target_not_found", 0);
-  if (candidates.length > 1) return buildFailedResolution(mission, "ambiguous", "target_ambiguous", candidates.length);
-  return buildMatchedResolution(mission, candidates, matchedParent, candidates[0]!);
-};
-
-const selectInventoryItems = (
-  mission: AmazonListingEditReadSyncInput,
-  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
-  targetResolution: AmazonListingEditReadSyncTargetResolution,
-): readonly AmazonListingEditReadSyncInventoryItem[] => {
-  if (targetResolution.status === "matched" && targetResolution.matchedChild) {
-    return [targetResolution.matchedChild];
-  }
-  if (mission.targetMode === "inventory" || mission.targetMode === "all-inventory") {
-    return inventoryItems.filter((item) => item.rowKind !== "parent").slice(0, mission.maxItems);
-  }
-  return [];
-};
 
 const readInventoryPage = async (
   input: FlowInput,
@@ -436,74 +299,6 @@ const buildSkuCentralOnlyResult = (
   };
 };
 
-const runInventorySkuSearch = async (
-  input: FlowInput,
-  item: AmazonListingEditReadSyncInventoryItem,
-): Promise<{ readonly ok: true; readonly diagnostic: AmazonListingEditReadSyncDiagnostic; readonly skuCentralHref: string } | { readonly ok: false; readonly reason: string; readonly diagnostic: AmazonListingEditReadSyncDiagnostic }> => {
-  await input.browser.open({
-    url: inventoryUrlForPage(input.mission.marketplace, 1),
-    title: `Amazon listing edit read sync inventory search ${item.sku}`,
-    reusePolicy: "reuse-host-tab",
-  });
-  await input.browser.wait(900);
-  const probe = await input.browser.evaluateActiveTab<InventorySearchProbeScriptResult>({
-    script: buildInventorySearchProbeScript(),
-    description: `amazon-listing-edit-read-sync locate inventory filter SKU search and exclude top global search ${item.sku}`,
-  });
-  let diagnostic = buildDiagnostic("inventory_filter_probe", probe);
-  const terminal = terminalStatusFromState(probe.detectedState);
-  if (terminal) return { ok: false, reason: terminal, diagnostic };
-  if (probe.reason || !probe.topGlobalSearchExcluded || !probe.inventorySearchUsesShadowInput) {
-    return { ok: false, reason: probe.reason ?? "inventory_filter_search_not_found", diagnostic };
-  }
-  const submit = await input.browser.evaluateActiveTab<InventorySearchSubmitScriptResult>({
-    script: buildInventorySearchSubmitScript(item.sku),
-    description: `amazon-listing-edit-read-sync fill inventory filter SKU shadow input ${item.sku}`,
-  });
-  diagnostic = buildDiagnostic("inventory_filter_submit", submit);
-  const submitTerminal = terminalStatusFromState(submit.detectedState);
-  if (submitTerminal) return { ok: false, reason: submitTerminal, diagnostic };
-  if (!submit.ok || !submit.topGlobalSearchExcluded) {
-    return { ok: false, reason: submit.reason ?? "inventory_filter_shadow_input_submit_failed", diagnostic };
-  }
-  await input.browser.wait(Math.min(Math.max(submit.searchClickDelayMs, 1000), 2000));
-  const click = await input.browser.evaluateActiveTab<InventorySearchButtonClickScriptResult>({
-    script: buildInventorySearchButtonClickScript(item.sku),
-    description: `amazon-listing-edit-read-sync click inventory filter search button DOM ${item.sku}`,
-  });
-  diagnostic = buildDiagnostic("inventory_filter_button_click", click);
-  const clickTerminal = terminalStatusFromState(click.detectedState);
-  if (clickTerminal) return { ok: false, reason: clickTerminal, diagnostic };
-  if (!click.ok || !click.clickedButton || !click.topGlobalSearchExcluded) {
-    return { ok: false, reason: click.reason ?? "inventory_filter_search_button_dom_click_failed", diagnostic };
-  }
-  for (let attempt = 0; attempt < 24; attempt += 1) {
-    await input.browser.wait(750);
-    const result = await input.browser.evaluateActiveTab<InventoryReadScriptResult>({
-      script: buildInventoryExpandAndReadScript(),
-      description: `amazon-listing-edit-read-sync verify inventory search exact SKU row ${item.sku} attempt ${attempt}`,
-    });
-    diagnostic = buildDiagnostic("inventory_search_result_dom_verify", result);
-    const resultTerminal = terminalStatusFromState(result.detectedState);
-    if (resultTerminal) return { ok: false, reason: resultTerminal, diagnostic };
-    const exactMatch = result.items.some((candidate) => candidate.sku.toUpperCase() === item.sku.toUpperCase());
-    if (exactMatch) {
-      const link = await input.browser.evaluateActiveTab<InventorySkuCentralLinkScriptResult>({
-        script: buildInventorySkuCentralLinkReadScript(item.sku),
-        description: `amazon-listing-edit-read-sync read unique SKU Central href from result DOM ${item.sku}`,
-      });
-      diagnostic = buildDiagnostic("inventory_sku_central_link_read", link);
-      const linkTerminal = terminalStatusFromState(link.detectedState);
-      if (linkTerminal) return { ok: false, reason: linkTerminal, diagnostic };
-      if (!link.href || link.linkCount !== 1) {
-        return { ok: false, reason: link.reason ?? "sku_central_link_not_unique", diagnostic };
-      }
-      return { ok: true, diagnostic, skuCentralHref: link.href };
-    }
-  }
-  return { ok: false, reason: "inventory_search_result_dom_not_verified", diagnostic };
-};
-
 const resolveStatus = (items: readonly AmazonListingEditReadSyncItemResult[]): AmazonListingEditReadSyncTaskRecord["status"] => {
   const matched = items.filter((item) => item.status === "matched").length;
   if (matched === items.length) return "success";
@@ -535,6 +330,77 @@ const buildInventoryTerminalTask = (
   updatedAt: new Date().toISOString(),
 });
 
+const processInventoryItem = async (input: {
+  flow: FlowInput;
+  item: AmazonListingEditReadSyncInventoryItem;
+  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[];
+  results: AmazonListingEditReadSyncItemResult[];
+  targetResolution: AmazonListingEditReadSyncTargetResolution;
+  diagnostic: AmazonListingEditReadSyncDiagnostic;
+}): Promise<AmazonListingEditReadSyncTaskRecord | null> => {
+  const { flow, item, inventoryItems, results, targetResolution, diagnostic } = input;
+  await flow.onProgress?.({ reachedStep: "inventory_sku_search_started", reason: item.sku, inventoryItems, items: results });
+  const search = await runInventorySkuSearch(flow, item);
+  await flow.onProgress?.({ reachedStep: "inventory_sku_search_finished", reason: search.ok ? "inventory_search_result_dom_verified" : search.reason, inventoryItems, items: results, diagnostic: search.diagnostic });
+  if (!search.ok) {
+    const blocked = buildBlockedItemResult(flow, item, search.reason);
+    results.push(blocked);
+    if (flow.mission.safetyMode === "all-inventory-edit-tabs" && flow.mission.stopOnFirstIssue) {
+      return buildBatchStoppedTask(flow, inventoryItems, results, targetResolution, search.diagnostic, blocked.reason ?? "batch_stopped_on_first_issue");
+    }
+    return null;
+  }
+  if (flow.mission.safetyMode === "single-sku-search-only") return null;
+  await flow.onProgress?.({ reachedStep: "sku_central_opening", reason: item.sku, inventoryItems, items: results });
+  if (flow.mission.safetyMode === "single-sku-sku-central-only") {
+    const skuCentral = await readSkuCentral(flow, item, search.skuCentralHref);
+    results.push(buildSkuCentralOnlyResult(flow, item, skuCentral));
+    await flow.onProgress?.({ reachedStep: "sku_central_dom_read", reason: item.sku, inventoryItems, items: results });
+    return null;
+  }
+  const itemResult = await buildItemResult(flow, item, search.skuCentralHref);
+  results.push(itemResult);
+  await flow.onProgress?.({ reachedStep: "item_edit_tabs_read", reason: item.sku, inventoryItems, items: results });
+  if (flow.mission.safetyMode === "all-inventory-edit-tabs" && flow.mission.stopOnFirstIssue && itemResult.status !== "matched") {
+    return buildBatchStoppedTask(flow, inventoryItems, results, targetResolution, diagnostic, itemResult.reason ?? "batch_stopped_on_first_issue");
+  }
+  return null;
+};
+
+const processInventoryItems = async (input: {
+  flow: FlowInput;
+  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[];
+  targetResolution: AmazonListingEditReadSyncTargetResolution;
+  diagnostic: AmazonListingEditReadSyncDiagnostic;
+}): Promise<{ results: AmazonListingEditReadSyncItemResult[]; stoppedTask: AmazonListingEditReadSyncTaskRecord | null }> => {
+  const results: AmazonListingEditReadSyncItemResult[] = [];
+  for (const item of input.inventoryItems) {
+    const stoppedTask = await processInventoryItem({ ...input, item, results });
+    if (stoppedTask) return { results, stoppedTask };
+  }
+  return { results, stoppedTask: null };
+};
+
+const buildCompletedTask = (
+  input: FlowInput,
+  inventoryItems: readonly AmazonListingEditReadSyncInventoryItem[],
+  targetResolution: AmazonListingEditReadSyncTargetResolution,
+  diagnostic: AmazonListingEditReadSyncDiagnostic,
+  results: readonly AmazonListingEditReadSyncItemResult[],
+): AmazonListingEditReadSyncTaskRecord => {
+  const status = input.mission.safetyMode === "single-sku-search-only"
+    ? (results.length === 0 ? "success" : resolveStatus(results))
+    : results.length > 0 ? resolveStatus(results) : "review_required";
+  return {
+    taskId: input.taskId, site: input.mission.site, requestId: input.mission.requestId, marketplace: input.mission.marketplace,
+    ok: status === "success", status,
+    reason: status === "success" ? null : input.mission.safetyMode === "single-sku-search-only" ? "inventory_sku_search_not_verified" : "not_all_listing_edit_tabs_read",
+    reachedStep: input.mission.safetyMode === "single-sku-search-only" ? "inventory_sku_search_only_finished" : input.mission.safetyMode === "single-sku-sku-central-only" ? "sku_central_only_finished" : "flow_finished",
+    targetResolution, inventoryItems, items: results, diagnostic,
+    createdAt: input.createdAt, updatedAt: new Date().toISOString(),
+  };
+};
+
 export const runAmazonListingEditReadSyncFlow = async (
   input: FlowInput,
 ): Promise<AmazonListingEditReadSyncTaskRecord> => {
@@ -563,54 +429,7 @@ export const runAmazonListingEditReadSyncFlow = async (
   if (input.mission.safetyMode === "inventory-only") {
     return buildInventoryTerminalTask(input, selectedInventoryItems, targetResolution, diagnostic, "success", "");
   }
-  const results: AmazonListingEditReadSyncItemResult[] = [];
-  for (const item of selectedInventoryItems) {
-    await input.onProgress?.({ reachedStep: "inventory_sku_search_started", reason: item.sku, inventoryItems: selectedInventoryItems, items: results });
-    const search = await runInventorySkuSearch(input, item);
-    await input.onProgress?.({ reachedStep: "inventory_sku_search_finished", reason: search.ok ? "inventory_search_result_dom_verified" : search.reason, inventoryItems: selectedInventoryItems, items: results, diagnostic: search.diagnostic });
-    if (!search.ok) {
-      const blocked = buildBlockedItemResult(input, item, search.reason);
-      results.push(blocked);
-      if (input.mission.safetyMode === "all-inventory-edit-tabs" && input.mission.stopOnFirstIssue) {
-        return buildBatchStoppedTask(input, selectedInventoryItems, results, targetResolution, search.diagnostic, blocked.reason ?? "batch_stopped_on_first_issue");
-      }
-      continue;
-    }
-    if (input.mission.safetyMode === "single-sku-search-only") {
-      continue;
-    }
-    if (input.mission.safetyMode === "single-sku-sku-central-only") {
-      await input.onProgress?.({ reachedStep: "sku_central_opening", reason: item.sku, inventoryItems: selectedInventoryItems, items: results });
-      const skuCentral = await readSkuCentral(input, item, search.skuCentralHref);
-      results.push(buildSkuCentralOnlyResult(input, item, skuCentral));
-      await input.onProgress?.({ reachedStep: "sku_central_dom_read", reason: item.sku, inventoryItems: selectedInventoryItems, items: results });
-      continue;
-    }
-    await input.onProgress?.({ reachedStep: "sku_central_opening", reason: item.sku, inventoryItems: selectedInventoryItems, items: results });
-    const itemResult = await buildItemResult(input, item, search.skuCentralHref);
-    results.push(itemResult);
-    await input.onProgress?.({ reachedStep: "item_edit_tabs_read", reason: item.sku, inventoryItems: selectedInventoryItems, items: results });
-    if (input.mission.safetyMode === "all-inventory-edit-tabs" && input.mission.stopOnFirstIssue && itemResult.status !== "matched") {
-      return buildBatchStoppedTask(input, selectedInventoryItems, results, targetResolution, diagnostic, itemResult.reason ?? "batch_stopped_on_first_issue");
-    }
-  }
-  const status = input.mission.safetyMode === "single-sku-search-only"
-    ? (results.length === 0 ? "success" : resolveStatus(results))
-    : results.length > 0 ? resolveStatus(results) : "review_required";
-  return {
-    taskId: input.taskId,
-    site: input.mission.site,
-    requestId: input.mission.requestId,
-    marketplace: input.mission.marketplace,
-    ok: status === "success",
-    status,
-    reason: status === "success" ? null : input.mission.safetyMode === "single-sku-search-only" ? "inventory_sku_search_not_verified" : "not_all_listing_edit_tabs_read",
-    reachedStep: input.mission.safetyMode === "single-sku-search-only" ? "inventory_sku_search_only_finished" : input.mission.safetyMode === "single-sku-sku-central-only" ? "sku_central_only_finished" : "flow_finished",
-    targetResolution,
-    inventoryItems: selectedInventoryItems,
-    items: results,
-    diagnostic,
-    createdAt: input.createdAt,
-    updatedAt: new Date().toISOString(),
-  };
+  const processed = await processInventoryItems({ flow: input, inventoryItems: selectedInventoryItems, targetResolution, diagnostic });
+  if (processed.stoppedTask) return processed.stoppedTask;
+  return buildCompletedTask(input, selectedInventoryItems, targetResolution, diagnostic, processed.results);
 };

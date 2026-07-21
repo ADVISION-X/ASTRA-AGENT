@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:18.617Z",
+  "generatedAt": "2026-07-21T00:35:54.385Z",
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -24,6 +24,8 @@
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.inventory-search.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.target-resolution.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.urls.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:23.918Z",
+  "generatedAt": "2026-07-21T00:35:57.401Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -27,6 +27,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/lib/local-runtime/workbench.ts",

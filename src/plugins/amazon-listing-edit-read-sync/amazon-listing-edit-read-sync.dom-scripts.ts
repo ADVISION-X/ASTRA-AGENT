@@ -137,10 +137,8 @@ return {
 };
 `);
 
-export const buildInventorySearchSubmitScript = (sellerSku: string): string => script(`
-${sharedPageHelpers}
-${inventorySearchHelpers}
-const sellerSku = ${JSON.stringify(sellerSku.trim())};
+const inventorySearchSubmitBody = `
+const sellerSku = __SELLER_SKU_JSON__;
 const host = findInventorySearchHost();
 const shadowInput = host && host.shadowRoot ? host.shadowRoot.querySelector("input[type='text'], input") : null;
 const button = searchButtonForHost(host);
@@ -221,6 +219,12 @@ return {
   searchClickDelayMs,
   reason: ok ? null : "inventory_filter_katal_host_value_or_event_not_ready",
 };
+`;
+
+export const buildInventorySearchSubmitScript = (sellerSku: string): string => script(`
+${sharedPageHelpers}
+${inventorySearchHelpers}
+${inventorySearchSubmitBody.replace("__SELLER_SKU_JSON__", JSON.stringify(sellerSku.trim()))}
 `);
 
 export const buildInventorySearchButtonClickScript = (sellerSku: string): string => script(`
@@ -296,8 +300,7 @@ return {
 };
 `);
 
-export const buildInventoryExpandAndReadScript = (): string => script(`
-${sharedPageHelpers}
+const inventoryExpandAndReadBody = `
 const currentUrl = new URL(location.href);
 const currentPage = Number(currentUrl.searchParams.get("page") || "1");
 const pageSize = Number(currentUrl.searchParams.get("pageSize") || "25");
@@ -380,6 +383,11 @@ return {
   items,
   reason: items.length > 0 ? null : "inventory_asin_sku_rows_not_found",
 };
+`;
+
+export const buildInventoryExpandAndReadScript = (): string => script(`
+${sharedPageHelpers}
+${inventoryExpandAndReadBody}
 `);
 
 export const buildSkuCentralReadScript = (): string => script(`

@@ -34,6 +34,7 @@ export type AmazonHandoffRecord = {
     productDirection: string;
     requestedKeywordCount: number;
     languagePreference: string;
+    keywordHistoryPolicy: string;
   };
   dataCompletenessStatistics: {
     keywordCount: number;
@@ -165,6 +166,7 @@ type BuildAmazonHandoffRecordInput = {
   productDirection?: string;
   requestedKeywordCount?: number;
   languagePreference?: string;
+  keywordHistoryPolicy?: string;
   packageIntegrityStatus: "pass" | "failed";
   manualRequiredReasons: string[];
   failureReasons?: readonly string[];
@@ -217,6 +219,7 @@ const buildHandoffTaskScope = (input: BuildAmazonHandoffRecordInput) => ({
   productDirection: input.productDirection ?? "unknown",
   requestedKeywordCount: input.requestedKeywordCount ?? input.keywordCount,
   languagePreference: input.languagePreference ?? "en",
+  keywordHistoryPolicy: input.keywordHistoryPolicy ?? "new_keywords_only",
 });
 
 export const buildHandoffRecord = (input: BuildAmazonHandoffRecordInput): AmazonHandoffRecord => {

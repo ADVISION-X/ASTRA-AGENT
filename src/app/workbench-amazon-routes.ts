@@ -2,11 +2,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
-import type { AmazonInvoiceUploadTaskRecord } from "../plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 
 type AmazonRouteHandler = () => Promise<boolean>;
+type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GrassEyeWorkbenchHandle["getAmazonInvoiceUploadTaskStatus"]>>;
 type AmazonInvoiceUploadRouteMission = Parameters<GrassEyeWorkbenchHandle["startAmazonInvoiceUploadTask"]>[0]["mission"];
 
 function sanitizeAmazonInvoiceUploadMission(missionText: string, request: IncomingMessage): AmazonInvoiceUploadRouteMission {

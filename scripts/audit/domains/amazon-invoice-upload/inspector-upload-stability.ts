@@ -154,13 +154,15 @@ function uploadStabilityFindingPath(item: string): string {
   if (tabLifecyclePath) return tabLifecyclePath;
   const apiFocusPath = apiFocusFindingPath(item);
   if (apiFocusPath) return apiFocusPath;
-  if (item.startsWith("english-success-evidence")) return verifyPath;
-  if (item.startsWith("english-existing-evidence")) return existingEvidencePath;
-  if (item.startsWith("existing-invoice-evidence")) return existingUploadPath;
-  if (item.startsWith("no-human-final-submit-schema")) return missionSchemaPath;
-  if (item.startsWith("no-human-final-submit-service")) return taskServicePath;
-  if (isOrderRefreshFinding(item)) return orderDetailPath;
-  return uploadFlowPath;
+  const prefixPaths: ReadonlyArray<readonly [prefix: string, repoPath: string]> = [
+    ["english-success-evidence", verifyPath],
+    ["english-existing-evidence", existingEvidencePath],
+    ["existing-invoice-evidence", existingUploadPath],
+    ["no-human-final-submit-schema", missionSchemaPath],
+    ["no-human-final-submit-service", taskServicePath],
+  ];
+  const prefixPath = prefixPaths.find(([prefix]) => item.startsWith(prefix));
+  return prefixPath?.[1] ?? (isOrderRefreshFinding(item) ? orderDetailPath : uploadFlowPath);
 }
 
 function apiFocusFindingPath(item: string): string | null {

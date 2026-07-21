@@ -220,6 +220,7 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
   inspectBusinessHtmlFullProcessReviewability({
     promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
     htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    htmlReportContractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts"),
     acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
     ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
     ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
@@ -231,6 +232,7 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
   inspectBusinessHtmlFullProcessReviewability({
     promptBundleShellFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts"),
     htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
+    htmlReportContractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts"),
     acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
     ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
     ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
@@ -240,6 +242,7 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-060-V1"),
   });
   inspectHtmlArtifactCaptureChain({
+    artifactRuntimeFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts"),
     captureFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts"),
     exportFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
     sharedFile: getSourceFile(context, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),

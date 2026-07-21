@@ -1,4 +1,4 @@
-export const renderAmazonListingEditReadSyncClient = (): string => `
+const LISTING_EDIT_READ_CLIENT_INPUT_AND_STATUS = `
 const listingEditReadState = { taskId: "" };
 
 const listingEditReadSelectedTabs = (form) =>
@@ -81,7 +81,9 @@ const listingEditReadRenderItems = (items) => {
     body.append(row);
   }
 };
+`;
 
+const LISTING_EDIT_READ_CLIENT_RENDER_AND_EVENTS = `
 const listingEditReadRenderInventory = (items) => {
   const body = qs("[data-listing-edit-read-inventory]");
   if (!body) return;
@@ -140,3 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-listing-edit-read-refresh]")?.addEventListener("click", refreshListingEditReadSync);
 });
 `;
+
+export const renderAmazonListingEditReadSyncClient = (): string =>
+  LISTING_EDIT_READ_CLIENT_INPUT_AND_STATUS + LISTING_EDIT_READ_CLIENT_RENDER_AND_EVENTS;

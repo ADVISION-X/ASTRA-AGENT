@@ -14,6 +14,7 @@ import {
 
 const promptShell = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts", "utf8");
 const htmlStage = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8");
+const htmlContract = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts", "utf8");
 const analysisRunner = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
@@ -21,9 +22,10 @@ const ciFullPhasePlan = readFileSync("scripts/audit/ci-full-phase-plan.ts", "utf
 
 for (const sectionId of DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS) {
   assert(promptShell.includes(sectionId), `HTML prompt shell must require ${sectionId}.`);
-  assert(htmlStage.includes(sectionId), `HTML parser must validate ${sectionId}.`);
+  assert(htmlContract.includes(sectionId), `HTML report contract must require ${sectionId}.`);
 }
 
+assert(htmlStage.includes("DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS"), "HTML parser must consume the required section contract.");
 for (const marker of [
   "full-process case report",
   "forensics-process section",

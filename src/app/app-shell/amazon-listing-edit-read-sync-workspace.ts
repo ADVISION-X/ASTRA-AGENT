@@ -1,20 +1,5 @@
-export const renderAmazonListingEditReadSyncWorkspace = (): string => `
-<section class="skill-workspace hidden" data-skill-workspace="amazon-listing-edit-read-sync" data-job-panel="amazon-listing-edit-read-sync">
-  <div class="skill-header">
-    <div>
-      <span class="eyebrow">Seller Central</span>
-      <h1>Amazon Listing Edit Read</h1>
-      <p>Read inventory parent, child, SKU Central, and listing edit tab fields.</p>
-    </div>
-    <span class="status-badge status-active">read-only</span>
-  </div>
-  <nav class="skill-page-nav" data-workspace-page-nav="amazon-listing-edit-read-sync" aria-label="Amazon Listing Edit Read pages">
-    <button class="skill-page-tab" type="button" data-workspace-page="run" data-workspace-page-skill="amazon-listing-edit-read-sync" aria-pressed="true">Run</button>
-    <button class="skill-page-tab" type="button" data-workspace-page="results" data-workspace-page-skill="amazon-listing-edit-read-sync" aria-pressed="false">Results</button>
-    <button class="skill-page-tab" type="button" data-workspace-page="audit" data-workspace-page-skill="amazon-listing-edit-read-sync" aria-pressed="false">Audit</button>
-  </nav>
-  <div class="skill-page-stack secondary-page-stack">
-    <section class="skill-page-surface listing-edit-read-layout" data-workspace-surface="run" data-workspace-surface-skill="amazon-listing-edit-read-sync">
+const renderRunSurface = (): string => `
+<section class="skill-page-surface listing-edit-read-layout" data-workspace-surface="run" data-workspace-surface-skill="amazon-listing-edit-read-sync">
       <section class="panel app-form-panel listing-edit-read-form-panel">
         <div class="panel-title-row">
           <div>
@@ -80,8 +65,10 @@ export const renderAmazonListingEditReadSyncWorkspace = (): string => `
           </table>
         </div>
       </section>
-    </section>
-    <section class="skill-page-surface hidden" data-workspace-surface="results" data-workspace-surface-skill="amazon-listing-edit-read-sync">
+</section>`;
+
+const renderResultsSurface = (): string => `
+<section class="skill-page-surface hidden" data-workspace-surface="results" data-workspace-surface-skill="amazon-listing-edit-read-sync">
       <section class="panel">
         <div class="panel-title-row"><div><span class="eyebrow">Inventory</span><h2>Resolved rows</h2></div></div>
         <div class="listing-edit-read-table-shell">
@@ -91,12 +78,34 @@ export const renderAmazonListingEditReadSyncWorkspace = (): string => `
           </table>
         </div>
       </section>
-    </section>
-    <section class="skill-page-surface hidden" data-workspace-surface="audit" data-workspace-surface-skill="amazon-listing-edit-read-sync">
+</section>`;
+
+const renderAuditSurface = (): string => `
+<section class="skill-page-surface hidden" data-workspace-surface="audit" data-workspace-surface-skill="amazon-listing-edit-read-sync">
       <section class="panel">
         <div class="panel-title-row"><div><span class="eyebrow">Raw record</span><h2>Audit payload</h2></div></div>
         <pre data-listing-edit-read-raw>{}</pre>
       </section>
-    </section>
+</section>`;
+
+export const renderAmazonListingEditReadSyncWorkspace = (): string => `
+<section class="skill-workspace hidden" data-skill-workspace="amazon-listing-edit-read-sync" data-job-panel="amazon-listing-edit-read-sync">
+  <div class="skill-header">
+    <div>
+      <span class="eyebrow">Seller Central</span>
+      <h1>Amazon Listing Edit Read</h1>
+      <p>Read inventory parent, child, SKU Central, and listing edit tab fields.</p>
+    </div>
+    <span class="status-badge status-active">read-only</span>
+  </div>
+  <nav class="skill-page-nav" data-workspace-page-nav="amazon-listing-edit-read-sync" aria-label="Amazon Listing Edit Read pages">
+    <button class="skill-page-tab" type="button" data-workspace-page="run" data-workspace-page-skill="amazon-listing-edit-read-sync" aria-pressed="true">Run</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="results" data-workspace-page-skill="amazon-listing-edit-read-sync" aria-pressed="false">Results</button>
+    <button class="skill-page-tab" type="button" data-workspace-page="audit" data-workspace-page-skill="amazon-listing-edit-read-sync" aria-pressed="false">Audit</button>
+  </nav>
+  <div class="skill-page-stack secondary-page-stack">
+    ${renderRunSurface()}
+    ${renderResultsSurface()}
+    ${renderAuditSurface()}
   </div>
 </section>`;

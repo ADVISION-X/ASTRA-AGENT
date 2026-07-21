@@ -107,11 +107,11 @@ try {
     "Amazon mining must preserve captured GPT Web Chat output even when source tab restoration fails.",
   );
   assert.equal(amazonResult.providerProof.restoredSourcePage, false);
-  assert.ok((amazonResult.normalizedText ?? "").includes("door draft stopper"));
+  assert.ok((amazonResult.rawResponseText ?? "").includes("door draft stopper"));
 
   await new Promise((resolve) => setTimeout(resolve, 2_050));
 
-  const baziResult = await abilityGroup.execute(createRequest("bazi-professional-report-v0.1"));
+  const baziResult = await abilityGroup.execute(createRequest("bazi-complete-input-direct-analysis-v1"));
 
   assert.equal(
     baziResult.status,
@@ -126,13 +126,10 @@ try {
 
   assert.equal(
     nonAmazonResult.status,
-    "review_required",
-    "Non-Amazon web chat feeds must still fail closed when source tab restoration fails.",
+    "success",
+    "Every captured web-chat response must survive source tab restoration failure without a prompt-contract whitelist.",
   );
-  assert.equal(
-    nonAmazonResult.reviewRequiredReason,
-    "review_required: source page restoration failed after web chat feed.",
-  );
+  assert.equal(nonAmazonResult.providerProof.restoredSourcePage, false);
 } finally {
   rmSync(dataDir, { recursive: true, force: true });
 }

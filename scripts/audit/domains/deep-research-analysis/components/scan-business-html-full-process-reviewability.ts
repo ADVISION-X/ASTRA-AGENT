@@ -154,18 +154,20 @@ const inspectPromptShell = (input: {
 
 const inspectHtmlArtifactValidation = (input: {
   sourceFile: SourceFile | undefined;
+  contractFile: SourceFile | undefined;
   findings: InspectorFinding[];
   lawId: string;
 }): void => {
   const filePath = "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts";
-  const sectionInitializer = findVariableInitializer(input.sourceFile, "DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS");
+  const contractPath = "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts";
+  const sectionInitializer = findVariableInitializer(input.contractFile, "DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS");
   const actualSectionIds = collectArrayLiteralValues(sectionInitializer);
   for (const sectionId of requiredSectionIds) {
     if (actualSectionIds.includes(sectionId)) continue;
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
-      filePath,
+      filePath: contractPath,
       checkId: "deep-research/business-html-full-process/export-section-ast",
       message: `HTML artifact parser must validate section id ${sectionId}.`,
     });
@@ -211,12 +213,12 @@ const inspectHtmlArtifactValidation = (input: {
       message: "Business HTML parser must validate case-file binding, N-stage citations, and retention before persistence.",
     });
   }
-  const retentionFloor = readNumericLiteralValue(findVariableInitializer(input.sourceFile, "DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR"));
+  const retentionFloor = readNumericLiteralValue(findVariableInitializer(input.contractFile, "DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR"));
   if (retentionFloor !== 0.8) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
-      filePath,
+      filePath: contractPath,
       checkId: "deep-research/business-html-full-process/retention-floor-symbol",
       message: "Business HTML parser must keep the N-stage retention floor at 0.8.",
     });
@@ -283,6 +285,7 @@ const inspectAntiEvasion = (input: {
 export const inspectBusinessHtmlFullProcessReviewability = (input: {
   promptBundleShellFile: SourceFile | undefined;
   htmlReportStageFile: SourceFile | undefined;
+  htmlReportContractFile: SourceFile | undefined;
   acceptanceFile: SourceFile | undefined;
   ciFullFile: SourceFile | undefined;
   ciFullPhasePlanFile: SourceFile | undefined;
@@ -294,6 +297,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
   for (const sourceFile of [
     input.promptBundleShellFile,
     input.htmlReportStageFile,
+    input.htmlReportContractFile,
     input.acceptanceFile,
     input.ciFullFile,
     input.ciFullPhasePlanFile,
@@ -309,6 +313,7 @@ export const inspectBusinessHtmlFullProcessReviewability = (input: {
   });
   inspectHtmlArtifactValidation({
     sourceFile: input.htmlReportStageFile,
+    contractFile: input.htmlReportContractFile,
     findings: input.findings,
     lawId: input.lawId,
   });

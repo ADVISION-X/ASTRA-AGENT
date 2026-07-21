@@ -8,6 +8,7 @@ type AmountGateInput = {
   amountGateFile: SourceFile | null;
   statusFile: SourceFile | null;
   smokeAcceptanceFile: SourceFile | null;
+  smokeAcceptanceSupportFile: SourceFile | null;
   findings: InspectorFinding[];
   lawId: string;
 };
@@ -22,7 +23,7 @@ export function inspectAmazonInvoiceAmountGate(input: AmountGateInput): void {
     ...collectFlowGaps(input.flowFile),
     ...collectAmountFileGaps(input.amountGateFile),
     ...collectStatusGaps(input.statusFile),
-    ...collectAcceptanceGaps(input.smokeAcceptanceFile),
+    ...collectAcceptanceGaps([input.smokeAcceptanceFile, input.smokeAcceptanceSupportFile]),
   ];
   for (const item of missing) {
     input.findings.push(createFinding({
@@ -79,12 +80,13 @@ function collectStatusGaps(file: SourceFile | null): string[] {
   return stringLiteralValues(file).has("amount_mismatch_skipped") ? [] : ["status:amount-mismatch-skipped"];
 }
 
-function collectAcceptanceGaps(file: SourceFile | null): string[] {
-  if (!file) return ["acceptance:file-missing"];
-  const values = stringLiteralValues(file);
+function collectAcceptanceGaps(files: readonly (SourceFile | null)[]): string[] {
+  const presentFiles = files.filter((file): file is SourceFile => file !== null);
+  if (presentFiles.length !== files.length) return ["acceptance:file-missing"];
+  const values = new Set(presentFiles.flatMap((file) => [...stringLiteralValues(file)]));
   const missing: string[] = [];
   for (const value of ["amount_mismatch_skipped", "fileInputSetCalls", "Gross amount payable", "AED 59.50", "39.07"]) {
-    if (!literalsContain(values, value) && !identifierExists(file, value)) missing.push(`acceptance:${value}`);
+    if (!literalsContain(values, value) && !presentFiles.some((file) => identifierExists(file, value))) missing.push(`acceptance:${value}`);
   }
   return missing;
 }

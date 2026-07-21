@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:20.768Z",
+  "generatedAt": "2026-07-21T00:35:56.050Z",
   "status": "PASS",
   "findings": [],
   "capabilityDomain": "amazon-product-sync",
@@ -20,6 +20,7 @@
     "src/app/create-workbench-server.ts",
     "src/app/workbench-amazon-product-sync-routes.ts",
     "src/app/workbench-api-boundary.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync-task-config.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",

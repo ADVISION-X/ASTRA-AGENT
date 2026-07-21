@@ -7,6 +7,7 @@ export const schemaPath = "src/plugins/amazon-product-sync/amazon-product-sync.s
 export const flowPath = "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts";
 export const imageTransferPath = "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts";
 export const taskServicePath = "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts";
+export const taskConfigPath = "src/plugins/amazon-product-sync/amazon-product-sync-task-config.ts";
 export const domScriptsPath = "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts";
 export const acceptancePath = "scripts/acceptance/amazon-product-sync.acceptance.ts";
 
@@ -19,6 +20,7 @@ export const requiredFiles = [
   imageTransferPath,
   domScriptsPath,
   taskServicePath,
+  taskConfigPath,
   "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
   "src/plugins/amazon-product-sync/index.ts",
   "src/app/workbench-amazon-product-sync-routes.ts",

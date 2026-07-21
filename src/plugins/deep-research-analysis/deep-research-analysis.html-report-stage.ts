@@ -28,39 +28,19 @@ import type {
   DeepResearchRecordStore,
 } from "./deep-research-analysis.records.js";
 import type { DeepResearchStructuredIndex } from "./deep-research-analysis.structured-index.js";
-
-export const DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND =
-  "business-report.html" as const;
-
-export const DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE = "text/html" as const;
-
-export type DeepResearchBusinessHtmlSourceKind = "html_artifact";
-
-export type DeepResearchBusinessHtmlReportRecord = {
-  artifactName: string;
-  artifactMimeType: typeof DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE;
-  filePath: string;
-  fileHash: string;
-  fileSizeBytes: number;
-  generatedAt: string;
-  status: "business_html_report_generated";
-  exportKind: typeof DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND;
-  sourceKind: DeepResearchBusinessHtmlSourceKind;
-};
+import {
+  DEEP_RESEARCH_BUSINESS_HTML_MIME_TYPE,
+  DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR,
+  DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND,
+  DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS,
+  type DeepResearchBusinessHtmlReportRecord,
+} from "./deep-research-analysis.html-report-contract.js";
+export { DEEP_RESEARCH_BUSINESS_HTML_REPORT_EXPORT_KIND, DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS } from "./deep-research-analysis.html-report-contract.js";
 
 const buildHtmlTextHash = (value: string): string =>
   "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
 const CHATGPT_SHELL_HTML_MARKERS = ['property="og:title" content="chatgpt"', "window.__reactroutercontext", "/cdn/assets/", "data-message-author-role", "prompt-textarea", "composer-submit-button", "chatgpt 是一款", "历史聊天记录"];
-
-export const DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS = [
-  "summary-answer",
-  "forensics-process",
-  "business-conclusion",
-  "n-stage-questions-and-answers",
-] as const;
-
-export const DEEP_RESEARCH_BUSINESS_HTML_N_STAGE_RETENTION_FLOOR = 0.8 as const;
 
 const isHtmlAttributeWhitespace = (value: string): boolean =>
   value === " " || value === "\n" || value === "\r" || value === "\t" || value === "\f";

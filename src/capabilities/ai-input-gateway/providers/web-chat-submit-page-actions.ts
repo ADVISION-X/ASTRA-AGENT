@@ -49,9 +49,10 @@ export const verifyLastUserMessageAttachments = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
   expectedCount: number,
+  expectedKind: "image" | "file",
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "verify AI web chat submitted user message has bound image",
-    script: buildVerifyLastUserMessageAttachmentsScript(expectedCount),
+    description: `verify AI web chat submitted user message has bound ${expectedKind} attachment`,
+    script: buildVerifyLastUserMessageAttachmentsScript(expectedCount, expectedKind),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

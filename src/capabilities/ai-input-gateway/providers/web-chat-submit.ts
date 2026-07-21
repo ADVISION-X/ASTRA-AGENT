@@ -5,7 +5,6 @@ import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import {
   pasteTextAndSubmitInChrome,
   pasteTextReplacingInChrome,
-  pressReturnInChrome,
 } from "./web-chat-clipboard.js";
 import {
   verifyLastUserMessageAttachments,
@@ -15,14 +14,12 @@ import {
 import {
   clickChatGptSendButton,
   focusComposer,
-  waitForAttachmentCountAtLeast,
+  waitForExactAttachmentCount,
   waitForComposerFocused,
 } from "./web-chat-page-actions.js";
 import { clearComposer } from "./web-chat-upload-page-actions.js";
-import { acknowledgePick3RateLimitDialogIfVisible, reservePick3RateLimitAttempt } from "./web-chat-pick3-recovery-log.js";
 import {
   acknowledgeChatGptRateLimitDialogIfVisible,
-  isChatGptRateLimitDialogVisible,
 } from "./web-chat-rate-limit-dialog.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
@@ -145,23 +142,6 @@ type Pick3RateLimitSubmitGuardInput = {
   context: AiProviderAdapterContext;
 };
 
-const isPick3GptSubmitRequest = (request: AiFeedInput): boolean =>
-  request.providerKind === "gpt-web-chat" && request.promptContractId.startsWith("pick3-is-blind-eval");
-
-// The only action on a visible rate-limit dialog is clicking acknowledgement, repeated
-// indefinitely until it is gone — no attempt cap, no escalation, no reopen, no resend.
-const acknowledgePick3SubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
-  if (!isPick3GptSubmitRequest(input.request)) return;
-  if (!await isChatGptRateLimitDialogVisible(input)) return;
-  const rateLimitAttempt = reservePick3RateLimitAttempt(input.request);
-  await acknowledgePick3RateLimitDialogIfVisible({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    attemptIndex: rateLimitAttempt,
-  });
-};
-
 const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
   if (input.request.providerKind !== "gpt-web-chat") return;
   const ackStatus = await acknowledgeChatGptRateLimitDialogIfVisible({
@@ -184,6 +164,7 @@ type PreparedPromptComposer = {
   expectedPrefix: string;
   expectedSuffix: string;
   expectedAttachmentCount: number;
+  expectedAttachmentKind: "image" | "file";
   wasPromptVerifiedBeforeSubmit: true;
 };
 
@@ -262,6 +243,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedCount: number;
+  expectedKind: "image" | "file";
   timeoutMs: number;
 }): Promise<void> => {
   if (input.expectedCount <= 0) return;
@@ -271,7 +253,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   while (Date.now() < deadline) {
     await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const evaluation = await withWebChatStep("verify_last_user_message_bound_attachments", () =>
-      verifyLastUserMessageAttachments(input.browser, input.context, input.expectedCount));
+      verifyLastUserMessageAttachments(input.browser, input.context, input.expectedCount, input.expectedKind));
     lastEvaluation = evaluation;
     lastMessage = `${evaluation.status}: ${evaluation.message}`;
     if (evaluation.status === "success") return;
@@ -281,7 +263,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
     await input.browser.wait(500);
   }
   throw new Error(
-    `review_required: provider_missing_bound_image; expected=${input.expectedCount}; detected=${String(lastEvaluation?.boundAttachmentCount ?? 0)}; last=${lastMessage}`,
+    `review_required: ${input.expectedKind === "image" ? "provider_missing_bound_image" : "provider_missing_bound_file"}; expected=${input.expectedCount}; detected=${String(lastEvaluation?.boundAttachmentCount ?? 0)}; last=${lastMessage}`,
   );
 };
 
@@ -377,6 +359,11 @@ const preparePromptComposer = async (
   const expectedPrefix = buildPromptSubmissionExpectedPrefix(normalizedPrompt);
   const expectedSuffix = buildPromptSubmissionExpectedSuffix(normalizedPrompt);
   const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
+  const expectedAttachmentKind = input.request.inputRefs
+    .filter((ref) => Boolean(ref.filePath))
+    .every((ref) => ref.mimeType?.startsWith("image/") === true)
+    ? "image"
+    : "file";
   await focusComposerBeforePrompt(input);
   await pastePromptIntoComposer({
     ...input,
@@ -385,12 +372,21 @@ const preparePromptComposer = async (
     expectedSuffix,
   });
   if (expectedAttachmentCount > 0) {
+    const expectedFileNames = input.request.inputRefs
+      .filter((ref) => Boolean(ref.filePath))
+      .map((ref) => ref.fileName ?? "");
     const attachmentStartedAtMs = Date.now();
     emitSubmitStage(input, "verify_attachments_before_submit", "start", null, {
       expectedAttachmentCount,
     });
     await withWebChatStep("verify_attachments_before_submit", () =>
-      waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
+      waitForExactAttachmentCount(
+        input.browser,
+        input.context,
+        expectedAttachmentCount,
+        expectedFileNames,
+        10_000,
+      ));
     emitSubmitStage(input, "verify_attachments_before_submit", "success", attachmentStartedAtMs, {
       expectedAttachmentCount,
     });
@@ -408,12 +404,14 @@ const preparePromptComposer = async (
   emitSubmitStage(input, "prompt_prepare", "success", prepareStartedAtMs, {
     expectedChars: expectedLength,
     expectedAttachmentCount,
+    expectedAttachmentKind,
   });
   return {
     expectedLength,
     expectedPrefix,
     expectedSuffix,
     expectedAttachmentCount,
+    expectedAttachmentKind,
     wasPromptVerifiedBeforeSubmit: true,
   };
 };
@@ -425,30 +423,6 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   emitSubmitStage(input, "prompt_submit", "start", null, {
     expectedAttachmentCount: input.preparedPrompt.expectedAttachmentCount,
   });
-  await withWebChatStep("press_return_after_prompt_paste", () =>
-    pressReturnInChrome(input.context.abortSignal));
-  const submittedAfterReturn = await waitForPromptSubmitted({
-    browser: input.browser,
-    context: input.context,
-    request: input.request,
-    expectedPrefix: input.preparedPrompt.expectedPrefix,
-    previousAssistantCount: input.previousAssistantCount,
-    wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
-    timeoutMs: 8_000,
-  });
-  if (submittedAfterReturn) {
-    await waitForSubmittedUserMessageAttachments({
-      browser: input.browser,
-      context: input.context,
-      request: input.request,
-      expectedCount: input.preparedPrompt.expectedAttachmentCount,
-      timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
-    });
-    emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
-      method: "return",
-    });
-    return;
-  }
   await waitForSendButtonClick({
     browser: input.browser,
     context: input.context,
@@ -471,23 +445,35 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
       context: input.context,
       request: input.request,
       expectedCount: input.preparedPrompt.expectedAttachmentCount,
+      expectedKind: input.preparedPrompt.expectedAttachmentKind,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
     });
     emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
-      method: "send_button",
+      method: "provider_dom_send_button",
     });
     return;
   }
   emitSubmitStage(input, "prompt_submit", "failed", submitStartedAtMs, {
     reason: "not_submitted",
   });
-  throw new Error("review_required: provider prompt was not submitted after return and send click.");
+  throw new Error("GPT_PROMPT_MISMATCH; review_required: provider prompt was not submitted after return and send click.");
 };
 
 export const submitPromptViaClipboard = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
-  const preparedPrompt = await preparePromptComposer(input);
-  await submitPromptFromComposer({
-    ...input,
-    preparedPrompt,
-  });
+  try {
+    const preparedPrompt = await preparePromptComposer(input);
+    await submitPromptFromComposer({
+      ...input,
+      preparedPrompt,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/GPT_ATTACHMENT_(?:COUNT|FILENAME|HASH)_MISMATCH/u.test(message)) {
+      throw error;
+    }
+    if (message.includes("GPT_PROMPT_MISMATCH")) {
+      throw error;
+    }
+    throw new Error(`GPT_PROMPT_MISMATCH; ${message}`);
+  }
 };

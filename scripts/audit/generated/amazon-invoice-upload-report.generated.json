@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:18.378Z",
+  "generatedAt": "2026-07-21T00:35:54.158Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -45,6 +45,7 @@
     "src/lib/browser/current-chrome-window-control.ts",
     "src/app/app-shell/app-shell-layout.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
+    "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",

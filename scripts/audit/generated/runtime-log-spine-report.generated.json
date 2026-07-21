@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-09T12:48:18.206Z",
+  "generatedAt": "2026-07-21T00:35:54.051Z",
   "status": "PASS",
-  "scannedFiles": 461,
+  "scannedFiles": 472,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -12,11 +12,13 @@
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
+    "src/app/app-shell/app-shell-pick3-trend-styles.ts",
     "src/app/app-shell/app-shell-styles.ts",
     "src/app/app-shell/app-shell-workspace-styles.ts",
     "src/app/app-shell/app-shell.ts",
     "src/app/app-shell/command-bar.ts",
     "src/app/app-shell/inspector.ts",
+    "src/app/app-shell/localization-client-runtime.ts",
     "src/app/app-shell/localization.ts",
     "src/app/app-shell/lottery-ticket-plan-workspace.ts",
     "src/app/app-shell/runtime-console.ts",
@@ -64,6 +66,7 @@
     "src/app/workbench-home-pick3-stability-client.ts",
     "src/app/workbench-home-pick3-target-client.ts",
     "src/app/workbench-home-pick3-trend-client.ts",
+    "src/app/workbench-home-skill-map-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-lottery-ticket-plan-routes.ts",
@@ -85,7 +88,9 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
@@ -94,7 +99,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
@@ -104,13 +109,15 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
-    "src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
+    "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -284,8 +291,10 @@
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.inventory-search.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.target-resolution.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.urls.ts",
     "src/plugins/amazon-listing-edit-read-sync/index.ts",
     "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
@@ -340,6 +349,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync-task-config.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
@@ -353,6 +363,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
@@ -483,7 +494,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 461,
+    "scannedFiles": 472,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -494,7 +505,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 456,
+      "scannedFiles": 467,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -503,13 +514,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 357
+      "scannedFiles": 365
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 353,
+      "scannedFiles": 361,
       "metrics": {
         "emitCallCount": 41
       }
@@ -518,13 +529,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 353
+      "scannedFiles": 361
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 358,
+      "scannedFiles": 366,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -539,7 +550,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 358,
+      "scannedFiles": 366,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -560,7 +571,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 52
+      "scannedFiles": 56
     },
     {
       "name": "browser-action-log-contract",

@@ -274,50 +274,43 @@ export const inspectAmazonWebChatRestoreContinuity = (
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  const policyPath = "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts";
   const openPath = "src/capabilities/ai-input-gateway/providers/web-chat-open.ts";
   const sharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts";
   const runtimePath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
   const acceptancePath = "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts";
-  const policyFile = getRequiredSourceFile(context, policyPath);
   const openFile = getRequiredSourceFile(context, openPath);
   const sharedFile = getRequiredSourceFile(context, sharedPath);
   const runtimeFile = getRequiredSourceFile(context, runtimePath);
   const acceptanceFile = getRequiredSourceFile(context, acceptancePath);
-  trackSourceFile(inspectedFiles, policyFile);
   trackSourceFile(inspectedFiles, openFile);
   trackSourceFile(inspectedFiles, sharedFile);
   trackSourceFile(inspectedFiles, runtimeFile);
   trackSourceFile(inspectedFiles, acceptanceFile);
 
-  const policyOk = policyFile
-    ? hasIdentifier(policyFile, "AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX")
-      && exportedFunctionHasStartsWithPolicy(policyFile)
-    : false;
   const openOk = openFile
     ? exportedFunctionHasStartsWithPolicy(openFile, "isAmazonProductMiningGptRequest")
     : false;
   const sharedOk = sharedFile
     ? hasIdentifier(sharedFile, "restoredSourcePage")
-      && sourceHasCallExpression(sharedFile, "canContinueAfterWebChatSourceRestoreFailure")
-      && sourceHasCallExpression(sharedFile, "isAmazonProductMiningGptRequest")
+      && fileIncludesText(sharedFile, "SOURCE_PAGE_RESTORE_FAILED")
+      && fileIncludesText(sharedFile, "transportWarnings")
       && sourceHasCallExpression(sharedFile, "closeActiveTab")
     : false;
   const runtimeOk = runtimeFile
-    ? hasIdentifier(runtimeFile, "buildRestoreFailure")
-      && sourceHasCallExpression(runtimeFile, "canContinueAfterWebChatSourceRestoreFailure")
+    ? !sourceHasCallExpression(runtimeFile, "canContinueAfterWebChatSourceRestoreFailure")
+      && !fileIncludesText(runtimeFile, "buildRestoreFailure")
     : false;
 
-  if (policyOk && openOk && sharedOk && runtimeOk && acceptanceFile && fileIncludesText(acceptanceFile, "deep-research.final-adjudication-v1")) {
+  if (openOk && sharedOk && runtimeOk && acceptanceFile && fileIncludesText(acceptanceFile, "deep-research.final-adjudication-v1")) {
     return;
   }
 
   findings.push(createFinding({
     checkId: "amazon-mining/web-chat-restore-continuity",
     lawId,
-    filePath: policyPath,
-    message: "Amazon GPT Web Chat feeds must continue after captured output when only source tab restoration failed, while non-Amazon contracts still fail closed.",
-    evidence: `policyOk=${String(policyOk)} openOk=${String(openOk)} sharedOk=${String(sharedOk)} runtimeOk=${String(runtimeOk)}`,
+    filePath: sharedPath,
+    message: "Every captured GPT Web Chat response must survive source-tab restoration failure; prompt-contract exception lists are forbidden.",
+    evidence: `openOk=${String(openOk)} sharedOk=${String(sharedOk)} runtimeOk=${String(runtimeOk)}`,
   }));
 };
 

@@ -40,7 +40,7 @@ export const AmazonListingEditReadSyncTargetSchema = z.object({
 
 export type AmazonListingEditReadSyncTarget = z.infer<typeof AmazonListingEditReadSyncTargetSchema>;
 
-export const AmazonListingEditReadSyncInputSchema = z.object({
+const AmazonListingEditReadSyncInputBaseSchema = z.object({
   site: z.string().min(1).max(120),
   requestId: z.string().min(1).max(160),
   marketplace: z.enum(["amazon.ae", "amazon.sa", "amazon.com", "amazon.co.uk", "amazon.co.jp"]).default("amazon.ae"),
@@ -53,14 +53,11 @@ export const AmazonListingEditReadSyncInputSchema = z.object({
   productType: z.string().min(1).max(80).optional(),
   stopOnFirstIssue: z.boolean().default(true),
   tabs: z.array(AmazonListingEditReadSyncTabSchema).min(1).max(5).default([...AmazonListingEditReadSyncAllTabs]),
-}).strict().superRefine((input, context) => {
-  if (input.targetMode === "all-inventory" && input.safetyMode !== "all-inventory-edit-tabs") {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["safetyMode"],
-      message: "all-inventory target mode requires all-inventory-edit-tabs safetyMode",
-    });
-  }
+}).strict();
+
+type AmazonListingEditReadSyncInputCandidate = z.infer<typeof AmazonListingEditReadSyncInputBaseSchema>;
+
+const refineTargetRequirements = (input: AmazonListingEditReadSyncInputCandidate, context: z.RefinementCtx): void => {
   if (input.targetMode === "asin" && !input.target.asin) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ["target", "asin"], message: "asin target mode requires target.asin" });
   }
@@ -72,6 +69,16 @@ export const AmazonListingEditReadSyncInputSchema = z.object({
   }
   if (input.targetMode === "child" && !input.target.childAsin && !input.target.childSku && !input.target.asin && !input.target.sku) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ["target"], message: "child target mode requires child or item ASIN/SKU" });
+  }
+};
+
+const refineSafetyModeRequirements = (input: AmazonListingEditReadSyncInputCandidate, context: z.RefinementCtx): void => {
+  if (input.targetMode === "all-inventory" && input.safetyMode !== "all-inventory-edit-tabs") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["safetyMode"],
+      message: "all-inventory target mode requires all-inventory-edit-tabs safetyMode",
+    });
   }
   if (input.safetyMode.startsWith("single-sku") && input.maxItems !== 1) {
     context.addIssue({
@@ -87,6 +94,11 @@ export const AmazonListingEditReadSyncInputSchema = z.object({
       message: "all-inventory-edit-tabs requires scope=all-inventory-pages",
     });
   }
+};
+
+export const AmazonListingEditReadSyncInputSchema = AmazonListingEditReadSyncInputBaseSchema.superRefine((input, context) => {
+  refineTargetRequirements(input, context);
+  refineSafetyModeRequirements(input, context);
 });
 
 export type AmazonListingEditReadSyncInput = z.infer<typeof AmazonListingEditReadSyncInputSchema>;

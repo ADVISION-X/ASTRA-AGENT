@@ -9,7 +9,10 @@ const XuanyuanInputRefSchema = z.object({
   kind: z.string().min(1),
   summary: z.string().min(1),
   filePath: z.string().min(1).optional(),
+  fileName: z.string().min(1).optional(),
   mimeType: z.string().min(1).optional(),
+  sha256: z.string().regex(/^(?:sha256:)?[a-f0-9]{64}$/iu).optional(),
+  byteCount: z.number().int().nonnegative().optional(),
 }).strict();
 
 export const XuanyuanRequestSchema = z.object({
@@ -29,16 +32,20 @@ export const XuanyuanRequestSchema = z.object({
   maxInputChars: z.number().int().positive().default(120_000),
   maxFileCount: z.number().int().nonnegative().default(0),
   maxFileBytes: z.number().int().positive().default(200_000_000),
-}).strict();
+  continuationTaskId: z.string().min(1).optional(),
+  continuationResponseHash: z.string().min(1).optional(),
+}).strict().superRefine((value, context) => {
+  if (Boolean(value.continuationTaskId) !== Boolean(value.continuationResponseHash)) {
+    context.addIssue({ code: "custom", message: "continuationTaskId and continuationResponseHash must be provided together" });
+  }
+});
 
 export type XuanyuanRequest = z.infer<typeof XuanyuanRequestSchema>;
 
 export type XuanyuanTaskStatus =
   | "accepted"
   | "running"
-  | "provider_answer_captured"
-  | "succeeded"
-  | "parse_failed_raw_available"
+  | "response_captured"
   | "review_required"
   | "failed";
 
@@ -59,13 +66,19 @@ export type XuanyuanTaskRecord = {
     inputRefs: XuanyuanRequest["inputRefs"];
   };
   aiFeedResult: AiFeedResult | null;
-  normalizedText: string | null;
+  rawResponseText: string | null;
   rawOutputRef: string | null;
   rawOutputHash: string | null;
-  parseStatus: AiFeedResult["parseStatus"] | null;
-  schemaValidationStatus: AiFeedResult["schemaValidationStatus"] | null;
-  parsedJson: unknown | null;
+  transportWarnings: string[];
   providerProof: AiFeedResult["providerProof"] | null;
+  continuationTaskId: string | null;
+  conversationProof: {
+    priorTaskId: string;
+    priorRawOutputHash: string;
+    requestedProviderPageUrl: string;
+    actualProviderPageUrl: string | null;
+    verified: boolean;
+  } | null;
   failureReason: string | null;
   reviewRequiredReason: string | null;
   createdAt: string;

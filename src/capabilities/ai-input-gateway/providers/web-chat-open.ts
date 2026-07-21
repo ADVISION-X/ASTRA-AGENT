@@ -2,8 +2,9 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import { openGovernedContinuation } from "./web-chat-continuation.js";
+import { CHATGPT_FRESH_CONVERSATION_SCRIPT } from "./web-chat-fresh-conversation-script.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
-import { AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX } from "./web-chat-restore-policy.js";
 import {
   focusExistingWorkspaceTab,
   isPick3WorkspaceId,
@@ -13,6 +14,7 @@ import {
 } from "./web-chat-workspace.js";
 
 const PROVIDER_COMPOSER_READY_TIMEOUT_MS = 60_000;
+const AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX = "amazon-product-mining-" as const;
 
 const PROVIDER_COMPOSER_READY_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
@@ -104,11 +106,12 @@ const requiresFreshChatGptConversation = (input: {
   providerUrl: string;
   request: AiFeedInput;
 }): boolean =>
+  !input.request.providerContinuationRef && (
   (new URL(input.providerUrl).host === "chatgpt.com" && input.request.providerKind === "gpt-web-chat")
   || isDeepResearchGptRequest(input)
   || isAmazonProductMiningGptRequest(input)
   || isPick3GptRequest(input)
-  || isPick3GeminiRequest(input);
+  || isPick3GeminiRequest(input));
 
 const resolveProviderReusePolicy = (input: {
   providerUrl: string;
@@ -186,35 +189,105 @@ const waitForProviderComposer = async (input: {
   throw new Error(`review_required: provider composer did not become ready; last=${lastMessage}`);
 };
 
-const startFreshChatGptConversation = async (input: {
+const isRecoverableComposerTimeout = (error: unknown): boolean =>
+  error instanceof Error
+  && /provider composer did not become ready|wait for provider web chat composer.*timed out/iu.test(error.message);
+
+const isTransientProviderEvaluationTimeout = (error: unknown): boolean =>
+  error instanceof Error
+  && /active-tab evaluation.*timed out/iu.test(error.message);
+
+const waitForFreshChatGptConversation = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  abortSignal?: AbortSignal;
+}): Promise<void> => {
+  const startedAtMs = Date.now();
+  const deadline = Date.now() + 30_000;
+  let lastMessage = "ChatGPT fresh conversation was not checked";
+  emitWebChatOpenStage({
+    request: input.request,
+    stage: "fresh_chatgpt_conversation",
+    status: "start",
+    startedAtMs: null,
+    refs: { timeoutMs: 30_000 },
+  });
+  while (Date.now() < deadline) {
+    if (input.abortSignal?.aborted) {
+      throw new Error("review_required: ChatGPT fresh conversation wait aborted.");
+    }
+    try {
+      const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+        description: "verify isolated ChatGPT fresh conversation",
+        script: CHATGPT_FRESH_CONVERSATION_SCRIPT,
+        ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+      });
+      lastMessage = `${state.status}: ${state.message}; pageUrl=${state.pageUrl ?? "unknown"}`;
+      if (state.status === "success") {
+        emitWebChatOpenStage({
+          request: input.request,
+          stage: "fresh_chatgpt_conversation",
+          status: "success",
+          startedAtMs,
+        });
+        return;
+      }
+      if (state.status === "review_required" || state.status === "failed") {
+        throw new Error(`${state.status}: ${state.message}`);
+      }
+    } catch (error) {
+      if (!isTransientProviderEvaluationTimeout(error)) throw error;
+      lastMessage = error instanceof Error ? error.message : String(error);
+    }
+    await input.browser.wait(300);
+  }
+  emitWebChatOpenStage({
+    request: input.request,
+    stage: "fresh_chatgpt_conversation",
+    status: "failed",
+    startedAtMs,
+    refs: { reason: lastMessage },
+  });
+  throw new Error(`review_required: ChatGPT fresh conversation was not established; last=${lastMessage}`);
+};
+
+type FreshConversationInput = {
   browser: BrowserController;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   providerUrl: string;
-}): Promise<void> => {
-  if (!requiresFreshChatGptConversation(input)) return;
-  if (isPick3GeminiRequest(input)) {
-    const opened = await input.browser.open({
-      url: input.providerUrl,
-      title: "gemini-web-chat:pick3-is-blind-eval:fresh",
-      reusePolicy: "reuse-active-tab",
-    });
-    assertProviderPageOpened(opened);
-    await waitForProviderComposer({
-      browser: input.browser,
-      request: input.request,
-      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    });
-    return;
-  }
-  const deadline = Date.now() + 10_000;
+};
+
+const openFreshGeminiConversation = async (input: FreshConversationInput): Promise<void> => {
+  const opened = await input.browser.open({
+    url: input.providerUrl,
+    title: "gemini-web-chat:pick3-is-blind-eval:fresh",
+    reusePolicy: "reuse-active-tab",
+  });
+  assertProviderPageOpened(opened);
+  await waitForProviderComposer({
+    browser: input.browser,
+    request: input.request,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+};
+
+const clickChatGptNewConversation = async (input: FreshConversationInput): Promise<void> => {
+  const deadline = Date.now() + 30_000;
   let lastState: WebChatEvaluation | null = null;
   while (Date.now() < deadline) {
-    const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
-      description: "click ChatGPT new chat before isolated GPT prompt",
-      script: CHATGPT_NEW_CHAT_SCRIPT,
-      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    });
+    let state: WebChatEvaluation;
+    try {
+      state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+        description: "click ChatGPT new chat before isolated GPT prompt",
+        script: CHATGPT_NEW_CHAT_SCRIPT,
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      });
+    } catch (error) {
+      if (!isTransientProviderEvaluationTimeout(error)) throw error;
+      await input.browser.wait(500);
+      continue;
+    }
     lastState = state;
     if (state.status === "success") break;
     if (state.status !== "review_required" || !state.message.includes("not found")) {
@@ -225,12 +298,46 @@ const startFreshChatGptConversation = async (input: {
   if (lastState?.status !== "success") {
     throw new Error(`${lastState?.status ?? "review_required"}: ${lastState?.message ?? "ChatGPT new chat control was not found"}`);
   }
-  await input.browser.wait(1_000);
+};
+
+const recoverChatGptComposer = async (input: FreshConversationInput): Promise<void> => {
+  const reopened = await input.browser.open({
+    url: input.providerUrl,
+    title: "recover-provider-composer",
+    reusePolicy: "reuse-active-tab",
+  });
+  assertProviderPageOpened(reopened);
+  await waitForFreshChatGptConversation({
+    browser: input.browser,
+    request: input.request,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
   await waitForProviderComposer({
     browser: input.browser,
     request: input.request,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
+};
+
+const startFreshChatGptConversation = async (input: FreshConversationInput): Promise<void> => {
+  if (!requiresFreshChatGptConversation(input)) return;
+  if (isPick3GeminiRequest(input)) return openFreshGeminiConversation(input);
+  await clickChatGptNewConversation(input);
+  await waitForFreshChatGptConversation({
+    browser: input.browser,
+    request: input.request,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  try {
+    await waitForProviderComposer({
+      browser: input.browser,
+      request: input.request,
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+  } catch (error) {
+    if (!isRecoverableComposerTimeout(error)) throw error;
+    await recoverChatGptComposer(input);
+  }
 };
 
 const readActiveProviderUrl = async (
@@ -277,7 +384,7 @@ const focusExistingProviderWorkspace = async (input: {
     providerHost: new URL(input.providerUrl).host,
     workspaceId: input.workspaceId,
     savedUrl: input.savedUrl,
-    allowAnyProviderTab: false || isPick3WorkspaceId(input.workspaceId),
+    allowAnyProviderTab: isPick3WorkspaceId(input.workspaceId) || input.workspaceId === "full-corpus",
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
 };
@@ -328,6 +435,17 @@ export const openProviderPage = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
 }): Promise<void> => {
+  if (input.request.providerContinuationRef) {
+    await openGovernedContinuation({
+      ...input,
+      waitForComposer: () => waitForProviderComposer({
+        browser: input.browser,
+        request: input.request,
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      }),
+    });
+    return;
+  }
   const { workspaceId, savedUrl } = resolveWorkspaceState(input);
   const reusePolicy = resolveProviderReusePolicy({
     providerUrl: input.providerUrl,
@@ -350,11 +468,27 @@ export const openProviderPage = async (input: {
     reusePolicy,
   });
   assertProviderPageOpened(opened);
-  await waitForProviderComposer({
-    browser: input.browser,
-    request: input.request,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
+  try {
+    await waitForProviderComposer({
+      browser: input.browser,
+      request: input.request,
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+  } catch (error) {
+    if (!isRecoverableComposerTimeout(error)) throw error;
+    const reopened = await input.browser.open({
+      url: input.providerUrl,
+      title: `${input.runtimeName}:recover-provider-composer`,
+      reusePolicy: "reuse-active-tab",
+    });
+    assertProviderPageOpened(reopened);
+    await input.browser.wait(1_000);
+    await waitForProviderComposer({
+      browser: input.browser,
+      request: input.request,
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+  }
   await startFreshChatGptConversation({
     browser: input.browser,
     context: input.context,

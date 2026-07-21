@@ -21,10 +21,14 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
 - External website calls must use `X-GrassEye-Agent-Key`; websites must not call ChatGPT, OpenAI, Gemini, Claude, provider SDKs, or provider web chat directly.
 - The first implementation must use `providerKind: "gpt-web-chat"` as the temporary simulation provider.
 - A xuanyuan request must carry `requestId`, `sourceProject`, `scenario`, `promptPackageId`, `promptContractId`, `inputRefs`, `textPrompt`, `timeoutMs`, `maxInputChars`, `maxFileCount`, and `maxFileBytes`.
-- The task must persist request snapshot, prompt package snapshot, input hash proof as returned by AI Input Gateway, raw output refs, parse status, schema validation status, provider proof, failure reason, and review-required reason.
+- A xuanyuan request may optionally carry `continuationTaskId` and `continuationResponseHash`. They are one inseparable pair; external callers may never submit a provider conversation URL.
+- Before continuation, Xuanyuan must load the prior persisted task and verify `sourceProject`, `providerKind`, `response_captured` status, exact raw-output hash, and a captured provider conversation URL. It then mints the internal AI Input Gateway continuation ref; any mismatch fails closed before provider transport.
+- Continuation creates a new Xuanyuan task and new provider lease, but must reuse the exact prior provider conversation. It does not create a workflow engine, hidden third turn, or provider fallback.
+- The task must persist request snapshot, prompt package snapshot, input hash proof as returned by AI Input Gateway, the exact raw response text, raw output refs and hash, provider proof, transport warnings, failure reason, and review-required reason.
+- When a request carries files, Xuanyuan must preserve their declared order and AI Input Gateway must deliver them one by one using exactly one real macOS `Command+C` and one real Chrome `Command+V` per file, verifying the exact cumulative attachment count before the next file.
 - The route surface must expose only known xuanyuan routes: `POST /api/xuanyuan/simulate`, `GET /api/xuanyuan/status`, `GET /api/xuanyuan/latest`, and `GET /api/xuanyuan/history`.
 - Switching to a future real API-key provider must happen behind AI Input Gateway without changing the website-side request/result contract.
-- `parse_failed_raw_available` or failed AI Input Gateway results must not be returned as `succeeded`.
+- Once AI Input Gateway captures a complete provider response, Xuanyuan must return `response_captured` with the exact raw text regardless of parsing, schema, tab-close, source-restore, focus, or cleanup outcomes.
 
 ## Forbidden
 
@@ -34,9 +38,13 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
 - No provider SDK or provider web-chat DOM operation inside `src/plugins/xuanyuan/**`.
 - No `src/plugins/xuanyuan/**` import from provider adapter files.
 - No browser command, selector, coordinate, next action, or action plan accepted from external websites.
+- No provider conversation URL, tab id, browser profile, provider selector, or other transport continuation detail accepted from external websites.
+- No continuation from a missing, non-captured, different-project, different-provider, or hash-mismatched prior task.
 - No cookies, localStorage, sessionStorage, passwords, provider tokens, or browser profile paths in xuanyuan requests.
 - No fake success, fallback success, mock production result, or swallowed provider failure.
+- No batch file paste, multi-file clipboard copy, same-file paste retry, or lower-bound-only attachment count acceptance.
 - No AI output controlling browser actions, workflow order, payment, submission, deletion, or other sensitive final actions.
+- No JSON parsing, schema validation, normalization, extraction, repair, content judgment, or post-capture downgrade inside Xuanyuan.
 
 ## Law IDs
 
@@ -52,13 +60,17 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
   "required": [
     "Known xuanyuan routes exist and are admitted by Workbench API Boundary.",
     "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
-    "External website contract stays provider-agnostic for later real API-key switching."
+    "External website contract stays provider-agnostic for later real API-key switching.",
+    "Optional continuation is authorized only by prior Xuanyuan task id plus exact captured response hash, while Xuanyuan resolves the internal provider conversation ref.",
+    "Web Chat files are delivered in request order through one exact Command+C and Command+V cycle per file with exact cumulative count verification."
   ],
   "forbidden": [
     "second HTTP server or API gateway",
     "website direct provider call or website-held provider key",
     "xuanyuan direct provider SDK or web-chat DOM operation",
-    "fake success when provider or parsing fails"
+    "external provider conversation URL or unverified continuation",
+    "fake success when provider or parsing fails",
+    "batch or duplicate Web Chat file paste"
   ]
 }
 ```

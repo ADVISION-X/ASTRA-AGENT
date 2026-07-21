@@ -9,187 +9,46 @@
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/amazon-invoice-upload-smoke.ts has 530 lines and exceeds the active executable source file red line.",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts has 502 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts has an over-line function near line 186.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
-      "evidence": "{\"owner\":\"audit:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts has an over-line function near line 152.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
-      "evidence": "{\"owner\":\"audit:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts has an over-line function near line 1.",
-      "severity": "fatal",
-      "filePath": "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/app/app-shell/app-shell-workspace-styles.ts has 534 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/app/app-shell/app-shell-workspace-styles.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/app/app-shell/localization.ts has 519 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/app/app-shell/localization.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts has an over-line function near line 1.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-home-client.ts has 502 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-home-client.ts",
-      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts has an over-line function near line 220.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts has an over-line function near line 140.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts has an over-line function near line 299.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has 617 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 103.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 439.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts has an over-line function near line 538.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts has an over-line function near line 56.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-listing-edit-read-sync\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts has 519 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
-      "evidence": "{\"owner\":\"plugin:amazon-product-sync\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts has 516 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
+      "checkId": "code-purity/zombie-file",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts keeps dead internal declaration subgraph member isPick3GptSubmitRequest.",
+      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"ability-group\",\"symbolName\":\"isPick3GptSubmitRequest\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-top-level-declaration",
+      "checkId": "code-purity/zombie-file",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts keeps an orphan top-level variable named acknowledgePick3SubmitRateLimitIfVisible.",
+      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"ability-group\",\"symbolName\":\"acknowledgePick3SubmitRateLimitIfVisible\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts exports waitForAttachmentCountAtLeast without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"symbolName\":\"waitForAttachmentCountAtLeast\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-07-09T12:47:44.742Z",
+  "generatedAt": "2026-07-21T00:35:48.285Z",
   "inspectedFiles": [
+    "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts",
+    "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+    "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts",
     "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
@@ -319,6 +178,8 @@
     "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/audit/domains/amazon-product-sync/inspector-constants.ts",
+    "scripts/audit/domains/amazon-product-sync/inspector-files.ts",
+    "scripts/audit/domains/amazon-product-sync/inspector-task-service.ts",
     "scripts/audit/domains/amazon-product-sync/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
@@ -513,11 +374,13 @@
     "src/app/app-shell/app-shell-core-styles.ts",
     "src/app/app-shell/app-shell-inspector-console-styles.ts",
     "src/app/app-shell/app-shell-layout.ts",
+    "src/app/app-shell/app-shell-pick3-trend-styles.ts",
     "src/app/app-shell/app-shell-styles.ts",
     "src/app/app-shell/app-shell-workspace-styles.ts",
     "src/app/app-shell/app-shell.ts",
     "src/app/app-shell/command-bar.ts",
     "src/app/app-shell/inspector.ts",
+    "src/app/app-shell/localization-client-runtime.ts",
     "src/app/app-shell/localization.ts",
     "src/app/app-shell/lottery-ticket-plan-workspace.ts",
     "src/app/app-shell/runtime-console.ts",
@@ -565,6 +428,7 @@
     "src/app/workbench-home-pick3-stability-client.ts",
     "src/app/workbench-home-pick3-target-client.ts",
     "src/app/workbench-home-pick3-trend-client.ts",
+    "src/app/workbench-home-skill-map-client.ts",
     "src/app/workbench-home-styles.ts",
     "src/app/workbench-http.ts",
     "src/app/workbench-lottery-ticket-plan-routes.ts",
@@ -586,7 +450,9 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
@@ -595,7 +461,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
@@ -605,13 +471,15 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
-    "src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
+    "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -782,8 +650,10 @@
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.inventory-search.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts",
+    "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.target-resolution.ts",
     "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.urls.ts",
     "src/plugins/amazon-listing-edit-read-sync/index.ts",
     "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
@@ -838,6 +708,7 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
+    "src/plugins/amazon-product-sync/amazon-product-sync-task-config.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
     "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
@@ -851,6 +722,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
@@ -988,6 +860,18 @@
     "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1"
   ],
   "liveEntryPoints": [
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts",
+      "reason": "package.json script acceptance:xuanyuan",
+      "scriptName": "acceptance:xuanyuan"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts",
+      "reason": "package.json script acceptance:ai-input-gateway-provider-lease",
+      "scriptName": "acceptance:ai-input-gateway-provider-lease"
+    },
     {
       "entryKind": "package-script",
       "filePath": "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1697,42 +1581,59 @@
       "scriptName": "internal:app-server:dev"
     }
   ],
-  "liveExportCount": 2283,
-  "orphanDeclarationCount": 2,
-  "reachableFileCount": 772,
+  "liveExportCount": 2313,
+  "orphanDeclarationCount": 0,
+  "reachableFileCount": 786,
   "status": "FAIL",
-  "unreachableFileCount": 0,
+  "unreachableFileCount": 2,
   "uselessCodeInventory": [
     {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+      "category": "unreachable-file",
+      "checkId": "code-purity/zombie-file",
+      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
       "keepReason": null,
       "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts keeps dead internal declaration subgraph member isPick3GptSubmitRequest."
+      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
     },
     {
-      "category": "unused-top-level",
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+      "category": "unreachable-file",
+      "checkId": "code-purity/zombie-file",
+      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
       "keepReason": null,
       "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts keeps an orphan top-level variable named acknowledgePick3SubmitRateLimitIfVisible."
+      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
+    },
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts exports waitForAttachmentCountAtLeast without any provable final consumer."
     }
   ],
-  "unprovenPublicExports": [],
+  "unprovenPublicExports": [
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts exports waitForAttachmentCountAtLeast without any provable final consumer."
+    }
+  ],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 0,
+  "zombieExportCount": 1,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2283,
-    "orphanDeclarationCount": 2,
-    "reachableFileCount": 772,
-    "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 2,
-    "zombieExportCount": 0
+    "liveExportCount": 2313,
+    "orphanDeclarationCount": 0,
+    "reachableFileCount": 786,
+    "unreachableFileCount": 2,
+    "uselessCodeInventoryCount": 3,
+    "zombieExportCount": 1
   }
 }

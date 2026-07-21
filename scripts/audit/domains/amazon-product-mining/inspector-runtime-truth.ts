@@ -62,6 +62,31 @@ const sourceHasLiteralValueContaining = (
   ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral),
 ].some((literal) => literal.getLiteralValue().includes(value));
 
+const storageReadsReviewHistory = (
+  storageFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>,
+): boolean =>
+  hasIdentifier(storageFile, "getMinedKeywordHistoryForDedup")
+  && hasIdentifier(storageFile, "normalizeAmazonTargetMarketKey")
+  && sourceHasLiteralValueContaining(storageFile, "amazon_mining_keyword_opportunity_reviews")
+  && !hasIdentifier(storageFile, "getAllMinedKeywordsForDedup");
+
+const keywordRefillsShortage = (
+  keywordFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>,
+): boolean =>
+  hasIdentifier(keywordFile, "buildKeywordRefillPrompt")
+  && hasIdentifier(keywordFile, "currentTaskKeywords")
+  && hasIdentifier(keywordFile, "hasNearDuplicateAmazonKeyword")
+  && hasIdentifier(keywordFile, "AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON")
+  && hasIdentifier(keywordFile, "keywordHistoryPolicy")
+  && sourceHasLiteralValueContaining(keywordFile, "historical_refresh");
+
+const storagePersistsHistoryPolicy = (
+  storageFile: NonNullable<ReturnType<typeof getRequiredSourceFile>>,
+): boolean =>
+  hasIdentifier(storageFile, "keywordHistoryPolicy")
+  && sourceHasLiteralValueContaining(storageFile, "keyword_history_policy")
+  && sourceHasLiteralValueContaining(storageFile, "keyword_history_relation");
+
 export const inspectAmazonRuntimeFailureEvidenceContract = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -159,31 +184,20 @@ export const inspectKeywordHistoricalDedupContract = (
   trackSourceFile(inspectedFiles, flowFile);
   trackSourceFile(inspectedFiles, keywordFile);
 
-  const storageReadsReviewHistory = storageFile
-    ? hasIdentifier(storageFile, "getMinedKeywordHistoryForDedup")
-      && hasIdentifier(storageFile, "normalizeAmazonTargetMarketKey")
-      && sourceHasLiteralValueContaining(storageFile, "amazon_mining_keyword_opportunity_reviews")
-      && !hasIdentifier(storageFile, "getAllMinedKeywordsForDedup")
-    : false;
-  const flowUsesHistoricalPool = flowFile
-    ? hasPropertyAccessNamed(flowFile, "getMinedKeywordHistoryForDedup")
-    : false;
-  const keywordRefillsShortage = keywordFile
-    ? hasIdentifier(keywordFile, "buildKeywordRefillPrompt")
-      && hasIdentifier(keywordFile, "currentTaskKeywords")
-      && hasIdentifier(keywordFile, "hasNearDuplicateAmazonKeyword")
-      && hasIdentifier(keywordFile, "AMAZON_KEYWORD_GENERATION_INSUFFICIENT_NEW_KEYWORDS_REASON")
-    : false;
+  const readsHistory = storageFile ? storageReadsReviewHistory(storageFile) : false;
+  const usesHistoricalPool = flowFile ? hasPropertyAccessNamed(flowFile, "getMinedKeywordHistoryForDedup") : false;
+  const refillsShortage = keywordFile ? keywordRefillsShortage(keywordFile) : false;
+  const persistsPolicy = storageFile ? storagePersistsHistoryPolicy(storageFile) : false;
 
-  if (storageReadsReviewHistory && flowUsesHistoricalPool && keywordRefillsShortage) {
+  if (readsHistory && usesHistoricalPool && refillsShortage && persistsPolicy) {
     return;
   }
   findings.push(createFinding({
     checkId: "amazon-mining/keyword-historical-dedup-pool",
     lawId,
     filePath: storagePath,
-    message: "Keyword generation must present and enforce a historical dedup pool from queued keywords plus keyword opportunity review history, and must refill or fail when AI repeats old keywords.",
-    evidence: `storageReadsReviewHistory=${String(storageReadsReviewHistory)} flowUsesHistoricalPool=${String(flowUsesHistoricalPool)} keywordRefillsShortage=${String(keywordRefillsShortage)}`,
+    message: "Keyword generation must present and enforce a historical dedup pool from queued keywords plus keyword opportunity review history, refill or fail in default mode, and persist explicit historical_refresh markers in refresh mode.",
+    evidence: `storageReadsReviewHistory=${String(readsHistory)} flowUsesHistoricalPool=${String(usesHistoricalPool)} keywordRefillsShortage=${String(refillsShortage)} storagePersistsHistoryPolicy=${String(persistsPolicy)}`,
   }));
 };
 

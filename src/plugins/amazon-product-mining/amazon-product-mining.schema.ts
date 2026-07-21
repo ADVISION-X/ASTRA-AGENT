@@ -99,6 +99,16 @@ const AmazonKeywordProviderKindSchema = z.enum([
   "gpt-web-chat",
 ]);
 
+const AmazonKeywordHistoryPolicySchema = z.enum([
+  "new_keywords_only",
+  "refresh_historical_keywords",
+]);
+
+const AmazonKeywordHistoryRelationSchema = z.enum([
+  "new_keyword",
+  "historical_refresh",
+]);
+
 const AmazonMiningInputSchema = z.object({
   taskId: z.string().min(1).optional(),
   amazonMarketplace: AmazonMarketplaceSchema,
@@ -107,6 +117,7 @@ const AmazonMiningInputSchema = z.object({
   requestedKeywordCount: z.number().int().positive().default(10),
   languagePreference: z.string().min(1).default("en"),
   providerKind: AmazonKeywordProviderKindSchema,
+  keywordHistoryPolicy: AmazonKeywordHistoryPolicySchema.default("new_keywords_only"),
 }).strict();
 
 const AmazonKeywordRecordSchema = z.object({
@@ -116,6 +127,7 @@ const AmazonKeywordRecordSchema = z.object({
   source: z.literal("ai_generated"),
   aiRunId: z.string().min(1).nullable(),
   reason: z.string().nullable().default(null),
+  keywordHistoryRelation: AmazonKeywordHistoryRelationSchema.default("new_keyword"),
   status: AmazonKeywordStatusSchema,
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1).nullable().default(null),
@@ -237,6 +249,7 @@ const AmazonTaskRecordSchema = z.object({
   requestedKeywordCount: z.number().int().positive(),
   languagePreference: z.string().min(1),
   providerKind: AmazonKeywordProviderKindSchema.default("gpt-web-chat"),
+  keywordHistoryPolicy: AmazonKeywordHistoryPolicySchema.default("new_keywords_only"),
   status: AmazonTaskStatusSchema,
   failureReason: z.string().nullable().default(null),
   packageJsonPath: z.string().nullable().default(null),
@@ -304,6 +317,8 @@ export const AmazonMiningSchemas = {
   AmazonKeywordOpportunityHumanNextStepSchema,
   AmazonKeywordOpportunityReviewStatusSchema,
   AmazonKeywordProviderKindSchema,
+  AmazonKeywordHistoryPolicySchema,
+  AmazonKeywordHistoryRelationSchema,
   AmazonKeywordRecordSchema,
   AmazonSearchResultItemSchema,
   AmazonProductDetailSchema,
@@ -330,3 +345,5 @@ export type AmazonKeywordOpportunityReviewStatus = z.infer<typeof AmazonKeywordO
 export type AmazonKeywordOpportunityVerdict = z.infer<typeof AmazonKeywordOpportunityVerdictSchema>;
 export type AmazonKeywordOpportunityReviewRecord = z.infer<typeof AmazonKeywordOpportunityReviewRecordSchema>;
 export type AmazonKeywordProviderKind = z.infer<typeof AmazonKeywordProviderKindSchema>;
+export type AmazonKeywordHistoryPolicy = z.infer<typeof AmazonKeywordHistoryPolicySchema>;
+export type AmazonKeywordHistoryRelation = z.infer<typeof AmazonKeywordHistoryRelationSchema>;

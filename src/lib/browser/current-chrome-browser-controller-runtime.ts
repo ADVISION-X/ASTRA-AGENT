@@ -47,6 +47,7 @@ type RuntimeState = {
   options: CurrentChromeBrowserControllerOptions;
   snapshot: BrowserStateSnapshot;
   lastWindowState: CurrentChromeWindowState | null;
+  controlledUrl: string | null;
 };
 
 type OpenInput = Parameters<BrowserController["open"]>[0];
@@ -77,6 +78,7 @@ const createRuntimeState = (
       browserExecutable: options.sessionConfig.chromeExecutablePath,
     },
     lastWindowState: null,
+    controlledUrl: null,
   };
 };
 
@@ -191,6 +193,7 @@ const openCurrentChrome = async (
       message: "no existing Chrome tab matched requested focus-only URL",
     });
   }
+  state.controlledUrl = input.url;
   await refreshSnapshot(state);
   return createCurrentChromeBrowserActionResult({
     message: `${openMode || "opened"} ${input.url} in current Chrome session`,

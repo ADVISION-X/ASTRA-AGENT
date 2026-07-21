@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:46:24.427Z",
+  "generatedAt": "2026-07-21T00:35:08.165Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -589,7 +589,7 @@
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "prompt+persisted-record",
-      "summary": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins; system prompt text may only add format, deduplication, marketplace, and explicit boundary requirements, not product-trait assumptions.",
+      "summary": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins; a task may explicitly choose historical market refresh mode, where historical keyword matches enter the same production queue only with an explicit historical_refresh marker; system prompt text may only add format, deduplication/refresh, marketplace, and explicit boundary requirements, not product-trait assumptions.",
       "appliesTo": [
         "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts"
@@ -597,7 +597,7 @@
       "forbidden": [
         "AI keyword request without injecting historical mined keywords.",
         "Executing AI natural-language output directly as mining queue.",
-        "Mining the same keyword again without an explicit duplicate marker.",
+        "Mining the same keyword again without task-scoped keywordHistoryPolicy=refresh_historical_keywords and an explicit historical_refresh marker.",
         "Agent fabricating keywords to fill requested count.",
         "System prompt adding size, weight, small-item, lightweight, compact, shipping, price, material, or other product-trait constraints that the user did not explicitly request.",
         "Treating China supplier background as an instruction to narrow keywords by dimensions, low volume, low weight, or ease of shipping."
@@ -4439,13 +4439,17 @@
       "required": [
         "Known xuanyuan routes exist and are admitted by Workbench API Boundary.",
         "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
-        "External website contract stays provider-agnostic for later real API-key switching."
+        "External website contract stays provider-agnostic for later real API-key switching.",
+        "Optional continuation is authorized only by prior Xuanyuan task id plus exact captured response hash, while Xuanyuan resolves the internal provider conversation ref.",
+        "Web Chat files are delivered in request order through one exact Command+C and Command+V cycle per file with exact cumulative count verification."
       ],
       "forbidden": [
         "second HTTP server or API gateway",
         "website direct provider call or website-held provider key",
         "xuanyuan direct provider SDK or web-chat DOM operation",
-        "fake success when provider or parsing fails"
+        "external provider conversation URL or unverified continuation",
+        "fake success when provider or parsing fails",
+        "batch or duplicate Web Chat file paste"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
       "blockIndex": 0

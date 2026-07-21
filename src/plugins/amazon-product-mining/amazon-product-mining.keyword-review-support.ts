@@ -22,7 +22,7 @@ export type KeywordReviewSlice = {
   taskId: string;
   keywordId: string;
   keyword: string;
-  taskScope: Pick<AmazonTaskRecord, "amazonMarketplace" | "targetMarket" | "productDirection" | "requestedKeywordCount" | "languagePreference"> | null;
+  taskScope: Pick<AmazonTaskRecord, "amazonMarketplace" | "targetMarket" | "productDirection" | "requestedKeywordCount" | "languagePreference" | "keywordHistoryPolicy"> | null;
   keywordStatus: string;
   evidenceSummary: {
     searchResultCount: number;
@@ -206,6 +206,7 @@ const buildTaskScope = (
       productDirection: task.productDirection,
       requestedKeywordCount: task.requestedKeywordCount,
       languagePreference: task.languagePreference,
+      keywordHistoryPolicy: task.keywordHistoryPolicy,
     }
   : null;
 

@@ -46,6 +46,7 @@ const taskRecordToMiningInput = (
   requestedKeywordCount: task.requestedKeywordCount,
   languagePreference: task.languagePreference,
   providerKind: task.providerKind,
+  keywordHistoryPolicy: task.keywordHistoryPolicy,
 });
 
 const buildTaskReadModel = (

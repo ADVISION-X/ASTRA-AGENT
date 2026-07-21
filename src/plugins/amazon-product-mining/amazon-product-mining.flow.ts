@@ -122,6 +122,7 @@ const ensureTaskRecord = (runtime: AmazonFlowRuntime): void => {
     requestedKeywordCount: miningInput.requestedKeywordCount,
     languagePreference: miningInput.languagePreference ?? "en",
     providerKind: miningInput.providerKind,
+    keywordHistoryPolicy: miningInput.keywordHistoryPolicy,
     status: "created",
     failureReason: null,
     packageJsonPath: null,
@@ -191,6 +192,8 @@ const runKeywordPhase = async (runtime: AmazonFlowRuntime): Promise<KeywordPhase
     taskId,
     keywords: keywordResult.dedupedKeywords,
     aiRunId: keywordResult.runId,
+    existingMinedKeywords,
+    keywordHistoryPolicy: miningInput.keywordHistoryPolicy,
   });
   storage.saveKeywords(keywordRecords);
   storage.updateTaskStatus({ taskId, status: "keyword_ready" });

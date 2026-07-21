@@ -51,6 +51,7 @@ const pushCaptureFinding = (input: {
 };
 
 type HtmlCapturePaths = {
+  artifactRuntimePath: string;
   capturePath: string;
   exportPath: string;
   proofPath: string;
@@ -58,6 +59,7 @@ type HtmlCapturePaths = {
 };
 
 type HtmlCaptureInspectionInput = {
+  artifactRuntimeFile: SourceFile | undefined;
   captureFile: SourceFile | undefined;
   exportFile: SourceFile | undefined;
   sharedFile: SourceFile | undefined;
@@ -197,30 +199,38 @@ const inspectHtmlArtifactExport = (input: HtmlCaptureInspectionInput, paths: Htm
 };
 
 const inspectSharedRuntime = (input: HtmlCaptureInspectionInput, paths: HtmlCapturePaths): void => {
-  if (!hasIdentifier(input.sharedFile, "captureChatGptBusinessHtmlArtifact")) {
+  if (!hasIdentifier(input.sharedFile, "captureWebChatResponseArtifacts")) {
     pushCaptureFinding({
       findings: input.findings,
       lawId: input.lawId,
       filePath: paths.sharedPath,
-      message: "GPT web-chat shared runtime must call captureChatGptBusinessHtmlArtifact.",
+      message: "GPT web-chat shared runtime must delegate response artifact capture.",
     });
   }
-  if (!hasIdentifier(input.sharedFile, "isBusinessHtmlReportRequest")) {
+  if (!hasIdentifier(input.artifactRuntimeFile, "captureChatGptBusinessHtmlArtifact")) {
     pushCaptureFinding({
       findings: input.findings,
       lawId: input.lawId,
-      filePath: paths.sharedPath,
-      message: "GPT web-chat shared runtime must detect governed business HTML artifact requests before allowing inline response success.",
+      filePath: paths.artifactRuntimePath,
+      message: "GPT web-chat artifact runtime must call captureChatGptBusinessHtmlArtifact.",
     });
   }
-  if (hasStringLiteral(input.sharedFile, "review_required: provider did not produce a business-report.html artifact.")) {
+  if (!hasIdentifier(input.artifactRuntimeFile, "isBusinessHtmlReportRequest")) {
+    pushCaptureFinding({
+      findings: input.findings,
+      lawId: input.lawId,
+      filePath: paths.artifactRuntimePath,
+      message: "GPT web-chat artifact runtime must detect governed business HTML artifact requests before allowing inline response success.",
+    });
+  }
+  if (hasStringLiteral(input.artifactRuntimeFile, "review_required: provider did not produce a business-report.html artifact.")) {
     return;
   }
   pushCaptureFinding({
     findings: input.findings,
     lawId: input.lawId,
-    filePath: paths.sharedPath,
-    message: "GPT web-chat shared runtime must reject business HTML report success when no business-report.html artifact was captured.",
+    filePath: paths.artifactRuntimePath,
+    message: "GPT web-chat artifact runtime must reject business HTML report success when no business-report.html artifact was captured.",
   });
 };
 
@@ -237,6 +247,7 @@ const inspectProofRefs = (input: HtmlCaptureInspectionInput, paths: HtmlCaptureP
 };
 
 export const inspectHtmlArtifactCaptureChain = (input: {
+  artifactRuntimeFile: SourceFile | undefined;
   captureFile: SourceFile | undefined;
   exportFile: SourceFile | undefined;
   sharedFile: SourceFile | undefined;
@@ -245,11 +256,12 @@ export const inspectHtmlArtifactCaptureChain = (input: {
   inspectedFiles: Set<string>;
   lawId: string;
 }): void => {
-  for (const sourceFile of [input.captureFile, input.exportFile, input.sharedFile, input.proofFile]) {
+  for (const sourceFile of [input.artifactRuntimeFile, input.captureFile, input.exportFile, input.sharedFile, input.proofFile]) {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
 
   const paths: HtmlCapturePaths = {
+    artifactRuntimePath: "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     capturePath: "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     exportPath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     sharedPath: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",

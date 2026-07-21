@@ -52,6 +52,33 @@ External Website / xuanxue-web
                                       -> xuanyuan task record
 ```
 
+续聊仍走同一条链，不新增 route、server、provider adapter 或工作流：
+
+```txt
+external continuationTaskId + continuationResponseHash
+  -> Xuanyuan loads prior persisted response_captured task
+  -> verifies same sourceProject/provider and exact raw-output hash
+  -> resolves prior providerPageUrl internally
+  -> AI Input Gateway reopens and proves that exact conversation
+  -> sends the next governed prompt package
+  -> stores a new Xuanyuan task/result linked to the prior task
+```
+
+外部网站永远不得传 `providerPageUrl`、tab id、selector 或浏览器指令。每个 Xuanyuan 请求仍是一次独立、可审计的 provider feed；续聊只表示 transport 复用上一任务的精确会话，不拥有业务轮次编排。
+
+### Ordered Web Chat file delivery
+
+`inputRefs` 中带 `filePath` 的文件必须保持请求顺序，并由现有 AI Input Gateway 原地执行：
+
+```txt
+file 1: Finder 选中单个文件 → Command+C → Chrome composer → Command+V → exact attachment count = 1
+file 2: Finder 选中单个文件 → Command+C → Chrome composer → Command+V → exact attachment count = 2
+...
+file N: Finder 选中单个文件 → Command+C → Chrome composer → Command+V → exact attachment count = N
+```
+
+一次只允许一个文件。任一次复制、粘贴或精确计数失败立即 `review_required`；不得批量复制、批量粘贴、对同一文件重贴或仅以“附件数至少达到 N”继续。
+
 查询链路：
 
 ```txt
@@ -125,6 +152,7 @@ promptContractId
 textPrompt
 inputRefs
 expectedOutputSchemaRef
+continuationTaskId? + continuationResponseHash?
 timeoutMs
 maxInputChars
 maxFileCount
@@ -132,6 +160,8 @@ maxFileBytes
 ```
 
 `systemPrompt`, `userPrompt`, and `payloadJson` may be accepted only to build the governed `textPrompt` snapshot.
+
+`continuationTaskId` 与 `continuationResponseHash` 必须同时存在或同时缺失。存在时，Xuanyuan 只能从自己的任务存储读取并核对上一任务，不得接受网站提交的 provider URL。缺失时保持现有 fresh conversation 行为。
 
 ## Result Contract
 
@@ -146,27 +176,26 @@ providerKind
 status
 rawOutputRef
 rawOutputHash
-normalizedText
-parseStatus
-schemaValidationStatus
-parsedJson
+rawResponseText
 providerProof
+transportWarnings
+continuationTaskId
+conversationProof
 failureReason
 reviewRequiredReason
 createdAt
 updatedAt
 ```
 
-Terminal success is only:
+The only successful transport terminal is:
 
 ```txt
-succeeded
+response_captured
 ```
 
-Parsing or provider failures must remain:
+Provider failures before a complete response is captured remain:
 
 ```txt
-parse_failed_raw_available
 review_required
 failed
 ```
@@ -176,11 +205,16 @@ failed
 Acceptance must prove:
 
 ```txt
-xuanyuan can run with a fixture AiInputGateway and persist a succeeded task
-parse failure does not become succeeded
+xuanyuan can run with a fixture AiInputGateway and persist an exact `response_captured` task
+invalid JSON is still returned byte-for-byte as `response_captured` because parsing belongs to the caller
+source restore and provider-tab close failures after capture remain warnings and never erase or downgrade the response
+fresh request starts a new conversation while valid continuation reuses the exact prior provider conversation
+missing, mismatched, cross-project, cross-provider or non-captured continuation fails before provider submission
+external request schema rejects provider URL, tab id, selector and browser continuation details
 route handler exposes simulate/status/latest/history
 API Boundary admits xuanyuan routes only with external API key requirement
 package scripts include acceptance:xuanyuan and audit:xuanyuan
+Web Chat upload source uses one-file Finder Command+C and Chrome Command+V with exact cumulative count and no same-file paste retry
 ```
 
 Audit must prove:
@@ -192,4 +226,5 @@ route and Workbench handle are wired
 API Boundary route allowlist contains xuanyuan routes
 no provider adapter, browser, DOM automation, or provider SDK import in xuanyuan plugin
 no fake success markers in xuanyuan plugin
+the existing AI Input Gateway upload path contains the ordered one-file C/V enforcement and exact-count fail-closed guard
 ```

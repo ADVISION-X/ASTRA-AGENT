@@ -17,6 +17,9 @@ const serverPath = "src/app/create-workbench-server.ts";
 const handlePath = "src/lib/local-runtime/workbench-handle.ts";
 const runtimePath = "src/lib/local-runtime/workbench.ts";
 const routePath = "src/app/workbench-xuanyuan-routes.ts";
+const webChatClipboardPath = "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts";
+const webChatUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
+const webChatComposerScriptsPath = "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts";
 const pluginFiles = [
   "src/plugins/xuanyuan/index.ts",
   "src/plugins/xuanyuan/xuanyuan.schema.ts",
@@ -34,6 +37,9 @@ const inspectedFileList = [
   handlePath,
   runtimePath,
   routePath,
+  webChatClipboardPath,
+  webChatUploadPath,
+  webChatComposerScriptsPath,
   ...pluginFiles,
 ] as const;
 
@@ -102,7 +108,9 @@ const inspectRuntimeMarkers = (
     "promptPackageSnapshot",
     "aiInputGateway.execute",
     "providerProof",
-    "parse_failed_raw_available",
+    "rawResponseText",
+    "response_captured",
+    "transportWarnings",
   ]);
   for (const forbidden of ["fallback success", "mock production", "provider SDK", "browserCommand"]) {
     if (pluginText.includes(forbidden)) {
@@ -156,6 +164,20 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     "listXuanyuanHistory",
   ]);
   inspectRuntimeMarkers(findings, lawId);
+  requireText(findings, lawId, webChatClipboardPath, readText(webChatClipboardPath), [
+    "tell process \"Finder\"",
+    "keystroke \"c\" using command down",
+    "keystroke \"v\" using command down",
+  ]);
+  requireText(findings, lawId, webChatUploadPath, readText(webChatUploadPath), [
+    "provider one-file Command+C then Command+V",
+    "waitForExactAttachmentCount",
+  ]);
+  requireText(findings, lawId, webChatComposerScriptsPath, readText(webChatComposerScriptsPath), [
+    "buildWaitForExactAttachmentCountScript",
+    "result.count === expectedCount",
+    "result.count > expectedCount",
+  ]);
   inspectForbiddenImports(context, findings, lawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

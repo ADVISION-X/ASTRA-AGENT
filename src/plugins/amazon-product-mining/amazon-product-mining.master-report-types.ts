@@ -4,6 +4,7 @@ type ReportTask = {
   targetMarket?: string;
   productDirection?: string;
   languagePreference?: string;
+  keywordHistoryPolicy?: string;
   status?: string;
   handoffStatus?: string;
   failureReason?: string | null;

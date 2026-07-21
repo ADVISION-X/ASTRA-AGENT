@@ -1,5 +1,4 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { createId } from "../../lib/local-runtime/ids.js";
 import { RuntimeFailureClass, RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { buildMissingItem, runAmazonProductSyncFlow, type AmazonProductSyncFlowProgress } from "./amazon-product-sync.flow.js";
 import {
@@ -12,12 +11,7 @@ import {
   readAmazonProductSyncTask,
   readLatestAmazonProductSyncTask,
 } from "./amazon-product-sync.storage.js";
-
-const flowTimeoutReasonPrefix = "amazon_product_sync_flow_timeout_after_";
-const startupProgressStaleMs = 60_000;
-const activeProgressStaleMs = 45_000;
-const startupProgressWaitMs = 5_000;
-const runningProgressStaleReasonPrefix = "amazon_product_sync_running_progress_stale_after_";
+import { activeProgressStaleMs, buildInitialAmazonProductSyncTask, flowTimeoutReasonPrefix, runningProgressStaleReasonPrefix, startupProgressStaleMs, startupProgressWaitMs } from "./amazon-product-sync-task-config.js";
 const accountSecurityReasons = new Set(["login_required", "captcha_or_2fa_required", "review_required"]);
 
 export type AmazonProductSyncRuntime = {
@@ -25,24 +19,6 @@ export type AmazonProductSyncRuntime = {
   readonly browser: BrowserController;
   readonly runtimeLogger: RuntimeLogger;
   readonly flowTimeoutMs?: number;
-};
-
-const initialTask = (mission: AmazonProductSyncInput, taskId = createId("amazon_product_sync")): AmazonProductSyncTaskRecord => {
-  const now = new Date().toISOString();
-  const queuedOk = false;
-  return {
-    taskId,
-    site: mission.site,
-    requestId: mission.requestId,
-    marketplace: mission.marketplace,
-    ok: queuedOk,
-    status: "queued",
-    reason: null,
-    reachedStep: "queued",
-    items: [],
-    createdAt: now,
-    updatedAt: now,
-  };
 };
 
 const logStartReceived = (runtime: AmazonProductSyncRuntime, mission: AmazonProductSyncInput): void => {
@@ -444,7 +420,7 @@ export const startAmazonProductSyncTask = async (
 ): Promise<AmazonProductSyncTaskRecord> => {
   const mission = AmazonProductSyncInputSchema.parse(rawInput);
   logStartReceived(runtime, mission);
-  const queued = await persistAmazonProductSyncTask(runtime.dataDir, initialTask(mission));
+  const queued = await persistAmazonProductSyncTask(runtime.dataDir, buildInitialAmazonProductSyncTask(mission));
   logQueued(runtime, mission, queued);
   const running = await persistAmazonProductSyncTask(runtime.dataDir, {
     ...queued,

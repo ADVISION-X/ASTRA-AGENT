@@ -5,14 +5,28 @@ import type {
   AiInputGatewayProviderKind,
 } from "../schema.js";
 
+export type AiProviderUploadedFileProof = {
+  inputRefId: string;
+  step: number;
+  expectedAttachmentCount: number;
+  detectedAttachmentCount: number;
+  fileName: string;
+  sha256: `sha256:${string}`;
+  byteCount: number;
+};
+
 export type AiProviderRawResponse = {
   rawText: string;
   modelName: string | null;
   runtimeName: string;
   transport: "api" | "web-chat";
   webChatUrl: string | null;
+  continuationActualUrl?: string | null;
+  continuationVerified?: boolean | null;
   sourcePageUrlBeforeFeed: string | null;
   restoredSourcePage: boolean | null;
+  transportWarnings?: string[];
+  uploadedFiles?: AiProviderUploadedFileProof[];
   outputRefs?: string[];
   providerTabPolicy?: string | null;
   providerRecoveryAttemptCount?: number | null;

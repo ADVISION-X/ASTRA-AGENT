@@ -125,11 +125,11 @@ const createTaskRecord = (
 ) => (task: AmazonTaskRecord): AmazonTaskRecord => {
   db.prepare(`INSERT INTO amazon_mining_tasks (
     task_id, amazon_marketplace, target_market, product_direction, requested_keyword_count,
-    language_preference, provider_kind, status, handoff_status, created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    language_preference, provider_kind, keyword_history_policy, status, handoff_status, created_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
     task.taskId, task.amazonMarketplace, task.targetMarket, task.productDirection,
-    task.requestedKeywordCount, task.languagePreference, task.providerKind, task.status,
-    task.handoffStatus, task.createdAt,
+    task.requestedKeywordCount, task.languagePreference, task.providerKind, task.keywordHistoryPolicy,
+    task.status, task.handoffStatus, task.createdAt,
   );
   return getTask(task.taskId)!;
 };
@@ -188,10 +188,20 @@ const createKeywordOperations = (
 ): Pick<AmazonMiningStorage, "saveKeywords" | "updateKeywordStatus" | "getKeywordsForTask" | "getMinedKeywordHistoryForDedup" | "saveAiKeywordRun" | "getAiKeywordRunsForTask"> => ({
   saveKeywords(keywords) {
     const stmt = db.prepare(`INSERT OR IGNORE INTO amazon_mining_keywords (
-      keyword_id, task_id, keyword, source, ai_run_id, reason, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+      keyword_id, task_id, keyword, source, ai_run_id, reason, keyword_history_relation, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const keyword of keywords) {
-      stmt.run(keyword.keywordId, keyword.taskId, keyword.keyword, keyword.source, keyword.aiRunId, keyword.reason, keyword.status, keyword.createdAt);
+      stmt.run(
+        keyword.keywordId,
+        keyword.taskId,
+        keyword.keyword,
+        keyword.source,
+        keyword.aiRunId,
+        keyword.reason,
+        keyword.keywordHistoryRelation,
+        keyword.status,
+        keyword.createdAt,
+      );
     }
   },
 

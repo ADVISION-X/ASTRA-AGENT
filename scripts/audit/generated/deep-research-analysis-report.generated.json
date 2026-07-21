@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T12:48:23.782Z",
+  "generatedAt": "2026-07-21T00:35:57.323Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -103,6 +103,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
@@ -131,6 +132,7 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",

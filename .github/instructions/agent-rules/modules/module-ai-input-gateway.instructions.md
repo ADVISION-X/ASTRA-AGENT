@@ -13,9 +13,9 @@ capabilityGroupId: ai-input-gateway
 
 ## Boundary
 
-AI Input Gateway owns external AI transport only: provider delivery, response retrieval, transport proof, output parsing status, and provider adapters.
+AI Input Gateway owns external AI transport only: provider delivery, exact raw response retrieval, transport proof, and provider adapters.
 
-It is not a replacement for `src/capabilities/ai`. The AI capability group owns cognitive tasks, prompt contracts, task output schemas, and task-level validation. AI Input Gateway owns how a governed prompt package is delivered to an external AI provider and how the raw provider result is returned with proof.
+It is not a replacement for `src/capabilities/ai`. The AI capability group owns cognitive tasks, prompt contracts, task output schemas, and task-level validation. AI Input Gateway owns how a governed prompt package is delivered to an external AI provider and how the exact raw provider result is returned with proof. It never decides whether provider content is valid business output.
 
 An active P0 job-flow law may explicitly let that job flow own a flow-scoped AI stage locally when no shared AI capability group exists for that law-governed stage. Even under that exception, the job flow may call only the AI Input Gateway public contract; it may not call provider SDKs, provider web chat DOM, or provider adapters directly.
 
@@ -59,8 +59,11 @@ Required direction:
 - The canonical runtime root is `src/capabilities/ai-input-gateway`.
 - The group must own schemas, manifest, public contract, runtime dispatch, provider adapters, feed proof, input package governance, output parsing, and rate guards.
 - Every execution must return one unified `AiFeedResult`.
+- Once a complete provider response is captured, transport success and the exact raw response are immutable; later cleanup or browser-context failure can only add warnings.
 - Every execution must identify `providerKind`.
 - Every execution must carry governed `promptPackageId`, `promptContractId`, and `inputRefs`.
+- A Web Chat execution may carry one internal `providerContinuationRef` only when the calling owner has already validated a prior completed task and the ref is minted from that task's captured provider proof; absence of the ref means a fresh conversation.
+- A continuation must navigate to and prove the exact prior provider conversation before uploading or submitting the next governed prompt package.
 - Provider proof must survive success, failure, and review-required outcomes.
 
 Forbidden:
@@ -197,8 +200,8 @@ Required direction:
 - Web chat feeds must acquire a browser tab ownership lease before browser mutation.
 - Provider proof must record `sourcePageUrlBeforeFeed`.
 - Provider proof must record `providerPageUrl`.
-- The source mission page must be restored after feed completion when a source URL exists.
-- If source restoration fails, the result must be `review_required`, except when an active P0 job-flow law explicitly allows a local non-DOM follow-up flow to keep an already captured raw provider response while recording `restoredSourcePage=false`.
+- The source mission page should be restored after feed completion when a source URL exists.
+- If source restoration, provider-tab close, focus restoration, history cleanup, or other post-capture cleanup fails, provider proof must record the warning, but the already captured raw response and transport-success state are immutable.
 - Only one web-chat feed may run at a time.
 - Web-chat feed execution must not run concurrently with product-video next-video DOM operations.
 
@@ -236,14 +239,23 @@ Required direction:
 - Input must include `maxInputChars`, `maxFileCount`, and `maxFileBytes`.
 - `maxInputChars` may be a finite guard or the explicit no-GrassEye-text-ceiling sentinel `Number.MAX_SAFE_INTEGER` for law-approved long-form Web Chat prompts.
 - Input proof must include `inputHash`.
+- An optional internal continuation must include the prior captured raw-output hash and the exact provider conversation URL recovered from governed task storage; arbitrary caller-supplied provider URLs are forbidden.
+- Web Chat file refs must be delivered strictly in request order, one file at a time.
+- Every file delivery must execute one real macOS `Command+C` for that one file followed by one real Chrome `Command+V`.
+- The adapter must verify that the composer attachment count increases to the exact next count before copying the next file.
+- A failed or timed-out file paste must stop for review; it must not paste that file again inside the same feed.
 
 Forbidden:
 - feeding cookies, tokens, passwords, sessions, browser storage, or hidden credential material;
 - feeding full raw webpage HTML;
 - feeding unapproved local files;
 - uploading arbitrary directory contents to Web Chat;
+- batch-copying or batch-pasting multiple Web Chat files;
+- retry-pasting one file and risking a duplicate attachment;
+- accepting an attachment lower-bound count instead of the exact next count during ordered file delivery;
 - writing unfiltered user-private fields into prompts;
 - treating implicit, unmarked, or unowned unbounded prompt text as a governed package.
+- accepting a provider continuation URL from an external website or continuing a conversation whose prior captured response hash does not match.
 
 ## Law GRASSEYE-AI-FEED-007-V1
 
@@ -253,29 +265,29 @@ capabilityDomain: ai-input-gateway
 enforcementMode: auto
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Every AI feed must produce raw output proof, normalized text, parse status, and schema validation result.
+summary: Every AI feed must return the exact raw provider response and transport proof without parsing or schema judgment.
 
 ### 主题
 
-输出证明与解析
+原样输出证明
 
 ### 法条
 
-Every AI feed result must prove what provider output was received and how it was parsed.
+Every AI feed result must prove exactly what provider output was received. Parsing and task-specific schema validation belong to the calling capability, never to the transport gateway.
 
 Required direction:
 - Result must include `rawOutputRef`.
 - Result must include `rawOutputHash`.
-- Result must include `normalizedText`.
-- Result must include `parseStatus`.
-- Result must include `schemaValidationStatus`.
+- Result must include the exact `rawResponseText`.
+- Result must include post-capture `transportWarnings`.
 - Result must include `providerProof`.
 - Provider proof must include `startedAt`, `endedAt`, and `durationMs`.
+- A continued Web Chat feed must additionally prove the requested prior conversation identity, the actual provider page URL used, and the prior captured response hash.
 - Provider errors must be surfaced as structured failed or review-required outcomes.
 
 Forbidden:
 - claiming success without output;
-- treating JSON parse failure as schema valid;
+- parsing, extracting, normalizing, repairing, selecting, or schema-validating provider content;
 - saving only console logs as proof;
 - swallowing provider errors;
 - silently converting provider failure into business rejection.

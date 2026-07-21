@@ -41,6 +41,8 @@ const nearDuplicateCandidates = ["shoe rack organizer", "fresh kitchen mat", "le
 const nearDuplicateExisting = ["shoe rack", "led strip lights"];
 const dedupedNearDuplicates = deduplicateKeywords(nearDuplicateCandidates, nearDuplicateExisting, []);
 assert.deepEqual(dedupedNearDuplicates, ["fresh kitchen mat"], "Near-duplicate keyword expansions must be filtered before AI refill.");
+const refreshedHistoricalKeywords = deduplicateKeywords(["shoe rack", "fresh kitchen mat"], ["shoe rack"], [], "refresh_historical_keywords");
+assert.deepEqual(refreshedHistoricalKeywords, ["shoe rack", "fresh kitchen mat"], "Refresh mode must allow explicit historical keywords into the same production queue.");
 
 // --- Test 7: Empty candidates returns empty ---
 const deduped7 = deduplicateKeywords([], ["something"], []);
@@ -54,6 +56,7 @@ assert.ok(records[0]!.keyword === "stove");
 assert.equal(records[0]!.taskId, taskId);
 assert.equal(records[0]!.source, "ai_generated");
 assert.equal(records[0]!.aiRunId, "run-abc");
+assert.equal(records[0]!.keywordHistoryRelation, "new_keyword");
 assert.equal(records[0]!.status, "pending");
 assert.ok(records[0]!.keywordId.length > 0, "keywordId should be non-empty UUID");
 assert.notEqual(records[0]!.keywordId, records[1]!.keywordId, "keywordIds should be unique");
@@ -112,6 +115,7 @@ await runKeywordGeneration({
     requestedKeywordCount: 1,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "new_keywords_only",
   },
   providerKind: "gpt-web-chat",
 });
@@ -185,6 +189,7 @@ const refillResult = await runKeywordGeneration({
     requestedKeywordCount: 2,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "new_keywords_only",
   },
   providerKind: "gpt-web-chat",
 });
@@ -218,10 +223,80 @@ const shortageResult = await runKeywordGeneration({
     requestedKeywordCount: 2,
     languagePreference: "en",
     providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "new_keywords_only",
   },
   providerKind: "gpt-web-chat",
 });
 assert.equal(shortageResult.status, "failed");
 assert.equal(shortageResult.failureReason?.includes("keyword_generation_insufficient_new_keywords"), true);
+
+// --- Test 12: historical refresh mode allows old keywords but marks them explicitly at record build time ---
+let refreshPrompt = "";
+const refreshGateway = {
+  ...refillGateway,
+  async execute(input: unknown) {
+    refreshPrompt = (input as { textPrompt?: string }).textPrompt ?? "";
+    return {
+      ...(await refillGateway.execute(input)),
+      normalizedText: JSON.stringify({ keywords: [{ keyword: "water bottle" }, { keyword: "fresh kitchen mat" }] }),
+    };
+  },
+};
+const refreshResult = await runKeywordGeneration({
+  taskId,
+  aiInputGateway: refreshGateway,
+  existingMinedKeywords: ["water bottle"],
+  miningInput: {
+    amazonMarketplace: "amazon.ae",
+    targetMarket: "United Arab Emirates",
+    productDirection: "China supply products",
+    requestedKeywordCount: 2,
+    languagePreference: "en",
+    providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "refresh_historical_keywords",
+  },
+  providerKind: "gpt-web-chat",
+});
+assert.equal(refreshResult.status, "success");
+assert.deepEqual(refreshResult.dedupedKeywords, ["water bottle", "fresh kitchen mat"]);
+assert.ok(refreshPrompt.includes("Keyword History Policy: refresh_historical_keywords"), "Refresh prompt must disclose the task history policy.");
+assert.ok(refreshPrompt.includes("Historical keyword refresh pool"), "Refresh prompt must describe historical keywords as refreshable, not hidden exclusions.");
+const refreshRecords = buildKeywordRecords({
+  taskId,
+  keywords: refreshResult.dedupedKeywords,
+  aiRunId: refreshResult.runId,
+  existingMinedKeywords: ["water bottle"],
+  keywordHistoryPolicy: "refresh_historical_keywords",
+});
+assert.equal(refreshRecords.find((record) => record.keyword === "water bottle")?.keywordHistoryRelation, "historical_refresh");
+assert.equal(refreshRecords.find((record) => record.keyword === "fresh kitchen mat")?.keywordHistoryRelation, "new_keyword");
+
+const partialRefreshGateway = {
+  ...refreshGateway,
+  async execute(input: unknown) {
+    refreshPrompt = (input as { textPrompt?: string }).textPrompt ?? "";
+    return {
+      ...(await refreshGateway.execute(input)),
+      normalizedText: JSON.stringify({ keywords: [{ keyword: "shower head" }, { keyword: "handheld shower head" }] }),
+    };
+  },
+};
+const partialRefreshResult = await runKeywordGeneration({
+  taskId,
+  aiInputGateway: partialRefreshGateway,
+  existingMinedKeywords: ["shower head"],
+  miningInput: {
+    amazonMarketplace: "amazon.ae",
+    targetMarket: "UAE",
+    productDirection: "花洒",
+    requestedKeywordCount: 5,
+    languagePreference: "zh-CN",
+    providerKind: "gpt-web-chat",
+    keywordHistoryPolicy: "refresh_historical_keywords",
+  },
+  providerKind: "gpt-web-chat",
+});
+assert.equal(partialRefreshResult.status, "success", "Refresh mode must continue with a partial refresh queue instead of blocking market refresh.");
+assert.deepEqual(partialRefreshResult.dedupedKeywords, ["shower head", "handheld shower head"]);
 
 process.stdout.write("[ACCEPTANCE-PASS] amazon-product-mining-keyword-dedup\n");

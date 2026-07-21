@@ -2,6 +2,7 @@ import { renderAmazonInvoiceClient } from "./workbench-home-amazon-invoice-clien
 import { renderAmazonProductMiningReviewClient } from "./workbench-home-amazon-product-mining-review-client.js";
 import { renderPick3Client } from "./workbench-home-pick3-client.js";
 import { renderLotteryTicketPlanClient } from "./workbench-home-lottery-ticket-plan-client.js";
+import { WORKBENCH_HOME_SKILL_MAP_CLIENT } from "./workbench-home-skill-map-client.js";
 
 const WORKBENCH_HOME_CLIENT = `
 const state = {
@@ -30,33 +31,7 @@ const state = {
   pick3TaskId: "",
 };
 
-const skillLabels = {
-  "amazon-product-mining": "Amazon Product Mining",
-  "facebook-video-mining": "Facebook Video Mining",
-  "tiktok-product-mining": "TikTok Product Mining",
-  "deep-research-analysis": "Deep Research Analysis",
-  "pick3-is-blind-eval": "Pick3 IS Blind Eval",
-  "lottery-ticket-plan": "Lottery Ticket Plan",
-  "video-downloader": "Video Downloader",
-  "media-optimizer": "Media Optimizer",
-  "amazon-invoice-upload": "Amazon Invoice Upload",
-  "amazon-listing-edit-read-sync": "Amazon Listing Edit Read",
-};
-const jobToSkill = {
-  "amazon-product-mining": "amazon-product-mining",
-  facebook: "facebook-video-mining",
-  "facebook-video-mining": "facebook-video-mining",
-  "video-download": "video-downloader",
-  "video-downloader": "video-downloader",
-  "media-processing": "media-optimizer",
-  "media-optimizer": "media-optimizer",
-  "deep-research": "deep-research-analysis",
-  "deep-research-analysis": "deep-research-analysis",
-  "pick3-is-blind-eval": "pick3-is-blind-eval", "lottery-ticket-plan": "lottery-ticket-plan",
-  amazon: "amazon-invoice-upload",
-  "amazon-invoice-upload": "amazon-invoice-upload",
-  "amazon-listing-edit-read-sync": "amazon-listing-edit-read-sync",
-};
+${WORKBENCH_HOME_SKILL_MAP_CLIENT}
 const qs = (selector) => document.querySelector(selector);
 const setText = (selector, value) => { const node = qs(selector); if (node) node.textContent = value ?? "-"; };
 const setInputValue = (selector, value) => {
@@ -322,6 +297,7 @@ const startAmazonProductMining = async (event) => {
     targetMarket: form.targetMarket.value.trim(),
     productDirection: form.productDirection.value.trim(),
     requestedKeywordCount: Number(form.requestedKeywordCount.value),
+    keywordHistoryPolicy: form.keywordHistoryPolicy.value,
     languagePreference: form.languagePreference.value,
     providerKind: form.amazonKeywordProviderKind.value,
   };

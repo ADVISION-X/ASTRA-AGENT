@@ -113,5 +113,6 @@ flowchart TD
 - waitForStableAnswer 必须按活动续等：assistant count 增加、answerText 变化、generating/progress 仍在继续时都要延长 idle timeout；固定 wall-clock timeout 只能作为最后保险丝。
 - Web Chat transport 只负责 raw response proof，不得因为业务层期望 JSON 就把非 JSON 但非空的 provider reply 在 transport 层废掉；raw capture 成功后必须把 reply 交回业务 parser 决定 JSON、text fallback 或 review_required。
 - Deep Research 使用 GPT web-chat 时，每一次 prompt exchange 必须先 fresh open 一个 provider tab，再在粘贴前点击 ChatGPT 页面“新聊天”；实测证明同一会话会记住上一个随机 marker，而点击新聊天后只返回 UNKNOWN，因此“新聊天”是当前最小可用会话隔离动作。
+- 只有内部 `providerContinuationRef` 明确存在且通过 prior response hash 校验时，GPT web-chat 才允许恢复该 ref 指向的精确历史会话并跳过“新聊天”；普通请求仍必须 fresh conversation。continuation URL 只能来自受治理任务存储，不得来自业务网站请求。
 - Deep Research 的 `business-report.html` 产物捕获只能走真实 ChatGPT 文件产物链。优先点击 assistant 正文中的 `下载 business-report.html` 文件入口并读取打开的 HTML 文档或下载目录新增文件；只有该入口未出现或未产出有效 HTML 时，才点击预览框右上角 `下载代码文件`。禁止恢复从回复正文、代码 fence、摘要文本中猜测 HTML 的旧链路。
 - Deep Research 使用 GPT web-chat 时，在拿到 provider response 并构建 raw output proof 后，必须立即通过 `Command+W` 关闭当前 provider 标签页，再恢复 source APP 标签；关闭失败必须 `review_required`。

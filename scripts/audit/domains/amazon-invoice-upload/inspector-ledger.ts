@@ -190,6 +190,11 @@ function inspectUploadTaskRecordResponseSanitizer(routesFile: SourceFile, findin
     || !sanitizer.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "invoicePdfPath")) {
     addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-response-sanitizer", "Upload task record API responses must redact mission.invoicePdfPath before leaving Workbench routes.");
   }
+  inspectSanitizerUseByRouteHandlers(routesFile, findings, lawId);
+  inspectRawTaskRecordResponses(routesFile, findings, lawId);
+}
+
+function inspectSanitizerUseByRouteHandlers(routesFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
   for (const functionName of [
     "handleAmazonTaskCreateRequest",
     "handleAmazonPluginStartRequest",
@@ -206,6 +211,9 @@ function inspectUploadTaskRecordResponseSanitizer(routesFile: SourceFile, findin
       addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-route-sanitizer", `${functionName} must return only sanitized upload task records.`);
     }
   }
+}
+
+function inspectRawTaskRecordResponses(routesFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
   for (const functionName of ["handleAmazonTaskCreateRequest", "handleAmazonTaskResumeRequest", "handleAmazonPluginLatestRequest"]) {
     const routeHandler = routesFile.getFunction(functionName) ?? routesFile.getVariableDeclaration(functionName)?.getInitializer();
     const rawWriteJsonCall = routeHandler?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {

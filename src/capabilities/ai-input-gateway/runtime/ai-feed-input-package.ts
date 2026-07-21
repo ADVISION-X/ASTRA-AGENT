@@ -1,13 +1,17 @@
 import { createHash } from "node:crypto";
-import { open, stat } from "node:fs/promises";
+import { open, readFile, stat } from "node:fs/promises";
+import { basename } from "node:path";
 
 import type { AiFeedInput } from "../schema.js";
 
 export type UploadableAiFeedInputRef = {
   id: string;
   filePath: string;
+  fileName: string;
   mimeType: string | null;
   summary: string;
+  sha256: `sha256:${string}`;
+  byteCount: number;
 };
 
 export type AiFeedInputPackage = {
@@ -17,8 +21,14 @@ export type AiFeedInputPackage = {
   uploadableFiles: UploadableAiFeedInputRef[];
 };
 
-const hashValue = (value: string): string =>
+const hashValue = (value: string | Buffer): string =>
   createHash("sha256").update(value).digest("hex");
+
+const fileHash = (value: Buffer): `sha256:${string}` =>
+  `sha256:${hashValue(value)}`;
+
+const normalizeDeclaredHash = (value: string): `sha256:${string}` =>
+  (value.startsWith("sha256:") ? value : `sha256:${value}`) as `sha256:${string}`;
 
 const assertPromptSafe = (input: AiFeedInput): void => {
   if (input.textPrompt.length > input.maxInputChars) {
@@ -83,11 +93,26 @@ const assertFileLimits = async (input: AiFeedInput): Promise<{
       throw new Error(`AI feed file exceeds maxFileBytes=${input.maxFileBytes}: ${ref.id}.`);
     }
     await assertUploadableFile(filePath, ref.mimeType);
+    const bytes = await readFile(filePath);
+    const actualFileName = basename(filePath);
+    const actualSha256 = fileHash(bytes);
+    if (ref.fileName !== undefined && ref.fileName !== actualFileName) {
+      throw new Error(`AI_FEED_FILE_NAME_MISMATCH:${ref.id}:expected=${ref.fileName}:actual=${actualFileName}`);
+    }
+    if (ref.byteCount !== undefined && ref.byteCount !== bytes.byteLength) {
+      throw new Error(`AI_FEED_FILE_BYTE_COUNT_MISMATCH:${ref.id}:expected=${ref.byteCount}:actual=${bytes.byteLength}`);
+    }
+    if (ref.sha256 !== undefined && normalizeDeclaredHash(ref.sha256) !== actualSha256) {
+      throw new Error(`AI_FEED_FILE_SHA256_MISMATCH:${ref.id}`);
+    }
     uploadableFiles.push({
       id: ref.id,
       filePath,
+      fileName: actualFileName,
       mimeType: ref.mimeType ?? null,
       summary: ref.summary,
+      sha256: actualSha256,
+      byteCount: bytes.byteLength,
     });
   }
   const imagePaths = fileRefs
@@ -112,14 +137,19 @@ export const buildAiFeedInputPackage = async (
       promptPackageId: input.promptPackageId,
       promptContractId: input.promptContractId,
       expectedOutputSchemaRef: input.expectedOutputSchemaRef,
+      providerContinuationRef: input.providerContinuationRef ?? null,
       textPrompt: input.textPrompt,
       inputRefs: input.inputRefs.map((ref) => ({
         id: ref.id,
         kind: ref.kind,
         summary: ref.summary,
         filePath: ref.filePath ?? null,
+        fileName: ref.fileName ?? null,
         mimeType: ref.mimeType ?? null,
+        sha256: ref.sha256 ?? null,
+        byteCount: ref.byteCount ?? null,
       })),
+      fileIntegrity: uploadableFiles.map(({ id, sha256, byteCount }) => ({ id, sha256, byteCount })),
     })),
     inputRefIds: input.inputRefs.map((ref) => ref.id),
     imagePaths,

@@ -17,6 +17,9 @@ export type WebChatEvaluation = {
   composerText?: string | null;
   expectedLength?: number;
   attachmentCount?: number;
+  attachmentNames?: string[];
+  missingFileNames?: string[];
+  unexpectedFileNames?: string[];
   attachmentScope?: "input" | "global" | "none";
   boundAttachmentCount?: number;
   lastUserMessageText?: string | null;
@@ -50,7 +53,7 @@ const isRealSubmittedAttachment = (node) => {
   if (/add files?|添加文件|profile|avatar|account|menuitem|button|发送|send/i.test(label)) return false;
   if (/移除文件\\d*|remove file\\d*/i.test(label)) return true;
   if (node.matches("img, picture, canvas, [role='img'], gem-media-attachment, uploader-file-preview, user-query-file-carousel")) return true;
-  return /\\b(file|attachment|image)\\b|附件|图片|\\.png|\\.jpg|\\.jpeg|\\.webp/i.test(label);
+  return /\\b(file|attachment|image)\\b|附件|图片|\\.(png|jpg|jpeg|webp|gif|zip|json|ndjson|md|txt|pdf|csv|mp4|mov|webm)\\b/i.test(label);
 };
 const countBoundAttachments = (root) => {
   if (!root || typeof root.querySelectorAll !== "function") return 0;
@@ -124,10 +127,11 @@ const countGeminiBoundAttachments = (messageNode) => {
 };
 `;
 
-export const buildVerifyLastUserMessageAttachmentsScript = (expectedCount: number): string => `
+export const buildVerifyLastUserMessageAttachmentsScript = (expectedCount: number, expectedKind: "image" | "file"): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 ${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
 const expectedCount = ${JSON.stringify(expectedCount)};
+const expectedKind = ${JSON.stringify(expectedKind)};
 ${WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 ${CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 ${GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
@@ -142,10 +146,13 @@ const boundAttachmentCount = chatGptUserMessages.length > 0
   ? countChatGptBoundAttachments(lastUserMessage)
   : countGeminiBoundAttachments(lastUserMessage);
 const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
-if (boundAttachmentCount >= expectedCount) {
-  return {status: "success", message: "provider last submitted user message contains bound image attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
+if (boundAttachmentCount === expectedCount) {
+  return {status: "success", message: expectedKind === "image" ? "provider last submitted user message contains bound image attachment" : "provider last submitted user message contains bound file attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
 }
-return {status: "pending", message: "provider_missing_bound_image: last submitted user message does not contain required image attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
+if (boundAttachmentCount > expectedCount) {
+  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH: last submitted user message contains too many attachments", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
+}
+return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: last submitted user message does not contain required image attachment" : "provider_missing_bound_file: last submitted user message does not contain required file attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
 `;
 
 const WEB_CHAT_GENERATION_STATE_SCRIPT = `

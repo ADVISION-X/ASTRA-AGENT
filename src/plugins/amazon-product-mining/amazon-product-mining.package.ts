@@ -108,6 +108,7 @@ const buildPackageKeywordEntries = (input: {
     source: "ai_generated",
     aiRunId: keywordById.get(keyword.keywordId)?.aiRunId ?? null,
     reason: keywordById.get(keyword.keywordId)?.reason ?? null,
+    keywordHistoryRelation: keywordById.get(keyword.keywordId)?.keywordHistoryRelation ?? "new_keyword",
     status: keyword.status,
     searchUrl: keyword.searchUrl,
     searchResultCount: keyword.itemIds.length,
