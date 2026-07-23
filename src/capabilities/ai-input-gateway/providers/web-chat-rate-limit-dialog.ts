@@ -2,6 +2,44 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
+const RATE_LIMIT_TEXT_PATTERN_SOURCE = "请求过于频繁|请稍等(?:几分钟)?后再试|稍后再试|达到(?:了)?(?:使用|请求|频率)限制|使用限制|too many requests|request too frequent|try again later|temporarily limited|rate limit";
+const UPLOAD_BLOCKER_TEXT_PATTERN_SOURCE = "文件上传.{0,24}(?:失败|限制|上限|稍后|重试)|上传.{0,24}(?:失败|限制|上限|稍后|重试)|(?:file )?upload.{0,32}(?:failed|limit|maximum|later|again)|(?:can(?:not|'t)|unable to).{0,16}upload|maximum number of files";
+const RECENT_DIALOG_MAX_AGE_MS = 30_000;
+
+export type ChatGptBlockingDialogKind = "rate_limit" | "upload_rejected";
+
+export type ChatGptBlockingDialogObservation = {
+  kind: ChatGptBlockingDialogKind;
+  observedAt: number;
+  text: string;
+};
+
+let recentBlockingDialog: ChatGptBlockingDialogObservation | null = null;
+
+const normalizeDialogText = (text: string): string => text.replace(/\s+/gu, " ").trim().slice(0, 300);
+
+const rememberBlockingDialog = (input: { kind?: string; text?: string } | null): void => {
+  if (!input?.text || (input.kind !== "rate_limit" && input.kind !== "upload_rejected")) return;
+  recentBlockingDialog = {
+    kind: input.kind,
+    observedAt: Date.now(),
+    text: normalizeDialogText(input.text),
+  };
+};
+
+export const clearRecentChatGptBlockingDialog = (): void => {
+  recentBlockingDialog = null;
+};
+
+export const getRecentChatGptBlockingDialog = (): ChatGptBlockingDialogObservation | null => {
+  if (!recentBlockingDialog) return null;
+  if (Date.now() - recentBlockingDialog.observedAt > RECENT_DIALOG_MAX_AGE_MS) {
+    recentBlockingDialog = null;
+    return null;
+  }
+  return recentBlockingDialog;
+};
+
 const RATE_LIMIT_DIALOG_TEXT_SCRIPT = `
 const visible = (node) => {
   if (!node || typeof node.getBoundingClientRect !== "function") return false;
@@ -12,33 +50,42 @@ const visible = (node) => {
 const dialogs = Array.from(document.querySelectorAll('[role="dialog"], [data-radix-portal]'))
   .concat(Array.from(document.querySelectorAll('[role="alertdialog"], [aria-modal="true"]')))
   .filter(visible);
+const classifyBlockingDialog = (text) => {
+  if (new RegExp(${JSON.stringify(RATE_LIMIT_TEXT_PATTERN_SOURCE)}, "iu").test(text)) return "rate_limit";
+  if (new RegExp(${JSON.stringify(UPLOAD_BLOCKER_TEXT_PATTERN_SOURCE)}, "iu").test(text)) return "upload_rejected";
+  return null;
+};
 `;
 
 export const isChatGptRateLimitDialogVisible = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
-}): Promise<boolean> => input.browser.evaluateActiveTab<boolean>({
-  description: "detect visible ChatGPT rate-limit dialog",
-  script: `${RATE_LIMIT_DIALOG_TEXT_SCRIPT}
-return dialogs.some((node) => {
+}): Promise<boolean> => {
+  const detected = await input.browser.evaluateActiveTab<{ kind: string; text: string } | null>({
+    description: "detect visible ChatGPT rate-limit dialog",
+    script: `${RATE_LIMIT_DIALOG_TEXT_SCRIPT}
+const match = dialogs.map((node) => {
   const text = String(node.innerText || node.textContent || "");
   const hasAcknowledgement = Array.from(node.querySelectorAll('button, [role="button"]')).some((button) => {
     const label = String((button.getAttribute("aria-label") || "") + " " + (button.textContent || "")).trim();
     return label.includes("明白") || label.includes("确定") || /got it|understand|okay|ok/i.test(label);
   });
-  return hasAcknowledgement && ((text.includes("请求过于频繁") && text.includes("请稍等"))
-    || /too many requests|request too frequent|try again later|temporarily limited|达到限制|使用限制|稍后再试/i.test(text)
-    || text.trim().length > 0);
-});
+  const kind = classifyBlockingDialog(text);
+  return hasAcknowledgement && kind ? {kind, text} : null;
+}).find(Boolean) || null;
+return match;
 `,
-  ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-});
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  rememberBlockingDialog(detected);
+  return detected !== null;
+};
 
 export const acknowledgeChatGptRateLimitDialogIfVisible = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
 }): Promise<string | null> => {
-  const target = await input.browser.evaluateActiveTab<{ status: string; clickPoint?: { x: number; y: number } }>({
+  const target = await input.browser.evaluateActiveTab<{ status: string; clickPoint?: { x: number; y: number }; kind?: string; text?: string }>({
     description: "locate ChatGPT rate-limit acknowledgement button",
     script: `${RATE_LIMIT_DIALOG_TEXT_SCRIPT}
 const scope = dialogs.find((node) => {
@@ -47,22 +94,23 @@ const scope = dialogs.find((node) => {
     const label = String((button.getAttribute("aria-label") || "") + " " + (button.textContent || "")).trim();
     return label.includes("明白") || label.includes("确定") || /got it|understand|okay|ok/i.test(label);
   });
-  return hasAcknowledgement && ((text.includes("请求过于频繁") && text.includes("请稍等"))
-    || /too many requests|request too frequent|try again later|temporarily limited|达到限制|使用限制|稍后再试/i.test(text)
-    || text.trim().length > 0);
+  return hasAcknowledgement && classifyBlockingDialog(text) !== null;
 }) || null;
 if (!scope) return {status: "rate_limit_dialog_not_found"};
+const text = String(scope.innerText || scope.textContent || "");
+const kind = classifyBlockingDialog(text);
 const buttons = Array.from(scope.querySelectorAll('button, [role="button"]')).filter(visible);
 const button = buttons.find((node) => {
   const label = String((node.getAttribute("aria-label") || "") + " " + (node.innerText || node.textContent || "")).trim();
   return label.includes("明白") || label.includes("确定") || /ok|got it|understand/i.test(label);
 }) || buttons[buttons.length - 1];
-if (!button || typeof button.getBoundingClientRect !== "function") return {status: "rate_limit_ack_not_found"};
+if (!button || typeof button.getBoundingClientRect !== "function") return {status: "rate_limit_ack_not_found", kind, text};
 const rect = button.getBoundingClientRect();
-return {status: "rate_limit_ack_located", clickPoint: {x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.y + rect.height / 2)}};
+return {status: "rate_limit_ack_located", kind, text, clickPoint: {x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.y + rect.height / 2)}};
 `,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
+  rememberBlockingDialog(target);
   if (!target.clickPoint || target.status !== "rate_limit_ack_located") {
     return target.status === "rate_limit_dialog_not_found" ? null : target.status;
   }

@@ -76,16 +76,22 @@ const sourceHasStartsWithPrefixPolicy = (sourceFile: SourceFile): boolean =>
 try {
   const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
   const sharedSource = project.getSourceFileOrThrow("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts");
+  const recoverySource = project.getSourceFileOrThrow("src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts");
   const openSource = project.getSourceFileOrThrow("src/capabilities/ai-input-gateway/providers/web-chat-open.ts");
   assert.equal(
-    sourceHasCallExpression(sharedSource, "isAmazonProductMiningGptRequest"),
+    sourceHasCallExpression(recoverySource, "isAmazonProductMiningGptRequest"),
     true,
     "Amazon GPT Web Chat provider tabs must be closed after response capture.",
   );
   assert.equal(
-    sourceHasCallExpression(sharedSource, "closeActiveTab"),
+    sourceHasCallExpression(recoverySource, "closeActiveTab"),
     true,
     "Web chat restore stage must close governed provider tabs instead of leaving stale GPT tabs open.",
+  );
+  assert.equal(
+    sourceHasCallExpression(sharedSource, "restoreAfterWebChatFeed"),
+    true,
+    "The main web-chat flow must invoke the governed recovery and restoration owner.",
   );
   assert.equal(
     sourceHasStartsWithPrefixPolicy(openSource),

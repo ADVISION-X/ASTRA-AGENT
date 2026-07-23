@@ -7,6 +7,8 @@ import type {
   AiFeedInput,
   AiFeedResult,
   AiInputGatewayAbilityGroup,
+  AiProviderUploadedFileProof,
+  WebChatAttachmentUploadProof,
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import {
   getLatestXuanyuanTask,
@@ -16,55 +18,114 @@ import {
   startXuanyuanTaskAsync,
 } from "../../src/plugins/xuanyuan/index.js";
 
+const buildUploadedFiles = (request: AiFeedInput): AiProviderUploadedFileProof[] =>
+  request.inputRefs
+    .filter((ref) => ref.filePath)
+    .map((ref, index) => ({
+      inputRefId: ref.id,
+      step: index + 1,
+      expectedAttachmentCount: request.inputRefs.length,
+      detectedAttachmentCount: request.inputRefs.length,
+      fileName: ref.fileName!,
+      sha256: ref.sha256! as `sha256:${string}`,
+      byteCount: ref.byteCount!,
+    }));
+
+const buildAttachmentUploadProof = (
+  uploadedFiles: AiProviderUploadedFileProof[],
+): WebChatAttachmentUploadProof => ({
+  childCapabilityId: "attach-approved-web-chat-files-once",
+  uploadAttemptId: "fixture-upload-attempt",
+  transportKind: uploadedFiles.length >= 2
+    ? "native_picker_batch"
+    : uploadedFiles.length === 1
+      ? "ordered_clipboard"
+      : "skipped",
+  expectedFileCount: uploadedFiles.length,
+  detectedFileCount: uploadedFiles.length,
+  stagingManifestHash: uploadedFiles.length > 0 ? `sha256:${"a".repeat(64)}` : null,
+  files: uploadedFiles.map((proof) => ({
+    inputRefId: proof.inputRefId,
+    order: proof.step,
+    sourceFileName: proof.fileName,
+    displayFileName: proof.fileName,
+    sha256: proof.sha256,
+    byteCount: proof.byteCount,
+  })),
+  startedAt: new Date().toISOString(),
+  endedAt: new Date().toISOString(),
+  status: uploadedFiles.length > 0 ? "attachments_stable" : "skipped",
+  failureReason: null,
+  reviewRequiredReason: null,
+});
+
+const buildFixtureFeedResult = (input: {
+  request: AiFeedInput;
+  rawText: string;
+  uploadedFiles: AiProviderUploadedFileProof[];
+  attachmentUploadProof: WebChatAttachmentUploadProof;
+}): AiFeedResult => ({
+  abilityGroupId: "ai-input-gateway",
+  childCapabilityId: "feed-gpt-web-chat-once",
+  providerKind: "gpt-web-chat",
+  status: "success",
+  rawResponseText: input.rawText,
+  transportWarnings: [],
+  normalizedText: input.rawText,
+  rawOutputRef: path.join(tmpdir(), "xuanyuan-fixture-output.txt"),
+  rawOutputHash: "fixture-output-hash",
+  parseStatus: "not_requested",
+  parsedJson: null,
+  schemaValidationStatus: "not_applicable",
+  providerProof: {
+    providerKind: "gpt-web-chat",
+    providerLeaseId: "fixture-provider-lease",
+    modelName: null,
+    inputHash: "fixture-input-hash",
+    outputHash: "fixture-output-hash",
+    inputRefs: input.request.inputRefs.map((ref) => ref.id),
+    uploadedFileRefs: input.uploadedFiles.map((proof) => proof.inputRefId),
+    uploadedFiles: input.uploadedFiles,
+    attachmentUploadProof: input.attachmentUploadProof,
+    outputRefs: [],
+    startedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString(),
+    durationMs: 1,
+    transport: "web-chat",
+    webChatUrl: input.request.providerContinuationRef?.providerPageUrl
+      ?? "https://chatgpt.com/c/xuanyuan-fixture",
+    continuationPriorTaskId: input.request.providerContinuationRef?.priorTaskId ?? null,
+    continuationPriorRawOutputHash: input.request.providerContinuationRef?.priorRawOutputHash ?? null,
+    continuationRequestedUrl: input.request.providerContinuationRef?.providerPageUrl ?? null,
+    continuationActualUrl: input.request.providerContinuationRef?.providerPageUrl ?? null,
+    continuationVerified: input.request.providerContinuationRef ? true : null,
+    sourcePageUrlBeforeFeed: null,
+    restoredSourcePage: null,
+    retryCount: 0,
+    cooldownMs: 0,
+    estimatedInputTokens: null,
+    estimatedOutputTokens: null,
+    tokenEstimateUnavailableReason: "fixture",
+    transportWarnings: [],
+  },
+  failureReason: null,
+  reviewRequiredReason: null,
+});
+
 const buildFixtureGateway = (rawText: string): AiInputGatewayAbilityGroup => ({
   abilityGroupId: "ai-input-gateway",
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
-  async execute(input: unknown): Promise<AiFeedResult> {
+  async execute(input: unknown, options): Promise<AiFeedResult> {
     const request = input as AiFeedInput;
-    return {
-      abilityGroupId: "ai-input-gateway",
-      childCapabilityId: "feed-gpt-web-chat-once",
-      providerKind: "gpt-web-chat",
-      status: "success",
-      rawResponseText: rawText,
-      transportWarnings: [],
-      normalizedText: rawText,
-      rawOutputRef: path.join(tmpdir(), "xuanyuan-fixture-output.txt"),
-      rawOutputHash: "fixture-output-hash",
-      parseStatus: "not_requested",
-      parsedJson: null,
-      schemaValidationStatus: "not_applicable",
-      providerProof: {
-        providerKind: "gpt-web-chat",
-        providerLeaseId: "fixture-provider-lease",
-        modelName: null,
-        inputHash: "fixture-input-hash",
-        outputHash: "fixture-output-hash",
-        inputRefs: request.inputRefs.map((ref) => ref.id),
-        uploadedFileRefs: request.inputRefs.filter((ref) => ref.filePath).map((ref) => ref.id),
-        outputRefs: [],
-        startedAt: new Date().toISOString(),
-        endedAt: new Date().toISOString(),
-        durationMs: 1,
-        transport: "web-chat",
-        webChatUrl: request.providerContinuationRef?.providerPageUrl ?? "https://chatgpt.com/c/xuanyuan-fixture",
-        continuationPriorTaskId: request.providerContinuationRef?.priorTaskId ?? null,
-        continuationPriorRawOutputHash: request.providerContinuationRef?.priorRawOutputHash ?? null,
-        continuationRequestedUrl: request.providerContinuationRef?.providerPageUrl ?? null,
-        continuationActualUrl: request.providerContinuationRef?.providerPageUrl ?? null,
-        continuationVerified: request.providerContinuationRef ? true : null,
-        sourcePageUrlBeforeFeed: null,
-        restoredSourcePage: null,
-        retryCount: 0,
-        cooldownMs: 0,
-        estimatedInputTokens: null,
-        estimatedOutputTokens: null,
-        tokenEstimateUnavailableReason: "fixture",
-        transportWarnings: [],
-      },
-      failureReason: null,
-      reviewRequiredReason: null,
-    };
+    const uploadedFiles = buildUploadedFiles(request);
+    const attachmentUploadProof = buildAttachmentUploadProof(uploadedFiles);
+    await options?.onAttachmentUploadCompleted?.(attachmentUploadProof);
+    return buildFixtureFeedResult({
+      request,
+      rawText,
+      uploadedFiles,
+      attachmentUploadProof,
+    });
   },
 });
 
@@ -82,8 +143,8 @@ try {
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts"),
     "utf8",
   );
-  const webChatUploadSource = await readFile(
-    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts"),
+  const attachmentCapabilitySource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts"),
     "utf8",
   );
   const webChatComposerScriptsSource = await readFile(
@@ -111,11 +172,13 @@ try {
   ]) {
     assert.equal(webChatClipboardSource.includes(requiredOneByOneClipboardGuard), true, `Xuanyuan Web Chat file delivery must contain ${requiredOneByOneClipboardGuard}`);
   }
-  for (const requiredOrderedUploadGuard of [
-    "provider one-file Command+C then Command+V",
-    "waitForExactAttachmentCount",
+  for (const requiredAttachmentGuard of [
+    "attachApprovedWebChatFilesOnce",
+    "native_picker_batch",
+    "ordered_clipboard",
+    "waitForStableAttachmentSet",
   ]) {
-    assert.equal(webChatUploadSource.includes(requiredOrderedUploadGuard), true, `Xuanyuan Web Chat ordered upload must contain ${requiredOrderedUploadGuard}`);
+    assert.equal(attachmentCapabilitySource.includes(requiredAttachmentGuard), true, `Xuanyuan Web Chat attachment child must contain ${requiredAttachmentGuard}`);
   }
   for (const requiredExactCountGuard of [
     "buildWaitForExactAttachmentCountScript",
@@ -124,7 +187,7 @@ try {
   ]) {
     assert.equal(webChatComposerScriptsSource.includes(requiredExactCountGuard), true, `Xuanyuan Web Chat exact attachment guard must contain ${requiredExactCountGuard}`);
   }
-  assert.equal(webChatUploadSource.includes("CLIPBOARD_PASTE_RETRY_LIMIT"), false, "Xuanyuan Web Chat file delivery must not retry-paste the same file");
+  assert.equal(attachmentCapabilitySource.includes("fallback"), false, "Xuanyuan Web Chat attachment child must not fallback between transports");
 
   const succeeded = await startXuanyuanTask({
     dataDir,
@@ -138,10 +201,18 @@ try {
     promptContractId: "acceptance-contract",
     expectedOutputSchemaRef: "schema:xuanyuan.acceptance",
     textPrompt: "Return JSON.",
-    inputRefs: [{ id: "ref-1", kind: "evidence_pack", summary: "fixture evidence pack" }],
+    inputRefs: [{
+      id: "ref-1",
+      kind: "evidence_pack",
+      summary: "fixture evidence pack",
+      filePath: "/tmp/xuanyuan-acceptance-fixture.json",
+      fileName: "fixture.json",
+      sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      byteCount: 1,
+    }],
     timeoutMs: 1000,
     maxInputChars: 1000,
-    maxFileCount: 0,
+    maxFileCount: 1,
     maxFileBytes: 1,
   });
 
@@ -152,6 +223,9 @@ try {
   assert.equal(succeeded.providerProof?.inputHash, "fixture-input-hash");
   assert.equal(succeeded.providerProof?.providerLeaseId, "fixture-provider-lease");
   assert.equal(succeeded.rawResponseText, "{\"answer\":\"ok\"}");
+  assert.equal(succeeded.progress.attachmentUploadProof?.status, "attachments_stable");
+  assert.equal(succeeded.progress.attachmentUploadProof?.expectedFileCount, 1);
+  assert.equal(succeeded.progress.attachmentUploadProof?.detectedFileCount, 1);
 
   const continued = await startXuanyuanTask({
     dataDir,

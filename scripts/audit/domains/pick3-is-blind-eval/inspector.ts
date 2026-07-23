@@ -44,9 +44,9 @@ const flowTypesPath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow-
 const aiGatewaySchemaPath = "src/capabilities/ai-input-gateway/schema.ts";
 const webChatOpenPath = "src/capabilities/ai-input-gateway/providers/web-chat-open.ts";
 const webChatSharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts";
+const webChatRecoveryPath = "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts";
 const webChatSubmitPath = "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"; const webChatEvaluationPath = "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts";
-const webChatUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
-const webChatClipboardPath = "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts";
+const attachmentChildPath = "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts";
 const webChatSelectorPreludePath = "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts";
 const webChatSharedSupportPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts"; const webChatWorkspacePath = "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts";
 const webChatPick3HistoryCleanupPath = "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts";
@@ -80,9 +80,8 @@ const inspectedFiles = [
   playbookLoaderPath,
   aiExchangePath, aiCheckpointPath, aiQuotaPath, aiThrottlePath, aiContractPath, aiParsePath, flowPath, progressPath, taskPath, taskRecordPath, historyPath, playbookLessonsPath, trendPath, flowTypesPath, stabilityPath,
   aiGatewaySchemaPath,
-  webChatOpenPath, webChatSharedPath, webChatSubmitPath, webChatEvaluationPath,
-  webChatUploadPath,
-  webChatClipboardPath,
+  webChatOpenPath, webChatSharedPath, webChatRecoveryPath, webChatSubmitPath, webChatEvaluationPath,
+  attachmentChildPath,
   webChatSelectorPreludePath,
   webChatSharedSupportPath,
   webChatWorkspacePath,
@@ -237,6 +236,7 @@ type PromptExchangeTexts = {
   webChatOpenText: string;
   webChatEvaluationText: string;
   webChatSharedText: string;
+  webChatRecoveryText: string;
   webChatPick3HistoryCleanupText: string;
   webChatSharedSupportText: string; webChatWorkspaceText: string;
   workbenchPick3SupportText: string; playbookLoaderText: string;
@@ -260,6 +260,7 @@ const readPromptExchangeTexts = (): PromptExchangeTexts => ({
   webChatOpenText: readRepoTextIfExists(webChatOpenPath),
   webChatEvaluationText: readRepoTextIfExists(webChatEvaluationPath),
   webChatSharedText: readRepoTextIfExists(webChatSharedPath),
+  webChatRecoveryText: readRepoTextIfExists(webChatRecoveryPath),
   webChatPick3HistoryCleanupText: readRepoTextIfExists(webChatPick3HistoryCleanupPath),
   webChatSharedSupportText: readRepoTextIfExists(webChatSharedSupportPath),
   webChatWorkspaceText: readRepoTextIfExists(webChatWorkspacePath),
@@ -317,7 +318,8 @@ const inspectPick3WebChatRecovery = (
   promptExchangeLaw: string,
   texts: PromptExchangeTexts,
 ): void => {
-  requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", texts.webChatSharedText, "pick3-is-blind-eval/no-result-recovery", ["PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000", "PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1", "reuse-active-tab", "isPick3NoResultTimeoutError", "recoverPick3NoResultConversation", "pick3_no_result_recovery_reopened_gemini_new_chat", "pick3_no_result_recovery_refreshed_without_history_delete_and_reopened_new_chat"]);
+  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/no-result-recovery-orchestration", ["PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000", "PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1", "isPick3NoResultTimeoutError", "recoverPick3NoResultConversation"]);
+  requireTokens(findings, promptExchangeLaw, webChatRecoveryPath, texts.webChatRecoveryText, "pick3-is-blind-eval/no-result-recovery-implementation", ["reuse-active-tab", "recoverPick3NoResultConversation", "pick3_no_result_recovery_reopened_gemini_new_chat", "pick3_no_result_recovery_refreshed_without_history_delete_and_reopened_new_chat"]);
   for (const forbiddenRateLimitEscalation of ["provider_rate_limited_too_many_requests", "recoverAfterPick3RateLimit", "pick3_rate_limit_same_payload_resend_started"]) if (texts.webChatSharedText.includes(forbiddenRateLimitEscalation)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", "pick3-is-blind-eval/rate-limit-click-only-no-resend", `${forbiddenRateLimitEscalation} must not appear in web-chat-shared.ts; the only action on a visible rate-limit dialog is click acknowledgement, never reopen/resend.`);
   if (texts.webChatSharedText.includes("deletePick3WorkspaceConversationHistoryUrl")) {
     addFinding(findings, promptExchangeLaw, webChatSharedPath, "pick3-is-blind-eval/no-runtime-provider-history-delete", "Pick3 web-chat runtime must not call provider history deletion while provider history deletion is temporarily disabled.");
@@ -328,39 +330,25 @@ const inspectPick3WebChatRecovery = (
   requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/gemini-pre-submit-idle-guard", ["shouldSkipPreSubmitConversationState", "pre_submit_snapshot", "fresh_gemini_pick3_conversation"]);
   requireTokens(findings, promptExchangeLaw, webChatEvaluationPath, existsRepoPath(webChatEvaluationPath) ? readRepoText(webChatEvaluationPath) : "", "pick3-is-blind-eval/submitted-image-binding-dom", ["buildVerifyLastUserMessageAttachmentsScript", "[data-message-author-role='user']", "user-query, user-query-content, .user-query-container", "countGeminiBoundAttachments", "countChatGptBoundAttachments", "messageNode.parentElement", "messageNode.previousElementSibling", "WEB_CHAT_ATTACHMENT_COUNT_SCRIPT", "button[aria-label*='在文本字段中显示']", "[class*='file-tile' i]", "composerRootText.includes(\"在文本字段中显示\")", "isChatGptPastedTextTile", "isRealSubmittedAttachment", "findAttachmentTileRoot(node) || node", "provider last submitted user message contains bound image attachment"]);
   requireTokens(findings, promptExchangeLaw, webChatEvaluationPath, texts.webChatEvaluationText, "pick3-is-blind-eval/quota-exhausted-dom-detection", ["pick3_quota_exhausted_wait_required", "usage limit", "message cap", "额度", "上限", "用完"]);
-  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/missing-bound-image-recovery", ["isPick3MissingBoundImageError", "recoverPick3MissingBoundImageConversation", "pick3_missing_bound_image_recovery_without_history_delete_and_reopened_new_chat"]);
+  requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/missing-bound-image-recovery-orchestration", ["isPick3MissingBoundImageError", "recoverPick3MissingBoundImageConversation"]);
+  requireTokens(findings, promptExchangeLaw, webChatRecoveryPath, texts.webChatRecoveryText, "pick3-is-blind-eval/missing-bound-image-recovery-implementation", ["recoverPick3MissingBoundImageConversation", "pick3_missing_bound_image_recovery_without_history_delete_and_reopened_new_chat"]);
   requireTokens(findings, promptExchangeLaw, webChatSharedPath, texts.webChatSharedText, "pick3-is-blind-eval/rate-limit-click-only-lifecycle", ["startPick3RateLimitDialogWatcher", "rateLimitDialogWatcher?.stop"]);
   for (const forbiddenRateLimitResend of ["recoverAfterPick3RateLimit", "same_payload_resend_started", "pick3_rate_limit_new_chat_reopened_for_resend"]) if (texts.webChatSharedText.includes(forbiddenRateLimitResend)) addFinding(findings, promptExchangeLaw, webChatSharedPath, "pick3-is-blind-eval/rate-limit-click-only-no-resend", `Pick3 rate-limit dialog handling must not contain ${forbiddenRateLimitResend}; only acknowledgement clicks are allowed.`);
   const recoveryLogText = existsRepoPath("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") ? readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts") : ""; requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", recoveryLogText, "pick3-is-blind-eval/rate-limit-recovery-logging", ["PICK3_RATE_LIMIT_WATCH_INTERVAL_MS = 500", "reservePick3RateLimitAttempt", "no attempt cap", "No reopen, no resend, no restart", "missionKey", "imageId", "promptPackageId", "recoveryAction", "isChatGptRateLimitDialogVisible", "acknowledgePick3RateLimitDialogIfVisible", "acknowledgePick3RateLimitIfVisible", "startPick3RateLimitDialogWatcher", "pick3_rate_limit_dialog_watcher_started", "rate_limit_ack_clicked_and_dialog_closed", "rate_limit_dialog_still_visible_after_ack", "querySelectorAll('[role=\"dialog\"], [data-radix-portal]')", "node.innerText"]); for (const forbiddenBackoff of ["PICK3_RATE_LIMIT_MAX_ACK_ATTEMPTS", "acknowledgePick3RateLimitImmediately", "pick3_rate_limit_immediate_acknowledgement_retry_exhausted", "PICK3_RATE_LIMIT_BACKOFF_MS", "waitWithPick3RateLimitHeartbeat", "pick3_rate_limit_backoff_waiting", "remainingMs, refs: { recoveryAction: \"pick3_rate_limit_backoff_waiting\" }", "do NOT interrupt", "pick3_rate_limit_chatgpt_refresh_completed", "and_refreshed"]) if (recoveryLogText.includes(forbiddenBackoff)) addFinding(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts", "pick3-is-blind-eval/rate-limit-no-backoff-before-ack", `Pick3 rate-limit recovery must not contain old backoff/refresh token ${forbiddenBackoff}.`);
   const submitText = existsRepoPath(webChatSubmitPath) ? readRepoText(webChatSubmitPath) : ""; requireTokens(findings, promptExchangeLaw, webChatSubmitPath, submitText, "pick3-is-blind-eval/rate-limit-submit-guard", ["acknowledgeChatGptSubmitRateLimitIfVisible", "acknowledgeChatGptRateLimitDialogIfVisible"]);
-  inspectPick3WebChatUpload(findings, promptExchangeLaw, texts);
+  inspectPick3WebChatAttachmentBoundary(findings, promptExchangeLaw, texts);
 };
 
-const inspectPick3WebChatUpload = (
+const inspectPick3WebChatAttachmentBoundary = (
   findings: InspectorFinding[],
   promptExchangeLaw: string,
   texts: PromptExchangeTexts,
 ): void => {
-  const uploadText = existsRepoPath(webChatUploadPath) ? readRepoText(webChatUploadPath) : "";
+  const attachmentChildText = existsRepoPath(attachmentChildPath) ? readRepoText(attachmentChildPath) : "";
   const composerText = existsRepoPath(webChatSubmitPath.replace("web-chat-submit.ts", "web-chat-composer-scripts.ts")) ? readRepoText(webChatSubmitPath.replace("web-chat-submit.ts", "web-chat-composer-scripts.ts")) : "";
-  const clipboardText = existsRepoPath(webChatClipboardPath) ? readRepoText(webChatClipboardPath) : "";
   const selectorPreludeText = existsRepoPath(webChatSelectorPreludePath) ? readRepoText(webChatSelectorPreludePath) : "";
-  requireTokens(findings, promptExchangeLaw, webChatUploadPath, uploadText, "pick3-is-blind-eval/clipboard-file-object-upload", ["copyFileObjectToMacClipboard", "pasteMacClipboardIntoChrome", "waitForExactAttachmentCount", "uploadSingleFileByClipboardPaste"]);
-  requireTokens(findings, promptExchangeLaw, webChatUploadPath, uploadText, "pick3-is-blind-eval/clipboard-upload-timing-logs", ["[GRASSEYE][AI-GATEWAY][WEB-CHAT]", "upload_file_clipboard_paste", "inputRefId", "elapsedMs", "8_000"]);
-  for (const forbiddenFileInputToken of ["setFileInputFiles", "targetKind: \"file-input\"", "uploadSingleFileThroughProviderInput"]) {
-    if (uploadText.includes(forbiddenFileInputToken)) {
-      addFinding(findings, promptExchangeLaw, webChatUploadPath, "pick3-is-blind-eval/no-provider-file-input-upload", `Web-chat attachment upload must not keep provider file-input token ${forbiddenFileInputToken}; the single governed path is macOS file-object clipboard paste.`);
-    }
-  }
+  requireTokens(findings, promptExchangeLaw, attachmentChildPath, attachmentChildText, "pick3-is-blind-eval/standard-attachment-child", ["attachApprovedWebChatFilesOnce", "onAttachmentUploadCompleted", "stagingManifestHash"]);
   requireTokens(findings, promptExchangeLaw, "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts", composerText, "pick3-is-blind-eval/chatgpt-file-tile-attachment-count", ["WEB_CHAT_ATTACHMENT_COUNT_SCRIPT", "findAttachmentTileRoot", "file-tile", "在文本字段中显示", "移除文件", "seenTiles.add(findAttachmentTileRoot(node) || node)"]);
-  for (const forbiddenNativeChooserToken of ["selectFilePathInNativeChooser", "Upload files"]) {
-    if (uploadText.includes(forbiddenNativeChooserToken) || clipboardText.includes(forbiddenNativeChooserToken)) {
-      addFinding(findings, promptExchangeLaw, webChatUploadPath, "pick3-is-blind-eval/no-gemini-native-chooser", `Gemini web-chat upload must not keep native chooser token ${forbiddenNativeChooserToken}.`);
-    }
-  }
-  if (clipboardText.includes("keystroke \"g\" using {command down, shift down}")) {
-    addFinding(findings, promptExchangeLaw, webChatClipboardPath, "pick3-is-blind-eval/no-gemini-native-chooser", "Gemini web-chat upload must not use the macOS native chooser Go to Folder path.");
-  }
   requireTokens(findings, promptExchangeLaw, webChatSelectorPreludePath, selectorPreludeText, "pick3-is-blind-eval/gemini-composer-selector", ["aria-label='Enter a prompt for Gemini'", "button[aria-label='Upload and tools']"]);
   if (texts.webChatPick3HistoryCleanupText.includes("deletePick3WorkspaceConversationHistoryUrl")) {
     addFinding(findings, promptExchangeLaw, webChatPick3HistoryCleanupPath, "pick3-is-blind-eval/no-current-provider-history-delete-export", "Provider current-conversation history deletion export must not exist while provider history deletion is temporarily disabled.");

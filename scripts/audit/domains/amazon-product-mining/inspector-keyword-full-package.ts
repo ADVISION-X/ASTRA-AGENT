@@ -81,11 +81,11 @@ const inspectWebChatPackageAttachmentPreservation = (webChatSubmitFile: SourceFi
     && variableBodyCallsIdentifier(webChatSubmitFile, "clearComposerBeforePromptPaste", "clearComposer")
     && variableBodyCallsIdentifier(webChatSubmitFile, "pastePromptIntoComposer", "clearComposerBeforePromptPaste"));
 
-const inspectWebChatPackageAttachmentLowerBound = (webChatComposerFile: SourceFile | undefined): boolean =>
+const inspectWebChatPackageExactAttachmentBinding = (webChatComposerFile: SourceFile | undefined): boolean =>
   Boolean(webChatComposerFile
-    && hasIdentifier(webChatComposerFile, "buildWaitForAttachmentCountScript")
-    && hasIdentifier(webChatComposerFile, "GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE")
-    && hasStringLiteral(webChatComposerFile, "provider attachments ready by global lower-bound count"));
+    && hasIdentifier(webChatComposerFile, "buildWaitForExactAttachmentCountScript")
+    && hasIdentifier(webChatComposerFile, "expectedFileNames")
+    && !hasIdentifier(webChatComposerFile, "buildWaitForAttachmentCountScript"));
 
 const inspectKeywordPackageAcceptance = (acceptanceFile: SourceFile | undefined): boolean =>
   Boolean(acceptanceFile
@@ -98,7 +98,7 @@ const inspectKeywordFullPackageChecks = (files: KeywordFullPackageInspectionFile
   reviewOk: inspectKeywordReviewRuntime(files.reviewFile),
   gatewayOk: inspectKeywordPackageGateway(files.aiPackageFile),
   webChatAttachmentOk: inspectWebChatPackageAttachmentPreservation(files.webChatSubmitFile),
-  webChatAttachmentLowerBoundOk: inspectWebChatPackageAttachmentLowerBound(files.webChatComposerFile),
+  webChatExactAttachmentBindingOk: inspectWebChatPackageExactAttachmentBinding(files.webChatComposerFile),
   acceptanceOk: inspectKeywordPackageAcceptance(files.acceptanceFile),
 });
 
@@ -109,12 +109,12 @@ export const inspectKeywordFullPackageHandoff = (
   lawId: string,
 ): void => {
   const checks = inspectKeywordFullPackageChecks(collectKeywordFullPackageInspectionFiles(context, inspectedFiles));
-  if (checks.packageOk && checks.reviewOk && checks.gatewayOk && checks.webChatAttachmentOk && checks.webChatAttachmentLowerBoundOk && checks.acceptanceOk) return;
+  if (checks.packageOk && checks.reviewOk && checks.gatewayOk && checks.webChatAttachmentOk && checks.webChatExactAttachmentBindingOk && checks.acceptanceOk) return;
   findings.push(createFinding({
     checkId: "amazon-mining/keyword-full-package-handoff",
     lawId,
     filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
     message: "Keyword opportunity review must build and upload a keyword full package transport archive; inline navigation cannot be the sole review evidence.",
-    evidence: `packageOk=${Boolean(checks.packageOk)};reviewOk=${Boolean(checks.reviewOk)};gatewayOk=${Boolean(checks.gatewayOk)};webChatAttachmentOk=${Boolean(checks.webChatAttachmentOk)};webChatAttachmentLowerBoundOk=${Boolean(checks.webChatAttachmentLowerBoundOk)};acceptanceOk=${Boolean(checks.acceptanceOk)}`,
+    evidence: `packageOk=${Boolean(checks.packageOk)};reviewOk=${Boolean(checks.reviewOk)};gatewayOk=${Boolean(checks.gatewayOk)};webChatAttachmentOk=${Boolean(checks.webChatAttachmentOk)};webChatExactAttachmentBindingOk=${Boolean(checks.webChatExactAttachmentBindingOk)};acceptanceOk=${Boolean(checks.acceptanceOk)}`,
   }));
 };

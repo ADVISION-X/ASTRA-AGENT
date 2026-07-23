@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-21T00:35:10.165Z",
+  "generatedAt": "2026-07-23T22:48:35.205Z",
   "status": "PASS",
-  "inspectorFileCount": 26,
-  "generatedPlanEntryCount": 26,
+  "inspectorFileCount": 27,
+  "generatedPlanEntryCount": 27,
   "inspectedFiles": [
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
@@ -11,6 +11,8 @@
     "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/audit/domains/ai-input-gateway/inspector.ts",
+    "scripts/audit/domains/ai-input-gateway/manifest.json",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",

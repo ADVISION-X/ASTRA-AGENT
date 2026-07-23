@@ -66,18 +66,19 @@ external continuationTaskId + continuationResponseHash
 
 外部网站永远不得传 `providerPageUrl`、tab id、selector 或浏览器指令。每个 Xuanyuan 请求仍是一次独立、可审计的 provider feed；续聊只表示 transport 复用上一任务的精确会话，不拥有业务轮次编排。
 
-### Ordered Web Chat file delivery
+### Standard Web Chat attachment delegation
 
-`inputRefs` 中带 `filePath` 的文件必须保持请求顺序，并由现有 AI Input Gateway 原地执行：
+`inputRefs` 中带 `filePath` 的文件必须保持请求顺序，并整体交给 AI Input Gateway 标准子能力：
 
 ```txt
-file 1: Finder 选中单个文件 → Command+C → Chrome composer → Command+V → exact attachment count = 1
-file 2: Finder 选中单个文件 → Command+C → Chrome composer → Command+V → exact attachment count = 2
-...
-file N: Finder 选中单个文件 → Command+C → Chrome composer → Command+V → exact attachment count = N
+Xuanyuan inputRefs
+  -> AI Input Gateway public contract
+      -> attach-approved-web-chat-files-once
+          -> aggregate attachmentUploadProof
+              -> prompt submit
 ```
 
-一次只允许一个文件。任一次复制、粘贴或精确计数失败立即 `review_required`；不得批量复制、批量粘贴、对同一文件重贴或仅以“附件数至少达到 N”继续。
+Xuanyuan 不知道、也不能指定 ordered clipboard 或 native picker。它只记录聚合证据。子能力失败或 `review_required` 时不得进入提示词发送。
 
 查询链路：
 
@@ -214,7 +215,7 @@ external request schema rejects provider URL, tab id, selector and browser conti
 route handler exposes simulate/status/latest/history
 API Boundary admits xuanyuan routes only with external API key requirement
 package scripts include acceptance:xuanyuan and audit:xuanyuan
-Web Chat upload source uses one-file Finder Command+C and Chrome Command+V with exact cumulative count and no same-file paste retry
+Xuanyuan delegates files through the standard attachment child and persists aggregate terminal proof
 ```
 
 Audit must prove:
@@ -226,5 +227,5 @@ route and Workbench handle are wired
 API Boundary route allowlist contains xuanyuan routes
 no provider adapter, browser, DOM automation, or provider SDK import in xuanyuan plugin
 no fake success markers in xuanyuan plugin
-the existing AI Input Gateway upload path contains the ordered one-file C/V enforcement and exact-count fail-closed guard
+Xuanyuan contains no provider transport selection and depends only on the AI Input Gateway public contract
 ```

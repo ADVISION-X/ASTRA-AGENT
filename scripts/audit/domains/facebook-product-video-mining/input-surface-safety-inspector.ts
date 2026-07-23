@@ -13,8 +13,7 @@ const webChatOpenPath = "src/capabilities/ai-input-gateway/providers/web-chat-op
 const webChatPageActionsPath = "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts";
 const webChatSharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts";
 const webChatSubmitPath = "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts";
-const webChatUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
-const webChatUploadPageActionsPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts";
+const attachmentChildPath = "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts";
 const webChatWorkspacePath = "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts";
 
 const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
@@ -25,8 +24,7 @@ type WebChatSafetySources = {
   roundOutcomes: string;
   shared: string;
   submit: string;
-  upload: string;
-  uploadPageActions: string;
+  attachmentChild: string;
   workspace: string;
 };
 
@@ -34,8 +32,8 @@ const inspectWorkspaceGuards = (findings: InspectorFinding[], lawId: string, sou
   if (!sources.shared.includes("ensureProviderWorkspaceFocused")) {
     findings.push(createFinding({ checkId: "facebook-mining/provider-tab-focus-guard", lawId, filePath: webChatSharedPath, message: "Facebook web-chat feed must refocus provider workspace before upload, submit, and answer extraction." }));
   }
-  if (sources.upload.includes("chooseFileInNativeDialog")) {
-    findings.push(createFinding({ checkId: "facebook-mining/no-blind-native-file-path-entry", lawId, filePath: webChatUploadPath, message: "Facebook web-chat upload must not type file paths unless a provider file input is located." }));
+  if (!sources.shared.includes("attachApprovedWebChatFilesOnce")) {
+    findings.push(createFinding({ checkId: "facebook-mining/standard-attachment-child", lawId, filePath: webChatSharedPath, message: "Facebook web-chat feed must use the standard AI Input Gateway attachment child." }));
   }
   if (!containsAll(sources.open, ["allowAnyProviderTab", "false"]) || !containsAll(sources.workspace, ["allowAnyProviderTab", "false"])) {
     findings.push(createFinding({ checkId: "facebook-mining/no-arbitrary-provider-tab", lawId, filePath: webChatOpenPath, message: "Facebook web-chat feed must not reuse arbitrary provider tabs." }));
@@ -46,12 +44,8 @@ const inspectWorkspaceGuards = (findings: InspectorFinding[], lawId: string, sou
 };
 
 const inspectWaitBudgetGuards = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
-  const boundedAttachmentWait = containsAll(sources.pageActions, ["MAX_ATTACHMENT_COUNT_WAIT_MS", "15_000"])
-    && containsAll(sources.uploadPageActions, ["MAX_ATTACHMENT_COUNT_WAIT_MS", "15_000"]);
-  const boundedProviderInput = containsAll(sources.upload, ["copyFileObjectToMacClipboard", "pasteMacClipboardIntoChrome", "waitForExactAttachmentCount", "8_000"])
-    && !containsAny(sources.upload, ["setFileInputFiles", "targetKind: \"file-input\""]);
-  if (!boundedAttachmentWait || !boundedProviderInput) {
-    findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatUploadPath, message: "Facebook web-chat file-object clipboard upload and attachment verification waits must stay bounded, and provider file-input upload must remain absent." }));
+  if (!containsAll(sources.attachmentChild, ["attachApprovedWebChatFilesOnce", "onAttachmentUploadCompleted"])) {
+    findings.push(createFinding({ checkId: "facebook-mining/attachment-proof-boundary", lawId, filePath: attachmentChildPath, message: "The shared attachment child must return one terminal aggregate proof." }));
   }
   if (!containsAll(sources.submit, ["MAX_SUBMIT_BUTTON_WAIT_MS", "45_000"])) {
     findings.push(createFinding({ checkId: "facebook-mining/submit-wait-short-cap", lawId, filePath: webChatSubmitPath, message: "Facebook web-chat submit button wait must not consume the whole judgment timeout." }));
@@ -88,8 +82,7 @@ export const inspectFacebookSafetyDefaults = (
     webChatPageActionsPath,
     webChatSharedPath,
     webChatSubmitPath,
-    webChatUploadPath,
-    webChatUploadPageActionsPath,
+    attachmentChildPath,
     webChatWorkspacePath,
   ];
   for (const repoPath of paths) inspectedFiles.add(repoPath);
@@ -106,8 +99,7 @@ export const inspectFacebookSafetyDefaults = (
     roundOutcomes: readRepoText(facebookRoundOutcomesPath),
     shared: readRepoText(webChatSharedPath),
     submit: readRepoText(webChatSubmitPath),
-    upload: readRepoText(webChatUploadPath),
-    uploadPageActions: readRepoText(webChatUploadPageActionsPath),
+    attachmentChild: readRepoText(attachmentChildPath),
     workspace: readRepoText(webChatWorkspacePath),
   });
 };

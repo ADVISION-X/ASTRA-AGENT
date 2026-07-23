@@ -4,6 +4,7 @@ import type {
   AiInputGatewayProviderKind,
 } from "./schema.js";
 import type { AiProviderAdapter } from "./contracts/ai-provider-adapter.contract.js";
+import type { WebChatAttachmentUploadProof } from "./contracts/ai-provider-adapter.contract.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type AiInputGatewayAbilityGroupId = "ai-input-gateway";
@@ -14,8 +15,13 @@ export type AiInputGatewayExecutionContext = {
   adapters?: Partial<Record<AiInputGatewayProviderKind, AiProviderAdapter>>;
 };
 
+export type AiInputGatewayExecuteOptions = {
+  signal?: AbortSignal;
+  onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
+};
+
 export interface AiInputGatewayAbilityGroup {
   readonly abilityGroupId: AiInputGatewayAbilityGroupId;
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
-  execute(input: unknown, options?: { signal?: AbortSignal }): Promise<AiFeedResult>;
+  execute(input: unknown, options?: AiInputGatewayExecuteOptions): Promise<AiFeedResult>;
 }

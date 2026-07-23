@@ -1,6 +1,96 @@
 {
-  "generatedAt": "2026-07-21T00:35:08.165Z",
+  "generatedAt": "2026-07-23T22:48:33.135Z",
   "laws": [
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "AI Input Gateway is the single provider-transport owner and must preserve a provider-agnostic public request contract.",
+      "required": [
+        "The canonical ability-group id is ai-input-gateway and its public execute contract accepts governed prompt identity, input refs, provider kind, limits, and optional internally minted continuation proof.",
+        "Every provider execution returns one AiFeedResult with raw response identity and provider proof.",
+        "Business owners call only the AI Input Gateway public contract."
+      ],
+      "forbidden": [
+        "business plugins importing provider adapters, provider SDKs, provider DOM, browser selectors, coordinates, tab ids, or browser commands",
+        "AI Input Gateway making business judgments or validating domain output meaning",
+        "a second provider transport owner, compatibility wrapper, or public transport-selection API"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
+      "required": [
+        "Web-chat adapters reuse governed BrowserController and one provider lease.",
+        "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
+        "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
+      ],
+      "forbidden": [
+        "reading cookies, browser storage, passwords, tokens, or hidden credentials",
+        "automatic login, CAPTCHA bypass, account rotation, or unbounded retry",
+        "downgrading or erasing a completely captured provider response because later cleanup failed"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "attach-approved-web-chat-files-once is the only web-chat attachment child and selects one fixed internal transport without caller choice or same-attempt fallback.",
+      "required": [
+        "Zero approved files return skipped without opening an attachment surface.",
+        "GPT Web Chat with one approved file uses ordered_clipboard.",
+        "GPT Web Chat with two or more approved files uses native_picker_batch.",
+        "Gemini Web Chat with approved files uses ordered_clipboard.",
+        "The child ends only at skipped, attachments_stable, failed, or review_required and never enters prompt text, submits a prompt, or reads an answer."
+      ],
+      "forbidden": [
+        "transport kind, provider selector, DOM selector, coordinate, tab id, native-picker instruction, or fallback policy in the public request",
+        "switching transport after an attachment attempt starts",
+        "retry-pasting the same file, silently falling back, or accepting a lower-bound attachment count",
+        "provider or business vocabulary in the generic native multi-file picker primitive"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "Every attachment attempt must use an isolated verified staging set and emit one aggregate terminal proof before prompt submission.",
+      "required": [
+        "The child re-reads every approved source file, verifies byte count and sha256, and copies only that ordered set into a unique attempt directory.",
+        "Staged display names are unique and order-prefixed, and the exact directory membership plus manifest hash are verified before selection.",
+        "Success requires exact attachment count, exact staged display names, composer scope, and a continuous thirty-second stability window.",
+        "One aggregate attachment proof records attempt id, fixed transport kind, expected and detected counts, manifest hash, ordered file identity, timing, terminal status, and failure reason.",
+        "The attempt staging directory is removed after the terminal proof is formed."
+      ],
+      "forbidden": [
+        "uploading arbitrary directory contents or an unverified source file",
+        "count-only success without exact names and composer scope",
+        "per-file progress that falsely represents a native batch selection as independently completed uploads",
+        "prompt submission before attachments_stable"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
+      "blockIndex": 3
+    },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
       "status": "active",
@@ -2989,7 +3079,7 @@
         "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
+        "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
         "scripts/acceptance/facebook-product-video-mining*.ts",
         "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
@@ -4441,7 +4531,7 @@
         "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
         "External website contract stays provider-agnostic for later real API-key switching.",
         "Optional continuation is authorized only by prior Xuanyuan task id plus exact captured response hash, while Xuanyuan resolves the internal provider conversation ref.",
-        "Web Chat files are delivered in request order through one exact Command+C and Command+V cycle per file with exact cumulative count verification."
+        "Web Chat files are delegated to the standard AI Input Gateway attachment child and Xuanyuan persists its aggregate terminal proof."
       ],
       "forbidden": [
         "second HTTP server or API gateway",
@@ -4449,7 +4539,7 @@
         "xuanyuan direct provider SDK or web-chat DOM operation",
         "external provider conversation URL or unverified continuation",
         "fake success when provider or parsing fails",
-        "batch or duplicate Web Chat file paste"
+        "external attachment transport selection or duplicate Web Chat file paste"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
       "blockIndex": 0

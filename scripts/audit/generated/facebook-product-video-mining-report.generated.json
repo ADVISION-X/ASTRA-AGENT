@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T00:35:57.401Z",
+  "generatedAt": "2026-07-23T22:49:24.398Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,12 +23,11 @@
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
+    "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",

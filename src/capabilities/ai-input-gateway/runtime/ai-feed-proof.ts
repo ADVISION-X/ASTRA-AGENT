@@ -60,10 +60,11 @@ const conversationProof = (
 const uploadProof = (
   inputPackage: AiFeedInputPackage,
   response: Partial<AiProviderRawResponse>,
-): Pick<AiFeedProviderProof, "uploadedFileRefs" | "uploadedFiles"> => ({
+): Pick<AiFeedProviderProof, "uploadedFileRefs" | "uploadedFiles" | "attachmentUploadProof"> => ({
   uploadedFileRefs: response.uploadedFiles?.map((file) => file.inputRefId)
     ?? (response.transport === "api" ? inputPackage.uploadableFiles.map((file) => file.id) : []),
   uploadedFiles: response.uploadedFiles ?? [],
+  ...(response.attachmentUploadProof ? { attachmentUploadProof: response.attachmentUploadProof } : {}),
 });
 
 const buildProviderProof = (input: {

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-21T00:35:54.051Z",
+  "generatedAt": "2026-07-23T22:49:20.972Z",
   "status": "PASS",
-  "scannedFiles": 472,
+  "scannedFiles": 477,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -78,6 +78,8 @@
     "src/app/workbench-video-download-routes.ts",
     "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
+    "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+    "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
     "src/capabilities/ai-input-gateway/index.ts",
@@ -86,19 +88,24 @@
     "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
@@ -106,7 +113,6 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
@@ -115,8 +121,6 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-    "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
-    "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
@@ -209,6 +213,7 @@
     "src/lib/browser/current-chrome-browser-scroll-support.ts",
     "src/lib/browser/current-chrome-cdp-file-input.ts",
     "src/lib/browser/current-chrome-native-file-input.ts",
+    "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/current-chrome-window-control.ts",
     "src/lib/browser/local-browser-session.ts",
     "src/lib/local-runtime/contract.ts",
@@ -494,7 +499,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 472,
+    "scannedFiles": 477,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -505,7 +510,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 467,
+      "scannedFiles": 472,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -514,13 +519,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 365
+      "scannedFiles": 369
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 361,
+      "scannedFiles": 365,
       "metrics": {
         "emitCallCount": 41
       }
@@ -529,13 +534,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 361
+      "scannedFiles": 365
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 366,
+      "scannedFiles": 370,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -550,7 +555,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 366,
+      "scannedFiles": 370,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -571,13 +576,13 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 56
+      "scannedFiles": 60
     },
     {
       "name": "browser-action-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 36
+      "scannedFiles": 37
     },
     {
       "name": "semantic-metrics-self-audit",

@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type {
   AiInputGatewayAbilityGroup,
+  AiInputGatewayExecuteOptions,
   AiInputGatewayExecutionContext,
 } from "./contract.js";
 import {
@@ -18,6 +19,7 @@ const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
   "feed-gemini-api-once",
   "feed-gemini-web-chat-once",
   "feed-gpt-web-chat-once",
+  "attach-approved-web-chat-files-once",
 ];
 
 const childForProvider = (input: AiFeedInput): AiInputGatewayChildCapabilityId => {
@@ -43,11 +45,13 @@ const executeGeminiWebChat = (
   browser: BrowserController | undefined,
   request: AiFeedInput,
   signal: AbortSignal | undefined,
+  onAttachmentUploadCompleted: AiInputGatewayExecuteOptions["onAttachmentUploadCompleted"],
 ): Promise<AiFeedResult> => feedGeminiWebChatOnce({
     request,
     dataDir: context.dataDir,
     ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
+    ...(onAttachmentUploadCompleted ? { onAttachmentUploadCompleted } : {}),
     ...(browser ? { browser } : {}),
     ...(context.adapters?.["gemini-web-chat"] ? { adapter: context.adapters["gemini-web-chat"] } : {}),
   });
@@ -57,11 +61,13 @@ const executeGptWebChat = (
   browser: BrowserController | undefined,
   request: AiFeedInput,
   signal: AbortSignal | undefined,
+  onAttachmentUploadCompleted: AiInputGatewayExecuteOptions["onAttachmentUploadCompleted"],
 ): Promise<AiFeedResult> => feedGptWebChatOnce({
     request,
     dataDir: context.dataDir,
     ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
+    ...(onAttachmentUploadCompleted ? { onAttachmentUploadCompleted } : {}),
     ...(browser ? { browser } : {}),
     ...(context.adapters?.["gpt-web-chat"] ? { adapter: context.adapters["gpt-web-chat"] } : {}),
   });
@@ -71,11 +77,20 @@ const executeParsedRequest = (
   browser: BrowserController | undefined,
   request: AiFeedInput,
   signal: AbortSignal | undefined,
+  onAttachmentUploadCompleted: AiInputGatewayExecuteOptions["onAttachmentUploadCompleted"],
 ): Promise<AiFeedResult> => {
   const childCapabilityId = childForProvider(request);
   if (childCapabilityId === "feed-gemini-api-once") return executeGeminiApi(context, request, signal);
-  if (childCapabilityId === "feed-gemini-web-chat-once") return executeGeminiWebChat(context, browser, request, signal);
-  return executeGptWebChat(context, browser, request, signal);
+  if (childCapabilityId === "feed-gemini-web-chat-once") {
+    return executeGeminiWebChat(
+      context,
+      browser,
+      request,
+      signal,
+      onAttachmentUploadCompleted,
+    );
+  }
+  return executeGptWebChat(context, browser, request, signal, onAttachmentUploadCompleted);
 };
 
 export const createAiInputGatewayAbilityGroup = (
@@ -88,8 +103,14 @@ export const createAiInputGatewayAbilityGroup = (
     return [...CHILD_CAPABILITY_IDS];
   },
 
-  execute(rawInput: unknown, options?: { signal?: AbortSignal }): Promise<AiFeedResult> {
+  execute(rawInput: unknown, options): Promise<AiFeedResult> {
     const request = AiFeedInputSchema.parse(rawInput);
-    return executeParsedRequest(context, browser, request, options?.signal);
+    return executeParsedRequest(
+      context,
+      browser,
+      request,
+      options?.signal,
+      options?.onAttachmentUploadCompleted,
+    );
   },
 });

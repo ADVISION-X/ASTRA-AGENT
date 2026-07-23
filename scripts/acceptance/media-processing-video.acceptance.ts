@@ -32,7 +32,9 @@ const findFixtureFfmpegPath = async (): Promise<string | null> => {
       await access(ffmpegStaticPath, constants.X_OK);
       return ffmpegStaticPath;
     } catch {
-      return null;
+      // The package can expose a platform path even when no executable was
+      // installed for the current architecture. Continue to the governed
+      // system-runtime probe instead of building an invalid fallback fixture.
     }
   }
   return await commandExitsZero("ffmpeg", ["-version"]) ? "ffmpeg" : null;

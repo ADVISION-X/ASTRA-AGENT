@@ -25,6 +25,19 @@ export class CurrentChromeBrowserController implements BrowserController {
   screenshotRegion(input: Parameters<BrowserController["screenshotRegion"]>[0]) { return this.runtime.screenshotRegion(input); }
   evaluateActiveTab<T>(input: { script: string; description: string; abortSignal?: AbortSignal }) { return this.runtime.evaluateActiveTab<T>(input); }
   setFileInputFiles(input: Parameters<BrowserController["setFileInputFiles"]>[0]) { return this.runtime.setFileInputFiles(input); }
+  selectFilesInNativePicker(input: Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0]) {
+    const action = this.runtime.selectFilesInNativePicker;
+    if (!action) {
+      return Promise.resolve({
+        browserActionId: "browser-native-multi-file-picker-unavailable",
+        ok: false,
+        message: "native multi-file picker is unavailable",
+        observedFileNames: [],
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return action(input);
+  }
   wait(durationMs: number) { return this.runtime.wait(durationMs); }
   closeActiveTab(input: Parameters<BrowserController["closeActiveTab"]>[0]) { return this.runtime.closeActiveTab(input); }
   close() { return this.runtime.close(); }

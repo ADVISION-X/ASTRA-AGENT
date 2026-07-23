@@ -3,19 +3,25 @@ import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
   AiProviderUploadedFileProof,
+  WebChatAttachmentUploadProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation.js";
-import { isAmazonProductMiningGptRequest, isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
+import { isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
 import { acknowledgeChatGptRateLimitDialogIfVisible, startChatGptAcknowledgementWatcher } from "./web-chat-rate-limit-dialog.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
-import { uploadFiles } from "./web-chat-upload.js";
-import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser, restoreSourcePage } from "./web-chat-shared-support.js";
+import { attachApprovedWebChatFilesOnce } from "../children/attach-approved-web-chat-files-once.js";
+import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser } from "./web-chat-shared-support.js";
 import { captureWebChatResponseArtifacts } from "./web-chat-response-artifacts.js";
-import { ensureProviderWorkspaceFocused, resolveWebChatWorkspaceId, saveWorkspaceUrl } from "./web-chat-workspace.js";
+import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
+import {
+  recoverPick3MissingBoundImageConversation,
+  recoverPick3NoResultConversation,
+  restoreAfterWebChatFeed,
+} from "./web-chat-recovery.js";
 
 const POLL_INTERVAL_MS = 1500;
 const GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS = 250;
@@ -39,8 +45,6 @@ const emitWebChatStage = (input: { request: AiFeedInput; stage: string; status: 
     },
   })}\n`);
 };
-
-const shouldCloseProviderTabAfterResponse = (input: { providerUrl: string; request: AiFeedInput }): boolean => isAmazonProductMiningGptRequest(input);
 
 const resolveResponseTimeoutMs = (input: { providerUrl: string; request: AiFeedInput }): number =>
   isPick3WebChatRequest({ request: input.request })
@@ -76,7 +80,7 @@ const acknowledgeWebChatRateLimitIfVisible = async (input: {
   await acknowledgePick3RateLimitIfVisible(input);
 };
 
-const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number }): Promise<void> => {
+const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number; attachmentUploadProof: WebChatAttachmentUploadProof }): Promise<void> => {
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -88,6 +92,7 @@ const submitWebChatPrompt = async (input: { browser: BrowserController; request:
     request: input.request,
     context: input.context,
     previousAssistantCount: input.previousAssistantCount,
+    attachmentUploadProof: input.attachmentUploadProof,
   });
 };
 
@@ -173,6 +178,7 @@ const prepareWebChatConversation = async (
   previousAssistantCount: number;
   previousAnswerText: string | null;
   uploadedFiles: AiProviderUploadedFileProof[];
+  attachmentUploadProof: WebChatAttachmentUploadProof;
 }> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   const preImageCleanupStartedAtMs = Date.now();
@@ -205,7 +211,11 @@ const prepareWebChatConversation = async (
     phase: "attachment upload",
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
-  const uploadedFiles = await uploadFiles(input.browser, input.request, input.context);
+  const attachmentResult = await attachApprovedWebChatFilesOnce({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+  });
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   return {
     ...await readPreSubmitConversationState({
@@ -214,7 +224,8 @@ const prepareWebChatConversation = async (
       context: input.context,
       providerUrl: input.providerUrl,
     }),
-    uploadedFiles,
+    uploadedFiles: attachmentResult.uploadedFiles,
+    attachmentUploadProof: attachmentResult.attachmentUploadProof,
   };
 };
 
@@ -229,6 +240,7 @@ const executeWebChatConversation = async (
     context: input.context,
     providerUrl: input.providerUrl,
     previousAssistantCount: preSubmit.previousAssistantCount,
+    attachmentUploadProof: preSubmit.attachmentUploadProof,
   });
   const conversation = await extractWebChatConversation({
     browser: input.browser,
@@ -254,128 +266,12 @@ const executeWebChatConversation = async (
     extracted: conversation.extracted,
     answerText: htmlArtifact?.htmlDocument ?? jsonArtifact?.jsonText ?? conversation.answerText,
     uploadedFiles: preSubmit.uploadedFiles,
+    attachmentUploadProof: preSubmit.attachmentUploadProof,
     outputRefs: [
       ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
       ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
     ],
   });
-};
-
-const recoverPick3NoResultConversation = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  runtimeName: string;
-}): Promise<string> => {
-  const timedOutUrl = input.browser.getSessionState().currentUrl;
-  if (input.request.providerKind === "gemini-web-chat") {
-    const workspaceId = resolveWebChatWorkspaceId(input.request);
-    if (workspaceId) {
-      saveWorkspaceUrl({
-        dataDir: input.context.dataDir,
-        providerKind: input.request.providerKind,
-        workspaceId,
-        url: input.providerUrl,
-      });
-    }
-    await openProviderPage({
-      browser: input.browser,
-      providerUrl: input.providerUrl,
-      runtimeName: input.runtimeName,
-      context: input.context,
-      request: input.request,
-    });
-    return "pick3_no_result_recovery_reopened_gemini_new_chat";
-  }
-  if (!timedOutUrl.startsWith("https://chatgpt.com/c/")) {
-    return `pick3_no_result_recovery_skipped_non_conversation_url:${timedOutUrl}`;
-  }
-  await input.browser.open({
-    url: timedOutUrl,
-    title: "Refresh timed-out Pick3 ChatGPT conversation",
-    reusePolicy: "reuse-active-tab",
-  });
-  await input.browser.wait(1_800);
-  const workspaceId = resolveWebChatWorkspaceId(input.request);
-  if (workspaceId) {
-    saveWorkspaceUrl({
-      dataDir: input.context.dataDir,
-      providerKind: input.request.providerKind,
-      workspaceId,
-      url: input.providerUrl,
-    });
-  }
-  await openProviderPage({
-    browser: input.browser,
-    providerUrl: input.providerUrl,
-    runtimeName: input.runtimeName,
-    context: input.context,
-    request: input.request,
-  });
-  return "pick3_no_result_recovery_refreshed_without_history_delete_and_reopened_new_chat";
-};
-
-const recoverPick3MissingBoundImageConversation = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  runtimeName: string;
-}): Promise<string> => {
-  await recoverPick3NoResultConversation(input);
-  return "pick3_missing_bound_image_recovery_without_history_delete_and_reopened_new_chat";
-};
-
-const restoreAfterWebChatFeed = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  request: AiFeedInput;
-  sourcePageUrlBeforeFeed: string | null;
-  response: AiProviderRawResponse | null;
-}): Promise<void> => {
-  if (!input.response) {
-    return;
-  }
-  if (shouldCloseProviderTabAfterResponse({ providerUrl: input.providerUrl, request: input.request })) {
-    try {
-      await assertActiveProviderPage({
-        browser: input.browser,
-        providerUrl: input.providerUrl,
-        phase: "provider tab close",
-        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-      });
-      const closeResult = await input.browser.closeActiveTab({
-        reason: "AI provider answer captured",
-        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-      });
-      if (!closeResult.ok) {
-        input.response.transportWarnings = [
-          ...(input.response.transportWarnings ?? []),
-          `PROVIDER_TAB_CLOSE_FAILED:${closeResult.message}`,
-        ];
-      }
-    } catch (error) {
-      input.response.transportWarnings = [
-        ...(input.response.transportWarnings ?? []),
-        `PROVIDER_TAB_CLOSE_FAILED:${error instanceof Error ? error.message : String(error)}`,
-      ];
-    }
-  }
-  try {
-    const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
-    input.response.restoredSourcePage = restoredSourcePage;
-    if (restoredSourcePage === false) {
-      input.response.transportWarnings = [...(input.response.transportWarnings ?? []), "SOURCE_PAGE_RESTORE_FAILED"];
-    }
-  } catch (error) {
-    input.response.restoredSourcePage = false;
-    input.response.transportWarnings = [
-      ...(input.response.transportWarnings ?? []),
-      `SOURCE_PAGE_RESTORE_FAILED:${error instanceof Error ? error.message : String(error)}`,
-    ];
-  }
 };
 
 const executeOpenedWebChatAdapter = async (input: {

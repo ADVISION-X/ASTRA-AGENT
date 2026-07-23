@@ -1,7 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { openGovernedContinuation } from "./web-chat-continuation.js";
 import { CHATGPT_FRESH_CONVERSATION_SCRIPT } from "./web-chat-fresh-conversation-script.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";

@@ -15,6 +15,33 @@ export type AiProviderUploadedFileProof = {
   byteCount: number;
 };
 
+export type WebChatAttachmentTransportKind =
+  | "skipped"
+  | "ordered_clipboard"
+  | "native_picker_batch";
+
+export type WebChatAttachmentUploadProof = {
+  childCapabilityId: "attach-approved-web-chat-files-once";
+  uploadAttemptId: string;
+  transportKind: WebChatAttachmentTransportKind;
+  expectedFileCount: number;
+  detectedFileCount: number;
+  stagingManifestHash: `sha256:${string}` | null;
+  files: Array<{
+    inputRefId: string;
+    order: number;
+    sourceFileName: string;
+    displayFileName: string;
+    sha256: `sha256:${string}`;
+    byteCount: number;
+  }>;
+  startedAt: string;
+  endedAt: string;
+  status: "skipped" | "attachments_stable" | "failed" | "review_required";
+  failureReason: string | null;
+  reviewRequiredReason: string | null;
+};
+
 export type AiProviderRawResponse = {
   rawText: string;
   modelName: string | null;
@@ -27,6 +54,7 @@ export type AiProviderRawResponse = {
   restoredSourcePage: boolean | null;
   transportWarnings?: string[];
   uploadedFiles?: AiProviderUploadedFileProof[];
+  attachmentUploadProof?: WebChatAttachmentUploadProof;
   outputRefs?: string[];
   providerTabPolicy?: string | null;
   providerRecoveryAttemptCount?: number | null;
@@ -44,6 +72,7 @@ export type AiProviderAdapterContext = {
   browser?: BrowserController;
   runtimeLogger?: RuntimeLogger;
   abortSignal?: AbortSignal;
+  onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
 };
 
 export interface AiProviderAdapter {

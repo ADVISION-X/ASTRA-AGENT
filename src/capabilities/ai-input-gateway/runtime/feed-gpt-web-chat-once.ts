@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
+import type { WebChatAttachmentUploadProof } from "../contracts/ai-provider-adapter.contract.js";
 import { gptWebChatAdapter } from "../providers/gpt-web-chat.adapter.js";
 import type {
   AiFeedInput,
@@ -15,6 +16,7 @@ export const feedGptWebChatOnce = async (input: {
   runtimeLogger?: RuntimeLogger;
   adapter?: AiProviderAdapter;
   signal?: AbortSignal;
+  onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
 }): Promise<AiFeedResult> => {
   return executeAiFeedOnce({
     request: input.request,
@@ -25,5 +27,8 @@ export const feedGptWebChatOnce = async (input: {
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
+    ...(input.onAttachmentUploadCompleted
+      ? { onAttachmentUploadCompleted: input.onAttachmentUploadCompleted }
+      : {}),
   });
 };

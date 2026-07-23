@@ -3,9 +3,10 @@ import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
   AiProviderUploadedFileProof,
+  WebChatAttachmentUploadProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
   cleanupStaleWorkspaceConversationTabs,
   focusExistingSourceTab,
@@ -128,6 +129,7 @@ export const buildWebChatRawResponse = (input: {
   extracted: WebChatEvaluation;
   answerText: string;
   uploadedFiles?: AiProviderUploadedFileProof[];
+  attachmentUploadProof?: WebChatAttachmentUploadProof;
   outputRefs?: string[];
 }): AiProviderRawResponse => ({
   webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
@@ -154,6 +156,7 @@ export const buildWebChatRawResponse = (input: {
   sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
   restoredSourcePage: null,
   uploadedFiles: input.uploadedFiles ?? [],
+  ...(input.attachmentUploadProof ? { attachmentUploadProof: input.attachmentUploadProof } : {}),
   outputRefs: input.outputRefs ?? [],
   estimatedInputTokens: null,
   estimatedOutputTokens: null,

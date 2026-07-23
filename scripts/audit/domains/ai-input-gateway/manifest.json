@@ -1,0 +1,25 @@
+{
+  "capabilityDomain": "ai-input-gateway",
+  "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
+      "requiredAnchors": [
+        "## Boundary",
+        "## Attachment Child",
+        "## Staging Flow",
+        "## DOM Inclusion And Exclusion",
+        "## Success Gate",
+        "## Acceptance"
+      ]
+    }
+  ],
+  "description": "AI Input Gateway provider boundary and standard web-chat attachment child audit."
+}

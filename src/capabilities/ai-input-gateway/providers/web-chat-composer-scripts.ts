@@ -1,7 +1,5 @@
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
-const GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE = "provider attachments ready by global lower-bound count";
-
 export const WEB_CHAT_ATTACHMENT_COUNT_SCRIPT = `
 const CHATGPT_FILE_TILE_TEXT_PATTERN = /在文本字段中显示|show in text field|display in text field/i;
 const CHATGPT_FILE_REMOVE_PATTERN = /移除文件\\d*|remove file\\d*/i;
@@ -105,38 +103,22 @@ const countAttachmentCandidates = (root) => {
 };
 const findBestAttachmentScope = () => {
   const input = resolveComposerInput();
-  let bestRoot = null;
-  let bestResult = {count: 0, names: []};
   if (input instanceof HTMLElement) {
+    const composerForm = input.closest("form");
+    if (composerForm instanceof HTMLElement) {
+      return {...countAttachmentCandidates(composerForm), scope: "input", input};
+    }
     let cursor = input;
-    for (let depth = 0; depth < 10 && cursor; depth += 1) {
-      const currentResult = countAttachmentCandidates(cursor);
-      if (currentResult.count > bestResult.count) {
-        bestRoot = cursor;
-        bestResult = currentResult;
-      }
+    for (let depth = 0; depth < 6 && cursor; depth += 1) {
+      const isComposerBoundary = /composer/i.test(String(cursor.className || ""))
+        || Boolean(cursor.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']"));
+      if (isComposerBoundary) return {...countAttachmentCandidates(cursor), scope: "input", input};
       cursor = cursor.parentElement;
     }
+    return {count: 0, names: [], scope: "input", input};
   }
-  if (bestResult.count > 0) return {...bestResult, scope: "input", input};
-  const globalResult = countAttachmentCandidates(document.body);
-  return {...globalResult, scope: globalResult.count > 0 ? "global" : "none", input};
+  return {count: 0, names: [], scope: "none", input};
 };
-`;
-
-export const buildWaitForAttachmentCountScript = (expectedCount: number): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
-const expectedCount = ${JSON.stringify(expectedCount)};
-const result = findBestAttachmentScope();
-const inputFocused = Boolean(result.input instanceof HTMLElement && (document.activeElement === result.input || result.input.contains(document.activeElement)));
-if (result.count >= expectedCount && result.scope === "input") {
-  return {status: "success", message: "provider attachments ready", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, attachmentScope: result.scope, inputFocused};
-}
-if (result.count >= expectedCount && result.scope === "global") {
-  return {status: "success", message: ${JSON.stringify(GLOBAL_ATTACHMENT_LOWER_BOUND_READY_MESSAGE)}, pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, attachmentScope: result.scope, inputFocused};
-}
-return {status: "pending", message: "waiting for provider attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, attachmentScope: result.scope, inputFocused};
 `;
 
 export const buildWaitForExactAttachmentCountScript = (
@@ -213,5 +195,71 @@ return {
   message: inputFocused ? "provider input box focused" : "provider input box focus did not stick",
   pageUrl: location.href,
   inputFocused,
+};
+`;
+
+export const CLICK_CHATGPT_ADD_BUTTON_SCRIPT = `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const visible = (node) => {
+  if (!(node instanceof HTMLElement)) return false;
+  const rect = node.getBoundingClientRect();
+  const style = getComputedStyle(node);
+  return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+};
+const include = /^(?:Add files and more|Add files|Upload files|添加文件和更多|添加文件|上传文件)$/iu;
+const exclude = /(?:send|voice|microphone|camera|发送|语音|麦克风|相机)/iu;
+const candidates = Array.from(document.querySelectorAll(
+  "button[data-testid='composer-plus-btn'], button[aria-label], [role='button'][aria-label]"
+)).filter((node) => {
+  if (!(node instanceof HTMLElement) || !visible(node)) return false;
+  if (node.getAttribute("data-testid") === "composer-plus-btn") return true;
+  const label = clip(node.getAttribute("aria-label") || "");
+  return include.test(label) && !exclude.test(label);
+});
+const unique = Array.from(new Set(candidates));
+if (unique.length !== 1) {
+  return {status: "review_required", message: "CHATGPT_ADD_BUTTON_AMBIGUOUS", pageUrl: location.href, candidateCount: unique.length};
+}
+unique[0].click();
+return {status: "success", message: "ChatGPT add button clicked", pageUrl: location.href};
+`;
+
+export const CLICK_CHATGPT_LOCAL_FILE_MENU_ITEM_SCRIPT = `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const visible = (node) => {
+  if (!(node instanceof HTMLElement)) return false;
+  const rect = node.getBoundingClientRect();
+  const style = getComputedStyle(node);
+  return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+};
+const exclude = /(?:google drive|onedrive|sharepoint|camera|take photo|云端硬盘|相机|拍照)/iu;
+const candidates = Array.from(document.querySelectorAll(
+  ".__menu-item[tabindex], [role='menuitem'], [role='option'], [data-radix-menu-content] button, [data-radix-popper-content-wrapper] button"
+)).filter((node) => {
+  if (!(node instanceof HTMLElement) || !visible(node)) return false;
+  const label = clip(node.getAttribute("aria-label") || node.textContent || "");
+  const descendantTexts = Array.from(node.querySelectorAll("span, div"))
+    .map((candidate) => clip(candidate.textContent || ""))
+    .filter((value) => value.length > 0);
+  const hasPrimary = descendantTexts.includes("Add photos & files")
+    || descendantTexts.includes("添加照片和文件");
+  const hasLocalSubtitle = descendantTexts.includes("Upload from computer")
+    || descendantTexts.includes("从电脑上传");
+  const exactCombinedLabel = /^(?:Add photos & filesUpload from computer|添加照片和文件从电脑上传)$/iu.test(label);
+  return (exactCombinedLabel || (hasPrimary && hasLocalSubtitle)) && !exclude.test(label);
+});
+const unique = Array.from(new Set(candidates));
+if (unique.length === 0) {
+  return {status: "pending", message: "waiting for ChatGPT local file menu item", pageUrl: location.href, candidateCount: 0};
+}
+if (unique.length !== 1) {
+  return {status: "review_required", message: "CHATGPT_LOCAL_FILE_MENU_ITEM_AMBIGUOUS", pageUrl: location.href, candidateCount: unique.length};
+}
+const rect = unique[0].getBoundingClientRect();
+return {
+  status: "success",
+  message: "ChatGPT local file menu item uniquely located",
+  pageUrl: location.href,
+  targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
 };
 `;

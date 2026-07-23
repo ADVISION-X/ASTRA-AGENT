@@ -1,35 +1,5 @@
-import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 import { WEB_CHAT_ATTACHMENT_COUNT_SCRIPT } from "./web-chat-composer-scripts.js";
-
-type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
-
-export type WebChatEvaluation = {
-  status: WebChatActionStatus;
-  message: string;
-  answerText?: string | null;
-  pageUrl?: string | null;
-  selector?: string | null;
-  generating?: boolean;
-  target?: "composer-plus" | "upload-menu-item";
-  x?: number;
-  y?: number;
-  assistantCount?: number;
-  composerText?: string | null;
-  expectedLength?: number;
-  attachmentCount?: number;
-  attachmentNames?: string[];
-  missingFileNames?: string[];
-  unexpectedFileNames?: string[];
-  attachmentScope?: "input" | "global" | "none";
-  boundAttachmentCount?: number;
-  lastUserMessageText?: string | null;
-  inputFocused?: boolean;
-  promptPrefixVisible?: boolean;
-  promptSuffixVisible?: boolean;
-  pastedTextCardReady?: boolean;
-  hasPastedTextCard?: boolean;
-  sendReady?: boolean;
-};
+import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
 const WEB_CHAT_STATUS_TEXT_SCRIPT = `
 const visibleStatusText = Array.from(document.querySelectorAll("[role='status'], [aria-live], [data-testid*='status'], [class*='status'], [class*='thinking'], [class*='reasoning'], [class*='loading']"))

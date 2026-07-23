@@ -1,7 +1,10 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
+import type {
+  AiProviderAdapterContext,
+  WebChatAttachmentUploadProof,
+} from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
   pasteTextAndSubmitInChrome,
   pasteTextReplacingInChrome,
@@ -21,6 +24,7 @@ import { clearComposer } from "./web-chat-upload-page-actions.js";
 import {
   acknowledgeChatGptRateLimitDialogIfVisible,
 } from "./web-chat-rate-limit-dialog.js";
+import { acknowledgePick3RateLimitIfVisible } from "./web-chat-pick3-recovery-log.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
@@ -134,6 +138,7 @@ type SubmitPromptViaClipboardInput = {
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   previousAssistantCount: number;
+  attachmentUploadProof: WebChatAttachmentUploadProof;
 };
 
 type Pick3RateLimitSubmitGuardInput = {
@@ -144,6 +149,10 @@ type Pick3RateLimitSubmitGuardInput = {
 
 const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
   if (input.request.providerKind !== "gpt-web-chat") return;
+  if (input.request.promptContractId.includes("pick3-is-blind-eval")) {
+    await acknowledgePick3RateLimitIfVisible(input);
+    return;
+  }
   const ackStatus = await acknowledgeChatGptRateLimitDialogIfVisible({
     browser: input.browser,
     context: input.context,
@@ -372,9 +381,15 @@ const preparePromptComposer = async (
     expectedSuffix,
   });
   if (expectedAttachmentCount > 0) {
-    const expectedFileNames = input.request.inputRefs
-      .filter((ref) => Boolean(ref.filePath))
-      .map((ref) => ref.fileName ?? "");
+    if (input.attachmentUploadProof.status !== "attachments_stable") {
+      throw new Error(`review_required: attachment proof is not stable before prompt submission; status=${input.attachmentUploadProof.status}`);
+    }
+    const expectedFileNames = [...input.attachmentUploadProof.files]
+      .sort((left, right) => left.order - right.order)
+      .map((file) => file.displayFileName);
+    if (expectedFileNames.length !== expectedAttachmentCount) {
+      throw new Error(`review_required: attachment proof count does not match request before prompt submission; request=${expectedAttachmentCount}; proof=${expectedFileNames.length}`);
+    }
     const attachmentStartedAtMs = Date.now();
     emitSubmitStage(input, "verify_attachments_before_submit", "start", null, {
       expectedAttachmentCount,

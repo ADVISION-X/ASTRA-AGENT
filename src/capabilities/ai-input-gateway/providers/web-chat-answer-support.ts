@@ -1,9 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
-import {
-  EXTRACT_LAST_RESPONSE_SCRIPT,
-  type WebChatEvaluation,
-} from "./web-chat-evaluation.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
+import { EXTRACT_LAST_RESPONSE_SCRIPT } from "./web-chat-evaluation.js";
 
 type StableAnswerState = {
   lastText: string;

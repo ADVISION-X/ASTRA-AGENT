@@ -1,6 +1,6 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
   advanceStableAnswer,
   buildTimedOutAnswerEvaluation,

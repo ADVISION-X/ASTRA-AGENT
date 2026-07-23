@@ -17,6 +17,7 @@ import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screens
 import { executeCurrentChromeFieldInput } from "./current-chrome-browser-field-input.js";
 import { setFileInputFilesWithCurrentChromeCdp } from "./current-chrome-cdp-file-input.js";
 import { runNativeFileInputSelection } from "./current-chrome-native-file-input.js";
+import { runNativeMultiFilePickerSelection } from "./current-chrome-native-multi-file-picker.js";
 
 type TextInput = Parameters<BrowserController["textInput"]>[0];
 type ScreenshotRegionInput = Parameters<BrowserController["screenshotRegion"]>[0];
@@ -27,6 +28,7 @@ export type EvaluateActiveTabInput = {
   timeoutMs?: number;
 };
 type SetFileInputFilesInput = Parameters<BrowserController["setFileInputFiles"]>[0];
+type SelectFilesInNativePickerInput = Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0];
 
 type RefreshSnapshot = (state: RuntimeState) => Promise<unknown>;
 type GetGeometrySnapshot = (state: RuntimeState) => Promise<BrowserGeometrySnapshot>;
@@ -228,6 +230,16 @@ export const setCurrentChromeFileInputFiles = async (
   }
   await refreshSnapshot(state);
   return createCurrentChromeBrowserActionResult({ message: `approved file selected for located file input; CDP unavailable: ${cdpResult.message}` });
+};
+
+export const selectCurrentChromeNativePickerFiles = async (
+  state: RuntimeState,
+  input: SelectFilesInNativePickerInput,
+  refreshSnapshot: RefreshSnapshot,
+) => {
+  const result = await runNativeMultiFilePickerSelection(input);
+  await refreshSnapshot(state);
+  return result;
 };
 
 export const waitForDuration = async (

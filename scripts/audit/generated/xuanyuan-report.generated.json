@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T04:37:37.815Z",
+  "generatedAt": "2026-07-23T22:49:25.764Z",
   "capabilityDomain": "xuanyuan",
   "executionGroup": "domain",
   "lawIds": [
@@ -19,9 +19,6 @@
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/app/workbench-xuanyuan-routes.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/plugins/xuanyuan/index.ts",
     "src/plugins/xuanyuan/xuanyuan.schema.ts",
     "src/plugins/xuanyuan/xuanyuan.flow.ts"

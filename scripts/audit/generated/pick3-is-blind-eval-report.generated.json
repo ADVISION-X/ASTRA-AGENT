@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T00:35:58.136Z",
+  "generatedAt": "2026-07-23T22:49:25.425Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -53,10 +53,10 @@
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
+    "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",

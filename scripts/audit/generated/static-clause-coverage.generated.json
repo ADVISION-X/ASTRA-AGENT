@@ -1,11 +1,51 @@
 {
-  "generatedAt": "2026-07-21T00:35:08.165Z",
+  "generatedAt": "2026-07-23T22:48:33.135Z",
   "summary": {
-    "activeLawCount": 242,
-    "coveredLawCount": 242,
+    "activeLawCount": 246,
+    "coveredLawCount": 246,
     "coveragePercent": 100
   },
   "coverage": [
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
+      "capabilityDomain": "ai-input-gateway",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/ai-input-gateway/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
+      "capabilityDomain": "ai-input-gateway",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/ai-input-gateway/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
+      "capabilityDomain": "ai-input-gateway",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/ai-input-gateway/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
+      "capabilityDomain": "ai-input-gateway",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/ai-input-gateway/manifest.json"
+        }
+      ]
+    },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
       "capabilityDomain": "amazon-invoice-upload",

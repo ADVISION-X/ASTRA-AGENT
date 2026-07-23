@@ -1,48 +1,5 @@
 {
-  "generatedAt": "2026-07-21T00:35:48.284Z",
-  "itemCount": 4,
-  "items": [
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "active executable source file has 502 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "ability-group",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Export waitForAttachmentCountAtLeast has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "ability-group",
-      "symbolName": "waitForAttachmentCountAtLeast",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "child-ability",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "capability:ai-input-gateway",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "child-ability",
-      "verificationCommand": "npm run ci:full"
-    }
-  ]
+  "generatedAt": "2026-07-23T22:49:15.182Z",
+  "itemCount": 0,
+  "items": []
 }

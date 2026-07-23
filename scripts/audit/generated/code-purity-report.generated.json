@@ -4,47 +4,10 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts has 502 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts exports waitForAttachmentCountAtLeast without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"symbolName\":\"waitForAttachmentCountAtLeast\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-07-21T00:35:48.285Z",
+  "findings": [],
+  "generatedAt": "2026-07-23T22:49:15.184Z",
   "inspectedFiles": [
-    "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts",
+    "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
@@ -151,6 +114,7 @@
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
@@ -440,6 +404,8 @@
     "src/app/workbench-video-download-routes.ts",
     "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
+    "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+    "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
     "src/capabilities/ai-input-gateway/index.ts",
@@ -448,19 +414,24 @@
     "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
@@ -468,7 +439,6 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
@@ -477,8 +447,6 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-    "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
-    "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
@@ -568,6 +536,7 @@
     "src/lib/browser/current-chrome-browser-scroll-support.ts",
     "src/lib/browser/current-chrome-cdp-file-input.ts",
     "src/lib/browser/current-chrome-native-file-input.ts",
+    "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/current-chrome-window-control.ts",
     "src/lib/browser/local-browser-session.ts",
     "src/lib/local-runtime/contract.ts",
@@ -862,9 +831,9 @@
   "liveEntryPoints": [
     {
       "entryKind": "package-script",
-      "filePath": "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts",
-      "reason": "package.json script acceptance:xuanyuan",
-      "scriptName": "acceptance:xuanyuan"
+      "filePath": "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
+      "reason": "package.json script acceptance:ai-input-gateway-attachment:real-chrome",
+      "scriptName": "acceptance:ai-input-gateway-attachment:real-chrome"
     },
     {
       "entryKind": "package-script",
@@ -1395,6 +1364,12 @@
       "scriptName": "codex:entry-gate"
     },
     {
+      "entryKind": "owner-inspector",
+      "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+      "reason": "generated-plan owner inspector dynamic load",
+      "scriptName": null
+    },
+    {
       "entryKind": "package-script",
       "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
       "reason": "package.json script audit:amazon-invoice-upload",
@@ -1579,61 +1554,33 @@
       "filePath": "src/app/server.ts",
       "reason": "package.json script internal:app-server:dev",
       "scriptName": "internal:app-server:dev"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+      "reason": "package.json script acceptance:xuanyuan",
+      "scriptName": "acceptance:xuanyuan"
     }
   ],
-  "liveExportCount": 2313,
+  "liveExportCount": 2339,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 786,
-  "status": "FAIL",
-  "unreachableFileCount": 2,
-  "uselessCodeInventory": [
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-independent-review-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/capabilities/ai-input-gateway/runtime/full-corpus-source-retrieval-schema.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts exports waitForAttachmentCountAtLeast without any provable final consumer."
-    }
-  ],
-  "unprovenPublicExports": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts exports waitForAttachmentCountAtLeast without any provable final consumer."
-    }
-  ],
+  "reachableFileCount": 794,
+  "status": "PASS",
+  "unreachableFileCount": 0,
+  "uselessCodeInventory": [],
+  "unprovenPublicExports": [],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 1,
+  "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2313,
+    "liveExportCount": 2339,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 786,
-    "unreachableFileCount": 2,
-    "uselessCodeInventoryCount": 3,
-    "zombieExportCount": 1
+    "reachableFileCount": 794,
+    "unreachableFileCount": 0,
+    "uselessCodeInventoryCount": 0,
+    "zombieExportCount": 0
   }
 }

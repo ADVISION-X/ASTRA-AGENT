@@ -249,11 +249,22 @@ tell application "Google Chrome"
     if (count of windows) = 0 then
         return "NO_WINDOW"
     end if
-    set windowBounds to bounds of front window
     set tabUrl to URL of active tab of front window
     set tabTitle to title of active tab of front window
-    return (item 1 of windowBounds as string) & linefeed & (item 2 of windowBounds as string) & linefeed & (item 3 of windowBounds as string) & linefeed & (item 4 of windowBounds as string) & linefeed & tabUrl & linefeed & tabTitle
 end tell
+tell application "System Events"
+    tell process "Google Chrome"
+        set frontmost to true
+        if (count of windows) = 0 then return "NO_WINDOW"
+        set chromeWindowPosition to position of window 1
+        set chromeWindowSize to size of window 1
+    end tell
+end tell
+set windowLeft to item 1 of chromeWindowPosition
+set windowTop to item 2 of chromeWindowPosition
+set windowRight to windowLeft + (item 1 of chromeWindowSize)
+set windowBottom to windowTop + (item 2 of chromeWindowSize)
+return (windowLeft as string) & linefeed & (windowTop as string) & linefeed & (windowRight as string) & linefeed & (windowBottom as string) & linefeed & tabUrl & linefeed & tabTitle
 `);
 
   if (output === "NO_WINDOW") {

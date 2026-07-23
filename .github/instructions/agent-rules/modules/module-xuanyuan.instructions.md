@@ -25,7 +25,7 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
 - Before continuation, Xuanyuan must load the prior persisted task and verify `sourceProject`, `providerKind`, `response_captured` status, exact raw-output hash, and a captured provider conversation URL. It then mints the internal AI Input Gateway continuation ref; any mismatch fails closed before provider transport.
 - Continuation creates a new Xuanyuan task and new provider lease, but must reuse the exact prior provider conversation. It does not create a workflow engine, hidden third turn, or provider fallback.
 - The task must persist request snapshot, prompt package snapshot, input hash proof as returned by AI Input Gateway, the exact raw response text, raw output refs and hash, provider proof, transport warnings, failure reason, and review-required reason.
-- When a request carries files, Xuanyuan must preserve their declared order and AI Input Gateway must deliver them one by one using exactly one real macOS `Command+C` and one real Chrome `Command+V` per file, verifying the exact cumulative attachment count before the next file.
+- When a request carries files, Xuanyuan preserves their declared order and delegates the entire attachment phase to AI Input Gateway child `attach-approved-web-chat-files-once`; Xuanyuan stores only the aggregate proof and never selects a transport.
 - The route surface must expose only known xuanyuan routes: `POST /api/xuanyuan/simulate`, `GET /api/xuanyuan/status`, `GET /api/xuanyuan/latest`, and `GET /api/xuanyuan/history`.
 - Switching to a future real API-key provider must happen behind AI Input Gateway without changing the website-side request/result contract.
 - Once AI Input Gateway captures a complete provider response, Xuanyuan must return `response_captured` with the exact raw text regardless of parsing, schema, tab-close, source-restore, focus, or cleanup outcomes.
@@ -42,7 +42,7 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
 - No continuation from a missing, non-captured, different-project, different-provider, or hash-mismatched prior task.
 - No cookies, localStorage, sessionStorage, passwords, provider tokens, or browser profile paths in xuanyuan requests.
 - No fake success, fallback success, mock production result, or swallowed provider failure.
-- No batch file paste, multi-file clipboard copy, same-file paste retry, or lower-bound-only attachment count acceptance.
+- No external transport selector, provider DOM instruction, same-attempt fallback, duplicate paste, or lower-bound-only attachment acceptance.
 - No AI output controlling browser actions, workflow order, payment, submission, deletion, or other sensitive final actions.
 - No JSON parsing, schema validation, normalization, extraction, repair, content judgment, or post-capture downgrade inside Xuanyuan.
 
@@ -62,7 +62,7 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
     "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
     "External website contract stays provider-agnostic for later real API-key switching.",
     "Optional continuation is authorized only by prior Xuanyuan task id plus exact captured response hash, while Xuanyuan resolves the internal provider conversation ref.",
-    "Web Chat files are delivered in request order through one exact Command+C and Command+V cycle per file with exact cumulative count verification."
+    "Web Chat files are delegated to the standard AI Input Gateway attachment child and Xuanyuan persists its aggregate terminal proof."
   ],
   "forbidden": [
     "second HTTP server or API gateway",
@@ -70,7 +70,7 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
     "xuanyuan direct provider SDK or web-chat DOM operation",
     "external provider conversation URL or unverified continuation",
     "fake success when provider or parsing fails",
-    "batch or duplicate Web Chat file paste"
+    "external attachment transport selection or duplicate Web Chat file paste"
   ]
 }
 ```

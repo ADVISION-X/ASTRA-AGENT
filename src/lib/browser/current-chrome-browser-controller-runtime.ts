@@ -17,6 +17,7 @@ import {
   buildOpenUrlScript,
   readFrontChromeWindowState,
   runAppleScript,
+  runJxa,
 } from "./current-chrome-window-control.js";
 import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser-action-result.js";
 import { emitCurrentChromeMouseClickProbe } from "./current-chrome-browser-click-probe.js";
@@ -30,6 +31,7 @@ import {
   evaluateActiveTab,
   type EvaluateActiveTabInput,
   screenshotCurrentChromeRegion,
+  selectCurrentChromeNativePickerFiles,
   setCurrentChromeFileInputFiles,
   textInputCurrentChrome,
   waitForDuration,
@@ -57,6 +59,7 @@ type MoveInput = Parameters<NonNullable<BrowserController["move"]>>[0];
 type TextInput = Parameters<BrowserController["textInput"]>[0];
 type ScreenshotRegionInput = Parameters<BrowserController["screenshotRegion"]>[0];
 type SetFileInputFilesInput = Parameters<BrowserController["setFileInputFiles"]>[0];
+type SelectFilesInNativePickerInput = Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0];
 
 const createRuntimeState = (
   options: CurrentChromeBrowserControllerOptions,
@@ -142,9 +145,13 @@ type ViewportMetrics = {
 const readViewportMetrics = async (): Promise<ViewportMetrics> => {
   try {
     const jsSnippet = "JSON.stringify({dpr:window.devicePixelRatio||1,innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerHeight:window.outerHeight})";
-    const raw = await runAppleScript(
-      `tell application "Google Chrome" to execute front window's active tab javascript "${jsSnippet}"`,
-    );
+    const raw = await runJxa(`
+const chrome = Application("Google Chrome");
+const chromeWindows = chrome.windows();
+if (chromeWindows.length === 0) throw new Error("Google Chrome window is unavailable");
+chrome.activate();
+chromeWindows[0].activeTab().execute({javascript: ${JSON.stringify(jsSnippet)}});
+`);
     return JSON.parse(raw) as ViewportMetrics;
   } catch {
     return { dpr: 1, innerWidth: 0, innerHeight: 0, outerHeight: 0 };
@@ -321,6 +328,8 @@ export const createCurrentChromeBrowserControllerRuntime = (
     screenshotRegion: (input: ScreenshotRegionInput) => screenshotCurrentChromeRegion(state, input, getGeometrySnapshot, refreshSnapshot),
     evaluateActiveTab: <T>(input: EvaluateActiveTabInput) => evaluateActiveTab<T>(state, input, refreshSnapshot),
     setFileInputFiles: (input: SetFileInputFilesInput) => setCurrentChromeFileInputFiles(state, input, refreshSnapshot, sleep),
+    selectFilesInNativePicker: (input: SelectFilesInNativePickerInput) =>
+      selectCurrentChromeNativePickerFiles(state, input, refreshSnapshot),
     wait: (durationMs) => waitForDuration(state, durationMs, refreshSnapshot, sleep),
     closeActiveTab: (input) => closeCurrentChromeActiveTab(state, input, refreshSnapshot),
     close: () => closeCurrentChrome(state, refreshSnapshot),

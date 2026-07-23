@@ -1,5 +1,13 @@
-generatedAt: "2026-07-21T00:35:08.165Z"
+generatedAt: "2026-07-23T22:48:33.135Z"
 rows:
+  - capabilityDomain: "ai-input-gateway"
+    manifestPath: "scripts/audit/domains/ai-input-gateway/manifest.json"
+    ownerInspectorPath: "scripts/audit/domains/ai-input-gateway/inspector.ts"
+    lawIds:
+      - "APEX-AI-INPUT-GATEWAY-001-V1"
+      - "APEX-AI-INPUT-GATEWAY-002-V1"
+      - "APEX-AI-INPUT-GATEWAY-003-V1"
+      - "APEX-AI-INPUT-GATEWAY-004-V1"
   - capabilityDomain: "amazon-invoice-upload"
     manifestPath: "scripts/audit/domains/amazon-invoice-upload/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/amazon-invoice-upload/inspector.ts"

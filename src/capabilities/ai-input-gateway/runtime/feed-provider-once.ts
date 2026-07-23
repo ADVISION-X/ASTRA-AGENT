@@ -4,6 +4,7 @@ import type {
   AiProviderAdapter,
   AiProviderRawResponse,
   AiProviderUploadedFileProof,
+  WebChatAttachmentUploadProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type {
   AiFeedInput,
@@ -27,6 +28,7 @@ type ExecuteAiFeedOnceInput = {
   browser?: BrowserController;
   runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
+  onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
 };
 
 const reviewRequiredFromError = (error: unknown): boolean =>
@@ -49,7 +51,17 @@ const uploadedFilesFromError = (error: unknown): AiProviderUploadedFileProof[] =
 
 const responseEvidenceFromError = (error: unknown): Partial<AiProviderRawResponse> | undefined => {
   const uploadedFiles = uploadedFilesFromError(error);
-  return uploadedFiles.length > 0 ? { uploadedFiles } : undefined;
+  const attachmentUploadProof = typeof error === "object"
+    && error !== null
+    && "attachmentUploadProof" in error
+    ? (error as { attachmentUploadProof?: WebChatAttachmentUploadProof }).attachmentUploadProof
+    : undefined;
+  return uploadedFiles.length > 0 || attachmentUploadProof
+    ? {
+        ...(uploadedFiles.length > 0 ? { uploadedFiles } : {}),
+        ...(attachmentUploadProof ? { attachmentUploadProof } : {}),
+      }
+    : undefined;
 };
 
 const buildRateGuardFailure = (input: {
@@ -102,6 +114,9 @@ const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
   ...(input.browser ? { browser: input.browser } : {}),
   ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   ...(input.signal ? { abortSignal: input.signal } : {}),
+  ...(input.onAttachmentUploadCompleted
+    ? { onAttachmentUploadCompleted: input.onAttachmentUploadCompleted }
+    : {}),
 });
 
 const executeProviderFeed = (

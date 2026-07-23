@@ -200,7 +200,7 @@ Facebook 种草视频入口必须保持一键任务形态：
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
+    "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "scripts/acceptance/facebook-product-video-mining*.ts",
     "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"

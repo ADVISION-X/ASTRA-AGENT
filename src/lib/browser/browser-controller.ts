@@ -64,6 +64,10 @@ type BrowserFileInputRef = {
   targetKind: "file-input";
 };
 
+type BrowserNativeMultiFilePickerResult = BrowserActionResult & {
+  observedFileNames: string[];
+};
+
 interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
@@ -113,9 +117,15 @@ interface BrowserController {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
+  selectFilesInNativePicker?(input: {
+    stagingDirectoryPath: string;
+    expectedFileNames: string[];
+    description: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserNativeMultiFilePickerResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   closeActiveTab(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 
-export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserOpenReusePolicy, BrowserController };
+export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserOpenReusePolicy, BrowserNativeMultiFilePickerResult, BrowserController };

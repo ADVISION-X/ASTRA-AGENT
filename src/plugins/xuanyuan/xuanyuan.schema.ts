@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import type { AiFeedResult } from "../../capabilities/ai-input-gateway/index.js";
+import type {
+  AiFeedResult,
+  WebChatAttachmentUploadProof,
+} from "../../capabilities/ai-input-gateway/index.js";
 
 export const XUANYUAN_JOB_ID = "xuanyuan" as const;
 
@@ -71,6 +74,9 @@ export type XuanyuanTaskRecord = {
   rawOutputHash: string | null;
   transportWarnings: string[];
   providerProof: AiFeedResult["providerProof"] | null;
+  progress: {
+    attachmentUploadProof: WebChatAttachmentUploadProof | null;
+  };
   continuationTaskId: string | null;
   conversationProof: {
     priorTaskId: string;

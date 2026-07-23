@@ -6,6 +6,7 @@ import type {
   AiFeedInput,
   AiFeedResult,
   AiInputGatewayAbilityGroup,
+  WebChatAttachmentUploadProof,
 } from "../../capabilities/ai-input-gateway/index.js";
 import {
   XUANYUAN_JOB_ID,
@@ -92,6 +93,9 @@ const buildInitialRecord = (input: {
     rawOutputHash: null,
     transportWarnings: [],
     providerProof: null,
+    progress: {
+      attachmentUploadProof: null,
+    },
     continuationTaskId: input.request.continuationTaskId ?? null,
     conversationProof: null,
     failureReason: null,
@@ -113,6 +117,10 @@ const withAiFeedResult = (
   rawOutputHash: result.rawOutputHash,
   transportWarnings: result.transportWarnings ?? [],
   providerProof: result.providerProof,
+  progress: {
+    attachmentUploadProof: (result.providerProof.attachmentUploadProof as WebChatAttachmentUploadProof | undefined)
+      ?? record.progress.attachmentUploadProof,
+  },
   conversationProof: record.continuationTaskId ? {
     priorTaskId: record.continuationTaskId,
     priorRawOutputHash: record.requestSnapshot.continuationResponseHash!,
@@ -140,6 +148,20 @@ const writeTask = async (dataDir: string, record: XuanyuanTaskRecord): Promise<X
   await mkdir(tasksDir(dataDir), { recursive: true });
   await writeFile(taskPath(dataDir, record.taskId), JSON.stringify(record, null, 2), "utf8");
   return record;
+};
+
+const recordAttachmentUpload = async (
+  dataDir: string,
+  taskId: string,
+  proof: WebChatAttachmentUploadProof,
+): Promise<void> => {
+  const current = await readTask(dataDir, taskId);
+  if (!current || current.status !== "running") return;
+  await writeTask(dataDir, {
+    ...current,
+    progress: { attachmentUploadProof: proof },
+    updatedAt: nowIso(),
+  });
 };
 
 const readTask = async (dataDir: string, taskId: string): Promise<XuanyuanTaskRecord | null> => {
@@ -184,8 +206,13 @@ export const startXuanyuanTask = async (
   const aiFeedResult = await runtime.aiInputGateway.execute(toAiFeedInput({
     ...request,
     textPrompt,
-  }, continuation));
-  return writeTask(runtime.dataDir, withAiFeedResult(running, aiFeedResult));
+  }, continuation), {
+    onAttachmentUploadCompleted: (proof) => recordAttachmentUpload(runtime.dataDir, taskId, proof),
+  });
+  return writeTask(
+    runtime.dataDir,
+    withAiFeedResult(await readTask(runtime.dataDir, taskId) ?? running, aiFeedResult),
+  );
 };
 
 export const startXuanyuanTaskAsync = async (
@@ -202,10 +229,18 @@ export const startXuanyuanTaskAsync = async (
   void runtime.aiInputGateway.execute(toAiFeedInput({
     ...request,
     textPrompt,
-  }, continuation)).then((aiFeedResult) =>
-    writeTask(runtime.dataDir, withAiFeedResult(running, aiFeedResult)),
-  ).catch((error) =>
-    writeTask(runtime.dataDir, withFailure(running, error)).then(() => undefined),
+  }, continuation), {
+    onAttachmentUploadCompleted: (proof) => recordAttachmentUpload(runtime.dataDir, taskId, proof),
+  }).then(async (aiFeedResult) =>
+    writeTask(
+      runtime.dataDir,
+      withAiFeedResult(await readTask(runtime.dataDir, taskId) ?? running, aiFeedResult),
+    ),
+  ).catch(async (error) =>
+    writeTask(
+      runtime.dataDir,
+      withFailure(await readTask(runtime.dataDir, taskId) ?? running, error),
+    ).then(() => undefined),
   );
   return running;
 };

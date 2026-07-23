@@ -7,5 +7,8 @@ export type {
   AiProviderAdapter,
   AiProviderAdapterContext,
   AiProviderRawResponse,
+  AiProviderUploadedFileProof,
+  WebChatAttachmentTransportKind,
+  WebChatAttachmentUploadProof,
 } from "./contracts/ai-provider-adapter.contract.js";
 export type { AiInputGatewayAbilityGroup } from "./contract.js";

@@ -9,6 +9,7 @@ const AiInputGatewayProviderKindSchema = z.enum([
 ]);
 
 const AiInputGatewayChildCapabilityIdSchema = z.enum([
+  "attach-approved-web-chat-files-once",
   "feed-gemini-api-once",
   "feed-gemini-web-chat-once",
   "feed-gpt-web-chat-once",
@@ -73,6 +74,27 @@ const AiFeedProviderProofIdentitySchema = z.object({
     sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
     byteCount: z.number().int().nonnegative(),
   }).strict()).optional(),
+  attachmentUploadProof: z.object({
+    childCapabilityId: z.literal("attach-approved-web-chat-files-once"),
+    uploadAttemptId: z.string().min(1),
+    transportKind: z.enum(["skipped", "ordered_clipboard", "native_picker_batch"]),
+    expectedFileCount: z.number().int().nonnegative(),
+    detectedFileCount: z.number().int().nonnegative(),
+    stagingManifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).nullable(),
+    files: z.array(z.object({
+      inputRefId: z.string().min(1),
+      order: z.number().int().positive(),
+      sourceFileName: z.string().min(1),
+      displayFileName: z.string().min(1),
+      sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+      byteCount: z.number().int().nonnegative(),
+    }).strict()),
+    startedAt: z.string().datetime(),
+    endedAt: z.string().datetime(),
+    status: z.enum(["skipped", "attachments_stable", "failed", "review_required"]),
+    failureReason: z.string().min(1).nullable(),
+    reviewRequiredReason: z.string().min(1).nullable(),
+  }).strict().optional(),
   outputRefs: z.array(z.string().min(1)).default([]),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),

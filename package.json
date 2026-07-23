@@ -83,8 +83,9 @@
     "audit:lottery-ticket-plan": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['lottery-ticket-plan'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
     "acceptance:lottery-ticket-plan": "node --import tsx scripts/acceptance/lottery-ticket-plan.acceptance.ts",
     "audit:xuanyuan": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['xuanyuan'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
-    "acceptance:xuanyuan": "node --import tsx scripts/acceptance/xuanyuan.acceptance.ts && node --import tsx scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts",
-    "acceptance:ai-input-gateway-ordered-upload": "node --import tsx scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts"
+    "acceptance:xuanyuan": "node --import tsx scripts/acceptance/xuanyuan.acceptance.ts && node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+    "acceptance:ai-input-gateway-attachment": "node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts"
+    ,"acceptance:ai-input-gateway-attachment:real-chrome": "node --import tsx scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts"
     ,"acceptance:ai-input-gateway-provider-lease": "node --import tsx scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts"
   },
   "dependencies": {

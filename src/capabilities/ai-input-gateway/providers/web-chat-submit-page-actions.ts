@@ -4,8 +4,8 @@ import {
   buildVerifyPromptPastedScript,
   buildVerifyPromptSubmittedScript,
   buildVerifyLastUserMessageAttachmentsScript,
-  type WebChatEvaluation,
 } from "./web-chat-evaluation.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 
 export const verifyPromptPasted = (
   browser: BrowserController,
