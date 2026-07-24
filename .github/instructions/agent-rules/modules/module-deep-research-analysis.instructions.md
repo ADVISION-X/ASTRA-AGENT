@@ -38,7 +38,15 @@ N 个问题 -> AI 逐个回答，全量保存
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "Deep Research Analysis must live as one explicit job flow under src/plugins/deep-research-analysis and must not become a universal agent, planner, or mission loop."
+  "summary": "Deep Research Analysis must live as one explicit job flow under src/plugins/deep-research-analysis and must not become a universal agent, planner, or mission loop.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-001-requirement",
+      "statement": "Deep Research Analysis must live as one explicit job flow under src/plugins/deep-research-analysis and must not become a universal agent, planner, or mission loop.",
+      "evidenceMode": "static",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -52,7 +60,15 @@ N 个问题 -> AI 逐个回答，全量保存
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs+acceptance",
-  "summary": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system."
+  "summary": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-038-requirement",
+      "statement": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -81,7 +97,15 @@ If the chain has already persisted the full case file inputs and final adjudicat
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted."
+  "summary": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-039-requirement",
+      "statement": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted.",
+      "evidenceMode": "static",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -97,7 +121,15 @@ Non-primary path includes PPT primary flow, deck outline flow, local PPT generat
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs+acceptance",
-  "summary": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses."
+  "summary": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-040-requirement",
+      "statement": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -118,7 +150,15 @@ If raw AI text exists, it must be included in the full case file and made availa
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+ast+export",
-  "summary": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system."
+  "summary": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-041-requirement",
+      "statement": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -136,7 +176,15 @@ PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary D
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast+ui",
-  "summary": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist."
+  "summary": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-042-requirement",
+      "statement": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -167,7 +215,15 @@ If a concept is not part of the unique chain, it must not exist.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "schema+ast",
-  "summary": "The decomposition AI must generate one question-specific promptBundle for every sub-question, and N-stage runtime must use the promptBundle attached to that exact sub-question."
+  "summary": "The decomposition AI must generate one question-specific promptBundle for every sub-question, and N-stage runtime must use the promptBundle attached to that exact sub-question.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-043-requirement",
+      "statement": "The decomposition AI must generate one question-specific promptBundle for every sub-question, and N-stage runtime must use the promptBundle attached to that exact sub-question.",
+      "evidenceMode": "static",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -187,7 +243,15 @@ Each sub-question promptBundle must be generated by the decomposition AI and mus
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+prompt",
-  "summary": "Runtime may add only transport, persistence, safety, and formatting shell constraints. Runtime must not hard-code domain-specific business analysis instructions, final adjudication logic, or HTML report content strategy."
+  "summary": "Runtime may add only transport, persistence, safety, and formatting shell constraints. Runtime must not hard-code domain-specific business analysis instructions, final adjudication logic, or HTML report content strategy.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-044-requirement",
+      "statement": "Runtime may add only transport, persistence, safety, and formatting shell constraints. Runtime must not hard-code domain-specific business analysis instructions, final adjudication logic, or HTML report content strategy.",
+      "evidenceMode": "static",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -207,7 +271,15 @@ Business prompt sovereignty belongs to the AI-generated promptBundle.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "schema+ast",
-  "summary": "N-stage analysis must render from subQuestion.promptBundle, final adjudication must render from finalAdjudicationPromptBundle, and HTML report generation must render from htmlReportPromptBundle. Any hard-coded prompt that replaces promptBundle business instructions is forbidden."
+  "summary": "N-stage analysis must render from subQuestion.promptBundle, final adjudication must render from finalAdjudicationPromptBundle, and HTML report generation must render from htmlReportPromptBundle. Any hard-coded prompt that replaces promptBundle business instructions is forbidden.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-045-requirement",
+      "statement": "N-stage analysis must render from subQuestion.promptBundle, final adjudication must render from finalAdjudicationPromptBundle, and HTML report generation must render from htmlReportPromptBundle. Any hard-coded prompt that replaces promptBundle business instructions is forbidden.",
+      "evidenceMode": "static",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -229,7 +301,15 @@ Any hard-coded prompt that replaces promptBundle business instructions is forbid
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+prompt+acceptance",
-  "summary": "Final adjudication must receive structuredIndex, fullCaseFile, fullCaseFileMarkdown, and finalAdjudicationPromptBundle. HTML report must receive rawFinalAnswerText, fullCaseFile, fullCaseFileMarkdown, and htmlReportPromptBundle. Runtime must not reduce inputs to structured summaries."
+  "summary": "Final adjudication must receive structuredIndex, fullCaseFile, fullCaseFileMarkdown, and finalAdjudicationPromptBundle. HTML report must receive rawFinalAnswerText, fullCaseFile, fullCaseFileMarkdown, and htmlReportPromptBundle. Runtime must not reduce inputs to structured summaries.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-046-requirement",
+      "statement": "Final adjudication must receive structuredIndex, fullCaseFile, fullCaseFileMarkdown, and finalAdjudicationPromptBundle. HTML report must receive rawFinalAnswerText, fullCaseFile, fullCaseFileMarkdown, and htmlReportPromptBundle. Runtime must not reduce inputs to structured summaries.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -263,7 +343,15 @@ Runtime must not reduce inputs to structured summaries.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast+acceptance",
-  "summary": "All previous Deep Research modes not matching the promptBundle-driven 1+N+1+1 chain must be physically deleted. No compatibility, fallback, optional, legacy, local fallback, compact, lite, or dual-path implementation may remain."
+  "summary": "All previous Deep Research modes not matching the promptBundle-driven 1+N+1+1 chain must be physically deleted. No compatibility, fallback, optional, legacy, local fallback, compact, lite, or dual-path implementation may remain.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-047-requirement",
+      "statement": "All previous Deep Research modes not matching the promptBundle-driven 1+N+1+1 chain must be physically deleted. No compatibility, fallback, optional, legacy, local fallback, compact, lite, or dual-path implementation may remain.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -283,7 +371,15 @@ Only the unique ResearchPlan -> PromptBundle -> FullCaseFile -> FinalAdjudicatio
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+prompt+ui",
-  "summary": "Deep Research business prompts must be generated by the first AI ResearchPlan. Runtime may append only minimal format, persistence, safety, and transport shell constraints. Runtime must not hard-code domain-specific analysis, final adjudication, or report content instructions."
+  "summary": "Deep Research business prompts must be generated by the first AI ResearchPlan. Runtime may append only minimal format, persistence, safety, and transport shell constraints. Runtime must not hard-code domain-specific analysis, final adjudication, or report content instructions.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-048-requirement",
+      "statement": "Deep Research business prompts must be generated by the first AI ResearchPlan. Runtime may append only minimal format, persistence, safety, and transport shell constraints. Runtime must not hard-code domain-specific analysis, final adjudication, or report content instructions.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -303,7 +399,15 @@ Runtime must not hard-code domain-specific analysis, final adjudication, or repo
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+prompt+acceptance",
-  "summary": "Runtime format shell may define storage envelopes and artifact requirements. Runtime format shell must not define business conclusion fields such as confidence, finalVerdict, rankedConclusions, directAnswer, investmentThesis, trainingFramework, or other domain-specific structures. If such structures are needed, they must come from AI-generated promptBundle."
+  "summary": "Runtime format shell may define storage envelopes and artifact requirements. Runtime format shell must not define business conclusion fields such as confidence, finalVerdict, rankedConclusions, directAnswer, investmentThesis, trainingFramework, or other domain-specific structures. If such structures are needed, they must come from AI-generated promptBundle.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-049-requirement",
+      "statement": "Runtime format shell may define storage envelopes and artifact requirements. Runtime format shell must not define business conclusion fields such as confidence, finalVerdict, rankedConclusions, directAnswer, investmentThesis, trainingFramework, or other domain-specific structures. If such structures are needed, they must come from AI-generated promptBundle.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -323,7 +427,15 @@ If such structures are needed, they must come from AI-generated promptBundle.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "schema+ast+export",
-  "summary": "Final adjudication primary artifact is rawFinalAnswerText. Runtime must not convert final adjudication into a fixed summary/confidence schema. Runtime must not invent confidence, summary, verdict, ranking, or references. Parsed JSON may exist only as a secondary index and must never replace rawFinalAnswerText."
+  "summary": "Final adjudication primary artifact is rawFinalAnswerText. Runtime must not convert final adjudication into a fixed summary/confidence schema. Runtime must not invent confidence, summary, verdict, ranking, or references. Parsed JSON may exist only as a secondary index and must never replace rawFinalAnswerText.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-050-requirement",
+      "statement": "Final adjudication primary artifact is rawFinalAnswerText. Runtime must not convert final adjudication into a fixed summary/confidence schema. Runtime must not invent confidence, summary, verdict, ranking, or references. Parsed JSON may exist only as a secondary index and must never replace rawFinalAnswerText.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -345,7 +457,15 @@ Parsed JSON may exist only as a secondary index and must never replace `rawFinal
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "schema+ast+prompt",
-  "summary": "PromptBundle schema and decomposition prompt must use one field name for supplemental guidance. The canonical field is supplementalContent. optionalContent is forbidden and must be physically removed."
+  "summary": "PromptBundle schema and decomposition prompt must use one field name for supplemental guidance. The canonical field is supplementalContent. optionalContent is forbidden and must be physically removed.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-051-requirement",
+      "statement": "PromptBundle schema and decomposition prompt must use one field name for supplemental guidance. The canonical field is supplementalContent. optionalContent is forbidden and must be physically removed.",
+      "evidenceMode": "static",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -365,7 +485,15 @@ The canonical field is `supplementalContent`.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast+acceptance",
-  "summary": "Deep Research must not retain parallel old prompt formats, finalReport schemas, fallback parsers, optional content aliases, or compatibility input paths. The system is binary: the current chain exists; old modes do not exist."
+  "summary": "Deep Research must not retain parallel old prompt formats, finalReport schemas, fallback parsers, optional content aliases, or compatibility input paths. The system is binary: the current chain exists; old modes do not exist.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-052-requirement",
+      "statement": "Deep Research must not retain parallel old prompt formats, finalReport schemas, fallback parsers, optional content aliases, or compatibility input paths. The system is binary: the current chain exists; old modes do not exist.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -386,7 +514,15 @@ old modes do not exist.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+ui+acceptance",
-  "summary": "The Deep Research App page must be a case reader, not only a final report viewer. It must expose ResearchPlan, per-subQuestion promptBundle, rendered prompt, clean answer, index view, raw AI response, full case file, final raw adjudication, and primary HTML report delivery."
+  "summary": "The Deep Research App page must be a case reader, not only a final report viewer. It must expose ResearchPlan, per-subQuestion promptBundle, rendered prompt, clean answer, index view, raw AI response, full case file, final raw adjudication, and primary HTML report delivery.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-053-requirement",
+      "statement": "The Deep Research App page must be a case reader, not only a final report viewer. It must expose ResearchPlan, per-subQuestion promptBundle, rendered prompt, clean answer, index view, raw AI response, full case file, final raw adjudication, and primary HTML report delivery.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -416,7 +552,15 @@ primary HTML report delivery
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "schema+ui+acceptance",
-  "summary": "Every persisted subQuestion promptBundle must be visible in the App report reader. The UI must not hide promptBundle behind only full-case-file downloads."
+  "summary": "Every persisted subQuestion promptBundle must be visible in the App report reader. The UI must not hide promptBundle behind only full-case-file downloads.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-054-requirement",
+      "statement": "Every persisted subQuestion promptBundle must be visible in the App report reader. The UI must not hide promptBundle behind only full-case-file downloads.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -434,7 +578,15 @@ The UI must not hide promptBundle behind only full-case-file downloads.
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+ui+acceptance",
-  "summary": "The App UI must display clean answer, raw AI response, and parsed/index data as separate views. The UI must not label answerText as Summary. The UI must not merge raw response and parsed index into one business-looking answer."
+  "summary": "The App UI must display clean answer, raw AI response, and parsed/index data as separate views. The UI must not label answerText as Summary. The UI must not merge raw response and parsed index into one business-looking answer.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-055-requirement",
+      "statement": "The App UI must display clean answer, raw AI response, and parsed/index data as separate views. The UI must not label answerText as Summary. The UI must not merge raw response and parsed index into one business-looking answer.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -454,7 +606,15 @@ The UI must not merge raw response and parsed index into one business-looking an
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ui+export+acceptance",
-  "summary": "The App UI must show primary business HTML report delivery status, sourceKind, fileHash, fileSize, and failure/review reason when missing. HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message."
+  "summary": "The App UI must show primary business HTML report delivery status, sourceKind, fileHash, fileSize, and failure/review reason when missing. HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-056-requirement",
+      "statement": "The App UI must show primary business HTML report delivery status, sourceKind, fileHash, fileSize, and failure/review reason when missing. HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -472,7 +632,15 @@ HTML generation failure must be visible as a delivery failure, not hidden behind
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+ast+acceptance+export",
-  "summary": "The primary business-report.html must be a human-reviewable full-process case report: after the summary answer it must expose the forensics process, place the final conclusion near the end of the report body, and include the N-stage questions and answers after the conclusion. This is a presentation trace contract, not a runtime-owned business conclusion schema."
+  "summary": "The primary business-report.html must be a human-reviewable full-process case report: after the summary answer it must expose the forensics process, place the final conclusion near the end of the report body, and include the N-stage questions and answers after the conclusion. This is a presentation trace contract, not a runtime-owned business conclusion schema.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-057-requirement",
+      "statement": "The primary business-report.html must be a human-reviewable full-process case report: after the summary answer it must expose the forensics process, place the final conclusion near the end of the report body, and include the N-stage questions and answers after the conclusion. This is a presentation trace contract, not a runtime-owned business conclusion schema.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -515,7 +683,15 @@ This law does not authorize runtime-owned domain conclusions, confidence fields,
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "schema+ast+ui+acceptance",
-  "summary": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path."
+  "summary": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-058-requirement",
+      "statement": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -560,7 +736,15 @@ App Shell UI may render the file intake control, but it must not become the busi
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+chrome",
-  "summary": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof."
+  "summary": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-059-requirement",
+      "statement": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 
@@ -603,7 +787,15 @@ Forbidden:
   "capabilityDomain": "deep-research-analysis",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "prompt+ast+acceptance+export",
-  "summary": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix."
+  "summary": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-deep-research-060-requirement",
+      "statement": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "deep-research-analysis"
+    }
+  ]
 }
 ```
 

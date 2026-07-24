@@ -3,9 +3,25 @@
   "ownerInspectorPath": "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+        "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+        "checkIds": [
+          "lottery-ticket-plan/ast-contract",
+          "lottery-ticket-plan/file-present",
+          "lottery-ticket-plan/forbidden-import",
+          "lottery-ticket-plan/no-purchase-runtime",
+          "lottery-ticket-plan/package-script"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

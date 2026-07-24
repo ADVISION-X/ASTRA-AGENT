@@ -1,4 +1,4 @@
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { collectFacebookMiningAiLogCoverage } from "./facebook-mining-ai-log-coverage.js";
 import { collectFacebookMiningArtifactLogCoverage } from "./facebook-mining-artifact-log-coverage.js";
 import { collectFacebookMiningFailureCoverage } from "./facebook-mining-failure-coverage.js";
@@ -37,11 +37,11 @@ const statusOf = (findings: readonly FacebookLogCoverageFinding[]): "PASS" | "FA
 
 const collectSectionRuns = (context: InspectorContext): SectionRuns => {
   const stage = collectFacebookMiningStageCoverage(context);
-  const failure = collectFacebookMiningFailureCoverage();
-  const ai = collectFacebookMiningAiLogCoverage();
-  const navigation = collectFacebookMiningNavigationLogCoverage();
-  const recovery = collectFacebookMiningRecoveryLogCoverage();
-  const artifact = collectFacebookMiningArtifactLogCoverage();
+  const failure = collectFacebookMiningFailureCoverage(context);
+  const ai = collectFacebookMiningAiLogCoverage(context);
+  const navigation = collectFacebookMiningNavigationLogCoverage(context);
+  const recovery = collectFacebookMiningRecoveryLogCoverage(context);
+  const artifact = collectFacebookMiningArtifactLogCoverage(context);
 
   return {
     stage: { name: "stage coverage table", ...stage, coveragePercent: stage.stageCoveragePercent },
@@ -118,6 +118,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings: findings.map(toInspectorFinding),
     inspectedFiles,
     reportJson: report,

@@ -3,9 +3,238 @@
   "ownerInspectorPath": "scripts/audit/domains/audit-system/inspector.ts",
   "executionGroup": "meta",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-AUDIT-001-V1",
+        "clauseId": "apex-audit-001-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-002-V1",
+        "clauseId": "apex-audit-002-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-003-V1",
+        "clauseId": "apex-audit-003-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-004-V1",
+        "clauseId": "apex-audit-004-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-005-V1",
+        "clauseId": "apex-audit-005-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-006-V1",
+        "clauseId": "apex-audit-006-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-007-V1",
+        "clauseId": "apex-audit-007-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-008-V1",
+        "clauseId": "apex-audit-008-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-009-V1",
+        "clauseId": "apex-audit-009-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AUDIT-010-V1",
+        "clauseId": "apex-audit-010-requirement",
+        "checkIds": [
+          "audit-system/blueprint-anchor",
+          "audit-system/ci-full-entry-gate",
+          "audit-system/code-purity-report",
+          "audit-system/duplicate-domain-plan",
+          "audit-system/duplicate-inspector-plan",
+          "audit-system/generated-artifact",
+          "audit-system/runner-law-truth",
+          "audit-system/runner-order-truth",
+          "audit-system/runner-source",
+          "audit-system/stale-code-purity-text-report",
+          "audit-system/static-clause-coverage"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

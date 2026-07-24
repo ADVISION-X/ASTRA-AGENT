@@ -26,7 +26,18 @@ tell application "System Events"
   tell process "Google Chrome"
     set frontmost to true
     if (count of windows) is 0 then return "FAILED" & linefeed & "NATIVE_PICKER_CHROME_WINDOW_MISSING"
-    if (count of sheets of window 1) is not 1 then return "FAILED" & linefeed & "NATIVE_PICKER_AMBIGUOUS"
+
+    set pickerSheetReady to false
+    repeat with pollIndex from 1 to 50
+      set pickerSheetCount to count of sheets of window 1
+      if pickerSheetCount is greater than 1 then return "FAILED" & linefeed & "NATIVE_PICKER_AMBIGUOUS"
+      if pickerSheetCount is 1 then
+        set pickerSheetReady to true
+        exit repeat
+      end if
+      delay 0.1
+    end repeat
+    if pickerSheetReady is false then return "FAILED" & linefeed & "NATIVE_PICKER_NOT_READY"
 
     set targetSheet to sheet 1 of window 1
     keystroke "g" using {command down, shift down}

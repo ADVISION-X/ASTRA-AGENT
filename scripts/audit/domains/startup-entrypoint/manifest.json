@@ -3,9 +3,190 @@
   "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-STARTUP-001-V1",
+        "clauseId": "apex-startup-001-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-STARTUP-002-V1",
+        "clauseId": "apex-startup-002-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-STARTUP-003-V1",
+        "clauseId": "apex-startup-003-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-STARTUP-004-V1",
+        "clauseId": "apex-startup-004-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-STARTUP-005-V1",
+        "clauseId": "apex-startup-005-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-STARTUP-006-V1",
+        "clauseId": "apex-startup-006-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-STARTUP-007-V1",
+        "clauseId": "apex-startup-007-requirement",
+        "checkIds": [
+          "startup/cold-start-health-budget",
+          "startup/cold-start-health-budget-source",
+          "startup/forbidden-surface",
+          "startup/health-probe",
+          "startup/homepage-probe",
+          "startup/hot-mount-ast-source",
+          "startup/hot-mount-before-clear",
+          "startup/inspector-ast-project",
+          "startup/missing-entrypoint",
+          "startup/port-clear-ast-source",
+          "startup/port-clear-real-path",
+          "startup/port-listener-discovery",
+          "startup/single-command",
+          "startup/structured-report-fields"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

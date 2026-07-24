@@ -52,6 +52,14 @@ APEX 质检系统只允许一条真实主链：
     "ci:full bypassing codex:entry-gate.",
     "Runner-owned law binding truth.",
     "Parallel audit truth chains."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-001-requirement",
+      "statement": "The audit system must keep one real execution chain from laws to manifests to generated artifacts to runner.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -62,15 +70,15 @@ APEX 质检系统只允许一条真实主链：
 ### 法条
 APEX 质检系统的唯一主链是：
 
-**package.json ci:full → codex:entry-gate → law → manifest → generated artifacts → runner**
+**package.json ci:full → codex:entry-gate → active law clause → explicit manifest binding → generated artifacts → runner receipt → owner report**
 
 其中：
 
 1. `package.json ci:full` 必须先经过 `codex:entry-gate`。
 2. `law` 是唯一规则源。
-3. `manifest` 是唯一脚本归属源。
+3. `manifest` 是唯一脚本归属源；每条 active clause 必须显式绑定 `clauseId`、`checkIds` 与 `sourceEvidence`。
 4. `generated artifacts` 是唯一运行计划源。
-5. `runner` 只执行，不裁定规则，不手工绑定 law。
+5. `runner` 只执行，不裁定规则，不手工绑定 law；它必须核对 owner 返回的逐项执行回执。
 
 ### 禁止
 禁止以下形态成为质检系统真相源：
@@ -100,6 +108,14 @@ APEX 质检系统的唯一主链是：
     "Unstructured active laws that cannot be parsed stably.",
     "Hard-binding inspector filenames inside the law body.",
     "One law spanning multiple capability domains."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-002-requirement",
+      "statement": "Each active audit law must remain structurally parseable from the law file with stable metadata.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -159,6 +175,14 @@ APEX 质检系统的唯一主链是：
     "One script carrying multiple capability domains.",
     "Multiple owner inspectors for one capability domain.",
     "Helper or wrapper paths pretending to be owner inspectors."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-003-requirement",
+      "statement": "Each capabilityDomain must have one owner inspector and one manifest-owned execution authority.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -175,6 +199,7 @@ owner inspector 负责：
 - 输出统一 InspectorResult
 - 只上报本能力域允许的 lawId
 - 对本域执法真实性负责
+- 返回与 generated plan 完全一致、无缺失、无重复、无越权的 `executedChecks` 回执
 
 辅助函数、helper、components 可以存在，但不构成平行 owner。
 
@@ -204,6 +229,14 @@ owner inspector 负责：
     "Manual editing of generated audit artifacts.",
     "Runner consumption of legacy manual matrix files.",
     "CI skipping artifact regeneration."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-004-requirement",
+      "statement": "The law registry, enforcement matrix, audit plan, and conflict snapshots must be generated artifacts.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -249,6 +282,14 @@ generated artifacts 是运行产物，不是人工源文件。
     "Runner-maintained manual script ordering truth.",
     "Runner-maintained law to inspector mapping.",
     "Runner interpreting business laws directly."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-005-requirement",
+      "statement": "The runner is an executor only and must not own law truth, ordering truth, or binding truth.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -265,6 +306,7 @@ runner 是执行器，不是规则中心。runner 只允许：
 4. 共享 Project / diagnostics / cache
 5. 调度 owner inspector
 6. 汇总结果
+7. 校验每个 `(lawId, clauseId, checkId)` 的执行回执与 finding 归属
 
 runner 不拥有法条定义权、绑定权、顺序主权。
 
@@ -275,6 +317,8 @@ runner 不拥有法条定义权、绑定权、顺序主权。
 - 手工维护 law ↔ script 映射
 - 绕过 generated plan 直接执行旧 inspector 列表
 - 在 runner 内解释业务法案内容
+- 接受缺失、重复、越权或 manifest 未声明的执行回执
+- 在 `ci:full` 中为某个 owner 建立特判、排除列表或第二次补跑
 
 ## [APEX-AUDIT-006-V1] 执法真实性
 
@@ -294,6 +338,14 @@ runner 不拥有法条定义权、绑定权、顺序主权。
     "String search pretending to be AST primary judgment.",
     "Blind delegate or hollow enforcement.",
     "Blueprint or law drift hidden behind PASS results."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-006-requirement",
+      "statement": "Inspector evidence must remain consistent with the declared evidenceMode and cannot fake AST or hybrid enforcement.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -347,6 +399,14 @@ runner 不拥有法条定义权、绑定权、顺序主权。
     "Inspector claiming blueprint integration without reading blueprint anchors.",
     "PASS results when law or blueprint anchors are missing.",
     "Blueprint-only or law-only enforcement claims."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-007-requirement",
+      "statement": "Law, blueprint, and inspector must form a closed authority chain whenever blueprint-backed enforcement is declared.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -397,6 +457,14 @@ lawId 级覆盖不能证明法条级覆盖。
     "Dispersed patch scripts holding long-term system-level audit truth.",
     "Generated-artifact drift with no meta inspector alarm.",
     "Duplicate owner or fake enforcement escaping the audit-system gate."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-008-requirement",
+      "statement": "The audit system must have a meta-inspection capability domain that can inspect the audit system itself.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -419,6 +487,10 @@ lawId 级覆盖不能证明法条级覆盖。
 - generated artifacts 缺失或脏
 - `static-clause-coverage.generated.json` 缺失或未 100% 覆盖 active auto/meta auto / meta static clauses
 - fake enforcement / drift / hollow enforcement
+- active clause 缺失显式 manifest binding
+- manifest checkId 没有 owner-domain AST 字面量证据
+- owner 缺失、重复或越权的 executed-check receipt
+- `ci:full` 过滤、排除或单独补跑任一 owner
 
 ### 禁止
 禁止把这些系统级问题分散到大量补丁型巡检脚本中长期共存。
@@ -446,6 +518,14 @@ lawId 级覆盖不能证明法条级覆盖。
     "getText/getFullText string search used as structural verdict.",
     "Regex-based structural judgment in audit owner or shared audit code.",
     "Text-search anti-evasion pretending to be AST-first enforcement."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-truth-001-requirement",
+      "statement": "Owner inspectors must use project-backed AST evidence and must not launder source-text search into structural judgment.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-truth"
+    }
   ]
 }
 ```
@@ -488,6 +568,14 @@ Inspector 执法真值
     "Owner inspector missing from generated plan.",
     "Generated plan pointing to orphan owner inspector path.",
     "Plan truth and real inspector surface drifting apart."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-truth-002-requirement",
+      "statement": "Generated plan must cover every owner inspector exactly once and must not contain orphan owner paths.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-truth"
+    }
   ]
 }
 ```
@@ -503,6 +591,7 @@ generated plan 必须与真实 owner inspector 面一一对应。
 - 每个真实 owner inspector 都有且只有一个 generated-plan entry
 - generated-plan entry 指向的 owner inspector 必须真实存在于 project 中
 - owner coverage 漂移必须 machine-blocking，而不是留给人工猜测
+- `ci:full` 必须只调用一次未过滤的完整 generated plan；不得先排除某 owner 再单独补跑
 
 ### 禁止
 
@@ -534,6 +623,14 @@ generated plan 必须与真实 owner inspector 面一一对应。
     "match/matchAll/search/test/replace/replaceAll/split/exec based governance logic inside audit meta-quality owner or proof scope.",
     "Dynamic property or prototype-call escape that cannot be disproven with AST and symbol evidence.",
     "Raw source-text laundering inside audit meta-quality proof scripts."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "statement": "The audit-truth owner and its proof scripts must stay AST-first, symbol-backed, anti-evasion, and free of regex-driven governance logic.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "audit-truth"
+    }
   ]
 }
 ```
@@ -577,6 +674,14 @@ Audit 元质检 AST / Symbol / No Regex
     "Manual matrix truth surviving as runtime authority.",
     "Parallel registry or mapping chains.",
     "Generated and source files with overlapping authority."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-audit-009-requirement",
+      "statement": "Manual matrix truth, duplicate mappings, giant cross-domain inspectors, and retired enforcement remnants should converge toward deletion.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
   ]
 }
 ```
@@ -617,7 +722,15 @@ generated truth 不得与源码 truth 重叠。
   "capabilityDomain": "audit-system",
   "enforcementMode": "meta",
   "evidenceMode": "hybrid",
-  "summary": "Executable audit outputs must be binary PASS/FAIL results only and must not introduce warning-grade verdict tiers."
+  "summary": "Executable audit outputs must be binary PASS/FAIL results only and must not introduce warning-grade verdict tiers.",
+  "clauses": [
+    {
+      "clauseId": "apex-audit-010-requirement",
+      "statement": "Executable audit outputs must be binary PASS/FAIL results only and must not introduce warning-grade verdict tiers.",
+      "evidenceMode": "static",
+      "ownerDomain": "audit-system"
+    }
+  ]
 }
 ```
 

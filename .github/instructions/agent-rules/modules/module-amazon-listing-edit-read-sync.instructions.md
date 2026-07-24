@@ -18,7 +18,15 @@ Scope: `amazon-listing-edit-read-sync` is the only GrassEye owner for read-only 
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs+acceptance",
-  "summary": "Listing edit read sync must run as an independent plugin owner, not through amazon-product-sync or amazon-product-fee-sync."
+  "summary": "Listing edit read sync must run as an independent plugin owner, not through amazon-product-sync or amazon-product-fee-sync.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "statement": "Listing edit read sync must run as an independent plugin owner, not through amazon-product-sync or amazon-product-fee-sync.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -48,7 +56,15 @@ Forbidden:
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+chrome+acceptance",
-  "summary": "Seller Central interactions are limited to navigation, read-only variation expansion, and DOM value extraction."
+  "summary": "Seller Central interactions are limited to navigation, read-only variation expansion, and DOM value extraction.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "statement": "Seller Central interactions are limited to navigation, read-only variation expansion, and DOM value extraction.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -74,7 +90,15 @@ Forbidden:
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "chrome-dom+acceptance",
-  "summary": "Inventory export evidence must come from Seller Central DOM label/value rows after parent variation expansion."
+  "summary": "Inventory export evidence must come from Seller Central DOM label/value rows after parent variation expansion.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "statement": "Inventory export evidence must come from Seller Central DOM label/value rows after parent variation expansion.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -90,7 +114,15 @@ The task must collect ASIN and SKU from DOM label/value structures such as Selle
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "chrome-dom+acceptance",
-  "summary": "Each listing edit tab read must record bounded DOM controls and diagnostics, never fabricated values."
+  "summary": "Each listing edit tab read must record bounded DOM controls and diagnostics, never fabricated values.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "statement": "Each listing edit tab read must record bounded DOM controls and diagnostics, never fabricated values.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -114,7 +146,15 @@ For each tab the task must record page URL path, title, detected tab labels, bou
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+fs",
-  "summary": "Task artifacts must use bounded business evidence and redacted evidence refs."
+  "summary": "Task artifacts must use bounded business evidence and redacted evidence refs.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "statement": "Task artifacts must use bounded business evidence and redacted evidence refs.",
+      "evidenceMode": "static",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -130,7 +170,15 @@ Artifacts may persist ASIN, SKU, FNSKU, bounded listing field values, image sour
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "generated-plan+acceptance",
-  "summary": "The capability must have owner audit, acceptance, generated plan registration, and ci:full integration."
+  "summary": "The capability must have owner audit, acceptance, generated plan registration, and ci:full integration.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "statement": "The capability must have owner audit, acceptance, generated plan registration, and ci:full integration.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -153,7 +201,15 @@ Required:
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "chrome-dom+acceptance",
-  "summary": "Live Seller Central runs must advance one proven step at a time: inventory-only by default, single SKU search-only before any edit tab mode."
+  "summary": "Live Seller Central runs must advance one proven step at a time: inventory-only by default, single SKU search-only before any edit tab mode.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "statement": "Live Seller Central runs must advance one proven step at a time: inventory-only by default, single SKU search-only before any edit tab mode.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -177,7 +233,15 @@ Until Chrome proof for every step is stable, production code must enforce:
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "chrome-dom+acceptance",
-  "summary": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics."
+  "summary": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "statement": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -208,7 +272,15 @@ Forbidden for full inventory batch:
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+acceptance+visual",
-  "summary": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI."
+  "summary": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "statement": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 
@@ -237,7 +309,15 @@ Forbidden:
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "chrome-dom+acceptance",
-  "summary": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read."
+  "summary": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read.",
+  "clauses": [
+    {
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "statement": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-listing-edit-read-sync"
+    }
+  ]
 }
 ```
 

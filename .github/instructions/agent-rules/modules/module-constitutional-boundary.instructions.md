@@ -20,7 +20,15 @@ capabilityDomain: constitutional-boundary
   "capabilityDomain": "constitutional-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+symbol",
-  "summary": "External consumers may use a capability group only through its public facade and may not import private owner internals."
+  "summary": "External consumers may use a capability group only through its public facade and may not import private owner internals.",
+  "clauses": [
+    {
+      "clauseId": "apex-constitutional-boundary-001-requirement",
+      "statement": "External consumers may use a capability group only through its public facade and may not import private owner internals.",
+      "evidenceMode": "static",
+      "ownerDomain": "constitutional-boundary"
+    }
+  ]
 }
 ```
 
@@ -47,7 +55,15 @@ Forbidden:
   "capabilityDomain": "constitutional-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+symbol",
-  "summary": "Capability facades must not leak private implementation symbols through re-export or declaration escape."
+  "summary": "Capability facades must not leak private implementation symbols through re-export or declaration escape.",
+  "clauses": [
+    {
+      "clauseId": "apex-capability-facade-symbol-001-requirement",
+      "statement": "Capability facades must not leak private implementation symbols through re-export or declaration escape.",
+      "evidenceMode": "static",
+      "ownerDomain": "constitutional-boundary"
+    }
+  ]
 }
 ```
 
@@ -72,7 +88,15 @@ Forbidden:
   "capabilityDomain": "constitutional-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast",
-  "summary": "External consumers must not construct private capability execution protocol objects."
+  "summary": "External consumers must not construct private capability execution protocol objects.",
+  "clauses": [
+    {
+      "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
+      "statement": "External consumers must not construct private capability execution protocol objects.",
+      "evidenceMode": "static",
+      "ownerDomain": "constitutional-boundary"
+    }
+  ]
 }
 ```
 
@@ -95,7 +119,15 @@ Forbidden:
   "capabilityDomain": "constitutional-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+symbol",
-  "summary": "Business plugins may not scatter low-level DOM primitive imports; only an allowlisted bridge may import DOM primitives directly."
+  "summary": "Business plugins may not scatter low-level DOM primitive imports; only an allowlisted bridge may import DOM primitives directly.",
+  "clauses": [
+    {
+      "clauseId": "apex-dom-automation-bridge-001-requirement",
+      "statement": "Business plugins may not scatter low-level DOM primitive imports; only an allowlisted bridge may import DOM primitives directly.",
+      "evidenceMode": "static",
+      "ownerDomain": "constitutional-boundary"
+    }
+  ]
 }
 ```
 

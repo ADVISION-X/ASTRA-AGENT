@@ -48,6 +48,14 @@ dependency check
     "Second user-facing startup command.",
     "Startup entrypoint outside scripts/startup/launch-grasseye.mjs.",
     "Startup acting as a general task launcher."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-001-requirement",
+      "statement": "GrassEye startup must have exactly one user-facing startup command and one local startup entrypoint.",
+      "evidenceMode": "static",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```
@@ -85,6 +93,14 @@ Forbidden:
     "Startup invoking AI judgment or declaring provider readiness as mission truth.",
     "Startup running CI or audit gates.",
     "Startup requiring old registry readiness before app shell launch."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-002-requirement",
+      "statement": "Startup may open the workbench but must not execute business flows, DOM abilities, browser actions, AI judgment, CI, or old registry readiness.",
+      "evidenceMode": "static",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```
@@ -122,6 +138,14 @@ Forbidden:
     "Readiness probe against the home page as the primary gate.",
     "Readiness probe against a job-specific endpoint.",
     "Readiness success without an HTTP status check."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-003-requirement",
+      "statement": "Startup readiness must be proven by the local app health endpoint, not by the home page or job-specific readiness.",
+      "evidenceMode": "static",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```
@@ -155,6 +179,14 @@ Forbidden:
     "Unstructured startup failure output.",
     "Startup logs replacing evidence or task status truth.",
     "Startup logs exposing credentials, cookies, tokens, or provider secrets."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-004-requirement",
+      "statement": "Startup must emit structured terminal events with failure reasons while remaining subordinate to runtime logs and evidence.",
+      "evidenceMode": "static",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```
@@ -195,6 +227,14 @@ Forbidden:
     "Starting a new app server on an occupied unhealthy port.",
     "Killing listeners without a post-clear listener check.",
     "Ignoring port clear failure and continuing startup."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-005-requirement",
+      "statement": "Every startup must keep a real local port cleanup path that discovers listeners, terminates stale listeners, and verifies the port is clear before starting a new app server.",
+      "evidenceMode": "static",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```
@@ -231,6 +271,14 @@ Forbidden:
     "Starting a duplicate app server when /api/health already passes.",
     "Treating hot mount as job readiness or evidence truth.",
     "Hot mount through a second startup command or second runtime chain."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-006-requirement",
+      "statement": "Startup must hot-mount an already healthy local workbench instead of killing and restarting it.",
+      "evidenceMode": "static",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```
@@ -272,6 +320,14 @@ Forbidden:
     "Treating child process spawn as app readiness.",
     "Opening the workbench before /api/health passes.",
     "Replacing /api/health readiness with homepage readiness."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-007-requirement",
+      "statement": "Started local workbench health readiness must use a production cold-start budget and must not fail before the app server has a reasonable chance to bind and answer /api/health.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "startup-entrypoint"
+    }
   ]
 }
 ```

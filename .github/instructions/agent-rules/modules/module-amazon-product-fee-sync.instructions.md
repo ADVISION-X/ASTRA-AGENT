@@ -76,6 +76,14 @@ Workbench API Boundary
     "fee fields in amazon-product-sync requiredFields",
     "residual mislabeled as referral fee",
     "raw HTML/cookie/credential evidence leakage"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "statement": "Amazon product fee sync must be an independent read-only job flow with bounded Seller Central fee evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-fee-sync"
+    }
   ]
 }
 ```

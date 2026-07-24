@@ -1,7 +1,12 @@
 import { z } from "zod";
 
-import { lawIdSchema } from "./law-contracts.js";
-import { blueprintRefSchema, executionGroupSchema } from "./manifest-contracts.js";
+import { clauseEvidenceModeSchema, lawIdSchema } from "./law-contracts.js";
+import {
+  blueprintRefSchema,
+  clauseBindingBaseSchema,
+  executionGroupSchema,
+  sourceEvidenceSchema,
+} from "./manifest-contracts.js";
 
 const auditConflictSchema = z
   .object({
@@ -11,6 +16,13 @@ const auditConflictSchema = z
       "missing-manifest",
       "missing-inspector-entry",
       "unknown-law-reference",
+      "unknown-clause-reference",
+      "wrong-clause-owner",
+      "duplicate-clause-binding",
+      "missing-clause-binding",
+      "missing-source-evidence",
+      "missing-source-symbol",
+      "missing-check-evidence",
       "uncovered-law",
       "law-parse-error",
       "manifest-parse-error",
@@ -38,8 +50,13 @@ export const auditPlanEntrySchema = z
     ownerInspectorPath: z.string().min(1),
     executionGroup: executionGroupSchema,
     lawIds: z.array(lawIdSchema).min(1),
-    clauseIds: z.array(z.string().min(1)).min(1),
-    evidenceModes: z.array(z.string().min(1)).min(1),
+    bindings: z
+      .array(
+        clauseBindingBaseSchema.extend({
+          evidenceMode: clauseEvidenceModeSchema,
+        }),
+      )
+      .min(1),
     blueprintRefs: z.array(blueprintRefSchema),
   })
   .strict();
@@ -47,17 +64,13 @@ export const auditPlanEntrySchema = z
 const staticClauseCoverageEntrySchema = z
   .object({
     lawId: lawIdSchema,
+    clauseId: z.string().min(1),
     capabilityDomain: z.string().min(1),
-    clauses: z
-      .array(
-        z
-          .object({
-            clauseId: z.string().min(1),
-            source: z.string().min(1),
-          })
-          .strict(),
-      )
-      .min(1),
+    evidenceMode: z.enum(["static", "acceptance", "real-chrome"]),
+    ownerInspectorPath: z.string().min(1),
+    checkIds: z.array(z.string().min(1)).min(1),
+    sourceEvidence: z.array(sourceEvidenceSchema).min(1),
+    manifestPath: z.string().min(1),
   })
   .strict();
 

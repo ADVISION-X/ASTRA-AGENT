@@ -1,6 +1,6 @@
 # GrassEye 执法系统施工图
 
-版本：2026-05-22  
+版本：2026-07-24
 状态：active
 
 ## 统一身份与冻结边界
@@ -18,10 +18,11 @@
 package.json ci:full
 -> codex-entry-gate
 -> law files
--> owner manifests
+-> explicit clause bindings in owner manifests
 -> blueprints
 -> generated registry / matrix / plan
 -> CI-FULL generated-plan runner
+-> exact executed-check receipts
 -> owner reports
 -> typecheck
 -> acceptance smoke
@@ -48,18 +49,21 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 ## CI-FULL 应该做
 
 1. codex-entry-gate：先验证 law、audit、blueprint 入口可发现。
-2. build audit artifacts：读取法案、manifest、施工图，生成 registry、matrix、plan、coverage。
-3. run generated plan：按 executionGroup 调度 foundation、domain、meta inspectors。
+2. build audit artifacts：读取法案、manifest、施工图，验证每条 active clause 的显式 `clauseId + checkIds + sourceEvidence` 绑定，生成 registry、matrix、plan、coverage。
+3. run generated plan：只运行一次未过滤的完整 plan，按 executionGroup 调度 foundation、domain、meta inspectors。
 4. 为每个 owner inspector 写入独立 report。
-5. typecheck。
-6. 现役 acceptance smoke。
-7. 输出 summary。
+5. 校验 owner 返回的 `(lawId, clauseId, checkId)` 回执无缺失、无重复、无越权。
+6. typecheck。
+7. 现役 acceptance smoke。
+8. 输出 summary。
 
 ## CI-FULL 禁止做
 
 - 手工维护 lawId 列表。
 - 手工维护 owner 执行顺序真相。
 - 绕过 generated plan 直接调用 owner inspector。
+- 排除某个 owner 后再单独补跑。
+- 接受缺失、重复、越权或 manifest 未声明的 executed-check receipt。
 - 制造平行 audit 结论。
 - 恢复第二完整质检入口。
 
@@ -72,6 +76,7 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 - 读自己的施工图。
 - 检查自己负责的真实代码。
 - 输出 PASS / FAIL 与失败原因。
+- 输出本域实际完成的 `executedChecks` 回执。
 
 每个 OWNER 禁止：
 
@@ -91,7 +96,7 @@ audit-system 只做最小连接检查：
 - blueprint anchor 是否存在。
 - runner 是否仍硬编码 law truth 或 owner ordering truth。
 - code-purity report 是否在 audit-system 前已生成。
-- `static-clause-coverage.generated.json` 是否保持 100%。
+- `static-clause-coverage.generated.json` 是否同时证明 active clause 100% 已绑定、100% 已执行。
 - owner-boundary / zombie graph 是否把 import 与 re-export 一并纳入主裁。
 
 audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，不代替 code-purity 或能力域 owner。

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:48:42.044Z",
+  "generatedAt": "2026-07-24T00:54:36.161Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -704,6 +704,7 @@
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/constitutional-boundary/inspector.ts",
+    "scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
@@ -740,6 +741,7 @@
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ai-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-artifact-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-stage-detector.ts",
+    "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-token-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-failure-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-navigation-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-recovery-log-coverage.ts",
@@ -762,10 +764,6 @@
     "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-human-review-history.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-playbook-lessons.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-token-contracts.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-trend-display.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
@@ -804,6 +802,7 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/xuanyuan/inspector.ts",
+    "scripts/audit/run-domain-audit.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
     "scripts/audit/shared/inspector-contracts.ts",
@@ -1303,5 +1302,1107 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "executionGroup": "foundation"
+  "executionGroup": "foundation",
+  "executedChecks": [
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "clauseId": "apex-arch-001-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "clauseId": "apex-arch-002-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "clauseId": "apex-arch-003-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "clauseId": "apex-arch-004-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "clauseId": "apex-arch-005-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "clauseId": "apex-arch-006-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "clauseId": "apex-arch-007-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "clauseId": "apex-arch-008-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "clauseId": "apex-arch-009-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "clauseId": "apex-arch-010-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/ai-planner-ban"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/allowed-script-root"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/allowed-src-root"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/capability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/capability-imports-plugin"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/child-ability-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/flow-cross-job-import"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/flow-non-facade-capability-import"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/mediator-runtime-import"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-active-missing-ci-acceptance"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-archived-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-archived-root-present"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-entry-not-allowlisted"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-experimental-default-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-law-source-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-parked-exposure"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-root-file"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-script-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/plugin-status-missing"
+    },
+    {
+      "lawId": "APEX-ARCH-011-V1",
+      "clauseId": "apex-arch-011-requirement",
+      "checkId": "architecture/shared-owner-boundary"
+    }
+  ]
 }

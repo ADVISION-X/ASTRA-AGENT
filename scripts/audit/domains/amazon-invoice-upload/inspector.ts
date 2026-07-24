@@ -14,7 +14,7 @@ import {
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectAmazonInvoiceAmountGate } from "./inspector-amount-gate.js";
@@ -427,6 +427,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles,
   };

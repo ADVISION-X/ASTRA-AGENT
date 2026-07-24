@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:21.253Z",
+  "generatedAt": "2026-07-24T00:55:31.270Z",
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,6 +16,1108 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/api-boundary"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-api"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-client"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-forbidden-input"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-shell-registry"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-workspace"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/app-write-action"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/ci-full"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/dom-anchor"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/flow-job-step-wiring"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/law-id"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/no-cross-owner-import"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/package-script"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/plugin-status"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/privacy"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/read-only-flow"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/schema-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/server-route"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/source-file-present"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/url-contract"
+    },
+    {
+      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
+      "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
+      "checkId": "amazon-listing-edit-read-sync/workbench-runtime"
+    }
+  ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
     "docs/法案辅助文件/GrassEye Amazon Listing Edit Read Sync 施工图.md",

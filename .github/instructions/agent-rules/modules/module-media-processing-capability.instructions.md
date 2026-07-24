@@ -133,7 +133,15 @@ The generated artifacts are not source of truth and must not be edited manually.
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "media-processing is the only governed owner for local media artifact optimization into website-ready video and image artifacts."
+  "summary": "media-processing is the only governed owner for local media artifact optimization into website-ready video and image artifacts.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "statement": "media-processing is the only governed owner for local media artifact optimization into website-ready video and image artifacts.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -174,7 +182,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "media-processing may process only user-authorized local files or governed local artifact refs; remote acquisition and credentialed source access are outside this group."
+  "summary": "media-processing may process only user-authorized local files or governed local artifact refs; remote acquisition and credentialed source access are outside this group.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "statement": "media-processing may process only user-authorized local files or governed local artifact refs; remote acquisition and credentialed source access are outside this group.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -223,7 +239,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "media-processing exposes bounded atomic child abilities; each invocation processes one source media artifact and must not hide workflow logic."
+  "summary": "media-processing exposes bounded atomic child abilities; each invocation processes one source media artifact and must not hide workflow logic.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "statement": "media-processing exposes bounded atomic child abilities; each invocation processes one source media artifact and must not hide workflow logic.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -283,7 +307,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast",
-  "summary": "Consumers may call media-processing only through its explicit public facade; UI, routes, and job flows must not import private runtime files."
+  "summary": "Consumers may call media-processing only through its explicit public facade; UI, routes, and job flows must not import private runtime files.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "statement": "Consumers may call media-processing only through its explicit public facade; UI, routes, and job flows must not import private runtime files.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -338,7 +370,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "runtime+ast",
-  "summary": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only."
+  "summary": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "statement": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -390,7 +430,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "media-processing success must produce validated website-ready outputs with complete metadata, not merely copied or renamed files."
+  "summary": "media-processing success must produce validated website-ready outputs with complete metadata, not merely copied or renamed files.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "statement": "media-processing success must produce validated website-ready outputs with complete metadata, not merely copied or renamed files.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -465,7 +513,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+runtime",
-  "summary": "media-processing may write governed output artifacts and proof refs but must not create a second evidence or logging chain."
+  "summary": "media-processing may write governed output artifacts and proof refs but must not create a second evidence or logging chain.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "statement": "media-processing may write governed output artifacts and proof refs but must not create a second evidence or logging chain.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -507,7 +563,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+route-inspection",
-  "summary": "App Shell skills and routes are user surfaces only; long media processing must enter a governed job-flow or mediator path and call the ability group public facade."
+  "summary": "App Shell skills and routes are user surfaces only; long media processing must enter a governed job-flow or mediator path and call the ability group public facade.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "statement": "App Shell skills and routes are user surfaces only; long media processing must enter a governed job-flow or mediator path and call the ability group public facade.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -555,7 +619,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+runtime+ast",
-  "summary": "media-processing must enforce local-file safety, bounded resource usage, and safe command execution."
+  "summary": "media-processing must enforce local-file safety, bounded resource usage, and safe command execution.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "statement": "media-processing must enforce local-file safety, bounded resource usage, and safe command execution.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 
@@ -601,7 +673,15 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "hybrid",
-  "summary": "media-processing cannot be called production-stable until law, blueprint, implementation, inspector, acceptance, and ci:full verification are aligned."
+  "summary": "media-processing cannot be called production-stable until law, blueprint, implementation, inspector, acceptance, and ci:full verification are aligned.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "statement": "media-processing cannot be called production-stable until law, blueprint, implementation, inspector, acceptance, and ci:full verification are aligned.",
+      "evidenceMode": "static",
+      "ownerDomain": "media-processing-capability"
+    }
+  ]
 }
 ```
 

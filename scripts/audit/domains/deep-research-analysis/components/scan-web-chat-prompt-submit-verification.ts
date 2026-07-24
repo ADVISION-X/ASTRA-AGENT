@@ -1,4 +1,4 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -54,7 +54,7 @@ const requiredTokenChecks = (input: WebChatPromptSubmitVerificationInput): Requi
     filePath: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     markers: [
       "PROVIDER_COMPOSER_READY_TIMEOUT_MS",
-      "60_000",
+      "60000",
       "lastMessage",
       "provider composer did not become ready; last=",
     ],
@@ -118,7 +118,7 @@ const collectSourceTokens = (sourceFile: SourceFile | undefined): Set<string> =>
     tokens.add(literal.getLiteralText());
   }
   for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.NumericLiteral)) {
-    tokens.add(literal.getText());
+    tokens.add(String(literal.getLiteralValue()));
   }
   for (const templateExpression of sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression)) {
     tokens.add(templateExpression.getHead().getLiteralText());
@@ -132,8 +132,8 @@ const collectSourceTokens = (sourceFile: SourceFile | undefined): Set<string> =>
   return tokens;
 };
 
-const getVariableInitializerText = (sourceFile: SourceFile | undefined, declarationName: string): string =>
-  sourceFile?.getVariableDeclaration(declarationName)?.getInitializer()?.getText() ?? "";
+const getVariableInitializer = (sourceFile: SourceFile | undefined, declarationName: string): Expression | undefined =>
+  sourceFile?.getVariableDeclaration(declarationName)?.getInitializer();
 
 const hasTokenPart = (tokens: ReadonlySet<string>, marker: string): boolean =>
   [...tokens].some((token) => token.includes(marker));
@@ -167,10 +167,17 @@ const inspectRequiredTokens = (input: WebChatPromptSubmitVerificationInput): voi
 };
 
 const inspectSubmissionOrdering = (input: WebChatPromptSubmitVerificationInput): void => {
-  const submitterText = getVariableInitializerText(input.submitFile, "submitPromptViaClipboard");
-  const preparePosition = submitterText.indexOf("preparePromptComposer");
-  const submitPosition = submitterText.indexOf("submitPromptFromComposer");
-  if (preparePosition !== -1 && submitPosition !== -1 && preparePosition < submitPosition) {
+  const submitter = getVariableInitializer(input.submitFile, "submitPromptViaClipboard");
+  const calls = submitter?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const callPosition = (name: string): number | null =>
+    calls.find((callExpression) => {
+      const expression = callExpression.getExpression();
+      return (Node.isIdentifier(expression) && expression.getText() === name)
+        || (Node.isPropertyAccessExpression(expression) && expression.getName() === name);
+    })?.getStart() ?? null;
+  const preparePosition = callPosition("preparePromptComposer");
+  const submitPosition = callPosition("submitPromptFromComposer");
+  if (preparePosition !== null && submitPosition !== null && preparePosition < submitPosition) {
     return;
   }
   pushFinding({
@@ -182,8 +189,14 @@ const inspectSubmissionOrdering = (input: WebChatPromptSubmitVerificationInput):
 };
 
 const inspectUnsafeComposerSuccess = (input: WebChatPromptSubmitVerificationInput): void => {
-  const verifySubmittedText = getVariableInitializerText(input.evaluationFile, "buildVerifyPromptSubmittedScript");
-  if (verifySubmittedText.includes("|| !promptStillInComposer")) {
+  const verifySubmitted = getVariableInitializer(input.evaluationFile, "buildVerifyPromptSubmittedScript");
+  const hasUnsafeNegation = verifySubmitted?.getDescendantsOfKind(SyntaxKind.PrefixUnaryExpression)
+    .some((expression) =>
+      expression.getOperatorToken() === SyntaxKind.ExclamationToken
+      && Node.isIdentifier(expression.getOperand())
+      && expression.getOperand().getText() === "promptStillInComposer"
+      && expression.getFirstAncestorByKind(SyntaxKind.BinaryExpression)?.getOperatorToken().getKind() === SyntaxKind.BarBarToken) ?? false;
+  if (hasUnsafeNegation) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
@@ -191,7 +204,7 @@ const inspectUnsafeComposerSuccess = (input: WebChatPromptSubmitVerificationInpu
       message: "web-chat submit verification must not treat !promptStillInComposer as unconditional success.",
     });
   }
-  if (verifySubmittedText.includes("composerClearedAfterVerifiedPaste")) {
+  if (hasTokenPart(collectSourceTokens(input.evaluationFile), "composerClearedAfterVerifiedPaste")) {
     return;
   }
   pushFinding({
@@ -203,10 +216,10 @@ const inspectUnsafeComposerSuccess = (input: WebChatPromptSubmitVerificationInpu
 };
 
 const inspectPromptSubmitProtection = (input: WebChatPromptSubmitVerificationInput): void => {
-  const preparePromptComposerText = getVariableInitializerText(input.submitFile, "preparePromptComposer");
-  const submitPromptText = getVariableInitializerText(input.submitFile, "submitPromptFromComposer");
-  const pasteTimeoutText = getVariableInitializerText(input.submitFile, "PROMPT_PASTE_VERIFY_TIMEOUT_MS");
-  if (pasteTimeoutText !== "20_000") {
+  const preparePromptComposer = getVariableInitializer(input.submitFile, "preparePromptComposer");
+  const submitPrompt = getVariableInitializer(input.submitFile, "submitPromptFromComposer");
+  const pasteTimeout = getVariableInitializer(input.submitFile, "PROMPT_PASTE_VERIFY_TIMEOUT_MS");
+  if (!pasteTimeout || !Node.isNumericLiteral(pasteTimeout) || pasteTimeout.getLiteralValue() !== 20_000) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
@@ -214,7 +227,12 @@ const inspectPromptSubmitProtection = (input: WebChatPromptSubmitVerificationInp
       message: "web-chat prompt paste verification must keep the long prompt observation window at 20_000ms.",
     });
   }
-  if (preparePromptComposerText.includes("for (") || preparePromptComposerText.includes("probePromptRetryStateBeforeClear")) {
+  const hasRetryLoop = Boolean(preparePromptComposer?.getDescendants().some((node) =>
+    Node.isForStatement(node)
+    || Node.isForInStatement(node)
+    || Node.isForOfStatement(node)
+    || (Node.isIdentifier(node) && node.getText() === "probePromptRetryStateBeforeClear")));
+  if (hasRetryLoop) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
@@ -222,7 +240,10 @@ const inspectPromptSubmitProtection = (input: WebChatPromptSubmitVerificationInp
       message: "web-chat prompt preparation must not loop clear/paste retries after a paste attempt.",
     });
   }
-  if (!submitPromptText.includes("click_send_after_prompt_paste")) {
+  const hasClickSendMarker = Boolean(submitPrompt?.getDescendants().some((node) =>
+    (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node))
+      && node.getLiteralText().includes("click_send_after_prompt_paste")));
+  if (!hasClickSendMarker) {
     pushFinding({
       findings: input.findings,
       lawId: input.lawId,
@@ -260,7 +281,7 @@ const collectPromptPasteTruthDiagnostics = (
     ].filter((marker) => !hasTokenPart(selectorPreludeTokens, marker)),
     missingProviderOpenTokens: [
       "PROVIDER_COMPOSER_READY_TIMEOUT_MS",
-      "60_000",
+      "60000",
       "provider composer did not become ready; last=",
     ].filter((marker) => !hasTokenPart(providerOpenTokens, marker)),
     evaluationTokens,

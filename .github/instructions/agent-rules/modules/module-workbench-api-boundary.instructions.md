@@ -136,6 +136,14 @@ new capability-facing API
     "Capability group exposed directly as HTTP API.",
     "Plugin exposing its own HTTP listener.",
     "External website calling ability group functions directly."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
+      "statement": "All Workbench API requests must pass through one API Boundary Guard before reaching known route handlers; no second HTTP server, gateway, bus, dispatcher, or external API chain may exist.",
+      "evidenceMode": "static",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -180,6 +188,14 @@ new capability-facing API
     "Allowing external website origin without explicit allowlist.",
     "Allowing credentials with wildcard origin.",
     "Disabling origin check for external task routes."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
+      "statement": "Workbench API must not expose wildcard CORS. Allowed origins must be local workbench origin by default and explicit external website origins only when external API mode is enabled.",
+      "evidenceMode": "static",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -238,6 +254,14 @@ temporary open CORS for testing in active code
     "External callback registration without authentication.",
     "Using query string apiKey as authentication.",
     "Logging raw API key."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
+      "statement": "External website API access must require an explicit API key header. Task mutation routes must not be callable by unauthenticated external requests.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -307,6 +331,14 @@ externalApiAllowed: true
     "Path prefix admission without exact method+path rule.",
     "External access to health, mode, settings, AI provider config, or debug routes unless explicitly authorized.",
     "External website calling deep research, product mining, video download, or browser-control routes without dedicated law authorization."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
+      "statement": "API routes must be admitted through a small explicit allowlist. External website access must be disabled by default and enabled per route, per job, and per method.",
+      "evidenceMode": "static",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -388,6 +420,14 @@ requiresApiKey: true
     "External request contains documentId.",
     "External request contains downloadUrl.",
     "External request overrides evidence ref."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
+      "statement": "External website requests may provide only approved job input fields. They must not provide selectors, coordinates, browser commands, next actions, action plans, or capability protocol keys.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -447,6 +487,14 @@ External request must not bypass human review gate for sensitive submit actions.
     "External request controls callback domain without allowlist.",
     "Callback includes secrets, raw cookies, browser session data, or API key.",
     "Callback retries implemented as second task queue."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
+      "statement": "If GrassEye sends task results back to an external website, the callback must use an explicit outbound allowlist and must not allow arbitrary URL fetch from plugin or flow code.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -511,6 +559,14 @@ AI raw response unless that job law explicitly allows it
     "Logging raw API key.",
     "Logging invoice PDF bytes.",
     "Treating CORS failure as task failure."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
+      "statement": "External API ingress decisions must be observable. The system must record accepted and rejected external task requests without leaking secrets.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```
@@ -568,6 +624,14 @@ local browser profile directory
     "Route allowlist not runner-visible.",
     "Manual generated artifact truth.",
     "Warning-only P0 API boundary finding."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
+      "statement": "Workbench API Boundary must have AST-level audit and acceptance coverage before external website integration may be called production-ready.",
+      "evidenceMode": "static",
+      "ownerDomain": "workbench-api-boundary"
+    }
   ]
 }
 ```

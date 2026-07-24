@@ -80,6 +80,14 @@ Any new ability group family requires an active law update before code is accept
     "Ability group owning multiple unrelated action kinds.",
     "Business flow disguised as ability group.",
     "Universal agent runtime disguised as ability group."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-001-requirement",
+      "statement": "An ability group may exist only when it owns one same-kind reusable action family and has an active governing law.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -119,6 +127,14 @@ Forbidden:
     "Child ability calling unrelated ability groups.",
     "Child ability importing job plugins.",
     "Child ability hiding planner behavior."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-002-requirement",
+      "statement": "Each child ability must perform one atomic action and must not hide workflow logic.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -159,6 +175,14 @@ Forbidden:
     "Ability group importing plugin files.",
     "Facade re-exporting unrelated owners.",
     "Barrel laundering of private imports."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-003-requirement",
+      "statement": "Job flows may use ability groups only through public facades and must not import non-facade or private runtime internals.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -200,6 +224,14 @@ Forbidden:
     "Order upload process order inside an ability group.",
     "Product-video mining workflow inside an ability group.",
     "Business final status inside an ability group."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-004-requirement",
+      "statement": "Ability groups must stay business-neutral and must not contain platform-specific workflow logic.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -237,6 +269,14 @@ Forbidden:
     "AI returning browserCommand.",
     "AI returning selector or coordinate.",
     "AI generating runtime workflow steps."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-005-requirement",
+      "statement": "Ability groups must not use AI as planner, next-action chooser, selector generator, or browser-command generator.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -274,6 +314,14 @@ Forbidden:
     "Forged evidence ref.",
     "Stale evidence reused as fresh proof.",
     "Sensitive data logged by an ability group."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-006-requirement",
+      "statement": "Ability groups may create action evidence refs but must not own separate evidence stores or private log systems.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -318,6 +366,14 @@ Forbidden:
     "video-download as a standalone top-level execution owner.",
     "universal-agent active owner.",
     "planner active owner."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-007-requirement",
+      "statement": "Retired standalone ability owners must not return as active capability groups.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```
@@ -351,6 +407,14 @@ Retired names may appear only in:
     "Generated fake PASS.",
     "Runner detached from active capability laws.",
     "Manual generated artifact truth."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-capability-group-008-requirement",
+      "statement": "Capability group governance must be enforceable by audit before production readiness is claimed.",
+      "evidenceMode": "static",
+      "ownerDomain": "capability-group-governance"
+    }
   ]
 }
 ```

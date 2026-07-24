@@ -79,9 +79,6 @@ export const extractMarkdownHeadings = (text: string): ReadonlySet<string> => {
 export const containsAny = (text: string, tokens: readonly string[]): boolean =>
   tokens.some((token) => text.includes(token));
 
-export const containsAll = (text: string, tokens: readonly string[]): boolean =>
-  tokens.every((token) => text.includes(token));
-
 export const containsAnyCaseInsensitive = (text: string, tokens: readonly string[]): boolean => {
   const lowered = text.toLowerCase();
   return tokens.some((token) => lowered.includes(token.toLowerCase()));

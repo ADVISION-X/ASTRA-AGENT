@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:25.777Z",
+  "generatedAt": "2026-07-24T00:55:39.518Z",
   "status": "PASS",
   "inspectedFiles": [
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
@@ -10,5 +10,22 @@
   "executionGroup": "meta",
   "lawIds": [
     "APEX-RUNTIME-TRUTH-001-V1"
+  ],
+  "executedChecks": [
+    {
+      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
+      "clauseId": "apex-runtime-truth-001-requirement",
+      "checkId": "runtime-truth/deep-research-completed-contract"
+    },
+    {
+      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
+      "clauseId": "apex-runtime-truth-001-requirement",
+      "checkId": "runtime-truth/facebook-completed-contract"
+    },
+    {
+      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
+      "clauseId": "apex-runtime-truth-001-requirement",
+      "checkId": "runtime-truth/source-missing"
+    }
   ]
 }

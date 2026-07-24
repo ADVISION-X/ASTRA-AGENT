@@ -1,12 +1,9 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import type { SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-
-const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === path);
+import { hasAstNameOrLiteral, hasIdentifierName, hasPropertyAccessSegments } from "./deep-research-ast-facts.js";
 
 export const inspectFinalAdjudicationPromptBundleInput = (input: {
   finalizationFile: SourceFile | undefined;
@@ -19,7 +16,7 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
 
-  if (!hasPropertyAccessPath(input.finalizationFile, "fullCaseFile.researchPlan.finalAdjudicationPromptBundle")) {
+  if (!hasPropertyAccessSegments(input.finalizationFile, ["fullCaseFile", "researchPlan", "finalAdjudicationPromptBundle"])) {
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-runtime-path",
       lawId: input.lawId,
@@ -28,9 +25,8 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
     }));
   }
 
-  const finalizationText = input.finalizationFile?.getFullText() ?? "";
-  for (const marker of ["structuredIndex,", "fullCaseFileMarkdown"]) {
-    if (finalizationText.includes(marker)) continue;
+  for (const marker of ["structuredIndex", "fullCaseFileMarkdown"]) {
+    if (hasAstNameOrLiteral(input.finalizationFile, marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-runtime",
       lawId: input.lawId,
@@ -39,14 +35,14 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
     }));
   }
 
-  const promptText = input.finalAdjudicationPromptFile?.getFullText() ?? "";
   for (const marker of [
-    "Runtime shell for AI-generated finalAdjudicationPromptBundle.",
-    "finalAdjudicationPromptBundle: DeepResearchPromptBundle",
-    "structuredIndex: DeepResearchStructuredIndex",
+    "finalAdjudicationPromptBundle",
+    "DeepResearchPromptBundle",
+    "structuredIndex",
+    "DeepResearchStructuredIndex",
     "fullCaseFileMarkdown",
   ]) {
-    if (promptText.includes(marker)) continue;
+    if (hasAstNameOrLiteral(input.finalAdjudicationPromptFile, marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-prompt",
       lawId: input.lawId,
@@ -55,7 +51,7 @@ export const inspectFinalAdjudicationPromptBundleInput = (input: {
     }));
   }
 
-  if (promptText.includes("buildDefaultFinalAdjudicationPromptBundle")) {
+  if (hasIdentifierName(input.finalAdjudicationPromptFile, "buildDefaultFinalAdjudicationPromptBundle")) {
     input.findings.push(createFinding({
       checkId: "deep-research/final-adjudication-promptbundle-input-default-builder",
       lawId: input.lawId,

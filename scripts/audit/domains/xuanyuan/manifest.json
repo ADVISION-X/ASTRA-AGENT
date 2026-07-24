@@ -3,9 +3,24 @@
   "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-XUANYUAN-001-V1",
+        "clauseId": "grasseye-xuanyuan-001-requirement",
+        "checkIds": [
+          "xuanyuan/ast-contract",
+          "xuanyuan/file-present",
+          "xuanyuan/forbidden-provider-import",
+          "xuanyuan/package-script"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

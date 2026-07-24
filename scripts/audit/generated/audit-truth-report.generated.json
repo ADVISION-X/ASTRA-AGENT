@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:48:35.205Z",
+  "generatedAt": "2026-07-24T00:55:39.513Z",
   "status": "PASS",
   "inspectorFileCount": 27,
   "generatedPlanEntryCount": 27,
@@ -11,6 +11,8 @@
     "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/audit/ci-full-phase-plan.ts",
+    "scripts/audit/ci-full.ts",
     "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "scripts/audit/domains/ai-input-gateway/manifest.json",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
@@ -116,6 +118,7 @@
     "scripts/audit/domains/code-purity/manifest.json",
     "scripts/audit/domains/constitutional-boundary/inspector.ts",
     "scripts/audit/domains/constitutional-boundary/manifest.json",
+    "scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
@@ -154,6 +157,7 @@
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ai-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-artifact-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-stage-detector.ts",
+    "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-token-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-failure-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-navigation-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-recovery-log-coverage.ts",
@@ -181,10 +185,6 @@
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/manifest.json",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-human-review-history.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-playbook-lessons.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-token-contracts.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-trend-display.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/pick3-is-blind-eval/manifest.json",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
@@ -249,5 +249,157 @@
     "APEX-AUDIT-TRUTH-001-V1",
     "APEX-AUDIT-TRUTH-002-V1",
     "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1"
+  ],
+  "executedChecks": [
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/ci-owner-special-case"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/inspector-project-usage"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/meta-quality-banned-method"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/meta-quality-dynamic-method-escape"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/meta-quality-regex-constructor"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/meta-quality-regex-literal"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/missing-generated-plan-entry"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/orphan-generated-plan-entry"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/source-regex-judgment"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "checkId": "audit-truth/source-text-judgment"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/ci-owner-special-case"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/inspector-project-usage"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/meta-quality-banned-method"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/meta-quality-dynamic-method-escape"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/meta-quality-regex-constructor"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/meta-quality-regex-literal"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/missing-generated-plan-entry"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/orphan-generated-plan-entry"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/source-regex-judgment"
+    },
+    {
+      "lawId": "APEX-AUDIT-TRUTH-002-V1",
+      "clauseId": "apex-audit-truth-002-requirement",
+      "checkId": "audit-truth/source-text-judgment"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/ci-owner-special-case"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/inspector-project-usage"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/meta-quality-banned-method"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/meta-quality-dynamic-method-escape"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/meta-quality-regex-constructor"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/meta-quality-regex-literal"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/missing-generated-plan-entry"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/orphan-generated-plan-entry"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/source-regex-judgment"
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
+      "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
+      "checkId": "audit-truth/source-text-judgment"
+    }
   ]
 }

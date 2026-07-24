@@ -41,6 +41,14 @@ business owner
     "business plugins importing provider adapters, provider SDKs, provider DOM, browser selectors, coordinates, tab ids, or browser commands",
     "AI Input Gateway making business judgments or validating domain output meaning",
     "a second provider transport owner, compatibility wrapper, or public transport-selection API"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-ai-input-gateway-001-requirement",
+      "statement": "AI Input Gateway is the single provider-transport owner and must preserve a provider-agnostic public request contract.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "ai-input-gateway"
+    }
   ]
 }
 ```
@@ -63,6 +71,14 @@ business owner
     "reading cookies, browser storage, passwords, tokens, or hidden credentials",
     "automatic login, CAPTCHA bypass, account rotation, or unbounded retry",
     "downgrading or erasing a completely captured provider response because later cleanup failed"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-ai-input-gateway-002-requirement",
+      "statement": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "ai-input-gateway"
+    }
   ]
 }
 ```
@@ -88,6 +104,14 @@ business owner
     "switching transport after an attachment attempt starts",
     "retry-pasting the same file, silently falling back, or accepting a lower-bound attachment count",
     "provider or business vocabulary in the generic native multi-file picker primitive"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-ai-input-gateway-003-requirement",
+      "statement": "attach-approved-web-chat-files-once is the only web-chat attachment child and selects one fixed internal transport without caller choice or same-attempt fallback.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "ai-input-gateway"
+    }
   ]
 }
 ```
@@ -113,6 +137,14 @@ business owner
     "count-only success without exact names and composer scope",
     "per-file progress that falsely represents a native batch selection as independently completed uploads",
     "prompt submission before attachments_stable"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-ai-input-gateway-004-requirement",
+      "statement": "Every attachment attempt must use an isolated verified staging set and emit one aggregate terminal proof before prompt submission.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "ai-input-gateway"
+    }
   ]
 }
 ```

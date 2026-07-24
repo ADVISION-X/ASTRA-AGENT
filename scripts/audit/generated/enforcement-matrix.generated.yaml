@@ -1,4 +1,4 @@
-generatedAt: "2026-07-23T22:48:33.135Z"
+generatedAt: "2026-07-24T00:54:32.558Z"
 rows:
   - capabilityDomain: "ai-input-gateway"
     manifestPath: "scripts/audit/domains/ai-input-gateway/manifest.json"
@@ -223,17 +223,12 @@ rows:
     manifestPath: "scripts/audit/domains/facebook-product-video-mining-log-coverage/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts"
     lawIds:
-      - "GRASSEYE-RUNTIME-LOG-SPINE-002-V1"
-      - "GRASSEYE-RUNTIME-LOG-SPINE-003-V1"
-      - "GRASSEYE-RUNTIME-LOG-SPINE-004-V1"
-      - "GRASSEYE-RUNTIME-LOG-SPINE-005-V1"
       - "GRASSEYE-RUNTIME-LOG-SPINE-006-V1"
       - "GRASSEYE-RUNTIME-LOG-SPINE-010-V1"
       - "GRASSEYE-RUNTIME-LOG-SPINE-013-V1"
       - "GRASSEYE-RUNTIME-LOG-SPINE-014-V1"
       - "GRASSEYE-RUNTIME-LOG-SPINE-015-V1"
       - "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
-      - "GRASSEYE-RUNTIME-LOG-SPINE-018-V1"
   - capabilityDomain: "facebook-product-video-mining"
     manifestPath: "scripts/audit/domains/facebook-product-video-mining/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/facebook-product-video-mining/inspector.ts"

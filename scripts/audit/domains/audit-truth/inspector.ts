@@ -1,5 +1,5 @@
 import { selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { scanAuditMetaQualityNoRegex } from "./components/scan-audit-meta-quality-no-regex.js";
 import { scanAuditNoRegex } from "./components/scan-audit-no-regex.js";
 import { scanAuditNoSourceTextSearch } from "./components/scan-audit-no-source-text-search.js";
@@ -57,6 +57,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: sortedInspectedFiles,
     reportJson: buildReportJson(

@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const domain = "amazon-product-fee-sync";
@@ -311,6 +311,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: domain,
     reportedLawIds: [lawId],
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles],
   };

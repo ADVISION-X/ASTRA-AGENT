@@ -135,6 +135,14 @@ User Requirement
     "Universal marketplace crawler abstraction owning Amazon mining state.",
     "ERP, profit calculator, or purchase-decision modules introduced into the plugin owner.",
     "Amazon-specific workflow placed inside any ability group."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-001-requirement",
+      "statement": "Amazon Product Mining must live as one explicit business job flow under src/plugins/amazon-product-mining and must not become a universal product-discovery agent, ERP, planner, or marketplace crawler framework.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -185,6 +193,14 @@ User Requirement
     "Shadow product decision branch in the flow.",
     "AI next-action planner driving the browser.",
     "Multiple execution modes for the same mining demand."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-002-requirement",
+      "statement": "Amazon Product Mining must have exactly one active production flow: task intake, AI keyword generation with historical deduplication, keyword queue, Amazon first-page search extraction, product detail extraction, full accessible review extraction, persistence, package generation, PDF generation, and handoff to advanced AI.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -214,6 +230,14 @@ User Requirement
     "Purchase / sampling / listing / inventory / ad-budget recommendation produced by Agent code.",
     "Profit margin conclusion produced by Agent code.",
     "AI prompt asking the model to pick winning products inside this flow."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-003-requirement",
+      "statement": "Amazon Product Mining Agent must not output final product selection, product investment decision, purchase decision, or profit conclusion; it only produces evidence packages for advanced AI decision.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -246,6 +270,14 @@ Agent 禁止输出：最终选品结论 / 这个产品一定赚钱 / 是否采�
     "Agent fabricating keywords to fill requested count.",
     "System prompt adding size, weight, small-item, lightweight, compact, shipping, price, material, or other product-trait constraints that the user did not explicitly request.",
     "Treating China supplier background as an instruction to narrow keywords by dimensions, low volume, low weight, or ease of shipping."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-004-requirement",
+      "statement": "AI keyword generation must receive existing mined keywords and the system must deduplicate against historical and current-task keywords before mining begins; a task may explicitly choose historical market refresh mode, where historical keyword matches enter the same production queue only with an explicit historical_refresh marker; system prompt text may only add format, deduplication/refresh, marketplace, and explicit boundary requirements, not product-trait assumptions.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -308,6 +340,14 @@ refresh_historical_keywords
     "Dropping a product because ASIN is not visible while productUrl exists.",
     "Opening product detail before search results are persisted.",
     "Mining beyond the first search results page in this flow."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-005-requirement",
+      "statement": "For each keyword, the system must extract all visible products on the first Amazon search results page and preserve rank, sponsored status, URL, visible commercial fields, and raw page evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -335,6 +375,14 @@ refresh_historical_keywords
     "Throwing on missing optional fields; missing fields must be null or empty array.",
     "Missing raw visible text snapshot for the detail page.",
     "Deleting search-result evidence when detail extraction fails."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-006-requirement",
+      "statement": "For each stored search result item, the system must open the product detail page and extract all currently visible and accessible product information before review extraction.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -363,6 +411,14 @@ refresh_historical_keywords
     "Persisting only AI summaries in place of raw reviews.",
     "Bypassing captcha, login walls, region restrictions, or platform risk controls.",
     "Deleting product-detail records when review extraction fails."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-007-requirement",
+      "statement": "For each product, the system must paginate and persist all currently accessible reviews under the current environment, account, region, language, and sorting condition; bypassing restrictions is forbidden.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -404,6 +460,14 @@ refresh_historical_keywords
     "Returning completed while review pagination stopped because of a hidden default page cap.",
     "Marking page-visible fields as not_present without executing the owner extraction strategies for that field.",
     "Package completeness or master report hiding missing-field reasons behind plain null or empty-array output."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-maximum-visible-extraction-requirement",
+      "statement": "Every visible and accessible Amazon search/detail/review field that exists on the current page must be maximally extracted, while every missing or blocked field must be disclosed with an honest reason in completeness and exception artifacts.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -477,6 +541,14 @@ Master Report 必须显示字段缺失原因，不能只显示空值。
     "PDF section replacing structured data package.",
     "AI summary replacing raw review records.",
     "Discarding URLs / timestamps / failure reasons."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-008-requirement",
+      "statement": "Raw visible page text, extracted records, page URLs, timestamps, and evidence indexes are sovereign records; structured summaries and PDF sections must not replace raw evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -504,6 +576,14 @@ AI keyword raw response / keyword parse result / search page raw visible text / 
     "Reading cookie / token / localStorage / sessionStorage.",
     "Fabricating success when extraction is blocked.",
     "Treating partial pass / warning as completed."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-009-requirement",
+      "statement": "Login walls, captchas, account risk pages, region restrictions, unavailable pages, and platform blocks must produce failed or completed_with_errors records; bypassing restrictions and delegating recovery to humans are forbidden.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -534,6 +614,14 @@ AI keyword raw response / keyword parse result / search page raw visible text / 
     "AI summary-only delivery without raw evidence.",
     "Multiple conflicting versions of the data package.",
     "Manually editing generated artifacts as source of truth."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-010-requirement",
+      "statement": "The final artifacts of Amazon Product Mining are a structured data package, a PDF report, an evidence index, and an exception summary; no alternative final artifact chain may replace them.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -569,6 +657,14 @@ amazon-product-mining-package-{taskId}/
     "Handoff missing PDF / package / evidence index / exception summary.",
     "Handoff inventing evidence not present in the package.",
     "Handoff carrying final product selection produced by Agent."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-011-requirement",
+      "statement": "Advanced AI handoff must receive the PDF report, structured data package, raw evidence index, exception summary, and task scope; the handoff must disclose incomplete data and must not invent missing evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -597,6 +693,14 @@ amazon-product-mining-package-{taskId}/
     "Bypassing codex-entry-gate.",
     "Local-only acceptance that is not wired into ci:full.",
     "Treating partial pass / soft pass as complete."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-012-requirement",
+      "statement": "Amazon Product Mining production readiness must be enforced by owner inspector, acceptance tests, generated audit plan, and npm run ci:full; warning-only or partial pass must not be called complete.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -638,6 +742,14 @@ npm run amazon-product-mining:package:fixture
     "Flattening review evidence, handoff docs, or completeness docs back into one loose JSON blob.",
     "Changing fixed report / manifest / handoff artifact names without law change.",
     "PDF or handoff docs stored outside the fixed package root."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-013-requirement",
+      "statement": "Amazon Product Mining must emit one fixed master evidence package root with the frozen section tree, fixed report names, fixed manifest names, and fixed handoff document bundle.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -686,6 +798,14 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
     "Master package omitting keyword opportunity review status, decision, references, or failure reasons.",
     "exception-summary or data-completeness-report omitting failed/manual_required keyword opportunity reviews.",
     "Hiding missing artifacts, missing fields, or partial review coverage."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-014-requirement",
+      "statement": "The package must disclose image evidence in url_only mode, persist per-product reviews.jsonl, emit completeness and integrity reports, and only mark handoff ready when failure reasons and manual-required reasons are empty, keyword review issues are absent, and package integrity passes.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -723,6 +843,14 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
     "Flattened zip payload that omits amazon-product-mining-package-{taskId}/ as the archive root.",
     "Manual repack workflow outside the owner export surface.",
     "A second export chain with different files than the fixed package root."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-015-requirement",
+      "statement": "Amazon Product Mining export must be able to emit amazon-product-mining-package-{taskId}.zip as a transport wrapper over the fixed package root; the zip is delivery packaging, not a second source-of-truth chain.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -766,6 +894,14 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
     "Treating one keyword review as task-global product adjudication.",
     "Persisting manual_required keyword review records.",
     "Exposing manual-ingest routes, schemas, or public facade methods for keyword review."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-016-requirement",
+      "statement": "Keyword opportunity review is a keywordId-scoped automated screening stage that judges whether a keyword product pool deserves downstream validation; it is not final product adjudication, procurement, profit, launch guidance, or a manual recovery queue.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -802,6 +938,14 @@ package root 是唯一最终资料包根。不得为高级 AI 再造第二套 li
     "humanNextStep outside enter_next_validation / mine_related_keywords / reject / rerun_or_collect_more_data.",
     "Natural-language-only review without structured verdict persistence.",
     "Review existing only in PDF or handoff docs without database persistence."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-017-requirement",
+      "statement": "Keyword opportunity review must persist one structured verdict contract with fixed decision enums, fixed dimension enums, fixed human next-step enums, and raw AI proof.",
+      "evidenceMode": "static",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -878,9 +1022,17 @@ updatedAt
     "App exposing procurement, sampling, place-order, run-ads, or final-selection buttons for keyword review.",
     "App surfacing only natural-language review text without structured verdict fields.",
     "Route-level auto-progression into downstream business stages based on verdict.",
-	    "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
-	    "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts.",
-	    "App exposing manual keyword review ingest or task pause/continue/terminate controls for Amazon Product Mining."
+    "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
+    "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts.",
+    "App exposing manual keyword review ingest or task pause/continue/terminate controls for Amazon Product Mining."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-018-requirement",
+      "statement": "The workbench must expose a keyword opportunity review history surface with task publish retention, latest-task summary, keyword-level verdict table, detail expansion, evidence refs, empty/loading/error states, and filtering by decision, keyword, and marketplace.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -979,6 +1131,14 @@ App 可保存最近 taskId，
     "Opening product detail pages in a tight loop without governed pacing.",
     "Opening review pages in a tight loop without governed pacing.",
     "Using pacing to bypass captcha, login, geographic, or risk-control restrictions."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-019-requirement",
+      "statement": "Amazon Product Mining must pace real browser product and review page opens with governed random waits: product detail open 1-20 seconds and review page open 1-5 seconds.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -1013,6 +1173,14 @@ App 可保存最近 taskId，
     "Treating PASS as product approval or REJECT as a universal claim that every product has no value.",
     "Prompt allowing obviously non-workable keyword product pools to pass into human validation.",
     "Prompt using WATCH as a polite replacement for REJECT when the full package has enough evidence to reject."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-020-requirement",
+      "statement": "Keyword opportunity review prompt must default to GPT Web Chat and frame the decision as a strict candidate-list screening gate that rejects non-workable keyword product pools before downstream validation, not final product judgment.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -1052,6 +1220,14 @@ App 可保存最近 taskId，
     "Deleting keyword full package files, package integrity proof, AI reading contract, or handoff prompt after decision=REJECT.",
     "Letting an inline evidence slice or incomplete handoff trigger irreversible evidence cleanup.",
     "Deleting the keyword tombstone so historical deduplication can regenerate the same rejected keyword."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-021-requirement",
+      "statement": "When keyword opportunity review returns REJECT, the system must retain the keyword full package and source evidence as a reviewable chain; REJECT may mark or archive the keyword but must not physically purge evidence from an insufficient or unreviewable handoff.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -1087,6 +1263,14 @@ App 可保存最近 taskId，
     "Allowing non-Amazon prompt contracts to ignore source tab restoration failure.",
     "Dropping restoredSourcePage=false from provider proof.",
     "Leaving completed Amazon GPT Web Chat provider tabs open so later BrowserController DOM extraction can hit stale active tabs."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-022-requirement",
+      "statement": "After an Amazon product mining GPT Web Chat response is captured, provider tabs must be closed and source tab restoration failure must be recorded as provider proof without failing the mining flow; this exception is forbidden outside amazon-product-mining prompt contracts.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -1123,6 +1307,14 @@ App 可保存最近 taskId，
     "Dropping review images, review videos, language, region, variant, helpful count, page index, or raw review text from review samples when captured.",
     "Leaving the advanced AI to infer whether a null means not_present, blocked, failed, unsupported, manual_required, or extractor_missing.",
     "Letting extractor_missing pass as usable keyword-review evidence."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-023-requirement",
+      "statement": "Keyword opportunity review navigation input must be advanced-AI readable as a directory: it must carry rich product detail pointers, review media/language/region metadata, and explicit field disclosure instead of silent nulls, while the full package remains the decisive evidence source.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -1163,10 +1355,18 @@ App 可保存最近 taskId，
   ],
   "forbidden": [
     "Restarting an interrupted task from the beginning when persisted keyword/search/detail/review evidence exists.",
-	    "Running two active executions for the same taskId.",
-	    "Exposing Pause, Continue, or Terminate Amazon Product Mining routes, UI buttons, workbench handle methods, or plugin facade exports.",
-	    "Requiring a human action to move an interrupted Amazon Product Mining task forward.",
-	    "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
+    "Running two active executions for the same taskId.",
+    "Exposing Pause, Continue, or Terminate Amazon Product Mining routes, UI buttons, workbench handle methods, or plugin facade exports.",
+    "Requiring a human action to move an interrupted Amazon Product Mining task forward.",
+    "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-024-requirement",
+      "statement": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```
@@ -1209,6 +1409,14 @@ App 可保存最近 taskId，
     "Automatically downgrading to inline-only review when file upload is unavailable.",
     "Persisting PASS/WATCH/REJECT as completed when provider proof shows only the slice was supplied.",
     "Physically deleting keyword evidence after REJECT before a reviewable full package chain is retained."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-mining-025-requirement",
+      "statement": "After each keyword completes, Amazon Product Mining must build a keyword-level full evidence package and hand that package to GPT Web Chat for keyword opportunity review; inline evidence slices are navigation only and can never be the sole basis for PASS/WATCH/REJECT.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-mining"
+    }
   ]
 }
 ```

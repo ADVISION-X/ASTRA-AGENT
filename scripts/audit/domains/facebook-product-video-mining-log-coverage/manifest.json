@@ -3,24 +3,118 @@
   "ownerInspectorPath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+        "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
+        "checkIds": [
+          "facebook-log-coverage/ai-contract",
+          "facebook-log-coverage/artifact-refs",
+          "facebook-log-coverage/failure-contract",
+          "facebook-log-coverage/mandatory-stage",
+          "facebook-log-coverage/navigation-contract",
+          "facebook-log-coverage/recovery-trail"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+        "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
+        "checkIds": [
+          "facebook-log-coverage/ai-contract",
+          "facebook-log-coverage/artifact-refs",
+          "facebook-log-coverage/failure-contract",
+          "facebook-log-coverage/mandatory-stage",
+          "facebook-log-coverage/navigation-contract",
+          "facebook-log-coverage/recovery-trail"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+        "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
+        "checkIds": [
+          "facebook-log-coverage/ai-contract",
+          "facebook-log-coverage/artifact-refs",
+          "facebook-log-coverage/failure-contract",
+          "facebook-log-coverage/mandatory-stage",
+          "facebook-log-coverage/navigation-contract",
+          "facebook-log-coverage/recovery-trail"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+        "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
+        "checkIds": [
+          "facebook-log-coverage/ai-contract",
+          "facebook-log-coverage/artifact-refs",
+          "facebook-log-coverage/failure-contract",
+          "facebook-log-coverage/mandatory-stage",
+          "facebook-log-coverage/navigation-contract",
+          "facebook-log-coverage/recovery-trail"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+        "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
+        "checkIds": [
+          "facebook-log-coverage/ai-contract",
+          "facebook-log-coverage/artifact-refs",
+          "facebook-log-coverage/failure-contract",
+          "facebook-log-coverage/mandatory-stage",
+          "facebook-log-coverage/navigation-contract",
+          "facebook-log-coverage/recovery-trail"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+        "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
+        "checkIds": [
+          "facebook-log-coverage/ai-contract",
+          "facebook-log-coverage/artifact-refs",
+          "facebook-log-coverage/failure-contract",
+          "facebook-log-coverage/mandatory-stage",
+          "facebook-log-coverage/navigation-contract",
+          "facebook-log-coverage/recovery-trail"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
-  "lawIdRefs": [
-    "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-    "GRASSEYE-RUNTIME-LOG-SPINE-018-V1"
-  ],
   "blueprintRefs": [
     {
       "filePath": "docs/法案辅助文件/GrassEye Facebook Mining 日志矩阵施工图.md",

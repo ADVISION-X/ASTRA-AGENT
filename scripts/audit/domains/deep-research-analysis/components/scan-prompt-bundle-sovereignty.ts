@@ -3,13 +3,10 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
+import { hasIdentifierName, hasLiteralFragment, hasPropertyAccessSegments } from "./deep-research-ast-facts.js";
 
 const hasIdentifier = (sourceFile: SourceFile | undefined, name: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === name);
-
-const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === path);
+  hasIdentifierName(sourceFile, name);
 
 type PromptBundleSovereigntyInput = {
   researchPlanSchemaFile: SourceFile | undefined;
@@ -46,13 +43,13 @@ const inspectPromptBundleSchema = (input: PromptBundleSovereigntyInput): void =>
 };
 
 const inspectPromptBundlePromptMarkers = (input: PromptBundleSovereigntyInput): void => {
-  const promptText = input.decompositionPromptFile?.getFullText() ?? "";
   const requiredPromptMarkers = [
     "Each subQuestion.promptBundle is the only business analysis instruction for that sub-question.",
     "The runtime will not write a replacement prompt later.",
     "The promptBundle may ask for output structures suitable for the question, but the runtime will not add business fields later.",
   ];
-  const missingPromptMarkers = requiredPromptMarkers.filter((marker) => !promptText.includes(marker));
+  const missingPromptMarkers = requiredPromptMarkers.filter((marker) =>
+    !hasLiteralFragment(input.decompositionPromptFile, marker));
   if (missingPromptMarkers.length > 0) {
     input.findings.push(createFinding({
       checkId: "deep-research/promptbundle-sovereignty-prompt",
@@ -66,18 +63,18 @@ const inspectPromptBundlePromptMarkers = (input: PromptBundleSovereigntyInput): 
 const inspectPromptBundleRuntimeChecks = (input: PromptBundleSovereigntyInput): void => {
   const runtimeChecks = [
     {
-      ok: hasPropertyAccessPath(input.analysisSubQuestionsFile, "subQuestion.question.promptBundle")
+      ok: hasPropertyAccessSegments(input.analysisSubQuestionsFile, ["subQuestion", "question", "promptBundle"])
         && hasIdentifier(input.analysisSubQuestionsFile, "renderSubQuestionAnalysisFromPromptBundle"),
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
       message: "N-stage analysis must render directly from subQuestion.question.promptBundle.",
     },
     {
-      ok: hasPropertyAccessPath(input.finalizationFile, "fullCaseFile.researchPlan.finalAdjudicationPromptBundle"),
+      ok: hasPropertyAccessSegments(input.finalizationFile, ["fullCaseFile", "researchPlan", "finalAdjudicationPromptBundle"]),
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
       message: "Final adjudication stage must consume fullCaseFile.researchPlan.finalAdjudicationPromptBundle.",
     },
     {
-      ok: hasPropertyAccessPath(input.htmlReportStageFile, "input.fullCaseFile.researchPlan.htmlReportPromptBundle"),
+      ok: hasPropertyAccessSegments(input.htmlReportStageFile, ["input", "fullCaseFile", "researchPlan", "htmlReportPromptBundle"]),
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
       message: "HTML report stage must consume input.fullCaseFile.researchPlan.htmlReportPromptBundle.",
     },

@@ -29,7 +29,7 @@
     "acceptance:ci-summary-truth": "node --import tsx scripts/acceptance/ci-summary-truth.acceptance.ts",
     "acceptance:runtime-truth-completed-evidence": "node --import tsx scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
-    "audit:deep-research-analysis": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['deep-research-analysis'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "audit:deep-research-analysis": "node --import tsx scripts/audit/run-domain-audit.ts deep-research-analysis",
     "acceptance:deep-research-input-attachments": "node --import tsx scripts/acceptance/deep-research-input-attachments.acceptance.ts",
     "acceptance:deep-research-promptbundle-sovereignty": "node --import tsx scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
     "acceptance:deep-research-per-subquestion-promptbundle": "node --import tsx scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
@@ -60,7 +60,7 @@
     "amazon-product-mining:package:fixture": "node --import tsx scripts/acceptance/amazon-product-mining-package-fixture.ts",
     "acceptance:video-download-telegram-web": "node --import tsx scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "acceptance:video-download-youtube-production": "node --import tsx scripts/acceptance/video-download-youtube-production.acceptance.ts",
-    "audit:video-download-capability": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['video-download-capability'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "audit:video-download-capability": "node --import tsx scripts/audit/run-domain-audit.ts video-download-capability",
     "acceptance:media-processing": "node --import tsx scripts/acceptance/media-processing-latest-dependencies.acceptance.ts && node --import tsx scripts/acceptance/media-processing-image.acceptance.ts && node --import tsx scripts/acceptance/media-processing-video.acceptance.ts && node --import tsx scripts/acceptance/media-processing-job-flow.acceptance.ts && node --import tsx scripts/acceptance/media-processing-async-route.acceptance.ts && node --import tsx scripts/acceptance/media-processing-task-persistence.acceptance.ts && node --import tsx scripts/acceptance/media-processing-artifact-proof.acceptance.ts && node --import tsx scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
     "acceptance:media-optimizer-app-ui": "node --import tsx scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
     "audit:media-processing-capability": "node --import tsx scripts/audit/domains/media-processing-capability/run-inspector.ts",
@@ -78,18 +78,18 @@
     "audit:amazon-product-fee-sync": "node --import tsx scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
     "acceptance:amazon-listing-edit-read-sync": "node --import tsx scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts",
     "audit:amazon-listing-edit-read-sync": "node --import tsx scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
-    "audit:pick3-is-blind-eval": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['pick3-is-blind-eval'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "audit:pick3-is-blind-eval": "node --import tsx scripts/audit/run-domain-audit.ts pick3-is-blind-eval",
     "acceptance:pick3-is-blind-eval": "node --import tsx scripts/acceptance/pick3-is-blind-eval.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-free-analysis.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts && node --import tsx scripts/acceptance/pick3-is-blind-eval-completion-queue.acceptance.ts",
-    "audit:lottery-ticket-plan": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['lottery-ticket-plan'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "audit:lottery-ticket-plan": "node --import tsx scripts/audit/run-domain-audit.ts lottery-ticket-plan",
     "acceptance:lottery-ticket-plan": "node --import tsx scripts/acceptance/lottery-ticket-plan.acceptance.ts",
-    "audit:xuanyuan": "node --import tsx -e \"import('./scripts/audit/core/run-generated-plan.ts').then(async (m) => { const r = await m.runGeneratedPlanFiltered({ capabilityDomains: ['xuanyuan'] }); process.exit(r.hasFailures ? 1 : 0); })\"",
+    "audit:xuanyuan": "node --import tsx scripts/audit/run-domain-audit.ts xuanyuan",
     "acceptance:xuanyuan": "node --import tsx scripts/acceptance/xuanyuan.acceptance.ts && node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
-    "acceptance:ai-input-gateway-attachment": "node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts"
-    ,"acceptance:ai-input-gateway-attachment:real-chrome": "node --import tsx scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts"
-    ,"acceptance:ai-input-gateway-provider-lease": "node --import tsx scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts"
+    "acceptance:ai-input-gateway-attachment": "node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+    "acceptance:ai-input-gateway-attachment:real-chrome": "node --import tsx scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
+    "acceptance:ai-input-gateway-provider-lease": "node --import tsx scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts"
   },
   "dependencies": {
-    "@img/sharp-darwin-arm64": "^0.35.2",
+    "@img/sharp-darwin-arm64": "^0.35.3",
     "@img/sharp-libvips-darwin-arm64": "^1.3.1",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.10.0",
@@ -97,7 +97,7 @@
     "ffprobe-static": "^3.1.0",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.59.1",
-    "sharp": "^0.35.2",
+    "sharp": "^0.35.3",
     "yt-dlp-wrap": "^2.3.12",
     "zod": "^3.24.4"
   },

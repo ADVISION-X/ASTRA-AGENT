@@ -381,9 +381,15 @@ function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUpload
   ]) {
     if (!existingValues.has(value)) missing.push(`english-existing-evidence:${value}`);
   }
-  const existingHintsText = existingEvidenceFile.getVariableDeclaration("EXISTING_INVOICE_HINTS")?.getInitializer()?.getText() ?? "";
+  const existingHints = new Set(
+    existingEvidenceFile
+      .getVariableDeclaration("EXISTING_INVOICE_HINTS")
+      ?.getInitializer()
+      ?.getDescendantsOfKind(SyntaxKind.StringLiteral)
+      .map((literal) => literal.getLiteralText()) ?? [],
+  );
   for (const weakValue of ["Manage invoice", "Manage invoices", "Pending", "管理发票", "待处理"]) {
-    if (existingHintsText.includes(weakValue)) missing.push(`weak-existing-evidence-forbidden:${weakValue}`);
+    if (existingHints.has(weakValue)) missing.push(`weak-existing-evidence-forbidden:${weakValue}`);
   }
   return missing;
 }

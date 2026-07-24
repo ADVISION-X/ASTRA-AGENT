@@ -1,15 +1,12 @@
-import { existsSync, readFileSync } from "node:fs";
-
-import { resolveFromRepo } from "../../shared/paths.js";
-import { findLine } from "../runtime-log-spine/source-read.js";
+import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { FacebookLogCoverageLaw, FACEBOOK_MINING_OWNER_FILES, type FacebookLogCoverageFinding } from "./constants.js";
+import { collectAstTokenCoverage, hasAstToken, hasAstTokenPart } from "./facebook-mining-ast-token-coverage.js";
 
-const failureKeywords = [
+const failureTokens = [
   "failed",
   "review_required",
   "skipped",
   "terminal",
-  "true",
   "handleProbeFailure",
   "handleDownloadFailure",
   "handleJudgmentFailure",
@@ -18,25 +15,28 @@ const failureKeywords = [
 ] as const;
 const requiredTokens = ["failureClass", "reason", "recoveryPolicy", "terminal"] as const;
 
-export const collectFacebookMiningFailureCoverage = (): {
+export const collectFacebookMiningFailureCoverage = (context: InspectorContext): {
   findings: FacebookLogCoverageFinding[];
   inspectedFiles: string[];
 } => {
   const findings: FacebookLogCoverageFinding[] = [];
   for (const file of FACEBOOK_MINING_OWNER_FILES) {
-    if (!existsSync(resolveFromRepo(file))) continue;
-    const text = readFileSync(resolveFromRepo(file), "utf8");
-    if (!failureKeywords.some((keyword) => text.includes(keyword))) continue;
-    const missing = requiredTokens.filter((token) => !text.includes(token));
-    if (missing.length === 0) continue;
+    const coverage = collectAstTokenCoverage(context, [file]);
+    if (!failureTokens.some((token) => hasAstTokenPart(coverage, token))) {
+      continue;
+    }
+    const missing = requiredTokens.filter((token) => !hasAstToken(coverage, token));
+    if (missing.length === 0) {
+      continue;
+    }
     findings.push({
       checkId: "facebook-log-coverage/failure-contract",
       lawId: FacebookLogCoverageLaw.FAILURE_CLASS,
       file,
-      line: findLine(text, failureKeywords),
+      line: coverage.firstLine,
       severity: "fatal",
       message: "Facebook mining failure path lacks failureClass contract",
-      hint: `Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: ${missing.join(", ")}.`,
+      hint: `Classify this path with the governed failure contract. Missing: ${missing.join(", ")}.`,
     });
   }
   return { findings, inspectedFiles: [...FACEBOOK_MINING_OWNER_FILES] };

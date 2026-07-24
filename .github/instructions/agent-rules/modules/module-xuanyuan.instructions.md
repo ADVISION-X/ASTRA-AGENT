@@ -71,6 +71,14 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
     "external provider conversation URL or unverified continuation",
     "fake success when provider or parsing fails",
     "external attachment transport selection or duplicate Web Chat file paste"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-xuanyuan-001-requirement",
+      "statement": "Xuanyuan must be the single governed AI API simulation owner for external websites, entering through Workbench API Boundary and calling AI Input Gateway without provider direct calls or website-held provider keys.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "xuanyuan"
+    }
   ]
 }
 ```

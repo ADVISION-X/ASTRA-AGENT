@@ -1,12 +1,10 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-import { Node, SyntaxKind, type ObjectLiteralExpression, type Project, type SourceFile } from "ts-morph";
-
+import { Node, SyntaxKind, type Expression, type ObjectLiteralExpression, type Project, type SourceFile } from "ts-morph";
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { createAuditProject } from "../../shared/project.js";
 import {
@@ -32,15 +30,20 @@ import {
 } from "./inspector-constants.js";
 import { countDomainPluginStatusEntries, findMissingRequiredFiles } from "./inspector-files.js";
 import { inspectTaskService } from "./inspector-task-service.js";
-
 const addFinding = (findings: InspectorFinding[], lawId: string, filePath: string, message: string): void => {
-  findings.push(createFinding({ checkId: "amazon-product-sync/contract", filePath, lawId, message }));
+  findings.push(createFinding({
+    checkId: "amazon-product-sync/contract",
+    filePath,
+    lawId,
+    ...(lawId === "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
+      ? { clauseId: "runtime-log-spine-016-amazon-product-sync-log-matrix" }
+      : {}),
+    message,
+  }));
 };
-
 const source = (project: Project, repoPath: string): SourceFile | undefined => project.getSourceFile(resolveFromRepo(repoPath));
 const property = (objectLiteral: ObjectLiteralExpression, name: string) =>
   objectLiteral.getProperties().find((item) => Node.isPropertyAssignment(item) && item.getName() === name);
-
 const literalText = (objectLiteral: ObjectLiteralExpression, name: string): string | null => {
   const item = property(objectLiteral, name);
   if (!item || !Node.isPropertyAssignment(item)) return null;
@@ -49,7 +52,6 @@ const literalText = (objectLiteral: ObjectLiteralExpression, name: string): stri
     ? initializer.getLiteralText()
     : null;
 };
-
 const booleanLiteral = (objectLiteral: ObjectLiteralExpression, name: string): boolean | null => {
   const item = property(objectLiteral, name);
   if (!item || !Node.isPropertyAssignment(item)) return null;
@@ -59,20 +61,17 @@ const booleanLiteral = (objectLiteral: ObjectLiteralExpression, name: string): b
   if (initializer.getKind() === SyntaxKind.FalseKeyword) return false;
   return null;
 };
-
 const objectLiteralProperty = (objectLiteral: ObjectLiteralExpression, name: string): ObjectLiteralExpression | null => {
   const item = property(objectLiteral, name);
   if (!item || !Node.isPropertyAssignment(item)) return null;
   const initializer = item.getInitializer();
   return initializer && Node.isObjectLiteralExpression(initializer) ? initializer : null;
 };
-
-const propertyInitializerText = (objectLiteral: ObjectLiteralExpression, name: string): string | null => {
+const propertyInitializer = (objectLiteral: ObjectLiteralExpression, name: string): Expression | null => {
   const item = property(objectLiteral, name);
   if (!item || !Node.isPropertyAssignment(item)) return null;
-  return item.getInitializer()?.getText() ?? null;
+  return item.getInitializer() ?? null;
 };
-
 const arrayLiteralTexts = (objectLiteral: ObjectLiteralExpression, name: string): string[] => {
   const item = property(objectLiteral, name);
   if (!item || !Node.isPropertyAssignment(item)) return [];
@@ -82,21 +81,32 @@ const arrayLiteralTexts = (objectLiteral: ObjectLiteralExpression, name: string)
     (Node.isStringLiteral(element) || Node.isNoSubstitutionTemplateLiteral(element)) ? [element.getLiteralText()] : [],
   );
 };
-
 const hasObjectProperty = (objectLiteral: ObjectLiteralExpression, name: string): boolean => Boolean(property(objectLiteral, name));
 const nestedLiteralText = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): string | null => {
   const nested = objectLiteralProperty(objectLiteral, parent);
   return nested ? literalText(nested, child) : null;
 };
-
-const nestedPropertyInitializerText = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): string | null => {
-  const nested = objectLiteralProperty(objectLiteral, parent);
-  return nested ? propertyInitializerText(nested, child) : null;
-};
-
 const hasNestedObjectProperty = (objectLiteral: ObjectLiteralExpression, parent: string, child: string): boolean => {
   const nested = objectLiteralProperty(objectLiteral, parent);
   return nested ? hasObjectProperty(nested, child) : false;
+};
+const isPropertyAccessPath = (expression: Expression | null, root: string, member: string): boolean =>
+  Boolean(expression
+    && Node.isPropertyAccessExpression(expression)
+    && expression.getName() === member
+    && Node.isIdentifier(expression.getExpression())
+    && expression.getExpression().getText() === root);
+
+const hasCallNamed = (expression: Expression | null, name: string): boolean => {
+  const candidates = expression
+    ? [expression, ...expression.getDescendantsOfKind(SyntaxKind.CallExpression)]
+    : [];
+  return candidates.some((candidate) => {
+    if (!Node.isCallExpression(candidate)) return false;
+    const callee = candidate.getExpression();
+    return (Node.isIdentifier(callee) && callee.getText() === name)
+      || (Node.isPropertyAccessExpression(callee) && callee.getName() === name);
+  });
 };
 
 const hasPropertyBelow = (objectLiteral: ObjectLiteralExpression, name: string): boolean =>
@@ -292,8 +302,8 @@ const inspectSubmitSearchDiagnostic = (flow: SourceFile | undefined, findings: I
     return;
   }
   for (const field of ["detectedState", "title", "url"]) {
-    const initializer = propertyInitializerText(diagnosticObject, field);
-    if (!initializer?.startsWith(`submitResult.${field}`)) addFinding(findings, lawId, flowPath, `submitInventorySearch diagnostic must derive ${field} from submitResult.${field}`);
+    const initializer = propertyInitializer(diagnosticObject, field);
+    if (!isPropertyAccessPath(initializer, "submitResult", field)) addFinding(findings, lawId, flowPath, `submitInventorySearch diagnostic must derive ${field} from submitResult.${field}`);
   }
   if (literalText(diagnosticObject, "stageName") !== "seller_central_inventory_filter_submit") {
     addFinding(findings, lawId, flowPath, "submitInventorySearch diagnostic must classify seller_central_inventory_filter_submit stage");
@@ -325,9 +335,34 @@ const inspectProgressLogRefs = (taskService: SourceFile | undefined, findings: I
   for (const refName of ["site", "marketplace", "reachedStep", "previousStep", "itemCount", "reason", ...requiredDiagnosticRefs]) {
     if (!hasNestedObjectProperty(progress, "refs", refName)) addFinding(findings, lawId, taskServicePath, `progress log missing refs.${refName}`);
   }
-  const reasonInitializer = nestedPropertyInitializerText(progress, "refs", "reason");
-  if (reasonInitializer?.includes('"none"') || reasonInitializer?.includes("'none'")) {
+  const reasonProperty = objectLiteralProperty(progress, "refs")?.getProperty("reason");
+  const reasonInitializer = Node.isPropertyAssignment(reasonProperty)
+    ? reasonProperty.getInitializer()
+    : undefined;
+  const defaultsToNone = reasonInitializer
+    ?.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .some((literal) => literal.getLiteralText() === "none") ?? false;
+  if (defaultsToNone) {
     addFinding(findings, lawId, taskServicePath, "progress log refs.reason must not default to none; it must carry a bounded diagnostic reason");
+  }
+};
+
+const inspectReviewItemSummary = (
+  reviewSummary: ObjectLiteralExpression | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  if (!reviewSummary) return;
+  for (const refName of requiredDiagnosticRefs) {
+    if (!hasNestedObjectProperty(reviewSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `review item summary log missing refs.${refName}`);
+  }
+  for (const payloadName of ["failureClass", "stageName", "retryable", "terminal", "recoveryPolicy"]) {
+    if (!hasPropertyBelow(reviewSummary, payloadName)) addFinding(findings, lawId, taskServicePath, `item summary review log missing payload.${payloadName}`);
+  }
+  const failureClassInitializer = propertyInitializer(objectLiteralProperty(reviewSummary, "payload") ?? reviewSummary, "failureClass");
+  const resolvesFailureClass = hasCallNamed(failureClassInitializer, "resolveFailureClass");
+  if (failureClassInitializer !== null && !resolvesFailureClass) {
+    addFinding(findings, lawId, taskServicePath, "review item summary failureClass must be resolved from auth/page diagnostics");
   }
 };
 
@@ -339,18 +374,11 @@ const inspectItemSummaryLog = (taskService: SourceFile | undefined, findings: In
       if (!hasNestedObjectProperty(itemSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `item summary log missing refs.${refName}`);
     }
   }
-  const reviewSummary = itemSummaries.find((itemSummary) => literalText(itemSummary, "status") === "review_required");
-  if (!reviewSummary) return;
-  for (const refName of requiredDiagnosticRefs) {
-    if (!hasNestedObjectProperty(reviewSummary, "refs", refName)) addFinding(findings, lawId, taskServicePath, `review item summary log missing refs.${refName}`);
-  }
-  for (const payloadName of ["failureClass", "stageName", "retryable", "terminal", "recoveryPolicy"]) {
-    if (!hasPropertyBelow(reviewSummary, payloadName)) addFinding(findings, lawId, taskServicePath, `item summary review log missing payload.${payloadName}`);
-  }
-  const failureClassInitializer = propertyInitializerText(objectLiteralProperty(reviewSummary, "payload") ?? reviewSummary, "failureClass");
-  if (failureClassInitializer !== null && !failureClassInitializer.includes("resolveFailureClass")) {
-    addFinding(findings, lawId, taskServicePath, "review item summary failureClass must be resolved from auth/page diagnostics");
-  }
+  inspectReviewItemSummary(
+    itemSummaries.find((itemSummary) => literalText(itemSummary, "status") === "review_required"),
+    findings,
+    lawId,
+  );
 };
 
 const inspectStaleRunningLog = (taskService: SourceFile | undefined, findings: InspectorFinding[], lawId: string): void => {
@@ -442,6 +470,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...requiredFiles, boundaryPath, serverPath, pluginStatusPath, selfPath].sort(),
     reportJson: { generatedAt: new Date().toISOString(), status: findings.length === 0 ? "PASS" : "FAIL", findings },

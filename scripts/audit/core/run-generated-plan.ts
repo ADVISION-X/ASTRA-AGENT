@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -9,6 +9,9 @@ import { inspectorOutputSchema, type CompletedReport } from "../shared/inspector
 import { createAuditProject } from "../shared/project.js";
 import { generatedDir, resolveFromRepo, toRepoPath } from "../shared/paths.js";
 import { loadGeneratedAuditPlan } from "./load-audit-plan.js";
+import { writeClauseCoverageArtifact } from "../build/write-generated-artifacts.js";
+import type { LawSource } from "../shared/law-contracts.js";
+import type { StaticClauseCoverageEntry } from "../shared/generated-contracts.js";
 
 type DomainExecutionReport = CompletedReport & {
   capabilityDomain: string;
@@ -37,6 +40,7 @@ const sortPlanEntries = (entries: readonly AuditPlanEntry[]): AuditPlanEntry[] =
 const buildFailureOutput = (planEntry: AuditPlanEntry, message: string): InspectorOutput => ({
   capabilityDomain: planEntry.capabilityDomain,
   reportedLawIds: [selectLawId(planEntry.lawIds, planEntry.lawIds[0] ?? "")],
+  executedChecks: [],
   findings: [
     createFinding({
       checkId: "runner/inspector-error",
@@ -47,23 +51,52 @@ const buildFailureOutput = (planEntry: AuditPlanEntry, message: string): Inspect
   inspectedFiles: [planEntry.ownerInspectorPath],
 });
 
-const validateInspectorOutput = (planEntry: AuditPlanEntry, rawOutput: unknown): InspectorOutput => {
+const executedCheckKey = (input: { lawId: string; clauseId: string; checkId: string }): string =>
+  `${input.lawId}::${input.clauseId}::${input.checkId}`;
+
+const findInspectorOutputError = (planEntry: AuditPlanEntry, output: InspectorOutput): string | null => {
+  const errors: string[] = [];
+  const allowedLawIds = new Set(planEntry.lawIds);
+  if (output.capabilityDomain !== planEntry.capabilityDomain) {
+    errors.push(`Inspector reported capabilityDomain ${output.capabilityDomain}.`);
+  }
+  if (output.reportedLawIds.some((lawId) => !allowedLawIds.has(lawId))) {
+    errors.push(`Inspector over-reported lawIds outside ${planEntry.capabilityDomain}.`);
+  }
+  if (output.findings.some((finding) => !allowedLawIds.has(finding.lawId))) {
+    errors.push("Inspector emitted finding outside generated plan lawIds.");
+  }
+  const expectedChecks = planEntry.bindings.flatMap((binding) =>
+    binding.checkIds.map((checkId) => ({ lawId: binding.lawId, clauseId: binding.clauseId, checkId })));
+  const expectedKeys = new Set(expectedChecks.map(executedCheckKey));
+  const executedKeys = output.executedChecks.map(executedCheckKey);
+  const uniqueExecutedKeys = new Set(executedKeys);
+  if (uniqueExecutedKeys.size !== executedKeys.length) {
+    errors.push("Inspector reported duplicate executed check receipts.");
+  }
+  const missingCheck = expectedChecks.find((check) => !uniqueExecutedKeys.has(executedCheckKey(check)));
+  if (missingCheck) {
+    errors.push(`Inspector omitted executed check ${missingCheck.lawId}/${missingCheck.clauseId}/${missingCheck.checkId}.`);
+  }
+  const extraCheck = output.executedChecks.find((check) => !expectedKeys.has(executedCheckKey(check)));
+  if (extraCheck) {
+    errors.push(`Inspector reported undeclared executed check ${extraCheck.lawId}/${extraCheck.clauseId}/${extraCheck.checkId}.`);
+  }
+  const invalidFinding = output.findings.find((finding) => !expectedKeys.has(executedCheckKey(finding)));
+  if (invalidFinding) {
+    errors.push(`Inspector finding ${invalidFinding.lawId}/${invalidFinding.clauseId}/${invalidFinding.checkId} is not declared by its manifest.`);
+  }
+  return errors[0] ?? null;
+};
+
+export const validateInspectorOutput = (planEntry: AuditPlanEntry, rawOutput: unknown): InspectorOutput => {
   const parsed = inspectorOutputSchema.safeParse(rawOutput);
   if (!parsed.success) {
     return buildFailureOutput(planEntry, parsed.error.message);
   }
   const output = parsed.data;
-  const allowedLawIds = new Set(planEntry.lawIds);
-  if (output.capabilityDomain !== planEntry.capabilityDomain) {
-    return buildFailureOutput(planEntry, `Inspector reported capabilityDomain ${output.capabilityDomain}.`);
-  }
-  if (output.reportedLawIds.some((lawId) => !allowedLawIds.has(lawId))) {
-    return buildFailureOutput(planEntry, `Inspector over-reported lawIds outside ${planEntry.capabilityDomain}.`);
-  }
-  if (output.findings.some((finding) => !allowedLawIds.has(finding.lawId))) {
-    return buildFailureOutput(planEntry, `Inspector emitted finding outside generated plan lawIds.`);
-  }
-  return output;
+  const validationError = findInspectorOutputError(planEntry, output);
+  return validationError ? buildFailureOutput(planEntry, validationError) : output;
 };
 
 const writeDomainReport = (
@@ -81,6 +114,7 @@ const writeDomainReport = (
     lawIds: planEntry.lawIds,
     status,
     findings: output.findings,
+    executedChecks: output.executedChecks,
     inspectedFiles: output.inspectedFiles,
   };
   const mergedReportJson = typeof output.reportJson === "object" && output.reportJson !== null && !Array.isArray(output.reportJson)
@@ -147,6 +181,7 @@ const buildDomainExecutionReport = (
 
 const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promise<{
   domainReports: DomainExecutionReport[];
+  executedChecks: InspectorOutput["executedChecks"];
   hasFailures: boolean;
 }> => {
   const project = createAuditProject();
@@ -170,10 +205,12 @@ const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promi
     ...(options.initialCompletedReports ?? {}),
   };
   const domainReports: DomainExecutionReport[] = [];
+  const executedChecks: InspectorOutput["executedChecks"] = [];
 
   for (const planEntry of generatedPlan) {
     const output = await executePlanEntry(project, planEntry, fullGeneratedPlan, completedReports);
     const report = buildDomainExecutionReport(planEntry, output);
+    executedChecks.push(...output.executedChecks);
     completedReports[planEntry.capabilityDomain] = {
       status: report.status,
       findingCount: report.findingCount,
@@ -184,6 +221,7 @@ const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promi
 
   return {
     domainReports,
+    executedChecks,
     hasFailures: domainReports.some((report) => report.status === "FAIL"),
   };
 };
@@ -191,4 +229,32 @@ const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promi
 export const runGeneratedPlanFiltered = async (options: RunGeneratedPlanOptions): Promise<{
   domainReports: DomainExecutionReport[];
   hasFailures: boolean;
-}> => runGeneratedPlanInternal(options);
+}> => {
+  const result = await runGeneratedPlanInternal(options);
+  return {
+    domainReports: result.domainReports,
+    hasFailures: result.hasFailures,
+  };
+};
+
+export const runGeneratedPlan = async (): Promise<{
+  domainReports: DomainExecutionReport[];
+  hasFailures: boolean;
+}> => {
+  const result = await runGeneratedPlanInternal({});
+  const registry = JSON.parse(
+    readFileSync(resolveFromRepo("scripts/audit/generated/law-registry.generated.json"), "utf8"),
+  ) as { laws: LawSource[] };
+  const staticCoverageArtifact = JSON.parse(
+    readFileSync(resolveFromRepo("scripts/audit/generated/static-clause-coverage.generated.json"), "utf8"),
+  ) as { coverage: StaticClauseCoverageEntry[] };
+  writeClauseCoverageArtifact({
+    laws: registry.laws,
+    staticCoverage: staticCoverageArtifact.coverage,
+    executedChecks: result.executedChecks,
+  });
+  return {
+    domainReports: result.domainReports,
+    hasFailures: result.hasFailures,
+  };
+};

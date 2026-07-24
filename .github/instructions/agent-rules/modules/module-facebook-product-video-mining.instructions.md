@@ -59,6 +59,14 @@ configuration fields.
     "Skipping download, AI judgment, or persistence while claiming saved products.",
     "Mock, fixture, or placeholder success for real-platform mining.",
     "Parallel second flow for the same Facebook mining demand."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-facebook-mining-001-requirement",
+      "statement": "Facebook product video mining must remain one explicit plugin-owned flow that performs truthful probe, comment loading, video download, bounded AI judgment, reject-or-save, and persistence per round.",
+      "evidenceMode": "static",
+      "ownerDomain": "facebook-product-video-mining"
+    }
   ]
 }
 ```
@@ -108,6 +116,14 @@ configuration fields.
     "Missing mission start, run status, or latest status surface.",
     "CI-FULL omitting Facebook mining acceptance after the domain is active.",
     "Manifest pointing to a non-existent owner inspector."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-facebook-mining-002-requirement",
+      "statement": "Facebook product video mining must expose lawful start/status/latest routes through the local workbench and must keep acceptance and audit ownership wired into CI-FULL.",
+      "evidenceMode": "static",
+      "ownerDomain": "facebook-product-video-mining"
+    }
   ]
 }
 ```
@@ -152,6 +168,14 @@ Facebook domain 成熟后必须同时具备：
     "Visible Facebook model, max rounds, or max minutes fields in the workbench.",
     "Client-side Facebook mission payload requiring feedEntryUrl, providerKind, modelName, maxRounds, or maxMinutes.",
     "Facebook mission schema requiring operator-supplied parameters beyond targetProductCount."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-facebook-mining-003-requirement",
+      "statement": "The Facebook mining app-shell surface must ask the operator only for target product count and must derive all other mission parameters from governed defaults.",
+      "evidenceMode": "static",
+      "ownerDomain": "facebook-product-video-mining"
+    }
   ]
 }
 ```
@@ -215,6 +239,14 @@ Facebook 种草视频入口必须保持一键任务形态：
     "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace.",
     "Selecting an arbitrary existing provider tab when no saved Facebook workspace URL exists.",
     "Matching old provider conversations by title text instead of pinning the opened workspace URL."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-facebook-mining-004-requirement",
+      "statement": "Facebook mining must not default to mutating the operator's recommendation profile and must convert AI web-chat stalls into bounded review-required evidence instead of leaving runs indefinitely running.",
+      "evidenceMode": "static",
+      "ownerDomain": "facebook-product-video-mining"
+    }
   ]
 }
 ```
@@ -264,6 +296,14 @@ Facebook mining 的默认行为必须保护操作者当前 Facebook 账号与推
     "Exporting rejected, uncertain, failed, or review-required candidates as successful products.",
     "Export payloads that omit source URL, product signals, AI reason, confidence, or artifact references.",
     "Export logic outside the Facebook mining owner surface."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-facebook-mining-005-requirement",
+      "statement": "The Facebook mining workbench must expose saved product-seeding records for the active run and must provide a structured export for downstream senior-AI product selection.",
+      "evidenceMode": "static",
+      "ownerDomain": "facebook-product-video-mining"
+    }
   ]
 }
 ```
@@ -306,6 +346,14 @@ Facebook mining 的默认行为必须保护操作者当前 Facebook 账号与推
     "next_video_did_not_change or next_video_not_confirmed stopping the whole mission.",
     "Per-video download, comments, AI, duplicate, or navigation uncertainty treated as mission terminal.",
     "AI returning workflow, selector, coordinate, browser command, or next action."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-facebook-mining-006-requirement",
+      "statement": "Facebook mining rounds must be controlled by a fixed flow state machine, fixed next-video action ladder, and multi-signal proof quorum; DOM selector feedback may observe but must not decide the next action.",
+      "evidenceMode": "static",
+      "ownerDomain": "facebook-product-video-mining"
+    }
   ]
 }
 ```

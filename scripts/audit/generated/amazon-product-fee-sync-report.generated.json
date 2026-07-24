@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:21.382Z",
+  "generatedAt": "2026-07-24T00:55:31.600Z",
   "capabilityDomain": "amazon-product-fee-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,6 +7,98 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/api-boundary"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/dom-contract"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/dom-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/evidence-safety"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/external-control"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/field-pair-rejection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/flow-contract"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/inventory-search"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/no-fuzzy-row-match"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/product-sync-pollution"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/read-only-flow"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/required-fields"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/runtime-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/server-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/single-sku"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/stale-running-task"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+      "checkId": "amazon-product-fee-sync/workbench-runtime"
+    }
+  ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
     "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",

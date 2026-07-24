@@ -3,12 +3,9 @@ import { Node, SyntaxKind, type CallExpression, type SourceFile } from "ts-morph
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
+import { hasLiteralFragment, hasLiteralValue, hasPropertyAccessSegments } from "./deep-research-ast-facts.js";
 
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
-
-const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === path);
 
 const addInspectedFiles = (input: {
   analysisSubQuestionsFile: SourceFile | undefined;
@@ -34,7 +31,7 @@ const inspectRuntimePromptBundlePath = (input: {
   findings: InspectorFinding[];
   lawId: string;
 }): void => {
-  if (hasPropertyAccessPath(input.analysisSubQuestionsFile, "subQuestion.question.promptBundle")) {
+  if (hasPropertyAccessSegments(input.analysisSubQuestionsFile, ["subQuestion", "question", "promptBundle"])) {
     return;
   }
   input.findings.push(createFinding({
@@ -66,7 +63,7 @@ const inspectMissingPromptBundleGuards = (input: {
     },
   ] as const;
   for (const check of missingTextChecks) {
-    if ((check.sourceFile?.getFullText() ?? "").includes(check.marker)) continue;
+    if (hasLiteralFragment(check.sourceFile, check.marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/per-subquestion-promptbundle-guard",
       lawId: input.lawId,
@@ -155,7 +152,6 @@ const inspectResearchPlanUniquenessGuards = (input: {
   findings: InspectorFinding[];
   lawId: string;
 }): void => {
-  const researchPlanSchemaText = input.researchPlanSchemaFile?.getFullText() ?? "";
   for (const [marker, checkId, message] of [
     [
       "questionSpecificFocus must not be identical across every sub-question promptBundle.",
@@ -173,7 +169,7 @@ const inspectResearchPlanUniquenessGuards = (input: {
       "ResearchPlan schema must reject globally identical requiredContent across sub-question promptBundles.",
     ],
   ] as const) {
-    if (researchPlanSchemaText.includes(marker)) continue;
+    if (hasLiteralValue(input.researchPlanSchemaFile, marker)) continue;
     input.findings.push(createFinding({
       checkId,
       lawId: input.lawId,

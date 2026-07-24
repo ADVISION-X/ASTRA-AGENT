@@ -1,4 +1,4 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -23,11 +23,12 @@ const hasNumericArrayLiteral = (
 ): boolean => {
   const declaration = sourceFile?.getVariableDeclaration(variableName);
   const rawInitializer = declaration?.getInitializer();
-  const initializer = rawInitializer?.getKind() === SyntaxKind.AsExpression
-    ? rawInitializer.getFirstChildByKind(SyntaxKind.ArrayLiteralExpression)
+  const initializer = rawInitializer && Node.isAsExpression(rawInitializer)
+    ? rawInitializer.getExpression().asKind(SyntaxKind.ArrayLiteralExpression)
     : rawInitializer?.asKind(SyntaxKind.ArrayLiteralExpression);
   if (!initializer) return false;
-  const values = initializer.getElements().map((element) => Number(element.getText().replaceAll("_", "")));
+  const values = initializer.getElements().map((element) =>
+    Node.isNumericLiteral(element) ? element.getLiteralValue() : Number.NaN);
   return expectedValues.every((expectedValue, index) => values[index] === expectedValue);
 };
 

@@ -79,6 +79,14 @@ Workbench API Boundary
     "DOM selector control by external callers",
     "second Amazon product sync owner",
     "raw HTML/cookie/credential evidence leakage"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-sync-001-requirement",
+      "statement": "Amazon product sync must be a single read-only job flow with bounded Seller Central evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-sync"
+    }
   ]
 }
 ```
@@ -113,6 +121,14 @@ Workbench API Boundary
     "Website product main image written from public img src or screenshot evidence ref.",
     "Plugin directly fetches arbitrary website callbackUrl.",
     "External caller controls selectors, browser commands, or output overrides."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-sync-002-requirement",
+      "statement": "Amazon product sync must honor the website request contract: site + SKU + required fields, and must return only evidence-backed requested product update data.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-sync"
+    }
   ]
 }
 ```
@@ -141,6 +157,14 @@ Workbench API Boundary
     "Input value, Enter keypress, or search-button click event only success evidence.",
     "Whole-row contains matching as the primary SKU match.",
     "Search selector provided by external caller."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-product-sync-003-requirement",
+      "statement": "Amazon product sync SKU lookup must use the inventory filter search box, explicitly exclude the top global search box, and verify search by result DOM.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-product-sync"
+    }
   ]
 }
 ```

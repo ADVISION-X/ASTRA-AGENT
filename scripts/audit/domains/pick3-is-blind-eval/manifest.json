@@ -3,14 +3,320 @@
   "ownerInspectorPath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary",
-      "official-source",
-      "blind-boundary",
-      "prompt-repair",
-      "agent-owned-playbook",
-      "prompt-exchange"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
+        "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
+        "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
+        "clauseId": "grasseye-pick3-human-review-history-009-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
+        "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
+        "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
+        "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
+        "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
+        "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
+        "clauseId": "grasseye-pick3-is-brain-006-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
+        "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
+        "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
+        "clauseId": "grasseye-pick3-trend-display-010-requirement",
+        "checkIds": [
+          "pick3-is-blind-eval/agent-brain",
+          "pick3-is-blind-eval/blind-boundary",
+          "pick3-is-blind-eval/file-present",
+          "pick3-is-blind-eval/human-review-history",
+          "pick3-is-blind-eval/official-source",
+          "pick3-is-blind-eval/owner-flow",
+          "pick3-is-blind-eval/package-scripts",
+          "pick3-is-blind-eval/physical-delete",
+          "pick3-is-blind-eval/playbook-lessons",
+          "pick3-is-blind-eval/prompt-exchange",
+          "pick3-is-blind-eval/prompt-repair",
+          "pick3-is-blind-eval/stability-mode",
+          "pick3-is-blind-eval/statistical-honesty",
+          "pick3-is-blind-eval/trend-display"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

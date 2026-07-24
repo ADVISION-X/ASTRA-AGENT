@@ -3,9 +3,23 @@
   "ownerInspectorPath": "scripts/audit/domains/runtime-truth/inspector.ts",
   "executionGroup": "meta",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-RUNTIME-TRUTH-001-V1",
+        "clauseId": "apex-runtime-truth-001-requirement",
+        "checkIds": [
+          "runtime-truth/deep-research-completed-contract",
+          "runtime-truth/facebook-completed-contract",
+          "runtime-truth/source-missing"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/runtime-truth/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

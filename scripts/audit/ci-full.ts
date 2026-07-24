@@ -5,14 +5,14 @@ import { fileURLToPath } from "node:url";
 
 import { buildAuditArtifacts } from "./build-audit-artifacts.js";
 import { acceptanceSteps, codexEntryGateStep, plannedSteps, type CommandStep, typecheckStep } from "./ci-full-phase-plan.js";
-import { writeCiFullSummary, type CiFullFirstFailure, type CiFullLawCoverage, type CiFullMetaQuality, type StepResult } from "./ci-full-summary.js";
-import { runGeneratedPlanFiltered } from "./core/run-generated-plan.js";
+import { writeCiFullSummary, type CiFullFirstFailure, type CiFullLawCoverage, type CiFullOwnerReport, type StepResult } from "./ci-full-summary.js";
+import { runGeneratedPlan } from "./core/run-generated-plan.js";
 import { repoRoot, resolveFromRepo } from "./shared/paths.js";
 
 export { ciFullSummaryPath, writeCiFullSummary } from "./ci-full-summary.js";
-export type { CiFullFirstFailure, CiFullLawCoverage, CiFullMetaQuality, CiFullSkippedStep, StepResult } from "./ci-full-summary.js";
+export type { CiFullFirstFailure, CiFullLawCoverage, CiFullOwnerReport, CiFullSkippedStep, StepResult } from "./ci-full-summary.js";
 
-type PlanRunResult = Awaited<ReturnType<typeof runGeneratedPlanFiltered>>;
+type PlanRunResult = Awaited<ReturnType<typeof runGeneratedPlan>>;
 
 type GeneratedReportJson = {
   findings?: Array<{
@@ -26,6 +26,9 @@ type GeneratedReportFinding = NonNullable<GeneratedReportJson["findings"]>[numbe
 
 type LawRegistryJson = {
   laws: Array<{
+    clauses: Array<{
+      clauseId: string;
+    }>;
     filePath: string;
     lawId: string;
     status: string;
@@ -34,21 +37,19 @@ type LawRegistryJson = {
 
 type AuditPlanJson = {
   entries: Array<{
-    lawIds: string[];
+    bindings: Array<{
+      clauseId: string;
+      lawId: string;
+    }>;
   }>;
 };
 
 const defaultLawCoverage = (): CiFullLawCoverage => ({
   activeLawCount: 0,
+  activeClauseCount: 0,
+  boundClauseCount: 0,
   checked: false,
-  plannedLawCount: 0,
-  uncoveredLawIds: [],
-});
-
-const defaultMetaQuality = (): CiFullMetaQuality => ({
-  checked: false,
-  findingCount: null,
-  reportPath: null,
+  uncoveredClauseIds: [],
 });
 
 const readGeneratedJson = <T>(repoPath: string): T =>
@@ -154,25 +155,37 @@ const runAuditBuildStep = (): StepResult => {
 };
 
 const readLawCoverage = (): {
-  firstUncovered: { filePath: string; lawId: string } | null;
+  firstUncovered: { filePath: string; lawId: string; clauseId: string } | null;
   summary: CiFullLawCoverage;
 } => {
   const registry = readGeneratedJson<LawRegistryJson>("scripts/audit/generated/law-registry.generated.json");
   const auditPlan = readGeneratedJson<AuditPlanJson>("scripts/audit/generated/audit-plan.generated.json");
   const activeLaws = registry.laws.filter((law) => law.status === "active");
-  const plannedLawIds = new Set(auditPlan.entries.flatMap((entry) => entry.lawIds));
-  const uncovered = activeLaws.filter((law) => !plannedLawIds.has(law.lawId));
+  const activeClauses = activeLaws.flatMap((law) =>
+    law.clauses.map((clause) => ({
+      lawId: law.lawId,
+      clauseId: clause.clauseId,
+      filePath: law.filePath,
+    })));
+  const boundClauseKeys = new Set(
+    auditPlan.entries.flatMap((entry) =>
+      entry.bindings.map((binding) => `${binding.lawId}::${binding.clauseId}`)),
+  );
+  const uncovered = activeClauses.filter((clause) =>
+    !boundClauseKeys.has(`${clause.lawId}::${clause.clauseId}`));
   return {
     summary: {
       activeLawCount: activeLaws.length,
+      activeClauseCount: activeClauses.length,
+      boundClauseCount: activeClauses.length - uncovered.length,
       checked: true,
-      plannedLawCount: plannedLawIds.size,
-      uncoveredLawIds: uncovered.map((law) => law.lawId),
+      uncoveredClauseIds: uncovered.map((clause) => `${clause.lawId}/${clause.clauseId}`),
     },
     firstUncovered: uncovered[0]
       ? {
           filePath: uncovered[0].filePath,
           lawId: uncovered[0].lawId,
+          clauseId: uncovered[0].clauseId,
         }
       : null,
   };
@@ -198,7 +211,7 @@ const runAcceptancePhaseOrFail = async (completedSteps: StepResult[], failFast: 
   for (const [index, acceptanceStep] of acceptanceSteps.entries()) {
     const step = await runCommand("acceptance-runner", acceptanceStep);
     if (step.status === "FAIL") {
-      failFast(6 + index, buildCommandFailure("acceptance-runner", acceptanceStep, step));
+      failFast(5 + index, buildCommandFailure("acceptance-runner", acceptanceStep, step));
     }
     completedSteps.push(step);
   }
@@ -213,11 +226,11 @@ const runActiveLawCoverageStep = (): {
   const coverage = readLawCoverage();
   const step = createStepResult({
     command: "internal:verifyActiveLawFullCoverage()",
-    error: coverage.summary.uncoveredLawIds.length > 0 ? "Active laws are missing from the generated audit plan." : undefined,
+    error: coverage.summary.uncoveredClauseIds.length > 0 ? "Active clauses are missing from the generated audit plan." : undefined,
     name: "active-law-full-coverage",
     phase: "active-law-full-coverage",
     startedAtMs,
-    status: coverage.summary.uncoveredLawIds.length > 0 ? "FAIL" : "PASS",
+    status: coverage.summary.uncoveredClauseIds.length > 0 ? "FAIL" : "PASS",
   });
   if (coverage.firstUncovered === null) {
     return {
@@ -234,8 +247,8 @@ const runActiveLawCoverageStep = (): {
       command: step.command,
       lawId: coverage.firstUncovered.lawId,
       filePath: coverage.firstUncovered.filePath,
-      message: `Active law ${coverage.firstUncovered.lawId} is missing from the generated audit plan.`,
-      minimalFixHint: "Regenerate audit artifacts and connect the missing active law to an owner manifest before rerunning ci:full.",
+      message: `Active clause ${coverage.firstUncovered.lawId}/${coverage.firstUncovered.clauseId} is missing from the generated audit plan.`,
+      minimalFixHint: "Bind the missing active clause explicitly in its owner manifest, regenerate audit artifacts, and rerun ci:full.",
     }),
   };
 };
@@ -276,67 +289,36 @@ const buildPlanFailure = (input: {
   });
 };
 
-const runMetaQualityStep = async (): Promise<{
+const runAuditPlanStep = async (): Promise<{
   failure: CiFullFirstFailure | null;
-  metaQuality: CiFullMetaQuality;
+  ownerReports: CiFullOwnerReport[];
   step: StepResult;
 }> => {
   const startedAtMs = Date.now();
-  const planRun = await runGeneratedPlanFiltered({
-    capabilityDomains: ["audit-truth"],
-  });
-  const report = planRun.domainReports[0];
+  const planRun = await runGeneratedPlan();
   const step = createStepResult({
-    command: 'internal:runGeneratedPlanFiltered({ capabilityDomains: ["audit-truth"] })',
-    error: planRun.hasFailures ? "Meta-quality reported findings." : undefined,
-    name: "meta-quality",
-    phase: "meta-quality",
+    command: "internal:runGeneratedPlan()",
+    error: planRun.hasFailures ? "One or more generated-plan owners reported findings." : undefined,
+    name: "generated-plan-runner",
+    phase: "generated-plan-runner",
     startedAtMs,
     status: planRun.hasFailures ? "FAIL" : "PASS",
   });
   return {
     step,
-    metaQuality: {
-      checked: true,
-      findingCount: report?.findingCount ?? 0,
-      reportPath: report?.reportPath ?? null,
-    },
-    failure: planRun.hasFailures
-      ? buildPlanFailure({
-          phase: step.phase,
-          command: step.command,
-          defaultFilePath: report?.reportPath ?? null,
-          defaultLawId: null,
-          defaultMessage: "Meta-quality reported findings.",
-          defaultMinimalFixHint: "Repair the first audit-truth finding and rerun npm run ci:full.",
-          planRun,
-        })
-      : null,
-  };
-};
-
-const runDomainAuditStep = async (): Promise<{ failure: CiFullFirstFailure | null; step: StepResult }> => {
-  const startedAtMs = Date.now();
-  const planRun = await runGeneratedPlanFiltered({
-    excludeCapabilityDomains: ["audit-truth"],
-  });
-  const step = createStepResult({
-    command: 'internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: ["audit-truth"] })',
-    error: planRun.hasFailures ? "One or more non-meta audit domains reported findings." : undefined,
-    name: "domain-audit-runner",
-    phase: "domain-audit-runner",
-    startedAtMs,
-    status: planRun.hasFailures ? "FAIL" : "PASS",
-  });
-  return {
-    step,
+    ownerReports: planRun.domainReports.map((report) => ({
+      capabilityDomain: report.capabilityDomain,
+      findingCount: report.findingCount,
+      reportPath: report.reportPath,
+      status: report.status,
+    })),
     failure: planRun.hasFailures
       ? buildPlanFailure({
           phase: step.phase,
           command: step.command,
           defaultFilePath: null,
           defaultLawId: null,
-          defaultMessage: "One or more non-meta audit domains reported findings.",
+          defaultMessage: "One or more generated-plan owners reported findings.",
           defaultMinimalFixHint: "Repair the first failing domain report finding and rerun npm run ci:full.",
           planRun,
         })
@@ -353,23 +335,45 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
     "scripts/audit/generated/static-clause-coverage.generated.json",
   ] as const;
   const missingArtifact = requiredGeneratedFiles.find((repoPath) => !fileHasContent(repoPath));
+  const coverageError = missingArtifact ? null : (() => {
+    const artifact = JSON.parse(readFileSync(resolveFromRepo(
+      "scripts/audit/generated/static-clause-coverage.generated.json",
+    ), "utf8")) as {
+      summary?: {
+        activeClauseCount?: number;
+        boundClauseCount?: number;
+        executedClauseCount?: number;
+        uncoveredClauseIds?: string[];
+        coveragePercent?: number;
+      };
+    };
+    const summary = artifact.summary;
+    return summary
+      && summary.activeClauseCount === summary.boundClauseCount
+      && summary.activeClauseCount === summary.executedClauseCount
+      && summary.uncoveredClauseIds?.length === 0
+      && summary.coveragePercent === 100
+      ? null
+      : "static-clause-coverage.generated.json does not prove 100% bound and executed clause coverage.";
+  })();
+  const artifactError = missingArtifact ? `${missingArtifact} is missing or empty.` : coverageError;
   const step = createStepResult({
     command: "internal:verifyGeneratedArtifactTruth()",
-    error: missingArtifact ? `${missingArtifact} is missing or empty.` : undefined,
+    error: artifactError ?? undefined,
     name: "generated-artifact-truth",
     phase: "generated-artifact-truth",
     startedAtMs,
-    status: missingArtifact ? "FAIL" : "PASS",
+    status: artifactError ? "FAIL" : "PASS",
   });
   return {
     step,
-    failure: missingArtifact
+    failure: artifactError
       ? createFirstFailure({
           phase: step.phase,
           command: step.command,
           lawId: null,
-          filePath: missingArtifact,
-          message: `${missingArtifact} is missing or empty after ci:full execution.`,
+          filePath: missingArtifact ?? "scripts/audit/generated/static-clause-coverage.generated.json",
+          message: artifactError,
           minimalFixHint: "Repair generated artifact emission so ci:full rebuilds the generated truth set before declaring PASS.",
         })
       : null,
@@ -379,7 +383,7 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
 const createFailFast = (
   completedSteps: StepResult[],
   getLawCoverage: () => CiFullLawCoverage,
-  getMetaQuality: () => CiFullMetaQuality,
+  getOwnerReports: () => readonly CiFullOwnerReport[],
 ): FailFast => (failingStepIndex, failure) => {
   writeCiFullSummary({
     status: "FAIL",
@@ -391,7 +395,7 @@ const createFailFast = (
       phase,
     })),
     lawCoverage: getLawCoverage(),
-    metaQuality: getMetaQuality(),
+    ownerReports: getOwnerReports(),
     finalDecision: "FAIL",
   });
   throw new Error("ci:full failed");
@@ -424,24 +428,16 @@ const runLawCoverageOrFail = (
   return lawCoverageStep.lawCoverage;
 };
 
-const runMetaQualityOrFail = async (
+const runAuditPlanOrFail = async (
   completedSteps: StepResult[],
   failFast: FailFast,
-): Promise<CiFullMetaQuality> => {
-  const metaQualityStep = await runMetaQualityStep();
-  if (metaQualityStep.failure) {
-    failFast(3, metaQualityStep.failure);
+): Promise<CiFullOwnerReport[]> => {
+  const auditPlanStep = await runAuditPlanStep();
+  if (auditPlanStep.failure) {
+    failFast(3, auditPlanStep.failure);
   }
-  completedSteps.push(metaQualityStep.step);
-  return metaQualityStep.metaQuality;
-};
-
-const runDomainAuditOrFail = async (completedSteps: StepResult[], failFast: FailFast): Promise<void> => {
-  const domainAuditStep = await runDomainAuditStep();
-  if (domainAuditStep.failure) {
-    failFast(5, domainAuditStep.failure);
-  }
-  completedSteps.push(domainAuditStep.step);
+  completedSteps.push(auditPlanStep.step);
+  return auditPlanStep.ownerReports;
 };
 
 const runGeneratedArtifactTruthOrFail = (completedSteps: StepResult[], failFast: FailFast): void => {
@@ -455,16 +451,15 @@ const runGeneratedArtifactTruthOrFail = (completedSteps: StepResult[], failFast:
 const main = async (): Promise<void> => {
   const completedSteps: StepResult[] = [];
   let lawCoverage = defaultLawCoverage();
-  let metaQuality = defaultMetaQuality();
-  const failFast = createFailFast(completedSteps, () => lawCoverage, () => metaQuality);
+  let ownerReports: CiFullOwnerReport[] = [];
+  const failFast = createFailFast(completedSteps, () => lawCoverage, () => ownerReports);
 
   await runCommandStepOrFail("codex-entry-gate", 0, codexEntryGateStep, completedSteps, failFast);
   runBuildAuditArtifactsOrFail(completedSteps, failFast);
   lawCoverage = runLawCoverageOrFail(completedSteps, failFast);
-  metaQuality = await runMetaQualityOrFail(completedSteps, failFast);
+  ownerReports = await runAuditPlanOrFail(completedSteps, failFast);
 
   await runCommandStepOrFail("typecheck", 4, typecheckStep, completedSteps, failFast);
-  await runDomainAuditOrFail(completedSteps, failFast);
   await runAcceptancePhaseOrFail(completedSteps, failFast);
   runGeneratedArtifactTruthOrFail(completedSteps, failFast);
 
@@ -474,7 +469,7 @@ const main = async (): Promise<void> => {
     completedSteps,
     skippedAfterFailure: [],
     lawCoverage,
-    metaQuality,
+    ownerReports,
     finalDecision: "PASS",
   });
 

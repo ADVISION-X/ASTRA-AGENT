@@ -88,6 +88,14 @@ No new DOM child ability may be added until this law and its construction bluepr
     "Business success decision inside DOM Automation.",
     "DOM code importing src/plugins.",
     "DOM code calling AI to plan browser actions."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-001-requirement",
+      "statement": "DOM Automation must remain business-neutral and must not contain platform-specific workflow logic.",
+      "evidenceMode": "static",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -127,6 +135,14 @@ Forbidden:
     "Consumer importing DOM private contract internals.",
     "Mediator importing any DOM runtime file.",
     "App shell importing any DOM runtime file."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-002-requirement",
+      "statement": "Public consumers may import DOM Automation only through its public facade.",
+      "evidenceMode": "static",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -162,6 +178,14 @@ Forbidden:
     "Locator ambiguous thrown as normal control flow.",
     "Fill/click/upload/verify returning success after unverified uncertainty.",
     "Catch-and-swallow inside DOM runtime."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-003-requirement",
+      "statement": "Expected DOM uncertainty must return structured statuses instead of escaping as ordinary exceptions.",
+      "evidenceMode": "static",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -200,6 +224,14 @@ Forbidden:
     "Snapshot returning password values.",
     "Snapshot returning full file input values.",
     "Snapshot returning unbounded page text."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-004-requirement",
+      "statement": "DOM snapshots must be privacy-safe structural summaries, not raw page dumps.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -271,6 +303,14 @@ Forbidden:
     "Ambiguous candidates returned as success.",
     "Frame hint ignored when frame support is requested.",
     "Business-specific selector hardcoding in DOM core."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-005-requirement",
+      "statement": "DOM location must use semantic signals and revalidation, not selector-only guesswork.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -336,6 +376,14 @@ Forbidden:
     "Ignoring frameRef during fill/click/upload.",
     "Pretending cross-origin frame contents were inspected.",
     "Shadow DOM action without host-level revalidation."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-006-requirement",
+      "statement": "Frame and shadow DOM handling must be explicit and must not pretend unsupported scopes are supported.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -374,6 +422,14 @@ Forbidden:
     "Filling hidden or disabled elements.",
     "Success without value verification.",
     "Fill without before and after evidence."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-007-requirement",
+      "statement": "DOM fill may write only caller-approved text into a revalidated writable element.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -407,6 +463,14 @@ Required:
     "Sensitive irreversible click without review_required.",
     "Click success without after evidence.",
     "Expected text mismatch treated as success."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-008-requirement",
+      "statement": "DOM click must be located-element-first and must block sensitive irreversible actions.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -446,6 +510,14 @@ Forbidden:
     "Reading file content into AI or DOM snapshot.",
     "Upload success without before and after evidence.",
     "Business plugin directly using browser file-input private implementation."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-009-requirement",
+      "statement": "DOM upload may attach only a task-approved local file to a located file input.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -481,6 +553,14 @@ Required:
     "Login or captcha state downgraded to not_found.",
     "Verification evidence ref that cannot be traced to an observed snapshot or action.",
     "Business success terms hardcoded in DOM core."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-010-requirement",
+      "statement": "DOM wait and verify must report observed page state, not business completion fiction.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -515,6 +595,14 @@ Required:
     "Forged screenshot or snapshot evidence.",
     "Stale evidence reused as fresh proof.",
     "Sensitive data logged from DOM snapshots or actions."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-011-requirement",
+      "statement": "DOM action evidence must be truthful while storage and logging ownership stay outside DOM Automation.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -555,6 +643,14 @@ Forbidden:
     "Coordinate-first page action owner resurrection.",
     "Open/screenshot/upload standalone workflow owner resurrection.",
     "Muscle-memory or platform registry as DOM workflow truth."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-012-requirement",
+      "statement": "DOM Automation replaces retired standalone text input, mouse click, open, screenshot, and upload action owners for DOM page work.",
+      "evidenceMode": "static",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -594,6 +690,14 @@ Forbidden:
     "Scroll success without post-scroll visibility recheck.",
     "Scrolling to an element that was not previously located.",
     "Business plugin calling browser scroll primitive directly."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-014-requirement",
+      "statement": "DOM scroll must bring a located element into viewport before any action and must not loop infinitely.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -635,6 +739,14 @@ Forbidden:
     "Using fill to set a native select element's value directly.",
     "Custom dropdown interaction without detecting its open/close state.",
     "Multi-select without explicit caller approval of each selected value."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-015-requirement",
+      "statement": "DOM option selection must handle native select and common custom dropdown patterns, verify the selection was applied, and return structured results.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -678,6 +790,14 @@ Forbidden:
     "Dismissing overlays whose purpose cannot be determined from detectedState.",
     "Clicking Escape as a universal dismiss without verifying overlay type.",
     "Claiming dismiss success when the overlay is still present in the DOM."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-016-requirement",
+      "statement": "DOM overlay dismissal may only remove safe non-blocking consent or informational overlays and must return review_required for all ambiguous or sensitive dialogs.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```
@@ -751,6 +871,14 @@ DOM Automation must not claim web compatibility readiness unless it can demonstr
     "Warning-only P0 DOM findings.",
     "Acceptance smoke that uses fake success instead of real DOM actions.",
     "Generated audit artifacts hand-edited to include DOM pass."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-013-requirement",
+      "statement": "DOM Automation must have runner-visible enforcement before production readiness can be claimed.",
+      "evidenceMode": "static",
+      "ownerDomain": "dom-automation"
+    }
   ]
 }
 ```

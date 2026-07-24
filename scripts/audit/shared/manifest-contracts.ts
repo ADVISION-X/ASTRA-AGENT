@@ -11,6 +11,36 @@ export const blueprintRefSchema = z
   })
   .strict();
 
+export const sourceEvidenceSchema = z
+  .object({
+    filePath: z.string().min(1),
+    symbolName: z.string().min(1),
+  })
+  .strict();
+
+export const clauseBindingBaseSchema = z
+  .object({
+    lawId: lawIdSchema,
+    clauseId: z.string().min(1).refine((value) => value !== "primary", "Clause binding cannot use primary."),
+    checkIds: z.array(z.string().min(1)).min(1),
+    sourceEvidence: z.array(sourceEvidenceSchema).min(1),
+  })
+  .strict();
+
+export const clauseBindingSchema = clauseBindingBaseSchema.superRefine((binding, context) => {
+    const checkIds = new Set<string>();
+    for (const [index, checkId] of binding.checkIds.entries()) {
+      if (checkIds.has(checkId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate checkId ${checkId}.`,
+          path: ["checkIds", index],
+        });
+      }
+      checkIds.add(checkId);
+    }
+});
+
 export const auditManifestSchema = z
   .object({
     capabilityDomain: z.string().min(1),
@@ -18,11 +48,10 @@ export const auditManifestSchema = z
     executionGroup: executionGroupSchema,
     coverage: z
       .object({
-        mode: z.literal("domain-wide"),
-        clauseIds: z.array(z.string().min(1)).min(1),
+        mode: z.literal("explicit"),
+        bindings: z.array(clauseBindingSchema).min(1),
       })
       .strict(),
-    lawIdRefs: z.array(lawIdSchema).min(1).optional(),
     blueprintRefs: z.array(blueprintRefSchema).optional(),
     description: z.string().min(1).optional(),
   })

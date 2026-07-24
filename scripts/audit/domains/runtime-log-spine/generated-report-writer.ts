@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
+import { clauseIdForLaw } from "../../shared/finding-utils.js";
 import { generatedDir } from "../../shared/paths.js";
 import { escapeMarkdownCell } from "../../shared/no-regex.js";
 import {
@@ -45,7 +46,7 @@ type RuntimeLogSpineReport = {
 export const toInspectorFinding = (finding: RuntimeLogSpineFinding): InspectorFinding => ({
   checkId: finding.checkId,
   lawId: finding.lawId,
-  clauseId: "primary",
+  clauseId: clauseIdForLaw(finding.lawId),
   message: finding.message,
   line: finding.line,
   severity: finding.severity,

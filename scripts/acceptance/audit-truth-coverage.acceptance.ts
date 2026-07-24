@@ -5,6 +5,8 @@ import path from "node:path";
 import { Project } from "ts-morph";
 
 import { inspectDomain } from "../audit/domains/audit-truth/inspector.js";
+import { validateInspectorOutput } from "../audit/core/run-generated-plan.js";
+import { auditManifestSchema } from "../audit/shared/manifest-contracts.js";
 import type { InspectorContext, InspectorFinding } from "../audit/shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../audit/shared/paths.js";
 
@@ -14,6 +16,15 @@ const LAW_IDS = [
   "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
   "APEX-AUDIT-TRUTH-002-V1",
 ];
+
+const createBindings = (lawIds: readonly string[], ownerInspectorPath: string) =>
+  lawIds.map((lawId) => ({
+    lawId,
+    clauseId: `${lawId.toLowerCase()}-fixture-requirement`,
+    evidenceMode: "static" as const,
+    checkIds: ["fixture/check"],
+    sourceEvidence: [{ filePath: ownerInspectorPath, symbolName: "inspectDomain" }],
+  }));
 
 const createRuntimeProject = (caseName: string, files: Record<string, string>): { project: Project; runtimeRepoPath: string } => {
   const runtimeDir = path.join(RUNTIME_ROOT, caseName);
@@ -54,8 +65,7 @@ const createContext = (
   generatedPlan,
   planEntry: {
     capabilityDomain: "audit-truth",
-    clauseIds: ["primary"],
-    evidenceModes: ["ast+project"],
+    bindings: createBindings(LAW_IDS, "scripts/audit/domains/audit-truth/inspector.ts"),
     executionGroup: "meta",
     lawIds: LAW_IDS,
     manifestPath: "scripts/audit/domains/audit-truth/manifest.json",
@@ -74,6 +84,10 @@ const hasFinding = (
   );
 
 const projectUsageCase = createRuntimeProject("project-usage", {
+  "scripts/audit/ci-full.ts": `
+import { runGeneratedPlanFiltered } from "./core/run-generated-plan.js";
+export const runCi = () => runGeneratedPlanFiltered({ capabilityDomains: ["audit-truth"] });
+`,
   "scripts/audit/domains/alpha/inspector.ts": `
 export const inspectDomain = async (_context: unknown) => ({
   capabilityDomain: "alpha",
@@ -112,6 +126,43 @@ export const hasAlphaText = (sourceFile: { getFullText(): string }) => {
   return fullText.includes("alpha");
 };
 `,
+  "scripts/audit/domains/raw-file/inspector.ts": `
+import { readFileSync } from "node:fs";
+
+export const inspectDomain = async (context: { project: { getSourceFiles(): unknown[] } }) => {
+  void context.project.getSourceFiles().length;
+  const sourceText = readFileSync("src/example.ts", "utf8");
+  const hasToken = sourceText.includes("forbiddenToken");
+  return {
+    capabilityDomain: "raw-file",
+    reportedLawIds: ["APEX-AUDIT-TRUTH-001-V1"],
+    findings: hasToken ? [] : [],
+    inspectedFiles: [],
+  };
+};
+`,
+  "scripts/audit/shared/raw-file-helper.ts": `
+import { readFileSync } from "node:fs";
+
+export const readRepoText = (repoPath: string): string => readFileSync(repoPath, "utf8");
+export const requireTokens = (text: string, tokens: readonly string[]): boolean =>
+  tokens.every((token) => text.includes(token));
+`,
+  "scripts/audit/domains/helper-laundering/inspector.ts": `
+import { readRepoText, requireTokens } from "../../shared/raw-file-helper.js";
+
+export const inspectDomain = async (context: { project: { getSourceFiles(): unknown[] } }) => {
+  void context.project.getSourceFiles().length;
+  const sourceBundle = { runtimeText: readRepoText("src/runtime.ts") };
+  const passed = requireTokens(sourceBundle.runtimeText, ["runRuntime"]);
+  return {
+    capabilityDomain: "helper-laundering",
+    reportedLawIds: ["APEX-AUDIT-TRUTH-001-V1"],
+    findings: passed ? [] : [],
+    inspectedFiles: [],
+  };
+};
+`,
   "scripts/audit/domains/audit-truth/meta-quality-regexp.ts": `
 const ConstructorAlias = RegExp;
 const pattern = new ConstructorAlias("alpha");
@@ -144,8 +195,7 @@ const projectUsageOutput = await inspectDomain(
     {
       blueprintRefs: [],
       capabilityDomain: "alpha",
-      clauseIds: ["primary"],
-      evidenceModes: ["ast+project"],
+      bindings: createBindings(LAW_IDS, `${projectUsageCase.runtimeRepoPath}/scripts/audit/domains/alpha/inspector.ts`),
       executionGroup: "meta",
       lawIds: LAW_IDS,
       manifestPath: `${projectUsageCase.runtimeRepoPath}/scripts/audit/domains/alpha/manifest.json`,
@@ -191,6 +241,22 @@ assert.equal(
   }),
   true,
   "audit-truth should fail tracked source-text judgment in shared audit helpers.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/source-text-judgment",
+    fileIncludes: "/scripts/audit/domains/raw-file/inspector.ts",
+  }),
+  true,
+  "audit-truth should fail readFileSync source-text judgment in owner inspectors.",
+);
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/source-text-judgment",
+    fileIncludes: "/scripts/audit/domains/helper-laundering/inspector.ts",
+  }),
+  true,
+  "audit-truth should fail source text laundered through a helper and object property.",
 );
 assert.equal(
   hasFinding(projectUsageOutput.findings, {
@@ -244,8 +310,7 @@ const orphanPlanOutput = await inspectDomain(
     {
       blueprintRefs: [],
       capabilityDomain: "gamma",
-      clauseIds: ["primary"],
-      evidenceModes: ["ast+project"],
+      bindings: createBindings(LAW_IDS, `${orphanPlanCase.runtimeRepoPath}/scripts/audit/domains/gamma/inspector.ts`),
       executionGroup: "meta",
       lawIds: LAW_IDS,
       manifestPath: `${orphanPlanCase.runtimeRepoPath}/scripts/audit/domains/gamma/manifest.json`,
@@ -254,8 +319,7 @@ const orphanPlanOutput = await inspectDomain(
     {
       blueprintRefs: [],
       capabilityDomain: "ghost",
-      clauseIds: ["primary"],
-      evidenceModes: ["ast+project"],
+      bindings: createBindings(LAW_IDS, `${orphanPlanCase.runtimeRepoPath}/scripts/audit/domains/ghost/inspector.ts`),
       executionGroup: "meta",
       lawIds: LAW_IDS,
       manifestPath: `${orphanPlanCase.runtimeRepoPath}/scripts/audit/domains/ghost/manifest.json`,
@@ -271,6 +335,45 @@ assert.equal(
   }),
   true,
   "audit-truth should fail orphan generated-plan owner inspector entries.",
+);
+
+assert.equal(
+  hasFinding(projectUsageOutput.findings, {
+    checkId: "audit-truth/ci-owner-special-case",
+    fileIncludes: "/scripts/audit/ci-full.ts",
+  }),
+  true,
+  "audit-truth should fail CI orchestration that hardcodes a filtered owner run.",
+);
+
+assert.equal(
+  auditManifestSchema.safeParse({
+    capabilityDomain: "legacy",
+    ownerInspectorPath: "scripts/audit/domains/legacy/inspector.ts",
+    executionGroup: "domain",
+    coverage: {
+      mode: "domain-wide",
+      clauseIds: ["primary"],
+    },
+  }).success,
+  false,
+  "manifest contract must reject domain-wide primary placeholder coverage.",
+);
+
+const missingReceiptPlan = createContext(projectUsageCase.project, []).planEntry;
+const missingReceiptOutput = validateInspectorOutput(missingReceiptPlan, {
+  capabilityDomain: missingReceiptPlan.capabilityDomain,
+  reportedLawIds: missingReceiptPlan.lawIds,
+  executedChecks: [],
+  findings: [],
+  inspectedFiles: [missingReceiptPlan.ownerInspectorPath],
+});
+assert.equal(
+  missingReceiptOutput.findings.some((finding) =>
+    finding.checkId === "runner/inspector-error"
+    && finding.message.includes("omitted executed check")),
+  true,
+  "runner must fail an empty-finding inspector that omits a planned executed-check receipt.",
 );
 
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });

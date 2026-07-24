@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:25.774Z",
+  "generatedAt": "2026-07-24T00:55:37.570Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -16,6 +16,558 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "clauseId": "apex-audit-001-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "clauseId": "apex-audit-002-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "clauseId": "apex-audit-003-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "clauseId": "apex-audit-004-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "clauseId": "apex-audit-005-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "clauseId": "apex-audit-007-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "clauseId": "apex-audit-008-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "clauseId": "apex-audit-009-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/blueprint-anchor"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/ci-full-entry-gate"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/code-purity-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/duplicate-domain-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/duplicate-inspector-plan"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/generated-artifact"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/runner-law-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/runner-order-truth"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/runner-source"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/stale-code-purity-text-report"
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "clauseId": "apex-audit-010-requirement",
+      "checkId": "audit-system/static-clause-coverage"
+    }
+  ],
   "inspectedFiles": [
     ".audit-code-purity.txt",
     "docs/法案辅助文件/GrassEye 执法系统施工图.md",

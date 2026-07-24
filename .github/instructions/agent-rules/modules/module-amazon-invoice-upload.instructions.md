@@ -59,6 +59,14 @@ Download completion is not upload completion. Website status return is not task 
     "Seller Central tax invoice download flow order in src/app/**.",
     "Seller Central tax invoice download flow order in src/lib/local-runtime/**.",
     "Second Amazon invoice HTTP server, route bus, mission loop, browser controller, evidence chain, or runtime log chain."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "statement": "Amazon tax invoice CSV download and approved invoice upload must live under the single amazon-invoice-upload plugin owner; no second skill, plugin, route bus, HTTP server, browser controller, evidence chain, or runtime log chain may be created.",
+      "evidenceMode": "static",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -84,6 +92,14 @@ Download completion is not upload completion. Website status return is not task 
     "Unverified button text.",
     "Unverified download completion logic.",
     "DOM automation step without evidenceStepId."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "statement": "Every Seller Central tax invoice download automation step must cite an Evidence Map stepId from the canonical blueprint.",
+      "evidenceMode": "static",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -107,6 +123,14 @@ Download completion is not upload completion. Website status return is not task 
     "Seller Central report name or date range business order inside DOM Automation.",
     "DOM Automation choosing Amazon tax invoice workflow next step.",
     "API Boundary or App Shell owning Seller Central DOM sequence."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "statement": "DOM Automation may provide only neutral snapshot, locate, click, upload, wait, and verify primitives; Seller Central report semantics and step order must stay inside amazon-invoice-upload.",
+      "evidenceMode": "static",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -129,6 +153,14 @@ Download completion is not upload completion. Website status return is not task 
     "Treating CSV report as invoice PDF.",
     "Marking download completion as upload completion.",
     "Uploading a downloaded CSV to the invoice upload dialog."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "statement": "Tax invoice CSV download is the pre-stage of the upload chain and must persist a safe artifact ref; upload may consume only caller-approved PDF or already approved artifacts, never the CSV as invoice PDF.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -154,6 +186,14 @@ Download completion is not upload completion. Website status return is not task 
     "External download route without requiresApiKey true.",
     "External download route without jobOwner amazon-invoice-upload.",
     "External input selector, actionPlan, browserCommand, flowStep, abilityGroupId, cookie, sellerCentralCookie, or browserProfileDirectory."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "statement": "External websites may request known Amazon invoice tasks only through explicit API Boundary rules and must not pass browser commands, selectors, flow steps, cookies, or browser profiles.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -179,6 +219,14 @@ Download completion is not upload completion. Website status return is not task 
     "Upload surface removed.",
     "UI input for selector, flowStep, actionPlan, browserCommand, documentId, cookie, or browserProfileDirectory.",
     "UI implementing Seller Central download sequence."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "statement": "Amazon invoice App Shell workspace must expose Download, Upload, Latest, and Evidence surfaces while keeping UI out of Seller Central flow logic.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -205,6 +253,14 @@ Download completion is not upload completion. Website status return is not task 
     "External artifact endpoint reads arbitrary local path.",
     "External artifact response returns local absolute path.",
     "External artifact response returns raw CSV content."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "statement": "Download artifact responses may expose only safe metadata and artifact refs; raw CSV content, full local paths, cookies, and Amazon download documentId must not be logged or returned.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -230,6 +286,14 @@ Download completion is not upload completion. Website status return is not task 
     "Amazon invoice production readiness without acceptance:amazon-invoice-upload-download.",
     "Warning-only or partial PASS for P0 findings.",
     "Manual generated artifact truth."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "statement": "Amazon invoice unified chain changes must be covered by an amazon-invoice-upload audit domain, scoped acceptance, and ci:full.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -268,6 +332,14 @@ Download completion is not upload completion. Website status return is not task 
     "Ledger route outside /api/plugins/amazon-invoice-upload/ledger.",
     "Upload start/status/resume/latest route response leaking local invoicePdfPath.",
     "Ledger response leaking invoicePdfPath or raw PDF/local file paths."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "statement": "Amazon invoice upload status truth for external websites must come from the Agent-side upload ledger written by the existing amazon-invoice-upload task record path, not from website inference or export actions.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -305,6 +377,14 @@ Download completion is not upload completion. Website status return is not task 
     "Opening a new Seller Central tab for every batch item when any retained tab is already on the same Seller Central host.",
     "Deciding Seller Central tab lifecycle from stale controller state without reading real Chrome state.",
     "Treating tab close failure as invoice upload failure after Amazon success or already-uploaded state is verified."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "statement": "Amazon invoice batch upload must reuse the active Seller Central order worker tab across items and must not make per-item tab close a success condition.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -340,6 +420,14 @@ Download completion is not upload completion. Website status return is not task 
     "Refresh loops that can continue indefinitely.",
     "Refreshing login, captcha, or 2FA gates into a fake upload attempt.",
     "Proceeding to upload before target order id and invoice action state are proven."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "statement": "Amazon invoice upload must not mechanically refresh every order detail page; it may execute only one recovery refresh after a bounded DOM readiness window proves the target order id and invoice action state are missing and auth gates are not present.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -382,6 +470,14 @@ Download completion is not upload completion. Website status return is not task 
     "Branching business logic from reason.includes(\"already uploaded\") instead of the formal already_uploaded status.",
     "Adding a second batch ledger, second batch route, or second upload service to support resume.",
     "Uploading all selected PDFs in one multipart request."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "statement": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success or already_uploaded for the same order id and invoice number.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -428,6 +524,14 @@ Download completion is not upload completion. Website status return is not task 
     "Inferring upload_success, already_uploaded, or review_required from website focus state.",
     "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
     "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "statement": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```
@@ -465,6 +569,14 @@ Download completion is not upload completion. Website status return is not task 
     "Running a separate APP-only or API-only amount checker that can disagree with the flow result.",
     "Uploading when PDF total or Seller Central DOM total is unreadable.",
     "Logging raw PDF text, full DOM HTML, cookies, browser storage, or local absolute invoicePdfPath as amount evidence."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "statement": "Before any approved invoice PDF is attached or submitted, Amazon invoice upload must compare the PDF gross payable amount with the live Seller Central order DOM total and skip the item on mismatch or unreadable evidence.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-invoice-upload"
+    }
   ]
 }
 ```

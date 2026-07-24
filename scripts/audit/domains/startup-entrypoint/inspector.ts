@@ -3,8 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
-import { containsAnyCaseInsensitive } from "../../shared/no-regex.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
 type Finding = ReturnType<typeof createFinding>;
@@ -62,7 +61,19 @@ const inspectSingleGate = (findings: Finding[], lawId: string): void => {
   }
 };
 
-const inspectForbiddenStartupSurface = (findings: Finding[], lawId: string, startupFiles: readonly string[]): void => {
+const sourceAstTokens = (sourceFile: SourceFile): string[] => [
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((node) => node.getName()),
+];
+
+const inspectForbiddenStartupSurface = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  startupFiles: readonly string[],
+): void => {
   const forbiddenMarkers = [
     "startup-registry-readiness",
     "registry_readiness",
@@ -80,8 +91,11 @@ const inspectForbiddenStartupSurface = (findings: Finding[], lawId: string, star
   ] as const;
 
   for (const filePath of startupFiles) {
-    const fileText = readRepoFile(filePath);
-    const matchedMarker = forbiddenMarkers.find((marker) => containsAnyCaseInsensitive(fileText, [marker]));
+    const sourceFile = getProjectSource(context, filePath);
+    if (!sourceFile) continue;
+    const tokens = sourceAstTokens(sourceFile).map((token) => token.toLocaleLowerCase());
+    const matchedMarker = forbiddenMarkers.find((marker) =>
+      tokens.some((token) => token.includes(marker.toLocaleLowerCase())));
     if (!matchedMarker) {
       continue;
     }
@@ -95,9 +109,9 @@ const inspectForbiddenStartupSurface = (findings: Finding[], lawId: string, star
   }
 };
 
-const inspectReadinessProbe = (findings: Finding[], lawId: string): void => {
-  const launchText = readRepoFile(launchPath);
-  if (!launchText.includes("/api/health")) {
+const inspectReadinessProbe = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const launchSource = getProjectSource(context, launchPath);
+  if (!launchSource || !hasApiHealthProbe(launchSource)) {
     pushFinding(findings, {
       lawId,
       checkId: "startup/health-probe",
@@ -105,7 +119,14 @@ const inspectReadinessProbe = (findings: Finding[], lawId: string): void => {
       message: "Startup must probe /api/health for readiness.",
     });
   }
-  if (launchText.includes("fetch(baseUrl)")) {
+  const probesRootHtml = launchSource?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    const firstArgument = callExpression.getArguments()[0];
+    return Node.isIdentifier(expression)
+      && expression.getText() === "fetch"
+      && Boolean(firstArgument && Node.isIdentifier(firstArgument) && firstArgument.getText() === "baseUrl");
+  }) ?? false;
+  if (probesRootHtml) {
     pushFinding(findings, {
       lawId,
       checkId: "startup/homepage-probe",
@@ -115,11 +136,13 @@ const inspectReadinessProbe = (findings: Finding[], lawId: string): void => {
   }
 };
 
-const inspectStructuredReport = (findings: Finding[], lawId: string): void => {
-  const terminalLogText = readRepoFile(logPath);
-  const helperText = readRepoFile(helperPath);
+const inspectStructuredReport = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const terminalLogSource = getProjectSource(context, logPath);
+  const helperSource = getProjectSource(context, helperPath);
+  const astTokens = [terminalLogSource, helperSource].flatMap((sourceFile) =>
+    sourceFile ? sourceAstTokens(sourceFile) : []);
   const requiredFields = ["phase", "component", "eventType", "status", "message", "refs", "durationMs", "failureReason"];
-  const missingFields = requiredFields.filter((field) => !terminalLogText.includes(field) && !helperText.includes(field));
+  const missingFields = requiredFields.filter((field) => !astTokens.includes(field));
   if (missingFields.length > 0) {
     pushFinding(findings, {
       lawId,
@@ -421,9 +444,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
 
   inspectAstProjectAccess(context, findings, boundaryLawId);
   inspectSingleGate(findings, singleGateLawId);
-  inspectForbiddenStartupSurface(findings, boundaryLawId, startupFiles);
-  inspectReadinessProbe(findings, readinessLawId);
-  inspectStructuredReport(findings, reportLawId);
+  inspectForbiddenStartupSurface(context, findings, boundaryLawId, startupFiles);
+  inspectReadinessProbe(context, findings, readinessLawId);
+  inspectStructuredReport(context, findings, reportLawId);
   inspectRealPortClear(context, findings, portClearLawId);
   inspectHotMountAst(context, findings, hotMountLawId);
   inspectColdStartHealthBudget(context, findings, coldStartBudgetLawId);
@@ -431,6 +454,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };

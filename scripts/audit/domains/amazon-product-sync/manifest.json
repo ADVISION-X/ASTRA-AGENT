@@ -3,16 +3,62 @@
   "ownerInspectorPath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary",
-      "inventory-filter-search",
-      "runtime-log-matrix"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
+        "clauseId": "grasseye-amazon-product-sync-001-requirement",
+        "checkIds": [
+          "amazon-product-sync/contract"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
+        "clauseId": "grasseye-amazon-product-sync-002-requirement",
+        "checkIds": [
+          "amazon-product-sync/contract"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
+        "clauseId": "grasseye-amazon-product-sync-003-requirement",
+        "checkIds": [
+          "amazon-product-sync/contract"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+        "clauseId": "runtime-log-spine-016-amazon-product-sync-log-matrix",
+        "checkIds": [
+          "amazon-product-sync/contract"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-product-sync/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
-  "lawIdRefs": [
-    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
-  ],
   "blueprintRefs": [
     {
       "filePath": "docs/法案辅助文件/GrassEye Amazon 产品更新同步施工图.md",

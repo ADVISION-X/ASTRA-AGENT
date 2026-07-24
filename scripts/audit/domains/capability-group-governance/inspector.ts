@@ -1,7 +1,7 @@
 import type { ImportDeclaration, Node as MorphNode, Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
@@ -312,6 +312,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...scan.inspectedFiles].sort(),
     reportJson: buildCapabilityGovernanceReportJson({

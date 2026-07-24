@@ -5,7 +5,7 @@ import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 import { generatedDir } from "../../shared/paths.js";
 import { escapeMarkdownCell } from "../../shared/no-regex.js";
 import type { FacebookMiningStageContract } from "./facebook-mining-stage-matrix.js";
-import type { FacebookLogCoverageFinding, FacebookLogCoverageSection } from "./constants.js";
+import { FacebookLogCoverageClause, type FacebookLogCoverageFinding, type FacebookLogCoverageSection } from "./constants.js";
 
 export type FacebookLogCoverageReport = {
   generatedAt: string;
@@ -48,7 +48,7 @@ export type FacebookLogCoverageReport = {
 export const toInspectorFinding = (finding: FacebookLogCoverageFinding): InspectorFinding => ({
   checkId: finding.checkId,
   lawId: finding.lawId,
-  clauseId: "primary",
+  clauseId: FacebookLogCoverageClause[finding.lawId],
   message: finding.message,
   line: finding.line,
   severity: finding.severity,

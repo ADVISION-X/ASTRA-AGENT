@@ -31,15 +31,17 @@ export type CiFullSkippedStep = {
 
 export type CiFullLawCoverage = {
   activeLawCount: number;
+  activeClauseCount: number;
+  boundClauseCount: number;
   checked: boolean;
-  plannedLawCount: number;
-  uncoveredLawIds: string[];
+  uncoveredClauseIds: string[];
 };
 
-export type CiFullMetaQuality = {
-  checked: boolean;
-  findingCount: number | null;
-  reportPath: string | null;
+export type CiFullOwnerReport = {
+  capabilityDomain: string;
+  findingCount: number;
+  reportPath: string;
+  status: "PASS" | "FAIL";
 };
 
 export const ciFullSummaryPath = resolve(generatedDir, "ci-full-summary.generated.json");
@@ -49,7 +51,7 @@ export const writeCiFullSummary = (summary: {
   finalDecision: "PASS" | "FAIL";
   firstFailure: CiFullFirstFailure | null;
   lawCoverage: CiFullLawCoverage;
-  metaQuality: CiFullMetaQuality;
+  ownerReports: readonly CiFullOwnerReport[];
   skippedAfterFailure: readonly CiFullSkippedStep[];
   status: "PASS" | "FAIL";
 }): void => {
@@ -65,7 +67,7 @@ export const writeCiFullSummary = (summary: {
         completedSteps: summary.completedSteps,
         skippedAfterFailure: summary.skippedAfterFailure,
         lawCoverage: summary.lawCoverage,
-        metaQuality: summary.metaQuality,
+        ownerReports: summary.ownerReports,
         finalDecision: summary.finalDecision,
       },
       null,

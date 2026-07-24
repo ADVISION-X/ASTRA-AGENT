@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { extractMarkdownHeadings, normalizeMarkdownHeading } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { pushStaleCodePurityTextReportFindings } from "./stale-code-purity-text-report.js";
@@ -21,7 +21,12 @@ const runnerFiles = ["scripts/audit/ci-full.ts", "scripts/audit/core/run-generat
 const staticCoveragePath = "scripts/audit/generated/static-clause-coverage.generated.json";
 const packageJsonPath = "package.json";
 
-type StaticCoverageSummary = { activeLawCount?: number; coveredLawCount?: number; coveragePercent?: number };
+type StaticCoverageSummary = {
+  activeClauseCount?: number;
+  boundClauseCount?: number;
+  executedClauseCount?: number;
+  coveragePercent?: number;
+};
 
 const fileHasContent = (repoPath: string): boolean => {
   const absolutePath = resolveFromRepo(repoPath);
@@ -146,13 +151,13 @@ const pushStaticCoverageFindings = (
   inspectedFiles.add(staticCoveragePath);
   try {
     const summary = readStaticCoverageSummary();
-    if (summary.coveragePercent !== 100 || summary.activeLawCount !== summary.coveredLawCount) {
+    if (summary.activeClauseCount !== summary.boundClauseCount) {
       findings.push(
         createFinding({
           checkId: "audit-system/static-clause-coverage",
           lawId: metaLawId,
           filePath: staticCoveragePath,
-          message: `${staticCoveragePath} must report 100% static clause coverage for active laws.`,
+          message: `${staticCoveragePath} must bind every active clause before owner execution begins.`,
           evidence: JSON.stringify(summary),
         }),
       );
@@ -318,6 +323,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };

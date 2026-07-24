@@ -7,6 +7,15 @@ export const FacebookLogCoverageLaw = {
   ARTIFACT_REFS: "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
 } as const;
 
+export const FacebookLogCoverageClause = {
+  [FacebookLogCoverageLaw.STAGE_MATRIX]: "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
+  [FacebookLogCoverageLaw.FAILURE_CLASS]: "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
+  [FacebookLogCoverageLaw.AI_CONTRACT]: "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
+  [FacebookLogCoverageLaw.NAVIGATION_CONTRACT]: "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
+  [FacebookLogCoverageLaw.RECOVERY_TRAIL]: "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
+  [FacebookLogCoverageLaw.ARTIFACT_REFS]: "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
+} as const;
+
 type FacebookLogCoverageLawId = (typeof FacebookLogCoverageLaw)[keyof typeof FacebookLogCoverageLaw];
 
 export type FacebookLogCoverageFinding = {

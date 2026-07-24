@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:24.375Z",
+  "generatedAt": "2026-07-24T00:55:35.872Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -19,6 +19,1048 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "clauseId": "apex-dom-001-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "clauseId": "apex-dom-002-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "clauseId": "apex-dom-003-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "clauseId": "apex-dom-004-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "clauseId": "apex-dom-005-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "clauseId": "apex-dom-006-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "clauseId": "apex-dom-007-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "clauseId": "apex-dom-008-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "clauseId": "apex-dom-009-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "clauseId": "apex-dom-010-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "clauseId": "apex-dom-011-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "clauseId": "apex-dom-012-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/business-neutrality"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/click-sensitive-review-gate"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/foundation-code-purity-gate"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/generated-law-coverage"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/planner-ban"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/public-facade-child-export"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/public-facade-only"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/public-facade-unlawful-runtime-export"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/retired-action-owner"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/schema-child-ability-list"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/schema-detected-state-list"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/schema-snapshot-fields"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/schema-target-kind-list"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/source-file-missing"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/structured-locate-result"
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "clauseId": "apex-dom-013-requirement",
+      "checkId": "dom/upload-approved-path-and-file-input"
+    }
+  ],
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts",
@@ -280,6 +1322,7 @@
     "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/constitutional-boundary/inspector.ts",
+    "scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
@@ -316,6 +1359,7 @@
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ai-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-artifact-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-stage-detector.ts",
+    "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-token-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-failure-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-navigation-log-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-recovery-log-coverage.ts",
@@ -338,10 +1382,6 @@
     "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
     "scripts/audit/domains/media-processing-capability/run-inspector.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-human-review-history.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-playbook-lessons.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-token-contracts.ts",
-    "scripts/audit/domains/pick3-is-blind-eval/inspector-trend-display.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
@@ -380,6 +1420,7 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/xuanyuan/inspector.ts",
+    "scripts/audit/run-domain-audit.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
     "scripts/audit/shared/inspector-contracts.ts",

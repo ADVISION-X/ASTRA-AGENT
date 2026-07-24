@@ -6,7 +6,7 @@ import {
   writeCiFullSummary,
   type CiFullFirstFailure,
   type CiFullLawCoverage,
-  type CiFullMetaQuality,
+  type CiFullOwnerReport,
   type StepResult,
 } from "../audit/ci-full.js";
 
@@ -24,16 +24,18 @@ const sampleSteps: StepResult[] = [
 
 const lawCoverage: CiFullLawCoverage = {
   activeLawCount: 1,
+  activeClauseCount: 1,
+  boundClauseCount: 1,
   checked: true,
-  plannedLawCount: 1,
-  uncoveredLawIds: [],
+  uncoveredClauseIds: [],
 };
 
-const metaQuality: CiFullMetaQuality = {
-  checked: true,
+const ownerReports: CiFullOwnerReport[] = [{
+  capabilityDomain: "sample",
   findingCount: 0,
-  reportPath: "scripts/audit/generated/audit-truth-report.generated.json",
-};
+  reportPath: "scripts/audit/generated/sample-report.generated.json",
+  status: "PASS",
+}];
 
 const firstFailure: CiFullFirstFailure = {
   phase: "typecheck",
@@ -56,7 +58,7 @@ writeCiFullSummary({
     },
   ],
   lawCoverage,
-  metaQuality,
+  ownerReports,
   finalDecision: "FAIL",
 });
 
@@ -66,7 +68,7 @@ const parsed = JSON.parse(readFileSync(ciFullSummaryPath, "utf8")) as {
   firstFailure: CiFullFirstFailure | null;
   generatedAt: string;
   lawCoverage: CiFullLawCoverage;
-  metaQuality: CiFullMetaQuality;
+  ownerReports: CiFullOwnerReport[];
   mode: string;
   skippedAfterFailure: Array<{ command: string; name: string; phase: string }>;
   status: "PASS" | "FAIL";
@@ -87,7 +89,7 @@ assert.equal(parsed.firstFailure?.minimalFixHint, "repair typecheck", "ci summar
 assert.equal(parsed.skippedAfterFailure.length, 1, "ci summary must persist skippedAfterFailure.");
 assert.equal(parsed.skippedAfterFailure[0]?.name, "later-step", "skipped steps must retain their names.");
 assert.equal(parsed.lawCoverage.activeLawCount, 1, "ci summary must persist law coverage summary.");
-assert.equal(parsed.metaQuality.checked, true, "ci summary must persist meta-quality summary.");
+assert.equal(parsed.ownerReports[0]?.capabilityDomain, "sample", "ci summary must persist generic owner reports.");
 assert.equal(parsed.finalDecision, "FAIL", "ci summary must persist finalDecision.");
 assert.equal(typeof parsed.generatedAt, "string", "ci summary must include generatedAt.");
 

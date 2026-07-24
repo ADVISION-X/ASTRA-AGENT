@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:24.800Z",
+  "generatedAt": "2026-07-24T00:55:36.346Z",
   "capabilityDomain": "lottery-ticket-plan",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,6 +7,33 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+      "checkId": "lottery-ticket-plan/ast-contract"
+    },
+    {
+      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+      "checkId": "lottery-ticket-plan/file-present"
+    },
+    {
+      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+      "checkId": "lottery-ticket-plan/forbidden-import"
+    },
+    {
+      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+      "checkId": "lottery-ticket-plan/no-purchase-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+      "checkId": "lottery-ticket-plan/package-script"
+    }
+  ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-lottery-ticket-plan.instructions.md",
     "docs/法案辅助文件/GrassEye Lottery Ticket Plan 施工图.md",

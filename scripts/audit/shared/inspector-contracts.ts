@@ -18,10 +18,19 @@ const inspectorFindingSchema = z
   })
   .strict();
 
+export const executedCheckSchema = z
+  .object({
+    lawId: lawIdSchema,
+    clauseId: z.string().min(1),
+    checkId: z.string().min(1),
+  })
+  .strict();
+
 export const inspectorOutputSchema = z
   .object({
     capabilityDomain: z.string().min(1),
     reportedLawIds: z.array(lawIdSchema),
+    executedChecks: z.array(executedCheckSchema),
     findings: z.array(inspectorFindingSchema),
     inspectedFiles: z.array(z.string().min(1)),
     reportJson: z.unknown().optional(),
@@ -30,6 +39,7 @@ export const inspectorOutputSchema = z
   .strict();
 
 export type InspectorFinding = z.infer<typeof inspectorFindingSchema>;
+export type ExecutedCheck = z.infer<typeof executedCheckSchema>;
 export type InspectorOutput = z.infer<typeof inspectorOutputSchema>;
 type AuditPlanEntry = z.infer<typeof auditPlanEntrySchema>;
 export type CompletedReport = {
@@ -44,3 +54,11 @@ export type InspectorContext = {
   generatedPlan: readonly AuditPlanEntry[];
   completedReports: Readonly<Record<string, CompletedReport>>;
 };
+
+export const executedChecksForPlan = (context: InspectorContext): ExecutedCheck[] =>
+  context.planEntry.bindings.flatMap((binding) =>
+    binding.checkIds.map((checkId) => ({
+      lawId: binding.lawId,
+      clauseId: binding.clauseId,
+      checkId,
+    })));

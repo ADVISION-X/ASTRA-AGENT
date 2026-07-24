@@ -36,7 +36,15 @@ All security redlines from Law 002 remain fully active. No law upgrade changes t
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow."
+  "summary": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-001-requirement",
+      "statement": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -82,7 +90,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections."
+  "summary": "video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-002-requirement",
+      "statement": "video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -128,7 +144,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "The video-download group exposes one universal child, named-platform children, and a YouTube child that each download one video artifact per invocation and must not become business workflows."
+  "summary": "The video-download group exposes one universal child, named-platform children, and a YouTube child that each download one video artifact per invocation and must not become business workflows.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-003-requirement",
+      "statement": "The video-download group exposes one universal child, named-platform children, and a YouTube child that each download one video artifact per invocation and must not become business workflows.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -198,7 +222,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "every media candidate must be validated before download success can be claimed."
+  "summary": "every media candidate must be validated before download success can be claimed.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-004-requirement",
+      "statement": "every media candidate must be validated before download success can be claimed.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -243,7 +275,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "every download attempt must leave Forensics-compatible artifact proof and structured failure evidence."
+  "summary": "every download attempt must leave Forensics-compatible artifact proof and structured failure evidence.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-005-requirement",
+      "statement": "every download attempt must leave Forensics-compatible artifact proof and structured failure evidence.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -288,7 +328,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment."
+  "summary": "downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-006-requirement",
+      "statement": "downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -332,7 +380,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security."
+  "summary": "the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-007-requirement",
+      "statement": "the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -391,7 +447,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform."
+  "summary": "platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-008-requirement",
+      "statement": "platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -448,7 +512,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts."
+  "summary": "YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-009-requirement",
+      "statement": "YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -494,7 +566,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
-  "summary": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success."
+  "summary": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-010-requirement",
+      "statement": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -543,7 +623,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection+acceptance",
-  "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path."
+  "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-011-requirement",
+      "statement": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -601,7 +689,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-  "summary": "Video-download owner inspection must be AST/symbol/anti-evasion based and must not use raw source string scans, regex, or marker theater as enforcement."
+  "summary": "Video-download owner inspection must be AST/symbol/anti-evasion based and must not use raw source string scans, regex, or marker theater as enforcement.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-012-requirement",
+      "statement": "Video-download owner inspection must be AST/symbol/anti-evasion based and must not use raw source string scans, regex, or marker theater as enforcement.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -646,7 +742,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-  "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence."
+  "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-013-requirement",
+      "statement": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -700,7 +804,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-  "summary": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests."
+  "summary": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-014-requirement",
+      "statement": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -753,7 +865,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-  "summary": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence."
+  "summary": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-015-requirement",
+      "statement": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -806,7 +926,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-  "summary": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk."
+  "summary": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-016-requirement",
+      "statement": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 
@@ -857,7 +985,15 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-  "summary": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title."
+  "summary": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-video-download-capability-017-requirement",
+      "statement": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+      "evidenceMode": "static",
+      "ownerDomain": "video-download-capability"
+    }
+  ]
 }
 ```
 

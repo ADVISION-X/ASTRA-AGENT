@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:25.439Z",
+  "generatedAt": "2026-07-24T00:55:37.155Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,6 +13,498 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "clauseId": "apex-startup-001-requirement",
+      "checkId": "startup/structured-report-fields"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "clauseId": "apex-startup-002-requirement",
+      "checkId": "startup/structured-report-fields"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "clauseId": "apex-startup-003-requirement",
+      "checkId": "startup/structured-report-fields"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "clauseId": "apex-startup-004-requirement",
+      "checkId": "startup/structured-report-fields"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "clauseId": "apex-startup-005-requirement",
+      "checkId": "startup/structured-report-fields"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "clauseId": "apex-startup-006-requirement",
+      "checkId": "startup/structured-report-fields"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/cold-start-health-budget"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/cold-start-health-budget-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/forbidden-surface"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/health-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/homepage-probe"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/hot-mount-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/hot-mount-before-clear"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/missing-entrypoint"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/port-clear-ast-source"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/port-clear-real-path"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/port-listener-discovery"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/single-command"
+    },
+    {
+      "lawId": "APEX-STARTUP-007-V1",
+      "clauseId": "apex-startup-007-requirement",
+      "checkId": "startup/structured-report-fields"
+    }
+  ],
   "inspectedFiles": [
     "package.json",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",

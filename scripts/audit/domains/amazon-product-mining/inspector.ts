@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
 import { inspectArtifactOutputs, inspectWorkbenchHomeSurface } from "./inspector-app-surface.js";
 import {
@@ -99,7 +99,7 @@ const inspectGovernanceAndSurface = (
   inspectedFiles: Set<string>,
   lawIds: AmazonMiningLawIds,
 ): void => {
-  inspectGovernanceStatus(findings, inspectedFiles, lawIds.flow);
+  inspectGovernanceStatus(context, findings, inspectedFiles, lawIds.flow);
   inspectRequiredPluginFiles(context, findings, inspectedFiles, lawIds.flow);
   inspectRequiredAcceptanceFiles(findings, inspectedFiles, lawIds.flow);
   inspectPluginPublicSurface(context, findings, inspectedFiles, lawIds.surface);
@@ -116,7 +116,7 @@ const inspectKeywordReviewContracts = (
   inspectedFiles: Set<string>,
   lawIds: AmazonMiningLawIds,
 ): void => {
-  inspectKeywordReviewLawAndBlueprint(findings, inspectedFiles, lawIds.keywordReviewBoundary);
+  inspectKeywordReviewLawAndBlueprint(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectKeywordReviewSchemaAndStorage(context, findings, inspectedFiles, lawIds.keywordReviewSchema);
   inspectKeywordReviewPromptAndFlow(context, findings, inspectedFiles, lawIds.keywordReviewBoundary);
   inspectKeywordReviewEvidenceSliceDepth(context, findings, inspectedFiles, lawIds.keywordReviewEvidenceDepth);
@@ -192,6 +192,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
     reportJson: buildAmazonMiningInspectorReport({ findings, tabLifecycleDebug }),

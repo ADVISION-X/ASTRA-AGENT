@@ -1,4 +1,4 @@
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { runCodePurityPhases } from "./components/code-purity-phase-runner.js";
 import { summarizeUselessCodeFindings } from "./components/summarize-useless-code.js";
 
@@ -11,6 +11,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings: phaseRun.findings,
     inspectedFiles: [...phaseRun.inspectedFiles].sort(),
     reportJson: {

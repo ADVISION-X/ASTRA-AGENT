@@ -1,4 +1,4 @@
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { renderRuntimeLogSpineMarkdown, writeRuntimeLogSpineReport, toInspectorFinding } from "./generated-report-writer.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
 import { collectRedactionFindings } from "./redaction-inspector.js";
@@ -72,6 +72,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings: report.findings.map(toInspectorFinding),
     inspectedFiles: report.inspectedFiles,
     reportJson: report,

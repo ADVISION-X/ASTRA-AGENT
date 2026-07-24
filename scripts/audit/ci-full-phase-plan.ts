@@ -88,9 +88,8 @@ export const plannedSteps: readonly PlannedStep[] = [
   ["codex-entry-gate", codexEntryGateStep[0], formatCommand(codexEntryGateStep[1])],
   ["build-audit-artifacts", "build-audit-artifacts", "internal:buildAuditArtifacts()"],
   ["active-law-full-coverage", "active-law-full-coverage", "internal:verifyActiveLawFullCoverage()"],
-  ["meta-quality", "meta-quality", 'internal:runGeneratedPlanFiltered({ capabilityDomains: ["audit-truth"] })'],
+  ["generated-plan-runner", "generated-plan-runner", "internal:runGeneratedPlan()"],
   ["typecheck", typecheckStep[0], formatCommand(typecheckStep[1])],
-  ["domain-audit-runner", "domain-audit-runner", 'internal:runGeneratedPlanFiltered({ excludeCapabilityDomains: ["audit-truth"] })'],
   ...acceptanceSteps.map((step) => ["acceptance-runner", step[0], formatCommand(step[1])] as const),
   ["generated-artifact-truth", "generated-artifact-truth", "internal:verifyGeneratedArtifactTruth()"],
 ];

@@ -3,9 +3,38 @@
   "ownerInspectorPath": "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
+        "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
+        "checkIds": [
+          "amazon-product-fee-sync/api-boundary",
+          "amazon-product-fee-sync/dom-contract",
+          "amazon-product-fee-sync/dom-export",
+          "amazon-product-fee-sync/evidence-safety",
+          "amazon-product-fee-sync/external-control",
+          "amazon-product-fee-sync/field-pair-rejection",
+          "amazon-product-fee-sync/flow-contract",
+          "amazon-product-fee-sync/inventory-search",
+          "amazon-product-fee-sync/no-fuzzy-row-match",
+          "amazon-product-fee-sync/product-sync-pollution",
+          "amazon-product-fee-sync/read-only-flow",
+          "amazon-product-fee-sync/required-fields",
+          "amazon-product-fee-sync/runtime-log",
+          "amazon-product-fee-sync/server-route",
+          "amazon-product-fee-sync/single-sku",
+          "amazon-product-fee-sync/source-file-present",
+          "amazon-product-fee-sync/stale-running-task",
+          "amazon-product-fee-sync/workbench-runtime"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

@@ -12,6 +12,9 @@ type FindingInput = {
   evidence?: string | undefined;
 };
 
+export const clauseIdForLaw = (lawId: string): string =>
+  `${lawId.toLowerCase().replace("-v1", "")}-requirement`;
+
 export const selectLawId = (lawIds: readonly string[], preferredLawId: string): string => {
   const selected = lawIds.find((lawId) => lawId === preferredLawId) ?? lawIds[0];
   if (!selected) {
@@ -23,7 +26,7 @@ export const selectLawId = (lawIds: readonly string[], preferredLawId: string): 
 export const createFinding = (input: FindingInput): InspectorFinding => ({
   checkId: input.checkId,
   lawId: input.lawId,
-  clauseId: input.clauseId ?? "primary",
+  clauseId: input.clauseId ?? clauseIdForLaw(input.lawId),
   message: input.message,
   ...(input.line ? { line: input.line } : {}),
   severity: input.severity ?? "fatal",

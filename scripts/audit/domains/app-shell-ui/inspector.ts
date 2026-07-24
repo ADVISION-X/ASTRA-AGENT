@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 
 import { selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectForbiddenAppShellActions } from "./inspector-forbidden-actions.js";
@@ -68,6 +68,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };

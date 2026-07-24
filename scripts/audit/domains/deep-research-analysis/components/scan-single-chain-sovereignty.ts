@@ -6,6 +6,7 @@ import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
+import { hasIdentifierName, hasLiteralFragment } from "./deep-research-ast-facts.js";
 
 const decode = (value: string): string => Buffer.from(value, "base64").toString("utf8");
 
@@ -118,8 +119,7 @@ const inspectHtmlReentrySurfaces = (input: SingleChainSovereigntyInput): void =>
     }));
   }
 
-  const routesText = input.routesFile?.getFullText() ?? "";
-  if (routesText.includes("/api/deep-research-analysis/regenerate-html-report")) {
+  if (hasLiteralFragment(input.routesFile, "/api/deep-research-analysis/regenerate-html-report")) {
     input.findings.push(createFinding({
       checkId: "deep-research/single-chain-sovereignty-regenerate-route",
       lawId: input.lawId,
@@ -130,17 +130,17 @@ const inspectHtmlReentrySurfaces = (input: SingleChainSovereigntyInput): void =>
 
   for (const check of [
     {
-      text: input.workbenchHandleFile?.getFullText() ?? "",
+      sourceFile: input.workbenchHandleFile,
       filePath: "src/lib/local-runtime/workbench-handle.ts",
       message: "Workbench handle must not expose HTML reentry.",
     },
     {
-      text: input.publicFacadeFile?.getFullText() ?? "",
+      sourceFile: input.publicFacadeFile,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
       message: "Public facade must not expose HTML reentry.",
     },
   ] as const) {
-    if (!check.text.includes("rerunDeepResearchBusinessHtmlReport")) continue;
+    if (!hasIdentifierName(check.sourceFile, "rerunDeepResearchBusinessHtmlReport")) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/single-chain-sovereignty-reentry-symbol",
       lawId: input.lawId,

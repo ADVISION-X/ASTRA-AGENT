@@ -4,7 +4,7 @@ import { relative } from "node:path";
 import { Node, SyntaxKind, type CallExpression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
 
 type Finding = ReturnType<typeof createFinding>;
@@ -400,6 +400,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...governedFiles, lawPath, blueprintPath, "scripts/audit/domains/media-processing-capability/inspector.ts"],
   };

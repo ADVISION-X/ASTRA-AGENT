@@ -40,6 +40,14 @@ files, or hidden business helper slices behind those facades.
     "Root page as marketing page.",
     "Root page without health or mode visibility.",
     "Root page without lawful job flow entry points."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "statement": "The root page must be a local workbench surface with health, mode, and lawful job flow entry points.",
+      "evidenceMode": "static",
+      "ownerDomain": "local-app-shell"
+    }
   ]
 }
 ```
@@ -70,6 +78,14 @@ Required:
     "AI generated action plan input.",
     "Generic mission dashboard entry.",
     "Single form mixing unrelated job flows."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "statement": "Workbench input surfaces must collect structured inputs for explicit job flows and must not become a natural-language task planner.",
+      "evidenceMode": "static",
+      "ownerDomain": "local-app-shell"
+    }
   ]
 }
 ```
@@ -101,6 +117,14 @@ Required:
     "UI replacing evidence records.",
     "UI hiding failureReason or review-required state.",
     "Status panel pretending to be runtime logs or CI."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "statement": "The workbench must expose task status, failure reasons, and evidence references without replacing the evidence store.",
+      "evidenceMode": "static",
+      "ownerDomain": "local-app-shell"
+    }
   ]
 }
 ```
@@ -135,6 +159,14 @@ Required:
     "src/lib/local-runtime importing plugin files outside plugin public facades.",
     "src/lib/local-runtime importing ability files outside ability public facades.",
     "App shell deciding business flow steps."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "statement": "The local app shell must not resurrect universal dashboards, command consoles, visual runtime control panels, planners, or second orchestration.",
+      "evidenceMode": "static",
+      "ownerDomain": "local-app-shell"
+    }
   ]
 }
 ```
@@ -171,6 +203,14 @@ Forbidden:
     "Final report hidden behind raw record inspection only.",
     "Export artifacts hidden from the primary delivery surface.",
     "Raw JSON replacing final report, export refs, or evidence refs."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "statement": "Completed workbench jobs must surface durable deliverables, persisted counts, export references, and evidence references as the primary result view instead of raw JSON alone.",
+      "evidenceMode": "static",
+      "ownerDomain": "local-app-shell"
+    }
   ]
 }
 ```

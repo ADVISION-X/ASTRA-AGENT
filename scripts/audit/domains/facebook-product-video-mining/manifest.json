@@ -3,9 +3,230 @@
   "ownerInspectorPath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-FACEBOOK-MINING-001-V1",
+        "clauseId": "apex-facebook-mining-001-requirement",
+        "checkIds": [
+          "facebook-mining/ai-hard-timeout",
+          "facebook-mining/ai-judgment-failure-terminal",
+          "facebook-mining/app-shell-routes",
+          "facebook-mining/attachment-proof-boundary",
+          "facebook-mining/export-saved-product-only",
+          "facebook-mining/fixed-navigation-action-ladder",
+          "facebook-mining/forbidden-client-payload-advanced-input",
+          "facebook-mining/forbidden-visible-advanced-input",
+          "facebook-mining/minimal-target-count-input",
+          "facebook-mining/navigation-proof-quorum",
+          "facebook-mining/no-arbitrary-provider-tab",
+          "facebook-mining/no-dom-next-primary-controller",
+          "facebook-mining/not-interested-default-off",
+          "facebook-mining/plugin-public-surface",
+          "facebook-mining/provider-tab-focus-guard",
+          "facebook-mining/required-acceptance-file",
+          "facebook-mining/required-plugin-file",
+          "facebook-mining/round-state-machine",
+          "facebook-mining/saved-records-client-fetch",
+          "facebook-mining/saved-records-visible-export",
+          "facebook-mining/schema-default-mission-parameter",
+          "facebook-mining/standard-attachment-child",
+          "facebook-mining/submit-wait-short-cap",
+          "facebook-mining/workbench-handle-surface",
+          "facebook-mining/workspace-url-pinning"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-FACEBOOK-MINING-002-V1",
+        "clauseId": "apex-facebook-mining-002-requirement",
+        "checkIds": [
+          "facebook-mining/ai-hard-timeout",
+          "facebook-mining/ai-judgment-failure-terminal",
+          "facebook-mining/app-shell-routes",
+          "facebook-mining/attachment-proof-boundary",
+          "facebook-mining/export-saved-product-only",
+          "facebook-mining/fixed-navigation-action-ladder",
+          "facebook-mining/forbidden-client-payload-advanced-input",
+          "facebook-mining/forbidden-visible-advanced-input",
+          "facebook-mining/minimal-target-count-input",
+          "facebook-mining/navigation-proof-quorum",
+          "facebook-mining/no-arbitrary-provider-tab",
+          "facebook-mining/no-dom-next-primary-controller",
+          "facebook-mining/not-interested-default-off",
+          "facebook-mining/plugin-public-surface",
+          "facebook-mining/provider-tab-focus-guard",
+          "facebook-mining/required-acceptance-file",
+          "facebook-mining/required-plugin-file",
+          "facebook-mining/round-state-machine",
+          "facebook-mining/saved-records-client-fetch",
+          "facebook-mining/saved-records-visible-export",
+          "facebook-mining/schema-default-mission-parameter",
+          "facebook-mining/standard-attachment-child",
+          "facebook-mining/submit-wait-short-cap",
+          "facebook-mining/workbench-handle-surface",
+          "facebook-mining/workspace-url-pinning"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-FACEBOOK-MINING-003-V1",
+        "clauseId": "apex-facebook-mining-003-requirement",
+        "checkIds": [
+          "facebook-mining/ai-hard-timeout",
+          "facebook-mining/ai-judgment-failure-terminal",
+          "facebook-mining/app-shell-routes",
+          "facebook-mining/attachment-proof-boundary",
+          "facebook-mining/export-saved-product-only",
+          "facebook-mining/fixed-navigation-action-ladder",
+          "facebook-mining/forbidden-client-payload-advanced-input",
+          "facebook-mining/forbidden-visible-advanced-input",
+          "facebook-mining/minimal-target-count-input",
+          "facebook-mining/navigation-proof-quorum",
+          "facebook-mining/no-arbitrary-provider-tab",
+          "facebook-mining/no-dom-next-primary-controller",
+          "facebook-mining/not-interested-default-off",
+          "facebook-mining/plugin-public-surface",
+          "facebook-mining/provider-tab-focus-guard",
+          "facebook-mining/required-acceptance-file",
+          "facebook-mining/required-plugin-file",
+          "facebook-mining/round-state-machine",
+          "facebook-mining/saved-records-client-fetch",
+          "facebook-mining/saved-records-visible-export",
+          "facebook-mining/schema-default-mission-parameter",
+          "facebook-mining/standard-attachment-child",
+          "facebook-mining/submit-wait-short-cap",
+          "facebook-mining/workbench-handle-surface",
+          "facebook-mining/workspace-url-pinning"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-FACEBOOK-MINING-004-V1",
+        "clauseId": "apex-facebook-mining-004-requirement",
+        "checkIds": [
+          "facebook-mining/ai-hard-timeout",
+          "facebook-mining/ai-judgment-failure-terminal",
+          "facebook-mining/app-shell-routes",
+          "facebook-mining/attachment-proof-boundary",
+          "facebook-mining/export-saved-product-only",
+          "facebook-mining/fixed-navigation-action-ladder",
+          "facebook-mining/forbidden-client-payload-advanced-input",
+          "facebook-mining/forbidden-visible-advanced-input",
+          "facebook-mining/minimal-target-count-input",
+          "facebook-mining/navigation-proof-quorum",
+          "facebook-mining/no-arbitrary-provider-tab",
+          "facebook-mining/no-dom-next-primary-controller",
+          "facebook-mining/not-interested-default-off",
+          "facebook-mining/plugin-public-surface",
+          "facebook-mining/provider-tab-focus-guard",
+          "facebook-mining/required-acceptance-file",
+          "facebook-mining/required-plugin-file",
+          "facebook-mining/round-state-machine",
+          "facebook-mining/saved-records-client-fetch",
+          "facebook-mining/saved-records-visible-export",
+          "facebook-mining/schema-default-mission-parameter",
+          "facebook-mining/standard-attachment-child",
+          "facebook-mining/submit-wait-short-cap",
+          "facebook-mining/workbench-handle-surface",
+          "facebook-mining/workspace-url-pinning"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-FACEBOOK-MINING-005-V1",
+        "clauseId": "apex-facebook-mining-005-requirement",
+        "checkIds": [
+          "facebook-mining/ai-hard-timeout",
+          "facebook-mining/ai-judgment-failure-terminal",
+          "facebook-mining/app-shell-routes",
+          "facebook-mining/attachment-proof-boundary",
+          "facebook-mining/export-saved-product-only",
+          "facebook-mining/fixed-navigation-action-ladder",
+          "facebook-mining/forbidden-client-payload-advanced-input",
+          "facebook-mining/forbidden-visible-advanced-input",
+          "facebook-mining/minimal-target-count-input",
+          "facebook-mining/navigation-proof-quorum",
+          "facebook-mining/no-arbitrary-provider-tab",
+          "facebook-mining/no-dom-next-primary-controller",
+          "facebook-mining/not-interested-default-off",
+          "facebook-mining/plugin-public-surface",
+          "facebook-mining/provider-tab-focus-guard",
+          "facebook-mining/required-acceptance-file",
+          "facebook-mining/required-plugin-file",
+          "facebook-mining/round-state-machine",
+          "facebook-mining/saved-records-client-fetch",
+          "facebook-mining/saved-records-visible-export",
+          "facebook-mining/schema-default-mission-parameter",
+          "facebook-mining/standard-attachment-child",
+          "facebook-mining/submit-wait-short-cap",
+          "facebook-mining/workbench-handle-surface",
+          "facebook-mining/workspace-url-pinning"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-FACEBOOK-MINING-006-V1",
+        "clauseId": "apex-facebook-mining-006-requirement",
+        "checkIds": [
+          "facebook-mining/ai-hard-timeout",
+          "facebook-mining/ai-judgment-failure-terminal",
+          "facebook-mining/app-shell-routes",
+          "facebook-mining/attachment-proof-boundary",
+          "facebook-mining/export-saved-product-only",
+          "facebook-mining/fixed-navigation-action-ladder",
+          "facebook-mining/forbidden-client-payload-advanced-input",
+          "facebook-mining/forbidden-visible-advanced-input",
+          "facebook-mining/minimal-target-count-input",
+          "facebook-mining/navigation-proof-quorum",
+          "facebook-mining/no-arbitrary-provider-tab",
+          "facebook-mining/no-dom-next-primary-controller",
+          "facebook-mining/not-interested-default-off",
+          "facebook-mining/plugin-public-surface",
+          "facebook-mining/provider-tab-focus-guard",
+          "facebook-mining/required-acceptance-file",
+          "facebook-mining/required-plugin-file",
+          "facebook-mining/round-state-machine",
+          "facebook-mining/saved-records-client-fetch",
+          "facebook-mining/saved-records-visible-export",
+          "facebook-mining/schema-default-mission-parameter",
+          "facebook-mining/standard-attachment-child",
+          "facebook-mining/submit-wait-short-cap",
+          "facebook-mining/workbench-handle-surface",
+          "facebook-mining/workspace-url-pinning"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "description": "Facebook product video mining job-flow owner audit."

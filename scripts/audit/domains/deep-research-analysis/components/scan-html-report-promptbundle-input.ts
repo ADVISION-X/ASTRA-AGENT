@@ -1,12 +1,9 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import type { SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-
-const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === path);
+import { hasAstNameOrLiteral, hasPropertyAccessSegments } from "./deep-research-ast-facts.js";
 
 export const inspectHtmlReportPromptBundleInput = (input: {
   htmlReportStageFile: SourceFile | undefined;
@@ -19,7 +16,7 @@ export const inspectHtmlReportPromptBundleInput = (input: {
     if (sourceFile) input.inspectedFiles.add(getRepoSourcePath(sourceFile));
   }
 
-  if (!hasPropertyAccessPath(input.htmlReportStageFile, "input.fullCaseFile.researchPlan.htmlReportPromptBundle")) {
+  if (!hasPropertyAccessSegments(input.htmlReportStageFile, ["input", "fullCaseFile", "researchPlan", "htmlReportPromptBundle"])) {
     input.findings.push(createFinding({
       checkId: "deep-research/html-report-promptbundle-input-runtime-path",
       lawId: input.lawId,
@@ -28,29 +25,27 @@ export const inspectHtmlReportPromptBundleInput = (input: {
     }));
   }
 
-  const htmlStageText = input.htmlReportStageFile?.getFullText() ?? "";
   for (const marker of [
-    "finalAdjudication: input.finalAdjudication",
-    "fullCaseFileMarkdown: input.fullCaseFileMarkdown",
-  ]) {
-    if (htmlStageText.includes(marker)) continue;
+    ["input", "finalAdjudication"],
+    ["input", "fullCaseFileMarkdown"],
+  ] as const) {
+    if (hasPropertyAccessSegments(input.htmlReportStageFile, marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/html-report-promptbundle-input-runtime",
       lawId: input.lawId,
       filePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-      message: `HTML report stage is missing required input marker: ${marker}.`,
+      message: `HTML report stage is missing required input path: ${marker.join(".")}.`,
     }));
   }
 
-  const promptText = input.htmlReportPromptFile?.getFullText() ?? "";
   for (const marker of [
-    "Runtime shell for AI-generated htmlReportPromptBundle.",
-    "htmlReportPromptBundle: DeepResearchPromptBundle",
-    "rawFinalAnswerText: input.finalAdjudication.rawFinalAnswerText",
+    "htmlReportPromptBundle",
+    "DeepResearchPromptBundle",
+    "rawFinalAnswerText",
     "fullCaseFileMarkdown",
     "renderHtmlReportFromPromptBundle",
   ]) {
-    if (promptText.includes(marker)) continue;
+    if (hasAstNameOrLiteral(input.htmlReportPromptFile, marker)) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/html-report-promptbundle-input-prompt",
       lawId: input.lawId,

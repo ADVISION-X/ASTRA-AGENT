@@ -1,5 +1,5 @@
 import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveArchitectureLawIds } from "./components/architecture-boundary-shared.js";
 import { inspectActivePluginGate } from "./components/scan-active-plugin-gate.js";
 import { inspectProjectSources } from "./components/scan-project-sources.js";
@@ -22,6 +22,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
     reportJson: {

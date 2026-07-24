@@ -17,6 +17,13 @@ import {
   startXuanyuanTask,
   startXuanyuanTaskAsync,
 } from "../../src/plugins/xuanyuan/index.js";
+import { runSpawn } from "../../src/lib/browser/current-chrome-window-control.js";
+
+const splitUtf8Output = await runSpawn(process.execPath, [
+  "-e",
+  "const bytes=Buffer.from('你');process.stdout.write(bytes.subarray(0,1));setTimeout(()=>process.stdout.write(bytes.subarray(1)),10);",
+]);
+assert.equal(splitUtf8Output, "你", "Chrome/JXA stdout must preserve a UTF-8 character split across stream chunks");
 
 const buildUploadedFiles = (request: AiFeedInput): AiProviderUploadedFileProof[] =>
   request.inputRefs

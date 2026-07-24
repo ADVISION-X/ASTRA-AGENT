@@ -1,7 +1,23 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-import { isOwnerInspectorRepoPath } from "./audit-truth-scope.js";
+import { isOwnerInspectorRepoPath, normalizeAuditTruthPath } from "./audit-truth-scope.js";
+
+const orchestrationPaths = new Set([
+  "scripts/audit/ci-full.ts",
+  "scripts/audit/ci-full-phase-plan.ts",
+]);
+
+const isFilteredPlanCall = (sourceFile: SourceFile): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return (Node.isIdentifier(expression) && expression.getText() === "runGeneratedPlanFiltered")
+      || (Node.isPropertyAccessExpression(expression) && expression.getName() === "runGeneratedPlanFiltered");
+  });
+
+const hasFilteredPlanCommandLiteral = (sourceFile: SourceFile): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) =>
+    literal.getLiteralText().includes("runGeneratedPlanFiltered"));
 
 const listOwnerInspectorPaths = (context: InspectorContext): string[] =>
   context.project
@@ -19,6 +35,25 @@ export const scanGeneratedPlanCoverage = (input: {
   const findings: InspectorFinding[] = [];
   const inspectorPaths = new Set(listOwnerInspectorPaths(input.context));
   const generatedPlanPaths = new Set(input.context.generatedPlan.map((entry) => entry.ownerInspectorPath));
+
+  for (const sourceFile of input.context.project.getSourceFiles()) {
+    const repoPath = getRepoSourcePath(sourceFile);
+    if (!orchestrationPaths.has(normalizeAuditTruthPath(repoPath))) {
+      continue;
+    }
+    input.inspectedFiles.add(repoPath);
+    if (!isFilteredPlanCall(sourceFile) && !hasFilteredPlanCommandLiteral(sourceFile)) {
+      continue;
+    }
+    findings.push(
+      createFinding({
+        checkId: "audit-truth/ci-owner-special-case",
+        lawId: input.lawId,
+        filePath: repoPath,
+        message: `${repoPath} dispatches a filtered generated plan instead of the complete owner-neutral plan.`,
+      }),
+    );
+  }
 
   for (const inspectorPath of inspectorPaths) {
     input.inspectedFiles.add(inspectorPath);
@@ -53,3 +88,4 @@ export const scanGeneratedPlanCoverage = (input: {
 
   return { findings };
 };
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";

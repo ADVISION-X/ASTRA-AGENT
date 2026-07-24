@@ -1,8 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
-
-import { resolveFromRepo } from "../../shared/paths.js";
-import { findLine } from "../runtime-log-spine/source-read.js";
+import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { FacebookLogCoverageLaw, type FacebookLogCoverageFinding } from "./constants.js";
+import { collectAstTokenCoverage, hasAstToken } from "./facebook-mining-ast-token-coverage.js";
 
 const aiFiles = [
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
@@ -10,8 +8,10 @@ const aiFiles = [
   "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
 ] as const;
 
-const requiredStages = ["FACEBOOK_AI_UPLOAD", "FACEBOOK_AI_RESPONSE_WAIT", "FACEBOOK_AI_PARSE"] as const;
-const requiredFields = [
+const requiredTokens = [
+  "FACEBOOK_AI_UPLOAD",
+  "FACEBOOK_AI_RESPONSE_WAIT",
+  "FACEBOOK_AI_PARSE",
   "providerKind",
   "modelName",
   "videoFileHash",
@@ -24,23 +24,20 @@ const requiredFields = [
   "durationMs",
 ] as const;
 
-export const collectFacebookMiningAiLogCoverage = (): {
+export const collectFacebookMiningAiLogCoverage = (context: InspectorContext): {
   findings: FacebookLogCoverageFinding[];
   inspectedFiles: string[];
 } => {
-  const findings: FacebookLogCoverageFinding[] = [];
-  const text = aiFiles.map((file) => existsSync(resolveFromRepo(file)) ? readFileSync(resolveFromRepo(file), "utf8") : "").join("\n");
-  const missing = [...requiredStages, ...requiredFields].filter((token) => !text.includes(token));
-  if (missing.length > 0) {
-    findings.push({
-      checkId: "facebook-log-coverage/ai-contract",
-      lawId: FacebookLogCoverageLaw.AI_CONTRACT,
-      file: aiFiles[0],
-      line: findLine(text, ["judgeFacebookProductVideo", "buildAiFeedRequest"]),
-      severity: "fatal",
-      message: "Facebook AI judgment path lacks upload/response/parse trace logs",
-      hint: `Add AI upload, response wait and parse stage logs with provider proof, rawOutputRef/hash and schema validation status. Missing: ${missing.join(", ")}.`,
-    });
-  }
+  const coverage = collectAstTokenCoverage(context, aiFiles);
+  const missing = requiredTokens.filter((token) => !hasAstToken(coverage, token));
+  const findings: FacebookLogCoverageFinding[] = missing.length === 0 ? [] : [{
+    checkId: "facebook-log-coverage/ai-contract",
+    lawId: FacebookLogCoverageLaw.AI_CONTRACT,
+    file: aiFiles[0],
+    line: coverage.firstLine,
+    severity: "fatal",
+    message: "Facebook AI judgment path lacks upload/response/parse trace logs",
+    hint: `Add AI upload, response wait and parse stage logs with provider proof, rawOutputRef/hash and schema validation status. Missing: ${missing.join(", ")}.`,
+  }];
   return { findings, inspectedFiles: [...aiFiles] };
 };

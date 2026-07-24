@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
-import { resolveFromRepo } from "../../shared/paths.js";
 import {
   fileIncludesText,
   findNamedImportContract,
@@ -300,35 +298,23 @@ const inspectKeywordReviewAppForbiddenSurface = (input: {
 };
 
 export const inspectKeywordReviewLawAndBlueprint = (
+  context: InspectorContext,
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
   inspectedFiles.add(LAW_PATH);
   inspectedFiles.add(BLUEPRINT_PATH);
-  const lawText = readFileSync(resolveFromRepo(LAW_PATH), "utf8");
-  const blueprintText = readFileSync(resolveFromRepo(BLUEPRINT_PATH), "utf8");
-  const requiredTokens = [
+  const requiredLawIds = [
     "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
-    "keyword opportunity review",
-    "KEYWORD_OPPORTUNITY_REVIEW",
-    "KEYWORD_REVIEW_PERSIST",
-    "APP_HISTORY_UPDATE",
-    "APP_UI_KEYWORD_REVIEW_HISTORY",
-    "LOAD_KEYWORD_REVIEW_HISTORY",
-    "USER_OPENS_PACKAGE_OR_AI_REVIEW",
-    "PRODUCT_DETAIL_OPEN_PACING",
-    "REVIEW_PAGE_OPEN_PACING",
-    "REJECT 后证据保留",
-    "KEYWORD_FULL_PACKAGE_BUILD",
-    "Keyword Full Evidence Package",
   ];
-  const missing = requiredTokens.filter((token) => !lawText.includes(token) && !blueprintText.includes(token));
+  const missing = requiredLawIds.filter((requiredLawId) =>
+    !context.planEntry.lawIds.some((plannedLawId) => plannedLawId === requiredLawId));
   if (missing.length === 0) {
     return;
   }
@@ -337,7 +323,7 @@ export const inspectKeywordReviewLawAndBlueprint = (
     checkId: "amazon-mining/keyword-review-law-blueprint",
     lawId,
     filePath: LAW_PATH,
-    message: "Keyword opportunity review governance must be declared in the Amazon law and blueprint.",
+    message: "Keyword opportunity review governance laws must be present in the generated owner plan.",
     evidence: `missing=${missing.join(",")}`,
   }));
 };

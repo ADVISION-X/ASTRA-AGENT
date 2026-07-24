@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:21.082Z",
+  "generatedAt": "2026-07-24T00:55:31.047Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,6 +20,3928 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/aid-10-first-tax-row-only"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/amount-pre-upload-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-client-download-binding"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/app-shell-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/batch-ledger-preflight"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/batch-local-queue-health"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/batch-one-file-per-request"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/batch-single-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-seller-url"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/batch-ui-surface"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/current-request-in-progress-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/current-request-row-gate"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-manual-required"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/download-flow-step-id"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/download-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/evidence-step-id-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/forbidden-external-key"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/latest-strong-terminal"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-client"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-app-shell"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-forbidden-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-handler"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-route-rule-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-save-task-record"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-sqlite-owner"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-storage-token"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-strong-terminal-projection"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-record-backfill"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/ledger-task-service"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-mission-schema"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-backend-batch-route-allowlist"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-document-id-log"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-export"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-handle"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-backend-batch-route"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-request-shape"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-obsolete-batch-ui-mode"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/no-second-chain-path"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/raw-task-record-response"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/required-file"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/task-record-response-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/task-record-route-sanitizer"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/upload-compatibility-key-boundary-block"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-field"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-sanitizer-missing"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-header"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/upload-route-source-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry"
+    }
+  ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
     "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",

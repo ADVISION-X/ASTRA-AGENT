@@ -1,8 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
-
-import { resolveFromRepo } from "../../shared/paths.js";
-import { findLine } from "../runtime-log-spine/source-read.js";
+import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { FacebookLogCoverageLaw, type FacebookLogCoverageFinding } from "./constants.js";
+import { collectAstTokenCoverage, hasAstToken, hasAstTokenPart } from "./facebook-mining-ast-token-coverage.js";
 
 const artifactFiles = [
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
@@ -13,25 +11,21 @@ const artifactFiles = [
 const operationTokens = ["promote", "delete", "save", "comments", "judgment", "debug"] as const;
 const requiredTokens = ["artifactRef", "sha256", "byteSize", "contentType", "disposition", "candidateId", "roundId", "runId"] as const;
 
-export const collectFacebookMiningArtifactLogCoverage = (): {
+export const collectFacebookMiningArtifactLogCoverage = (context: InspectorContext): {
   findings: FacebookLogCoverageFinding[];
   inspectedFiles: string[];
 } => {
-  const findings: FacebookLogCoverageFinding[] = [];
-  const text = artifactFiles.map((file) => existsSync(resolveFromRepo(file)) ? readFileSync(resolveFromRepo(file), "utf8") : "").join("\n");
-  const textLower = text.toLowerCase();
-  const missingOperations = operationTokens.filter((token) => !textLower.includes(token.toLowerCase()));
-  const missingFields = requiredTokens.filter((token) => !text.includes(token));
-  if (missingOperations.length > 0 || missingFields.length > 0) {
-    findings.push({
-      checkId: "facebook-log-coverage/artifact-refs",
-      lawId: FacebookLogCoverageLaw.ARTIFACT_REFS,
-      file: artifactFiles[0],
-      line: findLine(text, ["promote", "delete", "save", "artifact"]),
-      severity: "fatal",
-      message: "Facebook artifact operation lacks refs/hashes observability",
-      hint: `Log artifactRef, sha256, byteSize, disposition and candidateId. Missing operations: ${missingOperations.join(", ") || "none"}; missing fields: ${missingFields.join(", ") || "none"}.`,
-    });
-  }
+  const coverage = collectAstTokenCoverage(context, artifactFiles);
+  const missingOperations = operationTokens.filter((token) => !hasAstTokenPart(coverage, token));
+  const missingFields = requiredTokens.filter((token) => !hasAstToken(coverage, token));
+  const findings: FacebookLogCoverageFinding[] = missingOperations.length === 0 && missingFields.length === 0 ? [] : [{
+    checkId: "facebook-log-coverage/artifact-refs",
+    lawId: FacebookLogCoverageLaw.ARTIFACT_REFS,
+    file: artifactFiles[0],
+    line: coverage.firstLine,
+    severity: "fatal",
+    message: "Facebook artifact operation lacks refs/hashes observability",
+    hint: `Log artifactRef, sha256, byteSize, disposition and candidateId. Missing operations: ${missingOperations.join(", ") || "none"}; missing fields: ${missingFields.join(", ") || "none"}.`,
+  }];
   return { findings, inspectedFiles: [...artifactFiles] };
 };

@@ -3,9 +3,372 @@
   "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
   "executionGroup": "domain",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-DOM-001-V1",
+        "clauseId": "apex-dom-001-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-002-V1",
+        "clauseId": "apex-dom-002-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-003-V1",
+        "clauseId": "apex-dom-003-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-004-V1",
+        "clauseId": "apex-dom-004-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-005-V1",
+        "clauseId": "apex-dom-005-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-006-V1",
+        "clauseId": "apex-dom-006-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-007-V1",
+        "clauseId": "apex-dom-007-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-008-V1",
+        "clauseId": "apex-dom-008-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-009-V1",
+        "clauseId": "apex-dom-009-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-010-V1",
+        "clauseId": "apex-dom-010-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-011-V1",
+        "clauseId": "apex-dom-011-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-012-V1",
+        "clauseId": "apex-dom-012-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-013-V1",
+        "clauseId": "apex-dom-013-requirement",
+        "checkIds": [
+          "dom/business-neutrality",
+          "dom/click-sensitive-review-gate",
+          "dom/foundation-code-purity-gate",
+          "dom/generated-law-coverage",
+          "dom/planner-ban",
+          "dom/public-facade-child-export",
+          "dom/public-facade-only",
+          "dom/public-facade-unlawful-runtime-export",
+          "dom/retired-action-owner",
+          "dom/schema-child-ability-list",
+          "dom/schema-detected-state-list",
+          "dom/schema-snapshot-fields",
+          "dom/schema-target-kind-list",
+          "dom/source-file-missing",
+          "dom/structured-locate-result",
+          "dom/upload-approved-path-and-file-input"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "description": "DOM automation capability audit ownership."

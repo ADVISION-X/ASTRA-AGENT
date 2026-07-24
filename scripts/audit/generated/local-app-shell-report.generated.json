@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:24.784Z",
+  "generatedAt": "2026-07-24T00:55:36.339Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -11,6 +11,1333 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/amazon-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-business-logic"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-boot"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-render"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-chain-strip-style"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-clean-raw-index-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-browser-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-array-spread"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-boot-array"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-form-active-signal"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-form-close-guard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-form-polling-function"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-panel-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-poll-preserve-form"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-private-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-contract"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-renderer"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-shared"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-reader-before-history"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-reader-primary-layout"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-report-delivery-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-report-load-form-close"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-report-primary-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-route-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-route-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-summary-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-surface"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/deep-research-ui-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/facebook-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/forbidden-dashboard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/health-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/health-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/job-list"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/mode-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/mode-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/private-capability-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/private-owner-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/private-plugin-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/root-shell"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/status-window"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/video-download-client"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/video-download-direct-ability-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/video-download-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/video-download-route"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/video-download-source-page"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "clauseId": "apex-local-app-shell-001-requirement",
+      "checkId": "local-app-shell/video-download-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/amazon-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-business-logic"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-boot"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-render"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-chain-strip-style"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-clean-raw-index-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-browser-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-array-spread"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-boot-array"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-form-active-signal"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-form-close-guard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-form-polling-function"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-panel-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-poll-preserve-form"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-private-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-contract"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-renderer"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-shared"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-reader-before-history"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-reader-primary-layout"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-report-delivery-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-report-load-form-close"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-report-primary-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-route-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-route-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-summary-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-surface"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/deep-research-ui-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/facebook-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/forbidden-dashboard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/health-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/health-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/job-list"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/mode-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/mode-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/private-capability-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/private-owner-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/private-plugin-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/root-shell"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/status-window"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/video-download-client"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/video-download-direct-ability-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/video-download-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/video-download-route"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/video-download-source-page"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "clauseId": "apex-local-app-shell-002-requirement",
+      "checkId": "local-app-shell/video-download-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/amazon-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-business-logic"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-boot"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-render"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-chain-strip-style"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-clean-raw-index-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-browser-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-array-spread"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-boot-array"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-form-active-signal"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-form-close-guard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-form-polling-function"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-panel-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-poll-preserve-form"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-private-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-contract"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-renderer"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-shared"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-reader-before-history"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-reader-primary-layout"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-report-delivery-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-report-load-form-close"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-report-primary-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-route-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-route-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-summary-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-surface"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/deep-research-ui-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/facebook-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/forbidden-dashboard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/health-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/health-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/job-list"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/mode-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/mode-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/private-capability-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/private-owner-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/private-plugin-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/root-shell"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/status-window"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/video-download-client"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/video-download-direct-ability-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/video-download-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/video-download-route"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/video-download-source-page"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "clauseId": "apex-local-app-shell-003-requirement",
+      "checkId": "local-app-shell/video-download-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/amazon-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-business-logic"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-boot"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-render"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-chain-strip-style"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-clean-raw-index-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-browser-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-array-spread"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-boot-array"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-form-active-signal"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-form-close-guard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-form-polling-function"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-panel-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-poll-preserve-form"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-private-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-contract"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-renderer"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-shared"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-reader-before-history"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-reader-primary-layout"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-report-delivery-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-report-load-form-close"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-report-primary-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-route-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-route-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-summary-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-surface"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/deep-research-ui-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/facebook-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/forbidden-dashboard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/health-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/health-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/job-list"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/mode-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/mode-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/private-capability-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/private-owner-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/private-plugin-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/root-shell"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/status-window"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/video-download-client"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/video-download-direct-ability-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/video-download-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/video-download-route"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/video-download-source-page"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "clauseId": "apex-local-app-shell-004-requirement",
+      "checkId": "local-app-shell/video-download-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/amazon-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-business-logic"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-boot"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-case-reader-render"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-chain-strip-style"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-clean-raw-index-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-browser-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-array-spread"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-delivery-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-boot-array"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-export-open-function-injection"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-form-active-signal"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-form-close-guard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-form-polling-function"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-html-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-panel-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-poll-preserve-form"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-private-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-contract"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-renderer"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-promptbundle-shared"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-reader-before-history"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-reader-primary-layout"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-report-delivery-function-declaration"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-report-load-form-close"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-report-primary-delivery-marker"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-route-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-route-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-summary-forbidden"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-surface"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/deep-research-ui-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/facebook-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/forbidden-dashboard"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/health-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/health-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/inspector-ast-project"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/job-list"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/mode-api"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/mode-status"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/private-capability-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/private-owner-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/private-plugin-import"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/root-shell"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/status-window"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/video-download-client"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/video-download-direct-ability-call"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/video-download-input"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/video-download-route"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/video-download-source-page"
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
+      "clauseId": "apex-local-app-shell-005-requirement",
+      "checkId": "local-app-shell/video-download-status"
+    }
+  ],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",

@@ -13,7 +13,18 @@ const isLawId = (value: string): boolean =>
 
 export const lawIdSchema = z.string().refine(isLawId, "Law id must start with APEX- or GRASSEYE- and use uppercase letters, numbers, or dashes.");
 
-export const lawMetadataSchema = z
+export const clauseEvidenceModeSchema = z.enum(["static", "acceptance", "real-chrome"]);
+
+export const lawClauseSchema = z
+  .object({
+    clauseId: z.string().min(1).refine((value) => value !== "primary", "Clause id must be semantic and cannot be primary."),
+    statement: z.string().min(1),
+    evidenceMode: clauseEvidenceModeSchema,
+    ownerDomain: z.string().min(1),
+  })
+  .strict();
+
+const lawMetadataBaseSchema = z
   .object({
     lawId: lawIdSchema,
     status: z.enum(["active", "retired", "draft"]),
@@ -22,12 +33,32 @@ export const lawMetadataSchema = z
     enforcementMode: z.string().min(1),
     evidenceMode: z.string().min(1),
     summary: z.string().min(1),
+    clauses: z.array(lawClauseSchema).min(1),
   })
   .passthrough();
 
-const lawSourceSchema = lawMetadataSchema.extend({
-  filePath: z.string().min(1),
-  blockIndex: z.number().int().nonnegative(),
+export const lawMetadataSchema = lawMetadataBaseSchema.superRefine((law, context) => {
+    if (law.status === "active" && law.clauses.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Active laws must declare at least one stable clause.",
+        path: ["clauses"],
+      });
+    }
+    const clauseIds = new Set<string>();
+    for (const [index, clause] of law.clauses.entries()) {
+      if (clauseIds.has(clause.clauseId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate clauseId ${clause.clauseId}.`,
+          path: ["clauses", index, "clauseId"],
+        });
+      }
+      clauseIds.add(clause.clauseId);
+    }
 });
 
-export type LawSource = z.infer<typeof lawSourceSchema>;
+export type LawSource = z.infer<typeof lawMetadataBaseSchema> & {
+  filePath: string;
+  blockIndex: number;
+};

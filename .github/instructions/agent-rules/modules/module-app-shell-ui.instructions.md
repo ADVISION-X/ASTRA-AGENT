@@ -37,6 +37,14 @@
     "UI using localStorage, fixture rows, package scanning, or log parsing as production truth.",
     "UI computing AI verdict or product opportunity score.",
     "UI exposing commerce, supplier-ordering, listing-launch, campaign-launch, inventory, winner-selection, or margin adjudication actions."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-app-shell-ui-001-requirement",
+      "statement": "GrassEye Workbench UI must be a unified Mac-style Agent Workbench Shell with Skill Registry, Level 2 Skill Workspace, Level 3 Inspector, and independent Runtime Console; old one-page dashboard production entry is forbidden.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "app-shell-ui"
+    }
   ]
 }
 ```
@@ -63,6 +71,14 @@
     "English default App Shell.",
     "Static App Shell copy without a Chinese translation entry.",
     "Language switch requiring server restart."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-app-shell-ui-002-requirement",
+      "statement": "GrassEye App Shell must provide one in-place Chinese/English localization chain, default to Chinese, expose a fast language switch, and block untranslated static App Shell copy.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "app-shell-ui"
+    }
   ]
 }
 ```
@@ -689,6 +705,14 @@ UI 不使用 localStorage 作为真相源
     "Legacy APP user-demand startup blueprint exists after App Shell production entry.",
     "Retired, archived, deprecated, hidden, or copied variants of the legacy APP user-demand startup blueprint remain in the repository.",
     "App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-app-shell-ui-physical-cleanup-001-requirement",
+      "statement": "After App Shell becomes the production UI entry, the orphan legacy APP user-demand startup blueprint must be physically absent. Retired, archived, deprecated, or copied variants of that legacy authority are forbidden.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "app-shell-ui"
+    }
   ]
 }
 ```

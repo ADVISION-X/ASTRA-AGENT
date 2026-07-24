@@ -3,9 +3,108 @@
   "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
   "executionGroup": "foundation",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
+        "clauseId": "apex-ai-input-gateway-001-requirement",
+        "checkIds": [
+          "ai-input-gateway/aggregate-progress-callback",
+          "ai-input-gateway/aggregate-proof-field",
+          "ai-input-gateway/attachment-child-structure",
+          "ai-input-gateway/attachment-child-terminal-boundary",
+          "ai-input-gateway/authority-present",
+          "ai-input-gateway/browser-native-picker-contract",
+          "ai-input-gateway/fixed-routing-literal",
+          "ai-input-gateway/generic-browser-primitive",
+          "ai-input-gateway/native-picker-proof",
+          "ai-input-gateway/no-public-transport-controls",
+          "ai-input-gateway/removed-old-region",
+          "ai-input-gateway/shared-child-integration",
+          "ai-input-gateway/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
+        "clauseId": "apex-ai-input-gateway-002-requirement",
+        "checkIds": [
+          "ai-input-gateway/aggregate-progress-callback",
+          "ai-input-gateway/aggregate-proof-field",
+          "ai-input-gateway/attachment-child-structure",
+          "ai-input-gateway/attachment-child-terminal-boundary",
+          "ai-input-gateway/authority-present",
+          "ai-input-gateway/browser-native-picker-contract",
+          "ai-input-gateway/fixed-routing-literal",
+          "ai-input-gateway/generic-browser-primitive",
+          "ai-input-gateway/native-picker-proof",
+          "ai-input-gateway/no-public-transport-controls",
+          "ai-input-gateway/removed-old-region",
+          "ai-input-gateway/shared-child-integration",
+          "ai-input-gateway/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
+        "clauseId": "apex-ai-input-gateway-003-requirement",
+        "checkIds": [
+          "ai-input-gateway/aggregate-progress-callback",
+          "ai-input-gateway/aggregate-proof-field",
+          "ai-input-gateway/attachment-child-structure",
+          "ai-input-gateway/attachment-child-terminal-boundary",
+          "ai-input-gateway/authority-present",
+          "ai-input-gateway/browser-native-picker-contract",
+          "ai-input-gateway/fixed-routing-literal",
+          "ai-input-gateway/generic-browser-primitive",
+          "ai-input-gateway/native-picker-proof",
+          "ai-input-gateway/no-public-transport-controls",
+          "ai-input-gateway/removed-old-region",
+          "ai-input-gateway/shared-child-integration",
+          "ai-input-gateway/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
+        "clauseId": "apex-ai-input-gateway-004-requirement",
+        "checkIds": [
+          "ai-input-gateway/aggregate-progress-callback",
+          "ai-input-gateway/aggregate-proof-field",
+          "ai-input-gateway/attachment-child-structure",
+          "ai-input-gateway/attachment-child-terminal-boundary",
+          "ai-input-gateway/authority-present",
+          "ai-input-gateway/browser-native-picker-contract",
+          "ai-input-gateway/fixed-routing-literal",
+          "ai-input-gateway/generic-browser-primitive",
+          "ai-input-gateway/native-picker-proof",
+          "ai-input-gateway/no-public-transport-controls",
+          "ai-input-gateway/removed-old-region",
+          "ai-input-gateway/shared-child-integration",
+          "ai-input-gateway/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
   "blueprintRefs": [

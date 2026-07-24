@@ -39,7 +39,15 @@ Runtime Log Spine 是 GrassEye 的运行神经系统。
   "capabilityDomain": "runtime-truth",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+runtime-contract",
-  "summary": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof."
+  "summary": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
+  "clauses": [
+    {
+      "clauseId": "apex-runtime-truth-001-requirement",
+      "statement": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-truth"
+    }
+  ]
 }
 ```
 
@@ -83,7 +91,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Runtime facts must enter the single Runtime Log Spine instead of console or private log channels."
+  "summary": "Runtime facts must enter the single Runtime Log Spine instead of console or private log channels.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-001-requirement",
+      "statement": "Runtime facts must enter the single Runtime Log Spine instead of console or private log channels.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -95,7 +111,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Every runtime event must declare FLOW, DEBUG, or TRACE visibility and must not leak debug payload into FLOW."
+  "summary": "Every runtime event must declare FLOW, DEBUG, or TRACE visibility and must not leak debug payload into FLOW.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-002-requirement",
+      "statement": "Every runtime event must declare FLOW, DEBUG, or TRACE visibility and must not leak debug payload into FLOW.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -107,7 +131,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Mission, run, round, step, capability, AI, and recovery events must carry trace context."
+  "summary": "Mission, run, round, step, capability, AI, and recovery events must carry trace context.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-003-requirement",
+      "statement": "Mission, run, round, step, capability, AI, and recovery events must carry trace context.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -119,7 +151,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Any branch that changes execution direction must emit a structured runtime event before it returns, skips, retries, or throws."
+  "summary": "Any branch that changes execution direction must emit a structured runtime event before it returns, skips, retries, or throws.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-004-requirement",
+      "statement": "Any branch that changes execution direction must emit a structured runtime event before it returns, skips, retries, or throws.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -131,7 +171,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Mandatory stages must emit paired started and terminal events with duration, reason, and failure details."
+  "summary": "Mandatory stages must emit paired started and terminal events with duration, reason, and failure details.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-005-requirement",
+      "statement": "Mandatory stages must emit paired started and terminal events with duration, reason, and failure details.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -143,7 +191,21 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Large artifacts, DOM, AI raw output, and binary content must be referenced by refs and hashes instead of embedded inline."
+  "summary": "Large artifacts, DOM, AI raw output, and binary content must be referenced by refs and hashes instead of embedded inline.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-006-requirement",
+      "statement": "Large artifacts, DOM, AI raw output, and binary content must be referenced by refs and hashes instead of embedded inline.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    },
+    {
+      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
+      "statement": "Facebook product video mining artifact operations must emit governed references and hashes.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "facebook-product-video-mining-log-coverage"
+    }
+  ]
 }
 ```
 
@@ -155,7 +217,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "All runtime sinks must redact secrets, storage data, signed URLs, and base64-like material before output."
+  "summary": "All runtime sinks must redact secrets, storage data, signed URLs, and base64-like material before output.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-007-requirement",
+      "statement": "All runtime sinks must redact secrets, storage data, signed URLs, and base64-like material before output.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -167,7 +237,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Production mode must default to FLOW while DEBUG and TRACE remain explicit opt-in visibility levels."
+  "summary": "Production mode must default to FLOW while DEBUG and TRACE remain explicit opt-in visibility levels.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-008-requirement",
+      "statement": "Production mode must default to FLOW while DEBUG and TRACE remain explicit opt-in visibility levels.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -179,7 +257,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "DEBUG and TRACE logging must preserve enough evidence to explain one round down to single actions and retries."
+  "summary": "DEBUG and TRACE logging must preserve enough evidence to explain one round down to single actions and retries.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-009-requirement",
+      "statement": "DEBUG and TRACE logging must preserve enough evidence to explain one round down to single actions and retries.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -191,7 +277,21 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Failed, skipped, and review-required events must carry classified failure metadata instead of free text alone."
+  "summary": "Failed, skipped, and review-required events must carry classified failure metadata instead of free text alone.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-010-requirement",
+      "statement": "Failed, skipped, and review-required events must carry classified failure metadata instead of free text alone.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    },
+    {
+      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
+      "statement": "Facebook product video mining failure paths must emit the governed failure contract.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "facebook-product-video-mining-log-coverage"
+    }
+  ]
 }
 ```
 
@@ -203,7 +303,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "All key terminal stage events must record duration and configured timeout evidence where applicable."
+  "summary": "All key terminal stage events must record duration and configured timeout evidence where applicable.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-011-requirement",
+      "statement": "All key terminal stage events must record duration and configured timeout evidence where applicable.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -215,7 +323,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Each mission must produce a replayable debug bundle or emit structured bundle-write failure evidence."
+  "summary": "Each mission must produce a replayable debug bundle or emit structured bundle-write failure evidence.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-012-requirement",
+      "statement": "Each mission must produce a replayable debug bundle or emit structured bundle-write failure evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -227,7 +343,21 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "AI request, upload, response, parse, and validation paths must emit provider proof, refs, hashes, and statuses."
+  "summary": "AI request, upload, response, parse, and validation paths must emit provider proof, refs, hashes, and statuses.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-013-requirement",
+      "statement": "AI request, upload, response, parse, and validation paths must emit provider proof, refs, hashes, and statuses.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    },
+    {
+      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
+      "statement": "Facebook product video mining AI stages must emit governed upload response and parse evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "facebook-product-video-mining-log-coverage"
+    }
+  ]
 }
 ```
 
@@ -239,7 +369,21 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Browser and DOM actions must log before state, attempted action, after state, duration, and failure class."
+  "summary": "Browser and DOM actions must log before state, attempted action, after state, duration, and failure class.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-014-requirement",
+      "statement": "Browser and DOM actions must log before state, attempted action, after state, duration, and failure class.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    },
+    {
+      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
+      "statement": "Facebook product video mining navigation must emit before action after and stable-verification evidence.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "facebook-product-video-mining-log-coverage"
+    }
+  ]
 }
 ```
 
@@ -251,7 +395,21 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Every recovery and fallback path must emit a linked recovery trail tied to the originating failure."
+  "summary": "Every recovery and fallback path must emit a linked recovery trail tied to the originating failure.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-015-requirement",
+      "statement": "Every recovery and fallback path must emit a linked recovery trail tied to the originating failure.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    },
+    {
+      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
+      "statement": "Facebook product video mining recovery must emit a trail linked to the original failure.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "facebook-product-video-mining-log-coverage"
+    }
+  ]
 }
 ```
 
@@ -263,7 +421,27 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Each plugin and capability must maintain a machine-enforced logging matrix for mandatory stages and contracts."
+  "summary": "Each plugin and capability must maintain a machine-enforced logging matrix for mandatory stages and contracts.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-016-requirement",
+      "statement": "Each plugin and capability must maintain a machine-enforced logging matrix for mandatory stages and contracts.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    },
+    {
+      "clauseId": "runtime-log-spine-016-amazon-product-sync-log-matrix",
+      "statement": "Amazon product sync must maintain its machine-enforced mandatory-stage logging matrix.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "amazon-product-sync"
+    },
+    {
+      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
+      "statement": "Facebook product video mining must maintain its machine-enforced mandatory-stage logging matrix.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "facebook-product-video-mining-log-coverage"
+    }
+  ]
 }
 ```
 
@@ -275,7 +453,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "All runtime event types must come from the central event registry instead of free string literals."
+  "summary": "All runtime event types must come from the central event registry instead of free string literals.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-017-requirement",
+      "statement": "All runtime event types must come from the central event registry instead of free string literals.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -287,7 +473,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "CI must emit machine-readable and human-readable runtime log coverage reports with mandatory stage and failure coverage."
+  "summary": "CI must emit machine-readable and human-readable runtime log coverage reports with mandatory stage and failure coverage.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-018-requirement",
+      "statement": "CI must emit machine-readable and human-readable runtime log coverage reports with mandatory stage and failure coverage.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -299,7 +493,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Any failed or review-required round must be diagnosable from runtime logs without rerunning the mission."
+  "summary": "Any failed or review-required round must be diagnosable from runtime logs without rerunning the mission.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-019-requirement",
+      "statement": "Any failed or review-required round must be diagnosable from runtime logs without rerunning the mission.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 
@@ -311,7 +513,15 @@ Forbidden:
   "capabilityDomain": "runtime-log-spine",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+runtime-contract",
-  "summary": "Automation, AI, DOM, browser, artifact, navigation, and recovery changes must satisfy log law before merge."
+  "summary": "Automation, AI, DOM, browser, artifact, navigation, and recovery changes must satisfy log law before merge.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-runtime-log-spine-020-requirement",
+      "statement": "Automation, AI, DOM, browser, artifact, navigation, and recovery changes must satisfy log law before merge.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
 }
 ```
 

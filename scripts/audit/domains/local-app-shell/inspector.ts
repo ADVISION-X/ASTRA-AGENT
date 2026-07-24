@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { containsAnyCaseInsensitive, isPublicCapabilityFacadePath, isPublicPluginFacadePath } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -136,7 +136,7 @@ const inspectRootSurface = (findings: Finding[], lawId: string): void => {
   requireMarker({ findings, lawId, filePath: clientPath, text: clientText, marker: "/api/mode", checkId: "local-app-shell/mode-api" });
 };
 
-const inspectJobInputs = (findings: Finding[], lawId: string): void => {
+const inspectJobInputs = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const pageText = readAppShellSurfaceText();
   const videoClientText = readRepoFile(videoDownloadClientPath);
   const videoRouteText = readRepoFile(videoDownloadRoutePath);
@@ -158,7 +158,19 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "routeVideoDownloadArtifactJob", checkId: "local-app-shell/video-download-route" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "/api/video-download/source-page", checkId: "local-app-shell/video-download-source-page" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "missing_source_page_url", checkId: "local-app-shell/video-download-route" });
-  if (videoRouteText.includes("getVideoDownloadAbilityGroup().execute")) {
+  const hasDirectAbilityCall = getSourceFile(context, videoDownloadRoutePath)
+    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => {
+      const expression = call.getExpression();
+      if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "execute") {
+        return false;
+      }
+      const owner = expression.getExpression();
+      return Node.isCallExpression(owner)
+        && Node.isIdentifier(owner.getExpression())
+        && owner.getExpression().getText() === "getVideoDownloadAbilityGroup";
+    }) ?? false;
+  if (hasDirectAbilityCall) {
     pushFinding(findings, {
       checkId: "local-app-shell/video-download-direct-ability-call",
       lawId,
@@ -383,7 +395,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
 
   inspectAstProjectAccess(context, findings, boundaryLawId);
   inspectRootSurface(findings, surfaceLawId);
-  inspectJobInputs(findings, inputLawId);
+  inspectJobInputs(context, findings, inputLawId);
   inspectDeepResearchAppSurface(context, findings, inspectedFiles, inputLawId, deliveryLawId);
   inspectStatusWindow(findings, statusLawId);
   inspectForbiddenPageTerms(findings, boundaryLawId);
@@ -394,6 +406,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };

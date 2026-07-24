@@ -216,6 +216,14 @@ UAE Lottery Pick 3 official source
     "contact-sheet blind payloads",
     "answer reveal before prediction sealing",
     "failure replay counted as future accuracy"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
+      "statement": "Pick3 IS blind eval must be a single UAE Lottery Pick 3 executor domain with official-source sync, isolated L80 image generation, sealed predictions, reveal scoring, and failure replay boundaries.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -280,6 +288,14 @@ UAE Lottery Pick 3 official source
     "Closing untracked or user-owned ChatGPT tabs during Pick3 cleanup.",
     "Treating quota-exhausted pause handling as a second runner, second route bus, second provider transport, second prediction table, or second scoring path.",
     "Resuming a Pick3 task by creating a new task id, new batch id, regenerated prompt package, or duplicate sealed prediction for an already completed work item."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
+      "statement": "Pick3 AI prediction must use a Deep-Research-style prompt exchange: governed prompt package, gateway sender capture, raw provider proof persistence, schema parse, interaction record, then sealed prediction.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -304,6 +320,14 @@ UAE Lottery Pick 3 official source
     "External Playbook fallback or prompt bridge.",
     "Active blind Playbook containing target phase, date, answer digit, answer label, or future results.",
     "Failure replay or revealed-answer memory counted as future blind accuracy."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-is-brain-006-requirement",
+      "statement": "Pick3 IS brain must be AGENT-owned: active Playbook assets live inside the Pick3 plugin, are versioned and hash-addressed, and blind prediction payloads must not depend on trend-intuition-brain or leak concrete answers.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -333,6 +357,14 @@ UAE Lottery Pick 3 official source
     "Synthesized missing draws.",
     "Success status with missing earliest history, missing latest history, or an official date gap.",
     "Digit position remapping by prompt preference."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
+      "statement": "Pick3 source sync must use the verified UAE Lottery official pages and API contracts, including lotteryType 72 and 660301 draw-history pagination.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -362,6 +394,14 @@ UAE Lottery Pick 3 official source
     "Mixed-position image or prompt.",
     "Contact-sheet AI payload.",
     "Post-reveal prediction overwrite."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
+      "statement": "Pick3 image and AI execution must preserve blind-test integrity: L80 windows, separated positions, one-image AI payloads, sealed predictions, and no answer leakage.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -388,6 +428,14 @@ UAE Lottery Pick 3 official source
     "Confidence presented as real开奖概率.",
     "Accuracy report without random baseline comparison.",
     "Abstain counted as hit or miss without separate coverage accounting."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
+      "statement": "Pick3 evaluation records must be reproducible and statistically honest: model settings are recorded, random baselines are reported, confidence is not probability, and abstain coverage is separated from accuracy.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -419,6 +467,14 @@ UAE Lottery Pick 3 official source
     "Trend UI mutating blind images, AI payloads, sealed predictions, reveal, or scoring.",
     "Free-form typed lastTargetPhase as production truth.",
     "Applying lastTargetPhase to next_prediction_stability or using it to bypass the L80 history requirement."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-trend-display-010-requirement",
+      "statement": "Pick3 trend display must be a local Workbench read model over official pick3_draws with a fixed L80 visible window, three separated position rows, full hover draw facts, and drag navigation without altering blind AI execution.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -449,6 +505,14 @@ UAE Lottery Pick 3 official source
     "Creating a second AI transport, prediction table, scoring path, route, or result chain.",
     "Reveal, scoring, hit rate, or accuracy claims for next-period stability before the official answer exists.",
     "System-generated final recommendation or majority vote decision."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
+      "statement": "Pick3 next-period stability mode must first prove latest official data, then send the same single next-period image per selected position multiple times through the existing Prompt Exchange and display only per-repeat results.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -478,6 +542,14 @@ UAE Lottery Pick 3 official source
     "Repeat detail without full raw AI answer access.",
     "Creating a second task history store, second AI answer store, or second result chain for human review.",
     "System-generated buy, bet, wager, majority choice, final pick, or recommendation text."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
+      "statement": "Pick3 next-period stability runs must produce a human review history that shows the phase context, same-image repeat proof, every repeat result, and the full AI answer without generating a buying or voting recommendation.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -523,6 +595,14 @@ UAE Lottery Pick 3 official source
     "Second AI transport, second scoring path, second prediction table, or second history chain for lesson review.",
     "Code-side selection of a single representative case or code-side summarization/merging of multiple cases within an aggregate-key group before sending to the AI.",
     "Storing a placeholder lesson (e.g. an unparsed/unstructured rootCause or candidateLesson) after a post-mortem review reply fails to parse, instead of retrying up to 3 attempts and discarding the failure entirely on exhaustion."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
+      "statement": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records; every non-rejected lesson is assembled live into the blind prompt payload at prompt-build time as soon as it exists, with no minimum lesson count, no saved candidate file, and no human promotion step.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -554,6 +634,14 @@ UAE Lottery Pick 3 official source
     "Leaving raw AI answer rows readable after a confirmed delete.",
     "Deleting paths outside GrassEye runtime data.",
     "Creating a second delete ledger, second history chain, or recoverable trash folder."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
+      "statement": "Pick3 human review history deletion must be a deliberate irreversible physical delete guarded by a real browser confirmation dialog.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```
@@ -577,6 +665,14 @@ UAE Lottery Pick 3 official source
     "Historical prompt mutation.",
     "Failure replay reported as blind accuracy.",
     "Replay overwrites original prediction or reveal."
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
+      "statement": "Prompt repair must be versioned and failure replay must be marked as diagnostic only, never as valid future accuracy evidence.",
+      "evidenceMode": "static",
+      "ownerDomain": "pick3-is-blind-eval"
+    }
   ]
 }
 ```

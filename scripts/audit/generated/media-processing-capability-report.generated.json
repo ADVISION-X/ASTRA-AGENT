@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T22:49:25.407Z",
+  "generatedAt": "2026-07-24T00:55:37.000Z",
   "capabilityDomain": "media-processing-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,6 +16,1708 @@
   ],
   "status": "PASS",
   "findings": [],
+  "executedChecks": [
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
+      "clauseId": "grasseye-media-processing-capability-001-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
+      "clauseId": "grasseye-media-processing-capability-002-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
+      "clauseId": "grasseye-media-processing-capability-003-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
+      "clauseId": "grasseye-media-processing-capability-004-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
+      "clauseId": "grasseye-media-processing-capability-005-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
+      "clauseId": "grasseye-media-processing-capability-006-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
+      "clauseId": "grasseye-media-processing-capability-007-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
+      "clauseId": "grasseye-media-processing-capability-008-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
+      "clauseId": "grasseye-media-processing-capability-009-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/api-boundary-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/app-route-input-root-guard"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/app-route-mediator"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/app-route-no-runtime"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/app-shell-client-functions"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/app-shell-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/app-shell-workspace"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/blueprint-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/child-registry"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/child-schema"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/facade-registry-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/ffmpeg-packaged-readiness"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/ffprobe-readiness-proof"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/ffprobe-required-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/generated-plan-visible"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/group-id"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/inspector-project-access"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/job-flow-public-facade"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/latest-dependency-before-child"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/latest-dependency-gate-function"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/latest-dependency-npm-latest"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/latest-dependency-package-covered"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/latest-dependency-package-list"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/law-file"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/mediator-route"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/no-parallel-owner"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/no-video-download-owner-leak"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/plugin-no-direct-schema-import"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/proof-ref-file-path"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/public-facade-no-private-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/public-result-schema-export"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/source-file-present"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/video-ffprobe-metadata"
+    },
+    {
+      "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
+      "clauseId": "grasseye-media-processing-capability-010-requirement",
+      "checkId": "media-processing/video-success-no-null-metadata"
+    }
+  ],
   "inspectedFiles": [
     "src/capabilities/media-processing/schema.ts",
     "src/capabilities/media-processing/contract.ts",

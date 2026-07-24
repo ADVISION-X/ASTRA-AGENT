@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import {
@@ -160,6 +160,7 @@ const inspectFlowStructure = (state: DeepResearchInspectionState): void => {
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-050-V1"),
   });
   inspectFullCaseFileSovereignty({
+    context,
     finalAdjudicationPromptFile: getSourceFile(context, requiredFiles[5]),
     htmlReportPromptFile: getSourceFile(context, requiredFiles[6]),
     fullCaseFileFile: getSourceFile(context, requiredFiles[2]),
@@ -369,6 +370,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings: state.findings,
     inspectedFiles: [...state.inspectedFiles].sort(),
   };

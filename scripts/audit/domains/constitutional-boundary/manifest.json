@@ -3,17 +3,82 @@
   "ownerInspectorPath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
   "executionGroup": "foundation",
   "coverage": {
-    "mode": "domain-wide",
-    "clauseIds": [
-      "primary"
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
+        "clauseId": "apex-capability-facade-symbol-001-requirement",
+        "checkIds": [
+          "constitutional-boundary/dom-primitive-import",
+          "constitutional-boundary/external-non-facade-import",
+          "constitutional-boundary/external-private-import",
+          "constitutional-boundary/facade-private-symbol-export",
+          "constitutional-boundary/facade-private-symbol-import",
+          "constitutional-boundary/private-capability-protocol"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
+        "clauseId": "apex-constitutional-boundary-001-requirement",
+        "checkIds": [
+          "constitutional-boundary/dom-primitive-import",
+          "constitutional-boundary/external-non-facade-import",
+          "constitutional-boundary/external-private-import",
+          "constitutional-boundary/facade-private-symbol-export",
+          "constitutional-boundary/facade-private-symbol-import",
+          "constitutional-boundary/private-capability-protocol"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
+        "clauseId": "apex-dom-automation-bridge-001-requirement",
+        "checkIds": [
+          "constitutional-boundary/dom-primitive-import",
+          "constitutional-boundary/external-non-facade-import",
+          "constitutional-boundary/external-private-import",
+          "constitutional-boundary/facade-private-symbol-export",
+          "constitutional-boundary/facade-private-symbol-import",
+          "constitutional-boundary/private-capability-protocol"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
+        "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
+        "checkIds": [
+          "constitutional-boundary/dom-primitive-import",
+          "constitutional-boundary/external-non-facade-import",
+          "constitutional-boundary/external-private-import",
+          "constitutional-boundary/facade-private-symbol-export",
+          "constitutional-boundary/facade-private-symbol-import",
+          "constitutional-boundary/private-capability-protocol"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/constitutional-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
     ]
   },
-  "lawIdRefs": [
-    "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
-    "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
-    "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-    "APEX-DOM-AUTOMATION-BRIDGE-001-V1"
-  ],
   "blueprintRefs": [
     {
       "filePath": "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",

@@ -165,6 +165,14 @@ Retired names may appear only in deletion notes, migration reports, archive note
     "Parallel planner.",
     "NerveBus or central dispatcher resurrection.",
     "New active architecture outside mediator -> flow -> ability group -> child ability."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-001-requirement",
+      "statement": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -217,6 +225,14 @@ GrassEye 只允许一条架构主链：
     "Mediator containing Amazon-specific or Facebook-specific step logic.",
     "Mediator becoming a workflow engine.",
     "Mediator storing business process state."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-002-requirement",
+      "statement": "The mediator may route user demands to job flows but must not execute business steps or browser actions.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -274,6 +290,14 @@ GrassEye 只允许一条架构主链：
     "Flow importing unrelated job flow code.",
     "Flow importing non-facade capability files.",
     "Top-level files directly under src/plugins pretending to be shared job routers."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-003-requirement",
+      "statement": "Each new user demand must be implemented as one explicit job flow under src/plugins/<job-id>.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -308,6 +332,14 @@ GrassEye 只允许一条架构主链：
     "Parked plugin referenced by active runtime code.",
     "Experimental plugin entering default runtime surfaces.",
     "Active plugin without ci-full acceptance smoke coverage."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-011-requirement",
+      "statement": "Every plugin root must have one explicit lifecycle status, and only active plugins may enter default runtime surfaces and ci-full acceptance smoke.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -409,6 +441,14 @@ Flow 禁止：
     "Ability group importing unrelated capability owner files.",
     "Ability group deciding business success.",
     "Ability group dispatching multiple unrelated action kinds."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-004-requirement",
+      "statement": "Ability groups must own same-kind reusable actions and must not contain business-specific workflow logic.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -481,6 +521,14 @@ visual-observation
     "Child ability importing unrelated capability owner files.",
     "Child ability making business decisions.",
     "Child ability containing hidden orchestration."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-005-requirement",
+      "statement": "Each child ability must perform one atomic action and must not contain multi-step business workflow.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -539,6 +587,14 @@ verify-dom-state-once
     "Ad-hoc folders for experiments.",
     "Unowned helper folders.",
     "Temporary architecture roots."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-006-requirement",
+      "statement": "New active directories must belong to the approved architecture root allowlist.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -614,6 +670,14 @@ src/adapters
     "Ability group implementation inside src/lib.",
     "Generic service layer hiding business workflow.",
     "Shared helper created before two real call sites exist."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-007-requirement",
+      "statement": "Shared infrastructure under src/lib must remain infrastructure-only and must not absorb business flow or ability logic.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -670,6 +734,14 @@ src/adapters
     "New demand without explicit flow.",
     "New demand without acceptance smoke.",
     "New demand hidden inside existing unrelated flow."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-008-requirement",
+      "statement": "Every new user demand must enter through a job schema, mediator route, explicit flow, and acceptance proof.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -742,6 +814,14 @@ src/mediator
     "AI outputting selector or coordinate.",
     "AI deciding final sensitive actions.",
     "AI generating workflow steps at runtime."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-009-requirement",
+      "statement": "AI may only serve bounded choice judging and must not become a workflow planner or next-action controller.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````
@@ -799,6 +879,14 @@ Flow 可以问 AI 一个有限选择题，但最终动作由 Flow 根据固定�
     "Unapproved new root folder.",
     "Unapproved new layer.",
     "Silent architectural expansion."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-010-requirement",
+      "statement": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted.",
+      "evidenceMode": "static",
+      "ownerDomain": "architecture-boundary"
+    }
   ]
 }
 ````

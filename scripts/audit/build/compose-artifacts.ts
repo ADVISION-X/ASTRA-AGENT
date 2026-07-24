@@ -7,10 +7,10 @@ import type {
 import { appendDomainArtifactsFromIndexes } from "./compose-artifact-domain-artifacts.js";
 import type { LawSource } from "../shared/law-contracts.js";
 import type { ManifestSource } from "../shared/manifest-contracts.js";
+import { createAuditProject } from "../shared/project.js";
 
 type LawIndexes = {
   lawsById: Map<string, LawSource[]>;
-  lawsByDomain: Map<string, LawSource[]>;
   manifestsByDomain: Map<string, ManifestSource[]>;
 };
 
@@ -26,18 +26,15 @@ const indexSources = (
   manifests: readonly ManifestSource[],
 ): LawIndexes => {
   const lawsById = new Map<string, LawSource[]>();
-  const lawsByDomain = new Map<string, LawSource[]>();
   const manifestsByDomain = new Map<string, ManifestSource[]>();
   for (const law of activeLaws) {
     lawsById.set(law.lawId, [...(lawsById.get(law.lawId) ?? []), law]);
-    lawsByDomain.set(law.capabilityDomain, [...(lawsByDomain.get(law.capabilityDomain) ?? []), law]);
   }
   for (const manifest of manifests) {
     manifestsByDomain.set(manifest.capabilityDomain, [...(manifestsByDomain.get(manifest.capabilityDomain) ?? []), manifest]);
   }
   return {
     lawsById,
-    lawsByDomain,
     manifestsByDomain,
   };
 };
@@ -81,25 +78,6 @@ const pushDuplicateManifestConflicts = (
   }
 };
 
-const pushUncoveredLawConflicts = (
-  conflicts: AuditConflict[],
-  activeLaws: readonly LawSource[],
-  staticCoverage: readonly StaticClauseCoverageEntry[],
-): void => {
-  for (const law of activeLaws) {
-    if (staticCoverage.some((entry) => entry.lawId === law.lawId)) {
-      continue;
-    }
-    conflicts.push({
-      kind: "uncovered-law",
-      capabilityDomain: law.capabilityDomain,
-      filePath: law.filePath,
-      lawId: law.lawId,
-      message: `Active law ${law.lawId} has no generated static clause coverage.`,
-    });
-  }
-};
-
 export const composeArtifacts = (
   laws: readonly LawSource[],
   manifests: readonly ManifestSource[],
@@ -119,7 +97,6 @@ export const composeArtifacts = (
   const indexes = indexSources(activeLaws, manifests);
   pushDuplicates(outputs.conflicts, indexes.lawsById);
   pushDuplicateManifestConflicts(outputs.conflicts, indexes.manifestsByDomain);
-  appendDomainArtifactsFromIndexes(outputs, indexes);
-  pushUncoveredLawConflicts(outputs.conflicts, activeLaws, outputs.staticCoverage);
+  appendDomainArtifactsFromIndexes(outputs, indexes, createAuditProject(), activeLaws);
   return outputs;
 };

@@ -60,6 +60,14 @@ This domain is not a betting executor. It creates a local, human-reviewable tick
     "official My Plan, cart, checkout, or payment writes",
     "login, cookies, localStorage, account, age gate, location gate, or payment handling",
     "wager recommendation, stake sizing, or probability claim"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
+      "statement": "Lottery Ticket Plan must generate local upper/lower ticket plans for human review only, starting with Pick3 125-line plans, without betting-site DOM automation or purchase submission.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "lottery-ticket-plan"
+    }
   ]
 }
 ```

@@ -1,12 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
-
-import { resolveFromRepo } from "../../shared/paths.js";
-import { findLine } from "../runtime-log-spine/source-read.js";
+import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { FacebookLogCoverageLaw, type FacebookLogCoverageFinding } from "./constants.js";
+import { collectAstTokenCoverage, hasAstToken } from "./facebook-mining-ast-token-coverage.js";
 
 const navigationFiles = [
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+  "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
 ] as const;
 
 const requiredTokens = [
@@ -16,24 +15,24 @@ const requiredTokens = [
   "afterSignatureHash",
   "beforeVideoKey",
   "afterVideoKey",
-  "changed",
+  "changedSignals",
   "actionStrategy",
   "fallbackUsed",
   "recoveryTrail",
   "durationMs",
 ] as const;
 
-export const collectFacebookMiningNavigationLogCoverage = (): {
+export const collectFacebookMiningNavigationLogCoverage = (context: InspectorContext): {
   findings: FacebookLogCoverageFinding[];
   inspectedFiles: string[];
 } => {
-  const text = navigationFiles.map((file) => existsSync(resolveFromRepo(file)) ? readFileSync(resolveFromRepo(file), "utf8") : "").join("\n");
-  const missing = requiredTokens.filter((token) => !text.includes(token));
+  const coverage = collectAstTokenCoverage(context, navigationFiles);
+  const missing = requiredTokens.filter((token) => !hasAstToken(coverage, token));
   const findings: FacebookLogCoverageFinding[] = missing.length === 0 ? [] : [{
     checkId: "facebook-log-coverage/navigation-contract",
     lawId: FacebookLogCoverageLaw.NAVIGATION_CONTRACT,
     file: navigationFiles[0],
-    line: findLine(text, "navigateToNextFacebookVideo"),
+    line: coverage.firstLine,
     severity: "fatal",
     message: "Facebook next navigation lacks before/action/after trace contract",
     hint: `Log before signature, action/fallback trail, after signature and stable verification result. Missing: ${missing.join(", ")}.`,

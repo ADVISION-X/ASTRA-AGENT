@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import {
@@ -209,14 +209,15 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectRequiredFiles(context, findings, inspectedFiles, flowLawId);
   inspectWorkbenchSurface(context, findings, inspectedFiles, surfaceLawId);
   inspectPackageScripts(findings, inspectedFiles, surfaceLawId);
-  inspectMinimalOperatorInput(findings, inspectedFiles, minimalInputLawId);
-  inspectFacebookSafetyDefaults(findings, inspectedFiles, safetyLawId);
-  inspectSavedRecordExportSurface(findings, inspectedFiles, exportLawId);
-  inspectStateMachineNavigationProof(findings, inspectedFiles, stateMachineLawId);
+  inspectMinimalOperatorInput(context, findings, inspectedFiles, minimalInputLawId);
+  inspectFacebookSafetyDefaults(context, findings, inspectedFiles, safetyLawId);
+  inspectSavedRecordExportSurface(context, findings, inspectedFiles, exportLawId);
+  inspectStateMachineNavigationProof(context, findings, inspectedFiles, stateMachineLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+      executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };

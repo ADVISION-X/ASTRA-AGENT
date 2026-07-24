@@ -189,7 +189,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Active source files must remain owner-clear, role-clear, and small enough for safe Codex iteration."
+  "summary": "Active source files must remain owner-clear, role-clear, and small enough for safe Codex iteration.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-001-requirement",
+      "statement": "Active source files must remain owner-clear, role-clear, and small enough for safe Codex iteration.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -220,7 +228,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Touched files must not get dirtier and must not cross hard purity limits."
+  "summary": "Touched files must not get dirtier and must not cross hard purity limits.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-002-requirement",
+      "statement": "Touched files must not get dirtier and must not cross hard purity limits.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -246,7 +262,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast",
-  "summary": "Files must not mix incompatible GrassEye runtime roles."
+  "summary": "Files must not mix incompatible GrassEye runtime roles.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-003-requirement",
+      "statement": "Files must not mix incompatible GrassEye runtime roles.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -294,7 +318,15 @@ Forbidden mixes:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Each job flow must own one business demand and must not become a generic workflow engine."
+  "summary": "Each job flow must own one business demand and must not become a generic workflow engine.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-004-requirement",
+      "statement": "Each job flow must own one business demand and must not become a generic workflow engine.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -326,7 +358,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast",
-  "summary": "The mediator may route user demands but must not execute business steps or browser actions."
+  "summary": "The mediator may route user demands but must not execute business steps or browser actions.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-005-requirement",
+      "statement": "The mediator may route user demands but must not execute business steps or browser actions.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -356,7 +396,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Ability groups must own same-kind reusable actions and must not absorb business workflow."
+  "summary": "Ability groups must own same-kind reusable actions and must not absorb business workflow.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-006-requirement",
+      "statement": "Ability groups must own same-kind reusable actions and must not absorb business workflow.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -385,7 +433,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast",
-  "summary": "Child abilities must remain atomic and must not hide multi-step business workflow."
+  "summary": "Child abilities must remain atomic and must not hide multi-step business workflow.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-007-requirement",
+      "statement": "Child abilities must remain atomic and must not hide multi-step business workflow.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -413,7 +469,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+typecheck",
-  "summary": "Type escapes must not bypass GrassEye contracts, schemas, or runtime safety."
+  "summary": "Type escapes must not bypass GrassEye contracts, schemas, or runtime safety.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-008-requirement",
+      "statement": "Type escapes must not bypass GrassEye contracts, schemas, or runtime safety.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -444,7 +508,15 @@ Required:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Fake, mock, placeholder, no-op, demo, and fallback runtime paths must not survive in active source truth."
+  "summary": "Fake, mock, placeholder, no-op, demo, and fallback runtime paths must not survive in active source truth.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-009-requirement",
+      "statement": "Fake, mock, placeholder, no-op, demo, and fallback runtime paths must not survive in active source truth.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -477,7 +549,15 @@ Allowed only in explicitly named test or archive contexts:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Bridge, compatibility, legacy, shadow, and dual-truth structures are forbidden unless an active law explicitly authorizes them."
+  "summary": "Bridge, compatibility, legacy, shadow, and dual-truth structures are forbidden unless an active law explicitly authorizes them.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-010-requirement",
+      "statement": "Bridge, compatibility, legacy, shadow, and dual-truth structures are forbidden unless an active law explicitly authorizes them.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -509,7 +589,15 @@ These terms may appear only in law text, migration notes, archive notes, deletio
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Shared files must prove infrastructure ownership and must not become dumping grounds."
+  "summary": "Shared files must prove infrastructure ownership and must not become dumping grounds.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-011-requirement",
+      "statement": "Shared files must prove infrastructure ownership and must not become dumping grounds.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -539,7 +627,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Evidence, logs, and result records must be truthful and must not be forged to satisfy acceptance."
+  "summary": "Evidence, logs, and result records must be truthful and must not be forged to satisfy acceptance.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-012-requirement",
+      "statement": "Evidence, logs, and result records must be truthful and must not be forged to satisfy acceptance.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -568,7 +664,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "hybrid",
-  "summary": "Code-purity enforcement must be real, runner-visible, and unable to fake PASS."
+  "summary": "Code-purity enforcement must be real, runner-visible, and unable to fake PASS.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-013-requirement",
+      "statement": "Code-purity enforcement must be real, runner-visible, and unable to fake PASS.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -607,7 +711,15 @@ Allowed phased enforcement:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs",
-  "summary": "Generated artifacts are evidence outputs, not hand-written source truth."
+  "summary": "Generated artifacts are evidence outputs, not hand-written source truth.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-014-requirement",
+      "statement": "Generated artifacts are evidence outputs, not hand-written source truth.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -629,7 +741,15 @@ Generated artifacts:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Code-purity enforcement must produce actionable inventories and every executable inventory item must block PASS."
+  "summary": "Code-purity enforcement must produce actionable inventories and every executable inventory item must block PASS.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-015-requirement",
+      "statement": "Code-purity enforcement must produce actionable inventories and every executable inventory item must block PASS.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -676,7 +796,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "hybrid",
-  "summary": "Purity remediation must simplify the real structure, not hide the same mess behind another file."
+  "summary": "Purity remediation must simplify the real structure, not hide the same mess behind another file.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-016-requirement",
+      "statement": "Purity remediation must simplify the real structure, not hide the same mess behind another file.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -713,7 +841,15 @@ Forbidden remediation:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast+symbol-graph+anti-evasion",
-  "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, literal-dead code branches, or any surface whose liveness cannot be proven."
+  "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, literal-dead code branches, or any surface whose liveness cannot be proven.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-017-requirement",
+      "statement": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, literal-dead code branches, or any surface whose liveness cannot be proven.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -763,7 +899,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+symbol-graph+anti-evasion",
-  "summary": "Zombie inspection must be AST-level, symbol-level, and anti-evasion strict; unproven liveness fails."
+  "summary": "Zombie inspection must be AST-level, symbol-level, and anti-evasion strict; unproven liveness fails.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-018-requirement",
+      "statement": "Zombie inspection must be AST-level, symbol-level, and anti-evasion strict; unproven liveness fails.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -808,7 +952,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+module-graph+manifest",
-  "summary": "Side-effect imports must not act as hidden liveness or boundary proof without explicit lawful manifest ownership."
+  "summary": "Side-effect imports must not act as hidden liveness or boundary proof without explicit lawful manifest ownership.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-019-requirement",
+      "statement": "Side-effect imports must not act as hidden liveness or boundary proof without explicit lawful manifest ownership.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -836,7 +988,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+module-graph+manifest",
-  "summary": "Dynamic imports must remain literal, resolvable, manifest-declared, and owner-boundary lawful."
+  "summary": "Dynamic imports must remain literal, resolvable, manifest-declared, and owner-boundary lawful.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-020-requirement",
+      "statement": "Dynamic imports must remain literal, resolvable, manifest-declared, and owner-boundary lawful.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -865,7 +1025,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+module-graph",
-  "summary": "Owner-boundary enforcement must cover import, re-export, dynamic import, and side-effect import uniformly."
+  "summary": "Owner-boundary enforcement must cover import, re-export, dynamic import, and side-effect import uniformly.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-021-requirement",
+      "statement": "Owner-boundary enforcement must cover import, re-export, dynamic import, and side-effect import uniformly.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -892,7 +1060,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+symbol-graph+declaration-graph",
-  "summary": "Reachable files must still prove declaration-level liveness from runtime or type roots; dead export helper chains and dead internal subgraphs must fail."
+  "summary": "Reachable files must still prove declaration-level liveness from runtime or type roots; dead export helper chains and dead internal subgraphs must fail.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-022-requirement",
+      "statement": "Reachable files must still prove declaration-level liveness from runtime or type roots; dead export helper chains and dead internal subgraphs must fail.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -922,7 +1098,15 @@ Forbidden:
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "ast+symbol-graph+property-usage+manifest",
-  "summary": "Object bags, registries, and handler maps must prove liveness at property level; whole-bag imports do not keep every entry alive."
+  "summary": "Object bags, registries, and handler maps must prove liveness at property level; whole-bag imports do not keep every entry alive.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-023-requirement",
+      "statement": "Object bags, registries, and handler maps must prove liveness at property level; whole-bag imports do not keep every entry alive.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
@@ -1041,7 +1225,15 @@ Code Purity enforcement must be stricter than the text when the same AST / symbo
   "capabilityDomain": "code-purity",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+symbol+reachability+inventory",
-  "summary": "Every public export, registry entry, report field, schema field, wrapper, and abstraction layer in active source must prove active value or be deleted, inlined, merged, or moved out of production source."
+  "summary": "Every public export, registry entry, report field, schema field, wrapper, and abstraction layer in active source must prove active value or be deleted, inlined, merged, or moved out of production source.",
+  "clauses": [
+    {
+      "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
+      "statement": "Every public export, registry entry, report field, schema field, wrapper, and abstraction layer in active source must prove active value or be deleted, inlined, merged, or moved out of production source.",
+      "evidenceMode": "static",
+      "ownerDomain": "code-purity"
+    }
+  ]
 }
 ```
 
