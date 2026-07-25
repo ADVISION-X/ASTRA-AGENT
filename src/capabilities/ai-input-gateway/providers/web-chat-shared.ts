@@ -80,7 +80,7 @@ const acknowledgeWebChatRateLimitIfVisible = async (input: {
   await acknowledgePick3RateLimitIfVisible(input);
 };
 
-const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number; attachmentUploadProof: WebChatAttachmentUploadProof }): Promise<void> => {
+const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousUserMessageCount: number; attachmentUploadProof: WebChatAttachmentUploadProof }): Promise<void> => {
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -91,7 +91,7 @@ const submitWebChatPrompt = async (input: { browser: BrowserController; request:
     browser: input.browser,
     request: input.request,
     context: input.context,
-    previousAssistantCount: input.previousAssistantCount,
+    previousUserMessageCount: input.previousUserMessageCount,
     attachmentUploadProof: input.attachmentUploadProof,
   });
 };
@@ -136,10 +136,10 @@ const extractWebChatConversation = async (input: { browser: BrowserController; r
   };
 };
 
-const readPreSubmitConversationState = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string }): Promise<{ previousAssistantCount: number; previousAnswerText: string | null }> => {
+const readPreSubmitConversationState = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string }): Promise<{ previousAssistantCount: number; previousUserMessageCount: number; previousAnswerText: string | null }> => {
   if (shouldSkipPreSubmitConversationState(input.request)) {
     emitWebChatStage({ request: input.request, stage: "pre_submit_snapshot", status: "skipped", startedAtMs: null, refs: { reason: "fresh_gemini_pick3_conversation" } });
-    return { previousAssistantCount: 0, previousAnswerText: null };
+    return { previousAssistantCount: 0, previousUserMessageCount: 0, previousAnswerText: null };
   }
   const startedAtMs = Date.now();
   emitWebChatStage({ request: input.request, stage: "pre_submit_snapshot", status: "start", startedAtMs: null });
@@ -166,6 +166,7 @@ const readPreSubmitConversationState = async (input: { browser: BrowserControlle
   });
   return {
     previousAssistantCount: beforeSubmit.assistantCount ?? 0,
+    previousUserMessageCount: beforeSubmit.userMessageCount ?? 0,
     previousAnswerText: beforeSubmit.answerText?.trim() ?? null,
   };
 };
@@ -176,6 +177,7 @@ const prepareWebChatConversation = async (
   input: OpenedWebChatConversationInput,
 ): Promise<{
   previousAssistantCount: number;
+  previousUserMessageCount: number;
   previousAnswerText: string | null;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
@@ -239,7 +241,7 @@ const executeWebChatConversation = async (
     request: input.request,
     context: input.context,
     providerUrl: input.providerUrl,
-    previousAssistantCount: preSubmit.previousAssistantCount,
+    previousUserMessageCount: preSubmit.previousUserMessageCount,
     attachmentUploadProof: preSubmit.attachmentUploadProof,
   });
   const conversation = await extractWebChatConversation({

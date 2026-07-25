@@ -3,8 +3,8 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import {
   buildVerifyPromptPastedScript,
   buildVerifyPromptSubmittedScript,
-  buildVerifyLastUserMessageAttachmentsScript,
 } from "./web-chat-evaluation.js";
+import { buildVerifyLastUserMessageAttachmentsScript } from "./web-chat-submitted-attachment-evaluation.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 
 export const verifyPromptPasted = (
@@ -31,7 +31,7 @@ export const verifyPromptSubmitted = (
   context: AiProviderAdapterContext,
   input: {
     expectedPrefix: string;
-    previousAssistantCount: number;
+    previousUserMessageCount: number;
     wasPromptVerifiedBeforeSubmit: boolean;
   },
 ): Promise<WebChatEvaluation> =>
@@ -39,7 +39,7 @@ export const verifyPromptSubmitted = (
     description: "verify AI web chat prompt was submitted",
     script: buildVerifyPromptSubmittedScript(
       input.expectedPrefix,
-      input.previousAssistantCount,
+      input.previousUserMessageCount,
       input.wasPromptVerifiedBeforeSubmit,
     ),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
@@ -50,9 +50,16 @@ export const verifyLastUserMessageAttachments = (
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedKind: "image" | "file",
+  expectedFileNames: readonly string[],
+  previousUserMessageCount: number,
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: `verify AI web chat submitted user message has bound ${expectedKind} attachment`,
-    script: buildVerifyLastUserMessageAttachmentsScript(expectedCount, expectedKind),
+    script: buildVerifyLastUserMessageAttachmentsScript(
+      expectedCount,
+      expectedKind,
+      expectedFileNames,
+      previousUserMessageCount,
+    ),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

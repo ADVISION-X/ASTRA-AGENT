@@ -3,11 +3,11 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { waitForExactAttachmentCount as waitForExactAttachmentCountImpl } from "./web-chat-upload-page-actions.js";
 import {
-  CLICK_CHATGPT_ADD_BUTTON_SCRIPT,
-  CLICK_CHATGPT_LOCAL_FILE_MENU_ITEM_SCRIPT,
   CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
   FOCUS_COMPOSER_SCRIPT,
   VERIFY_COMPOSER_FOCUSED_SCRIPT,
+  buildClickChatGptAddButtonScript,
+  buildClickChatGptLocalFileMenuItemScript,
 } from "./web-chat-composer-scripts.js";
 import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
 
@@ -39,12 +39,19 @@ export const waitForExactAttachmentCount = (
   expectedCount: number,
   expectedFileNames: readonly string[],
   timeoutMs: number,
+  options: {
+    expectedPageUrl?: string | null;
+    baselineAttachmentCount?: number;
+    requireReady?: boolean;
+    requireComposerTextEmpty?: boolean;
+  } = {},
 ): Promise<WebChatEvaluation> => waitForExactAttachmentCountImpl(
   browser,
   context,
   expectedCount,
   expectedFileNames,
   Math.min(timeoutMs, MAX_ATTACHMENT_COUNT_WAIT_MS),
+  options,
 );
 
 export const waitForComposerFocused = async (
@@ -86,10 +93,11 @@ export const clickChatGptSendButton = (
 export const openChatGptNativeFilePicker = async (
   browser: BrowserController,
   context: AiProviderAdapterContext,
+  expectedPageUrl: string,
 ): Promise<void> => {
   const addButton = await browser.evaluateActiveTab<WebChatEvaluation>({
     description: "open ChatGPT attachment menu",
-    script: CLICK_CHATGPT_ADD_BUTTON_SCRIPT,
+    script: buildClickChatGptAddButtonScript(expectedPageUrl),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
   if (addButton.status !== "success") {
@@ -102,7 +110,7 @@ export const openChatGptNativeFilePicker = async (
       targetPoint?: { x: number; y: number };
     }>({
       description: "choose ChatGPT local file upload action",
-      script: CLICK_CHATGPT_LOCAL_FILE_MENU_ITEM_SCRIPT,
+      script: buildClickChatGptLocalFileMenuItemScript(expectedPageUrl),
       ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
     });
     lastMessage = menuItem.message;

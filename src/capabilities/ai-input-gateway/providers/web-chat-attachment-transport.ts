@@ -22,6 +22,7 @@ export type WebChatAttachmentTransportInput = {
   request: AiFeedInput;
   stagingDirectoryPath: string;
   files: StagedWebChatAttachment[];
+  expectedPageUrl: string;
 };
 
 export type WebChatAttachmentTransportResult = {

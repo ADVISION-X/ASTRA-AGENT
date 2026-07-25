@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-24T00:55:30.902Z",
+  "generatedAt": "2026-07-25T16:22:03.543Z",
   "status": "PASS",
-  "scannedFiles": 477,
+  "scannedFiles": 479,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -111,7 +111,9 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
@@ -499,7 +501,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 477,
+    "scannedFiles": 479,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -510,7 +512,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 472,
+      "scannedFiles": 474,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -519,13 +521,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 369
+      "scannedFiles": 371
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 365,
+      "scannedFiles": 367,
       "metrics": {
         "emitCallCount": 41
       }
@@ -534,13 +536,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 365
+      "scannedFiles": 367
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 370,
+      "scannedFiles": 372,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -555,7 +557,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 370,
+      "scannedFiles": 372,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -576,7 +578,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 60
+      "scannedFiles": 62
     },
     {
       "name": "browser-action-log-contract",

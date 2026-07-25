@@ -10,7 +10,11 @@ import type {
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { buildAiFeedInputPackage } from "../runtime/ai-feed-input-package.js";
-import { clearComposer, waitForExactAttachmentCount } from "../providers/web-chat-upload-page-actions.js";
+import {
+  clearComposer,
+  readExactAttachmentState,
+  waitForExactAttachmentCount,
+} from "../providers/web-chat-upload-page-actions.js";
 import { attachByNativePickerBatch } from "../providers/web-chat-native-picker-attachment.js";
 import { attachByOrderedClipboard } from "../providers/web-chat-ordered-clipboard-attachment.js";
 import type {
@@ -22,6 +26,7 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 
 const ATTACHMENT_STABILITY_POLL_COUNT = 15;
 const ATTACHMENT_STABILITY_POLL_MS = 2_000;
+const ATTACHMENT_STABILITY_MAX_POLL_COUNT = 60;
 
 export type AttachApprovedWebChatFilesResult = {
   uploadedFiles: AiProviderUploadedFileProof[];
@@ -43,6 +48,7 @@ type AttachmentAttemptState = {
   stagingManifestHash: `sha256:${string}` | null;
   files: StagedWebChatAttachment[];
   transportResult: WebChatAttachmentTransportResult | null;
+  expectedPageUrl: string | null;
 };
 
 export class WebChatAttachmentCapabilityFailure extends Error {
@@ -137,20 +143,41 @@ const waitForStableAttachmentSet = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
   files: StagedWebChatAttachment[];
+  expectedPageUrl: string;
 }): Promise<number> => {
   let detectedFileCount = 0;
-  for (let poll = 0; poll < ATTACHMENT_STABILITY_POLL_COUNT; poll += 1) {
+  let stablePollCount = 0;
+  for (let poll = 0; poll < ATTACHMENT_STABILITY_MAX_POLL_COUNT; poll += 1) {
     await input.browser.wait(ATTACHMENT_STABILITY_POLL_MS);
-    const evaluation = await waitForExactAttachmentCount(
+    const evaluation = await readExactAttachmentState(
       input.browser,
       input.context,
       input.files.length,
       input.files.map((file) => file.displayFileName),
-      5_000,
+      {
+        expectedPageUrl: input.expectedPageUrl,
+        baselineAttachmentCount: 0,
+        requireReady: true,
+      },
     );
+    if (evaluation.status === "review_required" || evaluation.status === "failed") {
+      throw new Error(
+        `${evaluation.message}; stable_poll=${poll + 1}; detected_count=${String(evaluation.attachmentCount ?? 0)}; detected_files=${evaluation.attachmentNames?.join("|") ?? ""}`,
+      );
+    }
+    if (evaluation.status !== "success") {
+      stablePollCount = 0;
+      continue;
+    }
     detectedFileCount = evaluation.attachmentCount ?? input.files.length;
+    stablePollCount += 1;
+    if (stablePollCount === ATTACHMENT_STABILITY_POLL_COUNT) {
+      return detectedFileCount;
+    }
   }
-  return detectedFileCount;
+  throw new Error(
+    `GPT_ATTACHMENT_STABILITY_TIMEOUT; required_polls=${ATTACHMENT_STABILITY_POLL_COUNT}; observed_continuous_polls=${stablePollCount}`,
+  );
 };
 
 const toProofFiles = (files: StagedWebChatAttachment[]): WebChatAttachmentUploadProof["files"] =>
@@ -212,22 +239,42 @@ const performAttachmentTransport = async (
   state.stagingManifestHash = staged.stagingManifestHash;
   state.files = staged.files;
   clearRecentChatGptBlockingDialog();
-  await clearComposer(input.browser, input.context);
+  const cleared = await clearComposer(input.browser, input.context);
+  if (cleared.status !== "success" || !cleared.pageUrl) {
+    throw new Error(`review_required: WEB_CHAT_COMPOSER_CLEAR_ACTION_UNPROVEN; ${cleared.message}`);
+  }
+  state.expectedPageUrl = cleared.pageUrl;
+  await waitForExactAttachmentCount(
+    input.browser,
+    input.context,
+    0,
+    [],
+    10_000,
+    {
+      expectedPageUrl: state.expectedPageUrl,
+      baselineAttachmentCount: 0,
+      requireReady: false,
+      requireComposerTextEmpty: true,
+    },
+  );
   state.transportResult = state.transportKind === "native_picker_batch"
     ? await attachByNativePickerBatch({
         ...input,
         stagingDirectoryPath: staged.stagingDirectoryPath,
         files: staged.files,
+        expectedPageUrl: state.expectedPageUrl,
       })
     : await attachByOrderedClipboard({
         ...input,
         stagingDirectoryPath: staged.stagingDirectoryPath,
         files: staged.files,
+        expectedPageUrl: state.expectedPageUrl,
       });
   return waitForStableAttachmentSet({
     browser: input.browser,
     context: input.context,
     files: staged.files,
+    expectedPageUrl: state.expectedPageUrl,
   });
 };
 
@@ -306,6 +353,7 @@ export const attachApprovedWebChatFilesOnce = async (
     stagingManifestHash: null,
     files: [],
     transportResult: null,
+    expectedPageUrl: null,
   };
   if (inputPackage.uploadableFiles.length === 0) {
     return completeSkippedAttempt(input, state);

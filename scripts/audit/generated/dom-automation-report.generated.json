@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-24T00:55:35.872Z",
+  "generatedAt": "2026-07-25T16:22:06.934Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -1552,7 +1552,9 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",

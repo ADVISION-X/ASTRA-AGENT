@@ -102,47 +102,178 @@ const countAttachmentCandidates = (root) => {
   };
 };
 const findBestAttachmentScope = () => {
-  const input = resolveComposerInput();
-  if (input instanceof HTMLElement) {
-    const composerForm = input.closest("form");
-    if (composerForm instanceof HTMLElement) {
-      return {...countAttachmentCandidates(composerForm), scope: "input", input};
-    }
-    let cursor = input;
+  const composerCandidates = Array.from(document.querySelectorAll(
+    "div#prompt-textarea[contenteditable='true'][role='textbox'], div[contenteditable='true'][role='textbox'][aria-label='Enter a prompt for Gemini'], rich-textarea div[contenteditable='true'][role='textbox'], div.ql-editor[contenteditable='true'][role='textbox']"
+  )).filter((node) => node instanceof HTMLElement && node.isContentEditable && isVisible(node));
+  const input = composerCandidates.length === 1 ? composerCandidates[0] : null;
+  if (!(input instanceof HTMLElement)) {
+    return {
+      count: 0,
+      names: [],
+      scope: "none",
+      input: null,
+      composerCandidateCount: composerCandidates.length,
+      composerRootCount: 0,
+      conversationTurnCountInScope: 0,
+      generalFileInputCount: 0,
+      imageFileInputCountInScope: 0,
+      pendingAttachmentCount: 0,
+      sendButtonCount: 0,
+      sendReady: false,
+      composerTextLength: 0,
+    };
+  }
+  const composerForm = input.closest("form");
+  let composerRoot = composerForm instanceof HTMLElement ? composerForm : null;
+  if (!composerRoot) {
+    let cursor = input.parentElement;
     for (let depth = 0; depth < 6 && cursor; depth += 1) {
-      const isComposerBoundary = /composer/i.test(String(cursor.className || ""))
-        || Boolean(cursor.querySelector("#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']"));
-      if (isComposerBoundary) return {...countAttachmentCandidates(cursor), scope: "input", input};
+      const isComposerBoundary = /composer|input-area|prompt-area/i.test(String(cursor.className || ""))
+        || Boolean(cursor.querySelector("[data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']"));
+      if (isComposerBoundary) {
+        composerRoot = cursor;
+        break;
+      }
       cursor = cursor.parentElement;
     }
-    return {count: 0, names: [], scope: "input", input};
   }
-  return {count: 0, names: [], scope: "none", input};
+  if (!(composerRoot instanceof HTMLElement)) {
+    return {
+      count: 0,
+      names: [],
+      scope: "none",
+      input,
+      composerCandidateCount: composerCandidates.length,
+      composerRootCount: 0,
+      conversationTurnCountInScope: 0,
+      generalFileInputCount: 0,
+      imageFileInputCountInScope: 0,
+      pendingAttachmentCount: 0,
+      sendButtonCount: 0,
+      sendReady: false,
+      composerTextLength: readComposerVisibleText(input).length,
+    };
+  }
+  const attachmentState = countAttachmentCandidates(composerRoot);
+  const fileInputs = Array.from(composerRoot.querySelectorAll("input[type='file'][multiple]"))
+    .filter((node) => node instanceof HTMLInputElement);
+  const generalFileInputCount = fileInputs
+    .filter((node) => clip(node.getAttribute("accept") || "").toLowerCase() !== "image/*")
+    .length;
+  const imageFileInputCountInScope = fileInputs
+    .filter((node) => clip(node.getAttribute("accept") || "").toLowerCase() === "image/*")
+    .length;
+  const conversationTurnCountInScope = composerRoot.querySelectorAll(
+    "[data-testid^='conversation-turn-'], [data-message-author-role]"
+  ).length;
+  const pendingAttachmentCount = Array.from(composerRoot.querySelectorAll(
+    "[aria-busy='true'], [role='progressbar'], progress, [data-testid*='upload' i], [class*='uploading' i], [class*='progress' i]"
+  )).filter((node) => {
+    if (!(node instanceof HTMLElement) || !isVisible(node)) return false;
+    const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
+    return /uploading|loading|pending|progress|preparing|上传中|处理中/i.test(label)
+      || node.getAttribute("aria-busy") === "true"
+      || node.getAttribute("role") === "progressbar"
+      || node.tagName.toLowerCase() === "progress";
+  }).length;
+  const sendButtons = Array.from(composerRoot.querySelectorAll(
+    "#composer-submit-button, [data-testid='send-button'], button[aria-label*='Send'], button[aria-label*='发送']"
+  )).filter((node) => node instanceof HTMLElement && isVisible(node));
+  const sendButton = sendButtons.length === 1 ? sendButtons[0] : null;
+  const sendReady = sendButton instanceof HTMLButtonElement
+    ? !sendButton.disabled && sendButton.getAttribute("aria-disabled") !== "true"
+    : sendButton instanceof HTMLElement && sendButton.getAttribute("aria-disabled") !== "true";
+  return {
+    ...attachmentState,
+    scope: "composer",
+    input,
+    composerRoot,
+    composerCandidateCount: composerCandidates.length,
+    composerRootCount: 1,
+    conversationTurnCountInScope,
+    generalFileInputCount,
+    imageFileInputCountInScope,
+    pendingAttachmentCount,
+    sendButtonCount: sendButtons.length,
+    sendReady,
+    composerTextLength: readComposerVisibleText(input).length,
+  };
 };
 `;
 
 export const buildWaitForExactAttachmentCountScript = (
   expectedCount: number,
   expectedFileNames: readonly string[] = [],
+  options: {
+    expectedPageUrl?: string | null;
+    baselineAttachmentCount?: number;
+    requireReady?: boolean;
+    requireComposerTextEmpty?: boolean;
+  } = {},
 ): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 ${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
 const expectedCount = ${JSON.stringify(expectedCount)};
 const expectedFileNames = ${JSON.stringify(expectedFileNames)};
+const expectedPageUrl = ${JSON.stringify(options.expectedPageUrl ?? null)};
+const baselineAttachmentCount = ${JSON.stringify(options.baselineAttachmentCount ?? 0)};
+const requireReady = ${JSON.stringify(options.requireReady ?? expectedCount > 0)};
+const requireComposerTextEmpty = ${JSON.stringify(options.requireComposerTextEmpty ?? false)};
 const result = findBestAttachmentScope();
 const inputFocused = Boolean(result.input instanceof HTMLElement && (document.activeElement === result.input || result.input.contains(document.activeElement)));
 const missingFileNames = expectedFileNames.filter((name) => !result.names.includes(name));
 const unexpectedFileNames = result.names.filter((name) => !expectedFileNames.includes(name));
+const attachmentDelta = result.count - baselineAttachmentCount;
+const isChatGpt = location.hostname === "chatgpt.com" || location.hostname.endsWith(".chatgpt.com");
+const providerIdentityUnchanged = expectedPageUrl === null || location.href === expectedPageUrl;
+const composerStructureExact = result.scope === "composer"
+  && result.composerCandidateCount === 1
+  && result.composerRootCount === 1
+  && result.conversationTurnCountInScope === 0
+  && (!isChatGpt || (result.generalFileInputCount === 1 && result.imageFileInputCountInScope === 0));
+const readyStateExact = !requireReady
+  || (result.pendingAttachmentCount === 0 && (!isChatGpt || (result.sendButtonCount === 1 && result.sendReady)));
+const composerTextExact = !requireComposerTextEmpty || result.composerTextLength === 0;
+const proof = {
+  pageUrl: location.href,
+  attachmentCount: result.count,
+  attachmentNames: result.names,
+  missingFileNames,
+  unexpectedFileNames,
+  attachmentScope: result.scope,
+  inputFocused,
+  composerCandidateCount: result.composerCandidateCount,
+  composerRootCount: result.composerRootCount,
+  conversationTurnCountInScope: result.conversationTurnCountInScope,
+  generalFileInputCount: result.generalFileInputCount,
+  imageFileInputCountInScope: result.imageFileInputCountInScope,
+  pendingAttachmentCount: result.pendingAttachmentCount,
+  sendReady: result.sendReady,
+  attachmentDelta,
+  composerTextLength: result.composerTextLength,
+};
+if (!providerIdentityUnchanged) {
+  return {status: "review_required", message: "WEB_CHAT_PROVIDER_IDENTITY_DRIFT", ...proof};
+}
+if (!composerStructureExact) {
+  return {status: "review_required", message: "WEB_CHAT_COMPOSER_SCOPE_AMBIGUOUS", ...proof};
+}
 if (result.count > expectedCount) {
-  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH", ...proof};
 }
-if (result.count === expectedCount && result.scope === "input" && expectedFileNames.length > 0 && (missingFileNames.length > 0 || unexpectedFileNames.length > 0)) {
-  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+if (unexpectedFileNames.length > 0) {
+  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH", ...proof};
 }
-if (result.count === expectedCount && result.scope === "input") {
-  return {status: "success", message: "provider exact attachment count and file names ready", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+if (
+  result.count === expectedCount
+  && attachmentDelta === expectedCount - baselineAttachmentCount
+  && missingFileNames.length === 0
+  && readyStateExact
+  && composerTextExact
+) {
+  return {status: "success", message: "provider exact fresh composer attachment state ready", ...proof};
 }
-return {status: "pending", message: "waiting for provider exact attachment count", pageUrl: location.href, attachmentCount: result.count, attachmentNames: result.names, missingFileNames, unexpectedFileNames, attachmentScope: result.scope, inputFocused};
+return {status: "pending", message: "waiting for provider exact fresh composer attachment state", ...proof};
 `;
 
 export const CLICK_CHATGPT_SEND_BUTTON_SCRIPT = `
@@ -198,8 +329,17 @@ return {
 };
 `;
 
-export const CLICK_CHATGPT_ADD_BUTTON_SCRIPT = `
+export const buildClickChatGptAddButtonScript = (expectedPageUrl: string): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const expectedPageUrl = ${JSON.stringify(expectedPageUrl)};
+if (location.href !== expectedPageUrl) {
+  return {status: "review_required", message: "WEB_CHAT_PROVIDER_IDENTITY_DRIFT", pageUrl: location.href};
+}
+const input = resolveComposerInput();
+const composerRoot = input instanceof HTMLElement ? input.closest("form") : null;
+if (!(composerRoot instanceof HTMLElement)) {
+  return {status: "review_required", message: "WEB_CHAT_COMPOSER_SCOPE_AMBIGUOUS", pageUrl: location.href};
+}
 const visible = (node) => {
   if (!(node instanceof HTMLElement)) return false;
   const rect = node.getBoundingClientRect();
@@ -208,7 +348,17 @@ const visible = (node) => {
 };
 const include = /^(?:Add files and more|Add files|Upload files|添加文件和更多|添加文件|上传文件)$/iu;
 const exclude = /(?:send|voice|microphone|camera|发送|语音|麦克风|相机)/iu;
-const candidates = Array.from(document.querySelectorAll(
+const preExistingLocalFileItems = Array.from(document.querySelectorAll(
+  ".__menu-item[tabindex], [role='menuitem'], [role='option'], [data-radix-menu-content] button, [data-radix-popper-content-wrapper] button"
+)).filter((node) => {
+  if (!(node instanceof HTMLElement) || !visible(node)) return false;
+  const label = clip(node.getAttribute("aria-label") || node.textContent || "");
+  return /(?:Add photos & files.*Upload from computer|添加照片和文件.*从电脑上传)/iu.test(label);
+});
+if (preExistingLocalFileItems.length > 0) {
+  return {status: "review_required", message: "CHATGPT_UPLOAD_MENU_BASELINE_NOT_CLOSED", pageUrl: location.href, candidateCount: preExistingLocalFileItems.length};
+}
+const candidates = Array.from(composerRoot.querySelectorAll(
   "button[data-testid='composer-plus-btn'], button[aria-label], [role='button'][aria-label]"
 )).filter((node) => {
   if (!(node instanceof HTMLElement) || !visible(node)) return false;
@@ -224,8 +374,17 @@ unique[0].click();
 return {status: "success", message: "ChatGPT add button clicked", pageUrl: location.href};
 `;
 
-export const CLICK_CHATGPT_LOCAL_FILE_MENU_ITEM_SCRIPT = `
+export const buildClickChatGptLocalFileMenuItemScript = (expectedPageUrl: string): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const expectedPageUrl = ${JSON.stringify(expectedPageUrl)};
+if (location.href !== expectedPageUrl) {
+  return {status: "review_required", message: "WEB_CHAT_PROVIDER_IDENTITY_DRIFT", pageUrl: location.href};
+}
+const input = resolveComposerInput();
+const composerRoot = input instanceof HTMLElement ? input.closest("form") : null;
+if (!(composerRoot instanceof HTMLElement)) {
+  return {status: "review_required", message: "WEB_CHAT_COMPOSER_SCOPE_AMBIGUOUS", pageUrl: location.href};
+}
 const visible = (node) => {
   if (!(node instanceof HTMLElement)) return false;
   const rect = node.getBoundingClientRect();
@@ -237,6 +396,7 @@ const candidates = Array.from(document.querySelectorAll(
   ".__menu-item[tabindex], [role='menuitem'], [role='option'], [data-radix-menu-content] button, [data-radix-popper-content-wrapper] button"
 )).filter((node) => {
   if (!(node instanceof HTMLElement) || !visible(node)) return false;
+  if (node.closest("form") && node.closest("form") !== composerRoot) return false;
   const label = clip(node.getAttribute("aria-label") || node.textContent || "");
   const descendantTexts = Array.from(node.querySelectorAll("span, div"))
     .map((candidate) => clip(candidate.textContent || ""))

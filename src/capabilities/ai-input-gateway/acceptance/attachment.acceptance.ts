@@ -16,6 +16,8 @@ import type {
 } from "../../../lib/browser/browser-controller.js";
 import { parseNativeMultiFilePickerOutput } from "../../../lib/browser/current-chrome-native-multi-file-picker.js";
 
+const ATTACHMENT_STABILITY_MINIMUM_WAIT_CALLS = 17;
+
 const sha256 = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
@@ -59,6 +61,9 @@ const buildRequest = async (directory: string, fileCount: number) => {
 type FixtureBrowserInput = {
   nativeSelectionOk?: boolean;
   onNativePicker?: (directoryPath: string, names: string[]) => Promise<void>;
+  identityDriftAfterSelection?: boolean;
+  conversationTurnLeakAfterSelection?: boolean;
+  pendingAtExactRead?: number;
 };
 
 const actionResult = (browserActionId: string) => ({
@@ -68,8 +73,66 @@ const actionResult = (browserActionId: string) => ({
   createdAt: new Date().toISOString(),
 });
 
+const readExpectedAttachmentNames = (script: string): string[] => {
+  const match = script.match(/const expectedFileNames = (\[[^\n]+\]);/u);
+  return match ? JSON.parse(match[1]!) as string[] : [];
+};
+
+const readExpectedPageUrl = (script: string): string | null => {
+  const match = script.match(/const expectedPageUrl = (null|"[^"\n]*");/u);
+  return match ? JSON.parse(match[1]!) as string | null : null;
+};
+
+const buildFixtureExactAttachmentEvaluation = (input: {
+  fixture: FixtureBrowserInput;
+  script: string;
+  currentNames: string[];
+  currentUrl: string;
+  exactReadCount: number;
+}) => {
+  const expectedNames = readExpectedAttachmentNames(input.script);
+  const expectedUrl = readExpectedPageUrl(input.script);
+  const identityMatches = expectedUrl === null || input.currentUrl === expectedUrl;
+  const conversationTurnCountInScope = input.fixture.conversationTurnLeakAfterSelection
+    && input.currentNames.length > 0
+    ? 1
+    : 0;
+  const forcedPending = input.fixture.pendingAtExactRead === input.exactReadCount;
+  const exactNames = input.currentNames.length === expectedNames.length
+    && input.currentNames.every((name) => expectedNames.includes(name));
+  const status = !identityMatches || conversationTurnCountInScope > 0
+    ? "review_required"
+    : forcedPending || !exactNames
+      ? "pending"
+      : "success";
+  return {
+    status,
+    message: !identityMatches
+      ? "WEB_CHAT_PROVIDER_IDENTITY_DRIFT"
+      : conversationTurnCountInScope > 0
+        ? "WEB_CHAT_COMPOSER_SCOPE_AMBIGUOUS"
+        : "fixture attachment count",
+    pageUrl: input.currentUrl,
+    attachmentCount: input.currentNames.length,
+    attachmentNames: input.currentNames,
+    attachmentScope: "composer",
+    composerCandidateCount: 1,
+    composerRootCount: 1,
+    conversationTurnCountInScope,
+    generalFileInputCount: 1,
+    imageFileInputCountInScope: 0,
+    pendingAttachmentCount: forcedPending ? 1 : 0,
+    sendReady: !forcedPending,
+    attachmentDelta: input.currentNames.length,
+    composerTextLength: 0,
+  };
+};
+
 class FixtureBrowserController implements BrowserController {
   private currentNames: string[] = [];
+  private currentUrl = "https://chatgpt.com/";
+  private exactReadCount = 0;
+  waitCallCount = 0;
 
   constructor(private readonly input: FixtureBrowserInput) {}
 
@@ -80,7 +143,7 @@ class FixtureBrowserController implements BrowserController {
   getSessionState(): BrowserStateSnapshot {
     return {
       open: true,
-      currentUrl: "https://chatgpt.com/",
+      currentUrl: this.currentUrl,
       currentTitle: "ChatGPT",
       browserExecutable: "fixture",
       browserMode: "fixture",
@@ -127,22 +190,29 @@ class FixtureBrowserController implements BrowserController {
   }
 
   async evaluateActiveTab<T>(evaluation: { script: string; description: string }): Promise<T> {
-    if (evaluation.description === "wait for exact web chat attachment count") {
-      const namesMatch = evaluation.script.match(/const expectedFileNames = (\[[^\n]+\]);/u);
-      const expectedNames = namesMatch ? JSON.parse(namesMatch[1]!) as string[] : [];
+    if (evaluation.description === "clear stale AI web chat draft and attachments") {
+      this.currentNames = [];
       return {
-        status: this.currentNames.length === expectedNames.length ? "success" : "pending",
-        message: "fixture attachment count",
-        pageUrl: "https://chatgpt.com/",
-        attachmentCount: this.currentNames.length,
-        attachmentNames: this.currentNames,
-        attachmentScope: "input",
+        status: "success",
+        message: "fixture composer cleared",
+        pageUrl: this.currentUrl,
+        composerTextLength: 0,
       } as T;
+    }
+    if (evaluation.description === "read exact fresh web chat composer attachment state") {
+      this.exactReadCount += 1;
+      return buildFixtureExactAttachmentEvaluation({
+        fixture: this.input,
+        script: evaluation.script,
+        currentNames: this.currentNames,
+        currentUrl: this.currentUrl,
+        exactReadCount: this.exactReadCount,
+      }) as T;
     }
     return {
       status: "success",
       message: "fixture DOM action",
-      pageUrl: "https://chatgpt.com/",
+      pageUrl: this.currentUrl,
       ...(evaluation.description === "choose ChatGPT local file upload action"
         ? { targetPoint: { x: 100, y: 100 } }
         : {}),
@@ -168,6 +238,9 @@ class FixtureBrowserController implements BrowserController {
       };
     }
     this.currentNames = [...expectedFileNames];
+    if (this.input.identityDriftAfterSelection) {
+      this.currentUrl = "https://chatgpt.com/c/identity-drift";
+    }
     return {
       browserActionId: "native-picker",
       ok: true,
@@ -178,6 +251,7 @@ class FixtureBrowserController implements BrowserController {
   }
 
   async wait() {
+    this.waitCallCount += 1;
     return actionResult("wait");
   }
 
@@ -274,11 +348,60 @@ try {
   );
   assert.equal(failureProofStatus, "review_required");
 
+  await assert.rejects(
+    attachApprovedWebChatFilesOnce({
+      browser: buildBrowser({ identityDriftAfterSelection: true }),
+      request: await buildRequest(dataDir, 2),
+      context: { dataDir },
+    }),
+    /WEB_CHAT_PROVIDER_IDENTITY_DRIFT/u,
+  );
+
+  await assert.rejects(
+    attachApprovedWebChatFilesOnce({
+      browser: buildBrowser({ conversationTurnLeakAfterSelection: true }),
+      request: await buildRequest(dataDir, 2),
+      context: { dataDir },
+    }),
+    /WEB_CHAT_COMPOSER_SCOPE_AMBIGUOUS/u,
+  );
+
+  const resetBrowser = new FixtureBrowserController({ pendingAtExactRead: 4 });
+  const resetResult = await attachApprovedWebChatFilesOnce({
+    browser: resetBrowser,
+    request: await buildRequest(dataDir, 2),
+    context: { dataDir },
+  });
+  assert.equal(resetResult.attachmentUploadProof.status, "attachments_stable");
+  assert.equal(resetBrowser.waitCallCount >= ATTACHMENT_STABILITY_MINIMUM_WAIT_CALLS, true);
+
   const childSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts"),
     "utf8",
   );
   assert.equal(childSource.includes("fallback"), false);
+  assert.match(childSource, /stablePollCount = 0/u);
+  assert.match(childSource, /expectedPageUrl/u);
+  const clearSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts"),
+    "utf8",
+  );
+  assert.equal(clearSource.includes('document.querySelectorAll("button")'), false);
+  assert.match(clearSource, /composerRoot\.querySelectorAll\("button"\)/u);
+  const evaluationSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts"),
+    "utf8",
+  );
+  assert.match(
+    evaluationSource,
+    /freshUserTurnCreated && promptBoundToFreshUserTurn && composerClearedAfterVerifiedPaste/u,
+  );
+  const submittedAttachmentSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts"),
+    "utf8",
+  );
+  assert.match(submittedAttachmentSource, /userMessages\.length !== previousUserMessageCount \+ 1/u);
+  assert.match(submittedAttachmentSource, /fresh submitted user message contains exact bound file attachment set/u);
   assert.equal(existsSync(path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts")), false);
 } finally {
   await rm(dataDir, { recursive: true, force: true });

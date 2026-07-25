@@ -1,4 +1,3 @@
-import { WEB_CHAT_ATTACHMENT_COUNT_SCRIPT } from "./web-chat-composer-scripts.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
 const WEB_CHAT_STATUS_TEXT_SCRIPT = `
@@ -8,121 +7,6 @@ const visibleStatusText = Array.from(document.querySelectorAll("[role='status'],
   .filter((text) => text.length > 0)
   .join(" ");
 const processing = /\\b(thinking|reasoning|analyzing|analysis|searching|processing|reading|browsing|uploading|working)\\b|思考|推理|分析|搜索|处理中|生成中|读取中|工作中/i.test(visibleStatusText);
-`;
-
-const WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT = `
-const isChatGptPastedTextTile = (node) => {
-  if (!(node instanceof HTMLElement)) return false;
-  const text = clip(node.getAttribute("aria-label") || node.textContent || "");
-  return /在文本字段中显示|show in text field|display in text field|pasted text|pasted content/i.test(text)
-    || Boolean(node.querySelector("button[aria-label*='在文本字段中显示'], button[aria-label*='show in text field' i], button[aria-label*='display in text field' i]"));
-};
-const isRealSubmittedAttachment = (node) => {
-  if (!(node instanceof HTMLElement) || isChatGptPastedTextTile(node)) return false;
-  const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
-  if (/add files?|添加文件|profile|avatar|account|menuitem|button|发送|send/i.test(label)) return false;
-  if (/移除文件\\d*|remove file\\d*/i.test(label)) return true;
-  if (node.matches("img, picture, canvas, [role='img'], gem-media-attachment, uploader-file-preview, user-query-file-carousel")) return true;
-  return /\\b(file|attachment|image)\\b|附件|图片|\\.(png|jpg|jpeg|webp|gif|zip|json|ndjson|md|txt|pdf|csv|mp4|mov|webm)\\b/i.test(label);
-};
-const countBoundAttachments = (root) => {
-  if (!root || typeof root.querySelectorAll !== "function") return 0;
-  const selectors = [
-    "gem-media-attachment", "uploader-file-preview", "user-query-file-carousel",
-    "[class*='file-tile' i]",
-    "[role='group'][aria-label]",
-    "button[aria-label*='在文本字段中显示']", "button[aria-label*='show in text field' i]", "button[aria-label*='display in text field' i]",
-    "img", "picture", "canvas",
-    "[role='img']",
-    "[data-testid*='attachment' i]",
-    "[data-testid*='file' i]",
-    "[class*='attachment' i]",
-    "[class*='file' i]",
-    "[aria-label*='image' i]"
-  ];
-  const seen = new Set();
-  let count = 0;
-  for (const selector of selectors) {
-    for (const node of Array.from(root.querySelectorAll(selector))) {
-      if (!(node instanceof HTMLElement) || seen.has(node) || !isVisible(node)) continue;
-      const rect = node.getBoundingClientRect();
-      const label = clip(node.getAttribute("aria-label") || node.getAttribute("data-testid") || node.textContent || node.className || "");
-      if (rect.width < 12 && rect.height < 12 && label.length === 0) continue;
-      const tileRoot = findAttachmentTileRoot(node) || node;
-      if (seen.has(tileRoot) || !isRealSubmittedAttachment(tileRoot)) continue;
-      seen.add(tileRoot);
-      count += 1;
-    }
-  }
-  return count;
-};
-`;
-
-const CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT = `
-const countChatGptBoundAttachments = (messageNode) => {
-  if (!(messageNode instanceof HTMLElement)) return 0;
-  const roots = [messageNode];
-  let cursor = messageNode.parentElement;
-  for (let depth = 0; depth < 8 && cursor; depth += 1) {
-    roots.push(cursor);
-    const className = String(cursor.className || "").toLowerCase();
-    if (cursor.getAttribute("data-message-author-role") === "user" || className.includes("message")) break;
-    if (cursor.tagName.toLowerCase() === "main" || cursor.getAttribute("role") === "main") break;
-    cursor = cursor.parentElement;
-  }
-  for (const sibling of [messageNode.previousElementSibling, messageNode.nextElementSibling]) {
-    if (sibling instanceof HTMLElement) roots.push(sibling);
-  }
-  return Math.max(...roots.map((root) => countBoundAttachments(root)));
-};
-`;
-
-const GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT = `
-const countGeminiBoundAttachments = (messageNode) => {
-  if (!(messageNode instanceof HTMLElement)) return 0;
-  const roots = [messageNode];
-  let cursor = messageNode.parentElement;
-  for (let depth = 0; depth < 6 && cursor; depth += 1) {
-    roots.push(cursor);
-    const tagName = cursor.tagName.toLowerCase();
-    const className = String(cursor.className || "").toLowerCase();
-    if (tagName === "user-query" || className.includes("user-query")) break;
-    if (tagName === "main" || cursor.getAttribute("role") === "main") break;
-    cursor = cursor.parentElement;
-  }
-  for (const sibling of [messageNode.previousElementSibling, messageNode.nextElementSibling]) {
-    if (sibling instanceof HTMLElement) roots.push(sibling);
-  }
-  return Math.max(...roots.map((root) => countBoundAttachments(root)));
-};
-`;
-
-export const buildVerifyLastUserMessageAttachmentsScript = (expectedCount: number, expectedKind: "image" | "file"): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
-const expectedCount = ${JSON.stringify(expectedCount)};
-const expectedKind = ${JSON.stringify(expectedKind)};
-${WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
-${CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
-${GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
-const chatGptUserMessages = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
-  .filter((node) => node instanceof HTMLElement && isVisible(node));
-const geminiUserMessages = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"))
-  .filter((node) => node instanceof HTMLElement && isVisible(node))
-  .filter((node) => clip(node.innerText || node.textContent || "").length > 0 || countGeminiBoundAttachments(node) > 0);
-const userMessages = chatGptUserMessages.length > 0 ? chatGptUserMessages : geminiUserMessages;
-const lastUserMessage = userMessages[userMessages.length - 1] || null;
-const boundAttachmentCount = chatGptUserMessages.length > 0
-  ? countChatGptBoundAttachments(lastUserMessage)
-  : countGeminiBoundAttachments(lastUserMessage);
-const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
-if (boundAttachmentCount === expectedCount) {
-  return {status: "success", message: expectedKind === "image" ? "provider last submitted user message contains bound image attachment" : "provider last submitted user message contains bound file attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
-}
-if (boundAttachmentCount > expectedCount) {
-  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH: last submitted user message contains too many attachments", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
-}
-return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: last submitted user message does not contain required image attachment" : "provider_missing_bound_file: last submitted user message does not contain required file attachment", pageUrl: location.href, boundAttachmentCount, lastUserMessageText};
 `;
 
 const WEB_CHAT_GENERATION_STATE_SCRIPT = `
@@ -222,35 +106,55 @@ return {
 };
 `;
 
-export const buildVerifyPromptSubmittedScript = (
-  expectedPrefix: string,
-  previousAssistantCount: number,
-  wasPromptVerifiedBeforeSubmit: boolean,
-): string => `
+export const buildVerifyPromptSubmittedScript = (expectedPrefix: string, previousUserMessageCount: number, wasPromptVerifiedBeforeSubmit: boolean): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
 const actual = input instanceof HTMLElement ? readComposerVisibleText(input) : "";
 const expectedPrefix = ${JSON.stringify(expectedPrefix)};
 ${WEB_CHAT_ASSISTANT_COUNT_SCRIPT}
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
+const chatGptUserMessages = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node));
+const geminiUserMessageCandidates = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node))
+  .filter((node) => clip(node.innerText || node.textContent || "").length > 0);
+const geminiUserMessages = geminiUserMessageCandidates
+  .filter((node) => !geminiUserMessageCandidates.some((other) => other !== node && other.contains(node)));
+const userMessages = chatGptUserMessages.length > 0 ? chatGptUserMessages : geminiUserMessages;
+const userMessageCount = userMessages.length;
+const previousUserMessageCount = ${JSON.stringify(previousUserMessageCount)};
+const lastUserMessage = userMessages[userMessages.length - 1] || null;
+const lastUserMessageText = lastUserMessage instanceof HTMLElement
+  ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "")
+  : "";
+const freshUserTurnCreated = userMessageCount === previousUserMessageCount + 1;
+const promptBoundToFreshUserTurn = expectedPrefix.length > 0 && lastUserMessageText.includes(expectedPrefix);
 const promptStillInComposer = expectedPrefix.length > 0 && actual.includes(expectedPrefix);
 ${CHATGPT_PASTED_TEXT_CARD_STATE_SCRIPT}
 const composerClearedAfterVerifiedPaste = ${JSON.stringify(wasPromptVerifiedBeforeSubmit)}
   && !promptStillInComposer
-  && !pastedTextCardReady
-  && !location.hostname.includes("gemini.google.com");
-const generationStartedAfterSubmit = generating && !promptStillInComposer && !pastedTextCardReady;
-if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generationStartedAfterSubmit || composerClearedAfterVerifiedPaste) {
+  && !pastedTextCardReady;
+if (userMessageCount > previousUserMessageCount + 1) {
   return {
-    status: "success",
-    message: assistantCount > ${JSON.stringify(previousAssistantCount)}
-      ? "provider assistant count increased after submit"
-      : generationStartedAfterSubmit
-        ? "provider started generating after submit"
-        : "provider composer cleared after verified submit",
+    status: "failed",
+    message: "WEB_CHAT_USER_TURN_DELTA_MISMATCH",
     pageUrl: location.href,
     generating,
     assistantCount,
+    userMessageCount,
+    lastUserMessageText,
+    composerText: actual,
+  };
+}
+if (freshUserTurnCreated && promptBoundToFreshUserTurn && composerClearedAfterVerifiedPaste) {
+  return {
+    status: "success",
+    message: "provider created one fresh user turn containing the verified prompt",
+    pageUrl: location.href,
+    generating,
+    assistantCount,
+    userMessageCount,
+    lastUserMessageText,
     composerText: actual,
     promptPrefixVisible: promptStillInComposer,
     pastedTextCardReady,
@@ -262,10 +166,12 @@ return {
   status: "pending",
   message: promptStillInComposer || pastedTextCardReady
     ? "provider prompt is still waiting in composer after submit click"
-    : "provider submit did not produce verified generation or assistant progress",
+    : "provider submit did not produce one verified fresh user turn",
   pageUrl: location.href,
   generating,
   assistantCount,
+  userMessageCount,
+  lastUserMessageText,
   composerText: actual,
   promptPrefixVisible: promptStillInComposer,
   pastedTextCardReady,
@@ -426,6 +332,20 @@ const assistantCount = structuredCandidates.length > 0
   : answerText
     ? 1
     : 0;
+const chatGptUserMessageCount = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node))
+  .length;
+const geminiUserMessageCandidates = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node))
+  .filter((node) => clip(node.innerText || node.textContent || "").length > 0);
+const geminiUserMessageCount = geminiUserMessageCandidates
+  .filter((node) => !geminiUserMessageCandidates.some((other) => other !== node && other.contains(node)))
+  .length;
+const userMessageCount = chatGptUserMessageCount > 0 ? chatGptUserMessageCount : geminiUserMessageCount;
+const conversationTurnIds = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"))
+  .filter((node) => node instanceof HTMLElement && isVisible(node))
+  .map((node) => node.getAttribute("data-testid"))
+  .filter((value) => typeof value === "string" && value.length > 0);
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}
 const responseGenerating = geminiBodyAnswer || geminiStructuredJsonAnswer ? false : generating;
 const quotaExhaustedText = Array.from(document.querySelectorAll("[role='dialog'], [data-radix-portal], [role='alert'], [aria-live], [role='status']"))
@@ -436,23 +356,23 @@ const quotaExhaustedText = Array.from(document.querySelectorAll("[role='dialog']
 const quotaExhaustedVisible = /usage limit|message cap|limit reached|come back later|try again in|额度|上限|用完|已达到.*限制|稍后再回来/i.test(quotaExhaustedText)
   && !/请求过于频繁|请稍等几分钟后再重试|too many requests|request too frequent/i.test(quotaExhaustedText);
 if (quotaExhaustedVisible) {
-  return {status: "review_required", message: "pick3_quota_exhausted_wait_required", answerText: null, pageUrl: location.href, generating: false, assistantCount};
+  return {status: "review_required", message: "pick3_quota_exhausted_wait_required", answerText: null, pageUrl: location.href, generating: false, assistantCount, userMessageCount, conversationTurnIds};
 }
 if (!normalizedAnswerText && responseGenerating) {
-  return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount};
+  return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount, userMessageCount, conversationTurnIds};
 }
 if (!normalizedAnswerText) {
   // A visible ChatGPT rate-limit dialog is never escalated to review_required and never aborts
   // polling: the parallel beforePoll click-ack (acknowledgePick3RateLimitIfVisible) is the ONLY
   // action taken — click it away, then keep waiting in the same conversation for the same
   // in-flight response. No reopen, no resend, no restart, no attempt cap.
-  return {status: "pending", message: "provider answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount};
+  return {status: "pending", message: "provider answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount, userMessageCount, conversationTurnIds};
 }
 if (geminiPick3JsonMissing) {
-  return {status: "pending", message: "gemini pick3 structured json answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount};
+  return {status: "pending", message: "gemini pick3 structured json answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount, userMessageCount, conversationTurnIds};
 }
 if (promptTemplateAnswer) {
-  return {status: "pending", message: "provider answer is still the prompt contract template", answerText: null, pageUrl: location.href, generating: true, assistantCount};
+  return {status: "pending", message: "provider answer is still the prompt contract template", answerText: null, pageUrl: location.href, generating: true, assistantCount, userMessageCount, conversationTurnIds};
 }
 return {
   status: "success",
@@ -467,5 +387,7 @@ return {
   pageUrl: location.href,
   generating: responseGenerating,
   assistantCount,
+  userMessageCount,
+  conversationTurnIds,
 };
 `;

@@ -17,7 +17,7 @@ export const attachByNativePickerBatch = async (
   if (!picker) {
     throw new Error("review_required: NATIVE_MULTI_FILE_PICKER_UNAVAILABLE");
   }
-  await openChatGptNativeFilePicker(input.browser, input.context);
+  await openChatGptNativeFilePicker(input.browser, input.context, input.expectedPageUrl);
   const expectedFileNames = input.files.map((file) => file.displayFileName);
   const selection = await picker.call(input.browser, {
     stagingDirectoryPath: input.stagingDirectoryPath,
@@ -39,6 +39,11 @@ export const attachByNativePickerBatch = async (
     input.files.length,
     expectedFileNames,
     120_000,
+    {
+      expectedPageUrl: input.expectedPageUrl,
+      baselineAttachmentCount: 0,
+      requireReady: true,
+    },
   );
   return {
     transportKind: "native_picker_batch",

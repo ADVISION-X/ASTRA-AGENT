@@ -1,11 +1,11 @@
 # 附件＋提示词投喂给网页版 AI 分析实操论证报告
 
 > 文件身份：真实 Chrome 实操记录、第二上传链路施工输入、DOM/原生文件选择器边界说明
-> 文件状态：verified-v1.0
+> 文件状态：verified-v1.2
 > 实操日期：2026-07-24
 > 实操对象：ChatGPT Web（`https://chatgpt.com/`）
 > 目标模式：点击“＋”→ 官方文件选择器 → 目标目录 → Command+A → 一次打开 → 附件稳定 → 提示词稳定 → 提交
-> 当前结论：标准子能力已经接入 AI Input Gateway；真实 Chrome 的 1、10、17 文件均完成“上传、稳定、提示词、发送、新回答、内容校验、证据落账”闭环
+> 当前结论：标准子能力已经接入 AI Input Gateway；真实 Chrome 的 1、10、17 文件均完成闭环；八字 SEO 的 16＋2 文件真实成功会话进一步证明，生产步骤必须使用 `ACTION AND THEN`，且 THEN 必须同时绑定精确作用域、包含条件、排除条件和相对基线增量
 
 ---
 
@@ -107,6 +107,79 @@ raw response hash与聚合附件proof：完整
 3. 批量官方文件选择器路径避开了逐文件 Finder/Chrome 焦点往返。
 4. 该路径不能依靠固定 sleep；文件列表、精确文件名、附件数量、ready状态和30秒稳定窗均由真实状态证明。
 5. 10文件与17文件均使用 `native_picker_batch`；1文件按固定路由使用 `ordered_clipboard`。
+
+### 1.1 八字 SEO 成功会话的只读 Chrome 复核
+
+本轮没有重新提交消息、没有重新上传附件、没有导航或刷新页面，只读取已经成功完成的真实会话：
+
+```text
+会话URL：
+https://chatgpt.com/c/6a62b3fc-b628-83ed-843b-4816cc4a87e2
+
+会话标题：
+月令与旺衰判定
+```
+
+当前页面有4个已完成消息 turn：
+
+| turn | 身份 | 当前turn内文件按钮 |
+|---|---|---:|
+| `conversation-turn-1` | 第一轮user message | 16 |
+| `conversation-turn-2` | 第一轮assistant message | 0 |
+| `conversation-turn-3` | 第二轮user message | 2 |
+| `conversation-turn-4` | 第二轮assistant message | 0 |
+
+第一轮16个文件和第二轮2个文件均能在各自user turn内按唯一展示名逐项读取；assistant turn内没有文件按钮。
+
+当前空composer的只读DOM事实：
+
+```text
+main：1个
+user heading“你说：”：2个
+main内role=group：22个
+main内历史文件按钮：18个
+
+当前composer root：
+form:has(#prompt-textarea)：1个
+
+该composer root内部：
+role=textbox：1个
+data-testid=composer-plus-btn：1个
+通用multiple file input：1个
+conversation turn：0个
+历史文件按钮：0个
+
+页面其他范围：
+image/* multiple file input：2个
+```
+
+这组事实证明了一个P0级误判风险：
+
+```text
+main内发现18个历史附件
+≠
+当前composer已上传18个附件
+```
+
+因此附件THEN不得使用页面全局计数，也不得只限定到`main`。当前任务附件必须限定在唯一composer root内，并明确排除全部历史`conversation-turn-*`。
+
+本轮还观察到：
+
+```text
+Chrome openTabs仍能列出目标标签
+AND
+旧tab控制句柄已经失效
+```
+
+重新从当前Chrome会话认领同一个精确tab后，才恢复只读DOM能力。因此：
+
+```text
+标签仍存在
+≠
+旧控制句柄仍有效
+```
+
+每次动作前的THEN必须使用当前新鲜句柄重新读取URL和DOM；不得复用旧句柄或旧快照。
 
 ---
 
@@ -270,6 +343,181 @@ transport_selected
 ```
 
 任何状态缺少进入证据时，禁止进入下一状态。
+
+### 4.1 ACTION AND THEN执行模式
+
+本链路不再把步骤写成：
+
+```text
+做动作
+→ 等几秒
+→ 猜测成功
+→ 继续
+```
+
+唯一允许的执行语义是：
+
+```text
+ACTION
+AND THEN
+  freshScope === expectedScope
+  AND allIncludedSignals === true
+  AND allExcludedSignals === false
+  AND exactCandidateCount === expectedCandidateCount
+  AND observedDelta === expectedDelta
+  AND providerIdentityUnchanged === true
+THEN
+  只放行到唯一下一状态
+ELSE
+  保持当前状态，或结束为failed/review_required
+```
+
+其中最困难、也最重要的是THEN。
+
+THEN不是一句“页面看起来好了”，而是一份完整判定：
+
+1. **Fresh**：必须在ACTION之后重新读取，不能复用动作前快照。
+2. **Scope**：先证明在哪一个tab、main、composer、sheet或message turn内判断。
+3. **Include**：必须出现的信号全部出现。
+4. **Exclude**：不属于本轮、会制造误判的信号全部不存在于该作用域。
+5. **Exact**：候选数量必须精确相等，不能使用大于等于。
+6. **Delta**：证明是本轮动作新增的状态，不是页面原有历史状态。
+7. **Identity**：provider URL、tab、lease和attempt身份没有漂移。
+8. **One next state**：一个THEN只能授权一个下一步，不能跨级授权。
+
+#### 4.1.1 THEN的基线账
+
+每个ACTION之前必须形成最小基线：
+
+```text
+providerUrlBefore
+claimedTabHandleBefore
+conversationTurnIdsBefore
+composerRootIdentityBefore
+composerAttachmentNamesBefore
+nativeSheetCountBefore
+```
+
+ACTION之后重新读取：
+
+```text
+providerUrlAfter
+claimedTabHandleAfter
+conversationTurnIdsAfter
+composerRootIdentityAfter
+composerAttachmentNamesAfter
+nativeSheetCountAfter
+```
+
+THEN判断的是精确差值：
+
+```text
+after - before
+```
+
+不是在整个页面中寻找一个可能早已存在的成功信号。
+
+#### 4.1.2 本链逐步AND THEN表
+
+| ACTION | THEN必须包含 | THEN必须排除 | 只允许进入 |
+|---|---|---|---|
+| 从当前Chrome会话认领目标tab | 新鲜句柄可读；URL精确等于批准conversation URL；origin为`chatgpt.com` | 旧失效句柄、同origin其他会话、第一个模糊匹配tab | `provider_lease_acquired` |
+| 读取composer基线 | `form:has(#prompt-textarea)`恰好1个；内部textbox、plus button、通用file input各1个 | `conversation-turn-*`、历史文件按钮、两个`image/*` input、侧边栏搜索 | `composer_cleared` |
+| 点击唯一“＋” | 当前composer范围不变；新菜单唯一；目标菜单行同时包含“添加照片和文件”与“从电脑上传” | 创建图片、网页搜索、深度研究、插件入口、旧菜单 | `upload_menu_open` |
+| 点击目标菜单行 | 当前Chrome窗口原生sheet从0精确变为1；sheet同时有“取消”和“打开” | 0个sheet、2个及以上sheet、Finder窗口、权限/登录/保存弹窗 | `native_picker_open` |
+| 进入staging目录 | 文件列表group数量精确等于expected；名称集合与manifest完全一致 | 路径输入框仍打开、额外文件、缺失文件、旧attempt文件 | `file_list_proven` |
+| 文件列表聚焦并Command+A | 焦点仍在目标列表；“打开”从不可用变为可用 | 焦点在路径框/搜索框/边栏；“打开”仍不可用 | 仅允许点击“打开”，不得宣称全选已证明 |
+| 点击“打开” | sheet从1变为0；同一provider URL；当前composer root内附件名称集合与expected完全一致 | 历史user turn的18个文件、文件库、assistant turn、数量大于或小于expected | `attachments_pending` |
+| 等待附件ready | 当前composer内精确附件集合；无上传中状态；发送按钮可用；连续稳定窗内集合不变 | 历史附件、pending spinner、disabled send、附件消失或重复 | `attachments_stable` |
+| fill受治理prompt | 唯一composer内出现exact prompt prefix；附件THEN再次通过 | 搜索框、插件输入框、旧prompt、附件集合变化 | `prompt_filled` |
+| submit | 新user turn id不在基线；该新turn含本轮exact附件集合和本轮prompt证据；composer完成受治理清空 | 任意旧user turn、只有composer清空但无新turn、附件落入错误turn | `submitted` |
+| capture response | 新assistant turn id不在基线且位于新user turn之后；回答稳定；raw text/hash绑定本轮task | 旧assistant turn、停止生成中、只有页面文字变化但无新turn | `response_captured` |
+
+#### 4.1.3 THEN的作用域优先级
+
+作用域必须从窄到宽：
+
+```text
+当前attempt
+→ 当前精确provider tab
+→ 当前main
+→ 当前composer root或本轮新增message turn
+→ 当前目标元素
+```
+
+禁止反过来从整页搜索一个信号，再猜它属于当前任务。
+
+尤其禁止：
+
+```text
+main中附件总数 === expected
+```
+
+允许：
+
+```text
+currentComposerRoot内
+AND 不在任何conversation-turn内
+AND attachmentNameSet === expectedNameSet
+```
+
+提交后附件已经离开composer，此时作用域必须切换为：
+
+```text
+newUserTurnId
+AND newUserTurnId不在conversationTurnIdsBefore
+AND newUserTurn内attachmentNameSet === expectedNameSet
+```
+
+#### 4.1.4 时间的唯一角色
+
+时间只能做两件事：
+
+1. poll间隔；
+2. 总timeout保险丝和active法案要求的连续稳定窗。
+
+时间不能单独证明成功：
+
+```text
+等待30秒
+≠
+附件稳定
+```
+
+正确语义是：
+
+```text
+精确附件THEN已经成立
+AND
+在连续稳定窗内每次fresh observation仍成立
+THEN
+attachments_stable
+```
+
+若中途任一包含条件消失、任一排除条件出现或作用域漂移，稳定计时必须作废，不能累计旧时间。
+
+#### 4.1.5 THEN失败边界
+
+THEN失败后只能有三种结果：
+
+```text
+尚未到总timeout且状态仍单义
+→ 留在当前状态继续fresh poll
+
+出现多义、登录、风控、焦点或身份漂移
+→ review_required
+
+出现精确反证、集合错误、sheet错误或状态倒退
+→ failed
+```
+
+禁止：
+
+- THEN失败后继续执行下一ACTION。
+- 用更宽的selector重试到“找到为止”。
+- 从composer作用域扩大到整个main或整个document。
+- 把旧turn、历史附件或文件库内容当成本轮增量。
+- 同attempt切换运输方式或重复上传全部文件。
 
 ---
 
@@ -782,12 +1030,16 @@ sha256:e0e6ec97530cebdb66a3ec29f96c3c0addfa3bce6658b0de7bf9ab2764bcea1c
 
 | 目标 | 必须包含 | 必须排除 | 多义处理 |
 |---|---|---|---|
+| 新鲜tab句柄 | 当前Chrome会话重新认领成功、精确批准URL可读 | openTabs存在但旧句柄失效、同origin其他会话 | `PROVIDER_TAB_HANDLE_STALE` |
 | Provider标签 | 精确受治理URL、`chatgpt.com` origin、当前lease | 第一个同origin标签、其他ChatGPT对话 | `review_required` |
+| Composer root | `form:has(#prompt-textarea)`唯一；内部textbox、plus、通用file input各唯一 | 全部`conversation-turn-*`、历史文件按钮、页面其他image input | `PROMPT_COMPOSER_AMBIGUOUS` |
 | Composer | `main`内、role textbox、accessible name精确、唯一 | 搜索框、插件搜索、隐藏input | `PROMPT_COMPOSER_AMBIGUOUS` |
 | “＋”按钮 | composer同区域、role button、name精确、唯一 | 侧边栏/项目/插件加号、无名按钮 | `UPLOAD_PLUS_AMBIGUOUS` |
 | 上传菜单项 | 同一行同时含“添加照片和文件”＋“从电脑上传” | 创建图片、网页搜索、深度研究、插件 | `UPLOAD_MENU_AMBIGUOUS` |
 | 通用file input | `type=file`＋`multiple`＋非`image/*`，恰好1个 | 两个`accept=image/*` input | `GENERAL_FILE_INPUT_AMBIGUOUS` |
-| 附件chip | 当前composer内group＋对应移除按钮 | 文件库、历史对话、全局同名文本 | `ATTACHMENT_COUNT_MISMATCH` |
+| 上传后的附件chip | 当前composer root内group＋对应移除按钮；名称集合精确等于expected | 全部历史conversation turn、文件库、assistant turn、全局同名文本 | `ATTACHMENT_COUNT_MISMATCH` |
+| 提交后的user turn | 相对基线新增的唯一user turn；包含本轮附件集合与prompt证据 | 旧user turn、仅composer清空、其他会话turn | `SUBMITTED_USER_TURN_NOT_PROVEN` |
+| 本轮assistant turn | 相对基线新增且位于本轮user turn后的assistant turn | 旧assistant turn、仍在生成、侧边栏对话文字 | `RESPONSE_ASSISTANT_TURN_NOT_PROVEN` |
 | 发送按钮 | composer操作区、role button、name精确、enabled、唯一 | 听写、语音、停止生成、无名按钮 | `SEND_BUTTON_AMBIGUOUS` |
 
 核心原则：
@@ -795,6 +1047,9 @@ sha256:e0e6ec97530cebdb66a3ec29f96c3c0addfa3bce6658b0de7bf9ab2764bcea1c
 ```text
 DOM定位永远是“包含条件全部满足”并且“排除条件全部不满足”。
 不是找到一个看起来像的元素就继续。
+
+ACTION之后必须重新读取fresh DOM。
+THEN必须证明“这是本轮新增状态”，不能证明“页面某处存在类似状态”。
 ```
 
 ---
@@ -832,6 +1087,8 @@ sleep 1秒
 - 发送按钮可用；
 - prompt prefix存在；
 - assistant回答稳定。
+
+每次poll都必须重新计算当前步骤完整THEN；不得只轮询其中一个正向信号。任何排除信号出现，都必须立即停止当前等待并转入结构化失败。
 
 ### 7.3 页面漂移
 
@@ -872,6 +1129,7 @@ sleep 1秒
 ```text
 PROVIDER_LEASE_UNAVAILABLE
 PROVIDER_TAB_AMBIGUOUS
+PROVIDER_TAB_HANDLE_STALE
 PROVIDER_FOCUS_DRIFT
 COMPOSER_NOT_CLEAN
 UPLOAD_PLUS_AMBIGUOUS
@@ -891,6 +1149,8 @@ ATTACHMENT_UPLOAD_NOT_READY
 PROMPT_COMPOSER_AMBIGUOUS
 PROMPT_NOT_PROVEN
 PRE_SUBMIT_GATE_FAILED
+SUBMITTED_USER_TURN_NOT_PROVEN
+RESPONSE_ASSISTANT_TURN_NOT_PROVEN
 LOGIN_REQUIRED
 CAPTCHA_OR_2FA_REQUIRED
 PROVIDER_LIMIT_REACHED
@@ -1006,6 +1266,104 @@ REAL_RUNS:
   - 1文件：ordered_clipboard，1/1，success
   - 10文件：native_picker_batch，10/10，success
   - 17文件：native_picker_batch，17/17，success
+```
+
+### 11.1 ACTION AND THEN代码实证
+
+2026-07-24已把本报告第4.1节的判定模型落入现有唯一子能力，没有增加第二owner、第二上传链或外部控制参数。
+
+本轮代码门禁：
+
+```text
+清场：
+  只在唯一composer root内移除附件和清空文本
+  → fresh验证附件为0、文本为空
+
+上传：
+  同一精确provider URL
+  + 唯一composer
+  + composer内conversation turn为0
+  + 通用multiple file input精确为1
+  + composer内image/* input为0
+  + 附件数量与展示名集合精确
+  + 相对清场基线增量精确
+  + 无pending/uploading
+  + 发送按钮唯一且可用
+
+稳定：
+  连续15次、每次间隔2秒fresh读取全部成立
+  → 30秒attachments_stable
+  任一轮pending
+  → 连续计数归零
+
+提交：
+  user turn数量相对基线精确增加1
+  + 新user turn含本轮prompt证据
+  + 新user turn内附件数量和文件名集合精确
+  → submitted
+```
+
+真实Chrome第一次运行发现：
+
+```text
+失败：CHATGPT_UPLOAD_MENU_SCOPE_UNPROVEN
+原因：代码臆造菜单必须具有固定role/radix父容器；
+真实ChatGPT当前菜单能以唯一候选行提供完整包含/排除证据，但不提供该固定父标记。
+处理：删除错误固定父容器假设；保留点击前菜单必须不存在、点击后目标行唯一、
+同时包含“添加照片和文件/从电脑上传”、排除云盘/相机/其他工具等实证条件。
+```
+
+这次失败没有上传、没有填写prompt、没有提交，证明THEN失败会安全停止；修正的是错误假设，不是降低成功门槛。
+
+修正后真实结果：
+
+```text
+2文件：
+  status=success
+  transport=native_picker_batch
+  expected=2
+  detected=2
+  attachmentStatus=attachments_stable
+  stagingManifestHash=sha256:b344a03631ecbe02dec3f613120aecfa45e569f8497d9b4e085a100fc7100d09
+  rawOutputHash=f43c1add83d269e51e69c82f378f1913a9a1fa567dc0edb330ccbe8288248b0f
+  conversation=https://chatgpt.com/c/6a62c22c-7544-83eb-9af5-c7d5527509ad
+
+17文件：
+  status=success
+  transport=native_picker_batch
+  expected=17
+  detected=17
+  attachmentStatus=attachments_stable
+  stagingManifestHash=sha256:4f673c1ac6aa5ab3706b12044532f4922552ee50180162b519a6f6d2aa5cc547
+  rawOutputHash=30cdc32f022284fc41fe94546c078d7cfc9a5a16098b8e2f4d1b780545199db4
+  conversation=https://chatgpt.com/c/6a62c323-5c78-83eb-a894-70a0752bef45
+```
+
+Chrome插件对17文件会话的独立只读复核：
+
+```text
+精确会话tab：1
+user turn：1
+assistant turn：1
+新user turn内附件group：17
+新user turn内附件button：17
+回答marker：命中
+第1个token：命中
+第17个token：命中
+
+当前composer root：1
+composer内历史turn：0
+composer内附件group：0
+composer内通用multiple file input：1
+```
+
+因此本轮实证同时证明：
+
+```text
+历史消息附件不会冒充当前composer附件；
+composer清空不会单独冒充提交成功；
+旧user turn不会冒充本轮新增user turn；
+AI确实读取了本轮17个文件，而不是只完成了上传动作。
 ```
 
 最终结论：

@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-07-24T00:55:23.778Z",
+  "generatedAt": "2026-07-25T16:21:57.727Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts",
@@ -436,7 +436,9 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
@@ -1567,9 +1569,9 @@
       "scriptName": "acceptance:xuanyuan"
     }
   ],
-  "liveExportCount": 2357,
+  "liveExportCount": 2359,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 793,
+  "reachableFileCount": 795,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1581,9 +1583,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2357,
+    "liveExportCount": 2359,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 793,
+    "reachableFileCount": 795,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

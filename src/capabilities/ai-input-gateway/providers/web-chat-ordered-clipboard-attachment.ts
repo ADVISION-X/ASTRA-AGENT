@@ -70,6 +70,11 @@ export const attachByOrderedClipboard = async (
       file.order,
       expectedFiles,
       90_000,
+      {
+        expectedPageUrl: input.expectedPageUrl,
+        baselineAttachmentCount: 0,
+        requireReady: true,
+      },
     );
     uploadedFiles.push({
       inputRefId: file.inputRefId,

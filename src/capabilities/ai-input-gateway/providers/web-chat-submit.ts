@@ -25,6 +25,7 @@ import {
   acknowledgeChatGptRateLimitDialogIfVisible,
 } from "./web-chat-rate-limit-dialog.js";
 import { acknowledgePick3RateLimitIfVisible } from "./web-chat-pick3-recovery-log.js";
+import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
@@ -32,34 +33,6 @@ const GEMINI_PROMPT_PASTE_VERIFY_TIMEOUT_MS = 5_000;
 const GEMINI_PROMPT_PASTE_RETRY_LIMIT = 3;
 const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
 const SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS = 12_000;
-
-const terminalStageLog = (line: string): void => {
-  process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] ${line}\n`);
-};
-
-const formatStageRefs = (refs: Record<string, string | number | boolean | null | undefined>): string =>
-  Object.entries(refs)
-    .filter(([, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${key}=${String(value)}`)
-    .join(" ");
-
-const emitSubmitStage = (
-  input: SubmitPromptViaClipboardInput,
-  stage: string,
-  status: "start" | "success" | "fallback" | "failed",
-  startedAtMs: number | null,
-  refs: Record<string, string | number | boolean | null | undefined> = {},
-): void => {
-  terminalStageLog(formatStageRefs({
-    stage,
-    status,
-    providerKind: input.request.providerKind,
-    promptPackageId: input.request.promptPackageId,
-    promptContractId: input.request.promptContractId,
-    elapsedMs: startedAtMs === null ? undefined : Date.now() - startedAtMs,
-    ...refs,
-  }));
-};
 
 const normalizePromptForSubmission = (promptText: string): string =>
   promptText.replace(/\s+/gu, " ").trim();
@@ -86,7 +59,7 @@ const waitForPromptSubmitted = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedPrefix: string;
-  previousAssistantCount: number;
+  previousUserMessageCount: number;
   wasPromptVerifiedBeforeSubmit: boolean;
   timeoutMs: number;
 }): Promise<boolean> => {
@@ -97,7 +70,7 @@ const waitForPromptSubmitted = async (input: {
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
       verifyPromptSubmitted(input.browser, input.context, {
         expectedPrefix: input.expectedPrefix,
-        previousAssistantCount: input.previousAssistantCount,
+        previousUserMessageCount: input.previousUserMessageCount,
         wasPromptVerifiedBeforeSubmit: input.wasPromptVerifiedBeforeSubmit,
       }));
     lastMessage = `${submitted.status}: ${submitted.message}`;
@@ -137,7 +110,7 @@ type SubmitPromptViaClipboardInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
-  previousAssistantCount: number;
+  previousUserMessageCount: number;
   attachmentUploadProof: WebChatAttachmentUploadProof;
 };
 
@@ -158,14 +131,15 @@ const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitS
     context: input.context,
   });
   if (!ackStatus) return;
-  terminalStageLog(formatStageRefs({
-    stage: "rate_limit_acknowledgement",
-    status: ackStatus === "rate_limit_ack_clicked_and_dialog_closed" ? "success" : "fallback",
-    providerKind: input.request.providerKind,
-    promptPackageId: input.request.promptPackageId,
-    promptContractId: input.request.promptContractId,
+  emitSubmitStage(
+    input,
+    "rate_limit_acknowledgement",
+    ackStatus === "rate_limit_ack_clicked_and_dialog_closed" ? "success" : "fallback",
+    null,
+    {
     ackStatus,
-  }));
+    },
+  );
 };
 
 type PreparedPromptComposer = {
@@ -253,6 +227,8 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   request: AiFeedInput;
   expectedCount: number;
   expectedKind: "image" | "file";
+  expectedFileNames: readonly string[];
+  previousUserMessageCount: number;
   timeoutMs: number;
 }): Promise<void> => {
   if (input.expectedCount <= 0) return;
@@ -262,7 +238,14 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   while (Date.now() < deadline) {
     await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const evaluation = await withWebChatStep("verify_last_user_message_bound_attachments", () =>
-      verifyLastUserMessageAttachments(input.browser, input.context, input.expectedCount, input.expectedKind));
+      verifyLastUserMessageAttachments(
+        input.browser,
+        input.context,
+        input.expectedCount,
+        input.expectedKind,
+        input.expectedFileNames,
+        input.previousUserMessageCount,
+      ));
     lastEvaluation = evaluation;
     lastMessage = `${evaluation.status}: ${evaluation.message}`;
     if (evaluation.status === "success") return;
@@ -420,6 +403,7 @@ const preparePromptComposer = async (
     expectedChars: expectedLength,
     expectedAttachmentCount,
     expectedAttachmentKind,
+    wasPromptVerifiedBeforeSubmit: true,
   });
   return {
     expectedLength,
@@ -450,7 +434,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     context: input.context,
     request: input.request,
     expectedPrefix: input.preparedPrompt.expectedPrefix,
-    previousAssistantCount: input.previousAssistantCount,
+    previousUserMessageCount: input.previousUserMessageCount,
     wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
     timeoutMs: input.request.timeoutMs,
   });
@@ -461,6 +445,11 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
       request: input.request,
       expectedCount: input.preparedPrompt.expectedAttachmentCount,
       expectedKind: input.preparedPrompt.expectedAttachmentKind,
+      expectedFileNames: input.attachmentUploadProof.files
+        .slice()
+        .sort((left, right) => left.order - right.order)
+        .map((file) => file.displayFileName),
+      previousUserMessageCount: input.previousUserMessageCount,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
     });
     emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
