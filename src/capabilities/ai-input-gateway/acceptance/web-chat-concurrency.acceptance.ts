@@ -21,7 +21,12 @@ import {
   advanceStableAnswer,
   createStableAnswerState,
 } from "../providers/web-chat-answer-support.js";
-import { acquireWebChatBrowserMutationLease } from "../runtime/web-chat-concurrency-lease.js";
+import {
+  acquireWebChatBrowserMutationLease,
+  acquireWebChatBrowserPatrolLease,
+  pendingWebChatSubmissionCount,
+  registerPendingWebChatSubmission,
+} from "../runtime/web-chat-concurrency-lease.js";
 import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
 
 const delay = (durationMs: number): Promise<void> =>
@@ -259,6 +264,33 @@ if (workerArgs[0] === "--worker") {
     const secondMutation = await secondMutationPromise;
     await secondMutation.release();
 
+    const releaseQueuedSubmission =
+      registerPendingWebChatSubmission("queued-submission");
+    assert.equal(pendingWebChatSubmissionCount(), 1);
+    let patrolEntered = false;
+    const patrolPromise = acquireWebChatBrowserPatrolLease({
+      dataDir,
+      timeoutMs: 2_000,
+    }).then((lease) => {
+      patrolEntered = true;
+      return lease;
+    });
+    await delay(250);
+    assert.equal(
+      patrolEntered,
+      false,
+      "provider patrol must not overtake an accepted task waiting to submit",
+    );
+    const prioritySubmission = await acquireWebChatBrowserMutationLease({
+      dataDir,
+      timeoutMs: 2_000,
+    });
+    await prioritySubmission.release();
+    releaseQueuedSubmission();
+    assert.equal(pendingWebChatSubmissionCount(), 0);
+    const patrolLease = await patrolPromise;
+    await patrolLease.release();
+
     const sharedSource = await readFile(
       path.join(
         process.cwd(),
@@ -270,6 +302,41 @@ if (workerArgs[0] === "--worker") {
       path.join(
         process.cwd(),
         "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+      ),
+      "utf8",
+    );
+    const answerEvaluationSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+      ),
+      "utf8",
+    );
+    const rateLimitWatcherSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+      ),
+      "utf8",
+    );
+    const answerSupportSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+      ),
+      "utf8",
+    );
+    const singleTabRoutingSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+      ),
+      "utf8",
+    );
+    const managedExecutionSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
       ),
       "utf8",
     );
@@ -306,6 +373,30 @@ if (workerArgs[0] === "--worker") {
       titleSource.includes("depth < 7"),
       false,
       "rename targeting must not climb into the page-header conversation menu",
+    );
+    assert.equal(
+      answerEvaluationSource.includes("visibleProgressClass")
+        && answerEvaluationSource.includes("[class*='shimmer']"),
+      true,
+      "a visible ChatGPT loading or shimmer progress node must keep the exact turn in generating state",
+    );
+    assert.equal(
+      answerSupportSource.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY")
+        && singleTabRoutingSource.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY"),
+      true,
+      "an automatic sidebar row that has not materialized yet must remain retryable patrol state",
+    );
+    assert.equal(
+      rateLimitWatcherSource.includes("sharedAcknowledgementWatchers")
+        && rateLimitWatcherSource.includes("refCount"),
+      true,
+      "one shared immediate acknowledgement watcher must serve all managed conversations",
+    );
+    assert.equal(
+      managedExecutionSource.includes("releasePendingSubmission")
+        && managedExecutionSource.includes("globalBrowser"),
+      true,
+      "submission priority and the unrouted global survival lane must be wired into managed execution",
     );
 
     let stableAnswerState = createStableAnswerState();

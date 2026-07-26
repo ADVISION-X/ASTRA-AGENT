@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-07-26T04:47:53.298Z",
+  "generatedAt": "2026-07-26T05:20:55.227Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -310,6 +310,21 @@
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
       "clauseId": "apex-ai-input-gateway-005-requirement",
+      "checkId": "ai-input-gateway/submission-priority-patrol"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "checkId": "ai-input-gateway/shared-rate-limit-watcher"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "checkId": "ai-input-gateway/live-generation-proof"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
       "checkId": "ai-input-gateway/removed-old-region"
     },
     {
@@ -327,9 +342,11 @@
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",

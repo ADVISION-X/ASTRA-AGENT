@@ -1,12 +1,17 @@
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
 const WEB_CHAT_STATUS_TEXT_SCRIPT = `
-const visibleStatusText = Array.from(document.querySelectorAll("[role='status'], [aria-live], [data-testid*='status'], [class*='status'], [class*='thinking'], [class*='reasoning'], [class*='loading']"))
-  .filter((node) => isVisible(node) && !node.closest("form, footer, header, nav, aside"))
+const visibleProgressNodes = Array.from(document.querySelectorAll("[role='status'], [aria-live], [data-testid*='status'], [class*='status'], [class*='thinking'], [class*='reasoning'], [class*='loading'], [class*='shimmer']"))
+  .filter((node) => isVisible(node) && !node.closest("form, footer, header, nav, aside"));
+const visibleStatusText = visibleProgressNodes
   .map((node) => clip(node.textContent || ""))
   .filter((text) => text.length > 0)
   .join(" ");
-const processing = /\\b(thinking|reasoning|analyzing|analysis|searching|processing|reading|browsing|uploading|working)\\b|思考|推理|分析|搜索|处理中|生成中|读取中|工作中/i.test(visibleStatusText);
+const visibleProgressClass = visibleProgressNodes.some((node) =>
+  /thinking|reasoning|loading|shimmer/i.test(String(node.className || ""))
+);
+const processing = visibleProgressClass
+  || /\\b(thinking|reasoning|analyzing|analysis|searching|processing|reading|browsing|uploading|working|checking|verifying|indexing)\\b|思考|推理|分析|搜索|处理中|生成中|读取中|工作中|核对|验证|检索/i.test(visibleStatusText);
 `;
 
 const WEB_CHAT_GENERATION_STATE_SCRIPT = `

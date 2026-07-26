@@ -459,7 +459,7 @@ export const runWebChatAdapter = async (input: {
     context: input.context,
   });
   const chatGptAcknowledgementWatcher = startChatGptAcknowledgementWatcher({
-    browser,
+    browser: input.context.webChatExecution?.globalBrowser ?? browser,
     request: input.request,
     context: input.context,
   });

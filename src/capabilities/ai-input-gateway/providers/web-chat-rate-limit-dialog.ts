@@ -135,41 +135,111 @@ return {status: "rate_limit_ack_located", pageUrl: location.href, kind, text, cl
 
 type ChatGptAcknowledgementWatcher = { stop: () => Promise<void> };
 
-/**
- * Keep the acknowledgement action alive across prompt submission and response
- * capture. ChatGPT may render the confirmation after either phase; a one-shot
- * check leaves the modal blocking the next browser action.
- */
-export const startChatGptAcknowledgementWatcher = (input: {
+type SharedAcknowledgementWatcher = {
+  refCount: number;
+  stopped: boolean;
+  running: boolean;
+  timer: ReturnType<typeof setTimeout> | null;
+  stopLoop(): Promise<void>;
+};
+
+const sharedAcknowledgementWatchers = new Map<
+  string,
+  SharedAcknowledgementWatcher
+>();
+
+type AcknowledgementWatcherInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
-}): ChatGptAcknowledgementWatcher | null => {
-  if (input.request.providerKind !== "gpt-web-chat") return null;
-  let stopped = false;
-  let running = false;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const tick = async (): Promise<void> => {
-    if (stopped || running) return;
-    running = true;
-    try {
-      if (await isChatGptRateLimitDialogVisible(input)) {
-        const result = await acknowledgeChatGptRateLimitDialogIfVisible(input);
-        process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=${result === "rate_limit_ack_clicked_in_place" ? "success" : "pending"} providerKind=gpt-web-chat ackStatus=${result ?? "not_found"}\n`);
-      }
-    } catch (error) {
-      process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=retryable_error providerKind=gpt-web-chat reason=${String(error).replaceAll("\n", " ").slice(0, 300)}\n`);
-    } finally {
-      running = false;
-      if (!stopped) timer = setTimeout(() => void tick(), 500);
+};
+
+const stopSharedAcknowledgementWatcher = async (
+  watcherKey: string,
+  shared: SharedAcknowledgementWatcher,
+): Promise<void> => {
+  shared.stopped = true;
+  if (shared.timer) clearTimeout(shared.timer);
+  for (let index = 0; shared.running && index < 20; index += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  sharedAcknowledgementWatchers.delete(watcherKey);
+};
+
+const runSharedAcknowledgementTick = async (
+  input: AcknowledgementWatcherInput,
+  shared: SharedAcknowledgementWatcher,
+): Promise<void> => {
+  if (shared.stopped || shared.running) return;
+  shared.running = true;
+  try {
+    if (await isChatGptRateLimitDialogVisible(input)) {
+      const result = await acknowledgeChatGptRateLimitDialogIfVisible(input);
+      process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=${result === "rate_limit_ack_clicked_in_place" ? "success" : "pending"} providerKind=gpt-web-chat ackStatus=${result ?? "not_found"}\n`);
     }
+  } catch (error) {
+    process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=retryable_error providerKind=gpt-web-chat reason=${String(error).replaceAll("\n", " ").slice(0, 300)}\n`);
+  } finally {
+    shared.running = false;
+    if (!shared.stopped) {
+      shared.timer = setTimeout(
+        () => void runSharedAcknowledgementTick(input, shared),
+        500,
+      );
+    }
+  }
+};
+
+const createSharedAcknowledgementWatcher = (
+  input: AcknowledgementWatcherInput,
+  watcherKey: string,
+): SharedAcknowledgementWatcher => {
+  const shared: SharedAcknowledgementWatcher = {
+    refCount: 1,
+    stopped: false,
+    running: false,
+    timer: null,
+    stopLoop: async () => undefined,
   };
-  timer = setTimeout(() => void tick(), 0);
+  sharedAcknowledgementWatchers.set(watcherKey, shared);
+  shared.stopLoop = () =>
+    stopSharedAcknowledgementWatcher(watcherKey, shared);
+  shared.timer = setTimeout(
+    () => void runSharedAcknowledgementTick(input, shared),
+    0,
+  );
+  return shared;
+};
+
+const createAcknowledgementWatcherHandle = (
+  shared: SharedAcknowledgementWatcher,
+): ChatGptAcknowledgementWatcher => {
+  let released = false;
   return {
     stop: async () => {
-      stopped = true;
-      if (timer) clearTimeout(timer);
-      for (let index = 0; running && index < 20; index += 1) await new Promise((resolve) => setTimeout(resolve, 25));
+      if (released) return;
+      released = true;
+      shared.refCount -= 1;
+      if (shared.refCount === 0) await shared.stopLoop();
     },
   };
+};
+
+/**
+ * One watcher remains alive across all concurrent GPT conversations. It acts
+ * on the current single provider tab and never routes through a task chat.
+ */
+export const startChatGptAcknowledgementWatcher = (
+  input: AcknowledgementWatcherInput,
+): ChatGptAcknowledgementWatcher | null => {
+  if (input.request.providerKind !== "gpt-web-chat") return null;
+  const watcherKey = input.context.dataDir;
+  const existing = sharedAcknowledgementWatchers.get(watcherKey);
+  if (existing) {
+    existing.refCount += 1;
+    return createAcknowledgementWatcherHandle(existing);
+  }
+  return createAcknowledgementWatcherHandle(
+    createSharedAcknowledgementWatcher(input, watcherKey),
+  );
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T04:47:52.439Z",
+  "generatedAt": "2026-07-26T05:20:54.379Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -48,7 +48,7 @@
       ],
       "required": [
         "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
-        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, completed-chat manual-style rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease.",
+        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, completed-chat manual-style rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease. Accepted tasks still waiting to submit have priority over ordinary response patrol, so already submitted conversations cannot starve a later attachment-and-prompt submission.",
         "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
         "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
         "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
@@ -81,8 +81,9 @@
         "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
         "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique human-readable system chat title. The title uses one internal allowlisted task label, UTC month-day and minute, plus a short opaque trace, for example SEO文章｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content or caller-supplied title text. After submit the runtime records the canonical conversation URL plus exact marker and immediately releases the submit slot, then after the provider answer is complete it clicks the exact non-WEB sidebar row, opens only that row's options menu, renames it, and proves the exact title plus marker before publishing the captured answer.",
         "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
-        "Submitted feeds release the browser-mutation lease before provider generation completes; until the completed chat can be renamed, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker, and after rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
-        "Whenever ChatGPT shows the ordinary request-frequency dialog, the highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
+        "Submitted feeds release the browser-mutation lease before provider generation completes; while any accepted task still awaits submit, ordinary response patrol yields. After all queued submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title is pending rather than terminal failure. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
+        "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the live DOM exposes a visible thinking, reasoning, loading or shimmer progress node; intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
+        "Whenever ChatGPT shows the ordinary request-frequency dialog, one process-wide unrouted watcher serves the single physical ChatGPT tab for every in-flight task. The highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
         "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission; a completed but not-yet-renamed conversation must finish its row-scoped rename before answer publication. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, and marker; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash, or byte count returns review_required."
       ],
       "forbidden": [
@@ -93,6 +94,8 @@
         "routing an existing ChatGPT task by browser URL open instead of clicking its exact sidebar DOM row",
         "treating a transient /c/WEB: sidebar row or the page-header conversation menu as the rename target",
         "holding the submit mutation slot while waiting for a running answer to expose its sidebar rename menu",
+        "allowing per-task acknowledgement watchers or ordinary patrol to starve an accepted task that is still waiting to submit",
+        "treating visible loading, shimmer, citation verification, tool progress or research progress as a completed answer",
         "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
         "machine-only titles made entirely from hashes, UUIDs or transport vocabulary, or titles copied from prompt text, user names or report content",
         "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",

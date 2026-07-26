@@ -116,6 +116,9 @@
           "ai-input-gateway/human-readable-system-chat-title",
           "ai-input-gateway/no-chatgpt-page-refresh",
           "ai-input-gateway/parallel-acceptance",
+          "ai-input-gateway/submission-priority-patrol",
+          "ai-input-gateway/shared-rate-limit-watcher",
+          "ai-input-gateway/live-generation-proof",
           "ai-input-gateway/removed-old-region",
           "ai-input-gateway/source-present"
         ],

@@ -4,6 +4,7 @@ import type {
 } from "../../../lib/browser/browser-controller.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import {
+  acquireWebChatBrowserPatrolLease,
   acquireWebChatBrowserMutationLease,
   type WebChatRuntimeLease,
 } from "./web-chat-concurrency-lease.js";
@@ -42,6 +43,7 @@ const delay = (durationMs: number, signal?: AbortSignal): Promise<void> =>
 
 export type SingleTabWebChatBrowser = {
   browser: BrowserController;
+  globalBrowser: BrowserController;
   bindObservedConversation(submission: WebChatSubmissionProof): void;
   bindConversationIdentity(submission: WebChatSubmissionProof): void;
   releaseInitialMutationLease(): Promise<void>;
@@ -73,19 +75,30 @@ const routeToBoundConversation = async (
 };
 
 const createMutationRunner =
-  (input: SingleTabBrowserInput, state: SingleTabState): MutationRunner =>
+  (
+    input: SingleTabBrowserInput,
+    state: SingleTabState,
+    mode: "submission_then_patrol" | "global_survival",
+  ): MutationRunner =>
   async <T>(
     operation: () => Promise<T>,
     options: MutationOptions = {},
   ): Promise<T> => {
+    const initialLease =
+      mode === "submission_then_patrol" ? state.initialMutationLease : null;
     const lease =
-      state.initialMutationLease ??
-      (await acquireWebChatBrowserMutationLease({
-        dataDir: input.dataDir,
-        timeoutMs: input.timeoutMs,
-        ...(input.signal ? { signal: input.signal } : {}),
-      }));
-    const ownsLease = lease !== state.initialMutationLease;
+      initialLease ??
+      (mode === "global_survival"
+        ? await acquireWebChatBrowserMutationLease({
+            dataDir: input.dataDir,
+            timeoutMs: input.timeoutMs,
+          })
+        : await acquireWebChatBrowserPatrolLease({
+            dataDir: input.dataDir,
+            timeoutMs: input.timeoutMs,
+            ...(input.signal ? { signal: input.signal } : {}),
+          }));
+    const ownsLease = lease !== initialLease;
     try {
       const providerTab = await focusSingleProviderTab({
         providerKind: input.providerKind,
@@ -111,29 +124,98 @@ const createMutationRunner =
 const createBrowserFacade = (
   input: SingleTabBrowserInput,
   withMutation: MutationRunner,
+  routeByDefault: boolean,
 ): BrowserController => {
   const browser = {
+    ...createInteractiveBrowserFacade(input, withMutation, routeByDefault),
+    ...createObservationBrowserFacade(input, withMutation, routeByDefault),
+  } as BrowserController;
+  if (input.base.move) {
+    browser.move = (value) =>
+      withMutation(() => input.base.move!(value), {
+        route: routeByDefault,
+      });
+  }
+  if (input.base.selectFilesInNativePicker) {
+    browser.selectFilesInNativePicker = (value) =>
+      withMutation(() => input.base.selectFilesInNativePicker!(value), {
+        route: routeByDefault,
+      });
+  }
+  return browser;
+};
+
+type InteractiveBrowserFacade = Pick<
+  BrowserController,
+  | "getHealth"
+  | "getSessionState"
+  | "getGeometrySnapshot"
+  | "open"
+  | "scroll"
+  | "click"
+  | "clickLocatedDomElement"
+  | "textInput"
+>;
+
+const createInteractiveBrowserFacade = (
+  input: SingleTabBrowserInput,
+  withMutation: MutationRunner,
+  routeByDefault: boolean,
+): InteractiveBrowserFacade => ({
     getHealth: () => input.base.getHealth(),
     getSessionState: () => input.base.getSessionState(),
     getGeometrySnapshot: () =>
-      withMutation(() => input.base.getGeometrySnapshot()),
+      withMutation(() => input.base.getGeometrySnapshot(), {
+        route: routeByDefault,
+      }),
     open: (value) =>
       withMutation(
         () => input.base.open({ ...value, reusePolicy: "reuse-host-tab" }),
         { route: false, allowMissingProviderTab: true },
       ),
-    scroll: (value) => withMutation(() => input.base.scroll(value)),
-    click: (value) => withMutation(() => input.base.click(value)),
+    scroll: (value) =>
+      withMutation(() => input.base.scroll(value), { route: routeByDefault }),
+    click: (value) =>
+      withMutation(() => input.base.click(value), { route: routeByDefault }),
     clickLocatedDomElement: (value) =>
-      withMutation(() => input.base.clickLocatedDomElement(value)),
-    textInput: (value) => withMutation(() => input.base.textInput(value)),
+      withMutation(() => input.base.clickLocatedDomElement(value), {
+        route: routeByDefault,
+      }),
+    textInput: (value) =>
+      withMutation(() => input.base.textInput(value), {
+        route: routeByDefault,
+      }),
+});
+
+type ObservationBrowserFacade = Pick<
+  BrowserController,
+  | "screenshotRegion"
+  | "evaluateActiveTab"
+  | "setFileInputFiles"
+  | "wait"
+  | "closeActiveTab"
+  | "close"
+>;
+
+const createObservationBrowserFacade = (
+  input: SingleTabBrowserInput,
+  withMutation: MutationRunner,
+  routeByDefault: boolean,
+): ObservationBrowserFacade => ({
     screenshotRegion: (value) =>
-      withMutation(() => input.base.screenshotRegion(value)),
+      withMutation(() => input.base.screenshotRegion(value), {
+        route: routeByDefault,
+      }),
     evaluateActiveTab: <T>(
       value: Parameters<BrowserController["evaluateActiveTab"]>[0],
-    ) => withMutation(() => input.base.evaluateActiveTab<T>(value)),
+    ) =>
+      withMutation(() => input.base.evaluateActiveTab<T>(value), {
+        route: routeByDefault,
+      }),
     setFileInputFiles: (value) =>
-      withMutation(() => input.base.setFileInputFiles(value)),
+      withMutation(() => input.base.setFileInputFiles(value), {
+        route: routeByDefault,
+      }),
     wait: async (durationMs: number): Promise<BrowserActionResult> => {
       await delay(durationMs, input.signal);
       return {
@@ -155,16 +237,7 @@ const createBrowserFacade = (
       message: "left the single controlled web-chat tab open",
       createdAt: new Date().toISOString(),
     }),
-  } as BrowserController;
-  if (input.base.move) {
-    browser.move = (value) => withMutation(() => input.base.move!(value));
-  }
-  if (input.base.selectFilesInNativePicker) {
-    browser.selectFilesInNativePicker = (value) =>
-      withMutation(() => input.base.selectFilesInNativePicker!(value));
-  }
-  return browser;
-};
+});
 
 const bindConversationIdentity = (
   state: SingleTabState,
@@ -195,9 +268,19 @@ export const createSingleTabWebChatBrowser = (
     initialMutationLease: input.initialMutationLease,
     submission: input.resumeSubmission,
   };
-  const withMutation = createMutationRunner(input, state);
+  const withSubmissionThenPatrol = createMutationRunner(
+    input,
+    state,
+    "submission_then_patrol",
+  );
+  const withGlobalSurvival = createMutationRunner(
+    input,
+    state,
+    "global_survival",
+  );
   return {
-    browser: createBrowserFacade(input, withMutation),
+    browser: createBrowserFacade(input, withSubmissionThenPatrol, true),
+    globalBrowser: createBrowserFacade(input, withGlobalSurvival, false),
     bindObservedConversation: (submission) =>
       bindObservedConversation(state, submission),
     bindConversationIdentity: (submission) =>

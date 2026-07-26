@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T04:47:52.439Z",
+  "generatedAt": "2026-07-26T05:20:54.379Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -129,6 +129,9 @@
             "ai-input-gateway/human-readable-system-chat-title",
             "ai-input-gateway/no-chatgpt-page-refresh",
             "ai-input-gateway/parallel-acceptance",
+            "ai-input-gateway/submission-priority-patrol",
+            "ai-input-gateway/shared-rate-limit-watcher",
+            "ai-input-gateway/live-generation-proof",
             "ai-input-gateway/removed-old-region",
             "ai-input-gateway/source-present"
           ],

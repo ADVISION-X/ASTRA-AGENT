@@ -18,6 +18,7 @@ export type WebChatRuntimeLease = {
 
 const DEFAULT_MAX_IN_FLIGHT = 10;
 const ABSOLUTE_MAX_IN_FLIGHT = 64;
+const pendingSubmissionIds = new Set<string>();
 
 export const resolveWebChatMaxInFlight = (): number => {
   const raw = process.env.WEB_CHAT_MAX_IN_FLIGHT?.trim();
@@ -47,6 +48,21 @@ const delay = (signal?: AbortSignal): Promise<void> => new Promise((resolve, rej
   if (signal?.aborted) abort();
   else signal?.addEventListener("abort", abort, { once: true });
 });
+
+export const registerPendingWebChatSubmission = (
+  executionId: string,
+): (() => void) => {
+  pendingSubmissionIds.add(executionId);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    pendingSubmissionIds.delete(executionId);
+  };
+};
+
+export const pendingWebChatSubmissionCount = (): number =>
+  pendingSubmissionIds.size;
 
 const removeStaleLease = async (leaseDir: string): Promise<boolean> => {
   try {
@@ -140,4 +156,39 @@ export const acquireWebChatBrowserMutationLease = async (input: {
     await delay(input.signal);
   }
   throw new Error("review_required: timed out waiting for serialized web-chat browser mutation.");
+};
+
+export const acquireWebChatBrowserPatrolLease = async (input: {
+  dataDir: string;
+  timeoutMs: number;
+  signal?: AbortSignal;
+}): Promise<WebChatRuntimeLease> => {
+  const root = path.join(input.dataDir, "runtime-data", "ai-input-gateway");
+  await mkdir(root, { recursive: true });
+  const leaseDir = path.join(root, "web-chat-browser-mutation.lock");
+  const deadline = Date.now() + input.timeoutMs;
+  while (Date.now() < deadline) {
+    if (input.signal?.aborted) {
+      throw new Error("review_required: web-chat patrol wait aborted.");
+    }
+    if (pendingSubmissionIds.size > 0) {
+      await delay(input.signal);
+      continue;
+    }
+    const lease = await acquireDirectoryLease({
+      leaseDir,
+      kind: "browser_mutation",
+      slot: null,
+    });
+    if (!lease) {
+      await delay(input.signal);
+      continue;
+    }
+    if (pendingSubmissionIds.size === 0) return lease;
+    await lease.release();
+    await delay(input.signal);
+  }
+  throw new Error(
+    "review_required: timed out waiting for submission-priority web-chat patrol.",
+  );
 };

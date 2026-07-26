@@ -435,7 +435,7 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
       script: buildUnrenamedChatGptIdentityScript({ turnMarker: input.turnMarker, targetPath }),
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 5_000;
   let last: Awaited<ReturnType<typeof inspectAndLocate>> | null = null;
   while (Date.now() < deadline) {
     last = await inspectAndLocate();
@@ -458,7 +458,7 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
     }
     await input.base.wait(500);
   }
-  throw new Error(`review_required: exact submitted ChatGPT sidebar row did not expose one matching marker before rename; last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? targetUrl}`);
+  throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact submitted ChatGPT sidebar row is not ready for marker verification; last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? targetUrl}`);
 };
 
 export const focusBoundWebChatConversation = async (input: { base: BrowserController; providerKind: "gpt-web-chat" | "gemini-web-chat"; systemChatTitle: string | null; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {

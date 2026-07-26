@@ -64,6 +64,7 @@ export type WebChatExecutionContext = {
   resumeSubmission: WebChatSubmissionProof | null;
   resumeUploadedFiles: AiProviderUploadedFileProof[];
   resumeAttachmentUploadProof: WebChatAttachmentUploadProof | null;
+  globalBrowser: BrowserController | null;
   onSubmissionObserved(input: {
     submission: WebChatSubmissionProof;
     uploadedFiles: AiProviderUploadedFileProof[];

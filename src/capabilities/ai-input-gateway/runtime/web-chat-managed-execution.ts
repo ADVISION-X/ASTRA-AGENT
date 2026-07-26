@@ -3,7 +3,12 @@ import { createHash } from "node:crypto";
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderUploadedFileProof, WebChatAttachmentUploadProof, WebChatExecutionContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import { acquireWebChatBrowserMutationLease, acquireWebChatCapacityLease, type WebChatRuntimeLease } from "./web-chat-concurrency-lease.js";
+import {
+  acquireWebChatBrowserMutationLease,
+  acquireWebChatCapacityLease,
+  registerPendingWebChatSubmission,
+  type WebChatRuntimeLease,
+} from "./web-chat-concurrency-lease.js";
 import { buildInternallyMarkedPrompt, startOrResumeWebChatExecution, updateWebChatExecution, type WebChatExecutionRecord } from "./web-chat-execution-state.js";
 import { createSingleTabWebChatBrowser, type SingleTabWebChatBrowser } from "./web-chat-single-tab-browser.js";
 
@@ -33,6 +38,7 @@ type ActiveExecutionState = {
   initialMutationLease: WebChatRuntimeLease | null;
   singleTabBrowser: SingleTabWebChatBrowser | null;
   resume: boolean;
+  releasePendingSubmission: (() => void) | null;
 };
 
 type BuildExecutionContextInput = {
@@ -41,6 +47,7 @@ type BuildExecutionContextInput = {
   setRecord(record: WebChatExecutionRecord): void;
   singleTabBrowser: SingleTabWebChatBrowser | null;
   resume: boolean;
+  releasePendingSubmission(): void;
 };
 
 const resolveWebChatProviderKind = (request: AiFeedInput): "gpt-web-chat" | "gemini-web-chat" => {
@@ -72,6 +79,7 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
     resumeSubmission: input.resume ? record.submission : null,
     resumeUploadedFiles: input.resume ? record.uploadedFiles : [],
     resumeAttachmentUploadProof: input.resume ? record.attachmentUploadProof : null,
+    globalBrowser: input.singleTabBrowser?.globalBrowser ?? null,
     onSubmissionObserved: async ({ submission, uploadedFiles, attachmentUploadProof }) => {
       await update({
         status: submission.canonicalConversationUrl ? "conversation_canonicalized" : "submitted_transient",
@@ -91,6 +99,7 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
       await update({ status: "waiting_provider" });
       input.singleTabBrowser?.bindConversationIdentity(submission);
       await input.singleTabBrowser?.releaseInitialMutationLease();
+      input.releasePendingSubmission();
       await input.source.onAttachmentUploadCompleted?.(attachmentUploadProof);
     },
     onConversationCanonicalized: (submission) => {
@@ -129,6 +138,9 @@ const startActiveExecution = async (input: ManagedWebChatInput, inputHash: strin
   });
   let initialMutationLease: WebChatRuntimeLease | null = null;
   let singleTabBrowser: SingleTabWebChatBrowser | null = null;
+  let releasePendingSubmission = started.resume
+    ? null
+    : registerPendingWebChatSubmission(record.executionId);
   try {
     record = await updateWebChatExecution({
       dataDir: input.dataDir,
@@ -170,8 +182,11 @@ const startActiveExecution = async (input: ManagedWebChatInput, inputHash: strin
       initialMutationLease,
       singleTabBrowser,
       resume: started.resume,
+      releasePendingSubmission,
     };
   } catch (error) {
+    releasePendingSubmission?.();
+    releasePendingSubmission = null;
     await initialMutationLease?.release();
     await capacityLease.release();
     throw error;
@@ -179,6 +194,10 @@ const startActiveExecution = async (input: ManagedWebChatInput, inputHash: strin
 };
 
 const buildActiveExecution = (input: ManagedWebChatInput, state: ActiveExecutionState): ManagedWebChatExecution => {
+  const releasePendingSubmission = (): void => {
+    state.releasePendingSubmission?.();
+    state.releasePendingSubmission = null;
+  };
   const webChatExecution = buildExecutionContext({
     source: input,
     getRecord: () => state.record,
@@ -187,6 +206,7 @@ const buildActiveExecution = (input: ManagedWebChatInput, state: ActiveExecution
     },
     singleTabBrowser: state.singleTabBrowser,
     resume: state.resume,
+    releasePendingSubmission,
   });
   return {
     request: state.resume
@@ -216,6 +236,7 @@ const buildActiveExecution = (input: ManagedWebChatInput, state: ActiveExecution
       }).catch(() => state.record);
     },
     async release() {
+      releasePendingSubmission();
       await state.singleTabBrowser?.releaseInitialMutationLease();
       await state.initialMutationLease?.release();
       await state.capacityLease.release();
