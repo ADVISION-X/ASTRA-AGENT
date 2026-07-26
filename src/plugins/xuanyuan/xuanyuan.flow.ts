@@ -211,13 +211,14 @@ const resolveContinuation = async (dataDir: string, request: XuanyuanRequest): P
 const executePersistedXuanyuanTask = async (
   runtime: XuanyuanRuntime,
   taskId: string,
+  allowSubmittedConversationRecovery = false,
 ): Promise<XuanyuanTaskRecord> => {
   const existing = await readTask(runtime.dataDir, taskId);
   if (!existing) throw new Error("XUANYUAN_TASK_NOT_FOUND");
   if (
     existing.status === "response_captured"
-    || existing.status === "review_required"
-    || existing.status === "failed"
+    || (existing.status === "review_required" && !allowSubmittedConversationRecovery)
+    || (existing.status === "failed" && !allowSubmittedConversationRecovery)
   ) {
     return existing;
   }
@@ -236,6 +237,8 @@ const executePersistedXuanyuanTask = async (
         executionId: taskId,
         phase: "running",
       },
+      failureReason: null,
+      reviewRequiredReason: null,
       updatedAt: nowIso(),
     });
     const aiFeedResult = await runtime.aiInputGateway.execute(toAiFeedInput(
@@ -295,11 +298,36 @@ export const continueInterruptedXuanyuanTasks = async (
   runtime: XuanyuanRuntime,
 ): Promise<void> => {
   const incomplete = (await listXuanyuanHistory(runtime))
-    .filter((task) => task.status === "queued" || task.status === "running")
+    .filter((task) =>
+      task.status === "queued"
+      || task.status === "running"
+      || (
+        task.status === "failed"
+        && task.progress?.attachmentUploadProof?.status === "attachments_stable"
+        && /^ENOENT: no such file or directory, (?:stat|open) /u.test(
+          task.failureReason ?? "",
+        )
+      )
+      || (
+        task.status === "review_required"
+        && task.progress?.attachmentUploadProof?.status === "attachments_stable"
+        && (
+          task.reviewRequiredReason ===
+            "review_required: exact ChatGPT system title was not present before rename commit; observed=none"
+          || task.reviewRequiredReason?.startsWith(
+            "review_required: exact submitted ChatGPT sidebar row did not expose one matching marker before rename;",
+          ) === true
+        )
+      )
+    )
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   for (const task of incomplete) {
     if (activeXuanyuanTasks.has(task.taskId)) continue;
-    void executePersistedXuanyuanTask(runtime, task.taskId);
+    void executePersistedXuanyuanTask(
+      runtime,
+      task.taskId,
+      task.status === "failed" || task.status === "review_required",
+    );
   }
 };
 

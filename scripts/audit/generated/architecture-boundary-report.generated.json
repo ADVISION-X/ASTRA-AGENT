@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T01:56:00.982Z",
+  "generatedAt": "2026-07-26T04:28:59.375Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -586,6 +586,7 @@
     "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance-support.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+    "scripts/acceptance/pick3-is-blind-eval.contracts.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
@@ -954,6 +955,7 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/schema.ts",

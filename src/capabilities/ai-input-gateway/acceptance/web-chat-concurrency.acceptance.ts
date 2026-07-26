@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,13 +35,18 @@ const exists = async (filePath: string): Promise<boolean> => {
   }
 };
 
-const waitFor = async (predicate: () => Promise<boolean>, timeoutMs = 8_000): Promise<void> => {
+const waitFor = async (
+  predicate: () => Promise<boolean>,
+  timeoutMs = 8_000,
+): Promise<void> => {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await predicate()) return;
     await delay(25);
   }
-  throw new Error("timed out waiting for web-chat concurrency acceptance condition");
+  throw new Error(
+    "timed out waiting for web-chat concurrency acceptance condition",
+  );
 };
 
 const requestFor = (worker: number): AiFeedInput => ({
@@ -59,7 +71,11 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
   const adapter: AiProviderAdapter = {
     providerKind: "gpt-web-chat",
     async feed() {
-      await writeFile(path.join(dataDir, `entered-${worker}`), String(worker), "utf8");
+      await writeFile(
+        path.join(dataDir, `entered-${worker}`),
+        String(worker),
+        "utf8",
+      );
       await waitFor(() => exists(path.join(dataDir, "release-all")));
       return {
         rawText: `parallel response ${worker}`,
@@ -80,43 +96,65 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
     executionId: `parallel-execution-${worker}`,
   });
   assert.equal(result.status, "success");
-  assert.match(result.providerProof.providerLeaseId ?? "", /^web-chat-capacity:/u);
-  await writeFile(path.join(dataDir, `result-${worker}.json`), JSON.stringify(result), "utf8");
+  assert.match(
+    result.providerProof.providerLeaseId ?? "",
+    /^web-chat-capacity:/u,
+  );
+  await writeFile(
+    path.join(dataDir, `result-${worker}.json`),
+    JSON.stringify(result),
+    "utf8",
+  );
 };
 
 const workerArgs = process.argv.slice(2);
 if (workerArgs[0] === "--worker") {
   const dataDir = workerArgs[1];
   const worker = Number(workerArgs[2]);
-  if (!dataDir || !Number.isInteger(worker)) throw new Error("invalid concurrency worker arguments");
+  if (!dataDir || !Number.isInteger(worker))
+    throw new Error("invalid concurrency worker arguments");
   await runWorker(dataDir, worker);
 } else {
-  const dataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-web-chat-concurrency-"));
-  const scriptPath = fileURLToPath(import.meta.url);
-  const spawnWorker = (worker: number) => spawn(
-    process.execPath,
-    ["--import", "tsx", scriptPath, "--worker", dataDir, String(worker)],
-    {
-      cwd: process.cwd(),
-      env: { ...process.env, WEB_CHAT_MAX_IN_FLIGHT: "10" },
-      stdio: "inherit",
-    },
+  const dataDir = await mkdtemp(
+    path.join(os.tmpdir(), "grasseye-web-chat-concurrency-"),
   );
+  const scriptPath = fileURLToPath(import.meta.url);
+  const spawnWorker = (worker: number) =>
+    spawn(
+      process.execPath,
+      ["--import", "tsx", scriptPath, "--worker", dataDir, String(worker)],
+      {
+        cwd: process.cwd(),
+        env: { ...process.env, WEB_CHAT_MAX_IN_FLIGHT: "10" },
+        stdio: "inherit",
+      },
+    );
   const waitForExit = (child: ReturnType<typeof spawnWorker>): Promise<void> =>
     new Promise((resolve, reject) => {
       child.once("error", reject);
       child.once("exit", (code, signal) => {
         if (code === 0) resolve();
-        else reject(new Error(`parallel worker exited code=${String(code)} signal=${String(signal)}`));
+        else
+          reject(
+            new Error(
+              `parallel worker exited code=${String(code)} signal=${String(signal)}`,
+            ),
+          );
       });
     });
 
   try {
-    const firstTen = Array.from({ length: 10 }, (_, index) => spawnWorker(index + 1));
+    const firstTen = Array.from({ length: 10 }, (_, index) =>
+      spawnWorker(index + 1),
+    );
     await waitFor(async () =>
-      (await Promise.all(
-        Array.from({ length: 10 }, (_, index) => exists(path.join(dataDir, `entered-${index + 1}`))),
-      )).every(Boolean),
+      (
+        await Promise.all(
+          Array.from({ length: 10 }, (_, index) =>
+            exists(path.join(dataDir, `entered-${index + 1}`)),
+          ),
+        )
+      ).every(Boolean),
     );
     const executionDir = path.join(
       dataDir,
@@ -125,14 +163,18 @@ if (workerArgs[0] === "--worker") {
       "web-chat-executions",
     );
     const firstTenStates = await Promise.all(
-      (await readdir(executionDir)).map(async (name) =>
-        JSON.parse(await readFile(path.join(executionDir, name), "utf8")) as {
-          capacitySlot: number | null;
-          status: string;
-        }),
+      (await readdir(executionDir)).map(
+        async (name) =>
+          JSON.parse(await readFile(path.join(executionDir, name), "utf8")) as {
+            capacitySlot: number | null;
+            status: string;
+          },
+      ),
     );
     assert.deepEqual(
-      firstTenStates.map((state) => state.capacitySlot).sort((a, b) => Number(a) - Number(b)),
+      firstTenStates
+        .map((state) => state.capacitySlot)
+        .sort((a, b) => Number(a) - Number(b)),
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       "ten real in-flight tasks must own ten distinct bounded capacity slots",
     );
@@ -169,6 +211,55 @@ if (workerArgs[0] === "--worker") {
     await firstMutation.release();
     const secondMutation = await secondMutationPromise;
     await secondMutation.release();
+
+    const sharedSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+      ),
+      "utf8",
+    );
+    const titleSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+      ),
+      "utf8",
+    );
+    const submitFlow = sharedSource.slice(
+      sharedSource.indexOf("const executeWebChatConversation"),
+      sharedSource.indexOf("const executeOpenedWebChatAdapter"),
+    );
+    const completedFlow = sharedSource.slice(
+      sharedSource.indexOf("const buildCompletedWebChatResponse"),
+      sharedSource.indexOf("const executeWebChatConversation"),
+    );
+    assert.equal(
+      submitFlow.includes("renameSubmittedChatGptConversation"),
+      false,
+      "submission must release the browser mutation lane without waiting for rename",
+    );
+    assert.equal(
+      completedFlow.includes("renameSubmittedChatGptConversation"),
+      true,
+      "the exact conversation must be renamed only after response completion",
+    );
+    assert.equal(
+      titleSource.includes("(?!WEB:)"),
+      true,
+      "transient ChatGPT WEB sidebar rows must never be rename targets",
+    );
+    assert.equal(
+      titleSource.includes('CHATGPT_CONVERSATION_ROW_SELECTOR = "li"')
+        && titleSource.includes("link.closest(${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)})"),
+      true,
+      "rename options must be scoped to the exact sidebar conversation row",
+    );
+    assert.equal(
+      titleSource.includes("depth < 7"),
+      false,
+      "rename targeting must not climb into the page-header conversation menu",
+    );
 
     let stableAnswerState = createStableAnswerState();
     const quietWindowStartedAt = stableAnswerState.lastActivityAt;
@@ -214,5 +305,7 @@ if (workerArgs[0] === "--worker") {
     await rm(dataDir, { recursive: true, force: true });
   }
 
-  process.stdout.write("[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS\n");
+  process.stdout.write(
+    "[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS\n",
+  );
 }

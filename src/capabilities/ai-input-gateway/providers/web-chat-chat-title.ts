@@ -1,12 +1,6 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import type {
-  AiProviderAdapterContext,
-  WebChatSubmissionProof,
-} from "../contracts/ai-provider-adapter.contract.js";
-import {
-  copyTextToMacClipboard,
-  pasteMacClipboardIntoChrome,
-} from "./web-chat-clipboard.js";
+import type { AiProviderAdapterContext, WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
+import { copyTextToMacClipboard, pasteMacClipboardIntoChrome } from "./web-chat-clipboard.js";
 
 type LocatedTarget = {
   status: "success" | "pending" | "review_required";
@@ -29,8 +23,12 @@ type TextboxValueVerification = {
   observedValue: string | null;
 };
 
-const buildConversationOptionsTargetScript = (canonicalConversationUrl: string): string => `
-const expectedPath = ${JSON.stringify(new URL(canonicalConversationUrl).pathname)};
+const CHATGPT_CONVERSATION_HREF_PATTERN_SOURCE = "^/c/(?!WEB:)[^/?#]+(?:[?#].*)?$";
+const CHATGPT_CONVERSATION_ROW_SELECTOR = "li";
+
+const buildConversationOptionsTargetScript = (input: { canonicalConversationUrl: string }): string => `
+const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
+const conversationHrefPattern = new RegExp(${JSON.stringify(CHATGPT_CONVERSATION_HREF_PATTERN_SOURCE)}, "u");
 const visible = (node) => {
   if (!(node instanceof Element)) return false;
   const rect = node.getBoundingClientRect();
@@ -42,7 +40,7 @@ const links = Array.from(document.querySelectorAll("a[href]"))
   .filter((link) => {
     try {
       const rawHref = link.getAttribute("href") || "";
-      return rawHref.includes("/c/")
+      return conversationHrefPattern.test(rawHref)
         && new URL(link.href, location.href).pathname === expectedPath
         && visible(link);
     } catch {
@@ -57,47 +55,60 @@ if (links.length !== 1) {
   };
 }
 const link = links[0];
-let container = link;
-let options = null;
-for (let depth = 0; depth < 7 && container && !options; depth += 1) {
-  options = Array.from(container.querySelectorAll("button"))
-    .find((button) => {
-      const label = normalized(button.getAttribute("aria-label") || button.getAttribute("title") || button.textContent);
-      return visible(button) && (/对话选项|conversation options|chat options/i.test(label));
-    }) || null;
-  container = container.parentElement;
-}
-if (!options) {
+const row = link.closest(${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)})
+  || (
+    Array.from(link.parentElement?.children || []).includes(link)
+      ? link.parentElement
+      : null
+  );
+const options = row
+  ? Array.from(row.querySelectorAll("button"))
+      .filter((button) => visible(button))
+      .filter((button) => /对话选项|conversation options|chat options/i.test(normalized(
+        button.getAttribute("aria-label") || button.getAttribute("title") || button.textContent
+      )))
+  : [];
+if (options.length > 1) {
   return {
-    status: "pending",
-    message: "waiting for submitted conversation options control",
+    status: "review_required",
+    message: "CHATGPT_CONVERSATION_OPTIONS_AMBIGUOUS_IN_TARGET_ROW",
     pageUrl: location.href,
     observedTitle: normalized(link.textContent),
   };
 }
-const rect = options.getBoundingClientRect();
+if (options.length === 0) {
+  return {
+    status: "pending",
+    message: "waiting for completed conversation row options control",
+    pageUrl: location.href,
+    observedTitle: normalized(link.textContent),
+  };
+}
+const rect = options[0].getBoundingClientRect();
 return {
   status: "success",
-  message: "submitted conversation options control located",
+  message: "completed conversation row options control located",
   pageUrl: location.href,
   observedTitle: normalized(link.textContent),
   targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
 };
 `;
 
-const buildConversationLinkTargetScript = (canonicalConversationUrl: string): string => `
-const expectedPath = ${JSON.stringify(new URL(canonicalConversationUrl).pathname)};
+const buildConversationLinkTargetScript = (input: { canonicalConversationUrl: string }): string => `
+const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
+const conversationHrefPattern = new RegExp(${JSON.stringify(CHATGPT_CONVERSATION_HREF_PATTERN_SOURCE)}, "u");
 const visible = (node) => {
   if (!(node instanceof Element)) return false;
   const rect = node.getBoundingClientRect();
   const style = getComputedStyle(node);
   return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
 };
+const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
 const links = Array.from(document.querySelectorAll("a[href]"))
   .filter((link) => {
     try {
       const rawHref = link.getAttribute("href") || "";
-      return rawHref.includes("/c/")
+      return conversationHrefPattern.test(rawHref)
         && new URL(link.href, location.href).pathname === expectedPath
         && visible(link);
     } catch {
@@ -116,14 +127,12 @@ return {
   status: "success",
   message: "submitted conversation sidebar link located",
   pageUrl: location.href,
+  observedTitle: normalized(links[0].textContent),
   targetPoint: {x: rect.left + Math.min(rect.width / 2, 96), y: rect.top + rect.height / 2},
 };
 `;
 
-const buildFocusedSubmittedConversationScript = (input: {
-  canonicalConversationUrl: string;
-  turnMarker: string;
-}): string => `
+const buildFocusedSubmittedConversationScript = (input: { canonicalConversationUrl: string; turnMarker: string }): string => `
 const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
 const marker = ${JSON.stringify(input.turnMarker)};
 const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
@@ -131,7 +140,7 @@ const markerCount = Array.from(document.querySelectorAll("[data-message-author-r
   .filter((node) => normalized(node.textContent).includes(marker))
   .length;
 return {
-  status: location.pathname === expectedPath && markerCount === 1
+  status: markerCount === 1
     ? "success"
     : markerCount > 1
       ? "review_required"
@@ -225,11 +234,7 @@ return {
 };
 `;
 
-const buildRenamedIdentityVerificationScript = (input: {
-  canonicalConversationUrl: string;
-  systemChatTitle: string;
-  turnMarker: string;
-}): string => `
+const buildRenamedIdentityVerificationScript = (input: { canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): string => `
 const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
 const expectedTitle = ${JSON.stringify(input.systemChatTitle)};
 const marker = ${JSON.stringify(input.turnMarker)};
@@ -238,7 +243,6 @@ const titleLinks = Array.from(document.querySelectorAll("a[href]"))
   .filter((link) => {
     try {
       return (link.getAttribute("href") || "").includes("/c/")
-        && new URL(link.href, location.href).pathname === expectedPath
         && normalized(link.textContent) === expectedTitle;
     } catch {
       return false;
@@ -247,10 +251,11 @@ const titleLinks = Array.from(document.querySelectorAll("a[href]"))
 const markerCount = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
   .filter((node) => normalized(node.textContent).includes(marker))
   .length;
-const currentPathMatches = location.pathname === expectedPath;
+const currentPathMatches = location.pathname === expectedPath
+  || titleLinks.some((link) => new URL(link.href, location.href).pathname === location.pathname);
 const documentTitleMatches = normalized(document.title) === expectedTitle;
 return {
-  status: titleLinks.length === 1 && markerCount === 1 && currentPathMatches
+  status: titleLinks.length === 1 && markerCount === 1
     ? "success"
     : titleLinks.length > 1 || markerCount > 1
       ? "review_required"
@@ -264,13 +269,7 @@ return {
 };
 `;
 
-const locateAndClick = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  description: string;
-  script: string;
-  timeoutMs: number;
-}): Promise<LocatedTarget> => {
+const locateTarget = async (input: { browser: BrowserController; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
   const deadline = Date.now() + input.timeoutMs;
   let last: LocatedTarget | null = null;
   while (Date.now() < deadline) {
@@ -283,14 +282,6 @@ const locateAndClick = async (input: {
       throw new Error(`review_required: ${last.message}`);
     }
     if (last.status === "success" && last.targetPoint) {
-      const clicked = await input.browser.click({
-        targetLabel: input.description,
-        point: last.targetPoint,
-        coordinateSpace: "browserViewport",
-        button: "left",
-        clickCount: 1,
-      });
-      if (!clicked.ok) throw new Error(`review_required: ${input.description} real click failed; ${clicked.message}`);
       return last;
     }
     await input.browser.wait(250);
@@ -298,18 +289,30 @@ const locateAndClick = async (input: {
   throw new Error(`review_required: ${input.description} did not become uniquely clickable; last=${last?.message ?? "none"}`);
 };
 
-const focusSubmittedConversation = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  canonicalConversationUrl: string;
-  turnMarker: string;
-}): Promise<void> => {
+const locateAndClick = async (input: { browser: BrowserController; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
+  const target = await locateTarget(input);
+  const clicked = await input.browser.click({
+    targetLabel: input.description,
+    point: target.targetPoint!,
+    coordinateSpace: "browserViewport",
+    button: "left",
+    clickCount: 1,
+  });
+  if (!clicked.ok) {
+    throw new Error(`review_required: ${input.description} real click failed; ${clicked.message}`);
+  }
+  return target;
+};
+
+const focusSubmittedConversation = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; turnMarker: string; timeoutMs: number }): Promise<void> => {
   await locateAndClick({
     browser: input.browser,
     context: input.context,
     description: "open the just-submitted ChatGPT conversation before renaming",
-    script: buildConversationLinkTargetScript(input.canonicalConversationUrl),
-    timeoutMs: 60_000,
+    script: buildConversationLinkTargetScript({
+      canonicalConversationUrl: input.canonicalConversationUrl,
+    }),
+    timeoutMs: input.timeoutMs,
   });
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
@@ -327,26 +330,41 @@ const focusSubmittedConversation = async (input: {
     });
     if (observation.status === "success") return;
     if (observation.status === "review_required") {
-      throw new Error(
-        `review_required: submitted ChatGPT conversation marker is ambiguous before rename; count=${observation.markerCount}`,
-      );
+      throw new Error(`review_required: submitted ChatGPT conversation marker is ambiguous before rename; count=${observation.markerCount}`);
     }
     await input.browser.wait(250);
   }
   throw new Error("review_required: just-submitted ChatGPT conversation did not become current before rename.");
 };
 
-const applySystemChatTitle = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  canonicalConversationUrl: string;
-  systemChatTitle: string;
-}): Promise<string | null> => {
+const applySystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<string | null> => {
+  const conversationLink = await locateTarget({
+    browser: input.browser,
+    context: input.context,
+    description: "locate the submitted ChatGPT conversation title before revealing its options",
+    script: buildConversationLinkTargetScript({
+      canonicalConversationUrl: input.canonicalConversationUrl,
+    }),
+    timeoutMs: 60_000,
+  });
+  if (!input.browser.move) {
+    throw new Error("review_required: browser cannot hover the submitted ChatGPT conversation title.");
+  }
+  const moved = await input.browser.move({
+    targetLabel: "hover the submitted ChatGPT conversation title",
+    point: conversationLink.targetPoint!,
+    coordinateSpace: "browserViewport",
+  });
+  if (!moved.ok) {
+    throw new Error(`review_required: submitted ChatGPT conversation hover failed; ${moved.message}`);
+  }
   const options = await locateAndClick({
     browser: input.browser,
     context: input.context,
     description: "click the submitted ChatGPT conversation options control",
-    script: buildConversationOptionsTargetScript(input.canonicalConversationUrl),
+    script: buildConversationOptionsTargetScript({
+      canonicalConversationUrl: input.canonicalConversationUrl,
+    }),
     timeoutMs: 60_000,
   });
   await locateAndClick({
@@ -367,11 +385,7 @@ const applySystemChatTitle = async (input: {
   return options.observedTitle?.trim() || null;
 };
 
-const writeExactSystemChatTitle = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  systemChatTitle: string;
-}): Promise<void> => {
+const writeExactSystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<void> => {
   let last: TextboxValueVerification | null = null;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await input.browser.textInput({
@@ -399,19 +413,22 @@ const writeExactSystemChatTitle = async (input: {
       });
       return;
     }
+    if (last.observedValue === null) {
+      const committed = await input.browser.evaluateActiveTab<RenameVerification>({
+        description: "verify whether ChatGPT committed the exact pasted title before the textbox disappeared",
+        script: buildRenamedIdentityVerificationScript(input),
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      });
+      if (committed.status === "success") return;
+      if (committed.status === "review_required") {
+        throw new Error("review_required: ChatGPT committed an ambiguous title identity after paste.");
+      }
+    }
   }
-  throw new Error(
-    `review_required: exact ChatGPT system title was not present before rename commit; observed=${last?.observedValue ?? "none"}`,
-  );
+  throw new Error(`review_required: exact ChatGPT system title was not present before rename commit; observed=${last?.observedValue ?? "none"}`);
 };
 
-const waitForRenamedIdentity = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  canonicalConversationUrl: string;
-  systemChatTitle: string;
-  turnMarker: string;
-}): Promise<RenameVerification> => {
+const waitForRenamedIdentity = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<RenameVerification> => {
   const deadline = Date.now() + 12_000;
   let last: RenameVerification = {
     status: "pending",
@@ -432,11 +449,7 @@ const waitForRenamedIdentity = async (input: {
   return last;
 };
 
-export const renameSubmittedChatGptConversation = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  submission: WebChatSubmissionProof;
-}): Promise<WebChatSubmissionProof> => {
+export const renameSubmittedChatGptConversation = async (input: { browser: BrowserController; context: AiProviderAdapterContext; submission: WebChatSubmissionProof; timeoutMs: number }): Promise<WebChatSubmissionProof> => {
   const execution = input.context.webChatExecution;
   if (!execution || execution.providerKind !== "gpt-web-chat") return input.submission;
   if (!execution.systemChatTitle || !input.submission.canonicalConversationUrl) {
@@ -447,6 +460,7 @@ export const renameSubmittedChatGptConversation = async (input: {
     context: input.context,
     canonicalConversationUrl: input.submission.canonicalConversationUrl,
     turnMarker: execution.turnMarker,
+    timeoutMs: input.timeoutMs,
   });
   let last: RenameVerification | null = null;
   let observedAutoChatTitle: string | null = null;
@@ -456,6 +470,7 @@ export const renameSubmittedChatGptConversation = async (input: {
       context: input.context,
       canonicalConversationUrl: input.submission.canonicalConversationUrl,
       systemChatTitle: execution.systemChatTitle,
+      turnMarker: execution.turnMarker,
     });
     last = await waitForRenamedIdentity({
       browser: input.browser,
@@ -474,7 +489,5 @@ export const renameSubmittedChatGptConversation = async (input: {
     }
     if (renameAttempt < 3) await input.browser.wait(2_000);
   }
-  throw new Error(
-    `review_required: manually renamed ChatGPT identity did not verify; titleLinks=${String(last?.titleLinkCount ?? 0)}; markers=${String(last?.markerCount ?? 0)}; path=${String(last?.currentPathMatches ?? false)}; observedDocumentTitle=${String(last?.documentTitleMatches ?? false)}`,
-  );
+  throw new Error(`review_required: manually renamed ChatGPT identity did not verify; titleLinks=${String(last?.titleLinkCount ?? 0)}; markers=${String(last?.markerCount ?? 0)}; path=${String(last?.currentPathMatches ?? false)}; observedDocumentTitle=${String(last?.documentTitleMatches ?? false)}`);
 };

@@ -96,6 +96,7 @@ export const startOrResumeWebChatExecution = async (input: {
       existing.status === "submitted_transient"
       || existing.status === "conversation_canonicalized"
       || existing.status === "waiting_provider"
+      || existing.status === "review_required"
     ) {
       if (!existing.submission) {
         throw new Error("review_required: submitted web-chat execution is missing its durable submission proof.");
@@ -105,7 +106,7 @@ export const startOrResumeWebChatExecution = async (input: {
     if (existing.status === "response_captured") {
       throw new Error("review_required: captured web-chat execution must be rehydrated from its persisted raw output.");
     }
-    if (existing.status !== "failed" && existing.status !== "review_required") {
+    if (existing.status !== "failed") {
       return { record: existing, resume: false };
     }
     throw new Error(`review_required: web-chat execution is terminal: ${existing.status}`);

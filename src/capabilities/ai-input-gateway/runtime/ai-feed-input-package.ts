@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { open, readFile, stat } from "node:fs/promises";
 import { basename } from "node:path";
 
+import type { AiProviderUploadedFileProof, WebChatAttachmentUploadProof } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
 export type UploadableAiFeedInputRef = {
@@ -21,14 +22,11 @@ export type AiFeedInputPackage = {
   uploadableFiles: UploadableAiFeedInputRef[];
 };
 
-const hashValue = (value: string | Buffer): string =>
-  createHash("sha256").update(value).digest("hex");
+const hashValue = (value: string | Buffer): string => createHash("sha256").update(value).digest("hex");
 
-const fileHash = (value: Buffer): `sha256:${string}` =>
-  `sha256:${hashValue(value)}`;
+const fileHash = (value: Buffer): `sha256:${string}` => `sha256:${hashValue(value)}`;
 
-const normalizeDeclaredHash = (value: string): `sha256:${string}` =>
-  (value.startsWith("sha256:") ? value : `sha256:${value}`) as `sha256:${string}`;
+const normalizeDeclaredHash = (value: string): `sha256:${string}` => (value.startsWith("sha256:") ? value : `sha256:${value}`) as `sha256:${string}`;
 
 const assertPromptSafe = (input: AiFeedInput): void => {
   if (input.textPrompt.length > input.maxInputChars) {
@@ -36,22 +34,11 @@ const assertPromptSafe = (input: AiFeedInput): void => {
   }
 };
 
-const isImageRef = (mimeType: string | undefined, filePath: string): boolean =>
-  mimeType?.startsWith("image/") === true
-  || /\.(png|jpe?g|webp|gif)$/iu.test(filePath);
+const isImageRef = (mimeType: string | undefined, filePath: string): boolean => mimeType?.startsWith("image/") === true || /\.(png|jpe?g|webp|gif)$/iu.test(filePath);
 
-const isVideoRef = (mimeType: string | undefined, filePath: string): boolean =>
-  mimeType?.startsWith("video/") === true
-  || ((mimeType === undefined || mimeType === "application/octet-stream")
-    && /\.(mp4|m4v|mov)$/iu.test(filePath));
+const isVideoRef = (mimeType: string | undefined, filePath: string): boolean => mimeType?.startsWith("video/") === true || ((mimeType === undefined || mimeType === "application/octet-stream") && /\.(mp4|m4v|mov)$/iu.test(filePath));
 
-const isDocumentEvidenceRef = (mimeType: string | undefined, filePath: string): boolean =>
-  mimeType === "application/json"
-  || mimeType === "application/zip"
-  || mimeType === "application/x-ndjson"
-  || mimeType === "text/markdown"
-  || mimeType === "text/plain"
-  || /\.(json|jsonl|md|txt|zip)$/iu.test(filePath);
+const isDocumentEvidenceRef = (mimeType: string | undefined, filePath: string): boolean => mimeType === "application/json" || mimeType === "application/zip" || mimeType === "application/x-ndjson" || mimeType === "text/markdown" || mimeType === "text/plain" || /\.(json|jsonl|md|txt|zip)$/iu.test(filePath);
 
 const hasMp4Header = async (filePath: string): Promise<boolean> => {
   const handle = await open(filePath, "r");
@@ -76,7 +63,9 @@ const assertUploadableFile = async (filePath: string, mimeType: string | undefin
   }
 };
 
-const assertFileLimits = async (input: AiFeedInput): Promise<{
+const assertFileLimits = async (
+  input: AiFeedInput,
+): Promise<{
   imagePaths: string[];
   uploadableFiles: UploadableAiFeedInputRef[];
 }> => {
@@ -126,33 +115,75 @@ const assertFileLimits = async (input: AiFeedInput): Promise<{
   };
 };
 
-export const buildAiFeedInputPackage = async (
-  input: AiFeedInput,
-): Promise<AiFeedInputPackage> => {
+export const buildAiFeedInputPackage = async (input: AiFeedInput): Promise<AiFeedInputPackage> => {
   assertPromptSafe(input);
   const { imagePaths, uploadableFiles } = await assertFileLimits(input);
   return {
-    inputHash: hashValue(JSON.stringify({
-      providerKind: input.providerKind,
-      promptPackageId: input.promptPackageId,
-      promptContractId: input.promptContractId,
-      expectedOutputSchemaRef: input.expectedOutputSchemaRef,
-      providerContinuationRef: input.providerContinuationRef ?? null,
-      textPrompt: input.textPrompt,
-      inputRefs: input.inputRefs.map((ref) => ({
-        id: ref.id,
-        kind: ref.kind,
-        summary: ref.summary,
-        filePath: ref.filePath ?? null,
-        fileName: ref.fileName ?? null,
-        mimeType: ref.mimeType ?? null,
-        sha256: ref.sha256 ?? null,
-        byteCount: ref.byteCount ?? null,
-      })),
-      fileIntegrity: uploadableFiles.map(({ id, sha256, byteCount }) => ({ id, sha256, byteCount })),
-    })),
+    inputHash: hashValue(
+      JSON.stringify({
+        providerKind: input.providerKind,
+        promptPackageId: input.promptPackageId,
+        promptContractId: input.promptContractId,
+        expectedOutputSchemaRef: input.expectedOutputSchemaRef,
+        providerContinuationRef: input.providerContinuationRef ?? null,
+        textPrompt: input.textPrompt,
+        inputRefs: input.inputRefs.map((ref) => ({
+          id: ref.id,
+          kind: ref.kind,
+          summary: ref.summary,
+          filePath: ref.filePath ?? null,
+          fileName: ref.fileName ?? null,
+          mimeType: ref.mimeType ?? null,
+          sha256: ref.sha256 ?? null,
+          byteCount: ref.byteCount ?? null,
+        })),
+        fileIntegrity: uploadableFiles.map(({ id, sha256, byteCount }) => ({ id, sha256, byteCount })),
+      }),
+    ),
     inputRefIds: input.inputRefs.map((ref) => ref.id),
     imagePaths,
     uploadableFiles,
+  };
+};
+
+type ResumedWebChatInput = {
+  request: AiFeedInput;
+  dataDir: string;
+  persistedInputHash: string;
+  attachmentUploadProof: WebChatAttachmentUploadProof;
+  uploadedFiles: AiProviderUploadedFileProof[];
+};
+
+const resumedAttachmentMatches = (input: { index: number; ref: AiFeedInput["inputRefs"][number]; durable: WebChatAttachmentUploadProof["files"][number]; uploaded: AiProviderUploadedFileProof }): boolean => {
+  const declaredHash = input.ref.sha256 ? normalizeDeclaredHash(input.ref.sha256) : null;
+  return input.durable.order === input.index + 1 && input.durable.inputRefId === input.ref.id && input.uploaded.inputRefId === input.ref.id && input.uploaded.step === input.index + 1 && (input.ref.fileName === undefined || input.durable.sourceFileName === input.ref.fileName) && (declaredHash === null || input.durable.sha256 === declaredHash) && (input.ref.byteCount === undefined || input.durable.byteCount === input.ref.byteCount) && input.durable.sha256 === input.uploaded.sha256 && input.durable.byteCount === input.uploaded.byteCount;
+};
+
+const assertResumedAttachmentIdentity = (input: ResumedWebChatInput, fileRefs: AiFeedInput["inputRefs"]): void => {
+  const proof = input.attachmentUploadProof;
+  if (proof.status !== "attachments_stable" || proof.expectedFileCount !== fileRefs.length || proof.detectedFileCount !== fileRefs.length || proof.files.length !== fileRefs.length || input.uploadedFiles.length !== fileRefs.length) {
+    throw new Error("review_required: durable attachment proof does not match the resumable web-chat request.");
+  }
+  for (const [index, ref] of fileRefs.entries()) {
+    const durable = proof.files[index];
+    const uploaded = input.uploadedFiles[index];
+    if (!durable || !uploaded) {
+      throw new Error("review_required: durable attachment identity is incomplete during web-chat resume.");
+    }
+    if (!resumedAttachmentMatches({ index, ref, durable, uploaded })) {
+      throw new Error(`review_required: durable attachment identity mismatch during web-chat resume: ${ref.id}`);
+    }
+  }
+};
+
+export const buildResumedWebChatInputPackage = async (input: ResumedWebChatInput): Promise<AiFeedInputPackage> => {
+  assertPromptSafe(input.request);
+  const fileRefs = input.request.inputRefs.filter((ref) => ref.filePath);
+  assertResumedAttachmentIdentity(input, fileRefs);
+  return {
+    inputHash: input.persistedInputHash,
+    inputRefIds: input.request.inputRefs.map((ref) => ref.id),
+    imagePaths: [],
+    uploadableFiles: [],
   };
 };

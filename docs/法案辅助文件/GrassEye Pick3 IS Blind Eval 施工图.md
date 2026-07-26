@@ -1368,7 +1368,8 @@ Handling:
   after the ChatGPT provider workspace opens, start startPick3RateLimitDialogWatcher on the same BrowserController
   keep the watcher active until the web-chat feed exits
   immediately click 明白了 / OK / Got it through BrowserController native click
-  immediately refresh the current conversation in the same physical tab
+  remain in the current conversation and keep observing the live DOM
+  do not refresh, reload, reopen, or navigate the ChatGPT page
   emit terminal stdout line for ack result
   continue the existing web-chat loop that was interrupted by the dialog
   do not open another physical tab
@@ -1378,13 +1379,13 @@ Handling:
   do not create a second recovery route
 
 Terminal stdout format:
-  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=immediate_acknowledgement_result totalWaitSec=0 elapsedSec=0 remainingSec=0 recoveryAction=pick3_rate_limit_immediate_acknowledgement_completed — ackStatus=rate_limit_ack_clicked_and_same_tab_refreshed
+  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=immediate_acknowledgement_result totalWaitSec=0 elapsedSec=0 remainingSec=0 recoveryAction=pick3_rate_limit_immediate_acknowledgement_completed — ackStatus=rate_limit_ack_clicked_in_place
 
 Immediate acknowledgement rule:
-  first rate-limit occurrence:  click acknowledgement and refresh same tab immediately
-  second rate-limit occurrence: repeat the same sequence immediately
-  third rate-limit occurrence:  repeat the same sequence immediately
-  every later visible occurrence: repeat the same sequence immediately
+  first rate-limit occurrence:  click acknowledgement in place immediately
+  second rate-limit occurrence: repeat the same in-place click immediately
+  third rate-limit occurrence:  repeat the same in-place click immediately
+  every later visible occurrence: repeat the same in-place click immediately
 
 The schedule must not wait before clicking the acknowledgement.
 After each verified acknowledgement, the current web-chat loop must continue.
@@ -1394,7 +1395,8 @@ Runtime logs and terminal stdout must include imageId, promptPackageId, missionK
 After each detected rate-limit dialog:
   RECOVERY_STARTED reason=pick3_rate_limit_immediate_acknowledgement_started
   click the rate-limit acknowledgement
-  refresh the current conversation in the same physical tab
+  remain in the current conversation without page navigation
+  keep observing the live DOM
   RECOVERY_COMPLETED / RECOVERY_FAILED reason=pick3_rate_limit_immediate_acknowledgement_completed|failed
 
 The following waits must call the visible-dialog acknowledgement guard before each poll:
@@ -1444,7 +1446,7 @@ Pick3 GPT no-result recovery:
 
 ```txt
 If the Pick3 GPT web-chat prompt has been submitted and no provider result is captured after 200 seconds:
-  refresh the current ChatGPT conversation URL in the same workspace tab
+  do not refresh or reload the timed-out ChatGPT conversation
   do not delete that current ChatGPT conversation history entry while provider history deletion is temporarily disabled
   reopen https://chatgpt.com/ in the same workspace tab
   click New chat through the existing AI Input Gateway openProviderPage path
@@ -1594,8 +1596,8 @@ Controlled Pick3 training title allowlist:
 These titles are cleanup ownership hints only. They are not prediction input and must not be inserted into the blind prompt payload.
 If cleanup sees a matching visible sidebar record outside the current and immediately previous protected URLs:
   it must attempt delete through the verified sidebar delete path
-  refresh/reopen https://chatgpt.com/ in the same workspace tab
-  verify the /c/<id> pathname is absent from visible sidebar anchors
+  keep the current live ChatGPT DOM without refreshing or reopening the page
+  verify the /c/<id> pathname is absent from visible sidebar anchors only when the live DOM has updated
   report failed_N when any non-protected training title remains visible
 ```
 
@@ -1637,8 +1639,8 @@ Composer focus rule:
 
 Critical production rules:
   Do not verify against the old DOM immediately after confirm 删除.
-  ChatGPT can leave the deleted conversation link in the current DOM until sidebar refresh.
-  Verification must refresh/reopen the ChatGPT home sidebar, then compare by conversation pathname.
+  ChatGPT can leave the deleted conversation link in the current DOM after deletion.
+  Verification must wait for the live sidebar DOM to update, then compare by conversation pathname without refreshing or reopening the page.
   Do not use synthetic element.click() as the production deletion action.
 ```
 

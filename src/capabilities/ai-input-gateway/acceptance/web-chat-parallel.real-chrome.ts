@@ -19,7 +19,7 @@ const gateway = createAiInputGatewayAbilityGroup({ dataDir: runRoot }, browser);
 const prepared = await browser.open({
   url: "https://chatgpt.com/",
   title: "prepare one physical ChatGPT tab for named-chat acceptance",
-  reusePolicy: "reuse-active-tab",
+  reusePolicy: "reuse-host-tab",
 });
 assert.equal(prepared.ok, true, prepared.message);
 const countChatGptTabs = async (): Promise<number> => Number(await runJxa(`
@@ -34,6 +34,11 @@ for (const window of chrome.windows()) {
 String(count);
 `));
 const chatGptTabCountBefore = await countChatGptTabs();
+assert.equal(
+  chatGptTabCountBefore,
+  1,
+  "real Chrome acceptance requires exactly one physical ChatGPT tab before submission",
+);
 const runId = randomUUID();
 const tokens = [
   `PARALLEL_A_${runId.slice(0, 8)}`,
@@ -106,8 +111,8 @@ assert.equal(
 const chatGptTabCountAfter = await countChatGptTabs();
 assert.equal(
   chatGptTabCountAfter,
-  chatGptTabCountBefore,
-  "parallel named conversations must not create additional physical ChatGPT tabs",
+  1,
+  "parallel named conversations must leave exactly one physical ChatGPT tab",
 );
 
 process.stdout.write(`${JSON.stringify({

@@ -12,13 +12,18 @@ import type {
   AiFeedResult,
   AiInputGatewayChildCapabilityId,
 } from "../schema.js";
-import { buildAiFeedInputPackage, type AiFeedInputPackage } from "./ai-feed-input-package.js";
+import {
+  buildAiFeedInputPackage,
+  buildResumedWebChatInputPackage,
+  type AiFeedInputPackage,
+} from "./ai-feed-input-package.js";
 import {
   buildAiFeedFailure,
   buildAiFeedSuccess,
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
 import { prepareManagedWebChatExecution } from "./web-chat-managed-execution.js";
+import { readWebChatExecution } from "./web-chat-execution-state.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -153,7 +158,29 @@ export const executeAiFeedOnce = async (
   input: ExecuteAiFeedOnceInput,
 ): Promise<AiFeedResult> => {
   const startedAt = new Date().toISOString();
-  const inputPackage = await buildAiFeedInputPackage(input.request);
+  const persistedExecution =
+    input.transport === "web-chat" && input.executionId
+      ? await readWebChatExecution(input.dataDir, input.executionId)
+      : null;
+  const resumableExecution =
+    persistedExecution
+    && (
+      persistedExecution.status === "submitted_transient"
+      || persistedExecution.status === "conversation_canonicalized"
+      || persistedExecution.status === "waiting_provider"
+      || persistedExecution.status === "review_required"
+    )
+    && persistedExecution.submission
+    && persistedExecution.attachmentUploadProof;
+  const inputPackage = resumableExecution
+    ? await buildResumedWebChatInputPackage({
+        request: input.request,
+        dataDir: input.dataDir,
+        persistedInputHash: persistedExecution.inputHash,
+        attachmentUploadProof: persistedExecution.attachmentUploadProof!,
+        uploadedFiles: persistedExecution.uploadedFiles,
+      })
+    : await buildAiFeedInputPackage(input.request);
   const rate = checkAiFeedRateGuard({
     inputHash: inputPackage.inputHash,
     roundId: input.request.roundId,

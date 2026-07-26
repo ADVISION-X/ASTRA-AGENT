@@ -58,15 +58,9 @@ export const recoverPick3NoResultConversation = async (
   if (!timedOutUrl.startsWith("https://chatgpt.com/c/")) {
     return `pick3_no_result_recovery_skipped_non_conversation_url:${timedOutUrl}`;
   }
-  await input.browser.open({
-    url: timedOutUrl,
-    title: "Refresh timed-out Pick3 ChatGPT conversation",
-    reusePolicy: "reuse-active-tab",
-  });
-  await input.browser.wait(1_800);
   saveRecoveryWorkspace(input);
   await reopenRecoveryProvider(input);
-  return "pick3_no_result_recovery_refreshed_without_history_delete_and_reopened_new_chat";
+  return "pick3_no_result_recovery_reopened_new_chat_without_history_delete";
 };
 
 export const recoverPick3MissingBoundImageConversation = async (

@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-07-26T01:55:59.421Z",
+  "generatedAt": "2026-07-26T04:28:57.560Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -285,6 +285,21 @@
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
       "clauseId": "apex-ai-input-gateway-005-requirement",
+      "checkId": "ai-input-gateway/deferred-completed-chat-rename"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "checkId": "ai-input-gateway/exact-sidebar-row-rename"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "checkId": "ai-input-gateway/no-chatgpt-page-refresh"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
       "checkId": "ai-input-gateway/parallel-acceptance"
     },
     {
@@ -312,6 +327,9 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
@@ -320,7 +338,9 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/current-chrome-native-multi-file-picker.ts"

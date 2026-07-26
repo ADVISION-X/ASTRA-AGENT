@@ -14,9 +14,6 @@ type HistoryCleanupInput = {
 
 type DomClickTarget = { status: string; clickPoint?: { x: number; y: number } };
 
-const historyHomeUrl = (providerKind: string): string =>
-  providerKind === "gemini-web-chat" ? "https://gemini.google.com/app" : "https://chatgpt.com/";
-
 const providerLabel = (providerKind: string): string =>
   providerKind === "gemini-web-chat" ? "Gemini" : "ChatGPT";
 
@@ -328,15 +325,10 @@ const verifyHistoryDeleted = async (input: {
   providerKind: string;
   abortSignal?: AbortSignal;
 }): Promise<boolean> => {
-  await input.browser.open({
-    url: historyHomeUrl(input.providerKind),
-    title: `Refresh ${providerLabel(input.providerKind)} sidebar history after deletion`,
-    reusePolicy: "reuse-active-tab",
-  });
-  await input.browser.wait(1800);
+  await input.browser.wait(600);
   await ensureProviderHistorySidebarOpen(input);
   const result = await input.browser.evaluateActiveTab<{ status: string }>({
-    description: `verify stale ${providerLabel(input.providerKind)} conversation deleted from refreshed history`,
+    description: `verify stale ${providerLabel(input.providerKind)} conversation disappeared from live history DOM`,
     script: `
 const targetUrl = ${JSON.stringify(input.staleUrl)};
 const targetPath = (() => {

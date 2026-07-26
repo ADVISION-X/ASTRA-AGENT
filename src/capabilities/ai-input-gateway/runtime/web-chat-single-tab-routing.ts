@@ -121,10 +121,7 @@ return {
 };
 `;
 
-const buildConversationTargetScript = (input: {
-  systemChatTitle: string;
-  turnMarker: string;
-}): string => `
+const buildConversationTargetScript = (input: { systemChatTitle: string; turnMarker: string }): string => `
 const expectedTitle = ${JSON.stringify(input.systemChatTitle)};
 const marker = ${JSON.stringify(input.turnMarker)};
 ${CONVERSATION_TARGET_SCRIPT}
@@ -197,11 +194,7 @@ const markerCount = nodes.filter((node) => (node.textContent || "").includes(mar
 return {pageUrl: location.href, markerCount};
 `;
 
-const clickTarget = async (input: {
-  base: BrowserController;
-  description: string;
-  targetPoint: { x: number; y: number } | undefined;
-}): Promise<void> => {
+const clickTarget = async (input: { base: BrowserController; description: string; targetPoint: { x: number; y: number } | undefined }): Promise<void> => {
   if (!input.targetPoint) throw new Error(`review_required: ${input.description} point missing.`);
   const clicked = await input.base.click({
     targetLabel: input.description,
@@ -213,12 +206,7 @@ const clickTarget = async (input: {
   if (!clicked.ok) throw new Error(`review_required: ${input.description} real click failed; ${clicked.message}`);
 };
 
-const locateSearchTarget = async (input: {
-  base: BrowserController;
-  script: string;
-  description: string;
-  signal?: AbortSignal;
-}): Promise<SearchTarget> => {
+const locateSearchTarget = async (input: { base: BrowserController; script: string; description: string; signal?: AbortSignal }): Promise<SearchTarget> => {
   const deadline = Date.now() + 10_000;
   let last: SearchTarget | null = null;
   while (Date.now() < deadline) {
@@ -234,12 +222,7 @@ const locateSearchTarget = async (input: {
   throw new Error(`review_required: ${input.description} timed out; last=${last?.message ?? "none"}`);
 };
 
-const searchAndOpenNamedConversation = async (input: {
-  base: BrowserController;
-  systemChatTitle: string;
-  searchPoint: { x: number; y: number } | undefined;
-  signal?: AbortSignal;
-}): Promise<void> => {
+const searchAndOpenNamedConversation = async (input: { base: BrowserController; systemChatTitle: string; searchPoint: { x: number; y: number } | undefined; signal?: AbortSignal }): Promise<void> => {
   await clickTarget({
     base: input.base,
     description: "open ChatGPT chat search",
@@ -280,12 +263,7 @@ const searchAndOpenNamedConversation = async (input: {
   });
 };
 
-const focusNamedChatGptConversation = async (input: {
-  base: BrowserController;
-  systemChatTitle: string;
-  turnMarker: string;
-  signal?: AbortSignal;
-}): Promise<void> => {
+const focusNamedChatGptConversation = async (input: { base: BrowserController; systemChatTitle: string; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
   const deadline = Date.now() + 30_000;
   let searched = false;
   let last: ConversationTarget | null = null;
@@ -311,14 +289,6 @@ const focusNamedChatGptConversation = async (input: {
         description: "acknowledge ChatGPT temporary history rate limit before named-chat routing",
         targetPoint: last.targetPoint,
       });
-      const refreshed = await input.base.open({
-        url: last.pageUrl,
-        title: "refresh same ChatGPT tab immediately after temporary history rate limit",
-        reusePolicy: "reuse-active-tab",
-      });
-      if (!refreshed.ok) {
-        throw new Error("review_required: ChatGPT rate-limit acknowledgement succeeded but same-tab refresh failed.");
-      }
     } else if (last.status === "open_search" && !searched) {
       searched = true;
       await searchAndOpenNamedConversation({
@@ -332,17 +302,10 @@ const focusNamedChatGptConversation = async (input: {
     }
     await input.base.wait(500);
   }
-  throw new Error(
-    `review_required: exact named ChatGPT conversation did not expose exactly one matching marker; title=${input.systemChatTitle}; last=${last?.message ?? "none"}`,
-  );
+  throw new Error(`review_required: exact named ChatGPT conversation did not expose exactly one matching marker; title=${input.systemChatTitle}; last=${last?.message ?? "none"}`);
 };
 
-const focusGeminiConversation = async (input: {
-  base: BrowserController;
-  submission: WebChatSubmissionProof;
-  turnMarker: string;
-  signal?: AbortSignal;
-}): Promise<void> => {
+const focusGeminiConversation = async (input: { base: BrowserController; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
   const targetUrl = input.submission.canonicalConversationUrl ?? input.submission.transientConversationUrl;
   const opened = await input.base.open({
     url: targetUrl,
@@ -350,27 +313,165 @@ const focusGeminiConversation = async (input: {
     reusePolicy: "reuse-active-tab",
   });
   if (!opened.ok) throw new Error(`review_required: exact Gemini conversation could not be opened; ${opened.message}`);
-  const observed = await input.base.evaluateActiveTab<{ pageUrl: string; markerCount: number }>({
+  const observed = await input.base.evaluateActiveTab<{
+    pageUrl: string;
+    markerCount: number;
+  }>({
     description: "verify exact Gemini conversation marker in single controlled tab",
     script: buildGeminiIdentityScript(input.turnMarker),
     ...(input.signal ? { abortSignal: input.signal } : {}),
   });
   if (observed.markerCount !== 1) {
-    throw new Error(
-      `review_required: exact Gemini conversation marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`,
-    );
+    throw new Error(`review_required: exact Gemini conversation marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`);
   }
 };
 
-export const focusBoundWebChatConversation = async (input: {
-  base: BrowserController;
-  providerKind: "gpt-web-chat" | "gemini-web-chat";
-  systemChatTitle: string | null;
-  submission: WebChatSubmissionProof;
-  turnMarker: string;
-  signal?: AbortSignal;
-}): Promise<void> => {
+const UNRENAMED_CHATGPT_IDENTITY_SCRIPT = `
+const marker = __TURN_MARKER__;
+const targetPath = __TARGET_PATH__;
+const visible = (node) => {
+  if (!(node instanceof Element)) return false;
+  const rect = node.getBoundingClientRect();
+  const style = getComputedStyle(node);
+  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+};
+const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
+const nodes = Array.from(document.querySelectorAll("[data-message-author-role='user']"));
+const markerCount = nodes.filter((node) => normalized(node.textContent).includes(marker)).length;
+const links = Array.from(document.querySelectorAll("a[href]"))
+  .filter((link) => {
+    try {
+      const rawHref = link.getAttribute("href") || "";
+      return /^\\/c\\/(?!WEB:)[^/?#]+(?:[?#].*)?$/u.test(rawHref)
+        && new URL(link.href, location.href).pathname === targetPath
+        && visible(link);
+    } catch {
+      return false;
+    }
+  });
+if (markerCount === 1 && location.pathname === targetPath) {
+  return {
+    status: "focused",
+    pageUrl: location.href,
+    markerCount,
+    titleCount: links.length,
+    message: "exact submitted ChatGPT row and marker are focused",
+  };
+}
+if (markerCount > 1 || links.length > 1) {
+  return {
+    status: "review_required",
+    pageUrl: location.href,
+    markerCount,
+    titleCount: links.length,
+    message: "CHATGPT_SUBMITTED_CONVERSATION_IDENTITY_AMBIGUOUS",
+  };
+}
+if (links.length === 1) {
+  const rect = links[0].getBoundingClientRect();
+  return {
+    status: "click_title",
+    pageUrl: location.href,
+    markerCount,
+    titleCount: 1,
+    message: "exact submitted ChatGPT sidebar row located",
+    targetPoint: {x: rect.left + Math.min(rect.width / 2, 96), y: rect.top + rect.height / 2},
+  };
+}
+const rateLimitDialogs = Array.from(document.querySelectorAll("[role='dialog']"))
+  .filter((node) => visible(node))
+  .filter((node) => /请求过于频繁|too many requests|temporarily limited/i.test(normalized(node.textContent)));
+const rateLimitAcks = rateLimitDialogs.flatMap((dialog) =>
+  Array.from(dialog.querySelectorAll("button"))
+    .filter((node) => visible(node))
+    .filter((node) => /^(明白了|got it|understood)$/i.test(normalized(
+      node.getAttribute("aria-label") || node.textContent
+    )))
+);
+if (rateLimitDialogs.length > 1 || rateLimitAcks.length > 1) {
+  return {
+    status: "review_required",
+    pageUrl: location.href,
+    markerCount,
+    titleCount: 0,
+    message: "CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS",
+  };
+}
+if (rateLimitAcks.length === 1) {
+  const rect = rateLimitAcks[0].getBoundingClientRect();
+  return {
+    status: "ack_rate_limit",
+    pageUrl: location.href,
+    markerCount,
+    titleCount: 0,
+    message: "ChatGPT rate-limit acknowledgement located before submitted-row routing",
+    targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
+  };
+}
+return {
+  status: "pending",
+  pageUrl: location.href,
+  markerCount,
+  titleCount: 0,
+  message: "waiting for exact submitted ChatGPT sidebar row",
+};
+`;
+
+const buildUnrenamedChatGptIdentityScript = (input: { turnMarker: string; targetPath: string }): string => UNRENAMED_CHATGPT_IDENTITY_SCRIPT.replace("__TURN_MARKER__", JSON.stringify(input.turnMarker)).replace("__TARGET_PATH__", JSON.stringify(input.targetPath));
+
+const focusUnrenamedChatGptConversation = async (input: { base: BrowserController; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
+  const targetUrl = input.submission.canonicalConversationUrl ?? input.submission.transientConversationUrl;
+  const targetPath = new URL(targetUrl).pathname;
+  const inspectAndLocate = () =>
+    input.base.evaluateActiveTab<{
+      status: "focused" | "click_title" | "ack_rate_limit" | "pending" | "review_required";
+      pageUrl: string;
+      markerCount: number;
+      titleCount: number;
+      message: string;
+      targetPoint?: { x: number; y: number };
+    }>({
+      description: "locate exact submitted ChatGPT conversation row before completing system rename",
+      script: buildUnrenamedChatGptIdentityScript({ turnMarker: input.turnMarker, targetPath }),
+      ...(input.signal ? { abortSignal: input.signal } : {}),
+    });
+  const deadline = Date.now() + 30_000;
+  let last: Awaited<ReturnType<typeof inspectAndLocate>> | null = null;
+  while (Date.now() < deadline) {
+    last = await inspectAndLocate();
+    if (last.status === "focused") return;
+    if (last.status === "review_required") {
+      throw new Error(`review_required: ${last.message}; pageUrl=${last.pageUrl}`);
+    }
+    if (last.status === "click_title") {
+      await clickTarget({
+        base: input.base,
+        description: "open exact submitted ChatGPT sidebar row before rename",
+        targetPoint: last.targetPoint,
+      });
+    } else if (last.status === "ack_rate_limit") {
+      await clickTarget({
+        base: input.base,
+        description: "acknowledge ChatGPT rate limit before submitted-row routing",
+        targetPoint: last.targetPoint,
+      });
+    }
+    await input.base.wait(500);
+  }
+  throw new Error(`review_required: exact submitted ChatGPT sidebar row did not expose one matching marker before rename; last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? targetUrl}`);
+};
+
+export const focusBoundWebChatConversation = async (input: { base: BrowserController; providerKind: "gpt-web-chat" | "gemini-web-chat"; systemChatTitle: string | null; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
   if (input.providerKind === "gpt-web-chat") {
+    if (input.submission.systemChatTitle !== input.systemChatTitle || !input.submission.chatTitleVerifiedAt) {
+      await focusUnrenamedChatGptConversation({
+        base: input.base,
+        submission: input.submission,
+        turnMarker: input.turnMarker,
+        ...(input.signal ? { signal: input.signal } : {}),
+      });
+      return;
+    }
     if (!input.systemChatTitle) {
       throw new Error("review_required: GPT web-chat execution is missing its system chat title.");
     }

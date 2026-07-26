@@ -25,12 +25,17 @@ const acceptancePath = "src/capabilities/ai-input-gateway/acceptance/attachment.
 const concurrencyLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts";
 const executionStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
 const singleTabBrowserPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts";
+const singleProviderTabPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts";
 const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
 const managedExecutionPath = "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts";
 const turnIdentityPath = "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts";
 const chatTitlePath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts";
 const responseCapturePath = "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts";
 const resumePath = "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts";
+const rateLimitDialogPath = "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts";
+const recoveryPath = "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts";
+const historyCleanupPath = "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts";
+const singleTabRoutingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
 const concurrencyAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts";
 const realChromeParallelAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts";
 const removedUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
@@ -38,80 +43,38 @@ const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-uploa
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [
-  schemaPath,
-  contractPath,
-  adapterContractPath,
-  childPath,
-  sharedPath,
-  orderedTransportPath,
-  nativeTransportPath,
-  attachmentTransportPath,
-  composerScriptsPath,
-  browserContractPath,
-  nativePrimitivePath,
-  acceptancePath,
-  concurrencyLeasePath,
-  executionStatePath,
-  singleTabBrowserPath,
-  feedProviderPath,
-  managedExecutionPath,
-  turnIdentityPath,
-  chatTitlePath,
-  responseCapturePath,
-  resumePath,
-  concurrencyAcceptancePath,
-  realChromeParallelAcceptancePath,
-] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, responseCapturePath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, realChromeParallelAcceptancePath] as const;
 
-const pushFinding = (
-  findings: Finding[],
-  lawId: string,
-  filePath: string,
-  checkId: string,
-  message: string,
-): void => {
+const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));
 };
 
-const sourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
-  context.project.getSourceFile(resolveFromRepo(repoPath));
+const sourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined => context.project.getSourceFile(resolveFromRepo(repoPath));
 
-const requireSourceFile = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-  repoPath: string,
-): SourceFile | null => {
+const requireSourceFile = (context: InspectorContext, findings: Finding[], lawId: string, repoPath: string): SourceFile | null => {
   const source = sourceFile(context, repoPath);
   if (source) return source;
   pushFinding(findings, lawId, repoPath, "ai-input-gateway/source-present", `${repoPath} must exist in the audit project.`);
   return null;
 };
 
-const identifiers = (source: SourceFile): Set<string> =>
-  new Set(source.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
+const identifiers = (source: SourceFile): Set<string> => new Set(source.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
 
-const stringLiterals = (source: SourceFile): Set<string> =>
-  new Set([
-    ...source.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
-    ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
-  ]);
+const stringLiterals = (source: SourceFile): Set<string> => new Set([...source.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()), ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText())]);
 
-const propertyNames = (node: Node): Set<string> =>
-  new Set(node.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((property) => property.getName()));
+const propertyNames = (node: Node): Set<string> => new Set(node.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((property) => property.getName()));
 
 const typePropertyNames = (source: SourceFile, typeName: string): Set<string> => {
   const alias = source.getTypeAlias(typeName);
-  return new Set(alias?.getTypeNode()?.getDescendantsOfKind(SyntaxKind.PropertySignature)
-    .map((property) => property.getName()) ?? []);
+  return new Set(
+    alias
+      ?.getTypeNode()
+      ?.getDescendantsOfKind(SyntaxKind.PropertySignature)
+      .map((property) => property.getName()) ?? [],
+  );
 };
 
-const inspectPublicBoundary = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): void => {
+const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const schema = requireSourceFile(context, findings, lawId, schemaPath);
   const contract = requireSourceFile(context, findings, lawId, contractPath);
   if (!schema || !contract) return;
@@ -128,26 +91,14 @@ const inspectPublicBoundary = (
   }
 };
 
-const inspectAttachmentChild = (
-  context: InspectorContext,
-  findings: Finding[],
-  routingLawId: string,
-  proofLawId: string,
-): void => {
+const inspectAttachmentChild = (context: InspectorContext, findings: Finding[], routingLawId: string, proofLawId: string): void => {
   const child = requireSourceFile(context, findings, routingLawId, childPath);
   const shared = requireSourceFile(context, findings, routingLawId, sharedPath);
   const adapterContract = requireSourceFile(context, findings, proofLawId, adapterContractPath);
   if (!child || !shared || !adapterContract) return;
   const childIds = identifiers(child);
   const childStrings = stringLiterals(child);
-  for (const requiredIdentifier of [
-    "attachApprovedWebChatFilesOnce",
-    "resolveWebChatAttachmentTransportKind",
-    "stageApprovedFiles",
-    "waitForStableAttachmentSet",
-    "stagingManifestHash",
-    "onAttachmentUploadCompleted",
-  ]) {
+  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
     if (!childIds.has(requiredIdentifier)) {
       pushFinding(findings, proofLawId, childPath, "ai-input-gateway/attachment-child-structure", `${childPath} must contain ${requiredIdentifier}.`);
     }
@@ -157,7 +108,8 @@ const inspectAttachmentChild = (
       pushFinding(findings, routingLawId, childPath, "ai-input-gateway/fixed-routing-literal", `${childPath} must declare ${requiredLiteral}.`);
     }
   }
-  const forbiddenImports = child.getImportDeclarations()
+  const forbiddenImports = child
+    .getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue())
     .filter((specifier) => specifier.includes("web-chat-submit") || specifier.includes("web-chat-answer"));
   for (const specifier of forbiddenImports) {
@@ -167,30 +119,14 @@ const inspectAttachmentChild = (
     pushFinding(findings, routingLawId, sharedPath, "ai-input-gateway/shared-child-integration", "The web-chat main flow must delegate attachments to the standard child.");
   }
   const proofProperties = typePropertyNames(adapterContract, "WebChatAttachmentUploadProof");
-  for (const field of [
-    "uploadAttemptId",
-    "transportKind",
-    "expectedFileCount",
-    "detectedFileCount",
-    "stagingManifestHash",
-    "files",
-    "startedAt",
-    "endedAt",
-    "status",
-    "failureReason",
-    "reviewRequiredReason",
-  ]) {
+  for (const field of ["uploadAttemptId", "transportKind", "expectedFileCount", "detectedFileCount", "stagingManifestHash", "files", "startedAt", "endedAt", "status", "failureReason", "reviewRequiredReason"]) {
     if (!proofProperties.has(field)) {
       pushFinding(findings, proofLawId, adapterContractPath, "ai-input-gateway/aggregate-proof-field", `Aggregate attachment proof must contain ${field}.`);
     }
   }
 };
 
-const inspectNativePrimitive = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): void => {
+const inspectNativePrimitive = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const primitive = requireSourceFile(context, findings, lawId, nativePrimitivePath);
   const browserContract = requireSourceFile(context, findings, lawId, browserContractPath);
   if (!primitive || !browserContract) return;
@@ -210,98 +146,50 @@ const inspectNativePrimitive = (
   }
 };
 
-const inspectRemovedRegion = (
-  findings: Finding[],
-  lawId: string,
-): void => {
-  for (const removedPath of [
-    removedUploadPath,
-    removedAcceptancePath,
-    removedSerialLeasePath,
-    removedSerialAcceptancePath,
-  ]) {
+const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
+  for (const removedPath of [removedUploadPath, removedAcceptancePath, removedSerialLeasePath, removedSerialAcceptancePath]) {
     if (existsSync(resolveFromRepo(removedPath))) {
       pushFinding(findings, lawId, removedPath, "ai-input-gateway/removed-old-region", `${removedPath} must remain deleted.`);
     }
   }
 };
 
-const requireParallelSources = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): SourceFile[] | null => {
-  const sources = [
-    concurrencyLeasePath,
-    executionStatePath,
-    singleTabBrowserPath,
-    feedProviderPath,
-    managedExecutionPath,
-    turnIdentityPath,
-    concurrencyAcceptancePath,
-    realChromeParallelAcceptancePath,
-    chatTitlePath,
-  ].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+const requireParallelSources = (context: InspectorContext, findings: Finding[], lawId: string): SourceFile[] | null => {
+  const sources = [concurrencyLeasePath, executionStatePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, concurrencyAcceptancePath, realChromeParallelAcceptancePath, chatTitlePath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
   return sources.every((source): source is SourceFile => source !== null) ? sources : null;
 };
 
-const inspectParallelIdentifiers = (
-  sources: readonly SourceFile[],
-  findings: Finding[],
-  lawId: string,
-): void => {
+const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Finding[], lawId: string): void => {
   const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
-  for (const required of [
-    "resolveWebChatMaxInFlight",
-    "acquireWebChatCapacityLease",
-    "acquireWebChatBrowserMutationLease",
-    "startOrResumeWebChatExecution",
-    "createSingleTabWebChatBrowser",
-    "renameSubmittedChatGptConversation",
-    "captureWebChatSubmissionProof",
-    "turnMarker",
-    "systemChatTitle",
-    "executionId",
-    "capacitySlot",
-  ]) {
+  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "focusSingleProviderTab", "renameSubmittedChatGptConversation", "captureWebChatSubmissionProof", "turnMarker", "systemChatTitle", "executionId", "capacitySlot"]) {
     if (!allIdentifiers.has(required)) {
-      pushFinding(
-        findings,
-        lawId,
-        concurrencyLeasePath,
-        "ai-input-gateway/bounded-parallel-runtime",
-        `Bounded parallel web-chat runtime must contain ${required}.`,
-      );
+      pushFinding(findings, lawId, concurrencyLeasePath, "ai-input-gateway/bounded-parallel-runtime", `Bounded parallel web-chat runtime must contain ${required}.`);
     }
   }
 };
 
-const inspectParallelAcceptanceProof = (
-  acceptance: SourceFile,
-  realChromeAcceptance: SourceFile,
-  findings: Finding[],
-  lawId: string,
-): void => {
+const inspectParallelAcceptanceProof = (acceptance: SourceFile, realChromeAcceptance: SourceFile, findings: Finding[], lawId: string): void => {
   const acceptanceIdentifiers = identifiers(acceptance);
   const acceptanceStrings = stringLiterals(acceptance);
-  const acceptanceNumbers = new Set(
-    acceptance.getDescendantsOfKind(SyntaxKind.NumericLiteral).map((node) => node.getLiteralValue()),
-  );
+  const acceptanceNumbers = new Set(acceptance.getDescendantsOfKind(SyntaxKind.NumericLiteral).map((node) => node.getLiteralValue()));
   const acceptanceProofs = [
     { label: "ten in-flight workers", present: acceptanceNumbers.has(10) },
-    { label: "N+1 waiting marker", present: acceptanceStrings.has("entered-11") },
-    { label: "single browser mutation lane", present: acceptanceIdentifiers.has("secondMutationEntered") },
-    { label: "configurable capacity", present: acceptanceIdentifiers.has("WEB_CHAT_MAX_IN_FLIGHT") },
+    {
+      label: "N+1 waiting marker",
+      present: acceptanceStrings.has("entered-11"),
+    },
+    {
+      label: "single browser mutation lane",
+      present: acceptanceIdentifiers.has("secondMutationEntered"),
+    },
+    {
+      label: "configurable capacity",
+      present: acceptanceIdentifiers.has("WEB_CHAT_MAX_IN_FLIGHT"),
+    },
   ];
   for (const proof of acceptanceProofs) {
     if (!proof.present) {
-      pushFinding(
-        findings,
-        lawId,
-        concurrencyAcceptancePath,
-        "ai-input-gateway/parallel-acceptance",
-        `Concurrency acceptance must prove ${proof.label}.`,
-      );
+      pushFinding(findings, lawId, concurrencyAcceptancePath, "ai-input-gateway/parallel-acceptance", `Concurrency acceptance must prove ${proof.label}.`);
     }
   }
   const realChromeIdentifiers = identifiers(realChromeAcceptance);
@@ -311,33 +199,102 @@ const inspectParallelAcceptanceProof = (
       label: "both submissions precede the first captured response",
       present: realChromeStrings.has("both exact marked turns must be submitted before the first response is captured"),
     },
-    { label: "canonical conversation identity", present: realChromeIdentifiers.has("canonicalConversationUrl") },
-    { label: "turn marker isolation", present: realChromeIdentifiers.has("turnMarker") },
-    { label: "system chat title identity", present: realChromeIdentifiers.has("systemChatTitle") },
-    { label: "single physical ChatGPT tab count", present: realChromeIdentifiers.has("chatGptTabCountAfter") },
+    {
+      label: "canonical conversation identity",
+      present: realChromeIdentifiers.has("canonicalConversationUrl"),
+    },
+    {
+      label: "turn marker isolation",
+      present: realChromeIdentifiers.has("turnMarker"),
+    },
+    {
+      label: "system chat title identity",
+      present: realChromeIdentifiers.has("systemChatTitle"),
+    },
+    {
+      label: "single physical ChatGPT tab count",
+      present: realChromeIdentifiers.has("chatGptTabCountAfter"),
+    },
   ];
   for (const proof of realChromeProofs) {
     if (!proof.present) {
-      pushFinding(
-        findings,
-        lawId,
-        realChromeParallelAcceptancePath,
-        "ai-input-gateway/parallel-acceptance",
-        `Real Chrome concurrency acceptance must prove ${proof.label}.`,
-      );
+      pushFinding(findings, lawId, realChromeParallelAcceptancePath, "ai-input-gateway/parallel-acceptance", `Real Chrome concurrency acceptance must prove ${proof.label}.`);
     }
   }
 };
 
-const inspectBoundedParallelExecution = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): void => {
+const inspectBoundedParallelExecution = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const sources = requireParallelSources(context, findings, lawId);
   if (!sources) return;
   inspectParallelIdentifiers(sources, findings, lawId);
-  inspectParallelAcceptanceProof(sources[6]!, sources[7]!, findings, lawId);
+  inspectParallelAcceptanceProof(sources[7]!, sources[8]!, findings, lawId);
+};
+
+const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const targets = [
+    {
+      repoPath: rateLimitDialogPath,
+      symbolName: "acknowledgeChatGptRateLimitDialogIfVisible",
+    },
+    {
+      repoPath: recoveryPath,
+      symbolName: "recoverPick3NoResultConversation",
+    },
+    {
+      repoPath: historyCleanupPath,
+      symbolName: "verifyHistoryDeleted",
+    },
+    {
+      repoPath: singleTabRoutingPath,
+      symbolName: "focusNamedChatGptConversation",
+    },
+  ] as const;
+  for (const target of targets) {
+    const source = requireSourceFile(context, findings, lawId, target.repoPath);
+    if (!source) continue;
+    const symbolNode = source.getFunction(target.symbolName) ?? source.getVariableDeclaration(target.symbolName)?.getInitializer();
+    if (!symbolNode) {
+      pushFinding(findings, lawId, target.repoPath, "ai-input-gateway/no-chatgpt-page-refresh", `${target.repoPath} must expose ${target.symbolName} for no-refresh enforcement.`);
+      continue;
+    }
+    const hasPageOpenCall = symbolNode.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === "open";
+    });
+    if (hasPageOpenCall) {
+      pushFinding(findings, lawId, target.repoPath, "ai-input-gateway/no-chatgpt-page-refresh", `${target.symbolName} must not refresh, reload, reopen, or navigate the ChatGPT page.`);
+    }
+  }
+  for (const repoPath of [rateLimitDialogPath, recoveryPath, singleTabRoutingPath]) {
+    const source = requireSourceFile(context, findings, lawId, repoPath);
+    if (source && stringLiterals(source).has("rate_limit_ack_clicked_and_same_tab_refreshed")) {
+      pushFinding(findings, lawId, repoPath, "ai-input-gateway/no-chatgpt-page-refresh", `${repoPath} must not retain the removed acknowledgement-and-refresh status.`);
+    }
+  }
+};
+
+const inspectCompletedConversationRename = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const shared = requireSourceFile(context, findings, lawId, sharedPath);
+  const chatTitle = requireSourceFile(context, findings, lawId, chatTitlePath);
+  if (!shared || !chatTitle) return;
+  const submitFlow = shared.getVariableDeclaration("executeWebChatConversation")?.getInitializer();
+  const completedFlow = shared.getVariableDeclaration("buildCompletedWebChatResponse")?.getInitializer();
+  const hasRenameCall = (node: Node | undefined): boolean => Boolean(node?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === "renameSubmittedChatGptConversation"));
+  if (hasRenameCall(submitFlow)) {
+    pushFinding(findings, lawId, sharedPath, "ai-input-gateway/deferred-completed-chat-rename", "Submission must release the browser mutation lane before the provider answer exposes its rename menu.");
+  }
+  if (!hasRenameCall(completedFlow)) {
+    pushFinding(findings, lawId, sharedPath, "ai-input-gateway/deferred-completed-chat-rename", "A completed ChatGPT response must finish exact row-scoped rename before publication.");
+  }
+  const titleStrings = stringLiterals(chatTitle);
+  for (const required of ["^/c/(?!WEB:)[^/?#]+(?:[?#].*)?$", "li"]) {
+    if (!titleStrings.has(required)) {
+      pushFinding(findings, lawId, chatTitlePath, "ai-input-gateway/exact-sidebar-row-rename", `ChatGPT rename targeting must declare the exact string literal ${required}.`);
+    }
+  }
+  if (identifiers(chatTitle).has("depth")) {
+    pushFinding(findings, lawId, chatTitlePath, "ai-input-gateway/exact-sidebar-row-rename", "ChatGPT rename targeting must not climb into the page-header conversation menu.");
+  }
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
@@ -359,10 +316,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectNativePrimitive(context, findings, routingLawId);
   inspectRemovedRegion(findings, routingLawId);
   inspectBoundedParallelExecution(context, findings, parallelLawId);
+  inspectNoChatGptPageRefresh(context, findings, parallelLawId);
+  inspectCompletedConversationRename(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+    executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [lawPath, blueprintPath, ...governedPaths].sort(),
     reportJson: {

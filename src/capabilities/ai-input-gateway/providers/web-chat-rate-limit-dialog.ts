@@ -128,15 +128,9 @@ return {status: "rate_limit_ack_located", pageUrl: location.href, kind, text, cl
     clickCount: 1,
   });
   if (!clicked.ok) return "rate_limit_ack_click_failed";
-  const refreshed = await input.browser.open({
-    url: target.pageUrl,
-    title: "refresh the same ChatGPT tab immediately after rate-limit acknowledgement",
-    reusePolicy: "reuse-active-tab",
-  });
-  if (!refreshed.ok) return "rate_limit_ack_clicked_but_same_tab_refresh_failed";
   clearRecentChatGptBlockingDialog();
   await input.browser.wait(300);
-  return "rate_limit_ack_clicked_and_same_tab_refreshed";
+  return "rate_limit_ack_clicked_in_place";
 };
 
 type ChatGptAcknowledgementWatcher = { stop: () => Promise<void> };
@@ -161,7 +155,7 @@ export const startChatGptAcknowledgementWatcher = (input: {
     try {
       if (await isChatGptRateLimitDialogVisible(input)) {
         const result = await acknowledgeChatGptRateLimitDialogIfVisible(input);
-        process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=${result === "rate_limit_ack_clicked_and_same_tab_refreshed" ? "success" : "pending"} providerKind=gpt-web-chat ackStatus=${result ?? "not_found"}\n`);
+        process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=${result === "rate_limit_ack_clicked_in_place" ? "success" : "pending"} providerKind=gpt-web-chat ackStatus=${result ?? "not_found"}\n`);
       }
     } catch (error) {
       process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=retryable_error providerKind=gpt-web-chat reason=${String(error).replaceAll("\n", " ").slice(0, 300)}\n`);

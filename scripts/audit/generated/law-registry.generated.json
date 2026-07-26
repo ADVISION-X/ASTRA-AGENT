@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T01:55:58.597Z",
+  "generatedAt": "2026-07-26T04:28:56.670Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -48,7 +48,7 @@
       ],
       "required": [
         "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
-        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, manual-style chat rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease.",
+        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, completed-chat manual-style rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease.",
         "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
         "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
         "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
@@ -79,16 +79,20 @@
       ],
       "required": [
         "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
-        "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique system chat title; after submit the runtime waits for the sidebar conversation entry, opens its options menu, renames it, and proves the exact title plus marker before releasing the submit slot.",
+        "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique system chat title; after submit the runtime records the canonical conversation URL plus exact marker and immediately releases the submit slot, then after the provider answer is complete it clicks the exact non-WEB sidebar row, opens only that row's options menu, renames it, and proves the exact title plus marker before publishing the captured answer.",
         "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
-        "Submitted feeds release the browser-mutation lease while the provider generates; the patrol loop defaults to one check per sixty seconds and acquires the short lease only to switch by exact system title, verify exactly one turn marker, and inspect the following assistant turn.",
-        "Whenever ChatGPT shows the ordinary request-frequency dialog, the highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, then immediately refresh the current conversation in the same physical tab before any title search, prompt action or response capture resumes.",
-        "Process recovery reopens the exact system-renamed conversation inside the same physical tab and resumes marker-scoped polling without resubmission; missing, duplicate or mismatched title or marker identity returns review_required."
+        "Submitted feeds release the browser-mutation lease before provider generation completes; until the completed chat can be renamed, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker, and after rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
+        "Whenever ChatGPT shows the ordinary request-frequency dialog, the highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
+        "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission; a completed but not-yet-renamed conversation must finish its row-scoped rename before answer publication. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, and marker; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash, or byte count returns review_required."
       ],
       "forbidden": [
         "a global lease held from provider open through response capture",
         "a second physical ChatGPT tab, a per-task tab lease, or a provider-tab pool",
         "searching chats, sending, parsing, opening a new chat, resubmitting or waiting while an ordinary request-frequency dialog remains visible",
+        "refreshing or reloading a ChatGPT page after rate-limit acknowledgement or as a no-result recovery action",
+        "routing an existing ChatGPT task by browser URL open instead of clicking its exact sidebar DOM row",
+        "treating a transient /c/WEB: sidebar row or the page-header conversation menu as the rename target",
+        "holding the submit mutation slot while waiting for a running answer to expose its sidebar rename menu",
         "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
         "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",
         "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode"
@@ -4948,16 +4952,16 @@
         "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
         "Empty web-chat raw output is retried once inside the current one-image attempt before Pick3 interaction persistence; unresolved one-image requests are deferred to the bounded same-chain Prompt Exchange completion queue while remaining images/repeats continue.",
         "Prompt Exchange exposes expectedCount, completedCount, deferredRetryCount, and unresolvedCount so full_pipeline and next_prediction_stability can prove batch convergence before completion.",
-        "Pick3 GPT rate-limit dialogs trigger immediate acknowledgement click followed by immediate refresh of the same current ChatGPT tab.",
+        "Pick3 GPT rate-limit dialogs trigger an immediate in-place acknowledgement click followed by live DOM observation in the same current ChatGPT conversation without refreshing or reloading.",
         "Pick3 GPT rate-limit acknowledgement emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_COMPLETED, and RECOVERY_FAILED events for immediate acknowledgement.",
         "Pick3 GPT prompt paste, prompt submit, submitted-image verification, pre-submit snapshot, and response-capture waits proactively click a visible rate-limit acknowledgement.",
         "Pick3 GPT web-chat feed lifecycle starts a same-BrowserController rate-limit dialog watcher after provider workspace open and stops it only when the feed exits.",
-        "Pick3 GPT rate-limit dialog handling performs only the fixed acknowledgement-click plus same-current-tab refresh sequence and must not open another tab, open a new chat, restart, or resend the image/prompt.",
+        "Pick3 GPT rate-limit dialog handling performs only the fixed in-place acknowledgement click and must not refresh, reload, reopen, navigate, open another tab, open a new chat, restart, or resend the image/prompt.",
         "Pick3 GPT rate-limit recovery must not wait before clicking the acknowledgement.",
-        "Persistent Pick3 GPT rate-limit dialogs keep receiving the same acknowledgement-click plus same-tab-refresh sequence in the same in-flight feed without an attempt cap.",
+        "Persistent Pick3 GPT rate-limit dialogs keep receiving the same in-place acknowledgement click in the same in-flight feed without an attempt cap.",
         "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
         "Pick3 provider sidebar history deletion is temporarily disabled and must return provider_history_delete_temporarily_disabled or current_history_delete_temporarily_disabled instead of clicking Delete or confirming Delete chat?.",
-        "Pick3 GPT no-result and missing-bound-image recovery refreshes/reopens the same workspace tab and opens a new chat without deleting provider conversation history.",
+        "Pick3 GPT no-result and missing-bound-image recovery does not refresh or reload the timed-out conversation and opens a new chat in the same workspace tab without deleting provider conversation history.",
         "Pick3 Gemini pre-image history cleanup records the temporarily-disabled cleanup status and must not block attachment upload while provider history deletion is disabled.",
         "Only final unresolved parse_failed_raw_available interactions after Prompt Exchange completion rounds are exhausted block reveal and scoring for the batch.",
         "Pick3 long-running full_pipeline and next_prediction_stability tasks are resumable by the same task id through the same Pick3 flow and Prompt Exchange.",

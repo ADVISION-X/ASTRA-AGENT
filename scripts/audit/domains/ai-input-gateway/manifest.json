@@ -111,6 +111,9 @@
         "checkIds": [
           "ai-input-gateway/authority-present",
           "ai-input-gateway/bounded-parallel-runtime",
+          "ai-input-gateway/deferred-completed-chat-rename",
+          "ai-input-gateway/exact-sidebar-row-rename",
+          "ai-input-gateway/no-chatgpt-page-refresh",
           "ai-input-gateway/parallel-acceptance",
           "ai-input-gateway/removed-old-region",
           "ai-input-gateway/source-present"

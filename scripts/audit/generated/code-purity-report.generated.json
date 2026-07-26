@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-07-26T01:56:29.281Z",
+  "generatedAt": "2026-07-26T04:29:35.029Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -89,6 +89,7 @@
     "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance-support.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+    "scripts/acceptance/pick3-is-blind-eval.contracts.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
@@ -456,6 +457,7 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
@@ -1584,9 +1586,9 @@
       "scriptName": "acceptance:ai-input-gateway-web-chat-parallel:real-chrome"
     }
   ],
-  "liveExportCount": 2385,
+  "liveExportCount": 2389,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 804,
+  "reachableFileCount": 806,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1598,9 +1600,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2385,
+    "liveExportCount": 2389,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 804,
+    "reachableFileCount": 806,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

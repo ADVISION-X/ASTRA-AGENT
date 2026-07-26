@@ -1,27 +1,11 @@
 import { createHash } from "node:crypto";
 
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import type {
-  AiProviderUploadedFileProof,
-  WebChatAttachmentUploadProof,
-  WebChatExecutionContext,
-} from "../contracts/ai-provider-adapter.contract.js";
+import type { AiProviderUploadedFileProof, WebChatAttachmentUploadProof, WebChatExecutionContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import {
-  acquireWebChatBrowserMutationLease,
-  acquireWebChatCapacityLease,
-  type WebChatRuntimeLease,
-} from "./web-chat-concurrency-lease.js";
-import {
-  buildInternallyMarkedPrompt,
-  startOrResumeWebChatExecution,
-  updateWebChatExecution,
-  type WebChatExecutionRecord,
-} from "./web-chat-execution-state.js";
-import {
-  createSingleTabWebChatBrowser,
-  type SingleTabWebChatBrowser,
-} from "./web-chat-single-tab-browser.js";
+import { acquireWebChatBrowserMutationLease, acquireWebChatCapacityLease, type WebChatRuntimeLease } from "./web-chat-concurrency-lease.js";
+import { buildInternallyMarkedPrompt, startOrResumeWebChatExecution, updateWebChatExecution, type WebChatExecutionRecord } from "./web-chat-execution-state.js";
+import { createSingleTabWebChatBrowser, type SingleTabWebChatBrowser } from "./web-chat-single-tab-browser.js";
 
 type ManagedWebChatInput = {
   request: AiFeedInput;
@@ -51,33 +35,24 @@ type ActiveExecutionState = {
   resume: boolean;
 };
 
-const resolveWebChatProviderKind = (
-  request: AiFeedInput,
-): "gpt-web-chat" | "gemini-web-chat" => {
+type BuildExecutionContextInput = {
+  source: ManagedWebChatInput;
+  getRecord(): WebChatExecutionRecord;
+  setRecord(record: WebChatExecutionRecord): void;
+  singleTabBrowser: SingleTabWebChatBrowser | null;
+  resume: boolean;
+};
+
+const resolveWebChatProviderKind = (request: AiFeedInput): "gpt-web-chat" | "gemini-web-chat" => {
   if (request.providerKind !== "gpt-web-chat" && request.providerKind !== "gemini-web-chat") {
     throw new Error("review_required: web-chat transport requires one web-chat provider kind.");
   }
   return request.providerKind;
 };
 
-const executionIdFor = (
-  input: ManagedWebChatInput,
-  inputHash: string,
-): string => input.executionId
-  ?? [
-    input.request.providerKind,
-    input.request.missionId ?? "mission",
-    input.request.runId ?? input.request.roundId ?? inputHash,
-    input.request.promptPackageId,
-  ].join(":");
+const executionIdFor = (input: ManagedWebChatInput, inputHash: string): string => input.executionId ?? [input.request.providerKind, input.request.missionId ?? "mission", input.request.runId ?? input.request.roundId ?? inputHash, input.request.promptPackageId].join(":");
 
-const buildExecutionContext = (input: {
-  source: ManagedWebChatInput;
-  getRecord(): WebChatExecutionRecord;
-  setRecord(record: WebChatExecutionRecord): void;
-  singleTabBrowser: SingleTabWebChatBrowser | null;
-  resume: boolean;
-}): WebChatExecutionContext => {
+const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecutionContext => {
   const record = input.getRecord();
   const update = async (patch: Parameters<typeof updateWebChatExecution>[0]["patch"]) => {
     const updated = await updateWebChatExecution({
@@ -97,11 +72,18 @@ const buildExecutionContext = (input: {
     resumeSubmission: input.resume ? record.submission : null,
     resumeUploadedFiles: input.resume ? record.uploadedFiles : [],
     resumeAttachmentUploadProof: input.resume ? record.attachmentUploadProof : null,
+    onSubmissionObserved: async ({ submission, uploadedFiles, attachmentUploadProof }) => {
+      await update({
+        status: submission.canonicalConversationUrl ? "conversation_canonicalized" : "submitted_transient",
+        submission,
+        uploadedFiles,
+        attachmentUploadProof,
+      });
+      input.singleTabBrowser?.bindObservedConversation(submission);
+    },
     onSubmitted: async ({ submission, uploadedFiles, attachmentUploadProof }) => {
       await update({
-        status: submission.canonicalConversationUrl
-          ? "conversation_canonicalized"
-          : "submitted_transient",
+        status: submission.canonicalConversationUrl ? "conversation_canonicalized" : "submitted_transient",
         submission,
         uploadedFiles,
         attachmentUploadProof,
@@ -118,9 +100,9 @@ const buildExecutionContext = (input: {
         submission: current
           ? {
               ...submission,
-              systemChatTitle: current.systemChatTitle,
-              observedAutoChatTitle: current.observedAutoChatTitle,
-              chatTitleVerifiedAt: current.chatTitleVerifiedAt,
+              systemChatTitle: submission.systemChatTitle ?? current.systemChatTitle,
+              observedAutoChatTitle: submission.observedAutoChatTitle ?? current.observedAutoChatTitle,
+              chatTitleVerifiedAt: submission.chatTitleVerifiedAt ?? current.chatTitleVerifiedAt,
               submittedAt: current.submittedAt,
             }
           : submission,
@@ -129,10 +111,7 @@ const buildExecutionContext = (input: {
   };
 };
 
-const startActiveExecution = async (
-  input: ManagedWebChatInput,
-  inputHash: string,
-): Promise<ActiveExecutionState> => {
+const startActiveExecution = async (input: ManagedWebChatInput, inputHash: string): Promise<ActiveExecutionState> => {
   const providerKind = resolveWebChatProviderKind(input.request);
   const started = await startOrResumeWebChatExecution({
     dataDir: input.dataDir,
@@ -184,7 +163,13 @@ const startActiveExecution = async (
       });
       initialMutationLease = null;
     }
-    return { record, capacityLease, initialMutationLease, singleTabBrowser, resume: started.resume };
+    return {
+      record,
+      capacityLease,
+      initialMutationLease,
+      singleTabBrowser,
+      resume: started.resume,
+    };
   } catch (error) {
     await initialMutationLease?.release();
     await capacityLease.release();
@@ -192,10 +177,7 @@ const startActiveExecution = async (
   }
 };
 
-const buildActiveExecution = (
-  input: ManagedWebChatInput,
-  state: ActiveExecutionState,
-): ManagedWebChatExecution => {
+const buildActiveExecution = (input: ManagedWebChatInput, state: ActiveExecutionState): ManagedWebChatExecution => {
   const webChatExecution = buildExecutionContext({
     source: input,
     getRecord: () => state.record,
@@ -240,10 +222,7 @@ const buildActiveExecution = (
   };
 };
 
-export const prepareManagedWebChatExecution = async (
-  input: ManagedWebChatInput,
-  inputHash: string,
-): Promise<ManagedWebChatExecution> => {
+export const prepareManagedWebChatExecution = async (input: ManagedWebChatInput, inputHash: string): Promise<ManagedWebChatExecution> => {
   if (input.transport === "web-chat") {
     return buildActiveExecution(input, await startActiveExecution(input, inputHash));
   }
