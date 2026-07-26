@@ -78,6 +78,9 @@ const inspectAstContract = (files: readonly SourceFile[], findings: InspectorFin
     "providerProof",
     "rawResponseText",
     "response_captured",
+    "queued",
+    "executionId",
+    "continueInterruptedXuanyuanTasks",
     "transportWarnings",
     "/api/xuanyuan/simulate",
     "/api/xuanyuan/status",
@@ -129,7 +132,9 @@ const inspectPackageScripts = (findings: InspectorFinding[], lawId: string): voi
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const lawId = context.planEntry.lawIds[0] ?? "GRASSEYE-XUANYUAN-001-V1";
+  const lawId = context.planEntry.lawIds.includes("GRASSEYE-XUANYUAN-002-V1")
+    ? "GRASSEYE-XUANYUAN-002-V1"
+    : context.planEntry.lawIds[0] ?? "GRASSEYE-XUANYUAN-001-V1";
   const findings: InspectorFinding[] = [];
   const files = collectSources(context, findings, lawId);
   inspectRequiredPaths(findings, lawId);

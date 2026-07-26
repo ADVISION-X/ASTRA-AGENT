@@ -16,6 +16,7 @@ type WaitForStableAnswerInput = {
   timeoutMs: number;
   pollIntervalMs: number;
   stableRoundsRequired: number;
+  minStableDurationMs?: number;
   minAssistantCount?: number;
   beforePoll?: () => Promise<unknown>;
   previousAnswerText?: string | null;
@@ -49,6 +50,8 @@ export const waitForStableAnswer = async (input: WaitForStableAnswerInput): Prom
     }
     const progress = advanceStableAnswer({
       evaluation,
+      minStableDurationMs: input.minStableDurationMs ?? 0,
+      now,
       stableRoundsRequired: input.stableRoundsRequired,
       state,
     });

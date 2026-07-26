@@ -1,4 +1,5 @@
 export {
+  continueInterruptedXuanyuanTasks,
   getLatestXuanyuanTask,
   getXuanyuanTaskStatus,
   listXuanyuanHistory,

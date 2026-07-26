@@ -20,6 +20,22 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "GRASSEYE-XUANYUAN-002-V1",
+        "clauseId": "grasseye-xuanyuan-002-requirement",
+        "checkIds": [
+          "xuanyuan/ast-contract",
+          "xuanyuan/file-present",
+          "xuanyuan/forbidden-provider-import",
+          "xuanyuan/package-script"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },

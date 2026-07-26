@@ -47,6 +47,7 @@ export type XuanyuanRequest = z.infer<typeof XuanyuanRequestSchema>;
 
 export type XuanyuanTaskStatus =
   | "accepted"
+  | "queued"
   | "running"
   | "response_captured"
   | "review_required"
@@ -75,6 +76,8 @@ export type XuanyuanTaskRecord = {
   transportWarnings: string[];
   providerProof: AiFeedResult["providerProof"] | null;
   progress: {
+    executionId: string;
+    phase: "queued" | "running" | "terminal";
     attachmentUploadProof: WebChatAttachmentUploadProof | null;
   };
   continuationTaskId: string | null;

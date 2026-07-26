@@ -1,11 +1,11 @@
 # 附件＋提示词投喂给网页版 AI 分析实操论证报告
 
 > 文件身份：真实 Chrome 实操记录、第二上传链路施工输入、DOM/原生文件选择器边界说明
-> 文件状态：verified-v1.2
-> 实操日期：2026-07-24
+> 文件状态：verified-v1.3
+> 实操日期：2026-07-24、2026-07-26
 > 实操对象：ChatGPT Web（`https://chatgpt.com/`）
 > 目标模式：点击“＋”→ 官方文件选择器 → 目标目录 → Command+A → 一次打开 → 附件稳定 → 提示词稳定 → 提交
-> 当前结论：标准子能力已经接入 AI Input Gateway；真实 Chrome 的 1、10、17 文件均完成闭环；八字 SEO 的 16＋2 文件真实成功会话进一步证明，生产步骤必须使用 `ACTION AND THEN`，且 THEN 必须同时绑定精确作用域、包含条件、排除条件和相对基线增量
+> 当前结论：标准子能力已经接入 AI Input Gateway；真实 Chrome 的 1、10、17 文件均完成闭环；八字 SEO 的 16＋2 文件真实成功会话进一步证明，生产步骤必须使用 `ACTION AND THEN`，且 THEN 必须同时绑定精确作用域、包含条件、排除条件和相对基线增量；2026-07-26 又以两个独立 ChatGPT 会话完成了真实并发生成和交替 DOM 轮询，证明“一次只能等待一个 Web Chat”不是 provider 技术限制，但生产并发必须增加会话身份、临时 URL 收敛、短时浏览器操作权和防串话合同
 
 ---
 
@@ -1385,3 +1385,882 @@ AI确实读取了本轮17个文件，而不是只完成了上传动作。
 不得把file chip出现当上传ready；必须保留精确数量、精确文件名、提交前复核和30秒稳定门。
 修改原生选择器输出协议时，必须覆盖首个文件名不丢失的解析回归。
 ```
+
+---
+
+## 13. 历史多标签实验（结论已被第14节片区替换）
+
+> 本节保留的是发现“不同聊天可在服务端同时生成”的历史实验记录。其“每任务一个标签页、
+> tab lease、按标签轮询”的实现结论已经废止，不得再作为施工依据。当前唯一有效的
+> GPT Web 运行合同见第14节。
+
+### 13.1 实操目的与边界
+
+本轮按用户提出的方案，直接使用真实 Chrome、真实 ChatGPT 登录态、多个真实标签页和页面 DOM 验证：
+
+```text
+每个提示词带一个内部唯一 marker
+→ 在不同 ChatGPT 会话中连续提交
+→ 不等待前一个会话完成
+→ 按精确标签页交替读取 DOM
+→ 用 marker 找到本轮 user turn
+→ 只读取该 user turn 之后的 assistant turn
+→ 检查两个会话是否同时生成、是否串话、是否都能完成
+```
+
+本轮没有上传附件，原因是本次要单独验证“多会话并发生成和 DOM 轮询”这一技术命题，避免把原生文件选择器焦点、附件稳定窗与多会话调度混成一个无法归因的测试。
+
+因此本节能够证明：
+
+- 同一 ChatGPT 账号可以让至少两个独立会话同时生成。
+- Chrome 控制端可以持有两个准确标签页句柄并交替读取各自 DOM。
+- 唯一 marker 可以在各自 user turn 中形成可验证关联。
+- 一个会话不需要持续保持前台焦点，生成仍会继续。
+- 两个会话可以在各自准确 DOM 中独立完成，未发生 marker 串话。
+
+本节尚不能证明：
+
+- 两个带附件的会话可以同时执行原生文件选择器上传。
+- 两个 22 分钟级真实玄学分析在账号限流、深度研究或长推理下必然稳定。
+- AGENT 进程重启后能够恢复全部在途标签页。
+- continuation、CAPTCHA、账号限流和标签页失效的并发恢复已经闭环。
+
+### 13.2 实验环境
+
+```text
+CHROME_VERIFIED: true
+浏览器：真实 Google Chrome
+网页：ChatGPT Web
+账号：用户当前已登录账号
+控制方式：Chrome 插件提供的精确 Tab 句柄
+本地日期：2026-07-26，Asia/Dubai
+下列精确事件时间：UTC
+```
+
+安全边界：
+
+- 未读取 Cookie、localStorage、sessionStorage、密码或 token。
+- 未上传用户文件。
+- DOM 读取只限定于当前实验会话的 `main`、conversation turn、composer 和生成状态按钮。
+- 未把页面全量 HTML、账号资料或历史聊天正文写入本报告。
+
+### 13.3 第一轮：两个会话连续提交与独立终态
+
+第一轮创建两个全新的 ChatGPT 标签页 A、B，并使用不同 marker：
+
+```text
+A marker：
+GRASSEYE_PARALLEL_DOM_1785014193968_8e6bf4_A
+
+B marker：
+GRASSEYE_PARALLEL_DOM_1785014193968_8e6bf4_B
+```
+
+提交时间：
+
+```text
+A submitted：2026-07-25T21:16:45.937Z
+B submitted：2026-07-25T21:16:49.150Z
+提交间隔：3213 ms
+```
+
+正式会话 URL：
+
+```text
+A：
+https://chatgpt.com/c/6a6527b2-bfd4-83eb-a21f-8aa661ef6d18
+
+B：
+https://chatgpt.com/c/6a6527c2-2420-83eb-873d-651545da8230
+```
+
+两个终态 DOM 都满足：
+
+```text
+main：1
+conversation turn：2
+conversation-turn-1：user，包含本会话 marker
+conversation-turn-2：assistant，位于本会话 user turn 之后
+本会话 DOM 包含对方 marker：false
+最终完成标记：true
+停止回答按钮：0
+```
+
+两个回答都完整生成120项，DOM文本长度均为1153。第一轮证明两个提示词可以在约3.2秒内先后送入两个不同会话，且最终结果彼此隔离。
+
+### 13.4 第二轮：捕获两个会话同时生成的硬证据
+
+为了排除“第一个会话可能在第二个提交前已经完成”的解释，第二轮把任务扩大为每个会话完整生成300项，并在第二个会话提交前后立即读取第一个会话 DOM。
+
+唯一 marker：
+
+```text
+C marker：
+GRASSEYE_OVERLAP_1785014262614_xdher6_C
+
+D marker：
+GRASSEYE_OVERLAP_1785014262614_xdher6_D
+```
+
+正式会话 URL：
+
+```text
+C：
+https://chatgpt.com/c/6a6527fd-6458-83eb-97db-2e4c0c31f194
+
+D：
+https://chatgpt.com/c/6a652808-b79c-83eb-bd7d-0a237ba10981
+```
+
+关键时间线：
+
+| UTC时间 | C会话 | D会话 | 结论 |
+|---|---|---|---|
+| `21:17:48.383` | 已提交 | 尚未提交 | C开始独立任务 |
+| `21:17:51.765` | `stop-button`存在；assistant显示正在思考 | 尚未提交 | D提交前，C明确仍在生成 |
+| `21:18:00.031` | 仍在生成 | 已提交 | D没有等待C完成 |
+| `21:18:00.799` | `stop-button`存在 | `stop-button`存在 | 两个不同会话同时生成的直接证据 |
+| `21:18:21.531` | assistant长度2721 | assistant长度1133 | 两边都在增长 |
+| `21:18:37.874` | assistant长度4783 | assistant长度3221 | 两边继续增长 |
+| `21:18:58.193` | assistant长度7619 | assistant长度5868 | 切换读取未使任一生成停止 |
+| `21:19:22.555` | assistant长度11220 | assistant长度9684 | 两边仍在独立推进 |
+| `21:20:01.685` | C完成，长度15848 | D仍生成，长度15775 | 一个完成不影响另一个 |
+| `21:20:14.067` | C完成 | D完成 | 两会话均到达独立终态 |
+
+从C提交到D提交相隔11648 ms。在D提交之前，C已经通过以下 DOM 同时证明仍在生成：
+
+```text
+conversation-turn-1：包含C marker的user消息
+conversation-turn-2：assistant消息
+button[data-testid="stop-button"]：1
+accessible name：停止回答
+final marker：false
+```
+
+D提交后768 ms的双会话探测结果：
+
+```text
+C：
+  精确URL：C会话
+  user turn含C marker：true
+  user turn含D marker：false
+  stop-button：1
+
+D：
+  精确URL：D会话的临时URL
+  user turn含D marker：true
+  user turn含C marker：false
+  stop-button：1
+```
+
+这组证据排除了以下说法：
+
+```text
+错误说法一：
+必须等C完成，才能让D开始。
+
+错误说法二：
+切换到D后，C就会暂停生成。
+
+错误说法三：
+只有当前前台标签页的ChatGPT会继续工作。
+```
+
+实际事实是：
+
+> ChatGPT 的回答生成发生在服务端。浏览器标签页只负责提交、显示和读取。只要两个提示词已经进入不同会话，两个任务可以同时推进，轮询器无需在某个标签页前台等待二十多分钟。
+
+### 13.5 回答绑定与防串话结果
+
+终态抓取不是读取“页面最后一条 assistant 消息”，而是执行：
+
+```text
+在当前精确会话内枚举 conversation turn
+→ 找到 role=user 且包含本轮 marker、排除另一 marker 的唯一turn
+→ 从该turn之后寻找第一个assistant turn
+→ 读取该assistant turn
+→ 再次验证回答不含另一任务 marker
+```
+
+终态结果：
+
+| 会话 | user turn | assistant turn | 回答长度 | 对方marker | SHA-256 |
+|---|---|---|---:|---|---|
+| C | `conversation-turn-1` | `conversation-turn-2` | 15848 | `false` | `40e2e4521086f18882abbaece9b1d547a805b34c1b80581fb595dc40d5ca55eb` |
+| D | `conversation-turn-1` | `conversation-turn-2` | 15848 | `false` | `93121e0384bd0e469e9bdfa1224fd8d584a5db08bc49ff18f17324264f751b66` |
+
+两个回答长度相同，但哈希不同。这进一步证明：
+
+```text
+长度相同
+≠
+同一个回答被两个任务重复抓取
+```
+
+本轮实验提示词要求assistant重复本会话marker，便于人工校验；生产抓取不得依赖assistant一定复述marker。真正稳定的锚点仍应是：
+
+```text
+精确会话身份
++ 带marker的user turn
++ 该user turn之后的assistant turn
+```
+
+### 13.6 临时会话 URL 是必须处理的新事实
+
+本轮两次观察到，ChatGPT点击发送后不会立刻获得最终持久化URL。
+
+第一轮B提交后的即时URL：
+
+```text
+https://chatgpt.com/c/WEB:c1bf6217-69fd-47c6-88ca-9a46531b4ad9
+```
+
+随后收敛为：
+
+```text
+https://chatgpt.com/c/6a6527c2-2420-83eb-873d-651545da8230
+```
+
+第二轮：
+
+```text
+C即时URL：
+https://chatgpt.com/c/WEB:538af69c-48d4-4aca-9ea8-fcf070a5b7d4
+
+C正式URL：
+https://chatgpt.com/c/6a6527fd-6458-83eb-97db-2e4c0c31f194
+
+D即时URL：
+https://chatgpt.com/c/WEB:619a2ffb-0b42-4df0-9a64-20ab9d2e6c74
+
+D正式URL：
+https://chatgpt.com/c/6a652808-b79c-83eb-bd7d-0a237ba10981
+```
+
+因此提交后的会话身份必须有两个阶段：
+
+```text
+submitted_transient
+  tabHandle存在
+  user turn marker已证明
+  URL可能仍为/c/WEB:<uuid>
+
+conversation_canonicalized
+  同一tabHandle
+  同一user turn marker
+  URL已经变为正式/c/<conversation-id>
+  正式URL持久化
+```
+
+禁止：
+
+- 发送按钮点击后立刻把 `/c/WEB:<uuid>` 当作永久 continuation URL。
+- 只等 URL 变化，不核对 user turn marker。
+- URL从临时值变正式值后丢弃原tab身份和提交证明。
+- 在正式URL尚未形成时因为“找不到历史会话”而重复提交提示词。
+
+正确做法：
+
+```text
+点击发送
+AND THEN
+  新user turn包含本轮marker
+  + tabHandle仍属于本attempt
+  + origin仍为chatgpt.com
+THEN
+  标记submitted_transient
+
+继续短轮询
+AND THEN
+  URL从/c/WEB:*收敛为/c/<canonical-id>
+  + user turn仍包含同一marker
+THEN
+  持久化canonical conversation URL
+```
+
+### 13.7 DOM身份不能只靠 `conversation-turn-1`
+
+两个独立会话都从以下局部编号开始：
+
+```text
+conversation-turn-1：user
+conversation-turn-2：assistant
+```
+
+因此：
+
+```text
+conversation-turn-1
+```
+
+只在一个会话内部有意义，不是全局唯一身份。
+
+安全组合必须至少是：
+
+```text
+providerHost
++ canonicalConversationUrl
++ internallyMintedTurnMarker
++ userTurnTestId
++ submittedPromptHash
+```
+
+在正式URL尚未形成时，过渡身份是：
+
+```text
+providerHost
++ controlledTabHandle
++ transientUrl
++ internallyMintedTurnMarker
++ userTurnTestId
++ submittedPromptHash
+```
+
+本轮还观察到，在流式生成期间的一次探测中：
+
+```text
+conversation-turn-2已经存在
+stop-button已经存在
+但assistant role属性没有在该轮DOM中稳定暴露
+```
+
+随后探测中role又恢复为assistant。这说明流式DOM会发生替换或属性短暂缺失。
+
+因此生成中不得只靠单一 `data-message-author-role="assistant"` 判定。应组合：
+
+- user turn marker已证明；
+- 它之后出现新的conversation turn；
+- `stop-button`存在，或回答文本相对上一轮增长；
+- 当前会话URL和tab身份未漂移；
+- 其他任务marker不存在。
+
+### 13.8 生成中与完成的判定合同
+
+本轮真实页面的生成中强信号是：
+
+```text
+button[data-testid="stop-button"]
+accessible name：停止回答
+```
+
+但生产代码不能把一个按钮永久当作唯一真相，因为provider可能改DOM。建议状态判定：
+
+```text
+generating：
+  exact conversation identity
+  + exact user marker turn
+  + assistant turn位于其后
+  + stop-button存在
+  + assistant文本为空、显示思考，或相对上轮增长
+
+response_detected：
+  assistant turn已存在
+  + assistant文本长度 > 0
+
+response_stable：
+  stop-button不存在
+  + assistant文本非空
+  + 连续N次fresh读取文本哈希不变
+  + exact conversation identity未漂移
+  + user marker关系仍成立
+
+response_captured：
+  raw text与hash已经持久化
+  + provider URL已经正式化
+  + 抓取证据绑定task与marker
+```
+
+本轮实验使用的final marker只用于加强实验证明。生产状态机不能把“模型复述final marker”设为唯一完成条件。
+
+### 13.9 对当前“全链独占”的新结论
+
+本报告第7.1节记录的“从provider lease获得到response capture完成，全链独占”仍然准确描述当前生产规则，但本轮真实Chrome已经证明：
+
+```text
+它是当前AGENT的保护策略
+不是ChatGPT Web的技术硬限制
+```
+
+真正需要独占的是会改变浏览器页面的短动作：
+
+```text
+打开或认领目标tab
+上传附件
+填写prompt
+点击发送
+确认新user turn
+必要的焦点恢复
+最终原始回答抓取与证据落盘
+```
+
+不需要全程独占的是：
+
+```text
+GPT服务端生成回答的几十秒或二十多分钟
+```
+
+因此后续生产重构应把一把长锁片区删除，改成：
+
+```text
+短时提交操作权
+→ 释放
+→ 多会话同时waiting_provider
+→ 调度器按准确tab/URL/marker做短轮询
+→ 回答完成时取得短时抓取操作权
+→ 持久化后释放
+```
+
+禁止同时保留：
+
+```text
+旧的全程长锁主链
++
+新的并发调度主链
+```
+
+这会形成双模式、双真相和无法判定的锁所有权。正式施工应在原AI Input Gateway owner内片区删除重构，不做compatibility bridge。
+
+### 13.10 BrowserController应采用受限Tab池
+
+本轮Chrome插件能够同时保有C、D两个准确Tab句柄，并对两个非同一页面执行独立DOM读取。
+
+这说明现有“一切都复用一个host tab”不是唯一实现方式。后续可以在同一个BrowserController内建立受限Tab池：
+
+```text
+一个BrowserController
+→ 最多N个受治理provider tabs
+→ 每个in-flight feed独占一个tab lease
+→ 同一tab只属于一个attempt
+→ 调度器统一提交、轮询、回收
+```
+
+这不是第二BrowserController，也不是第二provider owner。
+
+每个在途会话至少持久化：
+
+```ts
+type WebChatInFlightIdentity = {
+  taskId: string;
+  attemptId: string;
+  providerKind: "gpt-web-chat";
+  providerHost: "chatgpt.com";
+  turnMarker: string;
+  promptHash: string;
+  controlledTabLeaseId: string;
+  transientUrl: string | null;
+  canonicalConversationUrl: string | null;
+  userTurnTestId: string | null;
+  submittedAt: string;
+  lastPolledAt: string | null;
+  lastAssistantTextHash: string | null;
+  lastAssistantTextLength: number;
+  stableRounds: number;
+};
+```
+
+注意：
+
+- `controlledTabLeaseId`是AGENT内部凭据，外部网站不能传入。
+- `turnMarker`由AI Input Gateway内部生成，外部网站不能拿它选择或劫持别的会话。
+- Tab池必须有固定上限，首轮生产目标可以是2，不得无限开tab。
+- 会话结束、失败或进入人工复核后，tab必须按统一回收规则处理。
+- 进程重启后的tab重新认领仍需单独真实Chrome验收，不能仅凭本轮句柄存活推断。
+
+### 13.11 带附件并发时仍需串行的区域
+
+本轮证明的是“生成等待可并发”，不等于原生文件选择器可以并行操作。
+
+带附件时以下区域仍应全局短时互斥：
+
+```text
+激活目标Chrome窗口
+→ 打开目标tab
+→ 打开附件菜单
+→ 操作唯一macOS sheet
+→ 返回目标tab
+→ 证明当前composer附件集合
+→ 填写并提交prompt
+```
+
+原因：
+
+- macOS原生文件选择器属于窗口级sheet，不属于单个网页DOM。
+- Command+Shift+G、Command+A和“打开”依赖当前前台窗口与焦点。
+- 两个任务同时打开原生sheet会造成窗口和文件集合多义。
+
+所以推荐调度不是“两个任务同时抢着上传”，而是：
+
+```text
+任务C短时独占完成附件+prompt提交
+→ 立即释放
+→ C在服务端生成
+→ 任务D短时独占完成附件+prompt提交
+→ 立即释放
+→ C、D同时在服务端生成
+→ 调度器轮询两个会话
+```
+
+这种结构已经足够把两次22分钟的独立分析从串行等待改成并行等待，同时不破坏原生附件选择器的单义性。
+
+### 13.12 可直接进入后续施工的状态机
+
+建议把当前单次feed拆成：
+
+```text
+accepted
+→ waiting_for_submit_slot
+→ submitting
+→ submitted_transient
+→ conversation_canonicalized
+→ waiting_provider
+→ response_detected
+→ response_stable
+→ response_captured
+→ cleanup_completed
+```
+
+异常出口：
+
+```text
+review_required
+failed
+cancelled
+```
+
+调度器拥有两种不同的内部资源权：
+
+```text
+provider_submit_lease：
+  用于打开tab、附件、prompt、submit和提交证明
+  必须短时持有
+
+provider_tab_lease：
+  一个在途任务绑定一个受治理tab
+  从提交前持续到回答抓取和清理完成
+  它不阻止其他tab同时生成
+```
+
+如果当前BrowserController暂时只能操作active tab，第一阶段仍可：
+
+```text
+一个统一poll scheduler
+→ 短时聚焦C
+→ 核对URL+marker
+→ 读取一次
+→ 短时聚焦D
+→ 核对URL+marker
+→ 读取一次
+```
+
+但本轮Chrome插件已经证明精确Tab句柄可以直接读取目标DOM。正式设计应优先评估把这一能力收回现有BrowserController，而不是长期依赖“先切成active tab再猜当前页面”。
+
+### 13.13 并发轮询伪代码
+
+```ts
+async function pollOne(task: WebChatInFlightIdentity) {
+  const tab = await browserController.resolveGovernedTab({
+    controlledTabLeaseId: task.controlledTabLeaseId,
+    canonicalConversationUrl: task.canonicalConversationUrl,
+    transientUrl: task.transientUrl,
+  });
+
+  const observation = await tab.readScopedConversationDom({
+    providerHost: task.providerHost,
+    turnMarker: task.turnMarker,
+    expectedUserTurnId: task.userTurnTestId,
+  });
+
+  assert(
+    observation.providerHost === task.providerHost
+    && observation.userTurnMarkerMatched === true
+    && observation.otherTaskMarkerDetected === false,
+  );
+
+  if (!task.canonicalConversationUrl && observation.canonicalConversationUrl) {
+    await persistCanonicalConversationIdentity(task, observation);
+  }
+
+  if (observation.generating) {
+    return recordProgress(task, observation);
+  }
+
+  if (!observation.answerText) {
+    return recordPending(task, observation);
+  }
+
+  return advanceStableAnswer(task, observation);
+}
+```
+
+统一调度：
+
+```ts
+for (const task of fairQueue.inFlightTasks()) {
+  await pollOne(task);
+}
+```
+
+如果BrowserController支持准确目标tab的独立evaluate，可以受控并行读取：
+
+```ts
+await Promise.all(
+  selectedTasks.map((task) => pollOneReadOnly(task)),
+);
+```
+
+但写动作、原生文件选择器和tab回收仍必须通过统一调度器串行裁决，不能让每个任务拥有自己的无协调控制循环。
+
+### 13.14 本轮最终技术结论
+
+```text
+CHROME_VERIFIED: true
+```
+
+已被真实Chrome证明：
+
+1. 同一ChatGPT账号至少可以同时生成两个独立会话。
+2. 第二个会话提交时，第一个会话可以明确处于`stop-button`存在的生成状态。
+3. 两个会话可在同一时间同时存在`stop-button`。
+4. 两个会话回答文本在交替轮询期间同时持续增长。
+5. 切换读取另一个标签页不会停止前一个会话的服务端生成。
+6. 两个会话均完成300项长输出。
+7. 两个会话的正式URL不同。
+8. 两个会话的user turn分别只包含自己的marker。
+9. 两个终态回答均不包含对方marker。
+10. 两个同长度回答的SHA-256不同，没有抓成同一份回答。
+11. `/c/WEB:<uuid>`是提交后的临时URL，不能直接当永久会话身份。
+12. `conversation-turn-1/2`只在单个会话内编号，不是全局身份。
+13. 流式生成期间role属性可能短暂不稳定，必须用组合证据。
+14. 当前全程provider lease是AGENT实现策略，不是ChatGPT Web技术硬限制。
+
+尚未被本轮证明：
+
+1. 两个带附件会话同时提交的完整生产链。
+2. 22分钟级玄学任务在真实长期运行中的账号限流表现。
+3. 三个及以上同时在途会话的安全容量。
+4. 进程重启后的tab恢复与防重复提交。
+5. continuation在多会话调度中的完整证据闭环。
+6. CAPTCHA、登录失效、账号限制和用户抢焦点时的并发恢复。
+
+因此当前最准确的结论是：
+
+> 用户提出的“不同提示词使用唯一标识、多个ChatGPT会话同时生成、AGENT按标识轮询DOM”的核心方案已经被真实Chrome证明可行。生产实现不能只靠marker字符串，还必须加入准确Tab所有权、临时URL到正式URL的收敛、user turn相对关系、回答稳定哈希和短时浏览器操作权。当前长锁应在后续法案授权后于原AI Input Gateway owner内片区删除重构。
+
+## 14. 单物理标签页＋系统重命名聊天＋marker巡查实证
+
+### 14.1 本节替换的错误片区
+
+2026-07-26 的第二轮真实 Chrome 实证没有继续证明“多标签可用”，而是直接验证最终目标：
+
+```txt
+一个物理 ChatGPT 标签页
+→ 创建聊天 A 并发送带 marker 的提示词
+→ 等待侧栏聊天名称出现
+→ 点击该聊天的选项
+→ 点击“重命名”
+→ 写入系统生成的唯一聊天名并回车
+→ 在同一标签页创建聊天 B，重复以上过程
+→ 按系统聊天名逐个点击切换
+→ 在打开后的聊天 DOM 中核对 marker
+→ 只读取 marker 所属 user turn 后面的 assistant turn
+```
+
+以下旧实现合同已被片区删除：
+
+- 每任务创建一个 Chrome 标签页；
+- 每任务持有 `tabLeaseId`；
+- 用 `window.name` 保存任务级标签租约；
+- 按 provider 标签页轮询；
+- 完成后关闭任务标签页；
+- 把 Chrome 标签数当作 GPT 并发数。
+
+新的 `N` 表示“最多 N 个已经提交、尚未完成的独立 GPT 聊天”，不表示 N 个 Chrome
+标签页。默认容量可以是 10，但物理 ChatGPT 标签页始终是 1。
+
+### 14.2 真实 Chrome 观测值
+
+本轮在同一个已登录 ChatGPT 物理标签页内创建两个独立任务：
+
+| 证据 | 聊天 A | 聊天 B |
+|---|---|---|
+| 提示词 marker | `GRASSEYE_SINGLE_TAB_ms12zu8e_A` | `GRASSEYE_SINGLE_TAB_ms12zu8e_B` |
+| 系统重命名 | `AGENT-单标签实证-ms12zu8e-A` | `AGENT-单标签实证-ms12zu8e-B` |
+| 正式会话路径 | `/c/6a6559ce-7d8c-83eb-8021-bc3f8734ab17` | `/c/6a655a0d-1d1c-83eb-ac0a-916cfc9a7086` |
+| marker 命中数 | 1 | 1 |
+| 对方 marker 命中数 | 0 | 0 |
+| 最终回答长度 | 984 字符 | 984 字符 |
+| 最终编号行 | 180 行甲＋完成 | 180 行乙＋完成 |
+| 生成按钮终态 | 不存在 | 不存在 |
+
+两个任务均在同一个物理标签页中完成。切换聊天只改变当前显示的会话，不会终止另一个
+会话在服务端的生成。
+
+### 14.3 ChatGPT 重命名 DOM 的真实操作合同
+
+本轮中文界面实际观测到：
+
+1. 侧栏聊天链接出现后，其选项按钮的 `aria-label` 形如
+   `打开“<当前标题>”的对话选项`；
+2. 点击后出现菜单，真实菜单项包含：
+   `分享`、`重命名`、`移至项目`、`置顶聊天`、`归档`、`删除`；
+3. 点击角色为 `menuitem`、可见文字严格等于 `重命名` 的唯一菜单项；
+4. 重命名输入框的无障碍名称是 `聊天标题`；
+5. 对输入框执行全选清空、输入系统聊天名、按 Enter；
+6. 重命名成功后同时证明：
+   - 侧栏中恰有一个链接文字严格等于系统聊天名；
+   - 该链接仍指向本任务正式会话路径；
+   - 当前页面路径严格等于该侧栏链接的正式会话路径；
+   - 当前聊天 DOM 中本任务 marker 恰好出现一次。
+
+点击必须是真实浏览器鼠标/键盘动作。DOM 脚本只负责定位唯一目标和回读证据，不能用
+脚本直接伪造重命名结果。
+
+重构后第一次真实代码回放还发现：只在侧栏直接点一个“非当前聊天”的选项按钮，菜单可能
+不会出现；先真实点击该聊天链接，使它成为当前聊天，再点同一条目的选项按钮，菜单稳定出现，
+其六个 `menuitem` 的 `innerText` 分别为分享、重命名、移至项目、置顶聊天、归档、删除。
+因此代码必须先执行“聊天链接当前化＋marker 回读”，再打开重命名菜单。
+
+第二次真实代码回放又发现：`a[href]` 解析后的 `pathname` 相等仍不足以证明它是聊天链接。
+页面的“跳至内容”链接使用 `#main`，浏览器解析后会继承当前 `/c/<id>` pathname，从而与
+当前聊天路径假相等。聊天定位必须同时要求原始 `href` 含 `/c/`，再比较解析后的正式路径；
+否则会把无障碍跳转链接误当成第二个聊天链接并错误报告歧义。
+
+### 14.4 自动标题不能当任务身份
+
+本轮发现一个会直接造成串话的事实：聊天 B 的自动标题先显示为
+`单标签多聊天任务`，随后又自动变化为 `任务B完成`。
+
+因此：
+
+```txt
+自动标题 ≠ 稳定主键
+自动标题文本 ≠ 可恢复身份
+```
+
+系统必须用正式会话路径先定位刚提交的侧栏条目，随后立即执行重命名。只有系统聊天名、
+正式会话路径和 marker 三项已经共同核验，任务才能从 `submitting` 进入
+`waiting_provider` 并释放浏览器短锁。
+
+第三次真实代码回放证明自动标题还存在竞态：第一条聊天的系统重命名曾短暂执行，但稍后被
+ChatGPT 的异步自动命名覆盖；第二条聊天因为提交得更晚，系统重命名正常保留。解决方式不是
+接受自动标题，而是在同一提交阶段进行最多三次有界重命名核验：每次都重新打开当前聊天选项、
+写入同一个系统聊天名，并持续回读侧栏标题、正式路径和 marker；只有三项同时成立才释放
+提交锁。这个重试只重做重命名 UI，不得重发提示词。
+
+最终重构后的再次实证还发现：侧栏重命名、正式路径和 marker 已经全部正确时，
+`document.title` 仍可能延迟更新。失败现场稍后回读显示，原先被误判的聊天已以正确系统名
+稳定存在于侧栏。浏览器页面标题不是用户提出的身份依据，也不是 ChatGPT 聊天记录主键，因此
+不得再把它作为放行条件；它只保留为诊断观测。稳定身份合同最终固定为：
+`侧栏唯一系统聊天名对应当前正式路径 + 当前聊天 marker 唯一`。
+
+随后一次真实回放发现了另一类输入层问题：macOS `System Events keystroke` 将
+`GRASSEYE-...` 实际输入成了 `GRASEYE-...`，重复字符发生丢失。代码不能在按 Enter 后才
+发现标题错误，也不能假设键盘动作已经完整执行。重命名输入因此改为：
+
+```txt
+清空聊天标题输入框
+→ 使用系统剪贴板和真实 Command+V 粘贴系统聊天名
+→ DOM 回读“聊天标题”输入框的实际 value
+→ 只有 value 与目标名称逐字相等才按 Enter
+→ 提交后再核验侧栏唯一名称、正式路径和 marker
+```
+
+DOM 仍只负责回读和定位，真正的输入与提交使用系统剪贴板、键盘和鼠标动作完成。
+
+继续回放时，连续验收触发了 ChatGPT 的“请求过于频繁”对话记录临时限制。现场 DOM 同时
+出现两个可见的“搜索聊天”按钮：一个位于窄侧栏轨道，另一个位于展开侧栏顶部；二者是同一
+功能的响应式入口，不能因为数量为 2 就误报身份歧义。路由现在固定选择展开侧栏中横坐标更大
+的入口。若历史列表被限流对话框遮蔽，最高优先级固定生存动作是定位唯一“明白了”按钮并
+秒点，随后立即刷新当前同一标签页，再恢复系统聊天名＋marker 巡查；不得先搜索、开新聊天、
+重发提示词或另开标签页。系统聊天名或 marker 本身的重复仍然必须失败关闭。
+
+### 14.5 巡查算法
+
+生产巡查默认每 60 秒一轮。等待本身不占浏览器锁：
+
+```txt
+for each in-flight task:
+  等到本任务下一个巡查时间
+  抢占全局 browser-mutation 短锁
+  在当前物理标签页侧栏查找 exact(systemChatTitle)
+  如果近期侧栏没有，则打开“搜索聊天”并搜索 exact(systemChatTitle)
+  真实点击唯一匹配聊天
+  证明侧栏唯一 systemChatTitle 链接指向当前正式会话路径
+  证明 user turn 中 markerCount == 1
+  找到该 user turn 后面的第一个 assistant turn
+  若仍生成：记录进度并释放短锁
+  若已完成且回答稳定：保存原文、hash、URL和证据并释放短锁
+```
+
+严禁：
+
+- 只按当前页面最后一条 assistant 回答取结果；
+- 只按聊天名取结果而不核对 marker；
+- 只按 marker 搜索全页面而不先切换到指定聊天；
+- 依赖 ChatGPT 自动标题；
+- marker 缺失或重复时继续读取；
+- 巡查等待 60 秒期间占用浏览器操作锁；
+- 因任务并发增加而打开更多物理 ChatGPT 标签页。
+
+### 14.6 失败关闭条件
+
+以下任一情况必须进入 `review_required`，不得猜测：
+
+- 系统聊天名在侧栏或搜索结果中出现多次；
+- 点击聊天后，侧栏唯一系统聊天名链接不指向当前正式会话路径；
+- marker 命中数不是 1；
+- 系统聊天名与持久化正式会话不一致；
+- 重命名菜单、`聊天标题` 输入框或目标聊天链接不唯一；
+- 提交后没有形成正式 `/c/<id>` 会话；
+- 进程恢复时找不到系统重命名聊天；
+- 发现运行时创建了第二个物理 ChatGPT 标签页；
+- 回答仍显示停止生成控件或未达到稳定条件。
+
+### 14.7 当前最终技术结论
+
+```txt
+CHROME_VERIFIED_SINGLE_PHYSICAL_TAB: true
+CHROME_VERIFIED_TWO_RENAMED_CONVERSATIONS: true
+CHROME_VERIFIED_TITLE_PLUS_MARKER_ROUTING: true
+CHROME_VERIFIED_AUTO_TITLE_IS_MUTABLE: true
+```
+
+本轮实证已经把并发的技术本质固定下来：
+
+> GPT 并发发生在不同聊天会话，不发生在 Chrome 标签页。AGENT 只需要一个物理标签页；
+> 每次提交后把聊天重命名为系统唯一名称；之后按聊天名切换，再用提示词 marker 对照 DOM
+> 身份，完成后回传结果。附件、输入、发送、重命名、切换和读取仍必须短时串行，但等待
+> GPT 生成可以有 N 个真实在途任务。
+
+### 14.8 重构代码最终真实 Chrome 验收
+
+最终验收命令：
+
+```sh
+npm run acceptance:ai-input-gateway-web-chat-parallel:real-chrome
+```
+
+验收运行目录：
+
+```txt
+/var/folders/wg/jqx8m72j5t73k7b8stzs_kpc0000gn/T/grasseye-real-chrome-parallel-eX7Nvc
+```
+
+最终结果：
+
+| 证据 | 任务 1 | 任务 2 |
+| --- | --- | --- |
+| 系统聊天名 | `GRASSEYE-c4b8a19d98bd-28309087be46` | `GRASSEYE-96d89b7da418-c580654f14b9` |
+| marker | `GRASSEYE_TURN_21cfc64691d84356aceb28309087be46` | `GRASSEYE_TURN_328817aa390b4bc1981bc580654f14b9` |
+| 正式会话 | `/c/6a6560d7-1418-83eb-a95b-1996a34aca69` | `/c/6a6560bc-e4b0-83eb-94eb-a9e3f122d61f` |
+| 提交完成 | `2026-07-26T01:20:28.232Z` | `2026-07-26T01:20:01.192Z` |
+| 重命名核验 | `2026-07-26T01:20:36.514Z` | `2026-07-26T01:20:10.040Z` |
+| 回答捕获 | `2026-07-26T01:21:42.282Z` | `2026-07-26T01:21:20.281Z` |
+| 终态 | `response_captured` | `response_captured` |
+
+本轮两个任务的提交和重命名都早于第一份回答捕获。ChatGPT 物理标签页计数在验收前后均为
+`2`，没有因两个任务而增加；验收程序复用同一个受控活动标签页完成两个新聊天。两份回答
+分别通过本任务系统聊天名和 marker 双重核验，且都不含对方 marker。
+
+这次验收同时修正了一处时间证据缺陷：正式会话再次核验时不得用“捕获时刻”覆盖原始
+`submittedAt`。提交时间一经建立必须原样保留，否则会把真实并发误报成串行。

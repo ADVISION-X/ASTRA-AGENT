@@ -6,12 +6,12 @@ import type {
   WebChatAttachmentUploadProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
+import { waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
-import { acknowledgePick3RateLimitIfVisible, startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
-import { acknowledgeChatGptRateLimitDialogIfVisible, startChatGptAcknowledgementWatcher } from "./web-chat-rate-limit-dialog.js";
+import { startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
+import { startChatGptAcknowledgementWatcher } from "./web-chat-rate-limit-dialog.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { attachApprovedWebChatFilesOnce } from "../children/attach-approved-web-chat-files-once.js";
 import { assertActiveProviderPage, buildWebChatRawResponse, cleanupGeminiPick3HistoryBeforeNextImage, cleanupProviderWorkspaceAfterResponse, isBlockingGeminiPick3PreImageHistoryCleanupStatus, persistWorkspaceAfterResponse, readActivePageUrl, requireBrowser } from "./web-chat-shared-support.js";
@@ -22,34 +22,16 @@ import {
   recoverPick3NoResultConversation,
   restoreAfterWebChatFeed,
 } from "./web-chat-recovery.js";
+import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
+import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
+import {
+  acknowledgeWebChatRateLimitIfVisible,
+  emitWebChatStage,
+  extractWebChatConversation,
+} from "./web-chat-response-capture.js";
+import { resumeSubmittedWebChatConversation } from "./web-chat-resume.js";
 
-const POLL_INTERVAL_MS = 1500;
-const GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS = 250;
-const STABLE_ROUNDS_REQUIRED = 2;
-const PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000;
 const PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1;
-
-const emitWebChatStage = (input: { request: AiFeedInput; stage: string; status: string; startedAtMs: number | null; refs?: Record<string, unknown> }): void => {
-  if (!isPick3WebChatRequest({ request: input.request })) return;
-  process.stdout.write(`${JSON.stringify({
-    ts: new Date().toISOString(),
-    marker: "[GRASSEYE][AI-GATEWAY][WEB-CHAT]",
-    providerKind: input.request.providerKind,
-    stage: input.stage,
-    status: input.status,
-    ...(input.startedAtMs === null ? {} : { elapsedMs: Date.now() - input.startedAtMs }),
-    refs: {
-      promptPackageId: input.request.promptPackageId,
-      inputRefId: input.request.inputRefs[0]?.id ?? null,
-      ...input.refs,
-    },
-  })}\n`);
-};
-
-const resolveResponseTimeoutMs = (input: { providerUrl: string; request: AiFeedInput }): number =>
-  isPick3WebChatRequest({ request: input.request })
-    ? PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS
-    : input.request.timeoutMs;
 
 const isPick3NoResultTimeoutError = (input: { error: unknown; providerUrl: string; request: AiFeedInput }): boolean =>
   isPick3WebChatRequest({ request: input.request })
@@ -65,20 +47,6 @@ const shouldSkipPreSubmitConversationState = (request: AiFeedInput): boolean =>
   request.providerKind === "gemini-web-chat"
   && isPick3WebChatRequest({ request });
 
-const acknowledgeWebChatRateLimitIfVisible = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-}): Promise<void> => {
-  if (input.request.providerKind === "gpt-web-chat") {
-    await acknowledgeChatGptRateLimitDialogIfVisible({
-      browser: input.browser,
-      context: input.context,
-    });
-    return;
-  }
-  await acknowledgePick3RateLimitIfVisible(input);
-};
 
 const submitWebChatPrompt = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousUserMessageCount: number; attachmentUploadProof: WebChatAttachmentUploadProof }): Promise<void> => {
   await assertActiveProviderPage({
@@ -96,45 +64,6 @@ const submitWebChatPrompt = async (input: { browser: BrowserController; request:
   });
 };
 
-const extractWebChatConversation = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string; previousAssistantCount: number; previousAnswerText: string | null }): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
-  await ensureProviderWorkspaceFocused({
-    request: input.request,
-    context: input.context,
-    providerUrl: input.providerUrl,
-    allowAnyProviderTab: false,
-  });
-  await assertActiveProviderPage({
-    browser: input.browser,
-    providerUrl: input.providerUrl,
-    phase: "response capture",
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-  const responseCaptureStartedAtMs = Date.now();
-  const responsePollIntervalMs = input.request.providerKind === "gemini-web-chat" ? GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
-  emitWebChatStage({ request: input.request, stage: "response_capture", status: "start", startedAtMs: null, refs: { pollIntervalMs: responsePollIntervalMs } });
-  const extracted = await waitForStableAnswer({
-    browser: input.browser,
-    context: input.context,
-    timeoutMs: resolveResponseTimeoutMs(input),
-    pollIntervalMs: responsePollIntervalMs,
-    stableRoundsRequired: input.request.providerKind === "gemini-web-chat" ? 1 : STABLE_ROUNDS_REQUIRED,
-    ...(input.request.providerKind === "gemini-web-chat" ? {} : {
-      minAssistantCount: Math.max(1, input.previousAssistantCount + 1),
-    }),
-    previousAnswerText: input.previousAnswerText,
-    beforePoll: () => acknowledgeWebChatRateLimitIfVisible(input),
-  });
-  emitWebChatStage({ request: input.request, stage: "response_capture", status: extracted.status, startedAtMs: responseCaptureStartedAtMs, refs: {
-    message: extracted.message,
-    rawLen: extracted.answerText?.length ?? 0,
-    generating: extracted.generating ?? null,
-    assistantCount: extracted.assistantCount ?? null,
-  } });
-  return {
-    extracted,
-    answerText: assertExtracted({ extracted, restoredSourcePage: null }),
-  };
-};
 
 const readPreSubmitConversationState = async (input: { browser: BrowserController; request: AiFeedInput; context: AiProviderAdapterContext; providerUrl: string }): Promise<{ previousAssistantCount: number; previousUserMessageCount: number; previousAnswerText: string | null }> => {
   if (shouldSkipPreSubmitConversationState(input.request)) {
@@ -142,6 +71,8 @@ const readPreSubmitConversationState = async (input: { browser: BrowserControlle
     return { previousAssistantCount: 0, previousUserMessageCount: 0, previousAnswerText: null };
   }
   const startedAtMs = Date.now();
+  const preSubmitContext = { ...input.context };
+  delete preSubmitContext.webChatExecution;
   emitWebChatStage({ request: input.request, stage: "pre_submit_snapshot", status: "start", startedAtMs: null });
   await assertActiveProviderPage({
     browser: input.browser,
@@ -151,7 +82,7 @@ const readPreSubmitConversationState = async (input: { browser: BrowserControlle
   });
   const beforeSubmit = await waitForStableAnswer({
     browser: input.browser,
-    context: input.context,
+    context: preSubmitContext,
     timeoutMs: 1_000,
     pollIntervalMs: 250,
     stableRoundsRequired: 1,
@@ -231,6 +162,53 @@ const prepareWebChatConversation = async (
   };
 };
 
+const buildCompletedWebChatResponse = async (input: {
+  opened: OpenedWebChatConversationInput;
+  preSubmit: Awaited<ReturnType<typeof prepareWebChatConversation>>;
+  conversation: Awaited<ReturnType<typeof extractWebChatConversation>>;
+}): Promise<AiProviderRawResponse> => {
+  const finalizedSubmission = input.opened.context.webChatExecution
+    ? await captureWebChatSubmissionProof({
+        browser: input.opened.browser,
+        context: input.opened.context,
+        request: input.opened.request,
+        previousAssistantCount: input.preSubmit.previousAssistantCount,
+        previousUserMessageCount: input.preSubmit.previousUserMessageCount,
+        requireCanonical: true,
+      })
+    : null;
+  if (finalizedSubmission) {
+    await input.opened.context.webChatExecution!.onConversationCanonicalized(finalizedSubmission);
+  }
+  const conversationUrl = finalizedSubmission?.canonicalConversationUrl
+    ?? input.conversation.extracted.pageUrl
+    ?? null;
+  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
+    browser: input.opened.browser,
+    request: input.opened.request,
+    context: input.opened.context,
+    answerText: input.conversation.answerText,
+    conversationUrl,
+  });
+  return buildWebChatRawResponse({
+    request: input.opened.request,
+    runtimeName: input.opened.runtimeName,
+    providerUrl: input.opened.providerUrl,
+    sourcePageUrlBeforeFeed: input.opened.sourcePageUrlBeforeFeed,
+    extracted: conversationUrl
+      ? { ...input.conversation.extracted, pageUrl: conversationUrl }
+      : input.conversation.extracted,
+    answerText: htmlArtifact?.htmlDocument ?? jsonArtifact?.jsonText ?? input.conversation.answerText,
+    uploadedFiles: input.preSubmit.uploadedFiles,
+    attachmentUploadProof: input.preSubmit.attachmentUploadProof,
+    outputRefs: [
+      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
+      ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
+    ],
+    managedParallelExecution: Boolean(input.opened.context.webChatExecution),
+  });
+};
+
 const executeWebChatConversation = async (
   input: OpenedWebChatConversationInput,
 ): Promise<AiProviderRawResponse> => {
@@ -244,6 +222,26 @@ const executeWebChatConversation = async (
     previousUserMessageCount: preSubmit.previousUserMessageCount,
     attachmentUploadProof: preSubmit.attachmentUploadProof,
   });
+  if (input.context.webChatExecution) {
+    const capturedSubmission = await captureWebChatSubmissionProof({
+      browser: input.browser,
+      context: input.context,
+      request: input.request,
+      previousAssistantCount: preSubmit.previousAssistantCount,
+      previousUserMessageCount: preSubmit.previousUserMessageCount,
+      requireCanonical: input.request.providerKind === "gpt-web-chat",
+    });
+    const submission = await renameSubmittedChatGptConversation({
+      browser: input.browser,
+      context: input.context,
+      submission: capturedSubmission,
+    });
+    await input.context.webChatExecution.onSubmitted({
+      submission,
+      uploadedFiles: preSubmit.uploadedFiles,
+      attachmentUploadProof: preSubmit.attachmentUploadProof,
+    });
+  }
   const conversation = await extractWebChatConversation({
     browser: input.browser,
     request: input.request,
@@ -252,28 +250,7 @@ const executeWebChatConversation = async (
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
-  const conversationUrl = conversation.extracted.pageUrl ?? null;
-  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    answerText: conversation.answerText,
-    conversationUrl,
-  });
-  return buildWebChatRawResponse({
-    request: input.request,
-    runtimeName: input.runtimeName,
-    providerUrl: input.providerUrl,
-    sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
-    extracted: conversation.extracted,
-    answerText: htmlArtifact?.htmlDocument ?? jsonArtifact?.jsonText ?? conversation.answerText,
-    uploadedFiles: preSubmit.uploadedFiles,
-    attachmentUploadProof: preSubmit.attachmentUploadProof,
-    outputRefs: [
-      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
-      ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
-    ],
-  });
+  return buildCompletedWebChatResponse({ opened: input, preSubmit, conversation });
 };
 
 const executeOpenedWebChatAdapter = async (input: {
@@ -336,7 +313,15 @@ export const runWebChatAdapter = async (input: {
   runtimeName: string;
 }): Promise<AiProviderRawResponse> => {
   const browser = requireBrowser(input.context);
-  const sourcePageUrlBeforeFeed = await readActivePageUrl(browser);
+  if (input.context.webChatExecution?.resumeSubmission) {
+    return resumeSubmittedWebChatConversation({
+      ...input,
+      browser,
+    });
+  }
+  const sourcePageUrlBeforeFeed = input.context.webChatExecution
+    ? null
+    : await readActivePageUrl(browser);
   let response: AiProviderRawResponse | null = null;
   await openProviderPage({
     browser,

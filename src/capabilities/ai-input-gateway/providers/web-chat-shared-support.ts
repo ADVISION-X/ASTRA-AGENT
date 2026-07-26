@@ -131,9 +131,12 @@ export const buildWebChatRawResponse = (input: {
   uploadedFiles?: AiProviderUploadedFileProof[];
   attachmentUploadProof?: WebChatAttachmentUploadProof;
   outputRefs?: string[];
+  managedParallelExecution?: boolean;
 }): AiProviderRawResponse => ({
   webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
-  providerTabPolicy: resolveWebChatWorkspaceId(input.request)
+  providerTabPolicy: input.managedParallelExecution
+    ? "single-controlled-tab-named-chat-polling"
+    : resolveWebChatWorkspaceId(input.request)
     ? "reuse-single-provider-workspace-tab"
     : "provider-default-tab-policy",
   providerRecoveryAttemptCount: null,
@@ -223,6 +226,11 @@ export const cleanupProviderWorkspaceAfterResponse = async (input: {
   context: AiProviderAdapterContext;
   response: AiProviderRawResponse;
 }): Promise<void> => {
+  if (input.context.webChatExecution) {
+    input.response.staleConversationHistoryCleanupStatus = "not_needed_named_conversation_retained";
+    input.response.staleConversationCleanupStatus = "not_needed_single_controlled_tab";
+    return;
+  }
   const workspaceId = resolveWebChatWorkspaceId(input.request);
   if (!workspaceId) return;
   if (

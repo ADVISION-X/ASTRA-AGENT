@@ -42,6 +42,36 @@ export type WebChatAttachmentUploadProof = {
   reviewRequiredReason: string | null;
 };
 
+export type WebChatSubmissionProof = {
+  transientConversationUrl: string;
+  canonicalConversationUrl: string | null;
+  systemChatTitle: string | null;
+  observedAutoChatTitle: string | null;
+  chatTitleVerifiedAt: string | null;
+  userTurnId: string;
+  previousAssistantCount: number;
+  previousUserMessageCount: number;
+  submittedAt: string;
+};
+
+export type WebChatExecutionContext = {
+  executionId: string;
+  attemptId: string;
+  providerKind: "gpt-web-chat" | "gemini-web-chat";
+  systemChatTitle: string | null;
+  turnMarker: string;
+  submittedPromptHash: string;
+  resumeSubmission: WebChatSubmissionProof | null;
+  resumeUploadedFiles: AiProviderUploadedFileProof[];
+  resumeAttachmentUploadProof: WebChatAttachmentUploadProof | null;
+  onSubmitted(input: {
+    submission: WebChatSubmissionProof;
+    uploadedFiles: AiProviderUploadedFileProof[];
+    attachmentUploadProof: WebChatAttachmentUploadProof;
+  }): Promise<void>;
+  onConversationCanonicalized(submission: WebChatSubmissionProof): Promise<void>;
+};
+
 export type AiProviderRawResponse = {
   rawText: string;
   modelName: string | null;
@@ -73,6 +103,7 @@ export type AiProviderAdapterContext = {
   runtimeLogger?: RuntimeLogger;
   abortSignal?: AbortSignal;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
+  webChatExecution?: WebChatExecutionContext;
 };
 
 export interface AiProviderAdapter {

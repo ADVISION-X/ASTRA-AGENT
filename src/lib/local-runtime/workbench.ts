@@ -63,6 +63,7 @@ import {
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
 import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
 import {
+  continueInterruptedXuanyuanTasks,
   getLatestXuanyuanTask,
   getXuanyuanTaskStatus,
   listXuanyuanHistory,
@@ -488,6 +489,7 @@ export class GrassEyeWorkbench {
       aiInputGateway: this.assembly.aiInputGateway,
       runtimeLogger: this.assembly.runtimeLogger,
     });
+    await continueInterruptedXuanyuanTasks({ dataDir: this.assembly.dataDir, aiInputGateway: this.assembly.aiInputGateway });
   }
 
   createHandle(): GrassEyeWorkbenchHandle {

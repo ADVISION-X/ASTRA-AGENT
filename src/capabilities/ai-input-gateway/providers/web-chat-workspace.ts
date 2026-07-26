@@ -190,6 +190,11 @@ export const ensureProviderWorkspaceFocused = async (input: {
   providerUrl: string;
   allowAnyProviderTab?: boolean;
 }): Promise<void> => {
+  if (input.context.webChatExecution) {
+    // The managed browser routes the one physical provider tab by exact
+    // system-renamed conversation title and then verifies the prompt marker.
+    return;
+  }
   const workspaceId = resolveWebChatWorkspaceId(input.request);
   if (!workspaceId) return;
   const savedUrl = readSavedWorkspaceUrl({

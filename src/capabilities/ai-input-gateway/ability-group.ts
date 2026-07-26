@@ -45,12 +45,14 @@ const executeGeminiWebChat = (
   browser: BrowserController | undefined,
   request: AiFeedInput,
   signal: AbortSignal | undefined,
+  executionId: string | undefined,
   onAttachmentUploadCompleted: AiInputGatewayExecuteOptions["onAttachmentUploadCompleted"],
 ): Promise<AiFeedResult> => feedGeminiWebChatOnce({
     request,
     dataDir: context.dataDir,
     ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
+    ...(executionId ? { executionId } : {}),
     ...(onAttachmentUploadCompleted ? { onAttachmentUploadCompleted } : {}),
     ...(browser ? { browser } : {}),
     ...(context.adapters?.["gemini-web-chat"] ? { adapter: context.adapters["gemini-web-chat"] } : {}),
@@ -61,12 +63,14 @@ const executeGptWebChat = (
   browser: BrowserController | undefined,
   request: AiFeedInput,
   signal: AbortSignal | undefined,
+  executionId: string | undefined,
   onAttachmentUploadCompleted: AiInputGatewayExecuteOptions["onAttachmentUploadCompleted"],
 ): Promise<AiFeedResult> => feedGptWebChatOnce({
     request,
     dataDir: context.dataDir,
     ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
     ...(signal ? { signal } : {}),
+    ...(executionId ? { executionId } : {}),
     ...(onAttachmentUploadCompleted ? { onAttachmentUploadCompleted } : {}),
     ...(browser ? { browser } : {}),
     ...(context.adapters?.["gpt-web-chat"] ? { adapter: context.adapters["gpt-web-chat"] } : {}),
@@ -77,6 +81,7 @@ const executeParsedRequest = (
   browser: BrowserController | undefined,
   request: AiFeedInput,
   signal: AbortSignal | undefined,
+  executionId: string | undefined,
   onAttachmentUploadCompleted: AiInputGatewayExecuteOptions["onAttachmentUploadCompleted"],
 ): Promise<AiFeedResult> => {
   const childCapabilityId = childForProvider(request);
@@ -87,10 +92,18 @@ const executeParsedRequest = (
       browser,
       request,
       signal,
+      executionId,
       onAttachmentUploadCompleted,
     );
   }
-  return executeGptWebChat(context, browser, request, signal, onAttachmentUploadCompleted);
+  return executeGptWebChat(
+    context,
+    browser,
+    request,
+    signal,
+    executionId,
+    onAttachmentUploadCompleted,
+  );
 };
 
 export const createAiInputGatewayAbilityGroup = (
@@ -110,6 +123,7 @@ export const createAiInputGatewayAbilityGroup = (
       browser,
       request,
       options?.signal,
+      options?.executionId,
       options?.onAttachmentUploadCompleted,
     );
   },

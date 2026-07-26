@@ -17,6 +17,7 @@ export type AiInputGatewayExecutionContext = {
 
 export type AiInputGatewayExecuteOptions = {
   signal?: AbortSignal;
+  executionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
 };
 

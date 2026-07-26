@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-25T16:22:03.543Z",
+  "generatedAt": "2026-07-26T01:56:34.547Z",
   "status": "PASS",
-  "scannedFiles": 479,
+  "scannedFiles": 489,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -79,6 +79,8 @@
     "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
@@ -89,6 +91,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
@@ -107,6 +110,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
@@ -114,6 +119,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
@@ -123,7 +129,11 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -501,7 +511,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 479,
+    "scannedFiles": 489,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -512,7 +522,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 474,
+      "scannedFiles": 484,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -521,13 +531,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 371
+      "scannedFiles": 381
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 367,
+      "scannedFiles": 377,
       "metrics": {
         "emitCallCount": 41
       }
@@ -536,13 +546,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 367
+      "scannedFiles": 377
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 372,
+      "scannedFiles": 382,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -557,7 +567,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 372,
+      "scannedFiles": 382,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -578,7 +588,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 62
+      "scannedFiles": 72
     },
     {
       "name": "browser-action-log-contract",

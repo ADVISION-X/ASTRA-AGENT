@@ -104,6 +104,23 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+        "clauseId": "apex-ai-input-gateway-005-requirement",
+        "checkIds": [
+          "ai-input-gateway/authority-present",
+          "ai-input-gateway/bounded-parallel-runtime",
+          "ai-input-gateway/parallel-acceptance",
+          "ai-input-gateway/removed-old-region",
+          "ai-input-gateway/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },
@@ -116,6 +133,7 @@
         "## Staging Flow",
         "## DOM Inclusion And Exclusion",
         "## Success Gate",
+        "## Bounded Parallel Web Chat",
         "## Acceptance"
       ]
     }

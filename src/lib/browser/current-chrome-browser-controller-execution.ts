@@ -62,24 +62,13 @@ const buildControlledTabEvaluationScript = (javascript: string, controlledUrl: s
 const chrome = Application("Google Chrome");
 const windows = chrome.windows();
 const targetOrigin = ${JSON.stringify(origin)};
-let targetWindow = null;
-let targetTab = null;
-let targetTabIndex = -1;
-for (let windowIndex = 0; windowIndex < windows.length && targetTab === null; windowIndex += 1) {
-  const candidateTabs = windows[windowIndex].tabs();
-  for (let tabIndex = 0; tabIndex < candidateTabs.length; tabIndex += 1) {
-    const candidateUrl = String(candidateTabs[tabIndex].url() || "");
-    if (candidateUrl === targetOrigin || candidateUrl.startsWith(targetOrigin + "/")) {
-      targetWindow = windows[windowIndex];
-      targetTab = candidateTabs[tabIndex];
-      targetTabIndex = tabIndex + 1;
-      break;
-    }
-  }
+if (windows.length === 0) throw new Error("controlled Chrome window is not available");
+const targetWindow = windows[0];
+const targetTab = targetWindow.activeTab();
+const candidateUrl = String(targetTab.url() || "");
+if (!(candidateUrl === targetOrigin || candidateUrl.startsWith(targetOrigin + "/"))) {
+  throw new Error("controlled Chrome tab is not active");
 }
-if (targetTab === null || targetWindow === null) throw new Error("controlled Chrome tab is not available");
-targetWindow.activeTabIndex = targetTabIndex;
-targetWindow.index = 1;
 chrome.activate();
 const result = targetTab.execute({ javascript: ${JSON.stringify(javascript)} });
 result;`;

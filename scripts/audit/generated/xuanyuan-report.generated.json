@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-07-25T16:22:08.459Z",
+  "generatedAt": "2026-07-26T01:56:38.724Z",
   "capabilityDomain": "xuanyuan",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-XUANYUAN-001-V1"
+    "GRASSEYE-XUANYUAN-001-V1",
+    "GRASSEYE-XUANYUAN-002-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -26,6 +27,26 @@
     {
       "lawId": "GRASSEYE-XUANYUAN-001-V1",
       "clauseId": "grasseye-xuanyuan-001-requirement",
+      "checkId": "xuanyuan/package-script"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "clauseId": "grasseye-xuanyuan-002-requirement",
+      "checkId": "xuanyuan/ast-contract"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "clauseId": "grasseye-xuanyuan-002-requirement",
+      "checkId": "xuanyuan/file-present"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "clauseId": "grasseye-xuanyuan-002-requirement",
+      "checkId": "xuanyuan/forbidden-provider-import"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "clauseId": "grasseye-xuanyuan-002-requirement",
       "checkId": "xuanyuan/package-script"
     }
   ],

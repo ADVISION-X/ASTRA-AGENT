@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-25T16:21:23.610Z",
+  "generatedAt": "2026-07-26T01:55:58.597Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -10,7 +10,8 @@
         "APEX-AI-INPUT-GATEWAY-001-V1",
         "APEX-AI-INPUT-GATEWAY-002-V1",
         "APEX-AI-INPUT-GATEWAY-003-V1",
-        "APEX-AI-INPUT-GATEWAY-004-V1"
+        "APEX-AI-INPUT-GATEWAY-004-V1",
+        "APEX-AI-INPUT-GATEWAY-005-V1"
       ],
       "bindings": [
         {
@@ -116,6 +117,24 @@
             }
           ],
           "evidenceMode": "real-chrome"
+        },
+        {
+          "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+          "clauseId": "apex-ai-input-gateway-005-requirement",
+          "checkIds": [
+            "ai-input-gateway/authority-present",
+            "ai-input-gateway/bounded-parallel-runtime",
+            "ai-input-gateway/parallel-acceptance",
+            "ai-input-gateway/removed-old-region",
+            "ai-input-gateway/source-present"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "real-chrome"
         }
       ],
       "blueprintRefs": [
@@ -127,6 +146,7 @@
             "## Staging Flow",
             "## DOM Inclusion And Exclusion",
             "## Success Gate",
+            "## Bounded Parallel Web Chat",
             "## Acceptance"
           ]
         }
@@ -13849,12 +13869,30 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-XUANYUAN-001-V1"
+        "GRASSEYE-XUANYUAN-001-V1",
+        "GRASSEYE-XUANYUAN-002-V1"
       ],
       "bindings": [
         {
           "lawId": "GRASSEYE-XUANYUAN-001-V1",
           "clauseId": "grasseye-xuanyuan-001-requirement",
+          "checkIds": [
+            "xuanyuan/ast-contract",
+            "xuanyuan/file-present",
+            "xuanyuan/forbidden-provider-import",
+            "xuanyuan/package-script"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "acceptance"
+        },
+        {
+          "lawId": "GRASSEYE-XUANYUAN-002-V1",
+          "clauseId": "grasseye-xuanyuan-002-requirement",
           "checkIds": [
             "xuanyuan/ast-contract",
             "xuanyuan/file-present",

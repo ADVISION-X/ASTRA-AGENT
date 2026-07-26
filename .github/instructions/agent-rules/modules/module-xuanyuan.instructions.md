@@ -6,7 +6,7 @@ applyTo: "src/plugins/xuanyuan/**/*.ts,src/app/workbench-xuanyuan-routes.ts,src/
 # GrassEye Xuanyuan API Simulation Law
 
 status: active
-version: 2026-07-03
+version: 2026-07-26
 capabilityDomain: xuanyuan
 
 Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation endpoint used by external websites before real API-key provider switching.
@@ -29,6 +29,9 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
 - The route surface must expose only known xuanyuan routes: `POST /api/xuanyuan/simulate`, `GET /api/xuanyuan/status`, `GET /api/xuanyuan/latest`, and `GET /api/xuanyuan/history`.
 - Switching to a future real API-key provider must happen behind AI Input Gateway without changing the website-side request/result contract.
 - Once AI Input Gateway captures a complete provider response, Xuanyuan must return `response_captured` with the exact raw text regardless of parsing, schema, tab-close, source-restore, focus, or cleanup outcomes.
+- Accepted tasks must enter one durable fair queue. Xuanyuan workers may run multiple independent tasks concurrently up to AI Input Gateway's actual capacity, while callers remain unaware of browser concurrency details.
+- Process restart must reclaim queued work and exact submitted in-flight work. A submitted task may resume response polling only through the persisted AI Input Gateway system-chat-title plus turn-marker identity; it must never submit the prompt again.
+- Queue and progress states must distinguish waiting for runtime capacity, waiting for the serialized single-tab action slot, submitted provider work, and captured response without exposing internal chat title, tab or marker identity.
 
 ## Forbidden
 
@@ -76,6 +79,38 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
     {
       "clauseId": "grasseye-xuanyuan-001-requirement",
       "statement": "Xuanyuan must be the single governed AI API simulation owner for external websites, entering through Workbench API Boundary and calling AI Input Gateway without provider direct calls or website-held provider keys.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "xuanyuan"
+    }
+  ]
+}
+```
+
+```apex-law
+{
+  "lawId": "GRASSEYE-XUANYUAN-002-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "xuanyuan",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+acceptance+audit",
+  "summary": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+  "required": [
+    "HTTP start persists accepted work before returning 202 and never depends on an untracked fire-and-forget promise.",
+    "A single queue owner claims persisted work with lease and heartbeat semantics, runs independent tasks concurrently up to gateway capacity, and leaves overflow queued.",
+    "Restart recovery resumes queued tasks and exact submitted gateway attempts without duplicating prompts.",
+    "Public task progress exposes stable queue and provider-wait states but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
+  ],
+  "forbidden": [
+    "void fire-and-forget execution as task durability",
+    "caller-controlled concurrency or browser identity",
+    "duplicate submit on restart",
+    "second queue owner, compatibility queue, shadow executor or legacy serial mode"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-xuanyuan-002-requirement",
+      "statement": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
       "evidenceMode": "acceptance",
       "ownerDomain": "xuanyuan"
     }

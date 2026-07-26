@@ -1368,24 +1368,23 @@ Handling:
   after the ChatGPT provider workspace opens, start startPick3RateLimitDialogWatcher on the same BrowserController
   keep the watcher active until the web-chat feed exits
   immediately click 明白了 / OK / Got it through BrowserController native click
-  verify the rate-limit dialog disappeared after the click
+  immediately refresh the current conversation in the same physical tab
   emit terminal stdout line for ack result
   continue the existing web-chat loop that was interrupted by the dialog
-  do not refresh
-  do not reopen the provider page
+  do not open another physical tab
   do not open a new chat
   do not restart the task
   do not resend the image or prompt
-  do not create a second route inside the acknowledgement helper
+  do not create a second recovery route
 
 Terminal stdout format:
-  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=immediate_acknowledgement_result totalWaitSec=0 elapsedSec=0 remainingSec=0 recoveryAction=pick3_rate_limit_immediate_acknowledgement_completed — ackStatus=rate_limit_ack_clicked_and_dialog_closed
+  [GRASSEYE][PICK3][RATE_LIMIT] mission=<missionKey> imageId=<imageId> promptPackageId=<promptPackageId> attempt=N phase=immediate_acknowledgement_result totalWaitSec=0 elapsedSec=0 remainingSec=0 recoveryAction=pick3_rate_limit_immediate_acknowledgement_completed — ackStatus=rate_limit_ack_clicked_and_same_tab_refreshed
 
 Immediate acknowledgement rule:
-  first rate-limit occurrence:  click acknowledgement immediately
-  second rate-limit occurrence: click acknowledgement immediately
-  third rate-limit occurrence:  click acknowledgement immediately
-  every later visible occurrence: click acknowledgement immediately
+  first rate-limit occurrence:  click acknowledgement and refresh same tab immediately
+  second rate-limit occurrence: repeat the same sequence immediately
+  third rate-limit occurrence:  repeat the same sequence immediately
+  every later visible occurrence: repeat the same sequence immediately
 
 The schedule must not wait before clicking the acknowledgement.
 After each verified acknowledgement, the current web-chat loop must continue.
@@ -1395,7 +1394,7 @@ Runtime logs and terminal stdout must include imageId, promptPackageId, missionK
 After each detected rate-limit dialog:
   RECOVERY_STARTED reason=pick3_rate_limit_immediate_acknowledgement_started
   click the rate-limit acknowledgement
-  verify the dialog is closed
+  refresh the current conversation in the same physical tab
   RECOVERY_COMPLETED / RECOVERY_FAILED reason=pick3_rate_limit_immediate_acknowledgement_completed|failed
 
 The following waits must call the visible-dialog acknowledgement guard before each poll:
@@ -1415,7 +1414,7 @@ The lifecycle watcher covers the gaps between those waits:
   any other in-feed pause while the ChatGPT workspace tab is active
 
 Forbidden rate-limit side effects:
-  no openProviderPage because of the rate-limit dialog
+  no additional physical ChatGPT tab because of the rate-limit dialog
   no new ChatGPT conversation because of the rate-limit dialog
   no same-payload resend because of the rate-limit dialog
   no providerRecoveryStatus that claims rate-limit resend recovery

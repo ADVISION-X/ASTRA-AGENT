@@ -10,6 +10,17 @@ const PROVIDER_HOSTS = new Set(["chatgpt.com", "gemini.google.com"]);
 const escapeAppleScriptText = (value: string): string =>
   value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
+export const copyTextToMacClipboard = async (
+  text: string,
+  abortSignal?: AbortSignal,
+): Promise<void> => {
+  const script = `set the clipboard to "${escapeAppleScriptText(text)}"`;
+  await execFileAsync("osascript", ["-e", script], {
+    signal: abortSignal,
+    timeout: APPLESCRIPT_TIMEOUT_MS,
+  });
+};
+
 export const copyFileObjectToMacClipboard = async (
   filePath: string,
   abortSignal?: AbortSignal,

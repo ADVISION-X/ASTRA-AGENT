@@ -22,8 +22,21 @@ const composerScriptsPath = "src/capabilities/ai-input-gateway/providers/web-cha
 const browserContractPath = "src/lib/browser/browser-controller.ts";
 const nativePrimitivePath = "src/lib/browser/current-chrome-native-multi-file-picker.ts";
 const acceptancePath = "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts";
+const concurrencyLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts";
+const executionStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
+const singleTabBrowserPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts";
+const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
+const managedExecutionPath = "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts";
+const turnIdentityPath = "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts";
+const chatTitlePath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts";
+const responseCapturePath = "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts";
+const resumePath = "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts";
+const concurrencyAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts";
+const realChromeParallelAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts";
 const removedUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
 const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts";
+const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
+const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
 const governedPaths = [
   schemaPath,
@@ -38,6 +51,17 @@ const governedPaths = [
   browserContractPath,
   nativePrimitivePath,
   acceptancePath,
+  concurrencyLeasePath,
+  executionStatePath,
+  singleTabBrowserPath,
+  feedProviderPath,
+  managedExecutionPath,
+  turnIdentityPath,
+  chatTitlePath,
+  responseCapturePath,
+  resumePath,
+  concurrencyAcceptancePath,
+  realChromeParallelAcceptancePath,
 ] as const;
 
 const pushFinding = (
@@ -190,17 +214,137 @@ const inspectRemovedRegion = (
   findings: Finding[],
   lawId: string,
 ): void => {
-  for (const removedPath of [removedUploadPath, removedAcceptancePath]) {
+  for (const removedPath of [
+    removedUploadPath,
+    removedAcceptancePath,
+    removedSerialLeasePath,
+    removedSerialAcceptancePath,
+  ]) {
     if (existsSync(resolveFromRepo(removedPath))) {
       pushFinding(findings, lawId, removedPath, "ai-input-gateway/removed-old-region", `${removedPath} must remain deleted.`);
     }
   }
 };
 
+const requireParallelSources = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): SourceFile[] | null => {
+  const sources = [
+    concurrencyLeasePath,
+    executionStatePath,
+    singleTabBrowserPath,
+    feedProviderPath,
+    managedExecutionPath,
+    turnIdentityPath,
+    concurrencyAcceptancePath,
+    realChromeParallelAcceptancePath,
+    chatTitlePath,
+  ].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+  return sources.every((source): source is SourceFile => source !== null) ? sources : null;
+};
+
+const inspectParallelIdentifiers = (
+  sources: readonly SourceFile[],
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
+  for (const required of [
+    "resolveWebChatMaxInFlight",
+    "acquireWebChatCapacityLease",
+    "acquireWebChatBrowserMutationLease",
+    "startOrResumeWebChatExecution",
+    "createSingleTabWebChatBrowser",
+    "renameSubmittedChatGptConversation",
+    "captureWebChatSubmissionProof",
+    "turnMarker",
+    "systemChatTitle",
+    "executionId",
+    "capacitySlot",
+  ]) {
+    if (!allIdentifiers.has(required)) {
+      pushFinding(
+        findings,
+        lawId,
+        concurrencyLeasePath,
+        "ai-input-gateway/bounded-parallel-runtime",
+        `Bounded parallel web-chat runtime must contain ${required}.`,
+      );
+    }
+  }
+};
+
+const inspectParallelAcceptanceProof = (
+  acceptance: SourceFile,
+  realChromeAcceptance: SourceFile,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const acceptanceIdentifiers = identifiers(acceptance);
+  const acceptanceStrings = stringLiterals(acceptance);
+  const acceptanceNumbers = new Set(
+    acceptance.getDescendantsOfKind(SyntaxKind.NumericLiteral).map((node) => node.getLiteralValue()),
+  );
+  const acceptanceProofs = [
+    { label: "ten in-flight workers", present: acceptanceNumbers.has(10) },
+    { label: "N+1 waiting marker", present: acceptanceStrings.has("entered-11") },
+    { label: "single browser mutation lane", present: acceptanceIdentifiers.has("secondMutationEntered") },
+    { label: "configurable capacity", present: acceptanceIdentifiers.has("WEB_CHAT_MAX_IN_FLIGHT") },
+  ];
+  for (const proof of acceptanceProofs) {
+    if (!proof.present) {
+      pushFinding(
+        findings,
+        lawId,
+        concurrencyAcceptancePath,
+        "ai-input-gateway/parallel-acceptance",
+        `Concurrency acceptance must prove ${proof.label}.`,
+      );
+    }
+  }
+  const realChromeIdentifiers = identifiers(realChromeAcceptance);
+  const realChromeStrings = stringLiterals(realChromeAcceptance);
+  const realChromeProofs = [
+    {
+      label: "both submissions precede the first captured response",
+      present: realChromeStrings.has("both exact marked turns must be submitted before the first response is captured"),
+    },
+    { label: "canonical conversation identity", present: realChromeIdentifiers.has("canonicalConversationUrl") },
+    { label: "turn marker isolation", present: realChromeIdentifiers.has("turnMarker") },
+    { label: "system chat title identity", present: realChromeIdentifiers.has("systemChatTitle") },
+    { label: "single physical ChatGPT tab count", present: realChromeIdentifiers.has("chatGptTabCountAfter") },
+  ];
+  for (const proof of realChromeProofs) {
+    if (!proof.present) {
+      pushFinding(
+        findings,
+        lawId,
+        realChromeParallelAcceptancePath,
+        "ai-input-gateway/parallel-acceptance",
+        `Real Chrome concurrency acceptance must prove ${proof.label}.`,
+      );
+    }
+  }
+};
+
+const inspectBoundedParallelExecution = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const sources = requireParallelSources(context, findings, lawId);
+  if (!sources) return;
+  inspectParallelIdentifiers(sources, findings, lawId);
+  inspectParallelAcceptanceProof(sources[6]!, sources[7]!, findings, lawId);
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-004-V1");
+  const parallelLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-005-V1");
   const findings: Finding[] = [];
   for (const authorityPath of [lawPath, blueprintPath]) {
     if (!existsSync(resolveFromRepo(authorityPath))) {
@@ -214,6 +358,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAttachmentChild(context, findings, routingLawId, proofLawId);
   inspectNativePrimitive(context, findings, routingLawId);
   inspectRemovedRegion(findings, routingLawId);
+  inspectBoundedParallelExecution(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

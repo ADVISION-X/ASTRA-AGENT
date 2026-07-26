@@ -391,3 +391,88 @@ return {
   conversationTurnIds,
 };
 `;
+
+const MARKER_SCOPED_CHATGPT_RESPONSE_SCRIPT = `
+const extractText = (node) => (node instanceof HTMLElement ? node.innerText : node?.textContent || "")
+  .replace(/\\s+/gu, " ")
+  .trim();
+const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
+const matchingUserTurns = turns.filter((turn) => {
+  const user = turn.querySelector("[data-message-author-role='user']");
+  return user instanceof Element && extractText(user).includes(marker);
+});
+const conversationTurnIds = turns
+  .map((turn) => turn.getAttribute("data-testid"))
+  .filter((value) => typeof value === "string" && value.length > 0);
+if (matchingUserTurns.length > 1) {
+  return {
+    status: "review_required",
+    message: "WEB_CHAT_TURN_MARKER_AMBIGUOUS",
+    answerText: null,
+    pageUrl: location.href,
+    generating: false,
+    assistantCount: 0,
+    userMessageCount: matchingUserTurns.length,
+    conversationTurnIds,
+  };
+}
+if (matchingUserTurns.length === 0) {
+  return {
+    status: "pending",
+    message: "waiting for the exact internally marked user turn",
+    answerText: null,
+    pageUrl: location.href,
+    generating: true,
+    assistantCount: 0,
+    userMessageCount: 0,
+    conversationTurnIds,
+  };
+}
+const userTurnIndex = turns.indexOf(matchingUserTurns[0]);
+const followingTurns = turns.slice(userTurnIndex + 1);
+const assistantTurn = followingTurns.find((turn) =>
+  turn.querySelector("[data-message-author-role='assistant']") instanceof Element
+);
+const assistantNode = assistantTurn?.querySelector("[data-message-author-role='assistant']") || null;
+const answerText = assistantNode ? extractText(assistantNode) : "";
+${WEB_CHAT_GENERATION_STATE_SCRIPT}
+const completionAction = assistantTurn
+  ? Array.from(assistantTurn.querySelectorAll("button")).find((button) => {
+      const label = extractText(button.getAttribute("aria-label") || button.textContent || "");
+      return button.getAttribute("data-testid") === "copy-turn-action-button"
+        || /copy response|copy answer|复制回复|复制回答/i.test(label);
+    })
+  : null;
+const exactTurnGenerating = generating || !(completionAction instanceof HTMLElement && isVisible(completionAction));
+const assistantCount = assistantNode ? 1 : 0;
+if (!answerText) {
+  return {
+    status: "pending",
+    message: exactTurnGenerating
+      ? "exact marked turn is still generating"
+      : "assistant response after exact marked turn not found yet",
+    answerText: null,
+    pageUrl: location.href,
+    generating: exactTurnGenerating,
+    assistantCount,
+    userMessageCount: 1,
+    conversationTurnIds,
+  };
+}
+return {
+  status: "success",
+  message: "answer extracted from assistant turn following exact internal marker",
+  answerText,
+  pageUrl: location.href,
+  generating: exactTurnGenerating,
+  assistantCount,
+  userMessageCount: 1,
+  conversationTurnIds,
+};
+`;
+
+export const buildMarkerScopedChatGptResponseScript = (turnMarker: string): string => `
+${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
+const marker = ${JSON.stringify(turnMarker)};
+${MARKER_SCOPED_CHATGPT_RESPONSE_SCRIPT}
+`;

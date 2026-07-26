@@ -15,18 +15,15 @@ import {
 
 const PROVIDER_COMPOSER_READY_TIMEOUT_MS = 60_000;
 const AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX = "amazon-product-mining-" as const;
-
 const PROVIDER_COMPOSER_READY_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const composer = resolveComposerInput();
 return {status: composer ? "success" : "pending", message: composer ? "provider composer ready" : "provider composer pending", pageUrl: location.href};
 `;
-
 const isChromeAppleEventsJavaScriptDisabled = (message: string): boolean =>
   (message.includes("AppleScript") && message.includes("JavaScript") && message.includes("关闭"))
   || message.includes("Allow JavaScript from Apple Events")
   || message.includes("允许 Apple 事件中的 JavaScript");
-
 const emitWebChatOpenStage = (input: {
   request: AiFeedInput;
   stage: string;
@@ -49,7 +46,6 @@ const emitWebChatOpenStage = (input: {
     },
   })}\n`);
 };
-
 const CHATGPT_NEW_CHAT_SCRIPT = `
 const candidates = Array.from(document.querySelectorAll('a,button,[role="link"],[role="button"]'));
 const target = candidates.find((element) => {
@@ -118,10 +114,9 @@ const resolveProviderReusePolicy = (input: {
   request: AiFeedInput;
   workspaceId: string | null;
 }): "reuse-exact-url" | "open-new-tab" | "reuse-host-tab" =>
-  // All provider workspaces stay in one host tab. Fresh GPT conversations are
-  // created in-place by startFreshChatGptConversation; opening a tab per run
-  // causes uncontrolled Chrome tab growth and leaves stale provider pages.
-  "reuse-host-tab";
+  input.request.providerContinuationRef
+    ? "reuse-exact-url"
+    : "reuse-host-tab";
 
 const waitForProviderComposer = async (input: {
   browser: BrowserController;
@@ -377,6 +372,9 @@ const focusExistingProviderWorkspace = async (input: {
   workspaceId: string | null;
   savedUrl: string | null;
 }): Promise<boolean> => {
+  if (input.context.webChatExecution) {
+    return false;
+  }
   if (!input.workspaceId) {
     return false;
   }
@@ -446,7 +444,9 @@ export const openProviderPage = async (input: {
     });
     return;
   }
-  const { workspaceId, savedUrl } = resolveWorkspaceState(input);
+  const workspaceState = resolveWorkspaceState(input);
+  const workspaceId = workspaceState.workspaceId;
+  const savedUrl = input.context.webChatExecution ? null : workspaceState.savedUrl;
   const reusePolicy = resolveProviderReusePolicy({
     providerUrl: input.providerUrl,
     request: input.request,

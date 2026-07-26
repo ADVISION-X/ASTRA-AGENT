@@ -1,6 +1,6 @@
 # GrassEye Xuanyuan API 临时实现施工图
 
-version: 2026-07-03
+version: 2026-07-26
 status: construction-blueprint
 targetLaw: `.github/instructions/agent-rules/modules/module-xuanyuan.instructions.md`
 capabilityDomain: `xuanyuan`
@@ -51,6 +51,25 @@ External Website / xuanxue-web
                                   -> raw output + provider proof
                                       -> xuanyuan task record
 ```
+
+Xuanyuan start 只负责校验并持久化 `accepted` 任务，然后返回 202。唯一持久化队列 owner
+以 lease/heartbeat 领取任务，并发数量服从 AI Input Gateway 的实际容量；没有第二执行器，
+也没有进程内 `void Promise` 作为任务真相。
+
+```txt
+accepted
+→ queued
+→ waiting_for_gateway_capacity
+→ waiting_for_provider_submit
+→ waiting_for_provider_response
+→ response_captured
+
+terminal: review_required | failed | cancelled
+```
+
+重启扫描 queued 与非终态任务。尚未提交的任务可以继续领取；已经提交的任务只允许携带
+内部 gateway execution id 恢复持久化系统聊天名与 turn marker，在同一个物理 ChatGPT
+标签页中点击对应聊天、核对 marker 并继续轮询，不得重新调用发送阶段。
 
 续聊仍走同一条链，不新增 route、server、provider adapter 或工作流：
 
@@ -216,6 +235,11 @@ route handler exposes simulate/status/latest/history
 API Boundary admits xuanyuan routes only with external API key requirement
 package scripts include acceptance:xuanyuan and audit:xuanyuan
 Xuanyuan delegates files through the standard attachment child and persists aggregate terminal proof
+HTTP 202 is backed by persisted accepted work before response
+ten independent tasks can reach provider waiting concurrently when capacity permits
+capacity overflow remains queued
+restart resumes exact submitted attempts without duplicate provider submission
+no fire-and-forget task execution remains
 ```
 
 Audit must prove:

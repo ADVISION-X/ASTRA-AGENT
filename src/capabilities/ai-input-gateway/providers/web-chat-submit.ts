@@ -134,7 +134,7 @@ const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitS
   emitSubmitStage(
     input,
     "rate_limit_acknowledgement",
-    ackStatus === "rate_limit_ack_clicked_and_dialog_closed" ? "success" : "fallback",
+    ackStatus === "rate_limit_ack_clicked_and_same_tab_refreshed" ? "success" : "fallback",
     null,
     {
     ackStatus,

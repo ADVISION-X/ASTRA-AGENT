@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-25T16:22:10.190Z",
+  "generatedAt": "2026-07-26T01:56:40.183Z",
   "summary": {
-    "activeLawCount": 246,
-    "activeClauseCount": 253,
-    "boundClauseCount": 253,
-    "executedClauseCount": 253,
+    "activeLawCount": 248,
+    "activeClauseCount": 255,
+    "boundClauseCount": 255,
+    "executedClauseCount": 255,
     "uncoveredClauseIds": [],
     "coveragePercent": 100
   },
@@ -115,6 +115,27 @@
         "ai-input-gateway/no-public-transport-controls",
         "ai-input-gateway/removed-old-region",
         "ai-input-gateway/shared-child-integration",
+        "ai-input-gateway/source-present"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "capabilityDomain": "ai-input-gateway",
+      "evidenceMode": "real-chrome",
+      "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
+      "checkIds": [
+        "ai-input-gateway/authority-present",
+        "ai-input-gateway/bounded-parallel-runtime",
+        "ai-input-gateway/parallel-acceptance",
+        "ai-input-gateway/removed-old-region",
         "ai-input-gateway/source-present"
       ],
       "sourceEvidence": [
@@ -13836,6 +13857,26 @@
     {
       "lawId": "GRASSEYE-XUANYUAN-001-V1",
       "clauseId": "grasseye-xuanyuan-001-requirement",
+      "capabilityDomain": "xuanyuan",
+      "evidenceMode": "acceptance",
+      "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
+      "checkIds": [
+        "xuanyuan/ast-contract",
+        "xuanyuan/file-present",
+        "xuanyuan/forbidden-provider-import",
+        "xuanyuan/package-script"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanyuan/manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "clauseId": "grasseye-xuanyuan-002-requirement",
       "capabilityDomain": "xuanyuan",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",

@@ -1,7 +1,4 @@
 const seenRoundInputs = new Set<string>();
-let lastWebChatFeedAt = 0;
-
-const WEB_CHAT_COOLDOWN_MS = 2_000;
 
 type AiFeedRateDecision = {
   ok: boolean;
@@ -22,17 +19,6 @@ export const checkAiFeedRateGuard = (input: {
       reason: "duplicate inputHash in the same round.",
     };
   }
-  if (input.transport === "web-chat") {
-    const elapsed = Date.now() - lastWebChatFeedAt;
-    if (elapsed < WEB_CHAT_COOLDOWN_MS) {
-      return {
-        ok: false,
-        cooldownMs: WEB_CHAT_COOLDOWN_MS - elapsed,
-        reason: "web chat cooldown is active.",
-      };
-    }
-    lastWebChatFeedAt = Date.now();
-  }
   if (roundKey) seenRoundInputs.add(roundKey);
-  return { ok: true, cooldownMs: input.transport === "web-chat" ? WEB_CHAT_COOLDOWN_MS : 0, reason: null };
+  return { ok: true, cooldownMs: 0, reason: null };
 };

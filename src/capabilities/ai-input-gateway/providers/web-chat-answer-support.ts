@@ -1,7 +1,10 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
-import { EXTRACT_LAST_RESPONSE_SCRIPT } from "./web-chat-evaluation.js";
+import {
+  buildMarkerScopedChatGptResponseScript,
+  EXTRACT_LAST_RESPONSE_SCRIPT,
+} from "./web-chat-evaluation.js";
 
 type StableAnswerState = {
   lastText: string;
@@ -17,8 +20,12 @@ const extractAnswer = (
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "extract last AI web chat response",
-    script: EXTRACT_LAST_RESPONSE_SCRIPT,
+    description: context.webChatExecution
+      ? "extract response belonging to the exact internally marked web-chat turn"
+      : "extract last AI web chat response",
+    script: context.webChatExecution?.providerKind === "gpt-web-chat"
+      ? buildMarkerScopedChatGptResponseScript(context.webChatExecution.turnMarker)
+      : EXTRACT_LAST_RESPONSE_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
@@ -112,6 +119,8 @@ export const readAnswerEvaluation = async (input: {
 
 export const advanceStableAnswer = (input: {
   evaluation: WebChatEvaluation;
+  minStableDurationMs: number;
+  now: number;
   stableRoundsRequired: number;
   state: StableAnswerState;
 }): { nextState: StableAnswerState; successEvaluation: WebChatEvaluation | null } => {
@@ -127,6 +136,7 @@ export const advanceStableAnswer = (input: {
     progress.answerText.length > 0
     && progress.stableRounds >= input.stableRoundsRequired
     && input.evaluation.generating !== true
+    && input.now - nextState.lastActivityAt >= input.minStableDurationMs
   ) {
     return {
       nextState,

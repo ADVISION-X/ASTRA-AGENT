@@ -6,6 +6,7 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const judgeSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts", "utf8");
 const webChatSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", "utf8");
+const webChatResponseCaptureSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts", "utf8");
 const webChatEvaluationSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts", "utf8");
 const webChatOpenSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-open.ts", "utf8");
 const webChatPageActionsSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts", "utf8");
@@ -36,8 +37,8 @@ assert.match(attachmentChildSource, /resolveWebChatAttachmentTransportKind/u);
 assert.doesNotMatch(attachmentChildSource, /setFileInputFiles|targetKind:\s*"file-input"/u);
 assert.match(roundOutcomesSource, /terminal:\s*true,\s*reason:\s*input\.judgment\.reason/u);
 assert.match(roundSource, /timeoutMs:\s*90_000/u);
-assert.match(webChatSource, /waitForStableAnswer/u);
-assert.match(webChatSource, /STABLE_ROUNDS_REQUIRED\s*=\s*2/u);
+assert.match(webChatResponseCaptureSource, /waitForStableAnswer/u);
+assert.match(webChatResponseCaptureSource, /STABLE_ROUNDS_REQUIRED\s*=\s*2/u);
 assert.match(webChatEvaluationSource, /data-message-author-role='assistant'/u);
 assert.match(webChatEvaluationSource, /\[class\*='model-response'\]/u);
 assert.match(webChatEvaluationSource, /aria-busy="true"/u);

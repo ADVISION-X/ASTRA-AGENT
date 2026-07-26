@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-25T16:21:23.610Z",
+  "generatedAt": "2026-07-26T01:55:58.597Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -47,7 +47,9 @@
         }
       ],
       "required": [
-        "Web-chat adapters reuse governed BrowserController and one provider lease.",
+        "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
+        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, manual-style chat rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease.",
+        "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
         "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
         "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
       ],
@@ -58,6 +60,41 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
       "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
+      "clauses": [
+        {
+          "clauseId": "apex-ai-input-gateway-005-requirement",
+          "statement": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "ai-input-gateway"
+        }
+      ],
+      "required": [
+        "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
+        "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique system chat title; after submit the runtime waits for the sidebar conversation entry, opens its options menu, renames it, and proves the exact title plus marker before releasing the submit slot.",
+        "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
+        "Submitted feeds release the browser-mutation lease while the provider generates; the patrol loop defaults to one check per sixty seconds and acquires the short lease only to switch by exact system title, verify exactly one turn marker, and inspect the following assistant turn.",
+        "Whenever ChatGPT shows the ordinary request-frequency dialog, the highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, then immediately refresh the current conversation in the same physical tab before any title search, prompt action or response capture resumes.",
+        "Process recovery reopens the exact system-renamed conversation inside the same physical tab and resumes marker-scoped polling without resubmission; missing, duplicate or mismatched title or marker identity returns review_required."
+      ],
+      "forbidden": [
+        "a global lease held from provider open through response capture",
+        "a second physical ChatGPT tab, a per-task tab lease, or a provider-tab pool",
+        "searching chats, sending, parsing, opening a new chat, resubmitting or waiting while an ordinary request-frequency dialog remains visible",
+        "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
+        "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",
+        "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
+      "blockIndex": 2
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
@@ -89,7 +126,7 @@
         "provider or business vocabulary in the generic native multi-file picker primitive"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
@@ -121,7 +158,7 @@
         "prompt submission before attachments_stable"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -4911,13 +4948,13 @@
         "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
         "Empty web-chat raw output is retried once inside the current one-image attempt before Pick3 interaction persistence; unresolved one-image requests are deferred to the bounded same-chain Prompt Exchange completion queue while remaining images/repeats continue.",
         "Prompt Exchange exposes expectedCount, completedCount, deferredRetryCount, and unresolvedCount so full_pipeline and next_prediction_stability can prove batch convergence before completion.",
-        "Pick3 GPT rate-limit dialogs trigger immediate acknowledgement click and verified dialog closure.",
+        "Pick3 GPT rate-limit dialogs trigger immediate acknowledgement click followed by immediate refresh of the same current ChatGPT tab.",
         "Pick3 GPT rate-limit acknowledgement emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_COMPLETED, and RECOVERY_FAILED events for immediate acknowledgement.",
         "Pick3 GPT prompt paste, prompt submit, submitted-image verification, pre-submit snapshot, and response-capture waits proactively click a visible rate-limit acknowledgement.",
         "Pick3 GPT web-chat feed lifecycle starts a same-BrowserController rate-limit dialog watcher after provider workspace open and stops it only when the feed exits.",
-        "Pick3 GPT rate-limit dialog handling performs only acknowledgement clicks and must not refresh, reopen, restart, or resend the image/prompt.",
+        "Pick3 GPT rate-limit dialog handling performs only the fixed acknowledgement-click plus same-current-tab refresh sequence and must not open another tab, open a new chat, restart, or resend the image/prompt.",
         "Pick3 GPT rate-limit recovery must not wait before clicking the acknowledgement.",
-        "Persistent Pick3 GPT rate-limit dialogs keep receiving acknowledgement clicks in the same in-flight feed without an acknowledgement attempt cap.",
+        "Persistent Pick3 GPT rate-limit dialogs keep receiving the same acknowledgement-click plus same-tab-refresh sequence in the same in-flight feed without an attempt cap.",
         "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
         "Pick3 provider sidebar history deletion is temporarily disabled and must return provider_history_delete_temporarily_disabled or current_history_delete_temporarily_disabled instead of clicking Delete or confirming Delete chat?.",
         "Pick3 GPT no-result and missing-bound-image recovery refreshes/reopens the same workspace tab and opens a new chat without deleting provider conversation history.",
@@ -6577,6 +6614,37 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
       "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "xuanyuan",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+acceptance+audit",
+      "summary": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-xuanyuan-002-requirement",
+          "statement": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "xuanyuan"
+        }
+      ],
+      "required": [
+        "HTTP start persists accepted work before returning 202 and never depends on an untracked fire-and-forget promise.",
+        "A single queue owner claims persisted work with lease and heartbeat semantics, runs independent tasks concurrently up to gateway capacity, and leaves overflow queued.",
+        "Restart recovery resumes queued tasks and exact submitted gateway attempts without duplicating prompts.",
+        "Public task progress exposes stable queue and provider-wait states but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
+      ],
+      "forbidden": [
+        "void fire-and-forget execution as task durability",
+        "caller-controlled concurrency or browser identity",
+        "duplicate submit on restart",
+        "second queue owner, compatibility queue, shadow executor or legacy serial mode"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
+      "blockIndex": 1
     }
   ]
 }

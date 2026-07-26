@@ -5,6 +5,7 @@ import type {
   AiProviderRawResponse,
   AiProviderUploadedFileProof,
   WebChatAttachmentUploadProof,
+  WebChatExecutionContext,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type {
   AiFeedInput,
@@ -17,7 +18,7 @@ import {
   buildAiFeedSuccess,
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
-import { acquireWebChatProviderLease } from "./web-chat-provider-lease.js";
+import { prepareManagedWebChatExecution } from "./web-chat-managed-execution.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -28,6 +29,8 @@ type ExecuteAiFeedOnceInput = {
   browser?: BrowserController;
   runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
+  executionId?: string;
+  webChatExecution?: WebChatExecutionContext;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
 };
 
@@ -114,6 +117,7 @@ const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
   ...(input.browser ? { browser: input.browser } : {}),
   ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   ...(input.signal ? { abortSignal: input.signal } : {}),
+  ...(input.webChatExecution ? { webChatExecution: input.webChatExecution } : {}),
   ...(input.onAttachmentUploadCompleted
     ? { onAttachmentUploadCompleted: input.onAttachmentUploadCompleted }
     : {}),
@@ -156,15 +160,17 @@ export const executeAiFeedOnce = async (
     transport: input.transport,
   });
   if (!rate.ok) return buildRateGuardFailure({ ...input, inputPackage, startedAt, ...rate });
-  let lease: Awaited<ReturnType<typeof acquireWebChatProviderLease>> | null = null;
+  let managed: Awaited<ReturnType<typeof prepareManagedWebChatExecution>> | null = null;
   try {
-    if (input.transport === "web-chat") {
-      lease = await acquireWebChatProviderLease({
-        dataDir: input.dataDir,
-        timeoutMs: input.request.timeoutMs,
-        ...(input.signal ? { signal: input.signal } : {}),
-      });
-    }
+    managed = await prepareManagedWebChatExecution(input, inputPackage.inputHash);
+    const executionInput: ExecuteAiFeedOnceInput = {
+      ...input,
+      request: managed.request,
+      ...(managed.browser ? { browser: managed.browser } : {}),
+      ...(managed.webChatExecution ? { webChatExecution: managed.webChatExecution } : {}),
+    };
+    const response = await executeProviderFeed(executionInput);
+    await managed.markResponse(response.rawText);
     return await buildProviderSuccess({
       request: input.request,
       dataDir: input.dataDir,
@@ -172,12 +178,13 @@ export const executeAiFeedOnce = async (
       inputPackage,
       startedAt,
       cooldownMs: rate.cooldownMs,
-      providerLeaseId: lease?.providerLeaseId ?? null,
-      response: await executeProviderFeed(input),
+      providerLeaseId: managed.providerLeaseId,
+      response,
     });
   } catch (error) {
-    return buildProviderFailure({ ...input, inputPackage, startedAt, cooldownMs: rate.cooldownMs, providerLeaseId: lease?.providerLeaseId ?? null, error });
+    await managed?.markFailure(reviewRequiredFromError(error));
+    return buildProviderFailure({ ...input, inputPackage, startedAt, cooldownMs: rate.cooldownMs, providerLeaseId: managed?.providerLeaseId ?? null, error });
   } finally {
-    await lease?.release();
+    await managed?.release();
   }
 };

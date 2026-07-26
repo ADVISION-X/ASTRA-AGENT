@@ -15,7 +15,6 @@ import {
 
 const PICK3_RECOVERY_STAGE = "PICK3_GPT_RATE_LIMIT_RECOVERY" as const;
 const PICK3_RATE_LIMIT_WATCH_INTERVAL_MS = 500;
-const RATE_LIMIT_DIALOG_STILL_VISIBLE_AFTER_ACK = "rate_limit_dialog_still_visible_after_ack";
 // The shared locator remains dialog-scoped: querySelectorAll('[role="dialog"], [data-radix-portal]')
 // plus alertdialog/aria-modal variants; never fall back to the whole document body.
 // Visible dialog text is read through node.innerText in the shared acknowledgement helper.
@@ -53,7 +52,7 @@ export const reservePick3RateLimitAttempt = (request: AiFeedInput): number => {
   return attemptIndex;
 };
 
-// The rate-limit policy has no attempt cap. No reopen, no resend, no restart.
+// The rate-limit policy has no attempt cap: click, refresh the same tab, never resend or restart.
 const buildPick3RecoveryRefs = (input: Pick3RecoveryLogInput): Record<string, string> => ({
   imageId: input.request.inputRefs[0]?.id ?? "missing-image-id",
   promptPackageId: input.request.promptPackageId,
@@ -134,8 +133,7 @@ export const acknowledgePick3RateLimitDialogIfVisible = async (input: {
 }): Promise<string | null> => {
   const ackStatus = await acknowledgeGenericChatGptRateLimitDialogIfVisible(input);
   if (ackStatus === null) return null;
-  const dialogStillVisible = ackStatus === RATE_LIMIT_DIALOG_STILL_VISIBLE_AFTER_ACK;
-  const ackSucceeded = ackStatus === "rate_limit_ack_clicked_and_dialog_closed" && !dialogStillVisible;
+  const ackSucceeded = ackStatus === "rate_limit_ack_clicked_and_same_tab_refreshed";
   emitPick3RateLimitRecoveryLog({ logger: input.context.runtimeLogger, request: input.request, attemptIndex: input.attemptIndex, reason: ackSucceeded ? "pick3_rate_limit_immediate_acknowledgement_completed" : "pick3_rate_limit_immediate_acknowledgement_pending_retry", status: ackSucceeded ? "success" : "started", refs: { ackStatus } });
   terminalRecoveryLog({ logger: input.context.runtimeLogger, request: input.request, attemptIndex: input.attemptIndex, reason: `ackStatus=${ackStatus}`, status: ackSucceeded ? "success" : "started", phase: "immediate_acknowledgement_result", refs: { ackStatus, recoveryAction: ackSucceeded ? "pick3_rate_limit_immediate_acknowledgement_completed" : "pick3_rate_limit_immediate_acknowledgement_pending_retry" } });
   if (!ackSucceeded) return "pick3_rate_limit_immediate_ack_pending_retry";

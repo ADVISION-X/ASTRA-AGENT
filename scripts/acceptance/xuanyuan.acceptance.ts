@@ -19,6 +19,26 @@ import {
 } from "../../src/plugins/xuanyuan/index.js";
 import { runSpawn } from "../../src/lib/browser/current-chrome-window-control.js";
 
+const waitForTerminalXuanyuanTask = async (
+  dataDir: string,
+  taskId: string,
+): Promise<NonNullable<Awaited<ReturnType<typeof getXuanyuanTaskStatus>>>> => {
+  const deadline = Date.now() + 2_000;
+  while (Date.now() < deadline) {
+    const task = await getXuanyuanTaskStatus({ dataDir }, taskId);
+    if (
+      task
+      && task.status !== "accepted"
+      && task.status !== "queued"
+      && task.status !== "running"
+    ) {
+      return task;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("timed out waiting for asynchronous Xuanyuan acceptance task");
+};
+
 const splitUtf8Output = await runSpawn(process.execPath, [
   "-e",
   "const bytes=Buffer.from('你');process.stdout.write(bytes.subarray(0,1));setTimeout(()=>process.stdout.write(bytes.subarray(1)),10);",
@@ -326,7 +346,11 @@ try {
     maxFileCount: 0,
     maxFileBytes: 1,
   });
-  assert.equal(asyncStarted.status, "running");
+  assert.equal(asyncStarted.status, "queued");
+  const asyncCompleted = await waitForTerminalXuanyuanTask(dataDir, asyncStarted.taskId);
+  assert.equal(asyncCompleted.status, "response_captured");
+  assert.equal(asyncCompleted.progress.executionId, asyncStarted.taskId);
+  assert.equal(asyncCompleted.progress.phase, "terminal");
 } finally {
   await rm(dataDir, { recursive: true, force: true });
 }

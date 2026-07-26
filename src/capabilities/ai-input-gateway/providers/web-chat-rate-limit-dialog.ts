@@ -85,7 +85,13 @@ export const acknowledgeChatGptRateLimitDialogIfVisible = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
 }): Promise<string | null> => {
-  const target = await input.browser.evaluateActiveTab<{ status: string; clickPoint?: { x: number; y: number }; kind?: string; text?: string }>({
+  const target = await input.browser.evaluateActiveTab<{
+    status: string;
+    pageUrl: string;
+    clickPoint?: { x: number; y: number };
+    kind?: string;
+    text?: string;
+  }>({
     description: "locate ChatGPT rate-limit acknowledgement button",
     script: `${RATE_LIMIT_DIALOG_TEXT_SCRIPT}
 const scope = dialogs.find((node) => {
@@ -96,7 +102,7 @@ const scope = dialogs.find((node) => {
   });
   return hasAcknowledgement && classifyBlockingDialog(text) !== null;
 }) || null;
-if (!scope) return {status: "rate_limit_dialog_not_found"};
+if (!scope) return {status: "rate_limit_dialog_not_found", pageUrl: location.href};
 const text = String(scope.innerText || scope.textContent || "");
 const kind = classifyBlockingDialog(text);
 const buttons = Array.from(scope.querySelectorAll('button, [role="button"]')).filter(visible);
@@ -104,9 +110,9 @@ const button = buttons.find((node) => {
   const label = String((node.getAttribute("aria-label") || "") + " " + (node.innerText || node.textContent || "")).trim();
   return label.includes("明白") || label.includes("确定") || /ok|got it|understand/i.test(label);
 }) || buttons[buttons.length - 1];
-if (!button || typeof button.getBoundingClientRect !== "function") return {status: "rate_limit_ack_not_found", kind, text};
+if (!button || typeof button.getBoundingClientRect !== "function") return {status: "rate_limit_ack_not_found", pageUrl: location.href, kind, text};
 const rect = button.getBoundingClientRect();
-return {status: "rate_limit_ack_located", kind, text, clickPoint: {x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.y + rect.height / 2)}};
+return {status: "rate_limit_ack_located", pageUrl: location.href, kind, text, clickPoint: {x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.y + rect.height / 2)}};
 `,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
@@ -122,9 +128,15 @@ return {status: "rate_limit_ack_located", kind, text, clickPoint: {x: Math.round
     clickCount: 1,
   });
   if (!clicked.ok) return "rate_limit_ack_click_failed";
+  const refreshed = await input.browser.open({
+    url: target.pageUrl,
+    title: "refresh the same ChatGPT tab immediately after rate-limit acknowledgement",
+    reusePolicy: "reuse-active-tab",
+  });
+  if (!refreshed.ok) return "rate_limit_ack_clicked_but_same_tab_refresh_failed";
+  clearRecentChatGptBlockingDialog();
   await input.browser.wait(300);
-  const stillVisible = await isChatGptRateLimitDialogVisible(input);
-  return stillVisible ? "rate_limit_dialog_still_visible_after_ack" : "rate_limit_ack_clicked_and_dialog_closed";
+  return "rate_limit_ack_clicked_and_same_tab_refreshed";
 };
 
 type ChatGptAcknowledgementWatcher = { stop: () => Promise<void> };
@@ -149,7 +161,7 @@ export const startChatGptAcknowledgementWatcher = (input: {
     try {
       if (await isChatGptRateLimitDialogVisible(input)) {
         const result = await acknowledgeChatGptRateLimitDialogIfVisible(input);
-        process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=${result === "rate_limit_ack_clicked_and_dialog_closed" ? "success" : "pending"} providerKind=gpt-web-chat ackStatus=${result ?? "not_found"}\n`);
+        process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=${result === "rate_limit_ack_clicked_and_same_tab_refreshed" ? "success" : "pending"} providerKind=gpt-web-chat ackStatus=${result ?? "not_found"}\n`);
       }
     } catch (error) {
       process.stdout.write(`[GRASSEYE][AI-GATEWAY][WEB-CHAT] stage=acknowledgement_watcher status=retryable_error providerKind=gpt-web-chat reason=${String(error).replaceAll("\n", " ").slice(0, 300)}\n`);

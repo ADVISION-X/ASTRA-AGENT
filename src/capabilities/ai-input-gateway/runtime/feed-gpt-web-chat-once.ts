@@ -16,6 +16,7 @@ export const feedGptWebChatOnce = async (input: {
   runtimeLogger?: RuntimeLogger;
   adapter?: AiProviderAdapter;
   signal?: AbortSignal;
+  executionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
 }): Promise<AiFeedResult> => {
   return executeAiFeedOnce({
@@ -27,6 +28,7 @@ export const feedGptWebChatOnce = async (input: {
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
+    ...(input.executionId ? { executionId: input.executionId } : {}),
     ...(input.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.onAttachmentUploadCompleted }
       : {}),

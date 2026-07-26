@@ -7,7 +7,7 @@ applyTo: "src/capabilities/ai-input-gateway/**/*.{ts,tsx,json},src/lib/browser/c
 # GrassEye AI Input Gateway
 
 status: active
-version: 2026-07-24
+version: 2026-07-26
 capabilityDomain: ai-input-gateway
 capabilityGroupId: ai-input-gateway
 
@@ -63,7 +63,9 @@ business owner
   "evidenceMode": "law+blueprint+ast+acceptance",
   "summary": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
   "required": [
-    "Web-chat adapters reuse governed BrowserController and one provider lease.",
+    "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
+    "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, manual-style chat rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease.",
+    "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
     "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
     "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
   ],
@@ -77,6 +79,42 @@ business owner
       "clauseId": "apex-ai-input-gateway-002-requirement",
       "statement": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
       "evidenceMode": "acceptance",
+      "ownerDomain": "ai-input-gateway"
+    }
+  ]
+}
+```
+
+```apex-law
+{
+  "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "ai-input-gateway",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "summary": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
+  "required": [
+    "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
+    "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique system chat title; after submit the runtime waits for the sidebar conversation entry, opens its options menu, renames it, and proves the exact title plus marker before releasing the submit slot.",
+    "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
+    "Submitted feeds release the browser-mutation lease while the provider generates; the patrol loop defaults to one check per sixty seconds and acquires the short lease only to switch by exact system title, verify exactly one turn marker, and inspect the following assistant turn.",
+    "Whenever ChatGPT shows the ordinary request-frequency dialog, the highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, then immediately refresh the current conversation in the same physical tab before any title search, prompt action or response capture resumes.",
+    "Process recovery reopens the exact system-renamed conversation inside the same physical tab and resumes marker-scoped polling without resubmission; missing, duplicate or mismatched title or marker identity returns review_required."
+  ],
+  "forbidden": [
+    "a global lease held from provider open through response capture",
+    "a second physical ChatGPT tab, a per-task tab lease, or a provider-tab pool",
+    "searching chats, sending, parsing, opening a new chat, resubmitting or waiting while an ordinary request-frequency dialog remains visible",
+    "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
+    "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",
+    "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "statement": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
+      "evidenceMode": "real-chrome",
       "ownerDomain": "ai-input-gateway"
     }
   ]

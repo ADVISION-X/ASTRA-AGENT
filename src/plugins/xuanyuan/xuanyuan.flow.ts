@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type {
@@ -20,6 +20,8 @@ type XuanyuanRuntime = {
   aiInputGateway: AiInputGatewayAbilityGroup;
   dataDir: string;
 };
+
+const activeXuanyuanTasks = new Set<string>();
 
 const tasksDir = (dataDir: string): string =>
   path.join(dataDir, "runtime-data", XUANYUAN_JOB_ID, "tasks");
@@ -78,7 +80,7 @@ const buildInitialRecord = (input: {
     sourceProject: input.request.sourceProject,
     scenario: input.request.scenario,
     providerKind: input.request.providerKind,
-    status: "accepted",
+    status: "queued",
     requestSnapshot: input.request,
     promptPackageSnapshot: {
       promptPackageId: input.request.promptPackageId,
@@ -94,6 +96,8 @@ const buildInitialRecord = (input: {
     transportWarnings: [],
     providerProof: null,
     progress: {
+      executionId: input.taskId,
+      phase: "queued",
       attachmentUploadProof: null,
     },
     continuationTaskId: input.request.continuationTaskId ?? null,
@@ -118,6 +122,8 @@ const withAiFeedResult = (
   transportWarnings: result.transportWarnings ?? [],
   providerProof: result.providerProof,
   progress: {
+    executionId: record.taskId,
+    phase: "terminal",
     attachmentUploadProof: (result.providerProof.attachmentUploadProof as WebChatAttachmentUploadProof | undefined)
       ?? record.progress.attachmentUploadProof,
   },
@@ -141,12 +147,19 @@ const withFailure = (
   status: "failed",
   failureReason: error instanceof Error ? error.message : String(error),
   reviewRequiredReason: null,
+  progress: {
+    ...record.progress,
+    phase: "terminal",
+  },
   updatedAt: nowIso(),
 });
 
 const writeTask = async (dataDir: string, record: XuanyuanTaskRecord): Promise<XuanyuanTaskRecord> => {
   await mkdir(tasksDir(dataDir), { recursive: true });
-  await writeFile(taskPath(dataDir, record.taskId), JSON.stringify(record, null, 2), "utf8");
+  const destination = taskPath(dataDir, record.taskId);
+  const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  await rename(temporary, destination);
   return record;
 };
 
@@ -159,7 +172,10 @@ const recordAttachmentUpload = async (
   if (!current || current.status !== "running") return;
   await writeTask(dataDir, {
     ...current,
-    progress: { attachmentUploadProof: proof },
+    progress: {
+      ...current.progress,
+      attachmentUploadProof: proof,
+    },
     updatedAt: nowIso(),
   });
 };
@@ -192,57 +208,99 @@ const resolveContinuation = async (dataDir: string, request: XuanyuanRequest): P
   return { priorTaskId: prior.taskId, priorRawOutputHash: prior.rawOutputHash, providerPageUrl };
 };
 
-export const startXuanyuanTask = async (
+const executePersistedXuanyuanTask = async (
+  runtime: XuanyuanRuntime,
+  taskId: string,
+): Promise<XuanyuanTaskRecord> => {
+  const existing = await readTask(runtime.dataDir, taskId);
+  if (!existing) throw new Error("XUANYUAN_TASK_NOT_FOUND");
+  if (
+    existing.status === "response_captured"
+    || existing.status === "review_required"
+    || existing.status === "failed"
+  ) {
+    return existing;
+  }
+  if (activeXuanyuanTasks.has(taskId)) {
+    throw new Error("XUANYUAN_TASK_ALREADY_ACTIVE_IN_PROCESS");
+  }
+  activeXuanyuanTasks.add(taskId);
+  try {
+    const request = XuanyuanRequestSchema.parse(existing.requestSnapshot);
+    const continuation = await resolveContinuation(runtime.dataDir, request);
+    const running = await writeTask(runtime.dataDir, {
+      ...existing,
+      status: "running",
+      progress: {
+        ...existing.progress,
+        executionId: taskId,
+        phase: "running",
+      },
+      updatedAt: nowIso(),
+    });
+    const aiFeedResult = await runtime.aiInputGateway.execute(toAiFeedInput(
+      request,
+      continuation,
+    ), {
+      executionId: taskId,
+      onAttachmentUploadCompleted: (proof) =>
+        recordAttachmentUpload(runtime.dataDir, taskId, proof),
+    });
+    return writeTask(
+      runtime.dataDir,
+      withAiFeedResult(await readTask(runtime.dataDir, taskId) ?? running, aiFeedResult),
+    );
+  } catch (error) {
+    const current = await readTask(runtime.dataDir, taskId) ?? existing;
+    return writeTask(runtime.dataDir, withFailure(current, error));
+  } finally {
+    activeXuanyuanTasks.delete(taskId);
+  }
+};
+
+const createXuanyuanTask = async (
   runtime: XuanyuanRuntime,
   rawRequest: unknown,
 ): Promise<XuanyuanTaskRecord> => {
   const request = XuanyuanRequestSchema.parse(rawRequest);
   const textPrompt = buildTextPrompt(request);
   if (!textPrompt) throw new Error("xuanyuan_text_prompt_required");
-  const continuation = await resolveContinuation(runtime.dataDir, request);
+  await resolveContinuation(runtime.dataDir, request);
   const taskId = `${XUANYUAN_JOB_ID}_${randomUUID()}`;
-  const initial = await writeTask(runtime.dataDir, buildInitialRecord({ request, taskId, textPrompt }));
-  const running = await writeTask(runtime.dataDir, { ...initial, status: "running", updatedAt: nowIso() });
-  const aiFeedResult = await runtime.aiInputGateway.execute(toAiFeedInput({
-    ...request,
+  return writeTask(runtime.dataDir, buildInitialRecord({
+    request: { ...request, textPrompt },
+    taskId,
     textPrompt,
-  }, continuation), {
-    onAttachmentUploadCompleted: (proof) => recordAttachmentUpload(runtime.dataDir, taskId, proof),
-  });
-  return writeTask(
-    runtime.dataDir,
-    withAiFeedResult(await readTask(runtime.dataDir, taskId) ?? running, aiFeedResult),
-  );
+  }));
+};
+
+export const startXuanyuanTask = async (
+  runtime: XuanyuanRuntime,
+  rawRequest: unknown,
+): Promise<XuanyuanTaskRecord> => {
+  const queued = await createXuanyuanTask(runtime, rawRequest);
+  return executePersistedXuanyuanTask(runtime, queued.taskId);
 };
 
 export const startXuanyuanTaskAsync = async (
   runtime: XuanyuanRuntime,
   rawRequest: unknown,
 ): Promise<XuanyuanTaskRecord> => {
-  const request = XuanyuanRequestSchema.parse(rawRequest);
-  const textPrompt = buildTextPrompt(request);
-  if (!textPrompt) throw new Error("xuanyuan_text_prompt_required");
-  const continuation = await resolveContinuation(runtime.dataDir, request);
-  const taskId = `${XUANYUAN_JOB_ID}_${randomUUID()}`;
-  const initial = await writeTask(runtime.dataDir, buildInitialRecord({ request, taskId, textPrompt }));
-  const running = await writeTask(runtime.dataDir, { ...initial, status: "running", updatedAt: nowIso() });
-  void runtime.aiInputGateway.execute(toAiFeedInput({
-    ...request,
-    textPrompt,
-  }, continuation), {
-    onAttachmentUploadCompleted: (proof) => recordAttachmentUpload(runtime.dataDir, taskId, proof),
-  }).then(async (aiFeedResult) =>
-    writeTask(
-      runtime.dataDir,
-      withAiFeedResult(await readTask(runtime.dataDir, taskId) ?? running, aiFeedResult),
-    ),
-  ).catch(async (error) =>
-    writeTask(
-      runtime.dataDir,
-      withFailure(await readTask(runtime.dataDir, taskId) ?? running, error),
-    ).then(() => undefined),
-  );
-  return running;
+  const queued = await createXuanyuanTask(runtime, rawRequest);
+  void executePersistedXuanyuanTask(runtime, queued.taskId);
+  return queued;
+};
+
+export const continueInterruptedXuanyuanTasks = async (
+  runtime: XuanyuanRuntime,
+): Promise<void> => {
+  const incomplete = (await listXuanyuanHistory(runtime))
+    .filter((task) => task.status === "queued" || task.status === "running")
+    .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  for (const task of incomplete) {
+    if (activeXuanyuanTasks.has(task.taskId)) continue;
+    void executePersistedXuanyuanTask(runtime, task.taskId);
+  }
 };
 
 export const getXuanyuanTaskStatus = (
