@@ -5,6 +5,7 @@ import {
   advanceStableAnswer,
   buildTimedOutAnswerEvaluation,
   createStableAnswerState,
+  isTransientNavigationExtractionError,
   noteStableAnswerActivity,
   readAnswerEvaluation,
   shouldContinueWaiting,
@@ -28,7 +29,13 @@ export const waitForStableAnswer = async (input: WaitForStableAnswerInput): Prom
   const hardDeadline = startedAt + Math.max(input.timeoutMs * 2, input.timeoutMs + 60_000);
   let state = createStableAnswerState();
   while (Date.now() < idleDeadline && Date.now() < hardDeadline) {
-    await input.beforePoll?.();
+    try {
+      await input.beforePoll?.();
+    } catch (error) {
+      if (!isTransientNavigationExtractionError(error)) throw error;
+      await input.browser.wait(input.pollIntervalMs);
+      continue;
+    }
     const evaluation = await readAnswerEvaluation(input);
     if (!evaluation) continue;
     const now = Date.now();

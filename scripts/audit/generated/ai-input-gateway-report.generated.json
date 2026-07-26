@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-07-26T05:20:55.227Z",
+  "generatedAt": "2026-07-26T05:50:53.896Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -339,6 +339,7 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",

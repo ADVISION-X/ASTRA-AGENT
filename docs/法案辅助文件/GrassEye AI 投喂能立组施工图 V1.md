@@ -109,8 +109,10 @@ SEO文章｜07-26 04:40Z｜A9F193A3-489B
 ```
 
 限流确认使用单个进程级 watcher，直接查看当前唯一 ChatGPT 标签页，不绑定某一个任务，
-不为 N 个任务创建 N 个 watcher。尚未出现正式自动聊天行时，巡查结果是 pending，释放短锁
-并等待下一轮，不得把它升级为任务失败，也不得占锁等待 30 秒。
+不为 N 个任务创建 N 个 watcher。尚未出现正式自动聊天行、聊天行已出现但点击后尚未完成
+切换，或同一情况发生在回答读取前置检查和每轮读取前的聊天定位时，结果都只能是
+`waiting_provider` 下的可重试 pending：释放短锁，等待下一轮，不得写成 `review_required`，
+也不得占锁等待 30 秒。只有身份重复、marker 不匹配或明确安全阻断才进入终态。
 
 回答完成必须同时通过生成态检查。只要精确 assistant turn 仍缺少完成操作，或实时 DOM 中
 存在可见的 `thinking / reasoning / loading / shimmer` 进度节点，就仍是 generating。

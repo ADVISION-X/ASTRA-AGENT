@@ -68,12 +68,14 @@ export const extractWebChatConversation = async (input: {
   previousAnswerText: string | null;
 }): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
-  await assertActiveProviderPage({
-    browser: input.browser,
-    providerUrl: input.providerUrl,
-    phase: "response capture",
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
+  if (!input.context.webChatExecution) {
+    await assertActiveProviderPage({
+      browser: input.browser,
+      providerUrl: input.providerUrl,
+      phase: "response capture",
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
+  }
   const startedAtMs = Date.now();
   const pollIntervalMs = input.request.providerKind === "gpt-web-chat"
     && input.context.webChatExecution

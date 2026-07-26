@@ -29,7 +29,7 @@ const extractAnswer = (
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
-const isTransientNavigationExtractionError = (error: unknown): boolean =>
+export const isTransientNavigationExtractionError = (error: unknown): boolean =>
   error instanceof Error
   && /missing value|execution context|navigation|loading|not valid JSON|active-tab evaluation.*timed out|WEB_CHAT_BOUND_CONVERSATION_NOT_READY/iu.test(error.message);
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T05:20:56.912Z",
+  "generatedAt": "2026-07-26T05:50:55.578Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -506,6 +506,7 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",

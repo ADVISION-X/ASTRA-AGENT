@@ -40,13 +40,14 @@ const recoveryPath = "src/capabilities/ai-input-gateway/providers/web-chat-recov
 const historyCleanupPath = "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts";
 const singleTabRoutingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
 const concurrencyAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts";
+const transientPatrolAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts";
 const realChromeParallelAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts";
 const removedUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
 const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts";
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, realChromeParallelAcceptancePath] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath] as const;
 
 const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));
@@ -387,24 +388,38 @@ const inspectLiveGenerationProof = (
   lawId: string,
 ): void => {
   const evaluation = requireSourceFile(context, findings, lawId, answerEvaluationPath);
-  const answerSupport = requireSourceFile(context, findings, lawId, answerSupportPath);
-  const routing = requireSourceFile(context, findings, lawId, singleTabRoutingPath);
   const acceptance = requireSourceFile(context, findings, lawId, concurrencyAcceptancePath);
-  if (!evaluation || !answerSupport || !routing || !acceptance) return;
+  if (!evaluation || !acceptance) return;
   const acceptanceIds = identifiers(acceptance);
   const acceptanceText = stringLiterals(acceptance);
   if (
     !evaluation.getVariableDeclaration("WEB_CHAT_STATUS_TEXT_SCRIPT")
-    || !identifiers(answerSupport).has("isTransientNavigationExtractionError")
-    || !identifiers(routing).has("focusUnrenamedChatGptConversation")
     || !acceptanceIds.has("answerEvaluationSource")
-    || !acceptanceIds.has("answerSupportSource")
-    || !acceptanceIds.has("singleTabRoutingSource")
     || !acceptanceText.has("visibleProgressClass")
     || !acceptanceText.has("[class*='shimmer']")
-    || !acceptanceText.has("WEB_CHAT_BOUND_CONVERSATION_NOT_READY")
   ) {
-    pushFinding(findings, lawId, answerEvaluationPath, "ai-input-gateway/live-generation-proof", "Live loading/shimmer DOM must remain generating, and an unmaterialized submitted sidebar row must remain a retryable patrol state.");
+    pushFinding(findings, lawId, answerEvaluationPath, "ai-input-gateway/live-generation-proof", "Live loading/shimmer DOM must remain generating until the exact answer completes.");
+  }
+};
+
+const inspectTransientPatrolRetry = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const answer = requireSourceFile(context, findings, lawId, answerSupportPath);
+  const capture = requireSourceFile(context, findings, lawId, responseCapturePath);
+  const routing = requireSourceFile(context, findings, lawId, singleTabRoutingPath);
+  const acceptance = requireSourceFile(context, findings, lawId, transientPatrolAcceptancePath);
+  if (!answer || !capture || !routing || !acceptance) return;
+  if (
+    !identifiers(answer).has("isTransientNavigationExtractionError")
+    || !identifiers(capture).has("webChatExecution")
+    || !identifiers(routing).has("focusUnrenamedChatGptConversation")
+    || !identifiers(acceptance).has("assertTransientPatrolRemainsRetryable")
+    || !stringLiterals(acceptance).has("WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact submitted ChatGPT sidebar row is not ready for marker verification")
+  ) {
+    pushFinding(findings, lawId, answerSupportPath, "ai-input-gateway/live-generation-proof", "A submitted sidebar row that is not yet focusable must remain retryable across response preflight and before-poll routing.");
   }
 };
 
@@ -433,6 +448,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectSubmissionPriorityPatrol(context, findings, parallelLawId);
   inspectSharedRateLimitWatcher(context, findings, parallelLawId);
   inspectLiveGenerationProof(context, findings, parallelLawId);
+  inspectTransientPatrolRetry(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

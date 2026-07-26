@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T05:21:36.678Z",
+  "generatedAt": "2026-07-26T05:51:35.011Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -1522,6 +1522,7 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",

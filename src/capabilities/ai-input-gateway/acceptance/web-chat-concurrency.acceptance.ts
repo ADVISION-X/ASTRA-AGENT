@@ -28,6 +28,7 @@ import {
   registerPendingWebChatSubmission,
 } from "../runtime/web-chat-concurrency-lease.js";
 import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
+import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 
 const delay = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -157,6 +158,8 @@ if (workerArgs[0] === "--worker") {
     /^AI任务｜07-26 04:42Z｜[A-F0-9]{8}-CDEF$/u,
     "unknown contracts must use the neutral internal fallback without copying caller text",
   );
+
+  await assertTransientPatrolRemainsRetryable();
 
   const dataDir = await mkdtemp(
     path.join(os.tmpdir(), "grasseye-web-chat-concurrency-"),
