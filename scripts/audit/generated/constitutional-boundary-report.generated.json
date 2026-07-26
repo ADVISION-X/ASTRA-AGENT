@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T04:29:35.273Z",
+  "generatedAt": "2026-07-26T04:48:27.929Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
@@ -516,6 +516,7 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",

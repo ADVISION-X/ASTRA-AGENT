@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T04:28:56.670Z",
+  "generatedAt": "2026-07-26T04:47:52.439Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -126,6 +126,7 @@
             "ai-input-gateway/bounded-parallel-runtime",
             "ai-input-gateway/deferred-completed-chat-rename",
             "ai-input-gateway/exact-sidebar-row-rename",
+            "ai-input-gateway/human-readable-system-chat-title",
             "ai-input-gateway/no-chatgpt-page-refresh",
             "ai-input-gateway/parallel-acceptance",
             "ai-input-gateway/removed-old-region",

@@ -67,6 +67,20 @@ accepted
 回答 hash 与稳定轮次。外部请求和
 Xuanyuan 公共结果不接受这些运输控制字段。
 
+系统聊天名必须同时服务人类巡查与机器精确定位，唯一格式是：
+
+```txt
+内部任务标签｜UTC月-日 时:分Z｜8位执行追踪-4位标记追踪
+
+例如：
+SEO文章｜07-26 04:40Z｜A9F193A3-489B
+八字分析｜07-26 04:41Z｜71C2E90F-3A10
+```
+
+内部任务标签只由 Gateway 按 `promptContractId` 白名单映射；未知合同统一显示 `AI任务`。
+标题不得复制提示词、用户姓名、报告正文，也不得接受调用方提供的自由文本。旧的纯
+`GRASSEYE-哈希-标记` 机器标题生成区必须删除，不保留兼容命名器或桥接命名器。
+
 回答必须从“包含本 attempt marker 的唯一 user turn”向后绑定 assistant turn；不得读取
 页面最后一条 assistant 作为任务结果，也不得要求模型复述 marker。
 
@@ -252,6 +266,9 @@ failureReason / reviewRequiredReason
 src/capabilities/ai-input-gateway/children/
   attach-approved-web-chat-files-once.ts
 
+src/capabilities/ai-input-gateway/runtime/
+  web-chat-system-title.ts
+
 src/capabilities/ai-input-gateway/providers/
   web-chat-attachment-transport.ts
   web-chat-ordered-clipboard-attachment.ts
@@ -292,6 +309,8 @@ transient URL converges to canonical URL under the same tab and marked user turn
 restart recovery never duplicates a submitted prompt
 response extraction is scoped after the unique marked user turn
 full-response web-chat-provider.lock is physically absent
+system chat titles expose an allowlisted human task label, UTC minute and short opaque trace
+system chat titles never copy prompt text, user names, report content or legacy machine-only format
 ```
 
 真实 Chrome 验收覆盖：

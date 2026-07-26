@@ -1,4 +1,4 @@
-generatedAt: "2026-07-26T04:28:56.670Z"
+generatedAt: "2026-07-26T04:47:52.439Z"
 rows:
   - capabilityDomain: "ai-input-gateway"
     manifestPath: "scripts/audit/domains/ai-input-gateway/manifest.json"

@@ -24,6 +24,7 @@ const nativePrimitivePath = "src/lib/browser/current-chrome-native-multi-file-pi
 const acceptancePath = "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts";
 const concurrencyLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts";
 const executionStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
+const systemChatTitlePath = "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts";
 const singleTabBrowserPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts";
 const singleProviderTabPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts";
 const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
@@ -43,7 +44,7 @@ const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-uploa
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, responseCapturePath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, realChromeParallelAcceptancePath] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, responseCapturePath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, realChromeParallelAcceptancePath] as const;
 
 const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));
@@ -297,6 +298,40 @@ const inspectCompletedConversationRename = (context: InspectorContext, findings:
   }
 };
 
+const inspectHumanReadableSystemChatTitle = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const executionState = requireSourceFile(context, findings, lawId, executionStatePath);
+  const systemTitle = requireSourceFile(context, findings, lawId, systemChatTitlePath);
+  const acceptance = requireSourceFile(context, findings, lawId, concurrencyAcceptancePath);
+  if (!executionState || !systemTitle || !acceptance) return;
+  if (!identifiers(executionState).has("buildHumanReadableSystemChatTitle")) {
+    pushFinding(findings, lawId, executionStatePath, "ai-input-gateway/human-readable-system-chat-title", "New GPT executions must use the single human-readable system chat title builder.");
+  }
+  const systemTitleStrings = stringLiterals(systemTitle);
+  for (const required of ["SEO文章", "AI任务", "｜"]) {
+    if (!systemTitleStrings.has(required)) {
+      pushFinding(findings, lawId, systemChatTitlePath, "ai-input-gateway/human-readable-system-chat-title", `System chat title builder must declare ${required}.`);
+    }
+  }
+  if (
+    identifiers(systemTitle).has("textPrompt")
+    || [...systemTitleStrings].some((literal) => literal.startsWith("GRASSEYE-"))
+  ) {
+    pushFinding(findings, lawId, systemChatTitlePath, "ai-input-gateway/human-readable-system-chat-title", "System chat titles must not copy prompt text or retain the legacy machine-only title prefix.");
+  }
+  const acceptanceIdentifiers = identifiers(acceptance);
+  for (const required of ["buildHumanReadableSystemChatTitle", "seoTitle"]) {
+    if (!acceptanceIdentifiers.has(required)) {
+      pushFinding(findings, lawId, concurrencyAcceptancePath, "ai-input-gateway/human-readable-system-chat-title", `Concurrency acceptance must execute ${required}.`);
+    }
+  }
+  const acceptanceStrings = stringLiterals(acceptance);
+  for (const required of ["public-knowledge-corpus-research.v2", "bazi-base-interpretation-v2", "unrecognized-contract"]) {
+    if (!acceptanceStrings.has(required)) {
+      pushFinding(findings, lawId, concurrencyAcceptancePath, "ai-input-gateway/human-readable-system-chat-title", `Concurrency acceptance must cover ${required}.`);
+    }
+  }
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
@@ -318,6 +353,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectBoundedParallelExecution(context, findings, parallelLawId);
   inspectNoChatGptPageRefresh(context, findings, parallelLawId);
   inspectCompletedConversationRename(context, findings, parallelLawId);
+  inspectHumanReadableSystemChatTitle(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

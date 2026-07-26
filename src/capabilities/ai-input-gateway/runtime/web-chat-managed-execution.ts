@@ -117,6 +117,7 @@ const startActiveExecution = async (input: ManagedWebChatInput, inputHash: strin
     dataDir: input.dataDir,
     executionId: executionIdFor(input, inputHash),
     providerKind,
+    promptContractId: input.request.promptContractId,
     inputHash,
     textPrompt: input.request.textPrompt,
   });

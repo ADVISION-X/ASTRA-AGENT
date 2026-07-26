@@ -22,6 +22,7 @@ import {
   createStableAnswerState,
 } from "../providers/web-chat-answer-support.js";
 import { acquireWebChatBrowserMutationLease } from "../runtime/web-chat-concurrency-lease.js";
+import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
 
 const delay = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -115,6 +116,43 @@ if (workerArgs[0] === "--worker") {
     throw new Error("invalid concurrency worker arguments");
   await runWorker(dataDir, worker);
 } else {
+  const seoTitle = buildHumanReadableSystemChatTitle({
+    promptContractId: "public-knowledge-corpus-research.v2",
+    executionId: "xuanyuan_example-seo-task",
+    turnMarker: "GRASSEYE_TURN_1234567890abcdef",
+    createdAt: "2026-07-26T04:40:00.000Z",
+  });
+  assert.match(
+    seoTitle,
+    /^SEO文章｜07-26 04:40Z｜[A-F0-9]{8}-CDEF$/u,
+    "SEO conversations must have a readable task label, UTC time and short trace",
+  );
+  assert.doesNotMatch(
+    seoTitle,
+    /public-knowledge|xuanyuan|GRASSEYE_TURN/u,
+    "readable titles must not expose transport ids or raw contract vocabulary",
+  );
+  assert.match(
+    buildHumanReadableSystemChatTitle({
+      promptContractId: "bazi-base-interpretation-v2",
+      executionId: "xuanyuan_example-bazi-task",
+      turnMarker: "GRASSEYE_TURN_abcdef1234567890",
+      createdAt: "2026-07-26T04:41:00.000Z",
+    }),
+    /^八字分析｜07-26 04:41Z｜[A-F0-9]{8}-7890$/u,
+    "known business contracts must resolve to a human-readable allowlisted label",
+  );
+  assert.match(
+    buildHumanReadableSystemChatTitle({
+      promptContractId: "unrecognized-contract",
+      executionId: "xuanyuan_example-generic-task",
+      turnMarker: "GRASSEYE_TURN_1234567890abcdef",
+      createdAt: "2026-07-26T04:42:00.000Z",
+    }),
+    /^AI任务｜07-26 04:42Z｜[A-F0-9]{8}-CDEF$/u,
+    "unknown contracts must use the neutral internal fallback without copying caller text",
+  );
+
   const dataDir = await mkdtemp(
     path.join(os.tmpdir(), "grasseye-web-chat-concurrency-"),
   );
@@ -168,6 +206,7 @@ if (workerArgs[0] === "--worker") {
           JSON.parse(await readFile(path.join(executionDir, name), "utf8")) as {
             capacitySlot: number | null;
             status: string;
+            systemChatTitle: string | null;
           },
       ),
     );
@@ -177,6 +216,14 @@ if (workerArgs[0] === "--worker") {
         .sort((a, b) => Number(a) - Number(b)),
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       "ten real in-flight tasks must own ten distinct bounded capacity slots",
+    );
+    assert.equal(
+      firstTenStates.every((state) =>
+        /^系统验收｜\d{2}-\d{2} \d{2}:\d{2}Z｜[A-F0-9]{8}-[A-F0-9]{4}$/u
+          .test(state.systemChatTitle ?? "")
+      ),
+      true,
+      "new GPT executions must persist only the human-readable system title format",
     );
 
     const eleventh = spawnWorker(11);

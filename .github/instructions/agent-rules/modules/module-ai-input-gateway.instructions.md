@@ -96,7 +96,7 @@ business owner
   "summary": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
   "required": [
     "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
-    "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique system chat title; after submit the runtime records the canonical conversation URL plus exact marker and immediately releases the submit slot, then after the provider answer is complete it clicks the exact non-WEB sidebar row, opens only that row's options menu, renames it, and proves the exact title plus marker before publishing the captured answer.",
+    "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique human-readable system chat title. The title uses one internal allowlisted task label, UTC month-day and minute, plus a short opaque trace, for example SEO文章｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content or caller-supplied title text. After submit the runtime records the canonical conversation URL plus exact marker and immediately releases the submit slot, then after the provider answer is complete it clicks the exact non-WEB sidebar row, opens only that row's options menu, renames it, and proves the exact title plus marker before publishing the captured answer.",
     "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
     "Submitted feeds release the browser-mutation lease before provider generation completes; until the completed chat can be renamed, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker, and after rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
     "Whenever ChatGPT shows the ordinary request-frequency dialog, the highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
@@ -111,6 +111,7 @@ business owner
     "treating a transient /c/WEB: sidebar row or the page-header conversation menu as the rename target",
     "holding the submit mutation slot while waiting for a running answer to expose its sidebar rename menu",
     "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
+    "machine-only titles made entirely from hashes, UUIDs or transport vocabulary, or titles copied from prompt text, user names or report content",
     "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",
     "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode"
   ],

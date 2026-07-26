@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T04:28:59.375Z",
+  "generatedAt": "2026-07-26T04:47:55.015Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -958,6 +958,7 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",

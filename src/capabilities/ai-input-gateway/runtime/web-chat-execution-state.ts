@@ -7,6 +7,7 @@ import type {
   WebChatAttachmentUploadProof,
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
+import { buildHumanReadableSystemChatTitle } from "./web-chat-system-title.js";
 
 export type WebChatExecutionStatus =
   | "waiting_for_capacity"
@@ -77,6 +78,7 @@ export const startOrResumeWebChatExecution = async (input: {
   dataDir: string;
   executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
+  promptContractId: string;
   inputHash: string;
   textPrompt: string;
 }): Promise<{ record: WebChatExecutionRecord; resume: boolean }> => {
@@ -113,9 +115,13 @@ export const startOrResumeWebChatExecution = async (input: {
   }
   const now = new Date().toISOString();
   const turnMarker = `GRASSEYE_TURN_${randomUUID().replaceAll("-", "")}`;
-  const executionHash = createHash("sha256").update(input.executionId).digest("hex").slice(0, 12);
   const systemChatTitle = input.providerKind === "gpt-web-chat"
-    ? `GRASSEYE-${executionHash}-${turnMarker.slice(-12)}`
+    ? buildHumanReadableSystemChatTitle({
+        promptContractId: input.promptContractId,
+        executionId: input.executionId,
+        turnMarker,
+        createdAt: now,
+      })
     : null;
   const record: WebChatExecutionRecord = {
     schemaVersion: "web-chat-execution-v2",
