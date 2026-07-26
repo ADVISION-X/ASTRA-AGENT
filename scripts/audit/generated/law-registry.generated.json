@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T05:50:53.055Z",
+  "generatedAt": "2026-07-26T06:20:57.137Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -84,7 +84,7 @@
         "Submitted feeds release the browser-mutation lease before provider generation completes; while any accepted task still awaits submit, ordinary response patrol yields. After all queued submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
         "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the live DOM exposes a visible thinking, reasoning, loading or shimmer progress node; intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
         "Whenever ChatGPT shows the ordinary request-frequency dialog, one process-wide unrouted watcher serves the single physical ChatGPT tab for every in-flight task. The highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
-        "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission; a completed but not-yet-renamed conversation must finish its row-scoped rename before answer publication. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, and marker; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash, or byte count returns review_required."
+        "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission; a completed but not-yet-renamed conversation must finish its row-scoped rename before answer publication. The complete rename transaction from exact marker focus through row options, title textbox write, Enter commit and title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and retries without discarding the captured answer or persisting review_required. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, and marker; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash, or byte count returns review_required."
       ],
       "forbidden": [
         "a global lease held from provider open through response capture",
@@ -94,8 +94,10 @@
         "routing an existing ChatGPT task by browser URL open instead of clicking its exact sidebar DOM row",
         "treating a transient /c/WEB: sidebar row or the page-header conversation menu as the rename target",
         "holding the submit mutation slot while waiting for a running answer to expose its sidebar rename menu",
+        "splitting one completed-chat rename transaction into independently locked clicks that allow another task to switch conversations between row options, textbox write and commit verification",
         "allowing per-task acknowledgement watchers or ordinary patrol to starve an accepted task that is still waiting to submit",
         "persisting review_required merely because an exact submitted sidebar row is temporarily absent, visible but not yet focusable, or still materializing during response-capture preflight or before-poll routing",
+        "discarding a captured answer or persisting review_required merely because a rename menu, title textbox, click commit or renamed-title reflection is temporarily not ready",
         "treating visible loading, shimmer, citation verification, tool progress or research progress as a completed answer",
         "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
         "machine-only titles made entirely from hashes, UUIDs or transport vocabulary, or titles copied from prompt text, user names or report content",

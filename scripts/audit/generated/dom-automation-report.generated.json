@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T05:51:35.011Z",
+  "generatedAt": "2026-07-26T06:21:39.810Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -1533,6 +1533,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",

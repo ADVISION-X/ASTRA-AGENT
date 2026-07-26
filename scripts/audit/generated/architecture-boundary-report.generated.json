@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T05:50:55.543Z",
+  "generatedAt": "2026-07-26T06:20:59.599Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -915,6 +915,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",

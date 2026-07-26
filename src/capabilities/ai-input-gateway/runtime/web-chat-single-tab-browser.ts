@@ -44,6 +44,9 @@ const delay = (durationMs: number, signal?: AbortSignal): Promise<void> =>
 export type SingleTabWebChatBrowser = {
   browser: BrowserController;
   globalBrowser: BrowserController;
+  runExclusivePatrol<T>(
+    operation: (browser: BrowserController) => Promise<T>,
+  ): Promise<T>;
   bindObservedConversation(submission: WebChatSubmissionProof): void;
   bindConversationIdentity(submission: WebChatSubmissionProof): void;
   releaseInitialMutationLease(): Promise<void>;
@@ -281,6 +284,35 @@ export const createSingleTabWebChatBrowser = (
   return {
     browser: createBrowserFacade(input, withSubmissionThenPatrol, true),
     globalBrowser: createBrowserFacade(input, withGlobalSurvival, false),
+    async runExclusivePatrol<T>(
+      operation: (browser: BrowserController) => Promise<T>,
+    ): Promise<T> {
+      const lease = await acquireWebChatBrowserPatrolLease({
+        dataDir: input.dataDir,
+        timeoutMs: input.timeoutMs,
+        ...(input.signal ? { signal: input.signal } : {}),
+      });
+      try {
+        const providerTab = await focusSingleProviderTab({
+          providerKind: input.providerKind,
+          ...(input.signal ? { signal: input.signal } : {}),
+        });
+        if (providerTab === "ambiguous") {
+          throw new Error(
+            "review_required: more than one physical provider tab is open.",
+          );
+        }
+        if (providerTab === "not_found") {
+          throw new Error(
+            "review_required: the single controlled provider tab is not open.",
+          );
+        }
+        await routeToBoundConversation(input, state);
+        return await operation(input.base);
+      } finally {
+        await lease.release();
+      }
+    },
     bindObservedConversation: (submission) =>
       bindObservedConversation(state, submission),
     bindConversationIdentity: (submission) =>

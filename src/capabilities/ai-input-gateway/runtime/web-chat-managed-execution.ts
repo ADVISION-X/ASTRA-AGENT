@@ -80,6 +80,14 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
     resumeUploadedFiles: input.resume ? record.uploadedFiles : [],
     resumeAttachmentUploadProof: input.resume ? record.attachmentUploadProof : null,
     globalBrowser: input.singleTabBrowser?.globalBrowser ?? null,
+    runExclusivePatrol: (operation) => {
+      if (!input.singleTabBrowser) {
+        throw new Error(
+          "review_required: managed web-chat exclusive patrol is unavailable.",
+        );
+      }
+      return input.singleTabBrowser.runExclusivePatrol(operation);
+    },
     onSubmissionObserved: async ({ submission, uploadedFiles, attachmentUploadProof }) => {
       await update({
         status: submission.canonicalConversationUrl ? "conversation_canonicalized" : "submitted_transient",

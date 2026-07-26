@@ -308,6 +308,13 @@ if (workerArgs[0] === "--worker") {
       ),
       "utf8",
     );
+    const titleScriptsSource = await readFile(
+      path.join(
+        process.cwd(),
+        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+      ),
+      "utf8",
+    );
     const answerEvaluationSource = await readFile(
       path.join(
         process.cwd(),
@@ -362,20 +369,26 @@ if (workerArgs[0] === "--worker") {
       "the exact conversation must be renamed only after response completion",
     );
     assert.equal(
-      titleSource.includes("(?!WEB:)"),
+      titleScriptsSource.includes("(?!WEB:)"),
       true,
       "transient ChatGPT WEB sidebar rows must never be rename targets",
     );
     assert.equal(
-      titleSource.includes('CHATGPT_CONVERSATION_ROW_SELECTOR = "li"')
-        && titleSource.includes("link.closest(${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)})"),
+      titleScriptsSource.includes('CHATGPT_CONVERSATION_ROW_SELECTOR = "li"')
+        && titleScriptsSource.includes("link.closest(${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)})"),
       true,
       "rename options must be scoped to the exact sidebar conversation row",
     );
     assert.equal(
-      titleSource.includes("depth < 7"),
+      titleScriptsSource.includes("depth < 7"),
       false,
       "rename targeting must not climb into the page-header conversation menu",
+    );
+    assert.equal(
+      titleSource.includes("runExclusivePatrol")
+        && titleSource.includes("WEB_CHAT_RENAME_NOT_READY"),
+      true,
+      "one completed-chat rename must stay atomic while transient rename UI waits remain retryable",
     );
     assert.equal(
       answerEvaluationSource.includes("visibleProgressClass")
@@ -397,9 +410,10 @@ if (workerArgs[0] === "--worker") {
     );
     assert.equal(
       managedExecutionSource.includes("releasePendingSubmission")
-        && managedExecutionSource.includes("globalBrowser"),
+        && managedExecutionSource.includes("globalBrowser")
+        && managedExecutionSource.includes("runExclusivePatrol"),
       true,
-      "submission priority and the unrouted global survival lane must be wired into managed execution",
+      "submission priority, global survival and atomic rename patrol must be wired into managed execution",
     );
 
     let stableAnswerState = createStableAnswerState();

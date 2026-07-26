@@ -31,6 +31,7 @@ const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provide
 const managedExecutionPath = "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts";
 const turnIdentityPath = "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts";
 const chatTitlePath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts";
+const chatTitleScriptsPath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts";
 const responseCapturePath = "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts";
 const answerEvaluationPath = "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts";
 const answerSupportPath = "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts";
@@ -47,7 +48,7 @@ const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-uploa
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath] as const;
 
 const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));
@@ -280,7 +281,11 @@ const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Findin
 const inspectCompletedConversationRename = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const shared = requireSourceFile(context, findings, lawId, sharedPath);
   const chatTitle = requireSourceFile(context, findings, lawId, chatTitlePath);
-  if (!shared || !chatTitle) return;
+  const chatTitleScripts = requireSourceFile(context, findings, lawId, chatTitleScriptsPath);
+  const adapterContract = requireSourceFile(context, findings, lawId, adapterContractPath);
+  const singleTabBrowser = requireSourceFile(context, findings, lawId, singleTabBrowserPath);
+  const managedExecution = requireSourceFile(context, findings, lawId, managedExecutionPath);
+  if (!shared || !chatTitle || !chatTitleScripts || !adapterContract || !singleTabBrowser || !managedExecution) return;
   const submitFlow = shared.getVariableDeclaration("executeWebChatConversation")?.getInitializer();
   const completedFlow = shared.getVariableDeclaration("buildCompletedWebChatResponse")?.getInitializer();
   const hasRenameCall = (node: Node | undefined): boolean => Boolean(node?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === "renameSubmittedChatGptConversation"));
@@ -290,14 +295,27 @@ const inspectCompletedConversationRename = (context: InspectorContext, findings:
   if (!hasRenameCall(completedFlow)) {
     pushFinding(findings, lawId, sharedPath, "ai-input-gateway/deferred-completed-chat-rename", "A completed ChatGPT response must finish exact row-scoped rename before publication.");
   }
-  const titleStrings = stringLiterals(chatTitle);
+  const titleStrings = stringLiterals(chatTitleScripts);
   for (const required of ["^/c/(?!WEB:)[^/?#]+(?:[?#].*)?$", "li"]) {
     if (!titleStrings.has(required)) {
-      pushFinding(findings, lawId, chatTitlePath, "ai-input-gateway/exact-sidebar-row-rename", `ChatGPT rename targeting must declare the exact string literal ${required}.`);
+      pushFinding(findings, lawId, chatTitleScriptsPath, "ai-input-gateway/exact-sidebar-row-rename", `ChatGPT rename targeting must declare the exact string literal ${required}.`);
     }
   }
-  if (identifiers(chatTitle).has("depth")) {
-    pushFinding(findings, lawId, chatTitlePath, "ai-input-gateway/exact-sidebar-row-rename", "ChatGPT rename targeting must not climb into the page-header conversation menu.");
+  if (identifiers(chatTitleScripts).has("depth")) {
+    pushFinding(findings, lawId, chatTitleScriptsPath, "ai-input-gateway/exact-sidebar-row-rename", "ChatGPT rename targeting must not climb into the page-header conversation menu.");
+  }
+  for (const [repoPath, source] of [
+    [adapterContractPath, adapterContract],
+    [singleTabBrowserPath, singleTabBrowser],
+    [managedExecutionPath, managedExecution],
+    [chatTitlePath, chatTitle],
+  ] as const) {
+    if (!identifiers(source).has("runExclusivePatrol")) {
+      pushFinding(findings, lawId, repoPath, "ai-input-gateway/atomic-completed-chat-rename", `${repoPath} must wire runExclusivePatrol for one non-interleavable rename transaction.`);
+    }
+  }
+  if (!stringLiterals(chatTitle).has("WEB_CHAT_RENAME_NOT_READY")) {
+    pushFinding(findings, lawId, chatTitlePath, "ai-input-gateway/retryable-completed-chat-rename", "Transient ChatGPT rename UI must remain retryable without discarding the captured answer.");
   }
 };
 
