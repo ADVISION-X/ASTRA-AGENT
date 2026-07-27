@@ -234,10 +234,8 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
   if (!execution.systemChatTitle || !input.submission.canonicalConversationUrl) {
     throw new Error("review_required: ChatGPT submission is missing the durable name or canonical conversation URL.");
   }
-  const deadline = Date.now() + input.timeoutMs;
   let observedAutoChatTitle: string | null = null;
-  let lastPendingReason = "rename patrol has not started";
-  while (Date.now() < deadline) {
+  for (;;) {
     try {
       const renamed = await execution.runExclusivePatrol(async (browser) => {
         const renameInput = {
@@ -283,11 +281,7 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
       };
     } catch (error) {
       if (!isRenameNotReady(error)) throw error;
-      lastPendingReason = error instanceof Error ? error.message : String(error);
       await input.browser.wait(2_000);
     }
   }
-  throw new Error(
-    `review_required: ChatGPT rename patrol exhausted the task timeout; last=${lastPendingReason}`,
-  );
 };

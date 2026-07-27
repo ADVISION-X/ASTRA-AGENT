@@ -386,9 +386,10 @@ if (workerArgs[0] === "--worker") {
     );
     assert.equal(
       titleSource.includes("runExclusivePatrol")
-        && titleSource.includes("WEB_CHAT_RENAME_NOT_READY"),
+        && titleSource.includes("WEB_CHAT_RENAME_NOT_READY")
+        && !titleSource.includes("rename patrol exhausted the task timeout"),
       true,
-      "one completed-chat rename must stay atomic while transient rename UI waits remain retryable",
+      "one completed-chat rename must stay atomic and transient rename UI must never become a terminal task-timeout failure",
     );
     assert.equal(
       answerEvaluationSource.includes("visibleProgressClass")
