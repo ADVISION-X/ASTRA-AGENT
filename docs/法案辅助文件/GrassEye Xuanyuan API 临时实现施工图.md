@@ -1,6 +1,6 @@
 # GrassEye Xuanyuan API 临时实现施工图
 
-version: 2026-07-26
+version: 2026-07-27
 status: construction-blueprint
 targetLaw: `.github/instructions/agent-rules/modules/module-xuanyuan.instructions.md`
 capabilityDomain: `xuanyuan`
@@ -43,7 +43,7 @@ External Website / xuanxue-web
   -> Workbench API Boundary
       -> POST /api/xuanyuan/simulate
           -> workbench-xuanyuan-routes
-              -> GrassEyeWorkbenchHandle.startXuanyuanTask
+              -> GrassEyeWorkbenchHandle.enqueueXuanyuanTask
                   -> src/plugins/xuanyuan
                       -> governed AiFeedInput
                           -> AI Input Gateway
@@ -52,9 +52,13 @@ External Website / xuanxue-web
                                       -> xuanyuan task record
 ```
 
-Xuanyuan start 只负责校验并持久化 `accepted` 任务，然后返回 202。唯一持久化队列 owner
+Xuanyuan enqueue 只负责校验并持久化 `queued` 任务，然后返回 202。唯一持久化队列 owner
 以 lease/heartbeat 领取任务，并发数量服从 AI Input Gateway 的实际容量；没有第二执行器，
 也没有进程内 `void Promise` 作为任务真相。
+
+`sourceProject + requestId` 是幂等身份：完全相同的规范化请求重放只返回原 taskId；同一身份
+携带不同请求内容直接失败，不会创建第二聊天。任务创建时同时持久化 `taskName` 与
+`taskLabelKey`，taskName 只由 allowlisted label 加 taskId 的短追踪组成。
 
 ```txt
 accepted
@@ -62,14 +66,17 @@ accepted
 → waiting_for_gateway_capacity
 → waiting_for_provider_submit
 → waiting_for_provider_response
+→ response_checkpointed
+→ recovery_pending（提交后中断）
 → response_captured
 
 terminal: review_required | failed | cancelled
 ```
 
-重启扫描 queued 与非终态任务。尚未提交的任务可以继续领取；已经提交的任务只允许携带
+重启扫描 queued、running 与 recovery_pending。尚未提交的任务可以继续领取；已经提交的任务只允许携带
 内部 gateway execution id 恢复持久化系统聊天名与 turn marker，在同一个物理 ChatGPT
-标签页中点击对应聊天、核对 marker 并继续轮询，不得重新调用发送阶段。
+标签页中点击对应聊天、核对 marker 并继续轮询，不得重新调用发送阶段。Gateway 已持久化
+回答 checkpoint 时，Xuanyuan 只等待其完成改名与证据投影，不再消费一次 AI 分析。
 
 续聊仍走同一条链，不新增 route、server、provider adapter 或工作流：
 
@@ -114,6 +121,11 @@ src/plugins/xuanyuan/
   index.ts
   xuanyuan.schema.ts
   xuanyuan.flow.ts
+  xuanyuan.store.ts
+  xuanyuan.task.ts
+  xuanyuan.queue.ts
+  xuanyuan-queue-owner.ts
+  xuanyuan-task-identity.ts
 ```
 
 `xuanyuan.flow.ts` 可以 import AI Input Gateway public contract only:
@@ -189,6 +201,8 @@ Task result must expose:
 
 ```txt
 taskId
+taskName
+taskLabelKey
 requestId
 sourceProject
 scenario
@@ -199,6 +213,8 @@ rawOutputHash
 rawResponseText
 providerProof
 transportWarnings
+progress
+recovery
 continuationTaskId
 conversationProof
 failureReason
@@ -220,6 +236,14 @@ review_required
 failed
 ```
 
+已经提交或已经 checkpoint 的 provider work 遇到浏览器、改名、进程或临时环境失败时必须是：
+
+```txt
+recovery_pending
+```
+
+并保留 attemptCount、lastFailureReason、recoverable 与 recoveryDirective。
+
 ## QA Plan
 
 Acceptance must prove:
@@ -239,6 +263,10 @@ HTTP 202 is backed by persisted accepted work before response
 ten independent tasks can reach provider waiting concurrently when capacity permits
 capacity overflow remains queued
 restart resumes exact submitted attempts without duplicate provider submission
+12 concurrent named tasks retain exact task/result binding
+same sourceProject plus requestId replay returns the original task
+post-submit failure persists recovery_pending and the next coordinator resumes the same task id
+response-checkpointed work finishes without another provider analysis
 no fire-and-forget task execution remains
 ```
 

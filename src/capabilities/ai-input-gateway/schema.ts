@@ -20,6 +20,29 @@ const AiFeedParseStatusSchema = z.enum(["json_valid", "json_invalid", "not_reque
 const AiFeedSchemaValidationStatusSchema = z.enum(["valid", "invalid", "not_applicable"]);
 const AiFeedTransportSchema = z.enum(["api", "web-chat"]);
 
+export const AiTaskLabelKeySchema = z.enum([
+  "seo_research",
+  "seo_article",
+  "hehun_analysis",
+  "bazi_analysis",
+  "qimen_analysis",
+  "naming_analysis",
+  "deep_research",
+  "amazon_product_mining",
+  "facebook_video_mining",
+  "pick3_analysis",
+  "full_corpus_analysis",
+  "system_acceptance",
+  "generic_ai",
+]);
+
+const AiTaskIdentitySchema = z.object({
+  labelKey: AiTaskLabelKeySchema,
+  sourceProject: z.string().min(1).max(80).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
+  taskKind: z.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
+  sourceTaskId: z.string().min(1).max(180).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
+}).strict();
+
 const AiFeedInputRefSchema = z.object({
   id: z.string().min(1),
   kind: z.string().min(1),
@@ -40,6 +63,7 @@ const AiFeedProviderContinuationRefSchema = z.object({
 
 export const AiFeedInputSchema = z.object({
   providerKind: AiInputGatewayProviderKindSchema,
+  taskIdentity: AiTaskIdentitySchema,
   promptPackageId: z.string().min(1),
   promptContractId: z.string().min(1),
   expectedOutputSchemaRef: z.string().min(1).nullable().default(null),
@@ -154,6 +178,7 @@ export const AiFeedResultSchema = z.object({
 
 export type AiInputGatewayProviderKind = z.infer<typeof AiInputGatewayProviderKindSchema>;
 export type AiInputGatewayChildCapabilityId = z.infer<typeof AiInputGatewayChildCapabilityIdSchema>;
+export type AiTaskLabelKey = z.infer<typeof AiTaskLabelKeySchema>;
 export type AiFeedInput = z.infer<typeof AiFeedInputSchema>;
 export type AiFeedProviderProof = z.infer<typeof AiFeedProviderProofSchema>;
 export type AiFeedResult = z.infer<typeof AiFeedResultSchema>;

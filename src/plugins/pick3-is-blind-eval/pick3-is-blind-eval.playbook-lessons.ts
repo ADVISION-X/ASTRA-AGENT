@@ -99,6 +99,12 @@ const buildReviewGatewayInput = (input: {
   image: Pick3ImageRecord;
 }): AiFeedInput => ({
   providerKind: input.failureReview.providerKind,
+  taskIdentity: {
+    labelKey: "pick3_analysis",
+    sourceProject: "pick3-is-blind-eval",
+    taskKind: "playbook-failure-review",
+    sourceTaskId: input.failureReview.failureReviewId,
+  },
   promptPackageId: `pick3-playbook-review:${input.failureReview.batchId}:${input.failureReview.imageId}:${input.failureReview.failureReviewId}`,
   // Must contain "pick3-is-blind-eval" so the web-chat tab-reuse, workspace resolution, and
   // rate-limit dialog click-ack guards all recognize this as a Pick3 request — otherwise every

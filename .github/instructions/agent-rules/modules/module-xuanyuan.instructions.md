@@ -30,8 +30,9 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
 - Switching to a future real API-key provider must happen behind AI Input Gateway without changing the website-side request/result contract.
 - Once AI Input Gateway captures a complete provider response, Xuanyuan must return `response_captured` with the exact raw text regardless of parsing, schema, tab-close, source-restore, focus, or cleanup outcomes.
 - Accepted tasks must enter one durable fair queue. Xuanyuan workers may run multiple independent tasks concurrently up to AI Input Gateway's actual capacity, while callers remain unaware of browser concurrency details.
+- Every accepted task must persist a stable `taskId`, governed human-readable `taskName`, label key, source project, scenario and request id before returning 202. Replaying the same `sourceProject + requestId` with the same canonical request returns the original task; a different request under that identity fails closed.
 - Process restart must reclaim queued work and exact submitted in-flight work. A submitted task may resume response polling only through the persisted AI Input Gateway system-chat-title plus turn-marker identity; it must never submit the prompt again.
-- Queue and progress states must distinguish waiting for runtime capacity, waiting for the serialized single-tab action slot, submitted provider work, and captured response without exposing internal chat title, tab or marker identity.
+- Queue and progress states must distinguish waiting for runtime capacity, waiting for the serialized single-tab action slot, submitted provider work, response checkpointed, recovery pending and captured response without exposing internal chat title, tab or marker identity. Failure records must retain attempt count, last failure, recoverability and next action.
 
 ## Forbidden
 
@@ -94,23 +95,26 @@ Scope: `xuanyuan` is the only GrassEye owner for the temporary AI API simulation
   "capabilityDomain": "xuanyuan",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+acceptance+audit",
-  "summary": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+  "summary": "Xuanyuan owns one leased durable task queue with idempotent named tasks, bounded parallel execution and exact cross-restart provider recovery.",
   "required": [
     "HTTP start persists accepted work before returning 202 and never depends on an untracked fire-and-forget promise.",
     "A single queue owner claims persisted work with lease and heartbeat semantics, runs independent tasks concurrently up to gateway capacity, and leaves overflow queued.",
-    "Restart recovery resumes queued tasks and exact submitted gateway attempts without duplicating prompts.",
-    "Public task progress exposes stable queue and provider-wait states but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
+    "The unique sourceProject plus requestId identity is idempotent: an identical retry returns the original persisted task and a conflicting retry fails before provider work. Each task persists a governed readable taskName derived from an allowlisted label key plus opaque trace.",
+    "Restart recovery resumes queued tasks, response-checkpointed tasks and exact submitted gateway attempts without duplicating prompts; post-submit failure is recovery_pending rather than a terminal loss.",
+    "Public task progress exposes stable queue, provider-wait, response-checkpointed and recovery-pending states plus attempt and failure trace, but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
   ],
   "forbidden": [
     "void fire-and-forget execution as task durability",
     "caller-controlled concurrency or browser identity",
     "duplicate submit on restart",
+    "creating a second task for an identical sourceProject plus requestId replay",
+    "terminally discarding a submitted or response-checkpointed provider attempt",
     "second queue owner, compatibility queue, shadow executor or legacy serial mode"
   ],
   "clauses": [
     {
       "clauseId": "grasseye-xuanyuan-002-requirement",
-      "statement": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+      "statement": "Xuanyuan owns one leased durable task queue with idempotent named tasks, bounded parallel execution and exact cross-restart provider recovery.",
       "evidenceMode": "acceptance",
       "ownerDomain": "xuanyuan"
     }

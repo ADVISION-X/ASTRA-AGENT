@@ -15,6 +15,12 @@ const dataDir = mkdtempSync(path.join(os.tmpdir(), "amazon-web-chat-restore-"));
 
 const createRequest = (promptContractId: string): AiFeedInput => ({
   providerKind: "gpt-web-chat",
+  taskIdentity: {
+    labelKey: "amazon_product_mining",
+    sourceProject: "amazon-product-mining",
+    taskKind: "restore-acceptance",
+    sourceTaskId: `${promptContractId}-task`,
+  },
   promptPackageId: `${promptContractId}-package`,
   promptContractId,
   expectedOutputSchemaRef: null,

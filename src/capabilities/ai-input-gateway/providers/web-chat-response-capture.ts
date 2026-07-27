@@ -10,11 +10,30 @@ import { assertActiveProviderPage } from "./web-chat-shared-support.js";
 import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1_500;
-const MANAGED_GPT_POLL_INTERVAL_MS = 60_000;
+const DEFAULT_MANAGED_GPT_POLL_INTERVAL_MS = 5_000;
+const MIN_MANAGED_GPT_POLL_INTERVAL_MS = 1_000;
+const MAX_MANAGED_GPT_POLL_INTERVAL_MS = 60_000;
 const GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS = 250;
 const STABLE_ROUNDS_REQUIRED = 2;
 const MANAGED_GPT_STABLE_DURATION_MS = 3_000;
 const PICK3_NO_RESULT_RECOVERY_TIMEOUT_MS = 200_000;
+
+export const resolveManagedGptPollIntervalMs = (
+  rawValue = process.env.WEB_CHAT_PATROL_INTERVAL_MS,
+): number => {
+  if (!rawValue?.trim()) return DEFAULT_MANAGED_GPT_POLL_INTERVAL_MS;
+  const parsed = Number(rawValue);
+  if (
+    !Number.isInteger(parsed)
+    || parsed < MIN_MANAGED_GPT_POLL_INTERVAL_MS
+    || parsed > MAX_MANAGED_GPT_POLL_INTERVAL_MS
+  ) {
+    throw new Error(
+      `WEB_CHAT_PATROL_INTERVAL_MS must be an integer from ${MIN_MANAGED_GPT_POLL_INTERVAL_MS} to ${MAX_MANAGED_GPT_POLL_INTERVAL_MS}.`,
+    );
+  }
+  return parsed;
+};
 
 export const emitWebChatStage = (input: {
   request: AiFeedInput;
@@ -79,7 +98,7 @@ export const extractWebChatConversation = async (input: {
   const startedAtMs = Date.now();
   const pollIntervalMs = input.request.providerKind === "gpt-web-chat"
     && input.context.webChatExecution
-    ? MANAGED_GPT_POLL_INTERVAL_MS
+    ? resolveManagedGptPollIntervalMs()
     : input.request.providerKind === "gemini-web-chat"
       ? GEMINI_PICK3_RESPONSE_POLL_INTERVAL_MS
       : POLL_INTERVAL_MS;

@@ -19,10 +19,24 @@ export type AiInputGatewayExecuteOptions = {
   signal?: AbortSignal;
   executionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
+  onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
+};
+
+export type AiInputGatewayProgress = {
+  phase:
+    | "waiting_for_capacity"
+    | "waiting_for_submit_slot"
+    | "submitting"
+    | "waiting_provider"
+    | "response_checkpointed"
+    | "recovery_pending"
+    | "response_captured";
+  occurredAt: string;
 };
 
 export interface AiInputGatewayAbilityGroup {
   readonly abilityGroupId: AiInputGatewayAbilityGroupId;
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
+  getRuntimeCapacity(): number;
   execute(input: unknown, options?: AiInputGatewayExecuteOptions): Promise<AiFeedResult>;
 }

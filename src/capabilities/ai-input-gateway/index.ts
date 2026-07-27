@@ -2,6 +2,7 @@ export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
 export {
   type AiFeedInput,
   type AiFeedResult,
+  type AiTaskLabelKey,
 } from "./schema.js";
 export type {
   AiProviderAdapter,
@@ -11,4 +12,7 @@ export type {
   WebChatAttachmentTransportKind,
   WebChatAttachmentUploadProof,
 } from "./contracts/ai-provider-adapter.contract.js";
-export type { AiInputGatewayAbilityGroup } from "./contract.js";
+export type {
+  AiInputGatewayAbilityGroup,
+  AiInputGatewayProgress,
+} from "./contract.js";

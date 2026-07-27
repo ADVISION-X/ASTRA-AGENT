@@ -11,33 +11,12 @@ import type {
   WebChatAttachmentUploadProof,
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import {
+  createXuanyuanTaskCoordinator,
   getLatestXuanyuanTask,
   getXuanyuanTaskStatus,
   listXuanyuanHistory,
-  startXuanyuanTask,
-  startXuanyuanTaskAsync,
 } from "../../src/plugins/xuanyuan/index.js";
 import { runSpawn } from "../../src/lib/browser/current-chrome-window-control.js";
-
-const waitForTerminalXuanyuanTask = async (
-  dataDir: string,
-  taskId: string,
-): Promise<NonNullable<Awaited<ReturnType<typeof getXuanyuanTaskStatus>>>> => {
-  const deadline = Date.now() + 2_000;
-  while (Date.now() < deadline) {
-    const task = await getXuanyuanTaskStatus({ dataDir }, taskId);
-    if (
-      task
-      && task.status !== "accepted"
-      && task.status !== "queued"
-      && task.status !== "running"
-    ) {
-      return task;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-  throw new Error("timed out waiting for asynchronous Xuanyuan acceptance task");
-};
 
 const splitUtf8Output = await runSpawn(process.execPath, [
   "-e",
@@ -142,11 +121,20 @@ const buildFixtureFeedResult = (input: {
 const buildFixtureGateway = (rawText: string): AiInputGatewayAbilityGroup => ({
   abilityGroupId: "ai-input-gateway",
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+  getRuntimeCapacity: () => 10,
   async execute(input: unknown, options): Promise<AiFeedResult> {
     const request = input as AiFeedInput;
+    await options?.onProgress?.({
+      phase: "waiting_for_capacity",
+      occurredAt: new Date().toISOString(),
+    });
     const uploadedFiles = buildUploadedFiles(request);
     const attachmentUploadProof = buildAttachmentUploadProof(uploadedFiles);
     await options?.onAttachmentUploadCompleted?.(attachmentUploadProof);
+    await options?.onProgress?.({
+      phase: "response_captured",
+      occurredAt: new Date().toISOString(),
+    });
     return buildFixtureFeedResult({
       request,
       rawText,
@@ -158,6 +146,23 @@ const buildFixtureGateway = (rawText: string): AiInputGatewayAbilityGroup => ({
 
 const dataDir = await mkdtemp(path.join(tmpdir(), "xuanyuan-acceptance-"));
 try {
+  const runFixtureTask = async (
+    rawText: string,
+    request: unknown,
+  ) => {
+    const coordinator = createXuanyuanTaskCoordinator({
+      dataDir,
+      aiInputGateway: buildFixtureGateway(rawText),
+    });
+    await coordinator.init();
+    try {
+      const queued = await coordinator.enqueue(request);
+      await coordinator.waitForIdle();
+      return (await getXuanyuanTaskStatus({ dataDir }, queued.taskId))!;
+    } finally {
+      await coordinator.close();
+    }
+  };
   const webChatOpenSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-open.ts"),
     "utf8",
@@ -216,10 +221,7 @@ try {
   }
   assert.equal(attachmentCapabilitySource.includes("fallback"), false, "Xuanyuan Web Chat attachment child must not fallback between transports");
 
-  const succeeded = await startXuanyuanTask({
-    dataDir,
-    aiInputGateway: buildFixtureGateway("{\"answer\":\"ok\"}"),
-  }, {
+  const succeeded = await runFixtureTask("{\"answer\":\"ok\"}", {
     requestId: "acceptance-request-1",
     sourceProject: "xuanxue-web",
     scenario: "bazi_daily_mode",
@@ -254,10 +256,7 @@ try {
   assert.equal(succeeded.progress.attachmentUploadProof?.expectedFileCount, 1);
   assert.equal(succeeded.progress.attachmentUploadProof?.detectedFileCount, 1);
 
-  const continued = await startXuanyuanTask({
-    dataDir,
-    aiInputGateway: buildFixtureGateway("{\"continued\":\"ok\"}"),
-  }, {
+  const continued = await runFixtureTask("{\"continued\":\"ok\"}", {
     requestId: "acceptance-request-continuation",
     sourceProject: "xuanxue-web",
     scenario: "bazi_question_analysis",
@@ -279,10 +278,7 @@ try {
   assert.equal(continued.conversationProof?.verified, true);
   assert.equal(continued.conversationProof?.requestedProviderPageUrl, succeeded.providerProof?.webChatUrl);
 
-  await assert.rejects(() => startXuanyuanTask({
-    dataDir,
-    aiInputGateway: buildFixtureGateway("must-not-run"),
-  }, {
+  await assert.rejects(() => runFixtureTask("must-not-run", {
     requestId: "acceptance-request-invalid-continuation",
     sourceProject: "xuanxue-web",
     scenario: "bazi_question_analysis",
@@ -306,10 +302,7 @@ try {
   assert.equal((await listXuanyuanHistory({ dataDir })).length, 2);
   assert.match(await readFile(path.join(dataDir, "runtime-data", "xuanyuan", "tasks", `${succeeded.taskId}.json`), "utf8"), /promptPackageSnapshot/);
 
-  const invalidJsonCaptured = await startXuanyuanTask({
-    dataDir,
-    aiInputGateway: buildFixtureGateway("not json"),
-  }, {
+  const invalidJsonCaptured = await runFixtureTask("not json", {
     requestId: "acceptance-request-2",
     sourceProject: "xuanxue-web",
     scenario: "bazi_daily_mode",
@@ -328,10 +321,12 @@ try {
   assert.equal(invalidJsonCaptured.rawResponseText, "not json");
   assert.equal(invalidJsonCaptured.failureReason, null);
 
-  const asyncStarted = await startXuanyuanTaskAsync({
+  const asyncCoordinator = createXuanyuanTaskCoordinator({
     dataDir,
     aiInputGateway: buildFixtureGateway("{\"async\":\"ok\"}"),
-  }, {
+  });
+  await asyncCoordinator.init();
+  const asyncStarted = await asyncCoordinator.enqueue({
     requestId: "acceptance-request-3",
     sourceProject: "xuanxue-web",
     scenario: "bazi_daily_mode",
@@ -347,10 +342,144 @@ try {
     maxFileBytes: 1,
   });
   assert.equal(asyncStarted.status, "queued");
-  const asyncCompleted = await waitForTerminalXuanyuanTask(dataDir, asyncStarted.taskId);
+  await asyncCoordinator.waitForIdle();
+  const asyncCompleted = (await getXuanyuanTaskStatus({ dataDir }, asyncStarted.taskId))!;
+  await asyncCoordinator.close();
   assert.equal(asyncCompleted.status, "response_captured");
   assert.equal(asyncCompleted.progress.executionId, asyncStarted.taskId);
   assert.equal(asyncCompleted.progress.phase, "terminal");
+  assert.match(asyncCompleted.taskName, /^八字分析｜[A-F0-9]{8}$/u);
+
+  const requestFor = (index: number) => ({
+    requestId: `acceptance-concurrent-${index}`,
+    sourceProject: "xuanxue-web",
+    scenario: "bazi_concurrent_analysis",
+    providerKind: "gpt-web-chat" as const,
+    promptPackageId: `acceptance-concurrent-package-${index}`,
+    promptContractId: "acceptance-concurrent-contract",
+    expectedOutputSchemaRef: null,
+    textPrompt: `Concurrent request ${index}.`,
+    inputRefs: [],
+    timeoutMs: 1000,
+    maxInputChars: 1000,
+    maxFileCount: 0,
+    maxFileBytes: 1,
+  });
+  let activeFeeds = 0;
+  let maxActiveFeeds = 0;
+  const concurrentGateway: AiInputGatewayAbilityGroup = {
+    abilityGroupId: "ai-input-gateway",
+    listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+    getRuntimeCapacity: () => 10,
+    async execute(input: unknown): Promise<AiFeedResult> {
+      const request = input as AiFeedInput;
+      activeFeeds += 1;
+      maxActiveFeeds = Math.max(maxActiveFeeds, activeFeeds);
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      activeFeeds -= 1;
+      return buildFixtureFeedResult({
+        request,
+        rawText: request.taskIdentity.sourceTaskId,
+        uploadedFiles: [],
+        attachmentUploadProof: buildAttachmentUploadProof([]),
+      });
+    },
+  };
+  const concurrentCoordinator = createXuanyuanTaskCoordinator({
+    dataDir,
+    aiInputGateway: concurrentGateway,
+  });
+  await concurrentCoordinator.init();
+  const concurrentTasks = await Promise.all(
+    Array.from({ length: 12 }, (_, index) =>
+      concurrentCoordinator.enqueue(requestFor(index))),
+  );
+  const idempotentReplay = await concurrentCoordinator.enqueue(requestFor(0));
+  assert.equal(idempotentReplay.taskId, concurrentTasks[0]?.taskId);
+  await concurrentCoordinator.waitForIdle();
+  await concurrentCoordinator.close();
+  assert.equal(new Set(concurrentTasks.map((task) => task.taskId)).size, 12);
+  assert.equal(maxActiveFeeds, 10, "durable queue must use the gateway-owned runtime capacity");
+  for (const task of concurrentTasks) {
+    const completed = (await getXuanyuanTaskStatus({ dataDir }, task.taskId))!;
+    assert.equal(completed.rawResponseText, task.taskId);
+    assert.match(completed.taskName, /^八字分析｜[A-F0-9]{8}$/u);
+  }
+
+  const recoveryRequest = {
+    ...requestFor(99),
+    requestId: "acceptance-next-day-recovery",
+    promptPackageId: "acceptance-next-day-recovery-package",
+  };
+  const recoveryFailureGateway: AiInputGatewayAbilityGroup = {
+    abilityGroupId: "ai-input-gateway",
+    listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+    getRuntimeCapacity: () => 10,
+    async execute(input: unknown, options): Promise<AiFeedResult> {
+      const request = input as AiFeedInput;
+      await options?.onProgress?.({
+        phase: "waiting_provider",
+        occurredAt: new Date().toISOString(),
+      });
+      await options?.onProgress?.({
+        phase: "recovery_pending",
+        occurredAt: new Date().toISOString(),
+      });
+      return {
+        ...buildFixtureFeedResult({
+          request,
+          rawText: "",
+          uploadedFiles: [],
+          attachmentUploadProof: buildAttachmentUploadProof([]),
+        }),
+        status: "failed",
+        normalizedText: null,
+        rawResponseText: null,
+        rawOutputRef: null,
+        rawOutputHash: null,
+        failureReason: "simulated_process_interruption_after_submission",
+      };
+    },
+  };
+  const interruptedCoordinator = createXuanyuanTaskCoordinator({
+    dataDir,
+    aiInputGateway: recoveryFailureGateway,
+  });
+  await interruptedCoordinator.init();
+  const interrupted = await interruptedCoordinator.enqueue(recoveryRequest);
+  await interruptedCoordinator.waitForIdle();
+  await interruptedCoordinator.close();
+  const recoveryPending = (await getXuanyuanTaskStatus({ dataDir }, interrupted.taskId))!;
+  assert.equal(recoveryPending.status, "recovery_pending");
+  assert.equal(
+    recoveryPending.recovery.recoveryDirective,
+    "resume_exact_provider_conversation",
+  );
+
+  const resumedCoordinator = createXuanyuanTaskCoordinator({
+    dataDir,
+    aiInputGateway: buildFixtureGateway("{\"resumed\":\"without-resubmit\"}"),
+  });
+  await resumedCoordinator.init();
+  await resumedCoordinator.waitForIdle();
+  await resumedCoordinator.close();
+  const recovered = (await getXuanyuanTaskStatus({ dataDir }, interrupted.taskId))!;
+  assert.equal(recovered.status, "response_captured");
+  assert.equal(recovered.taskId, interrupted.taskId);
+  assert.equal(recovered.recovery.attemptCount, 2);
+  assert.equal(recovered.rawResponseText, "{\"resumed\":\"without-resubmit\"}");
+
+  const ownerA = createXuanyuanTaskCoordinator({
+    dataDir,
+    aiInputGateway: buildFixtureGateway("owner-a"),
+  });
+  const ownerB = createXuanyuanTaskCoordinator({
+    dataDir,
+    aiInputGateway: buildFixtureGateway("owner-b"),
+  });
+  await ownerA.init();
+  await assert.rejects(() => ownerB.init(), /XUANYUAN_QUEUE_OWNER_ACTIVE/);
+  await ownerA.close();
 } finally {
   await rm(dataDir, { recursive: true, force: true });
 }

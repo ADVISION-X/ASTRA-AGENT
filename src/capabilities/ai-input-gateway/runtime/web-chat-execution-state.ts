@@ -7,7 +7,9 @@ import type {
   WebChatAttachmentUploadProof,
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
+import type { AiTaskLabelKey } from "../schema.js";
 import { buildHumanReadableSystemChatTitle } from "./web-chat-system-title.js";
+import type { WebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 
 export type WebChatExecutionStatus =
   | "waiting_for_capacity"
@@ -16,9 +18,20 @@ export type WebChatExecutionStatus =
   | "submitted_transient"
   | "conversation_canonicalized"
   | "waiting_provider"
+  | "response_checkpointed"
+  | "recovery_pending"
   | "response_captured"
   | "review_required"
   | "failed";
+
+export type WebChatExecutionFailure = {
+  occurredAt: string;
+  attemptId: string;
+  phase: WebChatExecutionStatus;
+  classification: "recovery_pending" | "review_required" | "failed";
+  recoverable: boolean;
+  reason: string;
+};
 
 export type WebChatExecutionRecord = {
   schemaVersion: "web-chat-execution-v2";
@@ -34,7 +47,9 @@ export type WebChatExecutionRecord = {
   submission: WebChatSubmissionProof | null;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof | null;
+  responseCheckpoint: WebChatResponseCheckpoint | null;
   responseHash: string | null;
+  failures: WebChatExecutionFailure[];
   createdAt: string;
   updatedAt: string;
 };
@@ -78,7 +93,7 @@ export const startOrResumeWebChatExecution = async (input: {
   dataDir: string;
   executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
-  promptContractId: string;
+  taskLabelKey: AiTaskLabelKey;
   inputHash: string;
   textPrompt: string;
 }): Promise<{ record: WebChatExecutionRecord; resume: boolean }> => {
@@ -98,6 +113,8 @@ export const startOrResumeWebChatExecution = async (input: {
       existing.status === "submitted_transient"
       || existing.status === "conversation_canonicalized"
       || existing.status === "waiting_provider"
+      || existing.status === "response_checkpointed"
+      || existing.status === "recovery_pending"
       || existing.status === "review_required"
     ) {
       if (!existing.submission) {
@@ -117,7 +134,7 @@ export const startOrResumeWebChatExecution = async (input: {
   const turnMarker = `GRASSEYE_TURN_${randomUUID().replaceAll("-", "")}`;
   const systemChatTitle = input.providerKind === "gpt-web-chat"
     ? buildHumanReadableSystemChatTitle({
-        promptContractId: input.promptContractId,
+        labelKey: input.taskLabelKey,
         executionId: input.executionId,
         turnMarker,
         createdAt: now,
@@ -137,7 +154,9 @@ export const startOrResumeWebChatExecution = async (input: {
     submission: null,
     uploadedFiles: [],
     attachmentUploadProof: null,
+    responseCheckpoint: null,
     responseHash: null,
+    failures: [],
     createdAt: now,
     updatedAt: now,
   };

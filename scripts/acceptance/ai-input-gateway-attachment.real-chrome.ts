@@ -48,6 +48,12 @@ for (const count of counts) {
   const marker = `REAL_CHROME_ATTACHMENT_${count}_${runId.slice(0, 8)}`;
   const result = await gateway.execute({
     providerKind: "gpt-web-chat",
+    taskIdentity: {
+      labelKey: "system_acceptance",
+      sourceProject: "agent",
+      taskKind: "real-chrome-attachment",
+      sourceTaskId: `${runId}:${count}`,
+    },
     promptPackageId: `real-chrome-attachment-${count}-${runId}`,
     promptContractId: "real-chrome-attachment-proof-v1",
     expectedOutputSchemaRef: null,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T00:55:35.860Z",
+  "generatedAt": "2026-07-27T12:25:12.879Z",
   "status": "PASS",
   "inspectorFileCount": 27,
   "generatedPlanEntryCount": 27,
@@ -15,6 +15,7 @@
     "scripts/audit/ci-full.ts",
     "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "scripts/audit/domains/ai-input-gateway/manifest.json",
+    "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",

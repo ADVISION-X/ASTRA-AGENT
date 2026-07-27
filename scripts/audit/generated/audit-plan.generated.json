@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T00:54:46.100Z",
+  "generatedAt": "2026-07-27T12:24:24.660Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -124,14 +124,22 @@
           "checkIds": [
             "ai-input-gateway/authority-present",
             "ai-input-gateway/bounded-parallel-runtime",
+            "ai-input-gateway/bounded-patrol-cadence",
+            "ai-input-gateway/bounded-rename-recovery",
+            "ai-input-gateway/controlled-chrome-window-identity",
             "ai-input-gateway/deferred-completed-chat-rename",
             "ai-input-gateway/exact-sidebar-row-rename",
+            "ai-input-gateway/failure-ledger",
             "ai-input-gateway/human-readable-system-chat-title",
             "ai-input-gateway/no-chatgpt-page-refresh",
+            "ai-input-gateway/offscreen-sidebar-recovery",
             "ai-input-gateway/parallel-acceptance",
+            "ai-input-gateway/response-checkpoint-recovery",
             "ai-input-gateway/submission-priority-patrol",
             "ai-input-gateway/shared-rate-limit-watcher",
             "ai-input-gateway/live-generation-proof",
+            "ai-input-gateway/structured-task-identity",
+            "ai-input-gateway/transient-submission-checkpoint",
             "ai-input-gateway/removed-old-region",
             "ai-input-gateway/source-present"
           ],
@@ -13885,8 +13893,13 @@
           "clauseId": "grasseye-xuanyuan-001-requirement",
           "checkIds": [
             "xuanyuan/ast-contract",
+            "xuanyuan/concurrency-recovery-acceptance",
+            "xuanyuan/durable-queue-owner",
             "xuanyuan/file-present",
             "xuanyuan/forbidden-provider-import",
+            "xuanyuan/no-fire-and-forget",
+            "xuanyuan/recovery-ledger",
+            "xuanyuan/task-idempotency",
             "xuanyuan/package-script"
           ],
           "sourceEvidence": [
@@ -13902,8 +13915,13 @@
           "clauseId": "grasseye-xuanyuan-002-requirement",
           "checkIds": [
             "xuanyuan/ast-contract",
+            "xuanyuan/concurrency-recovery-acceptance",
+            "xuanyuan/durable-queue-owner",
             "xuanyuan/file-present",
             "xuanyuan/forbidden-provider-import",
+            "xuanyuan/no-fire-and-forget",
+            "xuanyuan/recovery-ledger",
+            "xuanyuan/task-idempotency",
             "xuanyuan/package-script"
           ],
           "sourceEvidence": [

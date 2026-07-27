@@ -2,6 +2,7 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
+  WebChatExecutionContext,
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
@@ -14,6 +15,7 @@ import {
 } from "./web-chat-shared-support.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
 import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
+import { readWebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
 
 const finalizeCompletedChatGptTitle = async (input: {
   browser: BrowserController;
@@ -78,20 +80,100 @@ return { pageUrl: location.href, markerCount };
   }
 };
 
-export const resumeSubmittedWebChatConversation = async (input: {
+type ResumeConversationInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
   runtimeName: string;
+};
+
+type ResumedConversation = Awaited<
+  ReturnType<typeof extractWebChatConversation>
+>;
+
+const readResumedConversation = async (input: {
+  requestInput: ResumeConversationInput;
+  execution: WebChatExecutionContext;
+  submission: WebChatSubmissionProof;
+}): Promise<ResumedConversation> => {
+  const checkpointAnswer = input.execution.resumeResponseCheckpoint
+    ? await readWebChatResponseCheckpoint(input.execution.resumeResponseCheckpoint!)
+    : null;
+  const conversation = checkpointAnswer === null
+    ? await extractWebChatConversation({
+        ...input.requestInput,
+        previousAssistantCount: input.submission.previousAssistantCount,
+        previousAnswerText: null,
+      })
+    : {
+        answerText: checkpointAnswer,
+        extracted: {
+          status: "success" as const,
+          message: "Recovered from durable web-chat response checkpoint.",
+          answerText: checkpointAnswer,
+          pageUrl: input.execution.resumeResponseCheckpoint!.pageUrl,
+        },
+      };
+  if (!input.execution.resumeResponseCheckpoint) {
+    await input.execution.onResponseCaptured({
+      answerText: conversation.answerText,
+      pageUrl:
+        conversation.extracted.pageUrl
+        ?? input.submission.canonicalConversationUrl
+        ?? input.submission.transientConversationUrl,
+    });
+  }
+  return conversation;
+};
+
+const buildResumedResponse = async (input: {
+  requestInput: ResumeConversationInput;
+  execution: WebChatExecutionContext;
+  submission: WebChatSubmissionProof;
+  conversation: ResumedConversation;
 }): Promise<AiProviderRawResponse> => {
+  const conversationUrl =
+    input.submission.canonicalConversationUrl
+    ?? input.conversation.extracted.pageUrl
+    ?? input.submission.transientConversationUrl;
+  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
+    ...input.requestInput,
+    answerText: input.conversation.answerText,
+    conversationUrl,
+  });
+  return buildWebChatRawResponse({
+    request: input.requestInput.request,
+    runtimeName: input.requestInput.runtimeName,
+    providerUrl: input.requestInput.providerUrl,
+    sourcePageUrlBeforeFeed: null,
+    extracted: { ...input.conversation.extracted, pageUrl: conversationUrl },
+    answerText:
+      htmlArtifact?.htmlDocument
+      ?? jsonArtifact?.jsonText
+      ?? input.conversation.answerText,
+    uploadedFiles: input.execution.resumeUploadedFiles,
+    ...(input.execution.resumeAttachmentUploadProof
+      ? { attachmentUploadProof: input.execution.resumeAttachmentUploadProof }
+      : {}),
+    outputRefs: [
+      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
+      ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
+    ],
+    managedParallelExecution: true,
+  });
+};
+
+export const resumeSubmittedWebChatConversation = async (
+  input: ResumeConversationInput,
+): Promise<AiProviderRawResponse> => {
   await verifyResumableTurn(input);
   const execution = input.context.webChatExecution!;
   const submission = execution.resumeSubmission!;
-  const conversation = await extractWebChatConversation({
-    ...input,
-    previousAssistantCount: submission.previousAssistantCount,
-    previousAnswerText: null,
+  const conversation = await readResumedConversation({
+    requestInput: input,
+    execution,
+    submission,
   });
   const finalizedSubmission = await captureWebChatSubmissionProof({
     ...input,
@@ -107,35 +189,11 @@ export const resumeSubmittedWebChatConversation = async (input: {
       submittedAt: submission.submittedAt,
     },
   });
-  const conversationUrl =
-    renamedSubmission.canonicalConversationUrl ??
-    conversation.extracted.pageUrl ??
-    submission.canonicalConversationUrl ??
-    submission.transientConversationUrl;
-  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
-    ...input,
-    answerText: conversation.answerText,
-    conversationUrl,
-  });
-  const response = buildWebChatRawResponse({
-    request: input.request,
-    runtimeName: input.runtimeName,
-    providerUrl: input.providerUrl,
-    sourcePageUrlBeforeFeed: null,
-    extracted: { ...conversation.extracted, pageUrl: conversationUrl },
-    answerText:
-      htmlArtifact?.htmlDocument ??
-      jsonArtifact?.jsonText ??
-      conversation.answerText,
-    uploadedFiles: execution.resumeUploadedFiles,
-    ...(execution.resumeAttachmentUploadProof
-      ? { attachmentUploadProof: execution.resumeAttachmentUploadProof }
-      : {}),
-    outputRefs: [
-      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
-      ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
-    ],
-    managedParallelExecution: true,
+  const response = await buildResumedResponse({
+    requestInput: input,
+    execution,
+    submission: renamedSubmission,
+    conversation,
   });
   persistWorkspaceAfterResponse({
     request: input.request,

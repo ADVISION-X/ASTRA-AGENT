@@ -1,25 +1,25 @@
 import { createHash } from "node:crypto";
 
-const SYSTEM_CHAT_TITLE_LABELS = [
-  { includes: "public-knowledge", label: "SEO文章" },
-  { includes: "hehun", label: "合婚分析" },
-  { includes: "bazi", label: "八字分析" },
-  { includes: "qimen", label: "奇门分析" },
-  { includes: "naming", label: "起名分析" },
-  { includes: "deep-research", label: "深度研究" },
-  { includes: "amazon-product-mining", label: "亚马逊选品" },
-  { includes: "facebook-product-video-mining", label: "视频选品" },
-  { includes: "pick3", label: "Pick3分析" },
-  { includes: "full-corpus", label: "全书分析" },
-  { includes: "acceptance", label: "系统验收" },
-] as const;
+import type { AiTaskLabelKey } from "../schema.js";
 
-const resolveSystemChatTitleLabel = (promptContractId: string): string => {
-  const normalizedContractId = promptContractId.toLowerCase();
-  return SYSTEM_CHAT_TITLE_LABELS.find(({ includes }) =>
-    normalizedContractId.includes(includes)
-  )?.label ?? "AI任务";
+const SYSTEM_CHAT_TITLE_LABELS: Record<AiTaskLabelKey, string> = {
+  seo_research: "SEO资料研究",
+  seo_article: "SEO文章生成",
+  hehun_analysis: "合婚分析",
+  bazi_analysis: "八字分析",
+  qimen_analysis: "奇门分析",
+  naming_analysis: "起名分析",
+  deep_research: "深度研究",
+  amazon_product_mining: "亚马逊选品",
+  facebook_video_mining: "视频选品",
+  pick3_analysis: "Pick3分析",
+  full_corpus_analysis: "全书分析",
+  system_acceptance: "系统验收",
+  generic_ai: "AI任务",
 };
+
+export const resolveAiTaskLabel = (labelKey: AiTaskLabelKey): string =>
+  SYSTEM_CHAT_TITLE_LABELS[labelKey];
 
 const compactUtcTime = (createdAt: string): string => {
   const parsed = new Date(createdAt);
@@ -30,7 +30,7 @@ const compactUtcTime = (createdAt: string): string => {
 };
 
 export const buildHumanReadableSystemChatTitle = (input: {
-  promptContractId: string;
+  labelKey: AiTaskLabelKey;
   executionId: string;
   turnMarker: string;
   createdAt: string;
@@ -42,7 +42,7 @@ export const buildHumanReadableSystemChatTitle = (input: {
     .toUpperCase();
   const markerTrace = input.turnMarker.slice(-4).toUpperCase();
   return [
-    resolveSystemChatTitleLabel(input.promptContractId),
+    resolveAiTaskLabel(input.labelKey),
     compactUtcTime(input.createdAt),
     `${executionTrace}-${markerTrace}`,
   ].join("｜");

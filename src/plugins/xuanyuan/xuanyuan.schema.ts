@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type {
   AiFeedResult,
+  AiInputGatewayProgress,
+  AiTaskLabelKey,
   WebChatAttachmentUploadProof,
 } from "../../capabilities/ai-input-gateway/index.js";
 
@@ -20,8 +22,8 @@ const XuanyuanInputRefSchema = z.object({
 
 export const XuanyuanRequestSchema = z.object({
   requestId: z.string().min(1),
-  sourceProject: z.string().min(1),
-  scenario: z.string().min(1),
+  sourceProject: z.string().min(1).max(80).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
+  scenario: z.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
   providerKind: z.literal("gpt-web-chat").default("gpt-web-chat"),
   promptPackageId: z.string().min(1),
   promptContractId: z.string().min(1),
@@ -49,12 +51,15 @@ export type XuanyuanTaskStatus =
   | "accepted"
   | "queued"
   | "running"
+  | "recovery_pending"
   | "response_captured"
   | "review_required"
   | "failed";
 
 export type XuanyuanTaskRecord = {
   taskId: string;
+  taskName: string;
+  taskLabelKey: AiTaskLabelKey;
   jobId: typeof XUANYUAN_JOB_ID;
   requestId: string;
   sourceProject: string;
@@ -77,8 +82,17 @@ export type XuanyuanTaskRecord = {
   providerProof: AiFeedResult["providerProof"] | null;
   progress: {
     executionId: string;
-    phase: "queued" | "running" | "terminal";
+    phase: "queued" | "running" | "terminal" | AiInputGatewayProgress["phase"];
+    lastTransitionAt: string;
     attachmentUploadProof: WebChatAttachmentUploadProof | null;
+  };
+  recovery: {
+    attemptCount: number;
+    recoverable: boolean;
+    lastAttemptStartedAt: string | null;
+    lastFailureAt: string | null;
+    lastFailureReason: string | null;
+    recoveryDirective: "none" | "resume_exact_provider_conversation";
   };
   continuationTaskId: string | null;
   conversationProof: {

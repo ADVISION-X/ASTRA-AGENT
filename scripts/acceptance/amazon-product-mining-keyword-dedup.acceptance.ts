@@ -66,6 +66,7 @@ let capturedAiInput: { providerKind?: unknown; maxFileCount?: unknown; maxFileBy
 const aiInputGateway = {
   abilityGroupId: "ai-input-gateway" as const,
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once" as const],
+  getRuntimeCapacity: () => 10,
   async execute(input: unknown) {
     capturedAiInput = input as Record<string, unknown>;
     return {
@@ -135,6 +136,7 @@ let generationCallCount = 0;
 const refillGateway = {
   abilityGroupId: "ai-input-gateway" as const,
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once" as const],
+  getRuntimeCapacity: () => 10,
   async execute(input: unknown) {
     const prompt = (input as { textPrompt?: string }).textPrompt ?? "";
     capturedPrompts.push(prompt);

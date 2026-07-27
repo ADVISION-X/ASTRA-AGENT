@@ -136,6 +136,12 @@ export const buildAiFeedRequest = (input: {
   maxFileBytes: number;
 }): AiFeedInput => ({
   providerKind: input.providerKind,
+  taskIdentity: {
+    labelKey: "facebook_video_mining",
+    sourceProject: "facebook-product-video-mining",
+    taskKind: "video-ai-judgment",
+    sourceTaskId: input.runId,
+  },
   promptPackageId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
   promptContractId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
   expectedOutputSchemaRef: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,

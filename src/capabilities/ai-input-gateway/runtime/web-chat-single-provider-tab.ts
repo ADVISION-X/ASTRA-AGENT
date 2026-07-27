@@ -1,4 +1,4 @@
-import { runAppleScript } from "../../../lib/browser/current-chrome-window-control.js";
+import { runJxa } from "../../../lib/browser/current-chrome-window-control.js";
 
 export type SingleProviderTabFocus =
   | "focused"
@@ -11,39 +11,55 @@ const providerOrigin = (
   ? "https://chatgpt.com"
   : "https://gemini.google.com";
 
-const escapeAppleScriptText = (value: string): string =>
-  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-
 export const focusSingleProviderTab = async (input: {
   providerKind: "gpt-web-chat" | "gemini-web-chat";
   signal?: AbortSignal;
 }): Promise<SingleProviderTabFocus> => {
-  const origin = escapeAppleScriptText(providerOrigin(input.providerKind));
-  const result = await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "Google Chrome"
-  if (count of windows) = 0 then return "not_found"
-  set matchCount to 0
-  set targetWindow to missing value
-  set targetTabIndex to 0
-  repeat with w in windows
-    set tIndex to 1
-    repeat with t in tabs of w
-      set tabUrl to URL of t
-      if tabUrl is "${origin}" or tabUrl starts with "${origin}/" then
-        set matchCount to matchCount + 1
-        set targetWindow to w
-        set targetTabIndex to tIndex
-      end if
-      set tIndex to tIndex + 1
-    end repeat
-  end repeat
-  if matchCount is 0 then return "not_found"
-  if matchCount is greater than 1 then return "ambiguous"
-  set active tab index of targetWindow to targetTabIndex
-  set index of targetWindow to 1
-  return "focused"
-end tell
+  const origin = providerOrigin(input.providerKind);
+  const result = await runJxa(`
+const chrome = Application("Google Chrome");
+const origin = ${JSON.stringify(origin)};
+const windows = chrome.windows();
+const matches = [];
+for (const [windowIndex, window] of windows.entries()) {
+  for (const [tabIndex, tab] of window.tabs().entries()) {
+    const url = String(tab.url() || "");
+    if (url === origin || url.startsWith(origin + "/")) {
+      matches.push({windowIndex, tabIndex});
+    }
+  }
+}
+if (matches.length === 0) "not_found";
+else if (matches.length > 1) "ambiguous";
+else {
+  const target = matches[0];
+  const window = windows[target.windowIndex];
+  window.activeTabIndex = target.tabIndex + 1;
+  window.index = 1;
+  const bounds = window.bounds();
+  const systemEvents = Application("System Events");
+  const processes = systemEvents.applicationProcesses.whose({name: {_equals: "Google Chrome"}})();
+  if (processes.length === 0) throw new Error("Google Chrome accessibility process is unavailable");
+  const process = processes[0];
+  const matchingWindows = process.windows().filter((candidate) => {
+    const position = candidate.position();
+    const size = candidate.size();
+    return position[0] === bounds.x
+      && position[1] === bounds.y
+      && size[0] === bounds.width
+      && size[1] === bounds.height;
+  });
+  if (matchingWindows.length !== 1) {
+    throw new Error("controlled provider tab does not have one exact accessibility window");
+  }
+  process.frontmost = true;
+  matchingWindows[0].actions.byName("AXRaise").perform();
+  delay(0.05);
+  const activeUrl = String(chrome.windows()[0].activeTab().url() || "");
+  activeUrl === origin || activeUrl.startsWith(origin + "/")
+    ? "focused"
+    : "not_found";
+}
 `, input.signal ? { signal: input.signal } : undefined);
   if (result === "focused" || result === "not_found" || result === "ambiguous") {
     return result;

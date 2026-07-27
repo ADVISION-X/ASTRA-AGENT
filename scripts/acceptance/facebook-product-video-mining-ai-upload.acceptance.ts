@@ -51,6 +51,7 @@ const judgment = await judgeFacebookProductVideo({
   aiInputGateway: {
     abilityGroupId: "ai-input-gateway",
     listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+    getRuntimeCapacity: () => 10,
     execute: (_input, options) => {
       options?.signal?.addEventListener("abort", () => {
         aborted = true;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T00:54:46.100Z",
+  "generatedAt": "2026-07-27T12:24:24.660Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -68,23 +68,27 @@
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
+      "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations, checkpoint completed answers before rename, and recover the exact turn without duplicate submission.",
       "clauses": [
         {
           "clauseId": "apex-ai-input-gateway-005-requirement",
-          "statement": "GPT Web feeds use bounded actual parallel conversations with serialized attachment and submit mutations, exact turn identity, durable recovery and no full-response global lock.",
+          "statement": "GPT Web feeds bind a governed task identity to bounded parallel conversations, checkpoint completed answers before rename, and recover the exact turn without duplicate submission.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "ai-input-gateway"
         }
       ],
       "required": [
         "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
-        "Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique human-readable system chat title. The title uses one internal allowlisted task label, UTC month-day and minute, plus a short opaque trace, for example SEO文章｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content or caller-supplied title text. After submit the runtime records the canonical conversation URL plus exact marker and immediately releases the submit slot, then after the provider answer is complete it clicks the exact non-WEB sidebar row, opens only that row's options menu, renames it, and proves the exact title plus marker before publishing the captured answer.",
+        "Every feed request carries one structured taskIdentity containing an allowlisted labelKey plus bounded sourceProject, taskKind and sourceTaskId machine identifiers. This identity is input-hash-bound; callers cannot supply a chat title. Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique human-readable system chat title. The title is derived only from taskIdentity.labelKey, UTC month-day and minute, plus a short opaque trace, for example SEO资料研究｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content, scenario text or caller-supplied title text. As soon as the exact marked user turn exists, the runtime persists its transient URL and turn identity before waiting for a canonical URL; a long-lived /c/WEB: transition therefore remains recovery_pending instead of becoming an untraceable terminal failure. After canonicalization the runtime records the formal conversation URL and immediately releases the submit slot.",
         "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
-        "Submitted feeds release the browser-mutation lease before provider generation completes; while any accepted task still awaits submit, ordinary response patrol yields. After all queued submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
+        "Submitted feeds release the browser-mutation lease before provider generation completes; while any accepted task still awaits submit, ordinary response patrol yields. After all queued submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. The operator-owned WEB_CHAT_PATROL_INTERVAL_MS is bounded from one to sixty seconds and defaults to five seconds; it is never a caller field. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
         "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the live DOM exposes a visible thinking, reasoning, loading or shimmer progress node; intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
         "Whenever ChatGPT shows the ordinary request-frequency dialog, one process-wide unrouted watcher serves the single physical ChatGPT tab for every in-flight task. The highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
-        "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission; a completed but not-yet-renamed conversation must finish its row-scoped rename before answer publication. The complete rename transaction from exact marker focus through row options, title textbox write, Enter commit and title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and retries without discarding the captured answer or persisting review_required. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, and marker; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash, or byte count returns review_required."
+        "DOM evaluation and physical mouse or keyboard input must bind to the same exact Chrome automation window. Before every physical action the runtime matches the automation window to exactly one accessibility window by full bounds, raises that exact window with AXRaise, and fails closed when the match is missing or ambiguous. Application activation or an unrelated profile chooser, logged-out window or foreground Chrome window is never accepted as proof of physical focus.",
+        "A sidebar row is clickable only when its target point is inside the visible browser viewport. If the exact canonical URL or system-title row exists below or above the viewport, the runtime performs a real wheel scroll anchored in the sidebar, re-locates the same row, and only then clicks and verifies the marker. DOM existence or a positive rectangle outside the viewport is never click proof.",
+        "Immediately after the exact assistant turn is complete, the runtime atomically persists the answer bytes, hash, byte count, capture time and provider page URL as a response checkpoint before attempting chat rename, artifact projection or cleanup. Only after that checkpoint exists may it perform the row-scoped rename and publish the final gateway result.",
+        "Every execution failure appends a bounded durable failure ledger entry containing occurrence time, attempt id, pre-failure phase, classification, recoverability and a bounded reason. A process exit or later successful recovery never erases the prior failure evidence.",
+        "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission. A completed but not-yet-renamed conversation rehydrates its persisted response checkpoint, finishes its row-scoped rename and artifact projection, and never asks the provider to analyze again. The complete rename transaction from exact marker focus through row options, title textbox write, Enter commit and title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. Recovery must also detect and finish a title textbox left open by a process interruption. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease, persists recovery_pending, and retries without discarding the checkpoint or persisting a terminal failure; every rename attempt is bounded by the task timeout and may not occupy capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash or byte count returns review_required."
       ],
       "forbidden": [
         "a global lease held from provider open through response capture",
@@ -95,13 +99,18 @@
         "treating a transient /c/WEB: sidebar row or the page-header conversation menu as the rename target",
         "holding the submit mutation slot while waiting for a running answer to expose its sidebar rename menu",
         "splitting one completed-chat rename transaction into independently locked clicks that allow another task to switch conversations between row options, textbox write and commit verification",
+        "using application activation, accessibility window 1, or whichever Chrome window happens to be foreground as the physical target after DOM evaluation",
+        "clicking an offscreen sidebar DOM rectangle or treating DOM existence outside the viewport as a committed chat switch",
         "allowing per-task acknowledgement watchers or ordinary patrol to starve an accepted task that is still waiting to submit",
         "persisting review_required merely because an exact submitted sidebar row is temporarily absent, visible but not yet focusable, or still materializing during response-capture preflight or before-poll routing",
         "discarding a captured answer or persisting review_required merely because a rename menu, title textbox, click commit or renamed-title reflection is temporarily not ready",
+        "an unbounded completed-chat rename loop that can hold a task capacity slot forever",
         "treating visible loading, shimmer, citation verification, tool progress or research progress as a completed answer",
         "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
+        "caller free-text task names or task identity omitted from the feed input hash",
         "machine-only titles made entirely from hashes, UUIDs or transport vocabulary, or titles copied from prompt text, user names or report content",
         "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",
+        "a failed execution state without a durable phase, classification, recoverability and reason ledger",
         "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
@@ -6633,11 +6642,11 @@
       "capabilityDomain": "xuanyuan",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+      "summary": "Xuanyuan owns one leased durable task queue with idempotent named tasks, bounded parallel execution and exact cross-restart provider recovery.",
       "clauses": [
         {
           "clauseId": "grasseye-xuanyuan-002-requirement",
-          "statement": "Xuanyuan owns one durable fair task queue that admits actual bounded AI Input Gateway parallelism and resumes submitted work without duplicate provider submission.",
+          "statement": "Xuanyuan owns one leased durable task queue with idempotent named tasks, bounded parallel execution and exact cross-restart provider recovery.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanyuan"
         }
@@ -6645,13 +6654,16 @@
       "required": [
         "HTTP start persists accepted work before returning 202 and never depends on an untracked fire-and-forget promise.",
         "A single queue owner claims persisted work with lease and heartbeat semantics, runs independent tasks concurrently up to gateway capacity, and leaves overflow queued.",
-        "Restart recovery resumes queued tasks and exact submitted gateway attempts without duplicating prompts.",
-        "Public task progress exposes stable queue and provider-wait states but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
+        "The unique sourceProject plus requestId identity is idempotent: an identical retry returns the original persisted task and a conflicting retry fails before provider work. Each task persists a governed readable taskName derived from an allowlisted label key plus opaque trace.",
+        "Restart recovery resumes queued tasks, response-checkpointed tasks and exact submitted gateway attempts without duplicating prompts; post-submit failure is recovery_pending rather than a terminal loss.",
+        "Public task progress exposes stable queue, provider-wait, response-checkpointed and recovery-pending states plus attempt and failure trace, but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
       ],
       "forbidden": [
         "void fire-and-forget execution as task durability",
         "caller-controlled concurrency or browser identity",
         "duplicate submit on restart",
+        "creating a second task for an identical sourceProject plus requestId replay",
+        "terminally discarding a submitted or response-checkpointed provider attempt",
         "second queue owner, compatibility queue, shadow executor or legacy serial mode"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",

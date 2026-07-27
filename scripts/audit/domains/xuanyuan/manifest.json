@@ -10,8 +10,13 @@
         "clauseId": "grasseye-xuanyuan-001-requirement",
         "checkIds": [
           "xuanyuan/ast-contract",
+          "xuanyuan/concurrency-recovery-acceptance",
+          "xuanyuan/durable-queue-owner",
           "xuanyuan/file-present",
           "xuanyuan/forbidden-provider-import",
+          "xuanyuan/no-fire-and-forget",
+          "xuanyuan/recovery-ledger",
+          "xuanyuan/task-idempotency",
           "xuanyuan/package-script"
         ],
         "sourceEvidence": [
@@ -26,8 +31,13 @@
         "clauseId": "grasseye-xuanyuan-002-requirement",
         "checkIds": [
           "xuanyuan/ast-contract",
+          "xuanyuan/concurrency-recovery-acceptance",
+          "xuanyuan/durable-queue-owner",
           "xuanyuan/file-present",
           "xuanyuan/forbidden-provider-import",
+          "xuanyuan/no-fire-and-forget",
+          "xuanyuan/recovery-ledger",
+          "xuanyuan/task-idempotency",
           "xuanyuan/package-script"
         ],
         "sourceEvidence": [

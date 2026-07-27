@@ -159,6 +159,12 @@ export const buildGatewaySender = (
   return async (promptPackage) => {
     const result = await aiInputGateway.execute({
       providerKind: promptPackage.providerKind,
+      taskIdentity: {
+        labelKey: "deep_research",
+        sourceProject: "deep-research-analysis",
+        taskKind: "analysis-prompt-package",
+        sourceTaskId: promptPackage.jobId,
+      },
       promptPackageId: promptPackage.promptPackageId,
       promptContractId: promptPackage.promptContractId,
       expectedOutputSchemaRef: null,

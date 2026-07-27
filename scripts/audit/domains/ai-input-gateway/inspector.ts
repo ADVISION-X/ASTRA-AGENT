@@ -5,6 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -21,10 +22,13 @@ const attachmentTransportPath = "src/capabilities/ai-input-gateway/providers/web
 const composerScriptsPath = "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts";
 const browserContractPath = "src/lib/browser/browser-controller.ts";
 const nativePrimitivePath = "src/lib/browser/current-chrome-native-multi-file-picker.ts";
+const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
+const chromeBrowserPrimitivesPath = "src/lib/browser/current-chrome-browser-controller-primitives.ts";
 const acceptancePath = "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts";
 const concurrencyLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts";
 const executionStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
 const systemChatTitlePath = "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts";
+const responseCheckpointPath = "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts";
 const singleTabBrowserPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts";
 const singleProviderTabPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts";
 const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
@@ -40,15 +44,17 @@ const rateLimitDialogPath = "src/capabilities/ai-input-gateway/providers/web-cha
 const recoveryPath = "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts";
 const historyCleanupPath = "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts";
 const singleTabRoutingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
+const namedConversationSearchPath = "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts";
 const concurrencyAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts";
 const transientPatrolAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts";
 const realChromeParallelAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts";
+const realChromeRestartAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts";
 const removedUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
 const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-upload.acceptance.ts";
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, chromeWindowControlPath, chromeBrowserPrimitivesPath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, responseCheckpointPath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, namedConversationSearchPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath, realChromeRestartAcceptancePath] as const;
 
 const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));
@@ -93,6 +99,11 @@ const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], l
   }
   if (!executeOptionProperties.has("onAttachmentUploadCompleted")) {
     pushFinding(findings, lawId, contractPath, "ai-input-gateway/aggregate-progress-callback", "Execute options must expose only the aggregate attachment terminal callback.");
+  }
+  for (const required of ["taskIdentity", "AiTaskLabelKeySchema"]) {
+    if (!identifiers(schema).has(required)) {
+      pushFinding(findings, lawId, schemaPath, "ai-input-gateway/structured-task-identity", `AI feed schema must declare ${required}.`);
+    }
   }
 };
 
@@ -201,8 +212,8 @@ const inspectParallelAcceptanceProof = (acceptance: SourceFile, realChromeAccept
   const realChromeStrings = stringLiterals(realChromeAcceptance);
   const realChromeProofs = [
     {
-      label: "both submissions precede the first captured response",
-      present: realChromeStrings.has("both exact marked turns must be submitted before the first response is captured"),
+      label: "all submissions precede the first captured response",
+      present: realChromeStrings.has("all exact marked turns must be submitted before the first response is captured"),
     },
     {
       label: "canonical conversation identity",
@@ -328,7 +339,7 @@ const inspectHumanReadableSystemChatTitle = (context: InspectorContext, findings
     pushFinding(findings, lawId, executionStatePath, "ai-input-gateway/human-readable-system-chat-title", "New GPT executions must use the single human-readable system chat title builder.");
   }
   const systemTitleStrings = stringLiterals(systemTitle);
-  for (const required of ["SEO文章", "AI任务", "｜"]) {
+  for (const required of ["SEO资料研究", "AI任务", "｜"]) {
     if (!systemTitleStrings.has(required)) {
       pushFinding(findings, lawId, systemChatTitlePath, "ai-input-gateway/human-readable-system-chat-title", `System chat title builder must declare ${required}.`);
     }
@@ -346,7 +357,7 @@ const inspectHumanReadableSystemChatTitle = (context: InspectorContext, findings
     }
   }
   const acceptanceStrings = stringLiterals(acceptance);
-  for (const required of ["public-knowledge-corpus-research.v2", "bazi-base-interpretation-v2", "unrecognized-contract"]) {
+  for (const required of ["seo_research", "bazi_analysis", "generic_ai"]) {
     if (!acceptanceStrings.has(required)) {
       pushFinding(findings, lawId, concurrencyAcceptancePath, "ai-input-gateway/human-readable-system-chat-title", `Concurrency acceptance must cover ${required}.`);
     }
@@ -463,6 +474,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectNoChatGptPageRefresh(context, findings, parallelLawId);
   inspectCompletedConversationRename(context, findings, parallelLawId);
   inspectHumanReadableSystemChatTitle(context, findings, parallelLawId);
+  findings.push(...inspectAiInputGatewayRecovery(context, parallelLawId));
   inspectSubmissionPriorityPatrol(context, findings, parallelLawId);
   inspectSharedRateLimitWatcher(context, findings, parallelLawId);
   inspectLiveGenerationProof(context, findings, parallelLawId);

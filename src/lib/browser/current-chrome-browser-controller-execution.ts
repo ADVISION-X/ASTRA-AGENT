@@ -258,7 +258,6 @@ export const closeCurrentChromeActiveTab = async (
   }
   await activateChrome(input.abortSignal);
   await runAppleScript(`
-tell application "Google Chrome" to activate
 tell application "System Events"
   keystroke "w" using command down
 end tell

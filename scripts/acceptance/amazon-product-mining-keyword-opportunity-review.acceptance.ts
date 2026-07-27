@@ -255,6 +255,7 @@ const browser = {
 const aiInputGateway: AiInputGatewayAbilityGroup = {
   abilityGroupId: "ai-input-gateway",
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+  getRuntimeCapacity: () => 10,
   async execute(input) {
     const promptContractId = (input as { promptContractId?: string }).promptContractId;
     if (promptContractId === "amazon-product-mining-keyword-opportunity-review-v1") {

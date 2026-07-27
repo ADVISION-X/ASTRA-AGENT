@@ -228,6 +228,88 @@ const waitForRenamedIdentity = async (input: { browser: BrowserController; conte
   return last;
 };
 
+type RenameTransactionInput = {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  canonicalConversationUrl: string;
+  systemChatTitle: string;
+  turnMarker: string;
+};
+
+const recoverOpenTitleEditor = async (
+  input: RenameTransactionInput,
+): Promise<boolean> => {
+  const openTitleEditor = await input.browser.evaluateActiveTab<LocatedTarget>({
+    description: "detect an interrupted ChatGPT title editor before rename recovery",
+    script: buildRenameTextboxTargetScript(),
+    ...(input.context.abortSignal
+      ? { abortSignal: input.context.abortSignal }
+      : {}),
+  });
+  if (openTitleEditor.status === "review_required") {
+    throw new Error(
+      "review_required: interrupted ChatGPT title editor is ambiguous.",
+    );
+  }
+  if (openTitleEditor.status !== "success" || !openTitleEditor.targetPoint) {
+    return false;
+  }
+  const focusedEditor = await input.browser.click({
+    targetLabel: "resume interrupted ChatGPT chat title textbox",
+    point: openTitleEditor.targetPoint,
+    coordinateSpace: "browserViewport",
+    button: "left",
+    clickCount: 1,
+  });
+  if (!focusedEditor.ok) {
+    throw renameNotReady(
+      `interrupted ChatGPT title editor could not be focused; ${focusedEditor.message}`,
+    );
+  }
+  await writeExactSystemChatTitle(input);
+  const recoveredRename = await waitForRenamedIdentity(input);
+  if (recoveredRename.status === "success") return true;
+  if (recoveredRename.status === "review_required") {
+    throw new Error(
+      "review_required: interrupted ChatGPT rename resolved to an ambiguous identity.",
+    );
+  }
+  throw renameNotReady(
+    "interrupted ChatGPT title editor did not commit the exact durable title",
+  );
+};
+
+const runRenameTransaction = async (input: {
+  renameInput: RenameTransactionInput;
+  timeoutMs: number;
+}): Promise<string | null> => {
+  if (await recoverOpenTitleEditor(input.renameInput)) return null;
+  await focusSubmittedConversation({
+    ...input.renameInput,
+    timeoutMs: Math.min(input.timeoutMs, 30_000),
+  });
+  const alreadyRenamed = await waitForRenamedIdentity(input.renameInput);
+  if (alreadyRenamed.status === "success") return null;
+  if (alreadyRenamed.status === "review_required") {
+    throw new Error(
+      `review_required: pre-rename ChatGPT identity is ambiguous; titleLinks=${String(alreadyRenamed.titleLinkCount)}; markers=${String(alreadyRenamed.markerCount)}`,
+    );
+  }
+  const observedTitle = await applySystemChatTitle(input.renameInput);
+  const verified = await waitForRenamedIdentity(input.renameInput);
+  if (verified.status === "review_required") {
+    throw new Error(
+      `review_required: manually renamed ChatGPT identity is ambiguous; titleLinks=${String(verified.titleLinkCount)}; markers=${String(verified.markerCount)}`,
+    );
+  }
+  if (verified.status !== "success") {
+    throw renameNotReady(
+      `rename commit is not visible yet; titleLinks=${String(verified.titleLinkCount)}; markers=${String(verified.markerCount)}`,
+    );
+  }
+  return observedTitle;
+};
+
 export const renameSubmittedChatGptConversation = async (input: { browser: BrowserController; context: AiProviderAdapterContext; submission: WebChatSubmissionProof; timeoutMs: number }): Promise<WebChatSubmissionProof> => {
   const execution = input.context.webChatExecution;
   if (!execution || execution.providerKind !== "gpt-web-chat") return input.submission;
@@ -235,7 +317,9 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
     throw new Error("review_required: ChatGPT submission is missing the durable name or canonical conversation URL.");
   }
   let observedAutoChatTitle: string | null = null;
-  for (;;) {
+  const deadline = Date.now() + input.timeoutMs;
+  let lastRenameNotReady: Error | null = null;
+  while (Date.now() < deadline) {
     try {
       const renamed = await execution.runExclusivePatrol(async (browser) => {
         const renameInput = {
@@ -245,29 +329,11 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
           systemChatTitle: execution.systemChatTitle!,
           turnMarker: execution.turnMarker,
         };
-        await focusSubmittedConversation({
-          ...renameInput,
-          timeoutMs: Math.min(input.timeoutMs, 30_000),
+        const observedTitle = await runRenameTransaction({
+          renameInput,
+          timeoutMs: input.timeoutMs,
         });
-        const alreadyRenamed = await waitForRenamedIdentity(renameInput);
-        if (alreadyRenamed.status === "success") return true;
-        if (alreadyRenamed.status === "review_required") {
-          throw new Error(
-            `review_required: pre-rename ChatGPT identity is ambiguous; titleLinks=${String(alreadyRenamed.titleLinkCount)}; markers=${String(alreadyRenamed.markerCount)}`,
-          );
-        }
-        observedAutoChatTitle ??= await applySystemChatTitle(renameInput);
-        const verified = await waitForRenamedIdentity(renameInput);
-        if (verified.status === "review_required") {
-          throw new Error(
-            `review_required: manually renamed ChatGPT identity is ambiguous; titleLinks=${String(verified.titleLinkCount)}; markers=${String(verified.markerCount)}`,
-          );
-        }
-        if (verified.status !== "success") {
-          throw renameNotReady(
-            `rename commit is not visible yet; titleLinks=${String(verified.titleLinkCount)}; markers=${String(verified.markerCount)}`,
-          );
-        }
+        observedAutoChatTitle ??= observedTitle;
         return true;
       });
       if (!renamed) {
@@ -281,7 +347,13 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
       };
     } catch (error) {
       if (!isRenameNotReady(error)) throw error;
+      lastRenameNotReady = error instanceof Error
+        ? error
+        : new Error(String(error));
       await input.browser.wait(2_000);
     }
   }
+  throw renameNotReady(
+    `rename recovery deadline exceeded; last=${lastRenameNotReady?.message ?? "none"}`,
+  );
 };

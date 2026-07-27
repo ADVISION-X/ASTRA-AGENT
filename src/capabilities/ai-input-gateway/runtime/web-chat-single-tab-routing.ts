@@ -1,20 +1,15 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
+import { searchAndOpenNamedConversation } from "./web-chat-named-conversation-search.js";
 
 type ConversationTarget = {
-  status: "focused" | "click_title" | "ack_rate_limit" | "open_search" | "review_required";
+  status: "focused" | "click_title" | "scroll_title" | "ack_rate_limit" | "open_search" | "review_required";
   message: string;
   pageUrl: string;
   markerCount: number;
   titleCount: number;
   targetPoint?: { x: number; y: number };
-};
-
-type SearchTarget = {
-  status: "success" | "pending" | "review_required";
-  message: string;
-  pageUrl: string;
-  targetPoint?: { x: number; y: number };
+  scrollDeltaY?: number;
 };
 
 const CONVERSATION_TARGET_SCRIPT = `
@@ -56,6 +51,18 @@ if (markerCount > 1 || titleLinks.length > 1) {
 }
 if (titleLinks.length === 1) {
   const rect = titleLinks[0].getBoundingClientRect();
+  const centerY = rect.top + rect.height / 2;
+  if (centerY < 24 || centerY > innerHeight - 24) {
+    return {
+      status: "scroll_title",
+      message: "exact system-renamed ChatGPT conversation is outside the visible sidebar viewport",
+      pageUrl: location.href,
+      markerCount,
+      titleCount: 1,
+      targetPoint: {x: Math.max(24, Math.min(innerWidth - 24, rect.left + Math.min(rect.width / 2, 96))), y: innerHeight / 2},
+      scrollDeltaY: Math.max(-600, Math.min(600, centerY - innerHeight / 2)),
+    };
+  }
   return {
     status: "click_title",
     message: "exact system-renamed ChatGPT conversation located",
@@ -127,66 +134,6 @@ const marker = ${JSON.stringify(input.turnMarker)};
 ${CONVERSATION_TARGET_SCRIPT}
 `;
 
-const SEARCH_TEXTBOX_TARGET_SCRIPT = `
-const visible = (node) => {
-  if (!(node instanceof Element)) return false;
-  const rect = node.getBoundingClientRect();
-  const style = getComputedStyle(node);
-  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
-};
-const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
-const candidates = Array.from(document.querySelectorAll("input, textarea, [role='textbox']"))
-  .filter((node) => visible(node))
-  .filter((node) => /搜索聊天|search chats/i.test(normalized(
-    node.getAttribute("aria-label") || node.getAttribute("placeholder")
-  )));
-if (candidates.length !== 1) {
-  return {
-    status: candidates.length === 0 ? "pending" : "review_required",
-    message: candidates.length === 0 ? "waiting for ChatGPT search textbox" : "CHATGPT_SEARCH_TEXTBOX_AMBIGUOUS",
-    pageUrl: location.href,
-  };
-}
-const rect = candidates[0].getBoundingClientRect();
-return {
-  status: "success",
-  message: "ChatGPT search textbox located",
-  pageUrl: location.href,
-  targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
-};
-`;
-
-const buildSearchResultTargetScript = (systemChatTitle: string): string => `
-const expectedTitle = ${JSON.stringify(systemChatTitle)};
-const visible = (node) => {
-  if (!(node instanceof Element)) return false;
-  const rect = node.getBoundingClientRect();
-  const style = getComputedStyle(node);
-  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
-};
-const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
-const candidates = Array.from(document.querySelectorAll("a[href]"))
-  .filter((node) =>
-    visible(node)
-    && (node.getAttribute("href") || "").includes("/c/")
-    && normalized(node.textContent) === expectedTitle
-  );
-if (candidates.length !== 1) {
-  return {
-    status: candidates.length === 0 ? "pending" : "review_required",
-    message: candidates.length === 0 ? "waiting for exact named ChatGPT search result" : "CHATGPT_SEARCH_RESULT_AMBIGUOUS",
-    pageUrl: location.href,
-  };
-}
-const rect = candidates[0].getBoundingClientRect();
-return {
-  status: "success",
-  message: "exact named ChatGPT search result located",
-  pageUrl: location.href,
-  targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
-};
-`;
-
 const buildGeminiIdentityScript = (turnMarker: string): string => `
 const marker = ${JSON.stringify(turnMarker)};
 const nodes = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"));
@@ -206,61 +153,54 @@ const clickTarget = async (input: { base: BrowserController; description: string
   if (!clicked.ok) throw new Error(`review_required: ${input.description} real click failed; ${clicked.message}`);
 };
 
-const locateSearchTarget = async (input: { base: BrowserController; script: string; description: string; signal?: AbortSignal }): Promise<SearchTarget> => {
-  const deadline = Date.now() + 10_000;
-  let last: SearchTarget | null = null;
-  while (Date.now() < deadline) {
-    last = await input.base.evaluateActiveTab<SearchTarget>({
-      description: input.description,
-      script: input.script,
-      ...(input.signal ? { abortSignal: input.signal } : {}),
+const handleNamedConversationTarget = async (input: {
+  request: {
+    base: BrowserController;
+    systemChatTitle: string;
+    signal?: AbortSignal;
+  };
+  target: ConversationTarget;
+  searched: boolean;
+}): Promise<boolean> => {
+  if (input.target.status === "click_title") {
+    await clickTarget({
+      base: input.request.base,
+      description: "open exact system-renamed ChatGPT conversation",
+      targetPoint: input.target.targetPoint,
     });
-    if (last.status === "success") return last;
-    if (last.status === "review_required") throw new Error(`review_required: ${last.message}`);
-    await input.base.wait(250);
+  } else if (input.target.status === "scroll_title") {
+    await input.request.base.scroll({
+      targetLabel: "scroll exact system-renamed ChatGPT conversation into view",
+      deltaX: 0,
+      deltaY: input.target.scrollDeltaY ?? 0,
+      coordinateSpace: "browserViewport",
+      ...(input.target.targetPoint
+        ? { anchorPoint: input.target.targetPoint }
+        : {}),
+      ...(input.request.signal
+        ? { abortSignal: input.request.signal }
+        : {}),
+    });
+  } else if (input.target.status === "ack_rate_limit") {
+    await clickTarget({
+      base: input.request.base,
+      description: "acknowledge ChatGPT temporary history rate limit before named-chat routing",
+      targetPoint: input.target.targetPoint,
+    });
+  } else if (input.target.status === "open_search" && !input.searched) {
+    await searchAndOpenNamedConversation({
+      base: input.request.base,
+      systemChatTitle: input.request.systemChatTitle,
+      searchPoint: input.target.targetPoint,
+      ...(input.request.signal ? { signal: input.request.signal } : {}),
+    });
+    return true;
+  } else {
+    throw new Error(
+      "review_required: exact named ChatGPT conversation could not be focused.",
+    );
   }
-  throw new Error(`review_required: ${input.description} timed out; last=${last?.message ?? "none"}`);
-};
-
-const searchAndOpenNamedConversation = async (input: { base: BrowserController; systemChatTitle: string; searchPoint: { x: number; y: number } | undefined; signal?: AbortSignal }): Promise<void> => {
-  await clickTarget({
-    base: input.base,
-    description: "open ChatGPT chat search",
-    targetPoint: input.searchPoint,
-  });
-  const textbox = await locateSearchTarget({
-    base: input.base,
-    script: SEARCH_TEXTBOX_TARGET_SCRIPT,
-    description: "locate ChatGPT chat search textbox",
-    ...(input.signal ? { signal: input.signal } : {}),
-  });
-  await clickTarget({
-    base: input.base,
-    description: "focus ChatGPT chat search textbox",
-    targetPoint: textbox.targetPoint,
-  });
-  await input.base.textInput({
-    targetLabel: "ChatGPT chat search textbox",
-    action: "clear-input",
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  await input.base.textInput({
-    targetLabel: "ChatGPT chat search textbox",
-    action: "type-text",
-    text: input.systemChatTitle,
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  const result = await locateSearchTarget({
-    base: input.base,
-    script: buildSearchResultTargetScript(input.systemChatTitle),
-    description: "locate exact system-renamed ChatGPT search result",
-    ...(input.signal ? { signal: input.signal } : {}),
-  });
-  await clickTarget({
-    base: input.base,
-    description: "open exact system-renamed ChatGPT search result",
-    targetPoint: result.targetPoint,
-  });
+  return input.searched;
 };
 
 const focusNamedChatGptConversation = async (input: { base: BrowserController; systemChatTitle: string; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
@@ -277,29 +217,11 @@ const focusNamedChatGptConversation = async (input: { base: BrowserController; s
     if (last.status === "review_required") {
       throw new Error(`review_required: ${last.message}; pageUrl=${last.pageUrl}`);
     }
-    if (last.status === "click_title") {
-      await clickTarget({
-        base: input.base,
-        description: "open exact system-renamed ChatGPT conversation",
-        targetPoint: last.targetPoint,
-      });
-    } else if (last.status === "ack_rate_limit") {
-      await clickTarget({
-        base: input.base,
-        description: "acknowledge ChatGPT temporary history rate limit before named-chat routing",
-        targetPoint: last.targetPoint,
-      });
-    } else if (last.status === "open_search" && !searched) {
-      searched = true;
-      await searchAndOpenNamedConversation({
-        base: input.base,
-        systemChatTitle: input.systemChatTitle,
-        searchPoint: last.targetPoint,
-        ...(input.signal ? { signal: input.signal } : {}),
-      });
-    } else {
-      throw new Error("review_required: exact named ChatGPT conversation could not be focused.");
-    }
+    searched = await handleNamedConversationTarget({
+      request: input,
+      target: last,
+      searched,
+    });
     await input.base.wait(500);
   }
   throw new Error(`review_required: exact named ChatGPT conversation did not expose exactly one matching marker; title=${input.systemChatTitle}; last=${last?.message ?? "none"}`);
@@ -338,6 +260,7 @@ const visible = (node) => {
 const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
 const nodes = Array.from(document.querySelectorAll("[data-message-author-role='user']"));
 const markerCount = nodes.filter((node) => normalized(node.textContent).includes(marker)).length;
+const transientTarget = targetPath.startsWith("/c/WEB:");
 const links = Array.from(document.querySelectorAll("a[href]"))
   .filter((link) => {
     try {
@@ -349,7 +272,10 @@ const links = Array.from(document.querySelectorAll("a[href]"))
       return false;
     }
   });
-if (markerCount === 1 && location.pathname === targetPath) {
+if (
+  markerCount === 1
+  && (location.pathname === targetPath || transientTarget)
+) {
   return {
     status: "focused",
     pageUrl: location.href,
@@ -369,6 +295,18 @@ if (markerCount > 1 || links.length > 1) {
 }
 if (links.length === 1) {
   const rect = links[0].getBoundingClientRect();
+  const centerY = rect.top + rect.height / 2;
+  if (centerY < 24 || centerY > innerHeight - 24) {
+    return {
+      status: "scroll_title",
+      pageUrl: location.href,
+      markerCount,
+      titleCount: 1,
+      message: "exact submitted ChatGPT sidebar row is outside the visible viewport",
+      targetPoint: {x: Math.max(24, Math.min(innerWidth - 24, rect.left + Math.min(rect.width / 2, 96))), y: innerHeight / 2},
+      scrollDeltaY: Math.max(-600, Math.min(600, centerY - innerHeight / 2)),
+    };
+  }
   return {
     status: "click_title",
     pageUrl: location.href,
@@ -424,18 +362,19 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
   const targetPath = new URL(targetUrl).pathname;
   const inspectAndLocate = () =>
     input.base.evaluateActiveTab<{
-      status: "focused" | "click_title" | "ack_rate_limit" | "pending" | "review_required";
+      status: "focused" | "click_title" | "scroll_title" | "ack_rate_limit" | "pending" | "review_required";
       pageUrl: string;
       markerCount: number;
       titleCount: number;
       message: string;
       targetPoint?: { x: number; y: number };
+      scrollDeltaY?: number;
     }>({
       description: "locate exact submitted ChatGPT conversation row before completing system rename",
       script: buildUnrenamedChatGptIdentityScript({ turnMarker: input.turnMarker, targetPath }),
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
-  const deadline = Date.now() + 5_000;
+  const deadline = Date.now() + 15_000;
   let last: Awaited<ReturnType<typeof inspectAndLocate>> | null = null;
   while (Date.now() < deadline) {
     last = await inspectAndLocate();
@@ -448,6 +387,15 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
         base: input.base,
         description: "open exact submitted ChatGPT sidebar row before rename",
         targetPoint: last.targetPoint,
+      });
+    } else if (last.status === "scroll_title") {
+      await input.base.scroll({
+        targetLabel: "scroll exact submitted ChatGPT sidebar row into view",
+        deltaX: 0,
+        deltaY: last.scrollDeltaY ?? 0,
+        coordinateSpace: "browserViewport",
+        ...(last.targetPoint ? { anchorPoint: last.targetPoint } : {}),
+        ...(input.signal ? { abortSignal: input.signal } : {}),
       });
     } else if (last.status === "ack_rate_limit") {
       await clickTarget({

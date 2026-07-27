@@ -201,6 +201,12 @@ const runKeywordGenerationAttempt = async (input: KeywordGenerationAttemptInput)
   try {
     const result = await input.aiInputGateway.execute({
       providerKind: input.providerKind,
+      taskIdentity: {
+        labelKey: "amazon_product_mining",
+        sourceProject: "amazon-product-mining",
+        taskKind: "keyword-generation",
+        sourceTaskId: runId,
+      },
       promptPackageId: `amazon-mining-keyword-${input.taskId}`,
       promptContractId: "amazon-product-mining-keyword-generation-v1",
       expectedOutputSchemaRef: null,

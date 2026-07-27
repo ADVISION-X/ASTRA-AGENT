@@ -10,7 +10,32 @@ import {
 const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
 const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
 const activateChrome = async (abortSignal?: AbortSignal): Promise<void> => {
-  await runAppleScript('tell application "Google Chrome" to activate', abortSignal ? { signal: abortSignal } : undefined);
+  await runJxa(`
+const chrome = Application("Google Chrome");
+const chromeWindows = chrome.windows();
+if (chromeWindows.length === 0) throw new Error("Google Chrome window is unavailable");
+const chromeWindow = chromeWindows[0];
+const bounds = chromeWindow.bounds();
+chromeWindow.index = 1;
+const systemEvents = Application("System Events");
+const processes = systemEvents.applicationProcesses.whose({name: {_equals: "Google Chrome"}})();
+if (processes.length === 0) throw new Error("Google Chrome accessibility process is unavailable");
+const process = processes[0];
+const matchingWindows = process.windows().filter((window) => {
+  const position = window.position();
+  const size = window.size();
+  return position[0] === bounds.x
+    && position[1] === bounds.y
+    && size[0] === bounds.width
+    && size[1] === bounds.height;
+});
+if (matchingWindows.length !== 1) {
+  throw new Error("controlled Chrome automation window does not have one exact accessibility window");
+}
+process.frontmost = true;
+matchingWindows[0].actions.byName("AXRaise").perform();
+delay(0.05);
+`, abortSignal ? { signal: abortSignal } : undefined);
 };
 const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 const toQuartzWheelDelta = (value: number): number => -Math.round(value);
@@ -76,7 +101,6 @@ $.CGEventPost($.kCGHIDEventTap, event);
 
 const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
-tell application "Google Chrome" to activate
 tell application "System Events"
     key code ${keyCode}
 end tell
@@ -85,7 +109,6 @@ end tell
 
 const keystrokeBrowserText = async (text: string, abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
-tell application "Google Chrome" to activate
 tell application "System Events"
     keystroke "${escapeAppleScriptText(text)}"
 end tell
@@ -94,7 +117,6 @@ end tell
 
 const selectAllBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
-tell application "Google Chrome" to activate
 tell application "System Events"
     keystroke "a" using command down
 end tell

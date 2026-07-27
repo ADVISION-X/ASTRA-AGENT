@@ -61,8 +61,7 @@ type GetPick3HumanReviewInteraction = typeof import("../../plugins/pick3-is-blin
 type ReviewPick3PlaybookLessonManually = typeof import("../../plugins/pick3-is-blind-eval/index.js").reviewPick3PlaybookLessonManually;
 type ListPick3TrendSnapshot = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3TrendSnapshot;
 type GenerateLotteryTicketPlan = typeof import("../../plugins/lottery-ticket-plan/index.js").generateLotteryTicketPlan;
-type StartXuanyuanTask = typeof import("../../plugins/xuanyuan/index.js").startXuanyuanTask;
-type StartXuanyuanTaskAsync = typeof import("../../plugins/xuanyuan/index.js").startXuanyuanTaskAsync;
+type EnqueueXuanyuanTask = import("../../plugins/xuanyuan/index.js").XuanyuanTaskCoordinator["enqueue"];
 type GetXuanyuanTaskStatus = typeof import("../../plugins/xuanyuan/index.js").getXuanyuanTaskStatus;
 type GetLatestXuanyuanTask = typeof import("../../plugins/xuanyuan/index.js").getLatestXuanyuanTask;
 type ListXuanyuanHistory = typeof import("../../plugins/xuanyuan/index.js").listXuanyuanHistory;
@@ -110,10 +109,8 @@ type Pick3HumanReviewInteractionResult = ReturnType<GetPick3HumanReviewInteracti
 type Pick3ManualPlaybookLessonResult = Awaited<ReturnType<ReviewPick3PlaybookLessonManually>>;
 type Pick3TrendSnapshotResult = ReturnType<ListPick3TrendSnapshot>;
 type LotteryTicketPlanResult = ReturnType<GenerateLotteryTicketPlan>;
-type XuanyuanTaskStartInput = Parameters<StartXuanyuanTask>[1];
-type XuanyuanTaskAsyncStartInput = Parameters<StartXuanyuanTaskAsync>[1];
-type XuanyuanTaskRecord = Awaited<ReturnType<StartXuanyuanTask>>;
-type XuanyuanTaskAsyncRecord = Awaited<ReturnType<StartXuanyuanTaskAsync>>;
+type XuanyuanTaskStartInput = Parameters<EnqueueXuanyuanTask>[0];
+type XuanyuanTaskRecord = Awaited<ReturnType<EnqueueXuanyuanTask>>;
 type XuanyuanTaskStatusRecord = Awaited<ReturnType<GetXuanyuanTaskStatus>>;
 type XuanyuanLatestTaskRecord = Awaited<ReturnType<GetLatestXuanyuanTask>>;
 type XuanyuanHistoryRecord = Awaited<ReturnType<ListXuanyuanHistory>>;
@@ -301,12 +298,9 @@ export type GrassEyeWorkbenchHandle = {
   generateLotteryTicketPlan: (
     input: unknown,
   ) => LotteryTicketPlanResult;
-  startXuanyuanTask: (
+  enqueueXuanyuanTask: (
     input: XuanyuanTaskStartInput,
   ) => Promise<XuanyuanTaskRecord>;
-  startXuanyuanTaskAsync: (
-    input: XuanyuanTaskAsyncStartInput,
-  ) => Promise<XuanyuanTaskAsyncRecord>;
   getXuanyuanTaskStatus: (
     taskId: string,
   ) => Promise<XuanyuanTaskStatusRecord>;

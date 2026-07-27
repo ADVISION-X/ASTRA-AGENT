@@ -128,6 +128,12 @@ const requestKeywordOpportunityReview = (input: {
   context: KeywordOpportunityReviewRuntimeContext;
 }) => input.aiInputGateway.execute({
   providerKind: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND,
+  taskIdentity: {
+    labelKey: "amazon_product_mining",
+    sourceProject: "amazon-product-mining",
+    taskKind: "keyword-opportunity-review",
+    sourceTaskId: input.context.reviewId,
+  },
   promptPackageId: `amazon-mining-keyword-review-${input.context.taskId}-${input.context.keyword.keywordId}`,
   promptContractId: "amazon-product-mining-keyword-opportunity-review-v1",
   expectedOutputSchemaRef: null,

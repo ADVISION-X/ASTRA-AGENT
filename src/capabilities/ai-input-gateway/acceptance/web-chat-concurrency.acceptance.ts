@@ -21,6 +21,7 @@ import {
   advanceStableAnswer,
   createStableAnswerState,
 } from "../providers/web-chat-answer-support.js";
+import { resolveManagedGptPollIntervalMs } from "../providers/web-chat-response-capture.js";
 import {
   acquireWebChatBrowserMutationLease,
   acquireWebChatBrowserPatrolLease,
@@ -28,6 +29,10 @@ import {
   registerPendingWebChatSubmission,
 } from "../runtime/web-chat-concurrency-lease.js";
 import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
+import {
+  assertFailureLedger,
+  assertResponseCheckpointRecovery,
+} from "./web-chat-recovery.acceptance-helper.js";
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 
 const delay = (durationMs: number): Promise<void> =>
@@ -58,6 +63,12 @@ const waitFor = async (
 
 const requestFor = (worker: number): AiFeedInput => ({
   providerKind: "gpt-web-chat",
+  taskIdentity: {
+    labelKey: "system_acceptance",
+    sourceProject: "agent",
+    taskKind: "web-chat-concurrency",
+    sourceTaskId: `parallel-worker-${worker}`,
+  },
   promptPackageId: `parallel-worker-${worker}`,
   promptContractId: "ai-input-gateway-web-chat-concurrency.acceptance",
   expectedOutputSchemaRef: null,
@@ -123,14 +134,14 @@ if (workerArgs[0] === "--worker") {
   await runWorker(dataDir, worker);
 } else {
   const seoTitle = buildHumanReadableSystemChatTitle({
-    promptContractId: "public-knowledge-corpus-research.v2",
+    labelKey: "seo_research",
     executionId: "xuanyuan_example-seo-task",
     turnMarker: "GRASSEYE_TURN_1234567890abcdef",
     createdAt: "2026-07-26T04:40:00.000Z",
   });
   assert.match(
     seoTitle,
-    /^SEO文章｜07-26 04:40Z｜[A-F0-9]{8}-CDEF$/u,
+    /^SEO资料研究｜07-26 04:40Z｜[A-F0-9]{8}-CDEF$/u,
     "SEO conversations must have a readable task label, UTC time and short trace",
   );
   assert.doesNotMatch(
@@ -140,7 +151,7 @@ if (workerArgs[0] === "--worker") {
   );
   assert.match(
     buildHumanReadableSystemChatTitle({
-      promptContractId: "bazi-base-interpretation-v2",
+      labelKey: "bazi_analysis",
       executionId: "xuanyuan_example-bazi-task",
       turnMarker: "GRASSEYE_TURN_abcdef1234567890",
       createdAt: "2026-07-26T04:41:00.000Z",
@@ -150,13 +161,19 @@ if (workerArgs[0] === "--worker") {
   );
   assert.match(
     buildHumanReadableSystemChatTitle({
-      promptContractId: "unrecognized-contract",
+      labelKey: "generic_ai",
       executionId: "xuanyuan_example-generic-task",
       turnMarker: "GRASSEYE_TURN_1234567890abcdef",
       createdAt: "2026-07-26T04:42:00.000Z",
     }),
     /^AI任务｜07-26 04:42Z｜[A-F0-9]{8}-CDEF$/u,
     "unknown contracts must use the neutral internal fallback without copying caller text",
+  );
+  assert.equal(resolveManagedGptPollIntervalMs(""), 5_000);
+  assert.equal(resolveManagedGptPollIntervalMs("1000"), 1_000);
+  assert.throws(
+    () => resolveManagedGptPollIntervalMs("999"),
+    /WEB_CHAT_PATROL_INTERVAL_MS/u,
   );
 
   await assertTransientPatrolRemainsRetryable();
@@ -190,6 +207,8 @@ if (workerArgs[0] === "--worker") {
     });
 
   try {
+    await assertResponseCheckpointRecovery(dataDir, requestFor(101));
+    await assertFailureLedger(dataDir, requestFor(102));
     const firstTen = Array.from({ length: 10 }, (_, index) =>
       spawnWorker(index + 1),
     );
@@ -212,21 +231,26 @@ if (workerArgs[0] === "--worker") {
       (await readdir(executionDir)).map(
         async (name) =>
           JSON.parse(await readFile(path.join(executionDir, name), "utf8")) as {
+            executionId: string;
             capacitySlot: number | null;
             status: string;
             systemChatTitle: string | null;
           },
       ),
     );
+    const activeFirstTenStates = firstTenStates.filter(
+      (state) => state.executionId.startsWith("parallel-execution-")
+        && state.status !== "response_captured",
+    );
     assert.deepEqual(
-      firstTenStates
+      activeFirstTenStates
         .map((state) => state.capacitySlot)
         .sort((a, b) => Number(a) - Number(b)),
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       "ten real in-flight tasks must own ten distinct bounded capacity slots",
     );
     assert.equal(
-      firstTenStates.every((state) =>
+      activeFirstTenStates.every((state) =>
         /^系统验收｜\d{2}-\d{2} \d{2}:\d{2}Z｜[A-F0-9]{8}-[A-F0-9]{4}$/u
           .test(state.systemChatTitle ?? "")
       ),
@@ -402,6 +426,13 @@ if (workerArgs[0] === "--worker") {
         && singleTabRoutingSource.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY"),
       true,
       "an automatic sidebar row that has not materialized yet must remain retryable patrol state",
+    );
+    assert.equal(
+      singleTabRoutingSource.includes('"scroll_title"')
+        && singleTabRoutingSource.includes("scrollDeltaY")
+        && singleTabRoutingSource.includes("scroll exact submitted ChatGPT sidebar row into view"),
+      true,
+      "an exact sidebar row outside the viewport must be physically scrolled into view before clicking",
     );
     assert.equal(
       rateLimitWatcherSource.includes("sharedAcknowledgementWatchers")

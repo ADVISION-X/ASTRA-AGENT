@@ -13,7 +13,7 @@ const handleXuanyuanStart = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
 ): Promise<void> => {
-  writeJson(response, 202, await workbench.startXuanyuanTaskAsync(await readJsonBody(request)));
+  writeJson(response, 202, await workbench.enqueueXuanyuanTask(await readJsonBody(request)));
 };
 
 const handleXuanyuanStatus = async (

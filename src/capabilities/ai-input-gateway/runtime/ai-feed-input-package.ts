@@ -122,6 +122,7 @@ export const buildAiFeedInputPackage = async (input: AiFeedInput): Promise<AiFee
     inputHash: hashValue(
       JSON.stringify({
         providerKind: input.providerKind,
+        taskIdentity: input.taskIdentity,
         promptPackageId: input.promptPackageId,
         promptContractId: input.promptContractId,
         expectedOutputSchemaRef: input.expectedOutputSchemaRef,
@@ -161,7 +162,8 @@ const resumedAttachmentMatches = (input: { index: number; ref: AiFeedInput["inpu
 
 const assertResumedAttachmentIdentity = (input: ResumedWebChatInput, fileRefs: AiFeedInput["inputRefs"]): void => {
   const proof = input.attachmentUploadProof;
-  if (proof.status !== "attachments_stable" || proof.expectedFileCount !== fileRefs.length || proof.detectedFileCount !== fileRefs.length || proof.files.length !== fileRefs.length || input.uploadedFiles.length !== fileRefs.length) {
+  const expectedStatus = fileRefs.length === 0 ? "skipped" : "attachments_stable";
+  if (proof.status !== expectedStatus || proof.expectedFileCount !== fileRefs.length || proof.detectedFileCount !== fileRefs.length || proof.files.length !== fileRefs.length || input.uploadedFiles.length !== fileRefs.length) {
     throw new Error("review_required: durable attachment proof does not match the resumable web-chat request.");
   }
   for (const [index, ref] of fileRefs.entries()) {

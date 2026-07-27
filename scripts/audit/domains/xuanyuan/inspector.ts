@@ -10,6 +10,12 @@ const pluginFiles = [
   "src/plugins/xuanyuan/index.ts",
   "src/plugins/xuanyuan/xuanyuan.schema.ts",
   "src/plugins/xuanyuan/xuanyuan.flow.ts",
+  "src/plugins/xuanyuan/xuanyuan.store.ts",
+  "src/plugins/xuanyuan/xuanyuan.task.ts",
+  "src/plugins/xuanyuan/xuanyuan.queue.ts",
+  "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
+  "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
+  "src/plugins/xuanyuan/xuanyuan.workbench.ts",
 ] as const;
 const sourcePaths = [
   "src/app/workbench-api-boundary.ts",
@@ -80,7 +86,14 @@ const inspectAstContract = (files: readonly SourceFile[], findings: InspectorFin
     "response_captured",
     "queued",
     "executionId",
-    "continueInterruptedXuanyuanTasks",
+    "taskName",
+    "taskLabelKey",
+    "recoveryDirective",
+    "recovery_pending",
+    "createXuanyuanTaskCoordinator",
+    "acquireXuanyuanQueueOwner",
+    "resume_exact_provider_conversation",
+    "XUANYUAN_REQUEST_IDENTITY_CONFLICT",
     "transportWarnings",
     "/api/xuanyuan/simulate",
     "/api/xuanyuan/status",
@@ -95,6 +108,103 @@ const inspectAstContract = (files: readonly SourceFile[], findings: InspectorFin
       filePath: pluginFiles[2],
       message: `Xuanyuan AST contract is missing ${missing.join(", ")}.`,
     }));
+  }
+};
+
+const inspectDurableQueueAndRecovery = (
+  files: readonly SourceFile[],
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const values = sourceValues(files);
+  for (const required of [
+    "heartbeatAt",
+    "setInterval",
+    "getRuntimeCapacity",
+    "queue-owner.lock",
+    "active",
+    "enqueueTail",
+    "waitForIdle",
+  ]) {
+    if (!values.has(required)) {
+      findings.push(createFinding({
+        checkId: "xuanyuan/durable-queue-owner",
+        lawId,
+        filePath: "src/plugins/xuanyuan/xuanyuan.queue.ts",
+        message: `Durable Xuanyuan queue owner must contain ${required}.`,
+      }));
+    }
+  }
+  for (const required of [
+    "taskName",
+    "taskLabelKey",
+    "attemptCount",
+    "lastFailureReason",
+    "recoverable",
+    "resume_exact_provider_conversation",
+  ]) {
+    if (!values.has(required)) {
+      findings.push(createFinding({
+        checkId: "xuanyuan/recovery-ledger",
+        lawId,
+        filePath: "src/plugins/xuanyuan/xuanyuan.schema.ts",
+        message: `Xuanyuan recovery ledger must contain ${required}.`,
+      }));
+    }
+  }
+  for (const required of [
+    "sourceProject",
+    "requestId",
+    "XUANYUAN_REQUEST_IDENTITY_CONFLICT",
+  ]) {
+    if (!values.has(required)) {
+      findings.push(createFinding({
+        checkId: "xuanyuan/task-idempotency",
+        lawId,
+        filePath: "src/plugins/xuanyuan/xuanyuan.task.ts",
+        message: `Xuanyuan idempotent task identity must contain ${required}.`,
+      }));
+    }
+  }
+  const pluginSourcePaths = new Set(
+    pluginFiles.map((repoPath) => resolveFromRepo(repoPath)),
+  );
+  for (const file of files.filter((candidate) =>
+    pluginSourcePaths.has(candidate.getFilePath()))) {
+    if (file.getDescendantsOfKind(SyntaxKind.VoidExpression).length > 0) {
+      findings.push(createFinding({
+        checkId: "xuanyuan/no-fire-and-forget",
+        lawId,
+        filePath: file.getFilePath(),
+        message: "Xuanyuan must not use void fire-and-forget task execution.",
+      }));
+    }
+  }
+};
+
+const inspectConcurrencyAcceptance = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const acceptance = sourceFile(context, "scripts/acceptance/xuanyuan.acceptance.ts");
+  if (!acceptance) return;
+  const values = sourceValues([acceptance]);
+  for (const required of [
+    "maxActiveFeeds",
+    "idempotentReplay",
+    "recoveryPending",
+    "resumedCoordinator",
+    "ownerB",
+  ]) {
+    if (!values.has(required)) {
+      findings.push(createFinding({
+        checkId: "xuanyuan/concurrency-recovery-acceptance",
+        lawId,
+        filePath: "scripts/acceptance/xuanyuan.acceptance.ts",
+        message: `Xuanyuan acceptance must execute ${required}.`,
+      }));
+    }
   }
 };
 
@@ -139,6 +249,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const files = collectSources(context, findings, lawId);
   inspectRequiredPaths(findings, lawId);
   inspectAstContract(files, findings, lawId);
+  inspectDurableQueueAndRecovery(files, findings, lawId);
+  inspectConcurrencyAcceptance(context, findings, lawId);
   inspectForbiddenImports(context, findings, lawId);
   inspectPackageScripts(findings, lawId);
   return {

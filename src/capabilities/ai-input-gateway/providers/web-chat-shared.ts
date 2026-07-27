@@ -32,6 +32,7 @@ import {
   restoreAfterWebChatFeed,
 } from "./web-chat-recovery.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
+import { checkpointSubmittedWebChatTurn } from "./web-chat-submission-checkpoint.js";
 import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
 import {
   acknowledgeWebChatRateLimitIfVisible,
@@ -318,29 +319,15 @@ const executeWebChatConversation = async (
     previousUserMessageCount: preSubmit.previousUserMessageCount,
     attachmentUploadProof: preSubmit.attachmentUploadProof,
   });
-  let capturedSubmission: Awaited<
-    ReturnType<typeof captureWebChatSubmissionProof>
-  > | null = null;
-  if (input.context.webChatExecution) {
-    capturedSubmission = await captureWebChatSubmissionProof({
-      browser: input.browser,
-      context: input.context,
-      request: input.request,
-      previousAssistantCount: preSubmit.previousAssistantCount,
-      previousUserMessageCount: preSubmit.previousUserMessageCount,
-      requireCanonical: input.request.providerKind === "gpt-web-chat",
-    });
-    await input.context.webChatExecution.onSubmissionObserved({
-      submission: capturedSubmission,
-      uploadedFiles: preSubmit.uploadedFiles,
-      attachmentUploadProof: preSubmit.attachmentUploadProof,
-    });
-    await input.context.webChatExecution.onSubmitted({
-      submission: capturedSubmission,
-      uploadedFiles: preSubmit.uploadedFiles,
-      attachmentUploadProof: preSubmit.attachmentUploadProof,
-    });
-  }
+  const capturedSubmission = await checkpointSubmittedWebChatTurn({
+    browser: input.browser,
+    context: input.context,
+    request: input.request,
+    previousAssistantCount: preSubmit.previousAssistantCount,
+    previousUserMessageCount: preSubmit.previousUserMessageCount,
+    uploadedFiles: preSubmit.uploadedFiles,
+    attachmentUploadProof: preSubmit.attachmentUploadProof,
+  });
   const conversation = await extractWebChatConversation({
     browser: input.browser,
     request: input.request,
@@ -349,6 +336,16 @@ const executeWebChatConversation = async (
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousAnswerText: preSubmit.previousAnswerText,
   });
+  if (input.context.webChatExecution) {
+    await input.context.webChatExecution.onResponseCaptured({
+      answerText: conversation.answerText,
+      pageUrl:
+        conversation.extracted.pageUrl
+        ?? capturedSubmission?.canonicalConversationUrl
+        ?? capturedSubmission?.transientConversationUrl
+        ?? input.providerUrl,
+    });
+  }
   return buildCompletedWebChatResponse({
     opened: input,
     preSubmit,

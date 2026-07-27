@@ -240,50 +240,56 @@ const readFrontChromeWindowState = async (fallbackUrl?: string): Promise<ChromeW
   const restoreUrl = fallbackUrl && fallbackUrl !== "about:blank"
     ? `set URL of active tab of front window to "${escapeAppleScriptString(fallbackUrl)}"`
     : "";
-  const output = await runAppleScript(`
-tell application "Google Chrome" to activate
+  const windowCount = await runAppleScript(`
 tell application "Google Chrome"
     if (count of windows) = 0 then
         make new window
         ${restoreUrl}
         delay 1
     end if
-    if (count of windows) = 0 then
-        return "NO_WINDOW"
-    end if
-    set tabUrl to URL of active tab of front window
-    set tabTitle to title of active tab of front window
+    return count of windows
 end tell
-tell application "System Events"
-    tell process "Google Chrome"
-        set frontmost to true
-        if (count of windows) = 0 then return "NO_WINDOW"
-        set chromeWindowPosition to position of window 1
-        set chromeWindowSize to size of window 1
-    end tell
-end tell
-set windowLeft to item 1 of chromeWindowPosition
-set windowTop to item 2 of chromeWindowPosition
-set windowRight to windowLeft + (item 1 of chromeWindowSize)
-set windowBottom to windowTop + (item 2 of chromeWindowSize)
-return (windowLeft as string) & linefeed & (windowTop as string) & linefeed & (windowRight as string) & linefeed & (windowBottom as string) & linefeed & tabUrl & linefeed & tabTitle
 `);
-
-  if (output === "NO_WINDOW") {
+  if (Number(windowCount) === 0) {
     throw new Error("Google Chrome window is not available for current-browser control.");
   }
 
-  const [left, top, right, bottom, currentUrl, ...titleParts] = output.split(/\r?\n/);
-  const windowX = Number(left);
-  const windowY = Number(top);
-  return {
-    windowX,
-    windowY,
-    width: Number(right) - windowX,
-    height: Number(bottom) - windowY,
-    currentUrl: currentUrl?.trim() || "about:blank",
-    currentTitle: titleParts.join(" ").trim() || "Google Chrome",
-  };
+  const output = await runJxa(`
+const chrome = Application("Google Chrome");
+const chromeWindow = chrome.windows()[0];
+const bounds = chromeWindow.bounds();
+const tab = chromeWindow.activeTab();
+const currentUrl = String(tab.url() || "about:blank");
+const currentTitle = String(tab.title() || "Google Chrome");
+chromeWindow.index = 1;
+const systemEvents = Application("System Events");
+const processes = systemEvents.applicationProcesses.whose({name: {_equals: "Google Chrome"}})();
+if (processes.length === 0) throw new Error("Google Chrome accessibility process is unavailable");
+const process = processes[0];
+const matchingWindows = process.windows().filter((window) => {
+  const position = window.position();
+  const size = window.size();
+  return position[0] === bounds.x
+    && position[1] === bounds.y
+    && size[0] === bounds.width
+    && size[1] === bounds.height;
+});
+if (matchingWindows.length !== 1) {
+  throw new Error("controlled Chrome automation window does not have one exact accessibility window");
+}
+process.frontmost = true;
+matchingWindows[0].actions.byName("AXRaise").perform();
+delay(0.05);
+JSON.stringify({
+  windowX: bounds.x,
+  windowY: bounds.y,
+  width: bounds.width,
+  height: bounds.height,
+  currentUrl,
+  currentTitle,
+});
+`);
+  return JSON.parse(output) as ChromeWindowState;
 };
 
 export { runSpawn, runAppleScript, runJxa, buildOpenUrlScript, readFrontChromeWindowState };

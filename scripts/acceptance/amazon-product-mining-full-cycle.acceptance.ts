@@ -141,6 +141,7 @@ const browser = {
 const aiInputGateway: AiInputGatewayAbilityGroup = {
   abilityGroupId: "ai-input-gateway",
   listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+  getRuntimeCapacity: () => 10,
   async execute(input) {
     assert.equal((input as { providerKind?: unknown }).providerKind, "gpt-web-chat", "Full cycle must use the selected GPT web chat provider");
     const promptContractId = (input as { promptContractId?: string }).promptContractId;

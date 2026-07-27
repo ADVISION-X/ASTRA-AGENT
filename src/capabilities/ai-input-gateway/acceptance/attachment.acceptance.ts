@@ -41,6 +41,12 @@ const buildRequest = async (directory: string, fileCount: number) => {
   }
   return AiFeedInputSchema.parse({
     providerKind: "gpt-web-chat",
+    taskIdentity: {
+      labelKey: "system_acceptance",
+      sourceProject: "agent",
+      taskKind: "attachment-acceptance",
+      sourceTaskId: `attachment-${fileCount}`,
+    },
     promptPackageId: `attachment-acceptance-${fileCount}`,
     promptContractId: "attachment-acceptance-v1",
     expectedOutputSchemaRef: null,

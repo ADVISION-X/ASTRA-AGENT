@@ -4,6 +4,7 @@ import type {
   AiFeedInput,
   AiInputGatewayProviderKind,
 } from "../schema.js";
+import type { WebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
 
 export type AiProviderUploadedFileProof = {
   inputRefId: string;
@@ -64,6 +65,7 @@ export type WebChatExecutionContext = {
   resumeSubmission: WebChatSubmissionProof | null;
   resumeUploadedFiles: AiProviderUploadedFileProof[];
   resumeAttachmentUploadProof: WebChatAttachmentUploadProof | null;
+  resumeResponseCheckpoint: WebChatResponseCheckpoint | null;
   globalBrowser: BrowserController | null;
   runExclusivePatrol<T>(
     operation: (browser: BrowserController) => Promise<T>,
@@ -79,6 +81,10 @@ export type WebChatExecutionContext = {
     attachmentUploadProof: WebChatAttachmentUploadProof;
   }): Promise<void>;
   onConversationCanonicalized(submission: WebChatSubmissionProof): Promise<void>;
+  onResponseCaptured(input: {
+    answerText: string;
+    pageUrl: string;
+  }): Promise<WebChatResponseCheckpoint>;
 };
 
 export type AiProviderRawResponse = {
