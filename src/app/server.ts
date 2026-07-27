@@ -71,16 +71,26 @@ function startServer(): ReturnType<typeof createServer> {
   return server;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+async function startLocalRuntime(): Promise<void> {
   const server = startServer();
   process.stdout.write(`GrassEye local workbench listening on ${baseUrl}\n`);
-  void workbench.init().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`GrassEye workbench init failed after server start: ${message}\n`);
+  await workbench.init();
+  const shutdown = async (): Promise<void> => {
+    await workbench.shutdown();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  };
+  process.once("SIGINT", () => {
+    shutdown().then(() => process.exit(0)).catch(() => process.exit(1));
   });
-  process.on("SIGINT", () => {
-    server.close(() => {
-      process.exit(0);
-    });
+  process.once("SIGTERM", () => {
+    shutdown().then(() => process.exit(0)).catch(() => process.exit(1));
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  startLocalRuntime().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`GrassEye local runtime startup failed: ${message}\n`);
+    process.exitCode = 1;
   });
 }

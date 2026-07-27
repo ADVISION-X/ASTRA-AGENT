@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-07-27T12:25:00.475Z",
+  "generatedAt": "2026-07-27T17:40:42.778Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -100,6 +100,7 @@
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
     "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -333,6 +334,7 @@
     "scripts/startup/lib/startup-main-support.mjs",
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+    "scripts/startup/xuanyuan-cloud-enroll.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
@@ -574,6 +576,7 @@
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
     "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
+    "src/lib/local-runtime/workbench-deep-research-types.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -583,6 +586,7 @@
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
+    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/lib/online-ai/config.ts",
     "src/lib/online-ai/gemini-client.ts",
@@ -815,6 +819,12 @@
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
     "src/plugins/xuanyuan/index.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
     "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
     "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
     "src/plugins/xuanyuan/xuanyuan.flow.ts",
@@ -1368,6 +1378,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
+      "reason": "package.json script acceptance:xuanyuan",
+      "scriptName": "acceptance:xuanyuan"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/xuanyuan.acceptance.ts",
       "reason": "package.json script acceptance:xuanyuan",
       "scriptName": "acceptance:xuanyuan"
@@ -1578,6 +1594,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/startup/xuanyuan-cloud-enroll.ts",
+      "reason": "package.json script xuanyuan:cloud:enroll",
+      "scriptName": "xuanyuan:cloud:enroll"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "src/app/server.ts",
       "reason": "package.json script internal:app-server:dev",
       "scriptName": "internal:app-server:dev"
@@ -1607,9 +1629,9 @@
       "scriptName": "acceptance:ai-input-gateway-web-chat-restart:real-chrome"
     }
   ],
-  "liveExportCount": 2430,
+  "liveExportCount": 2457,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 821,
+  "reachableFileCount": 831,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1621,9 +1643,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2430,
+    "liveExportCount": 2457,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 821,
+    "reachableFileCount": 831,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

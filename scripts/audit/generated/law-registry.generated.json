@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T12:24:24.660Z",
+  "generatedAt": "2026-07-27T17:40:04.372Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -6602,17 +6602,17 @@
       "blockIndex": 7
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V1",
+      "lawId": "GRASSEYE-XUANYUAN-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanyuan",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Xuanyuan must be the single governed AI API simulation owner for external websites, entering through Workbench API Boundary and calling AI Input Gateway without provider direct calls or website-held provider keys.",
+      "summary": "Xuanyuan is the single governed local GPT Web acceptance owner, entering through Workbench or authenticated outbound cloud claims and calling AI Input Gateway without production Provider responsibilities.",
       "clauses": [
         {
           "clauseId": "grasseye-xuanyuan-001-requirement",
-          "statement": "Xuanyuan must be the single governed AI API simulation owner for external websites, entering through Workbench API Boundary and calling AI Input Gateway without provider direct calls or website-held provider keys.",
+          "statement": "Xuanyuan is the single governed local GPT Web acceptance owner, entering through Workbench or authenticated outbound cloud claims and calling AI Input Gateway without production Provider responsibilities.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanyuan"
         }
@@ -6620,13 +6620,15 @@
       "required": [
         "Known xuanyuan routes exist and are admitted by Workbench API Boundary.",
         "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
-        "External website contract stays provider-agnostic for later real API-key switching.",
+        "Cloud delivery binds one server job identity to one persisted local task without exposing provider transport controls.",
+        "Production Provider API remains physically outside GrassEye and cannot fall back to local GPT Web.",
         "Optional continuation is authorized only by prior Xuanyuan task id plus exact captured response hash, while Xuanyuan resolves the internal provider conversation ref.",
         "Web Chat files are delegated to the standard AI Input Gateway attachment child and Xuanyuan persists its aggregate terminal proof."
       ],
       "forbidden": [
         "second HTTP server or API gateway",
-        "website direct provider call or website-held provider key",
+        "website direct provider call or production provider key inside GrassEye",
+        "inbound home port, reverse callback or unleased cloud input",
         "xuanyuan direct provider SDK or web-chat DOM operation",
         "external provider conversation URL or unverified continuation",
         "fake success when provider or parsing fails",
@@ -6636,17 +6638,17 @@
       "blockIndex": 0
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "lawId": "GRASSEYE-XUANYUAN-002-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanyuan",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Xuanyuan owns one leased durable task queue with idempotent named tasks, bounded parallel execution and exact cross-restart provider recovery.",
+      "summary": "Xuanyuan owns one leased durable local task queue with cloud-bound idempotent names, bounded parallel execution, exact checkpoints and cross-restart recovery.",
       "clauses": [
         {
           "clauseId": "grasseye-xuanyuan-002-requirement",
-          "statement": "Xuanyuan owns one leased durable task queue with idempotent named tasks, bounded parallel execution and exact cross-restart provider recovery.",
+          "statement": "Xuanyuan owns one leased durable local task queue with cloud-bound idempotent names, bounded parallel execution, exact checkpoints and cross-restart recovery.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanyuan"
         }
@@ -6656,7 +6658,8 @@
         "A single queue owner claims persisted work with lease and heartbeat semantics, runs independent tasks concurrently up to gateway capacity, and leaves overflow queued.",
         "The unique sourceProject plus requestId identity is idempotent: an identical retry returns the original persisted task and a conflicting retry fails before provider work. Each task persists a governed readable taskName derived from an allowlisted label key plus opaque trace.",
         "Restart recovery resumes queued tasks, response-checkpointed tasks and exact submitted gateway attempts without duplicating prompts; post-submit failure is recovery_pending rather than a terminal loss.",
-        "Public task progress exposes stable queue, provider-wait, response-checkpointed and recovery-pending states plus attempt and failure trace, but no system chat title, tab id, marker, selector, browser command or caller concurrency control."
+        "Public task progress exposes stable queue, provider-wait, response-checkpointed and recovery-pending states plus attempt and failure trace, but no system chat title, tab id, marker, selector, browser command or caller concurrency control.",
+        "The outbound cloud worker authenticates one device, heartbeats and claims lease-bound jobs, then returns checkpoints and exact results without opening an inbound home port."
       ],
       "forbidden": [
         "void fire-and-forget execution as task durability",
@@ -6664,7 +6667,8 @@
         "duplicate submit on restart",
         "creating a second task for an identical sourceProject plus requestId replay",
         "terminally discarding a submitted or response-checkpointed provider attempt",
-        "second queue owner, compatibility queue, shadow executor or legacy serial mode"
+        "second queue owner, compatibility queue, shadow executor or legacy serial mode",
+        "server-initiated connection to this machine or cloud result without matching job lease"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
       "blockIndex": 1

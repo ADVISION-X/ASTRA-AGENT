@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T12:25:12.889Z",
+  "generatedAt": "2026-07-27T17:40:55.531Z",
   "summary": {
     "activeLawCount": 248,
     "activeClauseCount": 255,
@@ -13870,7 +13870,7 @@
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V1",
+      "lawId": "GRASSEYE-XUANYUAN-001-V2",
       "clauseId": "grasseye-xuanyuan-001-requirement",
       "capabilityDomain": "xuanyuan",
       "evidenceMode": "acceptance",
@@ -13882,6 +13882,7 @@
         "xuanyuan/file-present",
         "xuanyuan/forbidden-provider-import",
         "xuanyuan/no-fire-and-forget",
+        "xuanyuan/outbound-cloud-device",
         "xuanyuan/recovery-ledger",
         "xuanyuan/task-idempotency",
         "xuanyuan/package-script"
@@ -13895,7 +13896,7 @@
       "manifestPath": "scripts/audit/domains/xuanyuan/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-002-V1",
+      "lawId": "GRASSEYE-XUANYUAN-002-V2",
       "clauseId": "grasseye-xuanyuan-002-requirement",
       "capabilityDomain": "xuanyuan",
       "evidenceMode": "acceptance",
@@ -13907,6 +13908,7 @@
         "xuanyuan/file-present",
         "xuanyuan/forbidden-provider-import",
         "xuanyuan/no-fire-and-forget",
+        "xuanyuan/outbound-cloud-device",
         "xuanyuan/recovery-ledger",
         "xuanyuan/task-idempotency",
         "xuanyuan/package-script"

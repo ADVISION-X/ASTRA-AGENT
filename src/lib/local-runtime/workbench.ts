@@ -63,26 +63,12 @@ import {
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
 import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
 import { createWorkbenchXuanyuanSupport } from "../../plugins/xuanyuan/index.js";
-
-type DeepResearchExecutionState = {
-  status: DeepResearchJobSnapshot["job"]["status"];
-  phase: DeepResearchJobSnapshot["job"]["phase"];
-  failureReason: string | null;
-  reviewReason: string | null;
-};
-
-type DeepResearchExecutionJobLike = {
-  id: string;
-  status: DeepResearchJobSnapshot["job"]["status"];
-  phase: DeepResearchJobSnapshot["job"]["phase"];
-  failureReason?: string | null;
-  reviewReason?: string | null;
-};
-
-type DeepResearchExecutionSnapshotLike = {
-  job: DeepResearchExecutionJobLike;
-  overview?: { currentPhase: DeepResearchJobSnapshot["overview"]["currentPhase"] };
-};
+import { createWorkbenchXuanyuanCloudSupport } from "./workbench-xuanyuan-cloud-support.js";
+import type {
+  DeepResearchExecutionJobLike,
+  DeepResearchExecutionSnapshotLike,
+  DeepResearchExecutionState,
+} from "./workbench-deep-research-types.js";
 
 type DeepResearchHandleContext = {
   assembly: WorkbenchAssembly;
@@ -427,11 +413,13 @@ const buildDeepResearchAnalysisHandle = (
 const buildWorkbenchHandle = (
   assembly: WorkbenchAssembly,
   init: () => Promise<void>,
+  shutdown: () => Promise<void>,
   xuanyuan: ReturnType<typeof createWorkbenchXuanyuanSupport>,
 ): GrassEyeWorkbenchHandle => {
   const dataDir = assembly.dataDir;
   return {
     init,
+    shutdown,
     ...buildApiBoundaryLogHandle(assembly),
     getHealthReport: async () => getHealthReport(assembly),
     getMissionReadinessReport: async () =>
@@ -464,10 +452,15 @@ const buildWorkbenchHandle = (
 export class GrassEyeWorkbench {
   private readonly assembly: WorkbenchAssembly;
   private readonly xuanyuan: ReturnType<typeof createWorkbenchXuanyuanSupport>;
+  private readonly xuanyuanCloud: ReturnType<typeof createWorkbenchXuanyuanCloudSupport>;
 
   constructor(options: GrassEyeWorkbenchOptions) {
     this.assembly = createWorkbenchAssembly(options);
     this.xuanyuan = createWorkbenchXuanyuanSupport(this.assembly);
+    this.xuanyuanCloud = createWorkbenchXuanyuanCloudSupport(this.assembly.dataDir, {
+      enqueueXuanyuanTask: this.xuanyuan.enqueueXuanyuanTask,
+      getXuanyuanTaskStatus: this.xuanyuan.getXuanyuanTaskStatus,
+    });
   }
 
   async init(): Promise<void> {
@@ -479,9 +472,19 @@ export class GrassEyeWorkbench {
       runtimeLogger: this.assembly.runtimeLogger,
     });
     await this.xuanyuan.init();
+    await this.xuanyuanCloud.init();
+  }
+
+  async shutdown(): Promise<void> {
+    await this.xuanyuanCloud.shutdown();
   }
 
   createHandle(): GrassEyeWorkbenchHandle {
-    return buildWorkbenchHandle(this.assembly, () => this.init(), this.xuanyuan);
+    return buildWorkbenchHandle(
+      this.assembly,
+      () => this.init(),
+      () => this.shutdown(),
+      this.xuanyuan,
+    );
   }
 }

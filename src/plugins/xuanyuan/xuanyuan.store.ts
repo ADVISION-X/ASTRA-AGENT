@@ -18,7 +18,7 @@ const isLegacyRecoverable = (stored: XuanyuanTaskRecord): boolean =>
   stored.status === "running"
   || (
     (stored.status === "failed" || stored.status === "review_required")
-    && Boolean(stored.progress.attachmentUploadProof)
+    && Boolean(stored.progress?.attachmentUploadProof)
   );
 
 const hydrateStoredXuanyuanTask = (
@@ -27,14 +27,20 @@ const hydrateStoredXuanyuanTask = (
   const taskLabelKey =
     stored.taskLabelKey ?? resolveXuanyuanTaskLabelKey(stored.scenario);
   const recoverable = isLegacyRecoverable(stored);
+  const progress = stored.progress ?? {
+    executionId: stored.taskId,
+    phase: stored.status === "running" ? "recovery_pending" : "terminal",
+    lastTransitionAt: stored.updatedAt,
+    attachmentUploadProof: null,
+  };
   return {
     ...stored,
     taskLabelKey,
     taskName:
       stored.taskName ?? buildXuanyuanTaskName(taskLabelKey, stored.taskId),
     progress: {
-      ...stored.progress,
-      lastTransitionAt: stored.progress.lastTransitionAt ?? stored.updatedAt,
+      ...progress,
+      lastTransitionAt: progress.lastTransitionAt ?? stored.updatedAt,
     },
     recovery: stored.recovery ?? {
       attemptCount: stored.status === "queued" ? 0 : 1,

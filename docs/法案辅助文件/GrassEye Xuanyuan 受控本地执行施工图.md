@@ -1,4 +1,4 @@
-# GrassEye Xuanyuan API 临时实现施工图
+# GrassEye Xuanyuan 受控本地执行施工图
 
 version: 2026-07-27
 status: construction-blueprint
@@ -10,12 +10,12 @@ targetPlugin: `src/plugins/xuanyuan`
 
 ## Xuanyuan Boundary
 
-`xuanyuan` 是 AGENT 端统一 AI API 模拟入口。
+`xuanyuan` 是 AGENT 端唯一受控本地 GPT Web 验收入口。
 
 边界：
 
 ```txt
-网站侧只发和收。
+网站侧只维护云端任务真相；本地 AGENT 主动连出领取。
 AGENT 才是 AI 端。
 Workbench API Boundary 是外部入口门禁。
 AI Input Gateway 是 provider 传输边界。
@@ -28,10 +28,11 @@ xuanyuan 只拥有任务契约、提示词包快照、任务存储和 AI Gateway
 第二 HTTP server
 第二 API gateway
 网站直连 provider
-网站保存 provider API key
+网站生产 Provider API key 进入 AGENT
 xuanyuan 直接操作 GPT DOM
 xuanyuan 直接 import OpenAI/Gemini/ChatGPT SDK
 provider 失败后返回 succeeded
+服务器回拨家庭端口或要求家庭公网 IP
 ```
 
 ## API Flow
@@ -40,6 +41,15 @@ provider 失败后返回 succeeded
 
 ```txt
 External Website / xuanxue-web
+  -> cloud ai-acceptance ledger
+      <- authenticated local device outbound claim
+          -> Xuanyuan coordinator
+```
+
+本机直接验收仍可通过：
+
+```txt
+Local operator
   -> Workbench API Boundary
       -> POST /api/xuanyuan/simulate
           -> workbench-xuanyuan-routes
@@ -51,6 +61,24 @@ External Website / xuanxue-web
                                   -> raw output + provider proof
                                       -> xuanyuan task record
 ```
+
+### Outbound Cloud Worker
+
+```txt
+cloud-worker start
+→ load permission-0600 device credential
+→ heartbeat
+→ claim bounded leased jobs
+→ download exact lease-bound input files
+→ verify every sha256 and byte count
+→ enqueue/reuse one Xuanyuan task
+→ send submitted/response checkpoints
+→ upload exact raw answer and provider proof
+→ await cloud acknowledgement
+→ clean isolated task staging
+```
+
+云端 `jobId + sourceTaskId + requestHash + attempt` 与本地 `taskId` 建立唯一持久绑定。重复领取只能恢复原绑定；任何 hash 或 attempt 冲突必须在 GPT 提交前失败。服务器永远不连接本机端口，本机不需要公网 IP、端口映射或反向隧道。
 
 Xuanyuan enqueue 只负责校验并持久化 `queued` 任务，然后返回 202。唯一持久化队列 owner
 以 lease/heartbeat 领取任务，并发数量服从 AI Input Gateway 的实际容量；没有第二执行器，

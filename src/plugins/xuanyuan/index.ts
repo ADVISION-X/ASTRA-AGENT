@@ -14,3 +14,6 @@ export type {
   XuanyuanTaskStatus,
 } from "./xuanyuan.schema.js";
 export { createWorkbenchXuanyuanSupport } from "./xuanyuan.workbench.js";
+export { enrollXuanyuanCloudDevice } from "./xuanyuan-cloud-enrollment.js";
+export { startXuanyuanCloudWorker } from "./xuanyuan-cloud-worker.js";
+export type { XuanyuanCloudWorkerHandle } from "./xuanyuan-cloud-contract.js";

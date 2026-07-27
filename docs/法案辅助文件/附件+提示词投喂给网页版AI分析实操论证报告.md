@@ -1168,7 +1168,7 @@ PROVIDER_LIMIT_REACHED
 .github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md
 .github/instructions/agent-rules/modules/module-xuanyuan.instructions.md
 docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md
-docs/法案辅助文件/GrassEye Xuanyuan API 临时实现施工图.md
+docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md
 
 src/capabilities/ai-input-gateway/schema.ts
 src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts

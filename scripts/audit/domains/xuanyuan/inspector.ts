@@ -16,6 +16,13 @@ const pluginFiles = [
   "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
   "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
   "src/plugins/xuanyuan/xuanyuan.workbench.ts",
+  "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
+  "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
+  "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
+  "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
+  "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
+    "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
+    "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
 ] as const;
 const sourcePaths = [
   "src/app/workbench-api-boundary.ts",
@@ -27,10 +34,11 @@ const sourcePaths = [
 ] as const;
 const inspectedFiles = [
   ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
-  "docs/法案辅助文件/GrassEye Xuanyuan API 临时实现施工图.md",
+  "docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md",
   "scripts/audit/domains/xuanyuan/manifest.json",
   "scripts/audit/domains/xuanyuan/inspector.ts",
   "scripts/acceptance/xuanyuan.acceptance.ts",
+  "scripts/startup/xuanyuan-cloud-enroll.ts",
   "package.json",
   ...sourcePaths,
 ] as const;
@@ -229,7 +237,7 @@ const inspectPackageScripts = (findings: InspectorFinding[], lawId: string): voi
   const packageJson = JSON.parse(readFileSync(resolveFromRepo("package.json"), "utf8")) as {
     scripts?: Record<string, string>;
   };
-  for (const scriptName of ["acceptance:xuanyuan", "audit:xuanyuan"]) {
+  for (const scriptName of ["acceptance:xuanyuan", "audit:xuanyuan", "xuanyuan:cloud:enroll"]) {
     if (!packageJson.scripts?.[scriptName]) {
       findings.push(createFinding({
         checkId: "xuanyuan/package-script",
@@ -241,16 +249,51 @@ const inspectPackageScripts = (findings: InspectorFinding[], lawId: string): voi
   }
 };
 
+const inspectOutboundCloudDevice = (
+  files: readonly SourceFile[],
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const values = sourceValues(files);
+  for (const required of [
+    "ai-acceptance-protocol-v1",
+    "XUANYUAN_CLOUD_BASE_URL",
+    "XUANYUAN_CLOUD_CREDENTIAL_PERMISSIONS_INVALID",
+    "local_gpt_web",
+    "lease_token",
+    "lease_version",
+    "inputs_downloading",
+    "provider_submitted",
+    "response_checkpointed",
+    "provider_execution_ref",
+    "raw_response_hash",
+    "startXuanyuanCloudWorker",
+    "claimXuanyuanCloudJobs",
+    "heartbeatXuanyuanCloudJob",
+    "completeXuanyuanCloudJob",
+  ]) {
+    if (!values.has(required)) {
+      findings.push(createFinding({
+        checkId: "xuanyuan/outbound-cloud-device",
+        lawId,
+        filePath: "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
+        message: `Xuanyuan outbound cloud device contract must contain ${required}.`,
+      }));
+    }
+  }
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const lawId = context.planEntry.lawIds.includes("GRASSEYE-XUANYUAN-002-V1")
-    ? "GRASSEYE-XUANYUAN-002-V1"
-    : context.planEntry.lawIds[0] ?? "GRASSEYE-XUANYUAN-001-V1";
+  const lawId = context.planEntry.lawIds.includes("GRASSEYE-XUANYUAN-002-V2")
+    ? "GRASSEYE-XUANYUAN-002-V2"
+    : context.planEntry.lawIds[0] ?? "GRASSEYE-XUANYUAN-001-V2";
   const findings: InspectorFinding[] = [];
   const files = collectSources(context, findings, lawId);
   inspectRequiredPaths(findings, lawId);
   inspectAstContract(files, findings, lawId);
   inspectDurableQueueAndRecovery(files, findings, lawId);
   inspectConcurrencyAcceptance(context, findings, lawId);
+  inspectOutboundCloudDevice(files, findings, lawId);
   inspectForbiddenImports(context, findings, lawId);
   inspectPackageScripts(findings, lawId);
   return {

@@ -2,7 +2,7 @@
 
 > 文档身份：`xuanyuan` 技能的唯一操作说明
 > 适用范围：xuanxue-web 及其他业务系统调用 AGENT 执行 AI 任务
-> 当前原则：业务端只调用 `xuanyuan`；不得直接调用 provider、浏览器控制器或 AI Input Gateway 子能力。
+> 当前原则：服务器只写云端验收任务；本地 AGENT 主动领取并交给 `xuanyuan`。不得让服务器回拨本机，也不得直接调用 provider、浏览器控制器或 AI Input Gateway 子能力。
 
 ## 0. 启动 AGENT
 
@@ -16,25 +16,44 @@ GRASSEYE_STRUCTURED_LOG_LEVEL=debug \
 npm run grasseye:start
 ```
 
-启动日志出现 `waiting for human command` 后，才向 AGENT 发送 Xuanyuan API 请求。测试 Web GPT 时必须使用已登录的 GUI Chrome，并在 Chrome 中开启：`显示 → 开发者 → 允许 Apple 事件中的 JavaScript`。本流程不要求、也不应在业务项目配置 provider API key；provider key 若未来启用直连 API，也只能放在 AGENT provider 层。
+测试 Web GPT 时必须使用已登录的 GUI Chrome，并在 Chrome 中开启：`显示 → 开发者 → 允许 Apple 事件中的 JavaScript`。本流程不要求、也不应配置生产 provider API key。
+
+首次连接服务器前，只执行一次设备登记：
+
+```bash
+cd "/Users/nexgen/Documents/AGENT"
+XUANYUAN_CLOUD_BASE_URL="https://你的服务器域名" \
+XUANYUAN_CLOUD_DEVICE_NAME="本地验收-Mac" \
+XUANYUAN_CLOUD_ENROLLMENT_TOKEN="服务器签发的短期登记口令" \
+XUANYUAN_CLOUD_MAX_IN_FLIGHT=10 \
+npm run xuanyuan:cloud:enroll
+```
+
+登记成功后，长期设备凭据只保存在权限为 `0600` 的本地文件中。正常启动只需设置
+`XUANYUAN_CLOUD_BASE_URL`，不再使用登记口令。
 
 ## 1. 唯一调用链
 
 ```text
-业务系统
-  -> POST AGENT /api/xuanyuan/simulate
-  -> xuanyuan 任务契约与任务记录
+网站服务器
+  -> 持久化 ai_acceptance_jobs、输入对象和 request_hash
+  <- 本地 AGENT 使用设备凭据主动 heartbeat / claim
+  -> xuanyuan 持久任务与唯一队列
   -> AI Input Gateway
-  -> 当前 provider（由 AGENT 决定）
-  -> raw output / hash / provider proof / parse status
-  -> GET /api/xuanyuan/status?taskId=...
+  -> GPT Web
+  -> 原始回答 / hash / provider proof / checkpoint
+  -> 本地 AGENT 回传服务器并等待确认
+  -> 服务器管理后台人工反问、记录问题和晋级证据
 ```
 
 `xuanyuan` 是 AGENT 对外暴露的统一 AI 技能。业务系统不得因为想使用 API、Web GPT 或其他模型而改调用路径；provider 切换必须在 AGENT 内部完成，并保持 Xuanyuan 请求/任务状态契约不变。
 
+本机 `/api/xuanyuan/*` 只保留为 AGENT 自检和隔离诊断入口，不是网站服务器的生产连接方式。
+
 ## 2. 运行前检查
 
-调用方只准备治理后的请求字段：
+云端任务生产者只准备治理后的请求字段。云端协议会将这些字段锁定为
+`job_id + source_task_id + request_hash + attempt`，再由本地转换成 Xuanyuan 请求：
 
 ```json
 {
@@ -62,35 +81,38 @@ npm run grasseye:start
 
 必须保证 request、prompt package、prompt contract 和输入快照可复算；真实 provider key 只存在 AGENT provider 层。
 
-## 3. 发起与查询
+## 3. 云端激活本地 AGENT
 
-```bash
-curl -sS -X POST "$XUANYUAN_AGENT_BASE_URL/api/xuanyuan/simulate" \
-  -H 'content-type: application/json' \
-  -H "x-grasseye-api-key: $XUANYUAN_AGENT_API_KEY" \
-  -H "origin: $XUANYUAN_AGENT_ORIGIN" \
-  --data-binary @request.json
+服务器不需要知道本机 IP，也不需要家庭宽带开放端口。本地 AGENT 周期性主动请求：
 
-curl -sS "$XUANYUAN_AGENT_BASE_URL/api/xuanyuan/status?taskId=$TASK_ID" \
-  -H "x-grasseye-api-key: $XUANYUAN_AGENT_API_KEY" \
-  -H "origin: $XUANYUAN_AGENT_ORIGIN"
+```txt
+POST /internal/ai-acceptance/devices/heartbeat
+POST /internal/ai-acceptance/jobs/claim
+POST /internal/ai-acceptance/jobs/{jobId}/checkpoints
+POST /internal/ai-acceptance/jobs/{jobId}/result
+POST /internal/ai-acceptance/jobs/{jobId}/failure
 ```
 
-以响应中的 `taskId` 为唯一查询句柄。终态含义：`succeeded` 表示输出和校验可用；`parse_failed_raw_available` 表示 raw output 可用但解析失败；`review_required` 表示 provider 或安全边界无法证明完成；`failed` 表示失败且无可用 raw output。
+云端 `job_id` 是网站侧唯一句柄，本地 `taskId` 是 GPT Web 执行句柄；二者必须保留映射。
+`completed` 只表示回答已保存并通过哈希回读，不表示内容已经人工确认准确。
 
 ## 4. 证据要求
 
-每次任务必须保留：
+每次任务必须同时保留：
 
 ```text
 <GRASSEYE_DATA_DIR>/runtime-data/xuanyuan/tasks/<taskId>.json
+云端 ai_acceptance_jobs / ai_acceptance_job_events
+私有对象存储中的输入快照与原始回答
 ```
 
 验收至少检查 `requestSnapshot`、`promptPackageSnapshot`、`providerProof`、`rawOutputRef`、`rawOutputHash`、`parseStatus`、`schemaValidationStatus` 以及 `failureReason`/`reviewRequiredReason`。没有这些字段，不能宣布 AI 完成。
 
 ## 5. Provider 边界
 
-当前 AGENT 的 Xuanyuan schema 将 `providerKind` 限制为 `gpt-web-chat`。AI Input Gateway 虽另有 `gemini-api` adapter，但业务端不得直接调用它；如需直连 API，必须在 AGENT 内扩展 Xuanyuan schema、provider 选择和真实 acceptance，并保持任务状态、raw output、proof、哈希和失败语义不变。闭环完成前，不得把 `createAiInputGatewayAbilityGroup` 或任何 provider adapter 当作业务入口。
+当前本地 AGENT 的 Xuanyuan schema 将 `providerKind` 限制为 `gpt-web-chat`。生产 Provider API
+属于网站服务端的独立执行通道，只有人工验收证据晋级后才可启用；不得在 AGENT 内形成
+GPT Web 与生产 API 双写，也不得把 GPT Web 当作生产 API 的失败回退。
 
 ## 6. 本次受控 smoke run
 
@@ -129,8 +151,9 @@ rawOutputRef: /tmp/grasseye-xuanyuan-smoke/runtime-data/ai-input-gateway/feed-gp
 - provider 失败后手工补写任务 JSON。
 
 ```bash
-node --import tsx scripts/acceptance/xuanyuan.acceptance.ts
-node --import tsx scripts/audit/domains/xuanyuan/inspector.ts
+npm run acceptance:xuanyuan
+npm run audit:xuanyuan
 ```
 
-前一条只证明任务骨架；后一条检查治理结构。只有真实 provider 任务产生完整 output proof，才可计入业务 AI 生产证据。
+前一条包含本地任务、附件与双任务云端并发归属验收；后一条检查治理结构。自动验收不能替代
+真实 GPT Web 回答、人工反问和案例接受证据。

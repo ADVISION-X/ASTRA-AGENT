@@ -134,14 +134,16 @@
       "allowedEntrypoints": [
         "src/app/workbench-xuanyuan-routes.ts",
         "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
+        "src/lib/local-runtime/workbench-handle.ts",
+        "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts"
       ],
       "allowedAcceptanceTests": [
         "acceptance:xuanyuan"
       ],
       "allowedNpmScripts": [
         "acceptance:xuanyuan",
-        "audit:xuanyuan"
+        "audit:xuanyuan",
+        "xuanyuan:cloud:enroll"
       ],
       "exposureTokens": [
         "xuanyuan"
@@ -208,6 +210,7 @@
       "allowedEntrypoints": [
         "src/app/workbench-deep-research-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-deep-research-types.ts",
         "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],

@@ -123,6 +123,7 @@ export type DeepResearchInputAttachmentStagingFile = {
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
+  shutdown: () => Promise<void>;
   recordWorkbenchApiBoundaryEvent: (input: {
     authenticated: boolean;
     decision: "allowed" | "blocked";
