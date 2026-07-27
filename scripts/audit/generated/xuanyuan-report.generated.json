@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T17:51:25.052Z",
+  "generatedAt": "2026-07-27T19:52:01.688Z",
   "capabilityDomain": "xuanyuan",
   "executionGroup": "domain",
   "lawIds": [
@@ -116,6 +116,7 @@
     "scripts/audit/domains/xuanyuan/manifest.json",
     "scripts/audit/domains/xuanyuan/inspector.ts",
     "scripts/acceptance/xuanyuan.acceptance.ts",
+    "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
     "scripts/startup/xuanyuan-cloud-enroll.ts",
     "package.json",
     "src/app/workbench-api-boundary.ts",

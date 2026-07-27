@@ -92,7 +92,11 @@ export type XuanyuanTaskRecord = {
     lastAttemptStartedAt: string | null;
     lastFailureAt: string | null;
     lastFailureReason: string | null;
-    recoveryDirective: "none" | "resume_exact_provider_conversation";
+    nextRetryAt: string | null;
+    recoveryDirective:
+      | "none"
+      | "retry_same_task"
+      | "resume_exact_provider_conversation";
   };
   continuationTaskId: string | null;
   conversationProof: {

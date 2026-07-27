@@ -42,19 +42,22 @@ const hydrateStoredXuanyuanTask = (
       ...progress,
       lastTransitionAt: progress.lastTransitionAt ?? stored.updatedAt,
     },
-    recovery: stored.recovery ?? {
-      attemptCount: stored.status === "queued" ? 0 : 1,
-      recoverable,
-      lastAttemptStartedAt: stored.status === "queued" ? null : stored.updatedAt,
-      lastFailureAt:
-        stored.status === "failed" || stored.status === "review_required"
-          ? stored.updatedAt
-          : null,
-      lastFailureReason:
-        stored.failureReason ?? stored.reviewRequiredReason ?? null,
-      recoveryDirective: recoverable
-        ? "resume_exact_provider_conversation"
-        : "none",
+    recovery: {
+      ...(stored.recovery ?? {
+        attemptCount: stored.status === "queued" ? 0 : 1,
+        recoverable,
+        lastAttemptStartedAt: stored.status === "queued" ? null : stored.updatedAt,
+        lastFailureAt:
+          stored.status === "failed" || stored.status === "review_required"
+            ? stored.updatedAt
+            : null,
+        lastFailureReason:
+          stored.failureReason ?? stored.reviewRequiredReason ?? null,
+        recoveryDirective: recoverable
+          ? "resume_exact_provider_conversation"
+          : "none",
+      }),
+      nextRetryAt: stored.recovery?.nextRetryAt ?? null,
     },
   };
 };

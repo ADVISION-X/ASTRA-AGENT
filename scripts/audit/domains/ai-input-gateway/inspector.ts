@@ -33,6 +33,7 @@ const singleTabBrowserPath = "src/capabilities/ai-input-gateway/runtime/web-chat
 const singleProviderTabPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts";
 const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
 const managedExecutionPath = "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts";
+const failureClassificationPath = "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts";
 const turnIdentityPath = "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts";
 const chatTitlePath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts";
 const chatTitleScriptsPath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts";
@@ -54,7 +55,7 @@ const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-uploa
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, chromeWindowControlPath, chromeBrowserPrimitivesPath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, responseCheckpointPath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, namedConversationSearchPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath, realChromeRestartAcceptancePath] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, chromeWindowControlPath, chromeBrowserPrimitivesPath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, responseCheckpointPath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, failureClassificationPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, namedConversationSearchPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath, realChromeRestartAcceptancePath] as const;
 
 const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));

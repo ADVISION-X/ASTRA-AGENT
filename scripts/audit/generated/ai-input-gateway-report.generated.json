@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-07-27T17:50:35.172Z",
+  "generatedAt": "2026-07-27T19:51:15.971Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -402,6 +402,7 @@
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",

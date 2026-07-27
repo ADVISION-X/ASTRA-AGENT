@@ -89,47 +89,61 @@ export const readWebChatExecution = async (
   }
 };
 
-export const startOrResumeWebChatExecution = async (input: {
+type StartWebChatExecutionInput = {
   dataDir: string;
   executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
   taskLabelKey: AiTaskLabelKey;
   inputHash: string;
   textPrompt: string;
-}): Promise<{ record: WebChatExecutionRecord; resume: boolean }> => {
-  const existing = await readWebChatExecution(input.dataDir, input.executionId);
-  if (existing) {
-    const expectedSubmittedPromptHash = hashSubmittedPrompt(
-      buildInternallyMarkedPrompt(input.textPrompt, existing.turnMarker),
-    );
-    if (
-      existing.providerKind !== input.providerKind
-      || existing.inputHash !== input.inputHash
-      || existing.submittedPromptHash !== expectedSubmittedPromptHash
-    ) {
-      throw new Error("review_required: persisted web-chat execution identity does not match the requested feed.");
-    }
-    if (
-      existing.status === "submitted_transient"
-      || existing.status === "conversation_canonicalized"
-      || existing.status === "waiting_provider"
-      || existing.status === "response_checkpointed"
-      || existing.status === "recovery_pending"
-      || existing.status === "review_required"
-    ) {
-      if (!existing.submission) {
-        throw new Error("review_required: submitted web-chat execution is missing its durable submission proof.");
-      }
-      return { record: existing, resume: true };
-    }
-    if (existing.status === "response_captured") {
-      throw new Error("review_required: captured web-chat execution must be rehydrated from its persisted raw output.");
-    }
-    if (existing.status !== "failed") {
-      return { record: existing, resume: false };
-    }
-    throw new Error(`review_required: web-chat execution is terminal: ${existing.status}`);
+};
+
+type StartWebChatExecutionResult = {
+  record: WebChatExecutionRecord;
+  resume: boolean;
+};
+
+const resumeExistingWebChatExecution = (
+  input: StartWebChatExecutionInput,
+  existing: WebChatExecutionRecord,
+): StartWebChatExecutionResult => {
+  const expectedSubmittedPromptHash = hashSubmittedPrompt(
+    buildInternallyMarkedPrompt(input.textPrompt, existing.turnMarker),
+  );
+  if (
+    existing.providerKind !== input.providerKind
+    || existing.inputHash !== input.inputHash
+    || existing.submittedPromptHash !== expectedSubmittedPromptHash
+  ) {
+    throw new Error("review_required: persisted web-chat execution identity does not match the requested feed.");
   }
+  if (
+    existing.status === "submitted_transient"
+    || existing.status === "conversation_canonicalized"
+    || existing.status === "waiting_provider"
+    || existing.status === "response_checkpointed"
+    || existing.status === "review_required"
+  ) {
+    if (!existing.submission) {
+      throw new Error("review_required: submitted web-chat execution is missing its durable submission proof.");
+    }
+    return { record: existing, resume: true };
+  }
+  if (existing.status === "recovery_pending") {
+    return { record: existing, resume: Boolean(existing.submission) };
+  }
+  if (existing.status === "response_captured") {
+    throw new Error("review_required: captured web-chat execution must be rehydrated from its persisted raw output.");
+  }
+  if (existing.status !== "failed") {
+    return { record: existing, resume: false };
+  }
+  throw new Error(`review_required: web-chat execution is terminal: ${existing.status}`);
+};
+
+const createWebChatExecution = async (
+  input: StartWebChatExecutionInput,
+): Promise<StartWebChatExecutionResult> => {
   const now = new Date().toISOString();
   const turnMarker = `GRASSEYE_TURN_${randomUUID().replaceAll("-", "")}`;
   const systemChatTitle = input.providerKind === "gpt-web-chat"
@@ -162,6 +176,15 @@ export const startOrResumeWebChatExecution = async (input: {
   };
   await atomicWrite(statePath(input.dataDir, input.executionId), record);
   return { record, resume: false };
+};
+
+export const startOrResumeWebChatExecution = async (
+  input: StartWebChatExecutionInput,
+): Promise<StartWebChatExecutionResult> => {
+  const existing = await readWebChatExecution(input.dataDir, input.executionId);
+  return existing
+    ? resumeExistingWebChatExecution(input, existing)
+    : createWebChatExecution(input);
 };
 
 export const updateWebChatExecution = async (input: {

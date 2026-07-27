@@ -38,6 +38,7 @@ const inspectedFiles = [
   "scripts/audit/domains/xuanyuan/manifest.json",
   "scripts/audit/domains/xuanyuan/inspector.ts",
   "scripts/acceptance/xuanyuan.acceptance.ts",
+  "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
   "scripts/startup/xuanyuan-cloud-enroll.ts",
   "package.json",
   ...sourcePaths,
@@ -97,6 +98,8 @@ const inspectAstContract = (files: readonly SourceFile[], findings: InspectorFin
     "taskName",
     "taskLabelKey",
     "recoveryDirective",
+    "nextRetryAt",
+    "retry_same_task",
     "recovery_pending",
     "createXuanyuanTaskCoordinator",
     "acquireXuanyuanQueueOwner",
@@ -148,6 +151,7 @@ const inspectDurableQueueAndRecovery = (
     "taskLabelKey",
     "attemptCount",
     "lastFailureReason",
+    "nextRetryAt",
     "recoverable",
     "resume_exact_provider_conversation",
   ]) {
@@ -195,14 +199,22 @@ const inspectConcurrencyAcceptance = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const acceptance = sourceFile(context, "scripts/acceptance/xuanyuan.acceptance.ts");
-  if (!acceptance) return;
-  const values = sourceValues([acceptance]);
+  const acceptanceFiles = [
+    sourceFile(context, "scripts/acceptance/xuanyuan.acceptance.ts"),
+    sourceFile(
+      context,
+      "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
+    ),
+  ].filter((file): file is SourceFile => Boolean(file));
+  if (acceptanceFiles.length === 0) return;
+  const values = sourceValues(acceptanceFiles);
   for (const required of [
     "maxActiveFeeds",
     "idempotentReplay",
     "recoveryPending",
     "resumedCoordinator",
+    "automaticRecoveryAttempts",
+    "automaticallyRecovered",
     "ownerB",
   ]) {
     if (!values.has(required)) {

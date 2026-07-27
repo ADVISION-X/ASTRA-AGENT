@@ -10,7 +10,8 @@ import {
   registerPendingWebChatSubmission,
   type WebChatRuntimeLease,
 } from "./web-chat-concurrency-lease.js";
-import { buildInternallyMarkedPrompt, startOrResumeWebChatExecution, updateWebChatExecution, type WebChatExecutionFailure, type WebChatExecutionRecord } from "./web-chat-execution-state.js";
+import { classifyWebChatFailure, webChatFailureReason } from "./web-chat-failure-classification.js";
+import { buildInternallyMarkedPrompt, readWebChatExecution, startOrResumeWebChatExecution, updateWebChatExecution, type WebChatExecutionFailure, type WebChatExecutionRecord } from "./web-chat-execution-state.js";
 import { persistWebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 import { createSingleTabWebChatBrowser, type SingleTabWebChatBrowser } from "./web-chat-single-tab-browser.js";
 
@@ -31,7 +32,7 @@ export type ManagedWebChatExecution = {
   webChatExecution?: WebChatExecutionContext;
   providerLeaseId: string | null;
   markResponse(rawText: string): Promise<void>;
-  markFailure(reviewRequired: boolean, error: unknown): Promise<void>;
+  markFailure(error: unknown): Promise<void>;
   release(): Promise<void>;
 };
 
@@ -332,17 +333,11 @@ const buildActiveExecution = (input: ManagedWebChatInput, state: ActiveExecution
       });
       await reportProgress(input, "response_captured");
     },
-    async markFailure(reviewRequired, error) {
-      const recoverable = Boolean(state.record.submission);
-      const classification: WebChatExecutionFailure["classification"] = recoverable
-        ? "recovery_pending"
-        : reviewRequired
-          ? "review_required"
-          : "failed";
-      const reason = (error instanceof Error ? error.message : String(error))
-        .replace(/\s+/gu, " ")
-        .trim()
-        .slice(0, 2_000);
+    async markFailure(error) {
+      const classification: WebChatExecutionFailure["classification"] =
+        classifyWebChatFailure(error, Boolean(state.record.submission));
+      const recoverable = classification === "recovery_pending";
+      const reason = webChatFailureReason(error);
       state.record = await updateWebChatExecution({
         dataDir: input.dataDir,
         record: state.record,
@@ -374,7 +369,39 @@ const buildActiveExecution = (input: ManagedWebChatInput, state: ActiveExecution
 
 export const prepareManagedWebChatExecution = async (input: ManagedWebChatInput, inputHash: string): Promise<ManagedWebChatExecution> => {
   if (input.transport === "web-chat") {
-    return buildActiveExecution(input, await startActiveExecution(input, inputHash));
+    try {
+      return buildActiveExecution(input, await startActiveExecution(input, inputHash));
+    } catch (error) {
+      const executionId = executionIdFor(input, inputHash);
+      const record = await readWebChatExecution(input.dataDir, executionId);
+      if (record) {
+        const classification = classifyWebChatFailure(
+          error,
+          Boolean(record.submission),
+        );
+        const recoverable = classification === "recovery_pending";
+        await updateWebChatExecution({
+          dataDir: input.dataDir,
+          record,
+          patch: {
+            status: classification,
+            failures: [
+              ...(record.failures ?? []),
+              {
+                occurredAt: new Date().toISOString(),
+                attemptId: record.attemptId,
+                phase: record.status,
+                classification,
+                recoverable,
+                reason: webChatFailureReason(error),
+              },
+            ].slice(-20),
+          },
+        });
+        if (recoverable) await reportProgress(input, "recovery_pending");
+      }
+      throw error;
+    }
   }
   return {
     request: input.request,

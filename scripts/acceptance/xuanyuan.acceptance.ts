@@ -17,6 +17,19 @@ import {
   listXuanyuanHistory,
 } from "../../src/plugins/xuanyuan/index.js";
 import { runSpawn } from "../../src/lib/browser/current-chrome-window-control.js";
+import { runXuanyuanRecoveryAcceptance } from "./xuanyuan-recovery.acceptance-helper.js";
+
+const waitFor = async (
+  predicate: () => Promise<boolean>,
+  timeoutMs = 2_000,
+): Promise<void> => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("XUANYUAN_ACCEPTANCE_WAIT_TIMEOUT");
+};
 
 const splitUtf8Output = await runSpawn(process.execPath, [
   "-e",
@@ -406,68 +419,26 @@ try {
     assert.match(completed.taskName, /^八字分析｜[A-F0-9]{8}$/u);
   }
 
-  const recoveryRequest = {
-    ...requestFor(99),
-    requestId: "acceptance-next-day-recovery",
-    promptPackageId: "acceptance-next-day-recovery-package",
-  };
-  const recoveryFailureGateway: AiInputGatewayAbilityGroup = {
-    abilityGroupId: "ai-input-gateway",
-    listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
-    getRuntimeCapacity: () => 10,
-    async execute(input: unknown, options): Promise<AiFeedResult> {
-      const request = input as AiFeedInput;
-      await options?.onProgress?.({
-        phase: "waiting_provider",
-        occurredAt: new Date().toISOString(),
-      });
-      await options?.onProgress?.({
-        phase: "recovery_pending",
-        occurredAt: new Date().toISOString(),
-      });
-      return {
-        ...buildFixtureFeedResult({
-          request,
-          rawText: "",
-          uploadedFiles: [],
-          attachmentUploadProof: buildAttachmentUploadProof([]),
-        }),
-        status: "failed",
-        normalizedText: null,
-        rawResponseText: null,
-        rawOutputRef: null,
-        rawOutputHash: null,
-        failureReason: "simulated_process_interruption_after_submission",
-      };
-    },
-  };
-  const interruptedCoordinator = createXuanyuanTaskCoordinator({
+  await runXuanyuanRecoveryAcceptance({
     dataDir,
-    aiInputGateway: recoveryFailureGateway,
+    buildRequest: requestFor,
+    buildSuccessfulGateway: buildFixtureGateway,
+    buildFailedResult: (request, failureReason) => ({
+      ...buildFixtureFeedResult({
+        request,
+        rawText: "",
+        uploadedFiles: [],
+        attachmentUploadProof: buildAttachmentUploadProof([]),
+      }),
+      status: "failed",
+      normalizedText: null,
+      rawResponseText: null,
+      rawOutputRef: null,
+      rawOutputHash: null,
+      failureReason,
+    }),
+    waitFor,
   });
-  await interruptedCoordinator.init();
-  const interrupted = await interruptedCoordinator.enqueue(recoveryRequest);
-  await interruptedCoordinator.waitForIdle();
-  await interruptedCoordinator.close();
-  const recoveryPending = (await getXuanyuanTaskStatus({ dataDir }, interrupted.taskId))!;
-  assert.equal(recoveryPending.status, "recovery_pending");
-  assert.equal(
-    recoveryPending.recovery.recoveryDirective,
-    "resume_exact_provider_conversation",
-  );
-
-  const resumedCoordinator = createXuanyuanTaskCoordinator({
-    dataDir,
-    aiInputGateway: buildFixtureGateway("{\"resumed\":\"without-resubmit\"}"),
-  });
-  await resumedCoordinator.init();
-  await resumedCoordinator.waitForIdle();
-  await resumedCoordinator.close();
-  const recovered = (await getXuanyuanTaskStatus({ dataDir }, interrupted.taskId))!;
-  assert.equal(recovered.status, "response_captured");
-  assert.equal(recovered.taskId, interrupted.taskId);
-  assert.equal(recovered.recovery.attemptCount, 2);
-  assert.equal(recovered.rawResponseText, "{\"resumed\":\"without-resubmit\"}");
 
   const ownerA = createXuanyuanTaskCoordinator({
     dataDir,

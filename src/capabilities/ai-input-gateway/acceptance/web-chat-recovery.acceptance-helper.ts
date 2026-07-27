@@ -77,7 +77,7 @@ const interruptAfterCheckpoint = async (input: {
   const interrupted = await gateway.execute(input.request, {
     executionId: input.executionId,
   });
-  assert.equal(interrupted.status, "review_required");
+  assert.equal(interrupted.status, "failed");
   const checkpointed = await readWebChatExecution(input.dataDir, input.executionId);
   assert.equal(checkpointed?.status, "recovery_pending");
   assert.ok(checkpointed?.responseCheckpoint);
@@ -146,6 +146,33 @@ export const assertResponseCheckpointRecovery = async (
   );
 };
 
+const assertPermanentFailure = async (
+  dataDir: string,
+  request: AiFeedInput,
+): Promise<void> => {
+  const executionId = "traceable-permanent-failure-execution";
+  const permanentAdapter: AiProviderAdapter = {
+    providerKind: "gpt-web-chat",
+    async feed() {
+      throw new Error("invalid immutable prompt package identity");
+    },
+  };
+  const permanentGateway = createAiInputGatewayAbilityGroup({
+    dataDir,
+    adapters: { "gpt-web-chat": permanentAdapter },
+  });
+  await permanentGateway.execute({
+    ...request,
+    textPrompt: `${request.textPrompt}\npermanent-failure-fixture`,
+    roundId: `${request.roundId}:permanent`,
+  }, { executionId });
+  assert.equal(
+    (await readWebChatExecution(dataDir, executionId))?.status,
+    "failed",
+    "a permanent input identity failure must not enter an automatic retry loop",
+  );
+};
+
 export const assertFailureLedger = async (
   dataDir: string,
   request: AiFeedInput,
@@ -164,14 +191,43 @@ export const assertFailureLedger = async (
   const result = await gateway.execute(request, { executionId });
   assert.equal(result.status, "failed");
   const record = await readWebChatExecution(dataDir, executionId);
-  assert.equal(record?.status, "failed");
+  assert.equal(record?.status, "recovery_pending");
   assert.deepEqual(record?.failures.map((failure) => ({
     classification: failure.classification,
     recoverable: failure.recoverable,
     reason: failure.reason,
   })), [{
-    classification: "failed",
-    recoverable: false,
+    classification: "recovery_pending",
+    recoverable: true,
     reason: "fixture provider composer unavailable",
-  }], "a failed task must preserve its exact bounded failure ledger");
+  }], "temporary provider unavailability must preserve a recoverable bounded failure ledger");
+
+  const { attachmentUploadProof, submission } = checkpointFixture();
+  const returnedAdapter: AiProviderAdapter = {
+    providerKind: "gpt-web-chat",
+    async feed() {
+      return {
+        rawText: "provider returned after temporary unavailability",
+        modelName: "acceptance-fixture",
+        runtimeName: "acceptance-fixture",
+        transport: "web-chat",
+        webChatUrl: submission.canonicalConversationUrl,
+        sourcePageUrlBeforeFeed: null,
+        restoredSourcePage: null,
+        attachmentUploadProof,
+      };
+    },
+  };
+  const returnedGateway = createAiInputGatewayAbilityGroup({
+    dataDir,
+    adapters: { "gpt-web-chat": returnedAdapter },
+  });
+  const recovered = await returnedGateway.execute(request, { executionId });
+  assert.equal(recovered.status, "success");
+  assert.equal(
+    (await readWebChatExecution(dataDir, executionId))?.status,
+    "response_captured",
+    "the same pre-submit execution must pass the duplicate-input guard when the provider returns",
+  );
+  await assertPermanentFailure(dataDir, request);
 };

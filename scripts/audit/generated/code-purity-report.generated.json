@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-07-27T17:51:13.265Z",
+  "generatedAt": "2026-07-27T19:51:50.875Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -101,6 +101,7 @@
     "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
+    "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
     "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -464,6 +465,7 @@
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
@@ -1629,9 +1631,9 @@
       "scriptName": "acceptance:ai-input-gateway-web-chat-restart:real-chrome"
     }
   ],
-  "liveExportCount": 2457,
+  "liveExportCount": 2461,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 831,
+  "reachableFileCount": 833,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1643,9 +1645,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2457,
+    "liveExportCount": 2461,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 831,
+    "reachableFileCount": 833,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

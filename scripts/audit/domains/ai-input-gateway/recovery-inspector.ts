@@ -11,6 +11,7 @@ const paths = {
   checkpoint: "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
   executionState: "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
   managed: "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+  failureClassification: "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
   shared: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   submissionCheckpoint: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   resume: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
@@ -104,12 +105,17 @@ const inspectCheckpointAndLedger = (
     checkId: "ai-input-gateway/failure-ledger",
     filePath: paths.executionState,
     message: "Traceable failure ledger is missing",
-    values: sourceValues([sources.executionState]),
+    values: sourceValues([
+      sources.executionState,
+      sources.failureClassification,
+    ]),
     required: [
       "WebChatExecutionFailure",
       "failures",
       "classification",
       "recoverable",
+      "classifyWebChatFailure",
+      "isTransientProviderUnavailability",
     ],
   });
 };

@@ -95,7 +95,7 @@ accepted
 → waiting_for_provider_submit
 → waiting_for_provider_response
 → response_checkpointed
-→ recovery_pending（提交后中断）
+→ recovery_pending（提交前暂时无货，或提交后中断）
 → response_captured
 
 terminal: review_required | failed | cancelled
@@ -105,6 +105,12 @@ terminal: review_required | failed | cancelled
 内部 gateway execution id 恢复持久化系统聊天名与 turn marker，在同一个物理 ChatGPT
 标签页中点击对应聊天、核对 marker 并继续轮询，不得重新调用发送阶段。Gateway 已持久化
 回答 checkpoint 时，Xuanyuan 只等待其完成改名与证据投影，不再消费一次 AI 分析。
+
+提交前遇到暂时没有可用标签页、composer 尚未出现、Provider 限流/容量不足、浏览器断连或短时网络失败时，
+同一个 taskId 写入 `recovery_pending + nextRetryAt + retry_same_task`，按有上限的退避时间自动重试。
+这类“今天没货、稍后到货”不得写成终态失败。登录、验证码、二次验证、安全屏障或身份歧义进入
+`review_required`；不可变输入和请求身份冲突进入 `failed`。已经存在提交证明时，
+`recoveryDirective` 必须是 `resume_exact_provider_conversation`，只能继续原聊天。
 
 续聊仍走同一条链，不新增 route、server、provider adapter 或工作流：
 
@@ -257,7 +263,7 @@ The only successful transport terminal is:
 response_captured
 ```
 
-Provider failures before a complete response is captured remain:
+Permanent provider or immutable-input failures before a complete response is captured remain:
 
 ```txt
 review_required
@@ -270,7 +276,8 @@ failed
 recovery_pending
 ```
 
-并保留 attemptCount、lastFailureReason、recoverable 与 recoveryDirective。
+提交前的临时 Provider 不可用也必须进入同一个 `recovery_pending`，并保留
+attemptCount、lastFailureReason、recoverable、nextRetryAt 与 recoveryDirective。
 
 ## QA Plan
 
@@ -294,6 +301,7 @@ restart resumes exact submitted attempts without duplicate provider submission
 12 concurrent named tasks retain exact task/result binding
 same sourceProject plus requestId replay returns the original task
 post-submit failure persists recovery_pending and the next coordinator resumes the same task id
+pre-submit temporary provider unavailability persists recovery_pending and automatically retries the same task id after bounded backoff
 response-checkpointed work finishes without another provider analysis
 no fire-and-forget task execution remains
 ```

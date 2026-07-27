@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T17:51:23.233Z",
+  "generatedAt": "2026-07-27T19:52:00.094Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -1217,6 +1217,7 @@
     "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
+    "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
     "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -1580,6 +1581,7 @@
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",

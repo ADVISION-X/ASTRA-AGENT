@@ -33,6 +33,27 @@ type XuanyuanContinuation = NonNullable<AiFeedInput["providerContinuationRef"]>;
 
 const nowIso = (): string => new Date().toISOString();
 
+const recoveryRetryDelayMs = (attemptCount: number): number => {
+  const configured = Number(process.env.XUANYUAN_RECOVERY_RETRY_BASE_MS);
+  const base = Number.isFinite(configured) && configured >= 10 && configured <= 60_000
+    ? configured
+    : 15_000;
+  return Math.min(15 * 60_000, base * (2 ** Math.min(Math.max(attemptCount - 1, 0), 6)));
+};
+
+const nextRetryAt = (attemptCount: number): string =>
+  new Date(Date.now() + recoveryRetryDelayMs(attemptCount)).toISOString();
+
+const recoveryDirectiveFor = (
+  record: XuanyuanTaskRecord,
+): XuanyuanTaskRecord["recovery"]["recoveryDirective"] =>
+  record.recovery.recoveryDirective === "resume_exact_provider_conversation"
+  || record.progress.attachmentUploadProof
+  || record.progress.phase === "waiting_provider"
+  || record.progress.phase === "response_checkpointed"
+    ? "resume_exact_provider_conversation"
+    : "retry_same_task";
+
 const buildTextPrompt = (request: XuanyuanRequest): string => {
   if (request.textPrompt) return request.textPrompt;
   return [
@@ -132,8 +153,11 @@ const updateProgress = async (
     recovery: {
       ...current.recovery,
       recoverable: progress.phase === "recovery_pending",
+      nextRetryAt: progress.phase === "recovery_pending"
+        ? nextRetryAt(current.recovery.attemptCount)
+        : current.recovery.nextRetryAt,
       recoveryDirective: progress.phase === "recovery_pending"
-        ? "resume_exact_provider_conversation"
+        ? recoveryDirectiveFor(current)
         : current.recovery.recoveryDirective,
     },
     updatedAt: progress.occurredAt,
@@ -182,8 +206,11 @@ const finishWithResult = (
       recoverable: status === "recovery_pending",
       lastFailureAt: status === "recovery_pending" ? now : null,
       lastFailureReason: result.failureReason ?? result.reviewRequiredReason,
+      nextRetryAt: status === "recovery_pending"
+        ? nextRetryAt(record.recovery.attemptCount)
+        : null,
       recoveryDirective: status === "recovery_pending"
-        ? "resume_exact_provider_conversation"
+        ? recoveryDirectiveFor(record)
         : "none",
     },
     conversationProof: record.continuationTaskId ? {
@@ -226,7 +253,10 @@ const finishWithThrownFailure = (
       recoverable,
       lastFailureAt: now,
       lastFailureReason: reason,
-      recoveryDirective: recoverable ? "resume_exact_provider_conversation" : "none",
+      nextRetryAt: recoverable
+        ? nextRetryAt(record.recovery.attemptCount)
+        : null,
+      recoveryDirective: recoverable ? recoveryDirectiveFor(record) : "none",
     },
     updatedAt: now,
   };
@@ -291,6 +321,7 @@ export const createXuanyuanTask = async (
       lastAttemptStartedAt: null,
       lastFailureAt: null,
       lastFailureReason: null,
+      nextRetryAt: null,
       recoveryDirective: "none",
     },
     continuationTaskId: request.continuationTaskId ?? null,
@@ -324,6 +355,7 @@ export const executeXuanyuanTask = async (
       ...existing.recovery,
       attemptCount: existing.recovery.attemptCount + 1,
       lastAttemptStartedAt: startedAt,
+      nextRetryAt: null,
     },
     failureReason: null,
     reviewRequiredReason: null,

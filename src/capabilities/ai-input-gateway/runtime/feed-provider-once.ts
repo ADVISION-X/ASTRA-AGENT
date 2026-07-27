@@ -24,6 +24,7 @@ import {
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
 import { prepareManagedWebChatExecution } from "./web-chat-managed-execution.js";
+import { classifyWebChatFailure } from "./web-chat-failure-classification.js";
 import { readWebChatExecution } from "./web-chat-execution-state.js";
 
 type ExecuteAiFeedOnceInput = {
@@ -40,9 +41,6 @@ type ExecuteAiFeedOnceInput = {
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
 };
-
-const reviewRequiredFromError = (error: unknown): boolean =>
-  error instanceof Error && /review_required|login|verification|captcha|security/iu.test(error.message);
 
 const uploadedFilesFromError = (error: unknown): AiProviderUploadedFileProof[] => {
   if (typeof error !== "object" || error === null || !("uploadedFiles" in error)) return [];
@@ -111,7 +109,9 @@ const buildProviderFailure = (input: {
     inputPackage: input.inputPackage,
     startedAt: input.startedAt,
     transport: input.transport,
-    status: reviewRequiredFromError(input.error) ? "review_required" : "failed",
+    status: classifyWebChatFailure(input.error, false) === "review_required"
+      ? "review_required"
+      : "failed",
     reason: input.error instanceof Error ? input.error.message : String(input.error),
     cooldownMs: input.cooldownMs,
     providerLeaseId: input.providerLeaseId,
@@ -167,7 +167,11 @@ const RESUMABLE_EXECUTION_STATUSES = new Set([
 
 const prepareFeedInputPackage = async (
   input: ExecuteAiFeedOnceInput,
-): Promise<{ inputPackage: AiFeedInputPackage; resumed: boolean }> => {
+): Promise<{
+  inputPackage: AiFeedInputPackage;
+  resumed: boolean;
+  rateGuardAlreadyRecorded: boolean;
+}> => {
   const persisted =
     input.transport === "web-chat" && input.executionId
       ? await readWebChatExecution(input.dataDir, input.executionId)
@@ -187,7 +191,11 @@ const prepareFeedInputPackage = async (
         uploadedFiles: persisted!.uploadedFiles,
       })
     : await buildAiFeedInputPackage(input.request);
-  return { inputPackage, resumed };
+  return {
+    inputPackage,
+    resumed,
+    rateGuardAlreadyRecorded: resumed || persisted?.status === "recovery_pending",
+  };
 };
 
 const executeManagedProvider = async (input: {
@@ -220,7 +228,7 @@ const executeManagedProvider = async (input: {
       response,
     });
   } catch (error) {
-    await managed?.markFailure(reviewRequiredFromError(error), error);
+    await managed?.markFailure(error);
     return buildProviderFailure({
       ...input.execution,
       inputPackage: input.inputPackage,
@@ -238,8 +246,11 @@ export const executeAiFeedOnce = async (
   input: ExecuteAiFeedOnceInput,
 ): Promise<AiFeedResult> => {
   const startedAt = new Date().toISOString();
-  const { inputPackage, resumed } = await prepareFeedInputPackage(input);
-  const rate = resumed
+  const {
+    inputPackage,
+    rateGuardAlreadyRecorded,
+  } = await prepareFeedInputPackage(input);
+  const rate = rateGuardAlreadyRecorded
     ? { ok: true as const, cooldownMs: 0, reason: null }
     : checkAiFeedRateGuard({
         inputHash: inputPackage.inputHash,

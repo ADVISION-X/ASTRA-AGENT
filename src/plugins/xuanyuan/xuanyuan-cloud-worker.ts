@@ -33,7 +33,12 @@ interface WorkerState {
   lastDeviceHeartbeatAt: number;
 }
 
-const terminalStatuses = new Set(["response_captured", "review_required", "failed"]);
+const terminalStatuses = new Set([
+  "response_captured",
+  "recovery_pending",
+  "review_required",
+  "failed",
+]);
 
 function reportWorkerError(code: string, error: unknown): void {
   const raw = error instanceof Error ? error.message : String(error);
