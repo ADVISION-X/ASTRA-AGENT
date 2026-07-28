@@ -28,10 +28,8 @@ export const attachByNativePickerBatch = async (
   if (!selection.ok) {
     throw new Error(`review_required: ${selection.message}`);
   }
-  const selected = [...selection.observedFileNames].sort();
-  const expected = [...expectedFileNames].sort();
-  if (JSON.stringify(selected) !== JSON.stringify(expected)) {
-    throw new Error(`review_required: NATIVE_PICKER_SELECTION_MISMATCH; expected=${expected.join("|")}; observed=${selected.join("|")}`);
+  if (JSON.stringify(selection.observedFileNames) !== JSON.stringify(expectedFileNames)) {
+    throw new Error(`review_required: NATIVE_PICKER_SELECTION_ORDER_MISMATCH; expected=${expectedFileNames.join("|")}; observed=${selection.observedFileNames.join("|")}`);
   }
   const evaluation = await waitForExactAttachmentCount(
     input.browser,

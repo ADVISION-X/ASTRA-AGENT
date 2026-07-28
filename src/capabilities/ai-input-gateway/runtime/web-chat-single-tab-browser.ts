@@ -14,6 +14,7 @@ import { focusBoundWebChatConversation } from "./web-chat-single-tab-routing.js"
 type SingleTabBrowserInput = {
   base: BrowserController;
   dataDir: string;
+  executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
   systemChatTitle: string | null;
   turnMarker: string;
@@ -98,6 +99,7 @@ const createMutationRunner =
           })
         : await acquireWebChatBrowserPatrolLease({
             dataDir: input.dataDir,
+            executionId: input.executionId,
             timeoutMs: input.timeoutMs,
             ...(input.signal ? { signal: input.signal } : {}),
           }));
@@ -289,6 +291,7 @@ export const createSingleTabWebChatBrowser = (
     ): Promise<T> {
       const lease = await acquireWebChatBrowserPatrolLease({
         dataDir: input.dataDir,
+        executionId: input.executionId,
         timeoutMs: input.timeoutMs,
         ...(input.signal ? { signal: input.signal } : {}),
       });

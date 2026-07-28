@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { runJxa } from "../../../lib/browser/current-chrome-window-control.js";
+import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
 const execFileAsync = promisify(execFile);
@@ -79,6 +79,7 @@ type ComposerInsertResult = {
 };
 
 const insertPromptInActiveProviderTab = async (
+  browser: BrowserController,
   prompt: string,
   replace: boolean,
   abortSignal?: AbortSignal,
@@ -122,10 +123,11 @@ const insertPromptInActiveProviderTab = async (
     const length = 'value' in composer ? String(composer.value ?? '').length : String(composer.innerText ?? composer.textContent ?? '').length;
     return JSON.stringify({ status: "inserted", host: location.host, length });
   })()`;
-  const raw = await runJxa(
-    `const chrome = Application("Google Chrome");\nconst window = chrome.windows()[0];\nconst tab = window.activeTab();\ntab.execute({ javascript: ${JSON.stringify(pageScript)} });`,
-    abortSignal ? { signal: abortSignal } : undefined,
-  );
+  const raw = await browser.evaluateActiveTab<string>({
+    description: "insert governed prompt into the controlled provider composer",
+    script: `return ${pageScript};`,
+    ...(abortSignal ? { abortSignal } : {}),
+  });
   const result = JSON.parse(raw) as ComposerInsertResult;
   if (result.status === "wrong_host") {
     throw new Error(`CHROME_PROVIDER_HOST_MISMATCH:${result.host ?? "unknown"}`);
@@ -136,11 +138,13 @@ const insertPromptInActiveProviderTab = async (
 };
 
 export const pasteTextAndSubmitInChrome = async (
+  browser: BrowserController,
   prompt: string,
   abortSignal?: AbortSignal,
-): Promise<void> => insertPromptInActiveProviderTab(prompt, false, abortSignal);
+): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, false, abortSignal);
 
 export const pasteTextReplacingInChrome = async (
+  browser: BrowserController,
   prompt: string,
   abortSignal?: AbortSignal,
-): Promise<void> => insertPromptInActiveProviderTab(prompt, true, abortSignal);
+): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, true, abortSignal);

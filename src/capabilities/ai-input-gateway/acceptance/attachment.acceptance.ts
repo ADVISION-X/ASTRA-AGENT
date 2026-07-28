@@ -66,6 +66,7 @@ const buildRequest = async (directory: string, fileCount: number) => {
 
 type FixtureBrowserInput = {
   nativeSelectionOk?: boolean;
+  reverseNativeSelectionOrder?: boolean;
   onNativePicker?: (directoryPath: string, names: string[]) => Promise<void>;
   identityDriftAfterSelection?: boolean;
   conversationTurnLeakAfterSelection?: boolean;
@@ -243,7 +244,10 @@ class FixtureBrowserController implements BrowserController {
         observedFileNames: [],
       };
     }
-    this.currentNames = [...expectedFileNames];
+    const observedFileNames = this.input.reverseNativeSelectionOrder
+      ? [...expectedFileNames].reverse()
+      : [...expectedFileNames];
+    this.currentNames = [...observedFileNames];
     if (this.input.identityDriftAfterSelection) {
       this.currentUrl = "https://chatgpt.com/c/identity-drift";
     }
@@ -252,7 +256,7 @@ class FixtureBrowserController implements BrowserController {
       ok: true,
       message: "selected",
       createdAt: new Date().toISOString(),
-      observedFileNames: [...expectedFileNames],
+      observedFileNames,
     };
   }
 
@@ -282,8 +286,8 @@ assert.deepEqual(
   ["001.json", "002.json", "003.json"],
 );
 assert.equal(
-  parseNativeMultiFilePickerOutput("FAILED\nNATIVE_FILE_LIST_MISMATCH").message,
-  "NATIVE_FILE_LIST_MISMATCH",
+  parseNativeMultiFilePickerOutput("FAILED\nNATIVE_FILE_LIST_MISMATCH\nstale-parent-folder").message,
+  "NATIVE_FILE_LIST_MISMATCH; observed=stale-parent-folder",
 );
 const schemaDirectory = await mkdtemp(path.join(tmpdir(), "attachment-schema-"));
 const schemaBaseRequest = await buildRequest(schemaDirectory, 0);
@@ -353,6 +357,15 @@ try {
     /NATIVE_SELECTION_UNPROVEN/u,
   );
   assert.equal(failureProofStatus, "review_required");
+
+  await assert.rejects(
+    attachApprovedWebChatFilesOnce({
+      browser: buildBrowser({ reverseNativeSelectionOrder: true }),
+      request: await buildRequest(dataDir, 2),
+      context: { dataDir },
+    }),
+    /NATIVE_PICKER_SELECTION_ORDER_MISMATCH/u,
+  );
 
   await assert.rejects(
     attachApprovedWebChatFilesOnce({

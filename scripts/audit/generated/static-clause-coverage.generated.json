@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-27T19:52:03.363Z",
+  "generatedAt": "2026-07-28T14:07:25.641Z",
   "summary": {
-    "activeLawCount": 248,
-    "activeClauseCount": 255,
-    "boundClauseCount": 255,
-    "executedClauseCount": 255,
+    "activeLawCount": 250,
+    "activeClauseCount": 257,
+    "boundClauseCount": 257,
+    "executedClauseCount": 257,
     "uncoveredClauseIds": [],
     "coveragePercent": 100
   },
@@ -138,6 +138,7 @@
         "ai-input-gateway/bounded-rename-recovery",
         "ai-input-gateway/controlled-chrome-window-identity",
         "ai-input-gateway/deferred-completed-chat-rename",
+        "ai-input-gateway/durable-fifo-scheduler",
         "ai-input-gateway/exact-sidebar-row-rename",
         "ai-input-gateway/failure-ledger",
         "ai-input-gateway/human-readable-system-chat-title",
@@ -13870,48 +13871,81 @@
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "capabilityDomain": "xuanyuan",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
+      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "checkIds": [
-        "xuanyuan/ast-contract",
-        "xuanyuan/concurrency-recovery-acceptance",
-        "xuanyuan/durable-queue-owner",
-        "xuanyuan/file-present",
-        "xuanyuan/forbidden-provider-import",
-        "xuanyuan/no-fire-and-forget",
-        "xuanyuan/outbound-cloud-device",
-        "xuanyuan/recovery-ledger",
-        "xuanyuan/task-idempotency",
-        "xuanyuan/package-script"
+        "xuanxue-ai-production/acceptance",
+        "xuanxue-ai-production/fixed-profiles",
+        "xuanxue-ai-production/forbidden-private-import",
+        "xuanxue-ai-production/source-present",
+        "xuanxue-ai-production/whole-order-contract"
       ],
       "sourceEvidence": [
         {
-          "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
           "symbolName": "inspectDomain"
         }
       ],
-      "manifestPath": "scripts/audit/domains/xuanyuan/manifest.json"
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "capabilityDomain": "xuanxue-ai-production",
+      "evidenceMode": "acceptance",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+      "checkIds": [
+        "xuanxue-ai-production/acceptance",
+        "xuanxue-ai-production/bounded-coordinator",
+        "xuanxue-ai-production/durable-ledger",
+        "xuanxue-ai-production/no-untracked-background-work",
+        "xuanxue-ai-production/source-present"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
+      "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+      "capabilityDomain": "xuanxue-ai-production",
+      "evidenceMode": "acceptance",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+      "checkIds": [
+        "xuanxue-ai-production/cloud-capacity",
+        "xuanxue-ai-production/cloud-lease-binding",
+        "xuanxue-ai-production/credential-permissions",
+        "xuanxue-ai-production/source-present"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
       "capabilityDomain": "xuanyuan",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanyuan/inspector.ts",
       "checkIds": [
+        "xuanyuan/acceptance",
         "xuanyuan/ast-contract",
-        "xuanyuan/concurrency-recovery-acceptance",
-        "xuanyuan/durable-queue-owner",
+        "xuanyuan/durable-recovery",
         "xuanyuan/file-present",
         "xuanyuan/forbidden-provider-import",
-        "xuanyuan/no-fire-and-forget",
-        "xuanyuan/outbound-cloud-device",
-        "xuanyuan/recovery-ledger",
-        "xuanyuan/task-idempotency",
-        "xuanyuan/package-script"
+        "xuanyuan/package-script",
+        "xuanyuan/removed-cloud-region"
       ],
       "sourceEvidence": [
         {

@@ -1,6 +1,8 @@
-import { enrollXuanyuanCloudDevice } from "../../src/plugins/xuanyuan/xuanyuan-cloud-enrollment.js";
+import {
+  enrollXuanxueAiProductionCloudDevice,
+} from "../../src/plugins/xuanxue-ai-production/index.js";
 
-const result = await enrollXuanyuanCloudDevice();
+const result = await enrollXuanxueAiProductionCloudDevice();
 process.stdout.write(JSON.stringify({
   verdict: "PASS",
   device_id: result.deviceId,

@@ -306,10 +306,10 @@ const pastePromptIntoComposer = async (
       if (attempt > 1 || input.request.providerKind === "gemini-web-chat") {
         await focusComposerBeforePrompt(input);
         await withWebChatStep("paste_prompt_text_replace", () =>
-          pasteTextReplacingInChrome(input.request.textPrompt, input.context.abortSignal));
+          pasteTextReplacingInChrome(input.browser, input.request.textPrompt, input.context.abortSignal));
       } else {
         await withWebChatStep("paste_prompt_text", () =>
-          pasteTextAndSubmitInChrome(input.request.textPrompt, input.context.abortSignal));
+          pasteTextAndSubmitInChrome(input.browser, input.request.textPrompt, input.context.abortSignal));
       }
       await waitForPromptReady({
         browser: input.browser,

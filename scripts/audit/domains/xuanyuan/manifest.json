@@ -6,41 +6,16 @@
     "mode": "explicit",
     "bindings": [
       {
-        "lawId": "GRASSEYE-XUANYUAN-001-V2",
-        "clauseId": "grasseye-xuanyuan-001-requirement",
+        "lawId": "GRASSEYE-XUANYUAN-001-V3",
+        "clauseId": "grasseye-xuanyuan-001-v3-requirement",
         "checkIds": [
+          "xuanyuan/acceptance",
           "xuanyuan/ast-contract",
-          "xuanyuan/concurrency-recovery-acceptance",
-          "xuanyuan/durable-queue-owner",
+          "xuanyuan/durable-recovery",
           "xuanyuan/file-present",
           "xuanyuan/forbidden-provider-import",
-          "xuanyuan/no-fire-and-forget",
-          "xuanyuan/outbound-cloud-device",
-          "xuanyuan/recovery-ledger",
-          "xuanyuan/task-idempotency",
-          "xuanyuan/package-script"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/xuanyuan/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-XUANYUAN-002-V2",
-        "clauseId": "grasseye-xuanyuan-002-requirement",
-        "checkIds": [
-          "xuanyuan/ast-contract",
-          "xuanyuan/concurrency-recovery-acceptance",
-          "xuanyuan/durable-queue-owner",
-          "xuanyuan/file-present",
-          "xuanyuan/forbidden-provider-import",
-          "xuanyuan/no-fire-and-forget",
-          "xuanyuan/outbound-cloud-device",
-          "xuanyuan/recovery-ledger",
-          "xuanyuan/task-idempotency",
-          "xuanyuan/package-script"
+          "xuanyuan/package-script",
+          "xuanyuan/removed-cloud-region"
         ],
         "sourceEvidence": [
           {
@@ -63,5 +38,5 @@
       ]
     }
   ],
-  "description": "Xuanyuan governed local GPT Web acceptance and outbound cloud execution audit."
+  "description": "Xuanyuan generic one-feed local GPT acceptance audit; website production cloud ownership is excluded."
 }

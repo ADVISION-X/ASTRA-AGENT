@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-27T19:51:56.793Z",
+  "generatedAt": "2026-07-28T14:07:17.032Z",
   "status": "PASS",
-  "scannedFiles": 513,
+  "scannedFiles": 523,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -83,10 +83,12 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
+    "src/capabilities/ai-input-gateway/failure-classification.ts",
     "src/capabilities/ai-input-gateway/index.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
@@ -136,10 +138,10 @@
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
@@ -262,7 +264,7 @@
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
-    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
+    "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/lib/online-ai/config.ts",
     "src/lib/online-ai/gemini-client.ts",
@@ -494,13 +496,21 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+    "src/plugins/xuanxue-ai-production/index.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
     "src/plugins/xuanyuan/index.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
     "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
     "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
     "src/plugins/xuanyuan/xuanyuan.flow.ts",
@@ -535,7 +545,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 513,
+    "scannedFiles": 523,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -546,7 +556,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 508,
+      "scannedFiles": 518,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -555,13 +565,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 405
+      "scannedFiles": 415
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 401,
+      "scannedFiles": 411,
       "metrics": {
         "emitCallCount": 41
       }
@@ -570,13 +580,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 401
+      "scannedFiles": 411
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 406,
+      "scannedFiles": 416,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -591,7 +601,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 406,
+      "scannedFiles": 416,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -612,7 +622,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 82
+      "scannedFiles": 98
     },
     {
       "name": "browser-action-log-contract",

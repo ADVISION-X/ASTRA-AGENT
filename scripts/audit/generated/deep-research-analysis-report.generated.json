@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T19:52:00.033Z",
+  "generatedAt": "2026-07-28T14:07:21.169Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -8049,7 +8049,7 @@
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
-    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
+    "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",

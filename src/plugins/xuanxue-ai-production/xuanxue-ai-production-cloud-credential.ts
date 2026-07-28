@@ -1,14 +1,24 @@
-import { chmod, mkdir, open, readFile, rename, stat } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
 import {
-  XUANYUAN_CLOUD_PROTOCOL_VERSION,
-  type XuanyuanCloudCredential,
-} from "./xuanyuan-cloud-contract.js";
+  chmod,
+  mkdir,
+  open,
+  readFile,
+  rename,
+  stat,
+} from "node:fs/promises";
+import path from "node:path";
+import { z } from "zod";
+
+import {
+  XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
+  type XuanxueAiProductionCloudCredential,
+} from "./xuanxue-ai-production-cloud-contract.js";
 
 const credentialSchema = z.object({
-  protocol_version: z.literal(XUANYUAN_CLOUD_PROTOCOL_VERSION),
+  protocol_version: z.literal(
+    XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
+  ),
   server_base_url: z.string().url(),
   device_id: z.string().min(1),
   device_name: z.string().min(1),
@@ -17,26 +27,35 @@ const credentialSchema = z.object({
   enrolled_at: z.string().min(1),
 }).strict();
 
-export function xuanyuanCloudCredentialPath(dataDir: string): string {
-  return process.env.XUANYUAN_CLOUD_CREDENTIAL_FILE?.trim()
-    || path.join(dataDir, "runtime-data", "xuanyuan", "cloud-device-credential.json");
-}
+export const xuanxueAiProductionCloudCredentialPath = (
+  dataDir: string,
+): string => process.env.XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE?.trim()
+  || path.join(
+    dataDir,
+    "runtime-data",
+    "xuanxue-ai-production",
+    "cloud-device-credential.json",
+  );
 
-export async function readXuanyuanCloudCredential(dataDir: string): Promise<XuanyuanCloudCredential> {
-  const filePath = xuanyuanCloudCredentialPath(dataDir);
+export async function readXuanxueAiProductionCloudCredential(
+  dataDir: string,
+): Promise<XuanxueAiProductionCloudCredential> {
+  const filePath = xuanxueAiProductionCloudCredentialPath(dataDir);
   const metadata = await stat(filePath);
   if ((metadata.mode & 0o077) !== 0) {
-    throw new Error("XUANYUAN_CLOUD_CREDENTIAL_PERMISSIONS_INVALID");
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID",
+    );
   }
   return credentialSchema.parse(JSON.parse(await readFile(filePath, "utf8")));
 }
 
-export async function writeXuanyuanCloudCredential(
+export async function writeXuanxueAiProductionCloudCredential(
   dataDir: string,
-  credential: XuanyuanCloudCredential,
+  credential: XuanxueAiProductionCloudCredential,
 ): Promise<void> {
   const parsed = credentialSchema.parse(credential);
-  const destination = xuanyuanCloudCredentialPath(dataDir);
+  const destination = xuanxueAiProductionCloudCredentialPath(dataDir);
   await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
   const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
   const handle = await open(temporary, "wx", 0o600);

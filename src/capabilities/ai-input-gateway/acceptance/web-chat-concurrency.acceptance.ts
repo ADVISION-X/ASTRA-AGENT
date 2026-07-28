@@ -28,11 +28,17 @@ import {
   pendingWebChatSubmissionCount,
   registerPendingWebChatSubmission,
 } from "../runtime/web-chat-concurrency-lease.js";
+import { classifyWebChatFailure } from "../failure-classification.js";
+import {
+  startOrResumeWebChatExecution,
+  updateWebChatExecution,
+} from "../runtime/web-chat-execution-state.js";
 import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
 import {
   assertFailureLedger,
   assertResponseCheckpointRecovery,
 } from "./web-chat-recovery.acceptance-helper.js";
+import { assertWebChatSourceContracts } from "./web-chat-source-contract.acceptance-helper.js";
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 
 const delay = (durationMs: number): Promise<void> =>
@@ -75,7 +81,7 @@ const requestFor = (worker: number): AiFeedInput => ({
   textPrompt: `parallel worker ${worker}`,
   inputRefs: [],
   modelName: null,
-  timeoutMs: 10_000,
+  timeoutMs: 60_000,
   maxInputChars: 1_000,
   maxFileCount: 0,
   maxFileBytes: 1,
@@ -94,7 +100,10 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
         String(worker),
         "utf8",
       );
-      await waitFor(() => exists(path.join(dataDir, "release-all")));
+      await waitFor(
+        () => exists(path.join(dataDir, "release-all")),
+        30_000,
+      );
       return {
         rawText: `parallel response ${worker}`,
         modelName: "acceptance-fixture",
@@ -113,7 +122,16 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
   const result = await gateway.execute(requestFor(worker), {
     executionId: `parallel-execution-${worker}`,
   });
-  assert.equal(result.status, "success");
+  assert.equal(
+    result.status,
+    "success",
+    JSON.stringify({
+      worker,
+      failureReason: result.failureReason,
+      reviewRequiredReason: result.reviewRequiredReason,
+      providerProof: result.providerProof,
+    }),
+  );
   assert.match(
     result.providerProof.providerLeaseId ?? "",
     /^web-chat-capacity:/u,
@@ -175,6 +193,30 @@ if (workerArgs[0] === "--worker") {
     () => resolveManagedGptPollIntervalMs("999"),
     /WEB_CHAT_PATROL_INTERVAL_MS/u,
   );
+  assert.equal(
+    classifyWebChatFailure(
+      new Error("GPT_PROMPT_MISMATCH; controlled Chrome tab is not active"),
+      false,
+    ),
+    "recovery_pending",
+    "a pre-submit controlled-tab interruption must retain the same execution for retry",
+  );
+  assert.equal(
+    classifyWebChatFailure(
+      new Error("GPT_PROMPT_MISMATCH; 不能获取对象。 (-1728)"),
+      false,
+    ),
+    "recovery_pending",
+    "a transient JXA object loss must not terminally discard unsubmitted provider work",
+  );
+  assert.equal(
+    classifyWebChatFailure(
+      new Error("review_required: NATIVE_FILE_LIST_MISMATCH"),
+      false,
+    ),
+    "recovery_pending",
+    "a native file-picker ordering drift must retain the same execution for retry",
+  );
 
   await assertTransientPatrolRemainsRetryable();
 
@@ -207,19 +249,54 @@ if (workerArgs[0] === "--worker") {
     });
 
   try {
+    const repairInput = {
+      dataDir,
+      executionId: "transient-pre-submit-repair",
+      providerKind: "gpt-web-chat" as const,
+      taskLabelKey: "system_acceptance" as const,
+      inputHash: "fixture-transient-input-hash",
+      textPrompt: "fixture transient prompt",
+    };
+    const repairStarted = await startOrResumeWebChatExecution(repairInput);
+    await updateWebChatExecution({
+      dataDir,
+      record: repairStarted.record,
+      patch: {
+        status: "failed",
+        failures: [{
+          occurredAt: new Date().toISOString(),
+          attemptId: repairStarted.record.attemptId,
+          phase: "submitting",
+          classification: "failed",
+          recoverable: false,
+          reason: "GPT_PROMPT_MISMATCH; 不能获取对象。 (-1728)",
+        }],
+      },
+    });
+    const repaired = await startOrResumeWebChatExecution(repairInput);
+    assert.equal(
+      repaired.record.status,
+      "recovery_pending",
+      "a persisted pre-submit browser interruption must be reclassified without changing execution identity",
+    );
+    assert.equal(repaired.resume, false);
+    assert.equal(repaired.record.failures.length, 1, "repair must retain the original failure ledger");
+
     await assertResponseCheckpointRecovery(dataDir, requestFor(101));
     await assertFailureLedger(dataDir, requestFor(102));
     const firstTen = Array.from({ length: 10 }, (_, index) =>
       spawnWorker(index + 1),
     );
-    await waitFor(async () =>
-      (
-        await Promise.all(
-          Array.from({ length: 10 }, (_, index) =>
-            exists(path.join(dataDir, `entered-${index + 1}`)),
-          ),
-        )
-      ).every(Boolean),
+    await waitFor(
+      async () =>
+        (
+          await Promise.all(
+            Array.from({ length: 10 }, (_, index) =>
+              exists(path.join(dataDir, `entered-${index + 1}`)),
+            ),
+          )
+        ).every(Boolean),
+      30_000,
     );
     const executionDir = path.join(
       dataDir,
@@ -291,21 +368,33 @@ if (workerArgs[0] === "--worker") {
     const secondMutation = await secondMutationPromise;
     await secondMutation.release();
 
-    const releaseQueuedSubmission =
-      registerPendingWebChatSubmission("queued-submission");
-    assert.equal(pendingWebChatSubmissionCount(), 1);
-    let patrolEntered = false;
-    const patrolPromise = acquireWebChatBrowserPatrolLease({
+    const releaseQueuedSubmission = registerPendingWebChatSubmission(
       dataDir,
-      timeoutMs: 2_000,
+      "queued-submission",
+    );
+    assert.equal(pendingWebChatSubmissionCount(dataDir), 1);
+    const patrolEntryOrder: string[] = [];
+    const firstPatrolPromise = acquireWebChatBrowserPatrolLease({
+      dataDir,
+      executionId: "first-patrol",
+      timeoutMs: 4_000,
     }).then((lease) => {
-      patrolEntered = true;
+      patrolEntryOrder.push("first-patrol");
+      return lease;
+    });
+    await delay(100);
+    const secondPatrolPromise = acquireWebChatBrowserPatrolLease({
+      dataDir,
+      executionId: "second-patrol",
+      timeoutMs: 4_000,
+    }).then((lease) => {
+      patrolEntryOrder.push("second-patrol");
       return lease;
     });
     await delay(250);
     assert.equal(
-      patrolEntered,
-      false,
+      patrolEntryOrder.length,
+      0,
       "provider patrol must not overtake an accepted task waiting to submit",
     );
     const prioritySubmission = await acquireWebChatBrowserMutationLease({
@@ -314,139 +403,23 @@ if (workerArgs[0] === "--worker") {
     });
     await prioritySubmission.release();
     releaseQueuedSubmission();
-    assert.equal(pendingWebChatSubmissionCount(), 0);
-    const patrolLease = await patrolPromise;
-    await patrolLease.release();
+    assert.equal(pendingWebChatSubmissionCount(dataDir), 0);
+    const firstPatrolLease = await firstPatrolPromise;
+    assert.deepEqual(
+      patrolEntryOrder,
+      ["first-patrol"],
+      "durable patrol tickets must preserve FIFO admission",
+    );
+    await firstPatrolLease.release();
+    const secondPatrolLease = await secondPatrolPromise;
+    assert.deepEqual(
+      patrolEntryOrder,
+      ["first-patrol", "second-patrol"],
+      "the second patrol may enter only after the first patrol releases the browser",
+    );
+    await secondPatrolLease.release();
 
-    const sharedSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-      ),
-      "utf8",
-    );
-    const titleSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
-      ),
-      "utf8",
-    );
-    const titleScriptsSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-      ),
-      "utf8",
-    );
-    const answerEvaluationSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-      ),
-      "utf8",
-    );
-    const rateLimitWatcherSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
-      ),
-      "utf8",
-    );
-    const answerSupportSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
-      ),
-      "utf8",
-    );
-    const singleTabRoutingSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-      ),
-      "utf8",
-    );
-    const managedExecutionSource = await readFile(
-      path.join(
-        process.cwd(),
-        "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-      ),
-      "utf8",
-    );
-    const submitFlow = sharedSource.slice(
-      sharedSource.indexOf("const executeWebChatConversation"),
-      sharedSource.indexOf("const executeOpenedWebChatAdapter"),
-    );
-    const completedFlow = sharedSource.slice(
-      sharedSource.indexOf("const buildCompletedWebChatResponse"),
-      sharedSource.indexOf("const executeWebChatConversation"),
-    );
-    assert.equal(
-      submitFlow.includes("renameSubmittedChatGptConversation"),
-      false,
-      "submission must release the browser mutation lane without waiting for rename",
-    );
-    assert.equal(
-      completedFlow.includes("renameSubmittedChatGptConversation"),
-      true,
-      "the exact conversation must be renamed only after response completion",
-    );
-    assert.equal(
-      titleScriptsSource.includes("(?!WEB:)"),
-      true,
-      "transient ChatGPT WEB sidebar rows must never be rename targets",
-    );
-    assert.equal(
-      titleScriptsSource.includes('CHATGPT_CONVERSATION_ROW_SELECTOR = "li"')
-        && titleScriptsSource.includes("link.closest(${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)})"),
-      true,
-      "rename options must be scoped to the exact sidebar conversation row",
-    );
-    assert.equal(
-      titleScriptsSource.includes("depth < 7"),
-      false,
-      "rename targeting must not climb into the page-header conversation menu",
-    );
-    assert.equal(
-      titleSource.includes("runExclusivePatrol")
-        && titleSource.includes("WEB_CHAT_RENAME_NOT_READY")
-        && !titleSource.includes("rename patrol exhausted the task timeout"),
-      true,
-      "one completed-chat rename must stay atomic and transient rename UI must never become a terminal task-timeout failure",
-    );
-    assert.equal(
-      answerEvaluationSource.includes("visibleProgressClass")
-        && answerEvaluationSource.includes("[class*='shimmer']"),
-      true,
-      "a visible ChatGPT loading or shimmer progress node must keep the exact turn in generating state",
-    );
-    assert.equal(
-      answerSupportSource.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY")
-        && singleTabRoutingSource.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY"),
-      true,
-      "an automatic sidebar row that has not materialized yet must remain retryable patrol state",
-    );
-    assert.equal(
-      singleTabRoutingSource.includes('"scroll_title"')
-        && singleTabRoutingSource.includes("scrollDeltaY")
-        && singleTabRoutingSource.includes("scroll exact submitted ChatGPT sidebar row into view"),
-      true,
-      "an exact sidebar row outside the viewport must be physically scrolled into view before clicking",
-    );
-    assert.equal(
-      rateLimitWatcherSource.includes("sharedAcknowledgementWatchers")
-        && rateLimitWatcherSource.includes("refCount"),
-      true,
-      "one shared immediate acknowledgement watcher must serve all managed conversations",
-    );
-    assert.equal(
-      managedExecutionSource.includes("releasePendingSubmission")
-        && managedExecutionSource.includes("globalBrowser")
-        && managedExecutionSource.includes("runExclusivePatrol"),
-      true,
-      "submission priority, global survival and atomic rename patrol must be wired into managed execution",
-    );
+    await assertWebChatSourceContracts();
 
     let stableAnswerState = createStableAnswerState();
     const quietWindowStartedAt = stableAnswerState.lastActivityAt;

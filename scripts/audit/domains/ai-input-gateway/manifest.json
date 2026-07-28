@@ -115,6 +115,7 @@
           "ai-input-gateway/bounded-rename-recovery",
           "ai-input-gateway/controlled-chrome-window-identity",
           "ai-input-gateway/deferred-completed-chat-rename",
+          "ai-input-gateway/durable-fifo-scheduler",
           "ai-input-gateway/exact-sidebar-row-rename",
           "ai-input-gateway/failure-ledger",
           "ai-input-gateway/human-readable-system-chat-title",

@@ -1,129 +1,56 @@
 {
-  "generatedAt": "2026-07-27T19:52:01.688Z",
+  "generatedAt": "2026-07-28T14:07:23.384Z",
   "capabilityDomain": "xuanyuan",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-XUANYUAN-001-V2",
-    "GRASSEYE-XUANYUAN-002-V2"
+    "GRASSEYE-XUANYUAN-001-V3"
   ],
   "status": "PASS",
   "findings": [],
   "executedChecks": [
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
+      "checkId": "xuanyuan/acceptance"
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
       "checkId": "xuanyuan/ast-contract"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "checkId": "xuanyuan/concurrency-recovery-acceptance"
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
+      "checkId": "xuanyuan/durable-recovery"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "checkId": "xuanyuan/durable-queue-owner"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
       "checkId": "xuanyuan/file-present"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
       "checkId": "xuanyuan/forbidden-provider-import"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "checkId": "xuanyuan/no-fire-and-forget"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "checkId": "xuanyuan/outbound-cloud-device"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "checkId": "xuanyuan/recovery-ledger"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
-      "checkId": "xuanyuan/task-idempotency"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
-      "clauseId": "grasseye-xuanyuan-001-requirement",
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
       "checkId": "xuanyuan/package-script"
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/ast-contract"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/concurrency-recovery-acceptance"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/durable-queue-owner"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/forbidden-provider-import"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/no-fire-and-forget"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/outbound-cloud-device"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/recovery-ledger"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/task-idempotency"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
-      "clauseId": "grasseye-xuanyuan-002-requirement",
-      "checkId": "xuanyuan/package-script"
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
+      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
+      "checkId": "xuanyuan/removed-cloud-region"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
     "docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md",
     "scripts/audit/domains/xuanyuan/manifest.json",
-    "scripts/audit/domains/xuanyuan/inspector.ts",
     "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
-    "scripts/startup/xuanyuan-cloud-enroll.ts",
     "package.json",
-    "src/app/workbench-api-boundary.ts",
-    "src/app/create-workbench-server.ts",
-    "src/lib/local-runtime/workbench-handle.ts",
-    "src/lib/local-runtime/workbench.ts",
-    "src/app/workbench-xuanyuan-routes.ts",
     "src/plugins/xuanyuan/index.ts",
     "src/plugins/xuanyuan/xuanyuan.schema.ts",
     "src/plugins/xuanyuan/xuanyuan.flow.ts",
@@ -133,12 +60,15 @@
     "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
     "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
     "src/plugins/xuanyuan/xuanyuan.workbench.ts",
+    "src/app/workbench-xuanyuan-routes.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
+    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
+    "scripts/startup/xuanyuan-cloud-enroll.ts",
     "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts"
   ]
 }

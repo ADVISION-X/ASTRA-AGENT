@@ -6,6 +6,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
+import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -26,6 +27,7 @@ const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.t
 const chromeBrowserPrimitivesPath = "src/lib/browser/current-chrome-browser-controller-primitives.ts";
 const acceptancePath = "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts";
 const concurrencyLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts";
+const schedulerLedgerPath = "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts";
 const executionStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
 const systemChatTitlePath = "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts";
 const responseCheckpointPath = "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts";
@@ -33,7 +35,7 @@ const singleTabBrowserPath = "src/capabilities/ai-input-gateway/runtime/web-chat
 const singleProviderTabPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts";
 const feedProviderPath = "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts";
 const managedExecutionPath = "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts";
-const failureClassificationPath = "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts";
+const failureClassificationPath = "src/capabilities/ai-input-gateway/failure-classification.ts";
 const turnIdentityPath = "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts";
 const chatTitlePath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts";
 const chatTitleScriptsPath = "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts";
@@ -48,6 +50,7 @@ const singleTabRoutingPath = "src/capabilities/ai-input-gateway/runtime/web-chat
 const namedConversationSearchPath = "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts";
 const concurrencyAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts";
 const transientPatrolAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts";
+const sourceContractAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts";
 const realChromeParallelAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts";
 const realChromeRestartAcceptancePath = "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts";
 const removedUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
@@ -55,7 +58,7 @@ const removedAcceptancePath = "scripts/acceptance/ai-input-gateway-ordered-uploa
 const removedSerialLeasePath = "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts";
 const removedSerialAcceptancePath = "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts";
 
-const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, chromeWindowControlPath, chromeBrowserPrimitivesPath, acceptancePath, concurrencyLeasePath, executionStatePath, systemChatTitlePath, responseCheckpointPath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, failureClassificationPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, namedConversationSearchPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, realChromeParallelAcceptancePath, realChromeRestartAcceptancePath] as const;
+const governedPaths = [schemaPath, contractPath, adapterContractPath, childPath, sharedPath, orderedTransportPath, nativeTransportPath, attachmentTransportPath, composerScriptsPath, browserContractPath, nativePrimitivePath, chromeWindowControlPath, chromeBrowserPrimitivesPath, acceptancePath, concurrencyLeasePath, schedulerLedgerPath, executionStatePath, systemChatTitlePath, responseCheckpointPath, singleTabBrowserPath, singleProviderTabPath, feedProviderPath, managedExecutionPath, failureClassificationPath, turnIdentityPath, chatTitlePath, chatTitleScriptsPath, responseCapturePath, answerEvaluationPath, answerSupportPath, resumePath, rateLimitDialogPath, recoveryPath, historyCleanupPath, singleTabRoutingPath, namedConversationSearchPath, concurrencyAcceptancePath, transientPatrolAcceptancePath, sourceContractAcceptancePath, realChromeParallelAcceptancePath, realChromeRestartAcceptancePath] as const;
 
 const pushFinding = (findings: Finding[], lawId: string, filePath: string, checkId: string, message: string): void => {
   findings.push(createFinding({ lawId, filePath, checkId, message }));
@@ -73,6 +76,27 @@ const requireSourceFile = (context: InspectorContext, findings: Finding[], lawId
 const identifiers = (source: SourceFile): Set<string> => new Set(source.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
 
 const stringLiterals = (source: SourceFile): Set<string> => new Set([...source.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()), ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText())]);
+
+const literalVocabulary = (source: SourceFile): Set<string> => {
+  const separators = new Set([
+    " ", "\n", "\r", "\t", "_", "-", ".", ":", ";", ",", "(", ")", "[", "]",
+    "{", "}", "'", '"', "`", "/", "\\", "|", "=", "+", "*", "?", "!",
+  ]);
+  const words: string[] = [];
+  for (const literal of stringLiterals(source)) {
+    let current = "";
+    for (const character of literal.toLowerCase()) {
+      if (!separators.has(character)) {
+        current += character;
+        continue;
+      }
+      if (current) words.push(current);
+      current = "";
+    }
+    if (current) words.push(current);
+  }
+  return new Set(words);
+};
 
 const propertyNames = (node: Node): Set<string> => new Set(node.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((property) => property.getName()));
 
@@ -150,9 +174,9 @@ const inspectNativePrimitive = (context: InspectorContext, findings: Finding[], 
   if (!identifiers(browserContract).has("selectFilesInNativePicker")) {
     pushFinding(findings, lawId, browserContractPath, "ai-input-gateway/browser-native-picker-contract", "BrowserController must expose the generic native multi-file picker primitive.");
   }
-  const literalText = [...stringLiterals(primitive)].join(" ").toLowerCase();
+  const vocabulary = literalVocabulary(primitive);
   for (const forbiddenWord of ["chatgpt", "gemini", "seo", "bazi", "qimen", "八字", "奇门"]) {
-    if (literalText.includes(forbiddenWord)) {
+    if (vocabulary.has(forbiddenWord)) {
       pushFinding(findings, lawId, nativePrimitivePath, "ai-input-gateway/generic-browser-primitive", `Generic native picker primitive must not contain ${forbiddenWord}.`);
     }
   }
@@ -365,34 +389,6 @@ const inspectHumanReadableSystemChatTitle = (context: InspectorContext, findings
   }
 };
 
-const inspectSubmissionPriorityPatrol = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): void => {
-  const lease = requireSourceFile(context, findings, lawId, concurrencyLeasePath);
-  const managed = requireSourceFile(context, findings, lawId, managedExecutionPath);
-  const singleTab = requireSourceFile(context, findings, lawId, singleTabBrowserPath);
-  const acceptance = requireSourceFile(context, findings, lawId, concurrencyAcceptancePath);
-  if (!lease || !managed || !singleTab || !acceptance) return;
-
-  for (const required of [
-    "registerPendingWebChatSubmission",
-    "pendingWebChatSubmissionCount",
-    "acquireWebChatBrowserPatrolLease",
-  ]) {
-    if (!identifiers(lease).has(required) || !identifiers(acceptance).has(required)) {
-      pushFinding(findings, lawId, concurrencyLeasePath, "ai-input-gateway/submission-priority-patrol", `Submission-priority patrol must implement and execute ${required}.`);
-    }
-  }
-  if (
-    !identifiers(managed).has("releasePendingSubmission")
-    || !identifiers(singleTab).has("acquireWebChatBrowserPatrolLease")
-  ) {
-    pushFinding(findings, lawId, managedExecutionPath, "ai-input-gateway/submission-priority-patrol", "Managed execution must release the pending-submission gate only after durable submit proof, and ordinary patrol must use that gate.");
-  }
-};
-
 const inspectSharedRateLimitWatcher = (
   context: InspectorContext,
   findings: Finding[],
@@ -418,13 +414,13 @@ const inspectLiveGenerationProof = (
   lawId: string,
 ): void => {
   const evaluation = requireSourceFile(context, findings, lawId, answerEvaluationPath);
-  const acceptance = requireSourceFile(context, findings, lawId, concurrencyAcceptancePath);
+  const acceptance = requireSourceFile(context, findings, lawId, sourceContractAcceptancePath);
   if (!evaluation || !acceptance) return;
   const acceptanceIds = identifiers(acceptance);
   const acceptanceText = stringLiterals(acceptance);
   if (
     !evaluation.getVariableDeclaration("WEB_CHAT_STATUS_TEXT_SCRIPT")
-    || !acceptanceIds.has("answerEvaluationSource")
+    || !acceptanceIds.has("answerEvaluation")
     || !acceptanceText.has("visibleProgressClass")
     || !acceptanceText.has("[class*='shimmer']")
   ) {

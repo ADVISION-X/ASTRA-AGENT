@@ -1,6 +1,6 @@
 # Codex Entry Law
 
-版本：2026-05-28  
+版本：2026-07-28
 状态：active  
 适用范围：本仓库内所有 Codex / AI coding / 自动化改代码任务  
 
@@ -27,6 +27,658 @@ Codex 每次任务只做三件事：
 为了通过测试而降低法案
 为了省事而绕过入口扫描
 ```
+
+---
+
+## 0.1 GrassEye 架构现场图
+
+本节是给第一次进入仓库的 Codex 看的“项目地图”。
+
+它只解释现役法案和当前代码如何组成，不新增 lawId，不替代命中域 active law，也不把当前实现偏差洗成合法架构。
+
+如果本节与 active law 冲突，以 active law 为准；如果本节与当前代码冲突，必须先核对法案、generated truth、inspector 和真实源码，报告偏差，不得凭本节直接改代码。
+
+### 0.1.1 这个系统到底是什么
+
+GrassEye 不是一个什么都能自己想、自己规划、自己乱点的万能 Agent。
+
+它是一个本地运行的“岗位自动化执行系统”。可以把它理解成一家有严格分工的小工厂：
+
+```txt
+用户 / 外部网站提出一个已知任务
+  -> API 门卫检查能不能进
+      -> HTTP 路由把任务交给工作台
+          -> Job Mediator 校验任务并找到对应工种
+              -> Business Flow 按固定业务顺序办事
+                  -> Ability Group 提供同类通用动作
+                      -> Child Ability 一次只做一个原子动作
+                          -> Evidence / Logs / Result 记录实际发生了什么
+```
+
+法定主链只有一条：
+
+```txt
+User Requirement
+  -> Job Mediator
+      -> Job Flow
+          -> Ability Group
+              -> Child Ability
+                  -> Evidence / Runtime Logs / Result Records
+```
+
+任何新增代码都必须先回答：
+
+```txt
+它属于哪一层？
+它的唯一 owner 是谁？
+它从哪里接收输入？
+它把结果交给谁？
+它不能做什么？
+它由哪个 law、inspector、acceptance 和 ci:full 证明？
+```
+
+答不清楚，就不准新增。
+
+### 0.1.2 规则、设计和现实代码的优先级
+
+Codex 必须把四件事分开：
+
+1. `active law`：规定系统必须是什么样，是最高架构约束。
+2. `generated audit truth`：说明当前法条如何绑定 owner inspector、如何被执行；只能由现有生成链产生。
+3. `current source`：说明仓库今天实际上怎么接线；它可能存在历史偏差，不能反过来推翻法案。
+4. `docs/法案辅助文件/**`：施工地图，只帮助找实现位置，不能越过 active law 授权代码。
+
+仓库内权威顺序：
+
+```txt
+用户明确要求
+  -> AGENTS.md
+      -> GRASSEYE-KERNEL.instructions.md
+          -> grasseye-index.instructions.md
+              -> 命中域 active law
+                  -> generated audit truth / inspector / acceptance
+                      -> 施工图
+```
+
+当前源码与法案不一致时：
+
+```txt
+先报告差异
+-> 判断是代码债、法案债还是 inspector 覆盖缺口
+-> 需要改 active law 时等待用户明确授权
+-> 不得复制偏差
+-> 不得用 bridge / fallback / shadow 维持两套真相
+```
+
+### 0.1.3 现役目录和唯一 owner
+
+| 目录 / 入口 | 唯一功能 | 强制边界 |
+| --- | --- | --- |
+| `AGENTS.md` | Codex 进入仓库的总门规 | 只管任务进入、授权、证据和完成标准；不能代替命中域法案 |
+| `.github/instructions/agent-rules/**` | Kernel、索引和 active law | 定义架构与域规则；没有用户明确授权，不得新增或修改 active law/domain/owner |
+| `scripts/startup/**` | 启动本地 Workbench | 只做依赖、热挂载、端口、服务、health、打开页面和启动日志；不得运行任何业务任务 |
+| `src/app/**` | 唯一本地 App Shell、HTTP server、API 门卫和显式 routes | 只收输入、展示状态、分发到 Workbench Handle；不得拥有业务流程、DOM 动作、AI 判断或证据真相 |
+| `src/mediator/**` | 已知 job 的 schema 校验和 flow 路由 | 只能“接、验、转、回”；不得点页面、读 DOM、操作浏览器、保存业务状态或决定业务步骤 |
+| `src/plugins/<job-id>/**` | 一个目录拥有一个明确业务岗位 | 拥有业务顺序、业务状态、成功/失败/复核和业务结果；不得跨插件 import，不得造通用 planner |
+| `src/capabilities/<group-id>/**` | 一个目录拥有一类可复用动作 | 只做同类动作，不懂业务；不得 import plugin，不得跨 capability owner 偷私有实现 |
+| `src/capabilities/<group-id>/runtime/**` 或 `children/**` | 原子子能力实现 | 一次只做一个动作；不得隐藏完整工作流或决定下一步 |
+| `src/lib/browser/**` | BrowserController 和本地真实 Chrome 基础设施 | 负责打开、等待、当前受控标签、截图和文件输入基础；不得拥有业务顺序、AI 判断或证据真相 |
+| `src/lib/local-runtime/**` | Workbench 依赖组装和 public handle | 只能组装 owner 并通过 public facade 接线；不得变成第二 mediator、第二流程引擎或业务 owner |
+| `src/lib/runtime-logs/**` | 唯一 Runtime Log Spine | 只写经过脱敏的 FLOW/DEBUG/TRACE 诊断日志；日志不得冒充证据或任务数据库 |
+| `src/lib/storage/**` | 低层本地存储适配 | 只提供存储机制；不得决定业务状态或流程 |
+| `src/lib/online-ai/**` | 本地 AI 配置/状态等基础支持 | 不得绕过 `ai-input-gateway` 形成第二 provider transport |
+| `src/lib/localization/**` | App Shell 单一中英文地化支持 | 不得复制第二套中英文页面树 |
+| `src/types/**` | 仅共享类型合同 | 严禁放运行逻辑；该根目录目前存在法案与 inspector 白名单不一致，见“已知偏差” |
+| `scripts/acceptance/**` | 现役行为的验收证明 | 只能证明，不拥有生产逻辑，不得用 fixture 冒充真实平台结果 |
+| `scripts/audit/**` | 唯一法案执法系统 | 只能检查和生成审计证据，不得修改业务源码，不得建立第二 runner |
+
+允许的主 source 根按架构法案是：
+
+```txt
+src/app
+src/mediator
+src/plugins
+src/capabilities
+src/lib
+
+scripts/startup
+scripts/acceptance
+scripts/audit
+```
+
+新一级目录、新架构层、新 capability family、新 job root、新 runtime 类型或新审计主链，都必须先得到用户对 active law 变更的明确授权。
+
+### 0.1.4 启动层：只负责把门打开
+
+唯一用户启动命令：
+
+```bash
+npm run grasseye:start
+```
+
+唯一启动入口：
+
+```txt
+scripts/startup/launch-grasseye.mjs
+```
+
+法定启动顺序：
+
+```txt
+检查依赖
+-> 可选 update preflight
+-> 先探测现有 /api/health
+-> 健康且源码指纹匹配则热挂载
+-> 否则清理不健康端口
+-> 启动唯一 App Server
+-> 等待 /api/health
+-> 打开 Workbench
+-> 输出结构化启动报告
+```
+
+启动层允许：
+
+- 检查 Node、npm、依赖和受控更新条件。
+- 复用健康的现有 Workbench，避免重复服务器。
+- 真实查找并清理不健康端口监听。
+- 用 `/api/health` 证明 App Shell 已经能响应。
+- 输出 `phase/component/eventType/status/message/refs/durationMs/failureReason`。
+
+启动层禁止：
+
+- 启动 Amazon、Facebook、Deep Research、Xuanyuan 或任何 job。
+- 调 DOM、Browser、AI、上传、下载或 evidence 动作。
+- 把“进得了门”说成“业务能完成”。
+- 运行 typecheck、acceptance、audit 或 `ci:full`。
+- 增加第二个用户启动命令或第二个 App Server。
+
+### 0.1.5 App Shell：柜台和显示屏，不是业务大脑
+
+现役 App Shell 入口：
+
+```txt
+src/app/app-shell/app-shell.ts
+src/app/app-shell/skill-registry.ts
+```
+
+固定信息结构：
+
+```txt
+Top Command Bar
+Left Sidebar / Skill Registry
+Main Skill Workspace
+Right Inspector
+Bottom Runtime Console
+```
+
+页面层级：
+
+```txt
+Level 1: 总工作台
+Level 2: 单个 Skill Workspace
+Level 3: Task / Evidence / Package / Detail Inspector
+```
+
+App Shell 允许：
+
+- 收集每个已知 job 自己的结构化输入。
+- 显示健康、模式、任务状态、失败原因、复核状态、交付物和 evidence refs。
+- 从后端持久化结果读取并展示历史。
+- 在同一 DOM 中切换中文/英文，默认中文。
+
+App Shell 禁止：
+
+- 出现“随便说一句话我替你规划”的万能任务框。
+- 自己计算 AI verdict、产品价值、利润或下一步。
+- 直接控制浏览器、DOM、上传、付款、采购、上架、广告或库存。
+- 用 localStorage、fixture、日志解析或前端硬编码充当生产真相。
+- 为某个技能再造一套 Shell、Debug UI、Admin UI 或隐藏平行页面。
+- 把 raw JSON 当作唯一交付结果。
+
+`Skill Registry` 是 UI 技能导航真相，不是后端插件生命周期真相。后端插件是否 active，只认：
+
+```txt
+scripts/audit/config/plugin-status.json
+```
+
+### 0.1.6 HTTP Server、API Boundary 和 Route
+
+唯一 HTTP server：
+
+```txt
+src/app/server.ts
+  -> src/app/create-workbench-server.ts
+```
+
+任何 plugin、capability、mediator 或外部集成都不得创建自己的 listener。
+
+API 主链：
+
+```txt
+HTTP Request
+  -> workbench-api-boundary.ts
+      -> 已知 workbench-*-routes.ts
+          -> GrassEyeWorkbenchHandle
+              -> 已知 plugin public facade / mediator route
+```
+
+API Boundary 是门卫，负责：
+
+- 精确 method + path allowlist。
+- 本地同源与外部 origin/CORS 判断。
+- 外部 API 是否启用。
+- `X-GrassEye-Agent-Key` 鉴权。
+- 外部 `sourceSystem`、`requestId` 和输入形状约束。
+- callback 基础地址 allowlist。
+- 记录允许/拒绝的脱敏 ingress 事件。
+
+API Boundary 禁止：
+
+- 决定业务顺序或业务结论。
+- 调 capability、浏览器或 DOM。
+- 接受外部传入 selector、coordinate、browserCommand、nextAction、actionPlan、flowStep、tab/window/chat/marker/concurrency。
+- `Access-Control-Allow-Origin: *`。
+- 任意 callback URL。
+- 建第二 API gateway、route bus、dispatcher 或 capability-facing API。
+
+Route 只负责：
+
+```txt
+解析 HTTP
+-> 调 Workbench Handle 的明确方法
+-> 写 HTTP response
+```
+
+Route 不得保存业务真相，不得自己完成流程，不得把多个 job 编成一个通用路由器。
+
+### 0.1.7 Local Runtime 和 Workbench Handle：总装配台
+
+核心路径：
+
+```txt
+src/lib/local-runtime/workbench-assembly.ts
+src/lib/local-runtime/workbench.ts
+src/lib/local-runtime/workbench-handle.ts
+```
+
+`workbench-assembly.ts` 负责创建并连接：
+
+- 一个 BrowserController。
+- 一个 Runtime Logger。
+- 一个 Evidence Store。
+- 一个 Video Download ability group。
+- 一个 Media Processing ability group。
+- 一个 AI Input Gateway。
+- 本地 dataDir 和结构化日志总线。
+
+`GrassEyeWorkbenchHandle` 是 App routes 可见的窄接口，暴露已知 job 的 start/status/latest/export 等方法。
+
+Local Runtime 允许：
+
+- 创建依赖。
+- 把依赖注入 plugin public facade。
+- 管理 Workbench 的 init/shutdown。
+- 把明确方法提供给 routes。
+
+Local Runtime 禁止：
+
+- 自己拥有业务步骤顺序。
+- 直接 import plugin 私有文件。
+- 直接 import capability 非 `index.ts` 文件。
+- 变成通用 dispatcher、workflow engine 或第二 mediator。
+- 生成另一套 evidence、日志、任务状态或 provider transport。
+
+### 0.1.8 Job Mediator：接单员，不是干活的人
+
+法定职责只有：
+
+```txt
+接收已知 job input
+-> 识别 job type
+-> schema 校验
+-> 调对应 plugin flow
+-> 返回结构化 result
+```
+
+Mediator 可以 import 对应 plugin 的 public facade。
+
+Mediator 不得：
+
+- import BrowserController 或 capability private runtime。
+- 点击、填写、上传、截图、下载或读取 DOM。
+- 保存业务状态。
+- 决定 Amazon/Facebook/研究等业务步骤。
+- 通过 re-export 偷运 runtime action。
+- 变成中央调度器。
+
+新成熟 job 的法定入口必须包含 mediator route。当前代码并未对所有 active plugin 完成这一点，详见“已知偏差”；后续新 job 不得照抄这个缺口。
+
+### 0.1.9 Plugin / Business Flow：每个工种自己的师傅
+
+位置：
+
+```txt
+src/plugins/<job-id>/**
+```
+
+一个 plugin 只拥有一个业务需求。它拥有：
+
+- 输入 schema 和 result contract。
+- 固定业务步骤顺序。
+- 业务状态和持久化。
+- 成功、失败、`review_required` 判定。
+- 业务交付物。
+- 调用 capability、browser、evidence、logs 的时机。
+- 自己的 acceptance 和 audit 责任。
+
+Plugin 允许：
+
+- 通过 `src/capabilities/<group-id>/index.ts` 调能力组 public API。
+- 接收 Local Runtime 注入的 BrowserController、logger、evidence store 等合法依赖。
+- 写本 job 自己的 task state。
+
+Plugin 禁止：
+
+- import 另一个 plugin 的代码。
+- 在 `src/plugins/` 根部造共享 registry/router。
+- import capability 的 `runtime/**`、`children/**`、provider、registry 或私有文件。
+- 复制 capability 内部实现。
+- 把多个不相关任务塞进一个 flow。
+- 创建通用 planner、next-action engine 或跨 job workflow service。
+- 创建自己的 HTTP server、browser controller、evidence chain 或 runtime log chain。
+
+每个 plugin root 必须在 `scripts/audit/config/plugin-status.json` 恰好登记一次。只有 `active` plugin 可以进入默认 runtime/UI 和 `ci:full` acceptance。
+
+当前登记的 13 个 active plugin：
+
+| Plugin | 功能 | 绝对边界 |
+| --- | --- | --- |
+| `amazon-invoice-upload` | Seller Central 税务发票 CSV 下载、获准 PDF 上传、金额核对、提交/复核和 ledger | 只能上传 caller-approved PDF；不得把 CSV 当发票；敏感最终提交默认保留人工门 |
+| `amazon-product-mining` | 关键词生成与去重、搜索页/详情页/评论取证、资料包/PDF/AI handoff | 只产证据包，不做最终选品、采购、利润或投资裁决 |
+| `amazon-product-sync` | 按网站请求只读同步 Seller Central 产品/库存字段 | 只返回已取证字段；不得写价格、库存或 listing |
+| `amazon-product-fee-sync` | 只读同步 Seller Central 费用证据 | 不得变成产品同步的隐藏分支，不得执行写操作 |
+| `amazon-listing-edit-read-sync` | 只读读取 parent/child/SKU Central/listing edit tabs | 只能导航、展开和读取；禁止 save、submit、publish、upload、delete |
+| `deep-research-analysis` | 唯一 `1+N+1+1` 研究链：拆题、N 路分析、full case file、最终裁决、业务 HTML | 不得有 legacy/fallback/compact/双链；原始 AI 回答和完整 case file 不得被摘要替代 |
+| `facebook-product-video-mining` | Facebook 候选探测、评论、视频下载、有限 AI 判断、保存/拒绝和导出 | 不得伪造候选或绕过登录/CAPTCHA；失败和不确定不得显示为成功 |
+| `pick3-is-blind-eval` | 官方数据同步、L80 隔离盲图、封存预测、揭晓评分和复盘 | 不得泄露未来答案、伪造官方数据或自动下注 |
+| `lottery-ticket-plan` | 本地生成供人工查看的 Pick3 票面组合 | 不购买、不付款、不写入投注平台、不宣称提高中奖概率 |
+| `media-processing-artifact` | 把单次媒体处理能力包装成有 schema/result/evidence 的 job | 不在 job 内复制 ffmpeg/sharp 算法，不建第二媒体处理链 |
+| `video-download-artifact` | 把单次受治理视频下载能力包装成 job | 不绕过 DRM/CAPTCHA/登录，不用截图冒充视频文件 |
+| `xuanyuan` | 通用的一次提示词包本地 GPT 验收、状态与历史 | 不接网站生产云任务，不拥有产品动作图或 provider transport |
+| `xuanxue-ai-production` | 玄学网站八个 AI 产品整单领取、固定动作图、持久化生产窗口与整单回传 | 网站只发整单和收结果；工厂只走 AI Input Gateway；禁止通用 planner、影子队列和逐阶段网站遥控 |
+
+### 0.1.10 Capability Group：公共工具房
+
+当前法定能力组只有 5 个：
+
+| Capability | 功能 | 强制边界 |
+| --- | --- | --- |
+| `dom-automation` | snapshot、locate、fill、click、upload、wait、verify | 只做 DOM 原子动作；不懂 Amazon/Facebook；不得返回业务成功；敏感点击/上传必须受调用方批准 |
+| `ai-input-gateway` | 把已治理 prompt 和获准附件送给外部 AI，取回 raw response 和 provider proof | 只管运输，不做领域判断，不生成流程/selector/坐标/浏览器命令；不得出现第二 provider transport |
+| `forensics-persistence` | append record、artifact、ref、hash、failure reason | 只记发生过什么，不决定下一步，不代替业务 task state 或 audit truth |
+| `media-processing` | 单次图片/视频处理、依赖检查、产物和 proof | 只处理媒体，不决定业务价值，不在 job 里另造处理实现 |
+| `video-download` | 对受支持来源做候选探测、单次下载、校验和 artifact 生命周期 | 只做下载动作，不做内容价值判断、批量业务编排或平台限制绕过 |
+
+统一 public facade 规则：
+
+```txt
+src/capabilities/<group-id>/index.ts
+```
+
+外部 consumer，包括 app、mediator、plugin、local-runtime 和 acceptance，只能从 public facade 进入。
+
+除 DOM Automation 法案明确允许的公开原子函数外，facade 只应暴露窄类型、schema、port、factory 和稳定合同，不得把 private runtime symbol 重新导出。
+
+能力组之间也不能互相 import 对方私有实现。需要两个能力组协作时，由 owning Business Flow 调用，不能在 capability 内偷偷编排。
+
+DOM 原子函数当前只有一个业务侧直连白名单：
+
+```txt
+src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts
+```
+
+其他 plugin 不得散落直连 DOM primitives。
+
+### 0.1.11 AI 与 GPT Web：AI 是顾问，不是指挥官
+
+默认 AI 输出边界：
+
+```txt
+selectedOptionId
+confidence
+reason
+```
+
+只有某个 P0 job-flow law 明确规定 prompt ownership、允许输出、raw response persistence、下游校验和 audit coverage 时，该 job 才能使用非选择题型的 AI 内容阶段。
+
+任何情况下 AI 都不得输出或控制：
+
+```txt
+nextAction
+actionPlan
+workflow
+browserCommand
+selector
+coordinate
+filePath
+payment / refund / delete / sensitive submit
+```
+
+AI Input Gateway 唯一调用方向：
+
+```txt
+Business Owner
+  -> law-owned AI stage
+      -> AI Input Gateway public contract
+          -> internal provider adapter
+```
+
+GPT Web 当前物理边界：
+
+- 只控制一个真实 ChatGPT 物理标签页。
+- 不为每个任务新建标签页池。
+- 并发发生在不同 ChatGPT conversation 的“等待回答”，不是多个 Chrome tab。
+- 开新对话、附件、输入、提交、切换、抓取和改名使用短时串行浏览器操作权。
+- 等待模型生成时必须释放该操作权。
+- 回答完整后先持久化 response checkpoint，再改名或清理。
+- 重启恢复同一 conversation、marker、input hash 和 checkpoint，不得重复提交。
+- 登录、CAPTCHA、2FA、风控、身份歧义、多物理 provider tab 必须进入 `review_required`。
+- 外部 caller 不能提供 title、tab id、window、marker、selector、browser command 或 concurrency。
+
+### 0.1.12 BrowserController：司机，只听固定流程的命令
+
+BrowserController 负责：
+
+- 复用操作者授权的本地 Chrome profile。
+- 打开 URL、等待页面、读取当前受控标签状态。
+- 在当前受控物理标签页执行受限 evaluate/输入/点击/滚动。
+- 截图 evidence 和 file-input 基础动作。
+- 离开预期 provider origin 时失败关闭。
+
+BrowserController 不负责：
+
+- 业务步骤顺序。
+- AI 判断。
+- 任务成功判定。
+- evidence 持久化真相。
+- 自动登录、验证码绕过、账号轮换。
+- 读取 cookies、localStorage、sessionStorage、密码或 token。
+
+登录由人完成；遇到登录墙、CAPTCHA、2FA 或风控，返回失败或人工复核，不能绕过。
+
+### 0.1.13 Evidence、业务状态、日志和审计是四本不同的账
+
+这四种真相绝对不能混：
+
+| 真相 | 唯一 owner | 回答的问题 | 不能替代 |
+| --- | --- | --- | --- |
+| 业务状态真相 | 对应 `src/plugins/<job-id>/**` | 任务现在到哪一步、成功/失败/复核、业务结果是什么 | evidence store、日志、UI |
+| Evidence 真相 | `forensics-persistence` | 实际做过什么、观察到什么、产物/hash/ref 是什么 | 业务状态、日志、audit |
+| 诊断日志真相 | `src/lib/runtime-logs/**` | 程序运行时发生了哪些步骤、耗时和失败原因 | evidence、任务数据库、CI |
+| 合规真相 | `scripts/audit/**` | 当前源码是否符合 active law | 真实浏览器行为、业务结果 |
+
+通用 evidence store 当前形态：
+
+```txt
+<dataDir>/forensics/records-<runId>.ndjson
+<dataDir>/forensics/artifacts.ndjson
+```
+
+采用 append-only envelope 和 integrity hash。
+
+业务 plugin 可以拥有自己的 JSON/SQLite task state，但不得再造通用 evidence store 或私有 runtime log system。
+
+Browser profile 必须与 evidence storage 分开；cookie、session、token、password 不得进入持久化表、日志或公开 evidence。
+
+### 0.1.14 Runtime Log Spine：一本诊断流水账
+
+唯一日志通道：
+
+```txt
+FLOW  = 业务步骤进度
+DEBUG = 实现诊断
+TRACE = 低层引用与耗时
+```
+
+日志至少应能说明：
+
+```txt
+trace/run/task 身份
+stage / event
+started / terminal 配对
+status
+reason / failure class
+artifact/evidence refs
+duration
+recovery trail
+```
+
+日志必须脱敏，不得写 cookie、token、密码、API key、完整敏感 PDF、原始大 payload 或 provider secret。
+
+日志只能帮助查错，不能因为“日志写了 success”就证明任务成功。
+
+### 0.1.15 Audit、Acceptance、Typecheck、Chrome 各自证明什么
+
+唯一完整审计链：
+
+```txt
+package.json: ci:full
+-> codex:entry-gate
+-> active law clauses
+-> owner manifests
+-> generated registry / matrix / plan / coverage
+-> one generated-plan runner
+-> exact executed-check receipts
+-> owner reports
+-> typecheck
+-> acceptance
+-> ci-full-summary
+```
+
+审计 owner 规则：
+
+- 一个 `capabilityDomain` 只有一个 owner manifest 和一个 owner inspector。
+- inspector 只检查自己域，不能运行别的 owner，不能改源码。
+- TypeScript 结构、import、owner、反逃逸判断必须使用 ts-morph AST/symbol，不得用 regex、grep 或 raw source string scanning 当主裁。
+- generated artifacts 只能由现有 builder/runner 生成，禁止手改。
+- 任一 finding 都是 FAIL；没有 warning pass、partial pass 或 soft pass。
+
+证据边界：
+
+| 验证 | 能证明 | 不能证明 |
+| --- | --- | --- |
+| `typecheck` | 类型合同能编译 | 真实页面能点、流程成功 |
+| owner audit | 静态结构符合该域法条 | 真实平台行为成功 |
+| acceptance | 项目定义的行为合同通过 | 未覆盖的真实 Chrome/外部平台一定成功 |
+| `ci:full` | 当前源码通过唯一完整法案/类型/验收链 | 生产账号、真实页面、外部 provider 一定可用 |
+| real Chrome | 指定浏览器旅程在本次真实执行中发生 | 整个仓库所有法条都通过 |
+
+凡涉及真实页面、DOM、按钮、输入、上传、下载、弹窗、登录态、CORS 浏览器行为或 Workbench UI，必须另有真实 Chrome 证据。
+
+### 0.1.16 新需求的唯一合法接入方法
+
+新增一个成熟 job，必须按下面顺序：
+
+```txt
+1. 先确认一个明确用户需求和唯一 job-id
+2. 读取命中域 law；需要新 job root / law / owner 时先取得用户明确授权
+3. 在 src/plugins/<job-id>/ 建 schema、explicit flow、result、public index
+4. 在 src/mediator/ 建唯一 route，只做校验和转发
+5. 复用现有 capability public facade；只有两个以上真实 job 需要同类动作时才考虑新能力组
+6. 通过现有 Workbench Handle 和显式 route 接入唯一 HTTP server
+7. 定义业务 task state、evidence refs、logs、failure/review result
+8. 登记 plugin-status 生命周期
+9. 补命中域 active law、施工图、owner inspector/manifest、acceptance 和 ci:full 接入
+10. 跑 npm run ci:full；涉及浏览器再跑真实 Chrome 验证
+```
+
+不得采用：
+
+```txt
+塞进现有无关 flow
+先写代码以后补法
+新建通用 workflow engine
+在 src/lib 放业务
+在 capability 放业务顺序
+让 AI 生成下一步
+用 bridge/fallback/shadow 保留两套实现
+新建第二 server/route bus/evidence/log/audit/browser/provider 链
+```
+
+### 0.1.17 当前实现的已知偏差：只记录，不授权照抄
+
+以下是 2026-07-28 只读核对发现的架构差异。未来 Codex 必须先重新验证它们是否仍存在。
+
+1. **Mediator 覆盖不完整**
+
+   - 法案要求每个成熟 job 都有 mediator route。
+   - 当前 `src/mediator/**` 只有：
+     - `media-processing-artifact-route.ts`
+     - `video-download-artifact-route.ts`
+   - 其他 active plugin 目前多数由 `src/app/workbench-*-routes.ts -> GrassEyeWorkbenchHandle -> plugin public facade` 直接接线。
+   - 这不是第二 HTTP server，但 `local-runtime/workbench-handle` 实际承担了部分“准中介”作用。
+   - `architecture-boundary` inspector 当前检查 mediator 不得执行动作，却没有机械检查每个 active plugin 是否存在 mediator route。
+   - 结论：这是代码/执法覆盖债，不是以后跳过 mediator 的先例。
+
+2. **`src/types` 法案与 inspector 不一致**
+
+   - `module-architecture-boundary` 的 source root 白名单没有 `src/types`。
+   - 当前源码存在 `src/types/**`。
+   - Code Purity 把它定义为“shared type contracts only”。
+   - `scan-root-allowlist.ts` 又明确允许 `types`。
+   - 结论：这是 active law 与 inspector 的冲突。未获用户明确 law-change 授权前，只可报告，不得擅自补法，也不得向 `src/types` 增加 runtime logic。
+
+3. **Deep Research 命名/拓扑不是标准模板**
+
+   - 标准新 job 模板要求 `<job-id>.flow.ts` 和 `index.ts`。
+   - 当前 Deep Research 的实际主执行入口是 `deep-research-analysis.analysis-runner.ts`，public facade 是 `deep-research-analysis.public.ts`。
+   - 它仍是一个 active plugin 和一条受治理主链，但物理命名不同。
+   - 结论：新 job 仍使用标准模板；不得复制此命名差异，也不得未经专项授权顺手改 Deep Research。
+
+4. **施工图可能落后于代码**
+
+   - 部分早期施工图仍只列最早的 job、UI surface 或旧阶段快照。
+   - 结论：施工图用于找路，不用于证明当前代码完整；必须同时核对 active law、plugin-status、Skill Registry、routes、public facades、generated plan 和真实源码。
+
+### 0.1.18 Codex 动手前的架构定位清单
+
+每次修改前，必须用一句话逐项回答：
+
+```txt
+本次需求属于哪个 job？
+业务顺序 owner 是哪个 plugin？
+是否只通过 capability index.ts？
+是否碰了 Browser / DOM / AI / evidence / logs / storage？
+HTTP 是否仍走唯一 create-workbench-server？
+是否需要 mediator route？
+是否新增 root、layer、job、capability、owner 或 active law？
+是否可能形成第二链？
+哪个 inspector 和 acceptance 能证明？
+是否需要真实 Chrome？
+当前 worktree 有哪些用户改动必须保护？
+```
+
+只要其中一项答不清楚，停止修改，先继续读法案和源码。
 
 ---
 

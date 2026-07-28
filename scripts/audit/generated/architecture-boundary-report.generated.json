@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T19:51:17.724Z",
+  "generatedAt": "2026-07-28T14:06:32.282Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -26,6 +26,7 @@
     "media-processing-artifact",
     "pick3-is-blind-eval",
     "video-download-artifact",
+    "xuanxue-ai-production",
     "xuanyuan"
   ],
   "pluginStatusEntries": [
@@ -163,22 +164,44 @@
       "allowedEntrypoints": [
         "src/app/workbench-xuanyuan-routes.ts",
         "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-handle.ts",
-        "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts"
+        "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
         "acceptance:xuanyuan"
       ],
       "allowedNpmScripts": [
         "acceptance:xuanyuan",
-        "audit:xuanyuan",
-        "xuanyuan:cloud:enroll"
+        "audit:xuanyuan"
       ],
       "exposureTokens": [
         "xuanyuan"
       ],
       "lawSourceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "xuanxue-ai-production",
+      "status": "active",
+      "owner": "plugin:xuanxue-ai-production",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
+        "src/lib/local-runtime/workbench.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:xuanxue-ai-production"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:xuanxue-ai-production",
+        "audit:xuanxue-ai-production",
+        "xuanxue-ai-production:cloud:enroll"
+      ],
+      "exposureTokens": [
+        "xuanxue-ai-production"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md"
       ]
     },
     {
@@ -351,8 +374,10 @@
     ],
     "xuanyuan": [
       "src/app/workbench-xuanyuan-routes.ts",
-      "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
       "src/lib/local-runtime/workbench.ts"
+    ],
+    "xuanxue-ai-production": [
+      "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts"
     ],
     "pick3-is-blind-eval": [
       "src/app/workbench-pick3-routes.ts",
@@ -430,6 +455,7 @@
     "acceptance:video-download-telegram-web",
     "acceptance:video-download-youtube-production",
     "acceptance:workbench-api-boundary",
+    "acceptance:xuanxue-ai-production",
     "acceptance:xuanyuan"
   ],
   "activePluginViolations": [],
@@ -447,6 +473,7 @@
     ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
     ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
     ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+    ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
     ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -602,7 +629,7 @@
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
-    "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
     "scripts/acceptance/xuanyuan.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
@@ -621,6 +648,7 @@
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
+    "scripts/audit/domains/ai-input-gateway/scheduler-inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
@@ -809,6 +837,7 @@
     "scripts/audit/domains/video-download-capability/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanyuan/inspector.ts",
     "scripts/audit/run-domain-audit.ts",
     "scripts/audit/shared/finding-utils.ts",
@@ -838,7 +867,7 @@
     "scripts/startup/lib/startup-main-support.mjs",
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
-    "scripts/startup/xuanyuan-cloud-enroll.ts",
+    "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
     "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
     "src/app/app-shell/app-shell-core-styles.ts",
@@ -915,10 +944,12 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
+    "src/capabilities/ai-input-gateway/failure-classification.ts",
     "src/capabilities/ai-input-gateway/index.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
@@ -968,10 +999,10 @@
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
@@ -1094,7 +1125,7 @@
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
-    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
+    "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/lib/online-ai/config.ts",
     "src/lib/online-ai/gemini-client.ts",
@@ -1326,13 +1357,21 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+    "src/plugins/xuanxue-ai-production/index.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
     "src/plugins/xuanyuan/index.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
-    "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
     "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
     "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
     "src/plugins/xuanyuan/xuanyuan.flow.ts",

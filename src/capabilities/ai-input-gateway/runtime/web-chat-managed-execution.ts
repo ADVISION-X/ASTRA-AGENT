@@ -10,7 +10,7 @@ import {
   registerPendingWebChatSubmission,
   type WebChatRuntimeLease,
 } from "./web-chat-concurrency-lease.js";
-import { classifyWebChatFailure, webChatFailureReason } from "./web-chat-failure-classification.js";
+import { classifyWebChatFailure, webChatFailureReason } from "../failure-classification.js";
 import { buildInternallyMarkedPrompt, readWebChatExecution, startOrResumeWebChatExecution, updateWebChatExecution, type WebChatExecutionFailure, type WebChatExecutionRecord } from "./web-chat-execution-state.js";
 import { persistWebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 import { createSingleTabWebChatBrowser, type SingleTabWebChatBrowser } from "./web-chat-single-tab-browser.js";
@@ -227,6 +227,7 @@ const prepareActiveBrowser = async (input: {
     const singleTabBrowser = createSingleTabWebChatBrowser({
       base: input.source.browser,
       dataDir: input.source.dataDir,
+      executionId: record.executionId,
       providerKind: record.providerKind,
       systemChatTitle: record.systemChatTitle,
       turnMarker: record.turnMarker,
@@ -261,7 +262,7 @@ const startActiveExecution = async (input: ManagedWebChatInput, inputHash: strin
   });
   let releasePendingSubmission = started.resume
     ? null
-    : registerPendingWebChatSubmission(record.executionId);
+    : registerPendingWebChatSubmission(input.dataDir, record.executionId);
   try {
     record = await updateWebChatExecution({
       dataDir: input.dataDir,

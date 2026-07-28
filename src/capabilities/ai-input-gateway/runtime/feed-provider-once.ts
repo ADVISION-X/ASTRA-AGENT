@@ -24,7 +24,7 @@ import {
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
 import { prepareManagedWebChatExecution } from "./web-chat-managed-execution.js";
-import { classifyWebChatFailure } from "./web-chat-failure-classification.js";
+import { classifyWebChatFailure } from "../failure-classification.js";
 import { readWebChatExecution } from "./web-chat-execution-state.js";
 
 type ExecuteAiFeedOnceInput = {

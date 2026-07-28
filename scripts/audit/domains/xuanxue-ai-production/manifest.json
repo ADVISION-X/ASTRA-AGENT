@@ -1,0 +1,75 @@
+{
+  "capabilityDomain": "xuanxue-ai-production",
+  "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
+        "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+        "checkIds": [
+          "xuanxue-ai-production/acceptance",
+          "xuanxue-ai-production/fixed-profiles",
+          "xuanxue-ai-production/forbidden-private-import",
+          "xuanxue-ai-production/source-present",
+          "xuanxue-ai-production/whole-order-contract"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+        "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+        "checkIds": [
+          "xuanxue-ai-production/acceptance",
+          "xuanxue-ai-production/bounded-coordinator",
+          "xuanxue-ai-production/durable-ledger",
+          "xuanxue-ai-production/no-untracked-background-work",
+          "xuanxue-ai-production/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
+        "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+        "checkIds": [
+          "xuanxue-ai-production/cloud-capacity",
+          "xuanxue-ai-production/cloud-lease-binding",
+          "xuanxue-ai-production/credential-permissions",
+          "xuanxue-ai-production/source-present"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      }
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
+      "requiredAnchors": [
+        "## Boundary",
+        "## Product Profiles",
+        "## Production Window",
+        "## Durable Ledger",
+        "## Outbound Cloud Protocol",
+        "## File Plan",
+        "## Acceptance"
+      ]
+    }
+  ],
+  "description": "Whole-order xuanxue AI factory, fixed workflow profiles, bounded production window, SQLite recovery and outbound cloud lease audit."
+}

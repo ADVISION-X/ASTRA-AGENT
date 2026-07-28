@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-27T19:52:03.353Z",
+  "generatedAt": "2026-07-28T14:07:25.621Z",
   "status": "PASS",
-  "inspectorFileCount": 27,
-  "generatedPlanEntryCount": 27,
+  "inspectorFileCount": 28,
+  "generatedPlanEntryCount": 28,
   "inspectedFiles": [
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
@@ -16,6 +16,7 @@
     "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "scripts/audit/domains/ai-input-gateway/manifest.json",
     "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
+    "scripts/audit/domains/ai-input-gateway/scheduler-inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
@@ -229,6 +230,8 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/manifest.json",
+    "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/manifest.json",
     "scripts/audit/domains/xuanyuan/inspector.ts",
     "scripts/audit/domains/xuanyuan/manifest.json",
     "scripts/audit/shared/finding-utils.ts",

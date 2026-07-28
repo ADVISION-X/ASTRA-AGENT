@@ -63,7 +63,7 @@ import {
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
 import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
 import { createWorkbenchXuanyuanSupport } from "../../plugins/xuanyuan/index.js";
-import { createWorkbenchXuanyuanCloudSupport } from "./workbench-xuanyuan-cloud-support.js";
+import { createWorkbenchXuanxueAiProductionSupport } from "./workbench-xuanxue-ai-production-support.js";
 import type {
   DeepResearchExecutionJobLike,
   DeepResearchExecutionSnapshotLike,
@@ -452,15 +452,16 @@ const buildWorkbenchHandle = (
 export class GrassEyeWorkbench {
   private readonly assembly: WorkbenchAssembly;
   private readonly xuanyuan: ReturnType<typeof createWorkbenchXuanyuanSupport>;
-  private readonly xuanyuanCloud: ReturnType<typeof createWorkbenchXuanyuanCloudSupport>;
+  private readonly xuanxueAiProduction:
+    ReturnType<typeof createWorkbenchXuanxueAiProductionSupport>;
 
   constructor(options: GrassEyeWorkbenchOptions) {
     this.assembly = createWorkbenchAssembly(options);
     this.xuanyuan = createWorkbenchXuanyuanSupport(this.assembly);
-    this.xuanyuanCloud = createWorkbenchXuanyuanCloudSupport(this.assembly.dataDir, {
-      enqueueXuanyuanTask: this.xuanyuan.enqueueXuanyuanTask,
-      getXuanyuanTaskStatus: this.xuanyuan.getXuanyuanTaskStatus,
-    });
+    this.xuanxueAiProduction = createWorkbenchXuanxueAiProductionSupport(
+      this.assembly.dataDir,
+      this.assembly.aiInputGateway,
+    );
   }
 
   async init(): Promise<void> {
@@ -472,11 +473,11 @@ export class GrassEyeWorkbench {
       runtimeLogger: this.assembly.runtimeLogger,
     });
     await this.xuanyuan.init();
-    await this.xuanyuanCloud.init();
+    await this.xuanxueAiProduction.init();
   }
 
   async shutdown(): Promise<void> {
-    await this.xuanyuanCloud.shutdown();
+    await this.xuanxueAiProduction.shutdown();
   }
 
   createHandle(): GrassEyeWorkbenchHandle {

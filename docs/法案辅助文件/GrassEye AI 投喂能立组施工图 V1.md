@@ -112,11 +112,12 @@ SEO资料研究｜07-26 04:40Z｜A9F193A3-489B
 回答必须从“包含本 attempt marker 的唯一 user turn”向后绑定 assistant turn；不得读取
 页面最后一条 assistant 作为任务结果，也不得要求模型复述 marker。
 
-容量已满时公平排队，不失败、不增加物理 ChatGPT 标签页。运维参数
+容量已满时由上游有界生产窗口公平排队，不失败、不增加物理 ChatGPT 标签页。Gateway
+只接收已经进入生产窗口的 feed，不感知网站尚未领取的无限订单。运维参数
 `WEB_CHAT_PATROL_INTERVAL_MS` 只能取 1 至 60 秒，默认每 5 秒巡查一次；调用方不能修改：
 
 ```txt
-仍有 accepted 任务等待发送 → 巡查让路
+仍有 admitted 任务等待发送 → 巡查让路
 所有待发送任务已逐个记录 → 巡查取得短时浏览器操作锁
 → 在同一标签页按系统聊天名定位并点击
 → 校验 DOM 中恰有一个本任务 marker
@@ -136,6 +137,18 @@ SEO资料研究｜07-26 04:40Z｜A9F193A3-489B
 → 已接收但尚未完成附件＋提示词提交的任务
 → 已提交任务的短周期巡查、回答读取与完成后重命名
 ```
+
+这个优先级不能依赖进程内 Set。唯一调度账本为：
+
+```txt
+<dataDir>/runtime-data/ai-input-gateway/web-chat-scheduler.sqlite
+  scheduler_waiters(execution_id, kind, pid, ticket, created_at)
+  scheduler_sequence(next_ticket)
+```
+
+提交 waiter 与巡检 waiter 都先取得持久 ticket。只要仍有 admitted submission waiter，
+巡检必须让路；submission 集合清空后，只有最小 patrol ticket 可以竞争短锁。进程死亡后
+清理对应 PID 的 stale waiter，重启不得留下幽灵阻塞，也不得让后来的巡检插队。
 
 限流确认使用单个进程级 watcher，直接查看当前唯一 ChatGPT 标签页，不绑定某一个任务，
 不为 N 个任务创建 N 个 watcher。尚未出现正式自动聊天行、聊天行已出现但点击后尚未完成
@@ -337,6 +350,8 @@ src/capabilities/ai-input-gateway/children/
   attach-approved-web-chat-files-once.ts
 
 src/capabilities/ai-input-gateway/runtime/
+  web-chat-scheduler-ledger.ts
+  web-chat-concurrency-lease.ts
   web-chat-system-title.ts
   web-chat-response-checkpoint.ts
   web-chat-single-tab-routing.ts

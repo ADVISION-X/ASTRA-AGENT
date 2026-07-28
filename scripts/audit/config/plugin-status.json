@@ -134,22 +134,44 @@
       "allowedEntrypoints": [
         "src/app/workbench-xuanyuan-routes.ts",
         "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-handle.ts",
-        "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts"
+        "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
         "acceptance:xuanyuan"
       ],
       "allowedNpmScripts": [
         "acceptance:xuanyuan",
-        "audit:xuanyuan",
-        "xuanyuan:cloud:enroll"
+        "audit:xuanyuan"
       ],
       "exposureTokens": [
         "xuanyuan"
       ],
       "lawSourceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md"
+      ]
+    },
+    {
+      "pluginId": "xuanxue-ai-production",
+      "status": "active",
+      "owner": "plugin:xuanxue-ai-production",
+      "phase": "law-governed-active",
+      "allowedEntrypoints": [
+        "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
+        "src/lib/local-runtime/workbench.ts"
+      ],
+      "allowedAcceptanceTests": [
+        "acceptance:xuanxue-ai-production"
+      ],
+      "allowedNpmScripts": [
+        "acceptance:xuanxue-ai-production",
+        "audit:xuanxue-ai-production",
+        "xuanxue-ai-production:cloud:enroll"
+      ],
+      "exposureTokens": [
+        "xuanxue-ai-production"
+      ],
+      "lawSourceRefs": [
+        ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md"
       ]
     },
     {

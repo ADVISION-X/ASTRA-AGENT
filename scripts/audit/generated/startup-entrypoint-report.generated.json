@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T19:52:01.232Z",
+  "generatedAt": "2026-07-28T14:07:22.815Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -524,6 +524,6 @@
     "scripts/startup/lib/startup-main-support.mjs",
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
-    "scripts/startup/xuanyuan-cloud-enroll.ts"
+    "scripts/startup/xuanxue-ai-production-cloud-enroll.ts"
   ]
 }

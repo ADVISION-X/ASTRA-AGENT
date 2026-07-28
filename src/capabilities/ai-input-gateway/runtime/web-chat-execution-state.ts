@@ -8,6 +8,7 @@ import type {
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiTaskLabelKey } from "../schema.js";
+import { classifyWebChatFailure } from "../failure-classification.js";
 import { buildHumanReadableSystemChatTitle } from "./web-chat-system-title.js";
 import type { WebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 
@@ -103,10 +104,10 @@ type StartWebChatExecutionResult = {
   resume: boolean;
 };
 
-const resumeExistingWebChatExecution = (
+const resumeExistingWebChatExecution = async (
   input: StartWebChatExecutionInput,
   existing: WebChatExecutionRecord,
-): StartWebChatExecutionResult => {
+): Promise<StartWebChatExecutionResult> => {
   const expectedSubmittedPromptHash = hashSubmittedPrompt(
     buildInternallyMarkedPrompt(input.textPrompt, existing.turnMarker),
   );
@@ -137,6 +138,21 @@ const resumeExistingWebChatExecution = (
   }
   if (existing.status !== "failed") {
     return { record: existing, resume: false };
+  }
+  const lastFailure = existing.failures.at(-1);
+  if (
+    !existing.submission
+    && lastFailure
+    && classifyWebChatFailure(new Error(lastFailure.reason), false) === "recovery_pending"
+  ) {
+    return {
+      record: await updateWebChatExecution({
+        dataDir: input.dataDir,
+        record: existing,
+        patch: { status: "recovery_pending" },
+      }),
+      resume: false,
+    };
   }
   throw new Error(`review_required: web-chat execution is terminal: ${existing.status}`);
 };
@@ -183,7 +199,7 @@ export const startOrResumeWebChatExecution = async (
 ): Promise<StartWebChatExecutionResult> => {
   const existing = await readWebChatExecution(input.dataDir, input.executionId);
   return existing
-    ? resumeExistingWebChatExecution(input, existing)
+    ? await resumeExistingWebChatExecution(input, existing)
     : createWebChatExecution(input);
 };
 

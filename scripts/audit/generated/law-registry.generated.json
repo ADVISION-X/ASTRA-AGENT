@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T19:51:15.001Z",
+  "generatedAt": "2026-07-28T14:06:29.343Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -48,7 +48,7 @@
       ],
       "required": [
         "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
-        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, completed-chat manual-style rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease. Accepted tasks still waiting to submit have priority over ordinary response patrol, so already submitted conversations cannot starve a later attachment-and-prompt submission.",
+        "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, completed-chat manual-style rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease. Within the bounded admitted production window, tasks still waiting to submit have priority over ordinary response patrol. Submission and patrol waiters use one SQLite ticket ledger, and patrol admission is strict FIFO after the admitted submission set is drained.",
         "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
         "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
         "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
@@ -81,7 +81,7 @@
         "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
         "Every feed request carries one structured taskIdentity containing an allowlisted labelKey plus bounded sourceProject, taskKind and sourceTaskId machine identifiers. This identity is input-hash-bound; callers cannot supply a chat title. Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique human-readable system chat title. The title is derived only from taskIdentity.labelKey, UTC month-day and minute, plus a short opaque trace, for example SEO资料研究｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content, scenario text or caller-supplied title text. As soon as the exact marked user turn exists, the runtime persists its transient URL and turn identity before waiting for a canonical URL; a long-lived /c/WEB: transition therefore remains recovery_pending instead of becoming an untraceable terminal failure. After canonicalization the runtime records the formal conversation URL and immediately releases the submit slot.",
         "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
-        "Submitted feeds release the browser-mutation lease before provider generation completes; while any accepted task still awaits submit, ordinary response patrol yields. After all queued submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. The operator-owned WEB_CHAT_PATROL_INTERVAL_MS is bounded from one to sixty seconds and defaults to five seconds; it is never a caller field. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
+        "Submitted feeds release the browser-mutation lease before provider generation completes; while any admitted task still awaits submit, ordinary response patrol yields. Submission and patrol waiter identity, kind and monotonically increasing ticket persist in one SQLite scheduler ledger, stale process waiters are reclaimed, and patrols enter strictly by the oldest durable patrol ticket. After all admitted submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. The operator-owned WEB_CHAT_PATROL_INTERVAL_MS is bounded from one to sixty seconds and defaults to five seconds; it is never a caller field. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
         "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the live DOM exposes a visible thinking, reasoning, loading or shimmer progress node; intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
         "Whenever ChatGPT shows the ordinary request-frequency dialog, one process-wide unrouted watcher serves the single physical ChatGPT tab for every in-flight task. The highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
         "DOM evaluation and physical mouse or keyboard input must bind to the same exact Chrome automation window. Before every physical action the runtime matches the automation window to exactly one accessibility window by full bounds, raises that exact window with AXRaise, and fails closed when the match is missing or ambiguous. Application activation or an unrelated profile chooser, logged-out window or foreground Chrome window is never accepted as proof of physical focus.",
@@ -102,7 +102,8 @@
         "splitting one completed-chat rename transaction into independently locked clicks that allow another task to switch conversations between row options, textbox write and commit verification",
         "using application activation, accessibility window 1, or whichever Chrome window happens to be foreground as the physical target after DOM evaluation",
         "clicking an offscreen sidebar DOM rectangle or treating DOM existence outside the viewport as a committed chat switch",
-        "allowing per-task acknowledgement watchers or ordinary patrol to starve an accepted task that is still waiting to submit",
+        "allowing per-task acknowledgement watchers or ordinary patrol to starve an admitted task that is still waiting to submit",
+        "in-memory-only submission priority, unordered patrol races or a second scheduler ledger",
         "persisting review_required merely because an exact submitted sidebar row is temporarily absent, visible but not yet focusable, or still materializing during response-capture preflight or before-poll routing",
         "discarding a captured answer or persisting review_required merely because a rename menu, title textbox, click commit or renamed-title reflection is temporarily not ready",
         "an unbounded completed-chat rename loop that can hold a task capacity slot forever",
@@ -6603,76 +6604,120 @@
       "blockIndex": 7
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-001-V2",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
       "status": "active",
       "tier": "P0",
-      "capabilityDomain": "xuanyuan",
+      "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Xuanyuan is the single governed local GPT Web acceptance owner, entering through Workbench or authenticated outbound cloud claims and calling AI Input Gateway without production Provider responsibilities.",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "The website submits one governed material order and receives one result; the Agent production owner exclusively controls fixed product workflow execution.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanyuan-001-requirement",
-          "statement": "Xuanyuan is the single governed local GPT Web acceptance owner, entering through Workbench or authenticated outbound cloud claims and calling AI Input Gateway without production Provider responsibilities.",
+          "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+          "statement": "The website submits one governed material order and receives one result; the Agent production owner exclusively controls fixed product workflow execution.",
           "evidenceMode": "acceptance",
-          "ownerDomain": "xuanyuan"
+          "ownerDomain": "xuanxue-ai-production"
         }
       ],
       "required": [
-        "Known xuanyuan routes exist and are admitted by Workbench API Boundary.",
-        "Xuanyuan persists request, prompt package, AI Input Gateway result, provider proof, and parse status.",
-        "Cloud delivery binds one server job identity to one persisted local task without exposing provider transport controls.",
-        "Production Provider API remains physically outside GrassEye and cannot fall back to local GPT Web.",
-        "Optional continuation is authorized only by prior Xuanyuan task id plus exact captured response hash, while Xuanyuan resolves the internal provider conversation ref.",
-        "Web Chat files are delegated to the standard AI Input Gateway attachment child and Xuanyuan persists its aggregate terminal proof."
+        "Exactly eight AI product ids enter one whole-order protocol.",
+        "Only versioned product profiles control dependencies, parallel branches, continuation and final stage.",
+        "Business plugins call AI Input Gateway only through its public contract."
       ],
       "forbidden": [
-        "second HTTP server or API gateway",
-        "website direct provider call or production provider key inside GrassEye",
-        "inbound home port, reverse callback or unleased cloud input",
-        "xuanyuan direct provider SDK or web-chat DOM operation",
-        "external provider conversation URL or unverified continuation",
-        "fake success when provider or parsing fails",
-        "external attachment transport selection or duplicate Web Chat file paste"
+        "website-controlled next action, browser command or per-stage cloud job",
+        "generic planner, AI-generated workflow or second execution owner",
+        "deterministic products entering GPT transport"
       ],
-      "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
       "blockIndex": 0
     },
     {
-      "lawId": "GRASSEYE-XUANYUAN-002-V2",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "xuanxue-ai-production",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable under one bounded ten-order production coordinator.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+          "statement": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable under one bounded ten-order production coordinator.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "xuanxue-ai-production"
+        }
+      ],
+      "required": [
+        "Order, stage, raw response, provider proof and event truth persist in SQLite.",
+        "The default production window is ten and cloud claims subtract active local work.",
+        "Restart resumes stable execution ids without duplicate prompt submission."
+      ],
+      "forbidden": [
+        "in-memory-only order truth, untracked background promise or swallowed failure",
+        "unbounded cloud claiming, duplicate local execution or duplicate prompt submission",
+        "terminal loss for temporary provider absence"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "xuanxue-ai-production",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "The local factory activates through authenticated outbound lease polling and returns exact whole-order checkpoints, results and failures.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+          "statement": "The local factory activates through authenticated outbound lease polling and returns exact whole-order checkpoints, results and failures.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "xuanxue-ai-production"
+        }
+      ],
+      "required": [
+        "Device credentials remain local and permission-restricted.",
+        "Input download and every mutation bind the exact lease token and lease version.",
+        "The worker claims only available local production capacity."
+      ],
+      "forbidden": [
+        "inbound home port or server callback",
+        "unleased input download or result mutation",
+        "secret output in logs, routes or evidence"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-XUANYUAN-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanyuan",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Xuanyuan owns one leased durable local task queue with cloud-bound idempotent names, bounded parallel execution, exact checkpoints and cross-restart recovery.",
+      "summary": "Xuanyuan owns only durable generic one-feed local GPT acceptance tasks; xuanxue-ai-production exclusively owns website production orders and multi-stage graphs.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanyuan-002-requirement",
-          "statement": "Xuanyuan owns one leased durable local task queue with cloud-bound idempotent names, bounded parallel execution, exact checkpoints and cross-restart recovery.",
+          "clauseId": "grasseye-xuanyuan-001-v3-requirement",
+          "statement": "Xuanyuan owns only durable generic one-feed local GPT acceptance tasks; xuanxue-ai-production exclusively owns website production orders and multi-stage graphs.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanyuan"
         }
       ],
       "required": [
-        "HTTP start persists accepted work before returning 202 and never depends on an untracked fire-and-forget promise.",
-        "A single queue owner claims persisted work with lease and heartbeat semantics, runs independent tasks concurrently up to gateway capacity, and leaves overflow queued.",
-        "The unique sourceProject plus requestId identity is idempotent: an identical retry returns the original persisted task and a conflicting retry fails before provider work. Each task persists a governed readable taskName derived from an allowlisted label key plus opaque trace.",
-        "Restart recovery resumes queued tasks, pre-submit temporary provider unavailability, response-checkpointed tasks and exact submitted gateway attempts without duplicating prompts; every recoverable failure persists nextRetryAt and stays recovery_pending rather than becoming a terminal loss.",
-        "Public task progress exposes stable queue, provider-wait, response-checkpointed and recovery-pending states plus attempt and failure trace, but no system chat title, tab id, marker, selector, browser command or caller concurrency control.",
-        "The outbound cloud worker authenticates one device, heartbeats and claims lease-bound jobs, then returns checkpoints and exact results without opening an inbound home port."
+        "Xuanyuan persists one governed request and one gateway result under an idempotent local task identity.",
+        "Exact submitted work survives restart without duplicate prompt submission.",
+        "The former Xuanyuan cloud production region remains physically deleted."
       ],
       "forbidden": [
-        "void fire-and-forget execution as task durability",
-        "caller-controlled concurrency or browser identity",
-        "duplicate submit on restart",
-        "creating a second task for an identical sourceProject plus requestId replay",
-        "terminally discarding a submitted or response-checkpointed provider attempt",
-        "second queue owner, compatibility queue, shadow executor or legacy serial mode",
-        "server-initiated connection to this machine or cloud result without matching job lease"
+        "website production claims or xuanxue product workflow graphs inside Xuanyuan",
+        "provider adapter, browser private implementation or provider SDK inside Xuanyuan",
+        "fake success, duplicate restart submission or caller transport controls"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 0
     }
   ]
 }

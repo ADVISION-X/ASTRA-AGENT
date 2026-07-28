@@ -11,7 +11,7 @@ const paths = {
   checkpoint: "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
   executionState: "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
   managed: "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-  failureClassification: "src/capabilities/ai-input-gateway/runtime/web-chat-failure-classification.ts",
+  failureClassification: "src/capabilities/ai-input-gateway/failure-classification.ts",
   shared: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   submissionCheckpoint: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   resume: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
