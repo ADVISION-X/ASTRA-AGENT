@@ -5,6 +5,10 @@ import type {
   XuanxueAiProductionOrder,
   XuanxueAiStageId,
 } from "./xuanxue-ai-production.schema.js";
+import {
+  isXuanxueAiFollowupProduct,
+  xuanxueAiContinuationProfiles,
+} from "./xuanxue-ai-production.schema.js";
 
 export interface XuanxueAiStageDefinition {
   readonly stageId: XuanxueAiStageId;
@@ -79,8 +83,8 @@ const profiles: Readonly<Record<
       },
       {
         stageId: "party_b_interpretation",
-        dependsOn: [],
-        continuationFrom: null,
+        dependsOn: ["party_a_interpretation"],
+        continuationFrom: "party_a_interpretation",
         generatedInputsFrom: [],
       },
       {
@@ -115,7 +119,7 @@ const profiles: Readonly<Record<
       {
         stageId: "naming_author",
         dependsOn: ["question_analysis"],
-        continuationFrom: null,
+        continuationFrom: "question_analysis",
         generatedInputsFrom: ["question_analysis"],
       },
     ],
@@ -171,14 +175,35 @@ const profiles: Readonly<Record<
   },
 };
 
+const CONVERSATION_CHAIN_INVALID =
+  "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID";
+
 export const resolveXuanxueAiProductionProfile = (
   productId: XuanxueAiProductId,
 ): XuanxueAiProductionProfile => profiles[productId];
 
-export const assertXuanxueAiOrderMatchesProfile = (
+const assertSingleConversationStageChain = (
+  profile: XuanxueAiProductionProfile,
+): void => {
+  for (const [index, stage] of profile.stages.entries()) {
+    const previous = profile.stages[index - 1];
+    if (
+      index === 0
+        ? stage.continuationFrom !== null
+        : stage.continuationFrom !== previous?.stageId
+    ) {
+      throw new Error(
+        `${CONVERSATION_CHAIN_INVALID}:`
+        + `${profile.productId}:${stage.stageId}`,
+      );
+    }
+  }
+};
+
+const assertMaterialProfile = (
   order: XuanxueAiProductionOrder,
-): XuanxueAiProductionProfile => {
-  const profile = resolveXuanxueAiProductionProfile(order.productId);
+  profile: XuanxueAiProductionProfile,
+): void => {
   const received = order.materials.map((material) => material.stageId);
   const expected = profile.stages.map((stage) => stage.stageId);
   if (
@@ -191,6 +216,13 @@ export const assertXuanxueAiOrderMatchesProfile = (
       + `${expected.join(",")}:${received.join(",")}`,
     );
   }
+};
+
+const assertSeededStages = (
+  order: XuanxueAiProductionOrder,
+  profile: XuanxueAiProductionProfile,
+): void => {
+  const expected = profile.stages.map((stage) => stage.stageId);
   const seededIds = order.seededStages.map((stage) => stage.stageId);
   if (
     seededIds.some((stageId, index) => stageId !== expected[index])
@@ -225,13 +257,37 @@ export const assertXuanxueAiOrderMatchesProfile = (
       );
     }
   }
-  if (
-    (order.productId === "manual_accuracy_challenge")
-      !== Boolean(order.continuationParent)
-  ) {
+};
+
+const assertContinuationProfile = (
+  order: XuanxueAiProductionOrder,
+): void => {
+  const continuationRequired =
+    order.productId === "manual_accuracy_challenge"
+    || isXuanxueAiFollowupProduct(order.productId);
+  if (continuationRequired !== Boolean(order.continuationParent)) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
     );
   }
+  if (
+    isXuanxueAiFollowupProduct(order.productId)
+    && order.continuationParent?.stageId
+      !== xuanxueAiContinuationProfiles[order.productId].stageId
+  ) {
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
+    );
+  }
+};
+
+export const assertXuanxueAiOrderMatchesProfile = (
+  order: XuanxueAiProductionOrder,
+): XuanxueAiProductionProfile => {
+  const profile = resolveXuanxueAiProductionProfile(order.productId);
+  assertSingleConversationStageChain(profile);
+  assertMaterialProfile(order, profile);
+  assertSeededStages(order, profile);
+  assertContinuationProfile(order);
   return profile;
 };

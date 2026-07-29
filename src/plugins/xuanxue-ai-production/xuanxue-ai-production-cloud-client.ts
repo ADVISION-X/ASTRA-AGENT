@@ -6,6 +6,11 @@ import {
 } from "./xuanxue-ai-production-cloud-contract.js";
 import type { XuanxueAiProductionResult } from "./xuanxue-ai-production.schema.js";
 
+interface RecoveredCloudJob {
+  readonly job_id: string;
+  readonly status: string;
+}
+
 interface JsonEnvelope<T> {
   readonly ok?: boolean;
   readonly data?: T;
@@ -77,6 +82,35 @@ export async function claimXuanxueAiProductionJobs(
     XuanxueAiProductionCloudClaimedJobSchema.parse(job));
 }
 
+export async function recoverXuanxueAiProductionJob(
+  credential: XuanxueAiProductionCloudCredential,
+  input: {
+    readonly orderId: string;
+    readonly sourceTaskId: string;
+    readonly requestHash: string;
+    readonly completedResult: XuanxueAiProductionResult | null;
+  },
+): Promise<RecoveredCloudJob> {
+  return cloudRequest<RecoveredCloudJob>(
+    credential,
+    `/internal/ai-production/jobs/${encodeURIComponent(input.orderId)}/recover`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        protocol_version:
+          XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
+        idempotency_key:
+          `${input.orderId}:durable-local-ledger-recovery:${input.requestHash}`,
+        local_order_id: input.orderId,
+        source_task_id: input.sourceTaskId,
+        request_hash: input.requestHash,
+        completed_result_json: input.completedResult,
+      }),
+    },
+  );
+}
+
+
 export async function downloadXuanxueAiProductionInput(
   credential: XuanxueAiProductionCloudCredential,
   job: XuanxueAiProductionCloudClaimedJob,
@@ -98,6 +132,33 @@ export async function downloadXuanxueAiProductionInput(
   if (!response.ok) {
     throw new Error(
       `XUANXUE_AI_PRODUCTION_INPUT_DOWNLOAD_FAILED:${response.status}`,
+    );
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function downloadXuanxueAiProductionParentReplayInput(
+  credential: XuanxueAiProductionCloudCredential,
+  child: XuanxueAiProductionCloudClaimedJob,
+  stageId: string,
+  inputId: string,
+): Promise<Uint8Array> {
+  const response = await fetch(
+    `${baseUrl(credential)}/internal/ai-production/jobs/`
+    + `${encodeURIComponent(child.job_id)}/continuation-parent/materials/`
+    + `${encodeURIComponent(stageId)}/inputs/${encodeURIComponent(inputId)}`,
+    {
+      headers: {
+        authorization: `Bearer ${credential.credential}`,
+        ...leaseHeaders(child),
+      },
+      signal: AbortSignal.timeout(120_000),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_INPUT_DOWNLOAD_FAILED:"
+      + response.status,
     );
   }
   return new Uint8Array(await response.arrayBuffer());

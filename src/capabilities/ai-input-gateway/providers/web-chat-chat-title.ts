@@ -33,12 +33,22 @@ type TextboxValueVerification = {
 };
 
 const CHATGPT_RENAME_NOT_READY = "WEB_CHAT_RENAME_NOT_READY";
+const RENAME_PATROL_SLICE_MS = 4_000;
+const RENAME_RETRY_DELAY_MS = 500;
 
 const renameNotReady = (message: string): Error =>
   new Error(`${CHATGPT_RENAME_NOT_READY}: ${message}`);
 
 const isRenameNotReady = (error: unknown): boolean =>
   error instanceof Error && error.message.includes(CHATGPT_RENAME_NOT_READY);
+
+const remainingRenameMs = (deadline: number, capMs: number): number => {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    throw renameNotReady("atomic rename patrol slice expired");
+  }
+  return Math.max(1, Math.min(remaining, capMs));
+};
 
 const locateTarget = async (input: { browser: BrowserController; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
   const deadline = Date.now() + input.timeoutMs;
@@ -80,6 +90,7 @@ const locateAndClick = async (input: { browser: BrowserController; context: AiPr
 };
 
 const focusSubmittedConversation = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; turnMarker: string; timeoutMs: number }): Promise<void> => {
+  const deadline = Date.now() + input.timeoutMs;
   await locateAndClick({
     browser: input.browser,
     context: input.context,
@@ -87,9 +98,8 @@ const focusSubmittedConversation = async (input: { browser: BrowserController; c
     script: buildConversationLinkTargetScript({
       canonicalConversationUrl: input.canonicalConversationUrl,
     }),
-    timeoutMs: input.timeoutMs,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
-  const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
     const observation = await input.browser.evaluateActiveTab<{
       status: "success" | "pending" | "review_required";
@@ -114,7 +124,8 @@ const focusSubmittedConversation = async (input: { browser: BrowserController; c
   );
 };
 
-const applySystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<string | null> => {
+const applySystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<string | null> => {
+  const deadline = Date.now() + input.timeoutMs;
   const conversationLink = await locateTarget({
     browser: input.browser,
     context: input.context,
@@ -122,7 +133,7 @@ const applySystemChatTitle = async (input: { browser: BrowserController; context
     script: buildConversationLinkTargetScript({
       canonicalConversationUrl: input.canonicalConversationUrl,
     }),
-    timeoutMs: 60_000,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
   if (!input.browser.move) {
     throw new Error("review_required: browser cannot hover the submitted ChatGPT conversation title.");
@@ -142,21 +153,21 @@ const applySystemChatTitle = async (input: { browser: BrowserController; context
     script: buildConversationOptionsTargetScript({
       canonicalConversationUrl: input.canonicalConversationUrl,
     }),
-    timeoutMs: 60_000,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
   await locateAndClick({
     browser: input.browser,
     context: input.context,
     description: "click ChatGPT rename menu item",
     script: RENAME_MENU_TARGET_SCRIPT,
-    timeoutMs: 10_000,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
   await locateAndClick({
     browser: input.browser,
     context: input.context,
     description: "focus ChatGPT chat title textbox",
     script: buildRenameTextboxTargetScript(),
-    timeoutMs: 10_000,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
   await writeExactSystemChatTitle(input);
   return options.observedTitle?.trim() || null;
@@ -207,8 +218,8 @@ const writeExactSystemChatTitle = async (input: { browser: BrowserController; co
   );
 };
 
-const waitForRenamedIdentity = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<RenameVerification> => {
-  const deadline = Date.now() + 12_000;
+const waitForRenamedIdentity = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<RenameVerification> => {
+  const deadline = Date.now() + input.timeoutMs;
   let last: RenameVerification = {
     status: "pending",
     titleLinkCount: 0,
@@ -237,8 +248,9 @@ type RenameTransactionInput = {
 };
 
 const recoverOpenTitleEditor = async (
-  input: RenameTransactionInput,
+  input: RenameTransactionInput & { timeoutMs: number },
 ): Promise<boolean> => {
+  const deadline = Date.now() + input.timeoutMs;
   const openTitleEditor = await input.browser.evaluateActiveTab<LocatedTarget>({
     description: "detect an interrupted ChatGPT title editor before rename recovery",
     script: buildRenameTextboxTargetScript(),
@@ -267,7 +279,10 @@ const recoverOpenTitleEditor = async (
     );
   }
   await writeExactSystemChatTitle(input);
-  const recoveredRename = await waitForRenamedIdentity(input);
+  const recoveredRename = await waitForRenamedIdentity({
+    ...input,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+  });
   if (recoveredRename.status === "success") return true;
   if (recoveredRename.status === "review_required") {
     throw new Error(
@@ -283,20 +298,33 @@ const runRenameTransaction = async (input: {
   renameInput: RenameTransactionInput;
   timeoutMs: number;
 }): Promise<string | null> => {
-  if (await recoverOpenTitleEditor(input.renameInput)) return null;
+  const deadline = Date.now() + input.timeoutMs;
+  if (await recoverOpenTitleEditor({
+    ...input.renameInput,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+  })) return null;
   await focusSubmittedConversation({
     ...input.renameInput,
-    timeoutMs: Math.min(input.timeoutMs, 30_000),
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
-  const alreadyRenamed = await waitForRenamedIdentity(input.renameInput);
+  const alreadyRenamed = await waitForRenamedIdentity({
+    ...input.renameInput,
+    timeoutMs: remainingRenameMs(deadline, 500),
+  });
   if (alreadyRenamed.status === "success") return null;
   if (alreadyRenamed.status === "review_required") {
     throw new Error(
       `review_required: pre-rename ChatGPT identity is ambiguous; titleLinks=${String(alreadyRenamed.titleLinkCount)}; markers=${String(alreadyRenamed.markerCount)}`,
     );
   }
-  const observedTitle = await applySystemChatTitle(input.renameInput);
-  const verified = await waitForRenamedIdentity(input.renameInput);
+  const observedTitle = await applySystemChatTitle({
+    ...input.renameInput,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+  });
+  const verified = await waitForRenamedIdentity({
+    ...input.renameInput,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+  });
   if (verified.status === "review_required") {
     throw new Error(
       `review_required: manually renamed ChatGPT identity is ambiguous; titleLinks=${String(verified.titleLinkCount)}; markers=${String(verified.markerCount)}`,
@@ -321,6 +349,10 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
   let lastRenameNotReady: Error | null = null;
   while (Date.now() < deadline) {
     try {
+      const patrolSliceMs = Math.min(
+        RENAME_PATROL_SLICE_MS,
+        Math.max(1, deadline - Date.now()),
+      );
       const renamed = await execution.runExclusivePatrol(async (browser) => {
         const renameInput = {
           browser,
@@ -331,7 +363,7 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
         };
         const observedTitle = await runRenameTransaction({
           renameInput,
-          timeoutMs: input.timeoutMs,
+          timeoutMs: patrolSliceMs,
         });
         observedAutoChatTitle ??= observedTitle;
         return true;
@@ -350,7 +382,9 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
       lastRenameNotReady = error instanceof Error
         ? error
         : new Error(String(error));
-      await input.browser.wait(2_000);
+      await input.browser.wait(
+        Math.min(RENAME_RETRY_DELAY_MS, Math.max(1, deadline - Date.now())),
+      );
     }
   }
   throw renameNotReady(

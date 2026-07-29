@@ -106,8 +106,8 @@
         ]
       },
       {
-        "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-        "clauseId": "apex-ai-input-gateway-005-requirement",
+        "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+        "clauseId": "apex-ai-input-gateway-005-v2-requirement",
         "checkIds": [
           "ai-input-gateway/authority-present",
           "ai-input-gateway/bounded-parallel-runtime",
@@ -118,6 +118,8 @@
           "ai-input-gateway/durable-fifo-scheduler",
           "ai-input-gateway/exact-sidebar-row-rename",
           "ai-input-gateway/failure-ledger",
+          "ai-input-gateway/fresh-conversation-identity",
+          "ai-input-gateway/fresh-execution-rate-owner-transfer",
           "ai-input-gateway/human-readable-system-chat-title",
           "ai-input-gateway/no-chatgpt-page-refresh",
           "ai-input-gateway/offscreen-sidebar-recovery",
@@ -128,6 +130,7 @@
           "ai-input-gateway/live-generation-proof",
           "ai-input-gateway/structured-task-identity",
           "ai-input-gateway/transient-submission-checkpoint",
+          "ai-input-gateway/transient-overlay-hygiene",
           "ai-input-gateway/removed-old-region",
           "ai-input-gateway/source-present"
         ],

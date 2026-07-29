@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T14:06:29.343Z",
+  "generatedAt": "2026-07-29T19:04:25.859Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -62,34 +62,38 @@
       "blockIndex": 1
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations, checkpoint completed answers before rename, and recover the exact turn without duplicate submission.",
+      "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations; a feed carrying continuation proof must use that exact parent URL and may never fall back to a blank new conversation.",
       "clauses": [
         {
-          "clauseId": "apex-ai-input-gateway-005-requirement",
-          "statement": "GPT Web feeds bind a governed task identity to bounded parallel conversations, checkpoint completed answers before rename, and recover the exact turn without duplicate submission.",
+          "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+          "statement": "A GPT Web feed with continuation proof must submit only in the exact verified parent conversation and must never fall back to a blank new conversation.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "ai-input-gateway"
         }
       ],
       "required": [
         "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
-        "Every feed request carries one structured taskIdentity containing an allowlisted labelKey plus bounded sourceProject, taskKind and sourceTaskId machine identifiers. This identity is input-hash-bound; callers cannot supply a chat title. Every GPT feed owns an opaque internal attempt id, random turn marker, submitted prompt hash and unique human-readable system chat title. The title is derived only from taskIdentity.labelKey, UTC month-day and minute, plus a short opaque trace, for example SEO资料研究｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content, scenario text or caller-supplied title text. As soon as the exact marked user turn exists, the runtime persists its transient URL and turn identity before waiting for a canonical URL; a long-lived /c/WEB: transition therefore remains recovery_pending instead of becoming an untraceable terminal failure. After canonicalization the runtime records the formal conversation URL and immediately releases the submit slot.",
+        "Every feed request carries one structured taskIdentity containing an allowlisted labelKey plus bounded sourceProject, taskKind and sourceTaskId machine identifiers. This identity is input-hash-bound; callers cannot supply a chat title. Every first GPT feed owns an opaque internal attempt id, a deterministic logical-turn marker derived from immutable task identity and input hash, a submitted prompt hash and a unique human-readable system chat title. Retries for the same semantic turn therefore keep one marker while changed input receives another; callers never control the marker. The title is derived only from taskIdentity.labelKey, UTC month-day and minute, plus a short opaque trace, for example SEO资料研究｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content, scenario text or caller-supplied title text. Every continuation on an exact canonical parent conversation inherits that parent conversation's earliest verified system title, or its earliest persisted title while rename is unfinished; one whole order therefore has one parent chat and one durable title, while its second, third or Nth turn receives a new marker but never mints or competes for a stage-specific chat title. Legacy stage-specific verified titles on that same canonical URL are deterministically collapsed to the earliest verified title and never block or restart a user order, because the canonical URL remains the stronger identity. As soon as the exact marked user turn exists, the runtime persists its transient URL, ordered attachment proof and turn identity before any post-submit attachment inspection, canonical-URL wait or response polling. A later transient inspection failure therefore resumes the captured turn and may never submit the same semantic turn again. After canonicalization the runtime records the formal conversation URL and releases the submit slot.",
+        "A fresh GPT execution is established only on the root path with zero user turns, zero assistant turns, an empty composer, no staged attachment, no pasted-text card and no active generation. When that clean state already exists, the runtime must not issue a redundant New chat click; otherwise it uses one uniquely identified visible New chat control and re-proves the complete clean state. A continuation must first prove that its exact parent URL, at least one prior user turn, at least one prior assistant turn and the prior answer have finished hydrating; an empty or partial parent snapshot is recovery_pending before upload or send. A send click is not submission success. Success exists only when exactly one user turn in the exact conversation contains the prepared prompt prefix and exact logical-turn marker suffix, that marked turn is the latest user turn, the canonical /c/ URL is durable, and the URL is not already bound to another fresh execution. Page-global user-turn counts are observational only because provider hydration can change them; they are forbidden as submission identity or retry authority. A provider rebound to a foreign marked turn, duplicate same marker or occupied canonical conversation is discarded as internal recovery and may never be published as a successful send.",
         "Response capture is scoped to the unique marked user turn and the assistant turn after it, and never relies on the page-global last assistant message or model marker echo.",
         "Submitted feeds release the browser-mutation lease before provider generation completes; while any admitted task still awaits submit, ordinary response patrol yields. Submission and patrol waiter identity, kind and monotonically increasing ticket persist in one SQLite scheduler ledger, stale process waiters are reclaimed, and patrols enter strictly by the oldest durable patrol ticket. After all admitted submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. The operator-owned WEB_CHAT_PATROL_INTERVAL_MS is bounded from one to sixty seconds and defaults to five seconds; it is never a caller field. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
-        "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the live DOM exposes a visible thinking, reasoning, loading or shimmer progress node; intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
+        "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the current main conversation exposes a visible thinking, reasoning, loading or shimmer progress node. A page-global aria-busy owned by sidebar, navigation, composer, upload UI or another non-conversation surface is never generation evidence. Intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
         "Whenever ChatGPT shows the ordinary request-frequency dialog, one process-wide unrouted watcher serves the single physical ChatGPT tab for every in-flight task. The highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
         "DOM evaluation and physical mouse or keyboard input must bind to the same exact Chrome automation window. Before every physical action the runtime matches the automation window to exactly one accessibility window by full bounds, raises that exact window with AXRaise, and fails closed when the match is missing or ambiguous. Application activation or an unrelated profile chooser, logged-out window or foreground Chrome window is never accepted as proof of physical focus.",
         "A sidebar row is clickable only when its target point is inside the visible browser viewport. If the exact canonical URL or system-title row exists below or above the viewport, the runtime performs a real wheel scroll anchored in the sidebar, re-locates the same row, and only then clicks and verifies the marker. DOM existence or a positive rectangle outside the viewport is never click proof.",
-        "Immediately after the exact assistant turn is complete, the runtime atomically persists the answer bytes, hash, byte count, capture time and provider page URL as a response checkpoint before attempting chat rename, artifact projection or cleanup. Only after that checkpoint exists may it perform the row-scoped rename and publish the final gateway result.",
+        "Immediately after the exact assistant turn is complete, the runtime atomically persists the answer bytes, hash, byte count, capture time and provider page URL as a response checkpoint before attempting chat rename, artifact projection or cleanup. The execution ledger persists the real capacity lease as soon as it is acquired. The durable checkpoint is already the completed provider result: gateway execution races provider post-processing against the checkpoint and must publish the checkpointed bytes and persisted provider lease as soon as the checkpoint exists, even while title rename, artifact decoration or cleanup remains blocked. The checkpoint patrol is owned by that race and is stopped in a finally path on provider success, provider failure or checkpoint publication; no failed provider attempt may leave a fifty-millisecond checkpoint poller alive. Those post-processing actions may continue under their existing lease after publication, and any failure appends evidence while preserving response_captured. A legacy checkpoint that predates lease persistence may receive one deterministic checkpoint-recovery lease only after execution id, attempt id, input hash, response hash and checkpoint bytes all match; that recovery lease is persisted before publication. An error after checkpoint persistence may never downgrade that result or return the task to provider polling. Row-scoped rename and other browser housekeeping are bounded post-processing only and can never withhold the user's captured answer.",
         "Every execution failure appends a bounded durable failure ledger entry containing occurrence time, attempt id, pre-failure phase, classification, recoverability and a bounded reason. A process exit or later successful recovery never erases the prior failure evidence.",
-        "Temporary provider unavailability before submission, including an absent controlled tab, a composer that has not become ready, bounded capacity or rate limiting, browser disconnection and transient network failure, is recovery_pending and retains the same execution id, input hash, marker and task title for bounded retry. Login, captcha, two-factor, security barriers, multiple physical provider tabs or identity ambiguity require review_required; invalid immutable input identity remains failed.",
-        "Process recovery resumes the exact captured conversation inside the same physical tab without resubmission. A completed but not-yet-renamed conversation rehydrates its persisted response checkpoint, finishes its row-scoped rename and artifact projection, and never asks the provider to analyze again. The complete rename transaction from exact marker focus through row options, title textbox write, Enter commit and title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. Recovery must also detect and finish a title textbox left open by a process interruption. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease, persists recovery_pending, and retries without discarding the checkpoint or persisting a terminal failure; every rename attempt is bounded by the task timeout and may not occupy capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing, duplicate or mismatched title, marker, attachment identity, hash or byte count returns review_required."
+        "Temporary provider unavailability before or after submission, including an absent controlled tab, a composer that has not become ready, an incompletely hydrated parent conversation, bounded capacity or rate limiting, browser disconnection, transient network failure, and an exact submitted conversation that is not currently locatable, is recovery_pending and retains the same execution id, input hash, logical-turn marker, task title and failure evidence. Every accumulated failure entry is reclassified independently on recovery; any number of recoverable entries remains recoverable. A newly emitted terminal-state error must append the last real root reason in the same durable error, and recovery must classify that root rather than the terminal wrapper. A legacy synthetic terminal-state echo that lacks a root is evidence only and receives one bounded recovery pass rather than becoming a new blocking cause or an infinite restart authority. Retry count and failure-ledger length never promote recoverable provider lookup into a terminal user block. Each individual lookup is bounded and releases the browser lease before the next scheduled recovery. Login, captcha, two-factor, security barriers, multiple physical provider tabs or identity ambiguity require review_required inside the generic gateway; an authorized product factory keeps those conditions as internal recovery_pending while showing its user only processing. If multiple physical tabs are detected after durable submission, the gateway records the exact submitted URL in failure proof and retains the same execution and marker; monitor interference may never authorize a second provider submission. Invalid immutable input identity remains failed.",
+        "When an authorized factory discards a polluted or terminal provider attempt and creates a fresh execution id for the same round and input hash, the gateway accepts it only when the internal execute option names the exact currently registered execution id being superseded. The rate ledger atomically transfers ownership to the fresh id; unrelated duplicate owners remain rejected, and neither a ten-second retry loop nor a process restart may be required to clear the old in-memory owner.",
+        "Process recovery publishes a valid persisted response checkpoint before attempting to locate the physical tab and never resubmits that provider turn. A completed but not-yet-renamed conversation may later finish its row-scoped rename and artifact decoration, but that housekeeping is not part of provider-result availability. The complete rename transaction from exact marker focus through row options, title textbox write, Enter commit and title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. One rename patrol slice is capped at four seconds. If the transaction is not yet complete, it releases the lease and requeues the whole transaction; a queued submission or continuation step therefore enters before another rename patrol and may never wait through a long title-control timeout. Recovery must also detect and finish a title textbox left open by a process interruption. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and records bounded housekeeping evidence without discarding, downgrading or withholding the already published checkpoint; every rename attempt is bounded and may not occupy production capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing or mismatched checkpoint input identity, attachment identity, hash or byte count returns review_required; a temporarily missing rename surface does not.",
+        "Chat search is one bounded UI transaction. Before opening search, before attachment selection and before prompt focus, the provider adapter may close only one visible dialog that contains exactly one Search chats or 搜索聊天 textbox and exactly one Close or 关闭 action. Every search exit, including target-not-found and interruption, must close that exact dialog and verify it disappeared before releasing the browser-mutation lease. Missing or ambiguous classification returns review_required.",
+        "A feed with providerContinuationRef must focus and verify its exact parent providerPageUrl before submission. Missing, mismatched or unreachable parent identity returns review_required; the open-new-conversation path is forbidden for that feed."
       ],
       "forbidden": [
         "a global lease held from provider open through response capture",
@@ -100,12 +104,17 @@
         "treating a transient /c/WEB: sidebar row or the page-header conversation menu as the rename target",
         "holding the submit mutation slot while waiting for a running answer to expose its sidebar rename menu",
         "splitting one completed-chat rename transaction into independently locked clicks that allow another task to switch conversations between row options, textbox write and commit verification",
+        "holding one rename patrol lease for more than four seconds or letting title housekeeping overtake a queued first send or continuation send",
+        "minting or applying a different system chat title for the second, third or later turn of one exact parent conversation",
         "using application activation, accessibility window 1, or whichever Chrome window happens to be foreground as the physical target after DOM evaluation",
         "clicking an offscreen sidebar DOM rectangle or treating DOM existence outside the viewport as a committed chat switch",
         "allowing per-task acknowledgement watchers or ordinary patrol to starve an admitted task that is still waiting to submit",
         "in-memory-only submission priority, unordered patrol races or a second scheduler ledger",
         "persisting review_required merely because an exact submitted sidebar row is temporarily absent, visible but not yet focusable, or still materializing during response-capture preflight or before-poll routing",
         "discarding a captured answer or persisting review_required merely because a rename menu, title textbox, click commit or renamed-title reflection is temporarily not ready",
+        "requiring a live provider tab, marker lookup, title rename, artifact decoration or cleanup before publishing a valid durable response checkpoint",
+        "leaving a checkpoint patrol timer alive after the provider branch succeeds or throws",
+        "publishing a checkpointed success with a missing provider lease, fabricating a lease without verifying checkpoint bytes and immutable identities, or replacing an existing provider lease during recovery",
         "an unbounded completed-chat rename loop that can hold a task capacity slot forever",
         "treating visible loading, shimmer, citation verification, tool progress or research progress as a completed answer",
         "caller-supplied concurrency, chat title, tab id, turn marker, selector or browser command",
@@ -113,7 +122,13 @@
         "machine-only titles made entirely from hashes, UUIDs or transport vocabulary, or titles copied from prompt text, user names or report content",
         "automatic provider titles as durable identity, duplicate prompt submission after restart, or unscoped last-response extraction",
         "a failed execution state without a durable phase, classification, recoverability and reason ledger",
-        "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode"
+        "restarting a fresh execution into an in-memory duplicate-input loop, clearing the loop only by restarting the AGENT process, or replacing a rate-ledger owner without the exact superseded execution id",
+        "promoting an exact submitted conversation lookup to terminal review_required only because a retry counter was exhausted, or holding the browser lease in an unbounded search loop",
+        "legacy serial mode, compatibility bridge, shadow scheduler or per-request transport mode",
+        "leaving a chat-search dialog open after routing, opening the native file picker behind a visible chat-search dialog, or pressing Escape as an unclassified universal dialog action",
+        "opening a blank new conversation when providerContinuationRef was requested",
+        "treating a send-button click, prompt-prefix similarity, root-path appearance or an old marked user turn as successful fresh-task submission",
+        "binding a fresh execution to a canonical GPT conversation already owned by another fresh execution"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
       "blockIndex": 2
@@ -139,13 +154,15 @@
         "GPT Web Chat with one approved file uses ordered_clipboard.",
         "GPT Web Chat with two or more approved files uses native_picker_batch.",
         "Gemini Web Chat with approved files uses ordered_clipboard.",
-        "The child ends only at skipped, attachments_stable, failed, or review_required and never enters prompt text, submits a prompt, or reads an answer."
+        "The child ends only at skipped, attachments_stable, failed, or review_required and never enters prompt text, submits a prompt, or reads an answer.",
+        "Before native_picker_batch sends any keyboard action, it re-reads and raises the exact controlled Chrome window, then requires window bounds equality, one outer picker sheet, one nested Go to Folder sheet and one text field inside that nested sheet. It sets and verifies focus on that exact field, retries only the bounded Go to Folder opening action when the nested sheet has not appeared, verifies the nested sheet closes after Enter, and never treats an arbitrary AXFocusedUIElement as the folder field."
       ],
       "forbidden": [
         "transport kind, provider selector, DOM selector, coordinate, tab id, native-picker instruction, or fallback policy in the public request",
         "switching transport after an attachment attempt starts",
         "retry-pasting the same file, silently falling back, or accepting a lower-bound attachment count",
-        "provider or business vocabulary in the generic native multi-file picker primitive"
+        "provider or business vocabulary in the generic native multi-file picker primitive",
+        "selecting accessibility window 1 without first rebinding it to the exact controlled Chrome bounds, or accepting an arbitrary focused text field as the native picker folder target"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
       "blockIndex": 3
@@ -6604,59 +6621,81 @@
       "blockIndex": 7
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "The website submits one governed material order and receives one result; the Agent production owner exclusively controls fixed product workflow execution.",
+      "summary": "The website submits one governed material order and receives one result; every later stage stays in the first stage GPT conversation, and every paid follow-up binds the exact final GPT conversation of its fixed parent product.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
-          "statement": "The website submits one governed material order and receives one result; the Agent production owner exclusively controls fixed product workflow execution.",
+          "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
+          "statement": "Every non-first stage continues the immediately preceding stage in one exact GPT conversation; paid follow-ups use the exact parent conversation or a fully replayed parent graph, never a blank chat.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanxue-ai-production"
         }
       ],
       "required": [
         "Exactly eight AI product ids enter one whole-order protocol.",
-        "Only versioned product profiles control dependencies, parallel branches, continuation and final stage.",
-        "Business plugins call AI Input Gateway only through its public contract."
+        "Only versioned product profiles control dependencies, continuation and final stage; every non-first stage continues the immediately preceding stage.",
+        "Business plugins call AI Input Gateway only through its public contract.",
+        "Every stage binds the immutable input bundle as a non-file input ref, including zero-attachment stages.",
+        "Bazi, Qimen and Hehun paid follow-ups bind their fixed parent product, final stage and raw output hash; if the exact GPT Web URL is unavailable, the Agent replays the complete parent graph and continues only in the rebuilt parent conversation."
       ],
       "forbidden": [
         "website-controlled next action, browser command or per-stage cloud job",
         "generic planner, AI-generated workflow or second execution owner",
-        "deterministic products entering GPT transport"
+        "deterministic products entering GPT transport",
+        "a downstream stage of one multi-stage order opening a blank or different GPT conversation",
+        "paid follow-up execution outside its exact or fully rebuilt parent conversation",
+        "blank new GPT conversation used as a follow-up fallback"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
       "blockIndex": 0
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable under one bounded ten-order production coordinator.",
+      "summary": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable; follow-ups sharing one parent conversation use one durable FIFO lane while different parents remain concurrent.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
-          "statement": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable under one bounded ten-order production coordinator.",
+          "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
+          "statement": "Follow-ups sharing one exact or reconstructed parent GPT conversation execute through one durable FIFO lane; detached downstream stages and contaminated outputs restart from the faulty node, and ordinary recovery never becomes a user-visible terminal failure.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanxue-ai-production"
         }
       ],
       "required": [
         "Order, stage, raw response, provider proof and event truth persist in SQLite.",
+        "Every raw response hash uses canonical sha256-prefixed identity and byte-verified metadata repair preserves already completed analysis.",
         "The default production window is ten and cloud claims subtract active local work.",
-        "Restart resumes stable execution ids without duplicate prompt submission."
+        "A recoverable stage retries with bounded backoff under the live heartbeating lease so independent graph branches complete their required submissions before order-level deferral.",
+        "Restart resumes a durable submitted turn without duplicate prompt submission. Recoverable transport faults retain the same execution id and logical-turn marker, whether they happen before or after submission. Only a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault, creates a fresh execution id and fresh marker; a captured submission always resumes instead of sending again.",
+        "Restart reconciliation reclaims the original cloud job before local execution and republishes any already completed local result under a fresh lease.",
+        "A cloud-confirmed foreign-device recovery ledger is durably quarantined as review_required once and is excluded from later automatic restart reconciliation.",
+        "Only one follow-up for the same parent job and stage may submit at a time, in createdAt and orderId FIFO order.",
+        "Historical paid follow-ups without a continuation parent remain recovery_pending until the website reissues their immutable parent identity; an exact one-way local repair preserves old stage evidence and users never receive an ordinary runtime failure.",
+        "Provider citation residue, private-use characters, invalid required JSON and missing raw output are discarded and restarted with a fresh execution id and fresh marker, while a transport retry never duplicates one already submitted logical turn merely because page-global turn counts changed during provider hydration.",
+        "A failed or review_required gateway execution with durable submission proof always resumes the same execution id, marker and provider conversation. A fresh execution is allowed only for a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault.",
+        "A missing local or provider parent conversation is reconstructed from the lease-bound parent replay package and persisted in production_parent_conversation_rebuilds.",
+        "An unfinished legacy Hehun or naming order may restart from a downstream stage only when that stage has completed and its durable provider URL proves it detached from the preceding parent URL. A waiting_provider, recovery_pending, running or submitted stage is never declared detached from its execution-id shape, attempt count or absent aggregate result; it retains the exact execution id so Gateway submission proof can resume without duplication."
       ],
       "forbidden": [
         "in-memory-only order truth, untracked background promise or swallowed failure",
         "unbounded cloud claiming, duplicate local execution or duplicate prompt submission",
-        "terminal loss for temporary provider absence"
+        "user-visible terminal loss for provider absence, output contamination or recoverable parent-conversation loss",
+        "detached local restart execution without an attached cloud publisher",
+        "re-querying the same cloud-confirmed foreign-device ledger on every restart",
+        "parallel submissions into one parent GPT conversation",
+        "using page-global user-turn count deltas as authority to resend a stage that already has an exact logical-turn marker",
+        "resuming a known detached downstream stage in its blank or wrong conversation",
+        "reviving a legacy parentless follow-up through a blank conversation",
+        "publishing provider-internal citation residue as a production answer"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
       "blockIndex": 1
@@ -6680,7 +6719,9 @@
       "required": [
         "Device credentials remain local and permission-restricted.",
         "Input download and every mutation bind the exact lease token and lease version.",
-        "The worker claims only available local production capacity."
+        "The worker claims only available local production capacity.",
+        "Durable local orders are reconciled to the original cloud job before execution resumes; completed local results are republished under a fresh lease.",
+        "Every claimed follow-up includes a lease-bound continuation_parent_replay package so a lost local parent can be reconstructed from its first stage."
       ],
       "forbidden": [
         "inbound home port or server callback",
@@ -6709,12 +6750,13 @@
       "required": [
         "Xuanyuan persists one governed request and one gateway result under an idempotent local task identity.",
         "Exact submitted work survives restart without duplicate prompt submission.",
+        "A gateway review_required result stops automatic retry and remains stopped after restart.",
         "The former Xuanyuan cloud production region remains physically deleted."
       ],
       "forbidden": [
         "website production claims or xuanxue product workflow graphs inside Xuanyuan",
         "provider adapter, browser private implementation or provider SDK inside Xuanyuan",
-        "fake success, duplicate restart submission or caller transport controls"
+        "fake success, duplicate restart submission, review-required auto-retry or caller transport controls"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
       "blockIndex": 0

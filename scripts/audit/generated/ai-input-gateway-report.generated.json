@@ -2,14 +2,14 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-07-28T14:06:30.418Z",
+  "generatedAt": "2026-07-29T19:04:27.170Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
     "APEX-AI-INPUT-GATEWAY-002-V1",
     "APEX-AI-INPUT-GATEWAY-003-V1",
     "APEX-AI-INPUT-GATEWAY-004-V1",
-    "APEX-AI-INPUT-GATEWAY-005-V1"
+    "APEX-AI-INPUT-GATEWAY-005-V2"
   ],
   "executedChecks": [
     {
@@ -273,116 +273,133 @@
       "checkId": "ai-input-gateway/source-present"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/authority-present"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/bounded-parallel-runtime"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/bounded-patrol-cadence"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/bounded-rename-recovery"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/controlled-chrome-window-identity"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/deferred-completed-chat-rename"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/durable-fifo-scheduler"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/exact-sidebar-row-rename"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/failure-ledger"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+      "checkId": "ai-input-gateway/fresh-conversation-identity"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+      "checkId": "ai-input-gateway/fresh-execution-rate-owner-transfer"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/human-readable-system-chat-title"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/no-chatgpt-page-refresh"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/offscreen-sidebar-recovery"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/parallel-acceptance"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/response-checkpoint-recovery"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/submission-priority-patrol"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/shared-rate-limit-watcher"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/live-generation-proof"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/structured-task-identity"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/transient-submission-checkpoint"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+      "checkId": "ai-input-gateway/transient-overlay-hygiene"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/removed-old-region"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/source-present"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
     "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
+    "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
@@ -395,20 +412,29 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
@@ -419,6 +445,7 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-browser-controller-execution.ts",
     "src/lib/browser/current-chrome-browser-controller-primitives.ts",
     "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/current-chrome-window-control.ts"

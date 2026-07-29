@@ -18,6 +18,7 @@ export const feedGptWebChatOnce = async (input: {
   adapter?: AiProviderAdapter;
   signal?: AbortSignal;
   executionId?: string;
+  supersededExecutionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
 }): Promise<AiFeedResult> => {
@@ -31,6 +32,9 @@ export const feedGptWebChatOnce = async (input: {
     ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
     ...(input.executionId ? { executionId: input.executionId } : {}),
+    ...(input.supersededExecutionId
+      ? { supersededExecutionId: input.supersededExecutionId }
+      : {}),
     ...(input.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.onAttachmentUploadCompleted }
       : {}),

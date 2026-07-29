@@ -4,7 +4,6 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-
 import {
   attachApprovedWebChatFilesOnce,
   resolveWebChatAttachmentTransportKind,
@@ -14,13 +13,10 @@ import type {
   BrowserController,
   BrowserStateSnapshot,
 } from "../../../lib/browser/browser-controller.js";
-import { parseNativeMultiFilePickerOutput } from "../../../lib/browser/current-chrome-native-multi-file-picker.js";
-
+import { assertNativePickerContracts } from "./attachment-native-picker-contract.acceptance-helper.js";
 const ATTACHMENT_STABILITY_MINIMUM_WAIT_CALLS = 17;
-
 const sha256 = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-
 const buildRequest = async (directory: string, fileCount: number) => {
   const inputRefs = [];
   for (let index = 0; index < fileCount; index += 1) {
@@ -71,6 +67,7 @@ type FixtureBrowserInput = {
   identityDriftAfterSelection?: boolean;
   conversationTurnLeakAfterSelection?: boolean;
   pendingAtExactRead?: number;
+  staleSearchDialog?: boolean;
 };
 
 const actionResult = (browserActionId: string) => ({
@@ -139,9 +136,13 @@ class FixtureBrowserController implements BrowserController {
   private currentNames: string[] = [];
   private currentUrl = "https://chatgpt.com/";
   private exactReadCount = 0;
+  private searchDialogVisible: boolean;
+  readonly actionLabels: string[] = [];
   waitCallCount = 0;
 
-  constructor(private readonly input: FixtureBrowserInput) {}
+  constructor(private readonly input: FixtureBrowserInput) {
+    this.searchDialogVisible = input.staleSearchDialog === true;
+  }
 
   getHealth() {
     return { ok: true, detail: "fixture" };
@@ -180,7 +181,14 @@ class FixtureBrowserController implements BrowserController {
     return actionResult("scroll");
   }
 
-  async click() {
+  async click(input: Parameters<BrowserController["click"]>[0]) {
+    this.actionLabels.push(input.targetLabel);
+    if (
+      input.targetLabel
+      === "close the uniquely identified ChatGPT chat-search dialog"
+    ) {
+      this.searchDialogVisible = false;
+    }
     return actionResult("click");
   }
 
@@ -197,6 +205,25 @@ class FixtureBrowserController implements BrowserController {
   }
 
   async evaluateActiveTab<T>(evaluation: { script: string; description: string }): Promise<T> {
+    if (
+      evaluation.description === "locate visible ChatGPT chat-search close action"
+      || evaluation.description === "verify ChatGPT chat-search dialog closed"
+    ) {
+      return (
+        this.searchDialogVisible
+          ? {
+              status: "close_located",
+              message: "fixture search dialog close located",
+              pageUrl: this.currentUrl,
+              targetPoint: { x: 40, y: 40 },
+            }
+          : {
+              status: "not_found",
+              message: "fixture search dialog absent",
+              pageUrl: this.currentUrl,
+            }
+      ) as T;
+    }
     if (evaluation.description === "clear stale AI web chat draft and attachments") {
       this.currentNames = [];
       return {
@@ -216,6 +243,16 @@ class FixtureBrowserController implements BrowserController {
         exactReadCount: this.exactReadCount,
       }) as T;
     }
+    if (
+      evaluation.description === "open ChatGPT attachment menu"
+      && this.searchDialogVisible
+    ) {
+      return {
+        status: "review_required",
+        message: "fixture search dialog obscures attachment menu",
+        pageUrl: this.currentUrl,
+      } as T;
+    }
     return {
       status: "success",
       message: "fixture DOM action",
@@ -234,6 +271,7 @@ class FixtureBrowserController implements BrowserController {
       stagingDirectoryPath,
       expectedFileNames,
     }: Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0]) {
+    this.actionLabels.push("select the exact approved staged file set");
     await this.input.onNativePicker?.(stagingDirectoryPath, expectedFileNames);
     if (this.input.nativeSelectionOk === false) {
       return {
@@ -281,14 +319,7 @@ assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat
 assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 1 }), "ordered_clipboard");
 assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 2 }), "native_picker_batch");
 assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gemini-web-chat", fileCount: 17 }), "ordered_clipboard");
-assert.deepEqual(
-  parseNativeMultiFilePickerOutput("SUCCESS\n001.json\n002.json\n003.json").observedFileNames,
-  ["001.json", "002.json", "003.json"],
-);
-assert.equal(
-  parseNativeMultiFilePickerOutput("FAILED\nNATIVE_FILE_LIST_MISMATCH\nstale-parent-folder").message,
-  "NATIVE_FILE_LIST_MISMATCH; observed=stale-parent-folder",
-);
+await assertNativePickerContracts();
 const schemaDirectory = await mkdtemp(path.join(tmpdir(), "attachment-schema-"));
 const schemaBaseRequest = await buildRequest(schemaDirectory, 0);
 assert.throws(() => AiFeedInputSchema.parse({
@@ -341,6 +372,25 @@ try {
     assert.equal(callbackCount, 1);
     assert.equal(observedStagingDirectory === null ? true : existsSync(observedStagingDirectory), false);
   }
+
+  const staleDialogBrowser = new FixtureBrowserController({
+    staleSearchDialog: true,
+  });
+  const staleDialogResult = await attachApprovedWebChatFilesOnce({
+    browser: staleDialogBrowser,
+    request: await buildRequest(dataDir, 2),
+    context: { dataDir },
+  });
+  assert.equal(staleDialogResult.attachmentUploadProof.status, "attachments_stable");
+  assert.deepEqual(
+    staleDialogBrowser.actionLabels.slice(0, 3),
+    [
+      "close the uniquely identified ChatGPT chat-search dialog",
+      "uniquely located ChatGPT local file upload menu item",
+      "select the exact approved staged file set",
+    ],
+    "a uniquely classified stale search dialog must close before the attachment picker opens",
+  );
 
   let failureProofStatus: string | null = null;
   await assert.rejects(
@@ -413,14 +463,32 @@ try {
   );
   assert.match(
     evaluationSource,
-    /freshUserTurnCreated && promptBoundToFreshUserTurn && composerClearedAfterVerifiedPaste/u,
+    /promptSuffixBoundToExpectedTurn/u,
+  );
+  assert.match(evaluationSource, /WEB_CHAT_FOREIGN_TURN_REBOUND/u);
+  assert.match(evaluationSource, /visibleConversationBusy/u);
+  assert.equal(
+    evaluationSource.includes(
+      "Boolean(document.querySelector('[aria-busy=\"true\"]'))",
+    ),
+    false,
+  );
+  const sharedSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
+    "utf8",
+  );
+  assert.ok(
+    sharedSource.indexOf("const preSubmit = await readPreSubmitConversationState")
+      < sharedSource.indexOf("const attachmentResult = await attachApprovedWebChatFilesOnce"),
+    "continuation history must stabilize before any attachment upload",
   );
   const submittedAttachmentSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts"),
     "utf8",
   );
-  assert.match(submittedAttachmentSource, /userMessages\.length !== previousUserMessageCount \+ 1/u);
-  assert.match(submittedAttachmentSource, /fresh submitted user message contains exact bound file attachment set/u);
+  assert.match(submittedAttachmentSource, /matchingUserMessages\.length !== 1/u);
+  assert.match(submittedAttachmentSource, /internally marked submitted user message contains exact bound file attachment set/u);
+  assert.equal(submittedAttachmentSource.includes("previousUserMessageCount"), false);
   assert.equal(existsSync(path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts")), false);
 } finally {
   await rm(dataDir, { recursive: true, force: true });

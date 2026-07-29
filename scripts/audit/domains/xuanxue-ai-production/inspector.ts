@@ -33,15 +33,32 @@ const cloudWorkerPath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
 const acceptancePath =
   "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
+const acceptanceSupportPaths = [
+  "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+  "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+  "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+] as const;
 
 const pluginPaths = [
   "src/plugins/xuanxue-ai-production/index.ts",
   schemaPath,
   profilePath,
   storePath,
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
   schedulerPath,
   cloudContractPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
@@ -52,6 +69,7 @@ const pluginPaths = [
   "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
   "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
   acceptancePath,
+  ...acceptanceSupportPaths,
 ] as const;
 
 type Laws = {
@@ -204,6 +222,10 @@ const inspectContracts = (
       "seededStages",
       "continuationParent",
       "XUANXUE_AI_PRODUCTION_SEEDED_STAGE_PROOF_INVALID",
+      "xuanxueAiContinuationProfiles",
+      "isXuanxueAiFollowupProduct",
+      "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
+      "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID",
     ],
   });
 };
@@ -225,7 +247,36 @@ const inspectDurability = (
       "production_events",
       "journal_mode = WAL",
       "listRecoverableOrders",
+      "listCloudRecoveryOrders",
+      "repairCanonicalOutputHashState",
+      "repairInvalidCompletedStageOutputs",
+      "invalid_completed_stage_restarted",
+      "canonical_sha256_prefix_verified_against_raw_response_bytes",
       "requestHash",
+      "recoverMissingFollowupParents",
+      "repairLegacyConversationContract",
+      "repairLegacyDetachedDownstreamStages",
+      "repairLegacyFollowupWrongChatExecutionStates",
+      "followup_parent_binding_repaired",
+      "followup_parent_wrong_chat_execution_retired",
+      "followup-parent-binding-recovery",
+      "trustedGeneratedFileCount",
+      "replacedExecutionIds",
+      "followup_parent_replay_requested",
+      "legacy_conversation_contract_repaired",
+      "detached_downstream_conversation_restarted",
+      "production_parent_conversation_rebuilds",
+      "parent_conversation_rebuild_started",
+      "resetOrderForConversationGraphRebuild",
+      "conversation_graph_rebuild_started",
+      "replay_from_first_stage_in_one_new_conversation",
+      "recordParentConversationRebuild",
+      "stage_fresh_execution_restarted",
+      "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER",
+      "supersededExecutionId",
+      "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
+      "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
+      "completedOutsideParent",
     ],
   });
   requireValues(findings, {
@@ -238,9 +289,13 @@ const inspectDurability = (
       "XuanxueAiProductionCoordinator",
       "DEFAULT_PRODUCTION_WINDOW",
       "availableCapacity",
-      "resumeRecoverableOrders",
       "scheduled",
       "waiting",
+      "activeContinuationLanes",
+      "order_parent_lane_deferred",
+      "rebuildContinuationParent",
+      "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_PAYLOAD_REQUIRED",
+      "order_internal_defect_deferred",
     ],
   });
 };
@@ -299,6 +354,10 @@ const inspectCloud = (
       "idempotency_key",
       "heartbeatXuanxueAiProductionJob",
       "downloadXuanxueAiProductionInput",
+      "downloadXuanxueAiProductionParentReplayInput",
+      "recoverXuanxueAiProductionJob",
+      "continuation_parent_replay",
+      "parentReplay",
     ],
   });
   requireValues(findings, {
@@ -312,6 +371,9 @@ const inspectCloud = (
       "availableCapacity",
       "max_in_flight",
       "active",
+      "reconcileDurableLocalOrders",
+      "cancelCloudRecoveryOrder",
+      "cloud_cancelled_order_settled",
     ],
   });
   requireValues(findings, {
@@ -332,28 +394,57 @@ const inspectAcceptance = (
   findings: InspectorFinding[],
   durabilityLaw: string,
 ): void => {
-  const acceptance = source(
-    context,
-    findings,
-    durabilityLaw,
+  const acceptance = [
     acceptancePath,
-  );
-  if (!acceptance) return;
+    ...acceptanceSupportPaths,
+  ].flatMap((filePath) => {
+    const result = source(
+      context,
+      findings,
+      durabilityLaw,
+      filePath,
+    );
+    return result ? [result] : [];
+  });
+  if (acceptance.length === 0) return;
   requireValues(findings, {
     lawId: durabilityLaw,
     checkId: "xuanxue-ai-production/acceptance",
     filePath: acceptancePath,
     messagePrefix: "Production acceptance must prove",
-    values: sourceValues([acceptance]),
+    values: sourceValues(acceptance),
     required: [
       "maxActive",
       "the eleventh order must remain outside the ten-order production window",
       "providerContinuationRef",
-      "resumeRecoverableOrders",
+      "listCloudRecoveryOrders",
       "ORDER_IDENTITY_CONFLICT",
       "a seeded base response must not be submitted to GPT again",
+      "a byte-verified legacy hash prefix defect must resume without resubmitting the completed stage",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
+      "a paid follow-up without an exact parent must never reach GPT",
+      "orders sharing one parent GPT conversation must be serialized",
+      "same-parent follow-ups must preserve FIFO order",
+      "provider citation residue must discard the response and restart once",
+      "provider-polluted seeded output must never enter a completed stage",
+      "polluted seed must replay the first stage before its continuation",
+      "lost same-order parent must fail once, replay stage one, then continue",
+      "the rebuilt graph must finish inside one newly rebuilt conversation",
+      "every rebuilt graph node must retain the superseded execution id",
+      "restart must retire an invalid completed prefix and every downstream node",
+      "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
+      "a missing parent chat must replay the parent first, then ask the follow-up",
+      "a cloud replay package must reconstruct an absent local parent before the follow-up",
+      "a repaired legacy follow-up must continue in its exact parent chat",
+      "one verified parent attachment must expand the frozen material file limit exactly once",
+      "legacy wrong-chat attachment proof must be retired with a fresh execution id",
+      "an already repaired follow-up must retire its legacy wrong-chat execution",
+      "JSON field ordering and governance transport upgrades must not block exact legacy parent repair",
+      "all Hehun stages must remain in the first stage conversation",
+      "Bazi, question and naming stages must remain in one GPT conversation",
+      "continuation_parent_replay",
+      "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
     ],
   });
 };
@@ -364,11 +455,11 @@ export const inspectDomain = async (
   const laws: Laws = {
     boundary: selectLawId(
       context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
+      "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
     ),
     durability: selectLawId(
       context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+      "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
     ),
     cloud: selectLawId(
       context.planEntry.lawIds,

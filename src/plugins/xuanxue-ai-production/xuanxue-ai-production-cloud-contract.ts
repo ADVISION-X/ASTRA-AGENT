@@ -35,6 +35,27 @@ const CloudStageMaterialSchema = z.object({
   inputs: z.array(XuanxueAiProductionCloudInputSchema),
 }).strict();
 
+const CloudSeededStageSchema = z.object({
+  stage_id: XuanxueAiStageIdSchema,
+  execution_id: z.string().min(1),
+  raw_response_text: z.string(),
+  raw_output_hash: hashSchema,
+  provider_proof: z.record(z.string(), z.unknown()),
+  transport_warnings: z.array(z.string()),
+}).strict();
+
+const CloudParentReplaySchema = z.object({
+  job_id: z.string().min(1),
+  source_task_id: z.string().min(1),
+  product_id: XuanxueAiProductIdSchema,
+  input_bundle_ref: z.string().min(1),
+  input_bundle_hash: hashSchema,
+  request_hash: hashSchema,
+  seeded_stages: z.array(CloudSeededStageSchema).max(4),
+  materials: z.array(CloudStageMaterialSchema).min(1).max(4),
+  created_at: z.string().min(1),
+}).strict();
+
 export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
   protocol_version: z.literal(
     XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
@@ -51,14 +72,8 @@ export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
     stage_id: XuanxueAiStageIdSchema,
     raw_output_hash: hashSchema,
   }).strict().nullable().default(null),
-  seeded_stages: z.array(z.object({
-    stage_id: XuanxueAiStageIdSchema,
-    execution_id: z.string().min(1),
-    raw_response_text: z.string(),
-    raw_output_hash: hashSchema,
-    provider_proof: z.record(z.string(), z.unknown()),
-    transport_warnings: z.array(z.string()),
-  }).strict()).max(4).default([]),
+  seeded_stages: z.array(CloudSeededStageSchema).max(4).default([]),
+  continuation_parent_replay: CloudParentReplaySchema.nullable(),
   execution_lane: z.literal("supervised_local_gpt_web"),
   materials: z.array(CloudStageMaterialSchema).min(1).max(4),
   status: z.literal("leased"),
@@ -71,7 +86,29 @@ export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
   updated_at: z.string().min(1),
   lease_token: z.string().min(1),
   lease_version: z.number().int().positive(),
-}).strict();
+}).strict().superRefine((job, context) => {
+  if (
+    Boolean(job.continuation_parent)
+    !== Boolean(job.continuation_parent_replay)
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_REQUIRED",
+      path: ["continuation_parent_replay"],
+    });
+  }
+  if (
+    job.continuation_parent
+    && job.continuation_parent_replay?.job_id
+      !== job.continuation_parent.job_id
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_IDENTITY_INVALID",
+      path: ["continuation_parent_replay", "job_id"],
+    });
+  }
+});
 
 export type XuanxueAiProductionCloudClaimedJob = z.infer<
   typeof XuanxueAiProductionCloudClaimedJobSchema

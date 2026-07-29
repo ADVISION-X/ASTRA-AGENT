@@ -6,6 +6,7 @@ import type {
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
+import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
 
 type SubmissionCheckpointInput = {
@@ -42,7 +43,7 @@ const persistObservedSubmission = async (
   });
 };
 
-export const checkpointSubmittedWebChatTurn = async (
+export const observeSubmittedWebChatTurn = async (
   input: SubmissionCheckpointInput,
 ): Promise<WebChatSubmissionProof | null> => {
   if (!input.context.webChatExecution) return null;
@@ -55,10 +56,25 @@ export const checkpointSubmittedWebChatTurn = async (
     submission = await captureProof(input, true);
     await persistObservedSubmission(input, submission);
   }
+  return submission;
+};
+
+export const finalizeObservedWebChatSubmission = async (
+  input: SubmissionCheckpointInput,
+  submission: WebChatSubmissionProof | null,
+): Promise<WebChatSubmissionProof | null> => {
+  if (!input.context.webChatExecution || !submission) return submission;
   await input.context.webChatExecution.onSubmitted({
     submission,
     uploadedFiles: input.uploadedFiles,
     attachmentUploadProof: input.attachmentUploadProof,
+  });
+  emitSubmitStage(input, "prompt_submit", "success", null, {
+    method: "exact_turn_marker_and_canonical_conversation",
+    executionId: input.context.webChatExecution.executionId,
+    userTurnId: submission.userTurnId,
+    canonicalConversationUrl:
+      submission.canonicalConversationUrl ?? "pending",
   });
   return submission;
 };

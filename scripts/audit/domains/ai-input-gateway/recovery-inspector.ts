@@ -9,10 +9,21 @@ import { resolveFromRepo } from "../../shared/paths.js";
 
 const paths = {
   checkpoint: "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
+  checkpointResponse:
+    "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
   executionState: "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+  continuationTitle:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
   managed: "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+  feedProviderOnce:
+    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
   failureClassification: "src/capabilities/ai-input-gateway/failure-classification.ts",
+  rateGuard: "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
+  identityAcceptance:
+    "src/capabilities/ai-input-gateway/acceptance/"
+    + "web-chat-identity-recovery.acceptance-helper.ts",
   shared: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+  submit: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
   submissionCheckpoint: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   resume: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
   acceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
@@ -33,6 +44,14 @@ const sourceValues = (files: readonly SourceFile[]): Set<string> =>
     ...file.getDescendantsOfKind(SyntaxKind.Identifier)
       .map((node) => String(node.compilerNode.escapedText)),
     ...file.getDescendantsOfKind(SyntaxKind.StringLiteral)
+      .map((node) => node.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
+      .map((node) => node.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.TemplateHead)
+      .map((node) => node.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.TemplateMiddle)
+      .map((node) => node.getLiteralText()),
+    ...file.getDescendantsOfKind(SyntaxKind.TemplateTail)
       .map((node) => node.getLiteralText()),
     ...file.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
       .map((node) => node.getName()),
@@ -78,7 +97,17 @@ const collectSources = (
   return Object.fromEntries(entries) as RecoverySources;
 };
 
-const inspectCheckpointAndLedger = (
+const hasCheckpointPatrolShutdownFinally = (source: SourceFile): boolean =>
+  source.getDescendantsOfKind(SyntaxKind.TryStatement).some((statement) =>
+    statement.getFinallyBlock()
+      ?.getDescendantsOfKind(SyntaxKind.BinaryExpression)
+      .some((assignment) =>
+        assignment.getOperatorToken().isKind(SyntaxKind.EqualsToken)
+        && assignment.getLeft().isKind(SyntaxKind.Identifier)
+        && assignment.getLeft().getText() === "checkpointPatrolActive"
+        && assignment.getRight().isKind(SyntaxKind.FalseKeyword)) === true);
+
+const inspectCheckpointRecovery = (
   sources: RecoverySources,
   findings: InspectorFinding[],
   lawId: string,
@@ -97,8 +126,29 @@ const inspectCheckpointAndLedger = (
       "response_checkpointed",
       "recovery_pending",
       "onResponseCaptured",
+      "recoverCheckpointedWebChatResponse",
+      "markCheckpointedWebChatResponsePublished",
+      "response_captured",
+      "waitForCheckpointPublication",
+      "markPostProcessingFailure",
     ],
   });
+  if (!hasCheckpointPatrolShutdownFinally(sources.feedProviderOnce)) {
+    findings.push(createFinding({
+      checkId: "ai-input-gateway/checkpoint-patrol-lifecycle",
+      lawId,
+      filePath: paths.feedProviderOnce,
+      message:
+        "Provider success and failure must both stop the checkpoint patrol in a finally path.",
+    }));
+  }
+};
+
+const inspectFailureLedger = (
+  sources: RecoverySources,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
   pushMissingValues({
     findings,
     lawId,
@@ -116,8 +166,130 @@ const inspectCheckpointAndLedger = (
       "recoverable",
       "classifyWebChatFailure",
       "isTransientProviderUnavailability",
+      "terminalRootReason",
     ],
   });
+  const terminalRecoveryValues = sourceValues([
+    sources.executionState,
+    sources.failureClassification,
+    sources.identityAcceptance,
+  ]);
+  const terminalRecoveryMissing = [
+    "; root=",
+    "review_required: web-chat execution is terminal:",
+  ].filter((value) =>
+    ![...terminalRecoveryValues].some((candidate) =>
+      candidate.includes(value)));
+  if (terminalRecoveryMissing.length > 0) {
+    findings.push(createFinding({
+      checkId: "ai-input-gateway/failure-ledger",
+      lawId,
+      filePath: paths.executionState,
+      message:
+        "Terminal failure root preservation is missing: "
+        + `${terminalRecoveryMissing.join(", ")}.`,
+    }));
+  }
+};
+
+const inspectFreshExecutionRateTransfer = (
+  sources: RecoverySources,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  pushMissingValues({
+    findings,
+    lawId,
+    checkId: "ai-input-gateway/fresh-execution-rate-owner-transfer",
+    filePath: paths.rateGuard,
+    message: "Fresh execution rate-owner transfer is missing",
+    values: sourceValues([
+      sources.rateGuard,
+      sources.identityAcceptance,
+    ]),
+    required: [
+      "supersededExecutionId",
+      "replacesExactPriorExecution",
+      "xuanxue-ai-production:authorized-replacement",
+      "a retired execution cannot reclaim the round after replacement",
+    ],
+  });
+};
+
+const inspectCheckpointAndLedger = (
+  sources: RecoverySources,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  inspectCheckpointRecovery(sources, findings, lawId);
+  inspectFailureLedger(sources, findings, lawId);
+  inspectFreshExecutionRateTransfer(sources, findings, lawId);
+};
+
+const callNames = (
+  source: SourceFile,
+  variableName: string,
+): string[] => source
+  .getVariableDeclaration(variableName)
+  ?.getInitializer()
+  ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+  .map((call) => call.getExpression().getText()) ?? [];
+
+const submissionObservationOrderIsValid = (
+  sources: RecoverySources,
+): boolean => {
+  const calls = callNames(
+    sources.submissionCheckpoint,
+    "observeSubmittedWebChatTurn",
+  );
+  const firstCapture = calls.findIndex((name) => name === "captureProof");
+  const firstObserved = calls.findIndex(
+    (name) => name === "persistObservedSubmission",
+  );
+  const secondCapture = calls.findIndex(
+    (name, index) => index > firstObserved && name === "captureProof",
+  );
+  const secondObserved = calls.findIndex(
+    (name, index) =>
+      index > secondCapture && name === "persistObservedSubmission",
+  );
+  return firstCapture >= 0
+    && firstObserved > firstCapture
+    && secondCapture > firstObserved
+    && secondObserved > secondCapture;
+};
+
+const submitFinalizationOrderIsValid = (
+  sources: RecoverySources,
+): boolean => {
+  const finalizeCalls = callNames(
+    sources.submissionCheckpoint,
+    "finalizeObservedWebChatSubmission",
+  );
+  const submitted = finalizeCalls.findIndex((name) =>
+    name.endsWith("onSubmitted"));
+  const submitCalls = callNames(sources.submit, "submitPromptFromComposer");
+  const observed = submitCalls.indexOf("observeSubmittedWebChatTurn");
+  const attachments = submitCalls.indexOf(
+    "waitForSubmittedUserMessageAttachments",
+  );
+  const finalized = submitCalls.indexOf(
+    "finalizeObservedWebChatSubmission",
+  );
+  return submitted >= 0
+    && observed >= 0
+    && attachments > observed
+    && finalized > attachments;
+};
+
+const responsePublicationOrderIsValid = (
+  sources: RecoverySources,
+): boolean => {
+  const calls = callNames(sources.shared, "executeWebChatConversation");
+  const checkpointed = calls.findIndex((name) =>
+    name.endsWith("onResponseCaptured"));
+  const published = calls.indexOf("buildCompletedWebChatResponse");
+  return checkpointed >= 0 && published > checkpointed;
 };
 
 const inspectSubmissionOrder = (
@@ -125,37 +297,10 @@ const inspectSubmissionOrder = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const checkpointInitializer = sources.submissionCheckpoint
-    .getVariableDeclaration("checkpointSubmittedWebChatTurn")
-    ?.getInitializer();
-  const checkpointCalls = checkpointInitializer
-    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? [];
-  const firstCapture = checkpointCalls.findIndex((name) => name === "captureProof");
-  const firstObserved = checkpointCalls.findIndex(
-    (name) => name === "persistObservedSubmission",
-  );
-  const secondCapture = checkpointCalls.findIndex(
-    (name, index) => index > firstObserved && name === "captureProof",
-  );
-  const submitted = checkpointCalls.findIndex((name) => name.endsWith("onSubmitted"));
-  const executionInitializer = sources.shared
-    .getVariableDeclaration("executeWebChatConversation")
-    ?.getInitializer();
-  const executionCalls = executionInitializer
-    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? [];
-  const checkpointed = executionCalls.findIndex((name) =>
-    name.endsWith("onResponseCaptured"));
-  const published = executionCalls.findIndex((name) =>
-    name === "buildCompletedWebChatResponse");
   if (
-    firstCapture < 0
-    || firstObserved <= firstCapture
-    || secondCapture <= firstObserved
-    || submitted <= secondCapture
-    || checkpointed <= submitted
-    || published <= checkpointed
+    !submissionObservationOrderIsValid(sources)
+    || !submitFinalizationOrderIsValid(sources)
+    || !responsePublicationOrderIsValid(sources)
   ) {
     findings.push(createFinding({
       checkId: "ai-input-gateway/transient-submission-checkpoint",
@@ -200,6 +345,11 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
         "assertFailureLedger",
         "submissionCount",
         "readWebChatResponseCheckpoint",
+        "checkpoint recovery must finish before browser or provider access",
+        "web-chat-response-checkpoints",
+        "the execution ledger must persist the provider lease across restart",
+        "providerLeaseId",
+        "checkpoint publication waited for blocked title post-processing",
       ],
       message: "Checkpoint acceptance is missing",
     },
@@ -222,8 +372,30 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
       checkId: "ai-input-gateway/bounded-rename-recovery",
       filePath: paths.chatTitle,
       sourceKeys: ["chatTitle"],
-      required: ["openTitleEditor", "lastRenameNotReady", "renameNotReady"],
+      required: [
+        "openTitleEditor",
+        "lastRenameNotReady",
+        "renameNotReady",
+        "RENAME_PATROL_SLICE_MS",
+        "remainingRenameMs",
+      ],
       message: "Bounded title recovery is missing",
+    },
+    {
+      checkId: "ai-input-gateway/one-parent-conversation-title",
+      filePath: paths.managed,
+      sourceKeys: [
+        "managed",
+        "continuationTitle",
+        "identityAcceptance",
+      ],
+      required: [
+        "resolveContinuationWebChatSystemTitle",
+        "earliestVerifiedTitle",
+        "verifiedAt",
+        "assertContinuationInheritsParentSystemTitle",
+      ],
+      message: "Continuation parent-title inheritance is missing",
     },
     {
       checkId: "ai-input-gateway/controlled-chrome-window-identity",

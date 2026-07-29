@@ -11,6 +11,13 @@ type ContractSources = {
   answerSupport: string;
   singleTabRouting: string;
   managedExecution: string;
+  managedExecutionStart: string;
+  continuationTitle: string;
+  executionState: string;
+  searchDialogHygiene: string;
+  namedConversationSearch: string;
+  pageActions: string;
+  submit: string;
 };
 
 const sourceText = (repoPath: string): Promise<string> =>
@@ -42,6 +49,27 @@ const loadContractSources = async (): Promise<ContractSources> => {
     sourceText(
       "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
+    ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
+    ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
+    ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
+    ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+    ),
+    sourceText(
+      "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    ),
   ]);
   return {
     shared: values[0],
@@ -52,6 +80,13 @@ const loadContractSources = async (): Promise<ContractSources> => {
     answerSupport: values[5],
     singleTabRouting: values[6],
     managedExecution: values[7],
+    managedExecutionStart: values[8],
+    continuationTitle: values[9],
+    executionState: values[10],
+    searchDialogHygiene: values[11],
+    namedConversationSearch: values[12],
+    pageActions: values[13],
+    submit: values[14],
   };
 };
 
@@ -77,9 +112,12 @@ const assertRenameTiming = (sources: ContractSources): void => {
   assert.equal(
     sources.title.includes("runExclusivePatrol")
       && sources.title.includes("WEB_CHAT_RENAME_NOT_READY")
+      && sources.title.includes("RENAME_PATROL_SLICE_MS = 4_000")
+      && sources.title.includes("remainingRenameMs")
+      && !sources.title.includes("timeoutMs: 60_000")
       && !sources.title.includes("rename patrol exhausted the task timeout"),
     true,
-    "one completed-chat rename must stay atomic and transient rename UI must never become a terminal task-timeout failure",
+    "one completed-chat rename must stay atomic, yield within four seconds to submission work, and transient rename UI must never become a terminal task-timeout failure",
   );
 };
 
@@ -142,9 +180,37 @@ const assertSharedScheduling = (sources: ContractSources): void => {
   assert.equal(
     sources.managedExecution.includes("releasePendingSubmission")
       && sources.managedExecution.includes("globalBrowser")
-      && sources.managedExecution.includes("runExclusivePatrol"),
+      && sources.managedExecution.includes("runExclusivePatrol")
+      && sources.managedExecutionStart.includes(
+        "resolveContinuationWebChatSystemTitle",
+      )
+      && sources.continuationTitle.includes("earliestVerifiedTitle")
+      && sources.continuationTitle.includes("verifiedAt"),
     true,
-    "submission priority, global survival and atomic rename patrol must be wired into managed execution",
+    "submission priority, global survival, atomic rename patrol and one inherited whole-order parent title must be wired into managed execution",
+  );
+};
+
+const assertExactSearchDialogHygiene = (sources: ContractSources): void => {
+  assert.equal(
+    sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_AMBIGUOUS")
+      && sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS")
+      && sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_STILL_VISIBLE"),
+    true,
+    "search-dialog cleanup must identify one exact harmless overlay and verify its disappearance",
+  );
+  assert.equal(
+    sources.namedConversationSearch.match(/dismissChatGptSearchDialogIfVisible/g)?.length === 3
+      && sources.pageActions.includes("dismissChatGptSearchDialogIfVisible")
+      && sources.submit.includes("dismissChatGptSearchDialogIfVisible"),
+    true,
+    "failed search, attachment upload and prompt focus must share exact search-dialog hygiene",
+  );
+  assert.equal(
+    sources.submit.includes("dismissFloatingMenus")
+      || sources.submit.includes("new KeyboardEvent(\"keydown\""),
+    false,
+    "provider actions must not use an unclassified Escape key as universal dialog cleanup",
   );
 };
 
@@ -154,4 +220,5 @@ export const assertWebChatSourceContracts = async (): Promise<void> => {
   assertRenameTargeting(sources);
   assertProviderPatrol(sources);
   assertSharedScheduling(sources);
+  assertExactSearchDialogHygiene(sources);
 };

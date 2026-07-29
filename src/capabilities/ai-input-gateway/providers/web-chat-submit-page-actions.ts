@@ -31,17 +31,14 @@ export const verifyPromptSubmitted = (
   context: AiProviderAdapterContext,
   input: {
     expectedPrefix: string;
+    expectedSuffix: string;
     previousUserMessageCount: number;
     wasPromptVerifiedBeforeSubmit: boolean;
   },
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: "verify AI web chat prompt was submitted",
-    script: buildVerifyPromptSubmittedScript(
-      input.expectedPrefix,
-      input.previousUserMessageCount,
-      input.wasPromptVerifiedBeforeSubmit,
-    ),
+    script: buildVerifyPromptSubmittedScript(input),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
@@ -51,7 +48,7 @@ export const verifyLastUserMessageAttachments = (
   expectedCount: number,
   expectedKind: "image" | "file",
   expectedFileNames: readonly string[],
-  previousUserMessageCount: number,
+  turnMarker: string,
 ): Promise<WebChatEvaluation> =>
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: `verify AI web chat submitted user message has bound ${expectedKind} attachment`,
@@ -59,7 +56,7 @@ export const verifyLastUserMessageAttachments = (
       expectedCount,
       expectedKind,
       expectedFileNames,
-      previousUserMessageCount,
+      turnMarker,
     ),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

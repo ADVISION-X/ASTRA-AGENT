@@ -20,6 +20,8 @@ const aiExchangePath = "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.t
 const workbenchPick3SupportPath = "src/lib/local-runtime/workbench-pick3-support.ts";
 const aiGatewaySchemaPath = "src/capabilities/ai-input-gateway/schema.ts";
 const webChatOpenPath = "src/capabilities/ai-input-gateway/providers/web-chat-open.ts";
+const webChatFreshConversationPath =
+  "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts";
 const webChatWorkspacePath = "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts";
 const webChatSharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts";
 const webChatRecoveryPath = "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts";
@@ -43,6 +45,7 @@ assert.equal(existsSync(fromRepo(aiExchangePath)), true);
 assert.equal(existsSync(fromRepo(workbenchPick3SupportPath)), true);
 assert.equal(existsSync(fromRepo(aiGatewaySchemaPath)), true);
 assert.equal(existsSync(fromRepo(webChatOpenPath)), true);
+assert.equal(existsSync(fromRepo(webChatFreshConversationPath)), true);
 assert.equal(existsSync(fromRepo(webChatWorkspacePath)), true);
 assert.equal(existsSync(fromRepo(webChatSharedPath)), true);
 assert.equal(existsSync(fromRepo(webChatRecoveryPath)), true);
@@ -60,6 +63,7 @@ const workbenchPick3SupportText = readRepoText(workbenchPick3SupportPath),
 const workbenchPick3RoutesText = readRepoText(workbenchPick3RoutesPath),
   workbenchApiBoundaryText = readRepoText(workbenchApiBoundaryPath);
 const webChatOpenText = readRepoText(webChatOpenPath),
+  webChatFreshConversationText = readRepoText(webChatFreshConversationPath),
   webChatWorkspaceText = readRepoText(webChatWorkspacePath),
   webChatSharedText = readRepoText(webChatSharedPath),
   webChatRecoveryText = readRepoText(webChatRecoveryPath),
@@ -70,6 +74,7 @@ const attachmentChildText = readRepoText("src/capabilities/ai-input-gateway/chil
 const webChatComposerText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts");
 const webChatSelectorPreludeText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts");
 const webChatEvaluationText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts"),
+  webChatResponseExtractionText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-response-extraction-script.ts"),
   webChatSubmittedAttachmentEvaluationText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts");
 for (const token of ["```apex-law", '"capabilityDomain": "pick3-is-blind-eval"', "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1", "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1", "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1", "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1", "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1", "GRASSEYE-PICK3-IS-BRAIN-006-V1", "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1", "Pick3 GPT web-chat feeds must reuse one fixed AI Input Gateway workspace tab", "Pick3 GPT workspace tab reuse must be host/workspace based", "`/c/<conversation>` URLs may be recorded only in the conversation ledger", "Pick3 Gemini workspace tab reuse must record `https://gemini.google.com/app/<conversation>` URLs", "Pick3 GPT workspace opening must use `reuse-host-tab`", "Every Pick3 prompt and GPT output carries matching imageId and promptPackageId", "Playbook content sent to blind prediction must describe an anonymous time-series chart", "Pick3 Prompt Exchange may retry an empty web-chat raw output once", "explicitly non-directional", "normalized to internal `abstain`", "Pick3 GPT Prompt Exchange must detect ChatGPT rate-limit dialogs", "Pick3 GPT rate-limit recovery must not wait before clicking the acknowledgement", "Pick3 GPT web-chat transport must verify after submit that the last submitted user message contains the expected bound image attachment", "Pick3 provider sidebar history deletion is temporarily disabled", "provider_history_delete_temporarily_disabled", "current_history_delete_temporarily_disabled", "Pick3 training must preserve parsed prediction results when post-response provider history deletion is disabled", "Pick3 full pipeline must stop before reveal/scoring only after the same-chain Prompt Exchange completion queue is exhausted", "No one-GPT-tab-per-image behavior for Pick3 training"]) {
   assert.equal(lawText.includes(token), true, `law must include ${token}`);
@@ -135,7 +140,9 @@ for (const token of ["PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1", "isPick3NoResu
 for (const token of ["recoverPick3NoResultConversation", "recoverPick3MissingBoundImageConversation", "pick3_missing_bound_image_recovery_without_history_delete_and_reopened_new_chat", "pick3_no_result_recovery_reopened_new_chat_without_history_delete"]) {
   assert.equal(webChatRecoveryText.includes(token), true, `web-chat recovery owner must include ${token}`);
 }
-for (const token of ["isPick3GeminiRequest", "gemini.google.com", "reuse-active-tab", "gemini-web-chat:pick3-is-blind-eval:fresh"]) assert.equal(webChatOpenText.includes(token), true, `Gemini Pick3 fresh conversation must include ${token}`);
+const geminiFreshConversationContract =
+  `${webChatOpenText}\n${webChatFreshConversationText}`;
+for (const token of ["isPick3GeminiRequest", "gemini.google.com", "reuse-active-tab", "gemini-web-chat:pick3-is-blind-eval:fresh"]) assert.equal(geminiFreshConversationContract.includes(token), true, `Gemini Pick3 fresh conversation must include ${token}`);
 assert.equal(lawText.includes("Pick3 Gemini web-chat feeds must also reuse one fixed AI Input Gateway workspace tab"), true, "law must require fresh Gemini conversations per Pick3 image.");
 assert.equal(blueprintText.includes("fresh conversation = navigate the existing Gemini workspace tab to https://gemini.google.com/app before every Pick3 image"), true, "blueprint must document the verified Gemini fresh conversation path.");
 for (const token of ["Pick3 Gemini pre-image history cleanup must emit terminal-visible `pre_image_history_cleanup` timing logs", "provider_history_delete_temporarily_disabled", "pre_image_history_cleanup"]) assert.equal(lawText.includes(token), true, `law must include Gemini pre-image cleanup token ${token}`);
@@ -173,7 +180,7 @@ for (const token of ["user-query, user-query-content, .user-query-container", "c
 for (const token of ["WEB_CHAT_ATTACHMENT_COUNT_SCRIPT", "findAttachmentTileRoot", "file-tile", "在文本字段中显示", "移除文件", "seenTiles.add(findAttachmentTileRoot(node) || node)"]) assert.equal(webChatComposerText.includes(token), true, `ChatGPT file-tile attachment counting must include ${token}`);
 for (const token of ["WEB_CHAT_ATTACHMENT_COUNT_SCRIPT", "countChatGptBoundAttachments", "messageNode.parentElement", "messageNode.previousElementSibling", "button[aria-label*='在文本字段中显示']", "[class*='file-tile' i]", "isChatGptPastedTextTile", "isRealSubmittedAttachment", "findAttachmentTileRoot(node) || node"]) assert.equal(webChatSubmittedAttachmentEvaluationText.includes(token), true, `submitted image binding must recognize ChatGPT file-tile DOM token ${token}`);
 assert.equal(webChatEvaluationText.includes('composerRootText.includes("在文本字段中显示")'), true, "prompt-card evaluation must recognize ChatGPT pasted-text cards.");
-for (const token of ["extractLastJsonObject", "extractFirstJsonObject", 'location.hostname.includes("gemini.google.com")', "Gemini said", "geminiStructuredJsonAnswer", "responseGenerating = geminiBodyAnswer || geminiStructuredJsonAnswer ? false : generating", "answer extracted from gemini structured json", "answer extracted from gemini body json"]) assert.equal(webChatEvaluationText.includes(token), true, `Gemini answer extraction must include ${token}`);
+for (const token of ["extractLastJsonObject", "extractFirstJsonObject", 'location.hostname.includes("gemini.google.com")', "Gemini said", "geminiStructuredJsonAnswer", "responseGenerating = geminiBodyAnswer || geminiStructuredJsonAnswer ? false : generating", "answer extracted from gemini structured json", "answer extracted from gemini body json"]) assert.equal(webChatResponseExtractionText.includes(token), true, `Gemini answer extraction must include ${token}`);
 assert.equal(webChatResponseCaptureText.includes('input.request.providerKind === "gemini-web-chat" ? 1 : STABLE_ROUNDS_REQUIRED'), true, "Gemini answer capture must not wait on unstable assistant-count growth.");
 assert.equal(webChatSelectorPreludeText.includes("aria-label='Enter a prompt for Gemini'"), true, "Gemini composer selector must include the live aria-label-backed contenteditable textbox.");
 assert.equal(webChatRecoveryText.includes("pick3_no_result_recovery_reopened_gemini_new_chat"), true, "Gemini Pick3 no-result recovery must reopen Gemini new chat.");
@@ -187,12 +194,18 @@ for (const token of ["[GRASSEYE][PICK3][EXCHANGE]", "send_started", "send_result
 for (const token of ["provider_history_delete_temporarily_disabled"]) assert.equal(webChatPick3HistoryCleanupText.includes(token), true, `Pick3 history cleanup must include ${token}`);
 assert.equal(webChatPick3HistoryCleanupText.includes("deletePick3WorkspaceConversationHistoryUrl"), false, "Pick3 provider current-history delete export must stay removed while provider history deletion is temporarily disabled.");
 const webChatSubmitTextFull = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"),
+  webChatSearchDialogHygieneText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts"),
   webChatSubmitTimingText = [webChatSubmitTextFull, readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts")].join("\n");
-for (const token of ["dismissFloatingMenus", "Escape", "5_000"]) assert.equal(webChatSubmitTextFull.includes(token), true, `web-chat-submit must include ${token}`);
+for (const token of ["dismissChatGptSearchDialogIfVisible", "5_000"]) assert.equal(webChatSubmitTextFull.includes(token), true, `web-chat-submit must include ${token}`);
+for (const token of ["search chats", "搜索聊天", "CHATGPT_SEARCH_DIALOG_AMBIGUOUS", "CHATGPT_SEARCH_DIALOG_STILL_VISIBLE"]) assert.equal(webChatSearchDialogHygieneText.includes(token), true, `exact search-dialog hygiene must include ${token}`);
+assert.equal(webChatSearchDialogHygieneText.includes('key: "Escape"'), false, "prompt submission must close only the uniquely classified chat-search dialog, never an arbitrary floating menu by Escape");
 for (const token of ["GEMINI_PROMPT_PASTE_VERIFY_TIMEOUT_MS = 5_000", "GEMINI_PROMPT_PASTE_RETRY_LIMIT = 3", "pasteTextReplacingInChrome", "gemini_clipboard_prompt_paste", "verify_gemini_prompt_pasted_before_submit"]) assert.equal(webChatSubmitTextFull.includes(token), true, `Gemini prompt submit must include ${token}`);
 for (const token of ["[GRASSEYE][AI-GATEWAY][WEB-CHAT]", "gemini_clipboard_prompt_paste", "prompt_prepare", "verify_attachments_before_submit", "prompt_submit", "elapsedMs"]) assert.equal(webChatSubmitTimingText.includes(token), true, `Gemini prompt timing logs must include ${token}`);
 const webChatSharedTextFull = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts");
-for (const token of ["shouldSkipPreSubmitConversationState", "pre_submit_snapshot", "fresh_gemini_pick3_conversation"]) assert.equal(webChatSharedTextFull.includes(token), true, `Gemini upload-to-prompt idle guard must include ${token}`);
+const webChatPreSubmitStateText = readRepoText(
+  "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
+);
+for (const token of ["shouldSkipPreSubmitConversationState", "pre_submit_snapshot", "fresh_gemini_pick3_conversation"]) assert.equal(webChatPreSubmitStateText.includes(token), true, `Gemini upload-to-prompt idle guard must include ${token}`);
 for (const token of ['providerKind === "gemini-web-chat"', 'promptContractId.startsWith("pick3-is-blind-eval")', "deferred_gemini_pick3_post_batch_cleanup_required"]) assert.equal(webChatSharedSupportText.includes(token), true, `Gemini Pick3 per-image cleanup must defer post-batch history work with ${token}`);
 for (const token of ["cleanupGeminiPick3HistoryBeforeNextImage", "isBlockingGeminiPick3PreImageHistoryCleanupStatus"]) assert.equal(webChatSharedSupportText.includes(token), true, `Gemini pre-image history cleanup helper must include ${token}`);
 for (const token of ["pre_image_history_cleanup", "delete_previous_stale_history_before_next_image", "before attachment upload"]) assert.equal(webChatSharedTextFull.includes(token), true, `Gemini pre-image history cleanup runtime must include ${token}`);

@@ -1,7 +1,9 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
+  AiProviderUploadedFileProof,
   WebChatAttachmentUploadProof,
+  WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
@@ -24,8 +26,13 @@ import { clearComposer } from "./web-chat-upload-page-actions.js";
 import {
   acknowledgeChatGptRateLimitDialogIfVisible,
 } from "./web-chat-rate-limit-dialog.js";
+import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hygiene.js";
 import { acknowledgePick3RateLimitIfVisible } from "./web-chat-pick3-recovery-log.js";
 import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
+import {
+  finalizeObservedWebChatSubmission,
+  observeSubmittedWebChatTurn,
+} from "./web-chat-submission-checkpoint.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
@@ -33,7 +40,6 @@ const GEMINI_PROMPT_PASTE_VERIFY_TIMEOUT_MS = 5_000;
 const GEMINI_PROMPT_PASTE_RETRY_LIMIT = 3;
 const PROMPT_SUBMISSION_VERIFY_PREFIX_CHARS = 80;
 const SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS = 12_000;
-
 const normalizePromptForSubmission = (promptText: string): string =>
   promptText.replace(/\s+/gu, " ").trim();
 
@@ -59,6 +65,7 @@ const waitForPromptSubmitted = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedPrefix: string;
+  expectedSuffix: string;
   previousUserMessageCount: number;
   wasPromptVerifiedBeforeSubmit: boolean;
   timeoutMs: number;
@@ -70,6 +77,7 @@ const waitForPromptSubmitted = async (input: {
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
       verifyPromptSubmitted(input.browser, input.context, {
         expectedPrefix: input.expectedPrefix,
+        expectedSuffix: input.expectedSuffix,
         previousUserMessageCount: input.previousUserMessageCount,
         wasPromptVerifiedBeforeSubmit: input.wasPromptVerifiedBeforeSubmit,
       }));
@@ -110,16 +118,16 @@ type SubmitPromptViaClipboardInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
+  previousAssistantCount: number;
   previousUserMessageCount: number;
+  uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
 };
-
 type Pick3RateLimitSubmitGuardInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };
-
 const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
   if (input.request.providerKind !== "gpt-web-chat") return;
   if (input.request.promptContractId.includes("pick3-is-blind-eval")) {
@@ -150,32 +158,12 @@ type PreparedPromptComposer = {
   expectedAttachmentKind: "image" | "file";
   wasPromptVerifiedBeforeSubmit: true;
 };
-
 const requestHasUploadableInputRefs = (request: AiFeedInput): boolean =>
   request.inputRefs.some((ref) => Boolean(ref.filePath));
 
-const dismissFloatingMenus = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
-  await input.browser.evaluateActiveTab<void>({
-    description: "dismiss any open context menus or dialogs before composer focus",
-    script: `
-const floating = Array.from(document.querySelectorAll('[role="menu"], [role="listbox"], [role="dialog"], [data-radix-popper-content-wrapper]'))
-  .filter((node) => {
-    if (!(node instanceof HTMLElement)) return false;
-    const rect = node.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  });
-if (floating.length > 0) {
-  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", keyCode: 27, bubbles: true }));
-  document.activeElement instanceof HTMLElement && document.activeElement.blur();
-}
-`,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-};
-
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   await acknowledgeChatGptSubmitRateLimitIfVisible(input);
-  await dismissFloatingMenus(input);
+  await dismissChatGptSearchDialogIfVisible(input.browser, input.context);
   await input.browser.wait(200);
   await acknowledgeChatGptSubmitRateLimitIfVisible(input);
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
@@ -228,7 +216,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
   expectedCount: number;
   expectedKind: "image" | "file";
   expectedFileNames: readonly string[];
-  previousUserMessageCount: number;
+  turnMarker: string;
   timeoutMs: number;
 }): Promise<void> => {
   if (input.expectedCount <= 0) return;
@@ -244,7 +232,7 @@ const waitForSubmittedUserMessageAttachments = async (input: {
         input.expectedCount,
         input.expectedKind,
         input.expectedFileNames,
-        input.previousUserMessageCount,
+        input.turnMarker,
       ));
     lastEvaluation = evaluation;
     lastMessage = `${evaluation.status}: ${evaluation.message}`;
@@ -417,7 +405,7 @@ const preparePromptComposer = async (
 
 const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   preparedPrompt: PreparedPromptComposer;
-}): Promise<void> => {
+}): Promise<WebChatSubmissionProof | null> => {
   const submitStartedAtMs = Date.now();
   emitSubmitStage(input, "prompt_submit", "start", null, {
     expectedAttachmentCount: input.preparedPrompt.expectedAttachmentCount,
@@ -434,11 +422,21 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     context: input.context,
     request: input.request,
     expectedPrefix: input.preparedPrompt.expectedPrefix,
+    expectedSuffix: input.preparedPrompt.expectedSuffix,
     previousUserMessageCount: input.previousUserMessageCount,
     wasPromptVerifiedBeforeSubmit: input.preparedPrompt.wasPromptVerifiedBeforeSubmit,
     timeoutMs: input.request.timeoutMs,
   });
   if (submittedAfterClick) {
+    const submission = await observeSubmittedWebChatTurn({
+      browser: input.browser,
+      context: input.context,
+      request: input.request,
+      previousAssistantCount: input.previousAssistantCount,
+      previousUserMessageCount: input.previousUserMessageCount,
+      uploadedFiles: input.uploadedFiles,
+      attachmentUploadProof: input.attachmentUploadProof,
+    });
     await waitForSubmittedUserMessageAttachments({
       browser: input.browser,
       context: input.context,
@@ -449,13 +447,29 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
         .slice()
         .sort((left, right) => left.order - right.order)
         .map((file) => file.displayFileName),
-      previousUserMessageCount: input.previousUserMessageCount,
+      turnMarker:
+        input.context.webChatExecution?.turnMarker
+        ?? input.preparedPrompt.expectedSuffix.match(
+          /GRASSEYE_TURN_[A-Za-z0-9_-]+/u,
+        )?.[0]
+        ?? "",
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
     });
-    emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
-      method: "provider_dom_send_button",
-    });
-    return;
+    await finalizeObservedWebChatSubmission({
+      browser: input.browser,
+      context: input.context,
+      request: input.request,
+      previousAssistantCount: input.previousAssistantCount,
+      previousUserMessageCount: input.previousUserMessageCount,
+      uploadedFiles: input.uploadedFiles,
+      attachmentUploadProof: input.attachmentUploadProof,
+    }, submission);
+    if (!input.context.webChatExecution) {
+      emitSubmitStage(input, "prompt_submit", "success", submitStartedAtMs, {
+        method: "provider_dom_send_button",
+      });
+    }
+    return submission;
   }
   emitSubmitStage(input, "prompt_submit", "failed", submitStartedAtMs, {
     reason: "not_submitted",
@@ -463,10 +477,12 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   throw new Error("GPT_PROMPT_MISMATCH; review_required: provider prompt was not submitted after return and send click.");
 };
 
-export const submitPromptViaClipboard = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+export const submitPromptViaClipboard = async (
+  input: SubmitPromptViaClipboardInput,
+): Promise<WebChatSubmissionProof | null> => {
   try {
     const preparedPrompt = await preparePromptComposer(input);
-    await submitPromptFromComposer({
+    return await submitPromptFromComposer({
       ...input,
       preparedPrompt,
     });

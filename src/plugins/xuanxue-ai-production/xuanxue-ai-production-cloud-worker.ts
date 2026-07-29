@@ -6,6 +6,7 @@ import {
   failXuanxueAiProductionJob,
   heartbeatXuanxueAiProductionDevice,
   heartbeatXuanxueAiProductionJob,
+  recoverXuanxueAiProductionJob,
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
   XuanxueAiProductionCloudClaimedJob,
@@ -21,6 +22,16 @@ import {
 interface XuanxueAiProductionExecutionPort {
   createOrder(input: unknown): XuanxueAiOrderRecord;
   executeOrder(orderId: string): Promise<XuanxueAiOrderRecord>;
+  listCloudRecoveryOrders(): XuanxueAiOrderRecord[];
+  repairCompletedCheckpointProviderProofs(): Promise<number>;
+  quarantineForeignCloudRecoveryOrder(
+    orderId: string,
+    reason: string,
+  ): XuanxueAiOrderRecord;
+  cancelCloudRecoveryOrder(
+    orderId: string,
+    reason: string,
+  ): XuanxueAiOrderRecord;
   availableCapacity(): number;
 }
 
@@ -30,6 +41,7 @@ interface WorkerState {
   readonly credential: XuanxueAiProductionCloudCredential;
   readonly dataDir: string;
   readonly execution: XuanxueAiProductionExecutionPort;
+  readonly reconciledLocalOrders: Set<string>;
   lastDeviceHeartbeatAt: number;
 }
 
@@ -142,12 +154,15 @@ const executeCloudJob = async (
     await checkpointXuanxueAiProductionJob(state.credential, job, {
       status: "inputs_downloading",
     });
-    const order = await stageXuanxueAiProductionCloudJob(
+    const staged = await stageXuanxueAiProductionCloudJob(
       state.dataDir,
       state.credential,
       job,
     );
-    const created = state.execution.createOrder(order);
+    if (staged.parentReplay) {
+      state.execution.createOrder(staged.parentReplay);
+    }
+    const created = state.execution.createOrder(staged.order);
     localOrderId = created.order.orderId;
     await checkpointXuanxueAiProductionJob(state.credential, job, {
       status: "factory_running",
@@ -183,6 +198,62 @@ const executeCloudJob = async (
   }
 };
 
+const reconcileDurableLocalOrders = async (
+  state: WorkerState,
+): Promise<void> => {
+  await state.execution.repairCompletedCheckpointProviderProofs();
+  for (const record of state.execution.listCloudRecoveryOrders()) {
+    const orderId = record.order.orderId;
+    if (
+      state.reconciledLocalOrders.has(orderId)
+      || state.active.has(orderId)
+    ) continue;
+    try {
+      const recovered = await recoverXuanxueAiProductionJob(
+        state.credential,
+        {
+          orderId,
+          sourceTaskId: record.order.sourceTaskId,
+          requestHash: record.order.requestHash,
+          completedResult:
+            record.status === "completed" && record.result
+              ? record.result
+              : null,
+        },
+      );
+      state.reconciledLocalOrders.add(orderId);
+      if (recovered.status === "cancelled") {
+        state.execution.cancelCloudRecoveryOrder(
+          orderId,
+          "cloud recovery endpoint returned terminal cancelled",
+        );
+        continue;
+      }
+      if (recovered.status === "completed") {
+        await cleanXuanxueAiProductionCloudStaging(
+          state.dataDir,
+          orderId,
+        );
+      }
+    } catch (error) {
+      const reason = safeReason(error);
+      const foreignLedger = reason.includes(
+        "AI_PRODUCTION_LOCAL_RECOVERY_DEVICE_MISMATCH",
+      );
+      if (foreignLedger) {
+        state.execution.quarantineForeignCloudRecoveryOrder(orderId, reason);
+        state.reconciledLocalOrders.add(orderId);
+      }
+      reportWorkerError(
+        foreignLedger
+          ? "XUANXUE_AI_PRODUCTION_FOREIGN_LEDGER_SKIPPED"
+          : "XUANXUE_AI_PRODUCTION_LEDGER_RECOVERY_RETRY",
+        error,
+      );
+    }
+  }
+};
+
 const workerLoop = async (state: WorkerState): Promise<void> => {
   while (!state.abort.signal.aborted) {
     try {
@@ -190,6 +261,7 @@ const workerLoop = async (state: WorkerState): Promise<void> => {
         await heartbeatXuanxueAiProductionDevice(state.credential);
         state.lastDeviceHeartbeatAt = Date.now();
       }
+      await reconcileDurableLocalOrders(state);
       const available = Math.min(
         state.execution.availableCapacity(),
         state.credential.max_in_flight - state.active.size,
@@ -234,6 +306,7 @@ export async function startXuanxueAiProductionCloudWorker(input: {
     credential,
     dataDir: input.dataDir,
     execution: input.execution,
+    reconciledLocalOrders: new Set(),
     lastDeviceHeartbeatAt: 0,
   };
   const loop = workerLoop(state);

@@ -97,14 +97,14 @@ export const buildVerifyLastUserMessageAttachmentsScript = (
   expectedCount: number,
   expectedKind: "image" | "file",
   expectedFileNames: readonly string[],
-  previousUserMessageCount: number,
+  turnMarker: string,
 ): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 ${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
 const expectedCount = ${JSON.stringify(expectedCount)};
 const expectedKind = ${JSON.stringify(expectedKind)};
 const expectedFileNames = ${JSON.stringify(expectedFileNames)};
-const previousUserMessageCount = ${JSON.stringify(previousUserMessageCount)};
+const turnMarker = ${JSON.stringify(turnMarker)};
 ${WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 ${CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 ${GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
@@ -116,7 +116,9 @@ const geminiUserMessageCandidates = Array.from(document.querySelectorAll("user-q
 const geminiUserMessages = geminiUserMessageCandidates
   .filter((node) => !geminiUserMessageCandidates.some((other) => other !== node && other.contains(node)));
 const userMessages = chatGptUserMessages.length > 0 ? chatGptUserMessages : geminiUserMessages;
-const lastUserMessage = userMessages[userMessages.length - 1] || null;
+const matchingUserMessages = userMessages
+  .filter((node) => clip(node.innerText || node.textContent || "").includes(turnMarker));
+const lastUserMessage = matchingUserMessages.length === 1 ? matchingUserMessages[0] : null;
 const boundAttachments = chatGptUserMessages.length > 0
   ? countChatGptBoundAttachments(lastUserMessage)
   : countGeminiBoundAttachments(lastUserMessage);
@@ -129,21 +131,21 @@ const unexpectedFileNames = requireExactFileNames
   ? boundAttachments.names.filter((name) => !expectedFileNames.includes(name))
   : [];
 const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
-const proof = {pageUrl: location.href, boundAttachmentCount, attachmentNames: boundAttachments.names, missingFileNames, unexpectedFileNames, lastUserMessageText, userMessageCount: userMessages.length};
-if (userMessages.length > previousUserMessageCount + 1) {
-  return {status: "failed", message: "WEB_CHAT_USER_TURN_DELTA_MISMATCH", ...proof};
+const proof = {pageUrl: location.href, boundAttachmentCount, attachmentNames: boundAttachments.names, missingFileNames, unexpectedFileNames, lastUserMessageText, userMessageCount: userMessages.length, matchingUserMessageCount: matchingUserMessages.length};
+if (matchingUserMessages.length > 1) {
+  return {status: "failed", message: "WEB_CHAT_TURN_MARKER_AMBIGUOUS", ...proof};
 }
-if (userMessages.length !== previousUserMessageCount + 1) {
-  return {status: "pending", message: "waiting for one fresh submitted user message", ...proof};
+if (matchingUserMessages.length !== 1) {
+  return {status: "pending", message: "waiting for the exact internally marked submitted user message", ...proof};
 }
 if (unexpectedFileNames.length > 0) {
-  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH: fresh submitted user message contains unexpected attachments", ...proof};
+  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH: internally marked submitted user message contains unexpected attachments", ...proof};
 }
 if (boundAttachmentCount === expectedCount && missingFileNames.length === 0) {
-  return {status: "success", message: expectedKind === "image" ? "fresh submitted user message contains exact bound image attachment set" : "fresh submitted user message contains exact bound file attachment set", ...proof};
+  return {status: "success", message: expectedKind === "image" ? "internally marked submitted user message contains exact bound image attachment set" : "internally marked submitted user message contains exact bound file attachment set", ...proof};
 }
 if (boundAttachmentCount > expectedCount) {
-  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH: fresh submitted user message contains too many attachments", ...proof};
+  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH: internally marked submitted user message contains too many attachments", ...proof};
 }
-return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: fresh submitted user message does not contain required image attachment" : "provider_missing_bound_file: fresh submitted user message does not contain required file attachment", ...proof};
+return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: internally marked submitted user message does not contain required image attachment" : "provider_missing_bound_file: internally marked submitted user message does not contain required file attachment", ...proof};
 `;

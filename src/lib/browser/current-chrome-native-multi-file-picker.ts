@@ -6,12 +6,20 @@ import type {
 } from "./browser-controller.js";
 import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser-action-result.js";
 import { escapeAppleScriptText } from "./current-chrome-browser-controller-primitives.js";
-import { runAppleScript } from "./current-chrome-window-control.js";
+import {
+  runAppleScript,
+  type ChromeWindowState,
+} from "./current-chrome-window-control.js";
 
 type NativePickerInput = Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0];
+type NativePickerWindowIdentity = Pick<
+  ChromeWindowState,
+  "windowX" | "windowY" | "width" | "height"
+>;
 
 const NATIVE_PICKER_PROCESS_TIMEOUT_MS = 35_000;
 const NATIVE_PICKER_CLEANUP_TIMEOUT_MS = 5_000;
+const NATIVE_PICKER_FOLDER_NAVIGATION_ATTEMPTS = 3;
 
 const appleScriptList = (values: readonly string[]): string =>
   `{${values.map((value) => `"${escapeAppleScriptText(value)}"`).join(", ")}}`;
@@ -34,12 +42,15 @@ end failAndClose
 const buildPickerInputContract = (input: {
   stagingDirectoryPath: string;
   expectedFileNames: readonly string[];
+  windowIdentity: NativePickerWindowIdentity;
 }): string => `
 set expectedNames to ${appleScriptList(input.expectedFileNames)}
 set reversedNames to ${appleScriptList([...input.expectedFileNames].reverse())}
 set expectedCount to count of expectedNames
 set observedNames to {}
 set stagingDirectoryPath to "${escapeAppleScriptText(resolve(input.stagingDirectoryPath))}"
+set expectedWindowPosition to {${input.windowIdentity.windowX}, ${input.windowIdentity.windowY}}
+set expectedWindowSize to {${input.windowIdentity.width}, ${input.windowIdentity.height}}
 `;
 
 const PICKER_NAVIGATION_SCRIPT = `
@@ -49,6 +60,10 @@ with timeout of 25 seconds
     tell process "Google Chrome"
       set frontmost to true
       if (count of windows) is 0 then return "FAILED" & linefeed & "NATIVE_PICKER_CHROME_WINDOW_MISSING"
+      if (position of window 1) is not expectedWindowPosition or (size of window 1) is not expectedWindowSize then
+        return "FAILED" & linefeed & "NATIVE_PICKER_CONTROLLED_WINDOW_MISMATCH"
+      end if
+      perform action "AXRaise" of window 1
 
       set pickerSheetReady to false
       repeat with pollIndex from 1 to 50
@@ -63,26 +78,51 @@ with timeout of 25 seconds
       if pickerSheetReady is false then return "FAILED" & linefeed & "NATIVE_PICKER_NOT_READY"
 
       set targetSheet to sheet 1 of window 1
-      keystroke "g" using {command down, shift down}
-
       set folderFieldReady to false
-      repeat with pollIndex from 1 to 50
-        try
-          set focusedElement to value of attribute "AXFocusedUIElement"
-          set focusedRole to role of focusedElement
-          if focusedRole is "AXTextField" or focusedRole is "AXComboBox" then
-            set folderFieldReady to true
-            exit repeat
+      set folderSheet to missing value
+      set folderField to missing value
+      repeat with navigationAttempt from 1 to ${NATIVE_PICKER_FOLDER_NAVIGATION_ATTEMPTS}
+        keystroke "g" using {command down, shift down}
+        repeat with pollIndex from 1 to 50
+          set nestedSheetCount to count of sheets of targetSheet
+          if nestedSheetCount is greater than 1 then
+            return my failAndClose("NATIVE_FOLDER_SHEET_AMBIGUOUS", {})
           end if
-        end try
-        delay 0.1
+          if nestedSheetCount is 1 then
+            set folderSheet to sheet 1 of targetSheet
+            set folderFieldCount to count of text fields of folderSheet
+            if folderFieldCount is greater than 1 then
+              return my failAndClose("NATIVE_FOLDER_FIELD_AMBIGUOUS", {})
+            end if
+            if folderFieldCount is 1 then
+              set folderField to text field 1 of folderSheet
+              try
+                set focused of folderField to true
+              end try
+              if focused of folderField is true then
+                set folderFieldReady to true
+                exit repeat
+              end if
+            end if
+          end if
+          delay 0.1
+        end repeat
+        if folderFieldReady is true then exit repeat
       end repeat
       if folderFieldReady is false then return my failAndClose("NATIVE_FOLDER_FIELD_NOT_FOCUSED", {})
 
       set the clipboard to stagingDirectoryPath
       keystroke "v" using command down
       key code 36
-      delay 0.4
+      set folderSheetClosed to false
+      repeat with pollIndex from 1 to 50
+        if (count of sheets of targetSheet) is 0 then
+          set folderSheetClosed to true
+          exit repeat
+        end if
+        delay 0.1
+      end repeat
+      if folderSheetClosed is false then return my failAndClose("NATIVE_FOLDER_NAVIGATION_NOT_COMMITTED", {})
       keystroke "2" using command down
 
       set fileOutline to missing value
@@ -229,6 +269,7 @@ return "SUCCESS" & linefeed & (observedNames as text)
 const buildNativePickerScript = (input: {
   stagingDirectoryPath: string;
   expectedFileNames: readonly string[];
+  windowIdentity: NativePickerWindowIdentity;
 }): string => [
   PICKER_FAILURE_HANDLER,
   buildPickerInputContract(input),
@@ -281,6 +322,7 @@ const closeOrphanedNativePicker = async (): Promise<void> => {
 
 export const runNativeMultiFilePickerSelection = async (
   input: NativePickerInput,
+  windowIdentity: NativePickerWindowIdentity,
 ): Promise<BrowserNativeMultiFilePickerResult> => {
   if (input.expectedFileNames.length < 2) {
     return failureResult("NATIVE_MULTI_FILE_PICKER_REQUIRES_MULTIPLE_FILES");
@@ -297,6 +339,7 @@ export const runNativeMultiFilePickerSelection = async (
       buildNativePickerScript({
         stagingDirectoryPath: input.stagingDirectoryPath,
         expectedFileNames: input.expectedFileNames,
+        windowIdentity,
       }),
       { signal },
     );

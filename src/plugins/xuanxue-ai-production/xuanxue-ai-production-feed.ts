@@ -14,29 +14,43 @@ import type {
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import {
   XUANXUE_AI_PRODUCTION_JOB_ID,
+  isXuanxueAiFollowupProduct,
+  xuanxueAiContinuationProfiles,
   type XuanxueAiOrderRecord,
   type XuanxueAiProductionOrder,
   type XuanxueAiStageId,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
+import {
+  xuanxueAiOutputIntegrityFailure,
+} from "./xuanxue-ai-production-output-integrity.js";
 
 type GeneratedStageInput = Awaited<ReturnType<typeof writePriorStageInput>>;
+
+export const canonicalXuanxueRawOutputHash = (
+  value: string,
+): `sha256:${string}` => {
+  const canonical = value.startsWith("sha256:")
+    ? value
+    : `sha256:${value}`;
+  if (!/^sha256:[a-f0-9]{64}$/u.test(canonical)) {
+    throw new Error("XUANXUE_AI_PRODUCTION_OUTPUT_HASH_INVALID");
+  }
+  return canonical as `sha256:${string}`;
+};
 
 const labelForStage = (
   productId: XuanxueAiProductionOrder["productId"],
   stageId: XuanxueAiStageId,
 ): AiTaskLabelKey => {
-  let label: AiTaskLabelKey = "bazi_analysis";
-  if (productId.startsWith("qimen_")) label = "qimen_analysis";
-  if (productId.startsWith("hehun_")) label = "hehun_analysis";
-  if (productId.startsWith("naming_")) label = "naming_analysis";
-  if (stageId === "analysis") label = "qimen_analysis";
-  if (stageId === "naming_author") label = "naming_analysis";
-  if (stageId === "payment_screenshot_observation") label = "generic_ai";
-  if (stageId === "corpus_research") label = "seo_research";
-  if (stageId === "article_synthesis") label = "seo_article";
-  if (stageId === "followup") label = "hehun_analysis";
-  return label;
+  if (productId === "public_knowledge_article_pipeline") {
+    return stageId === "corpus_research" ? "seo_research" : "seo_article";
+  }
+  if (productId.startsWith("bazi_")) return "bazi_analysis";
+  if (productId.startsWith("qimen_")) return "qimen_analysis";
+  if (productId.startsWith("hehun_")) return "hehun_analysis";
+  if (productId.startsWith("naming_")) return "naming_analysis";
+  return "generic_ai";
 };
 
 const seededAiResult = (
@@ -67,20 +81,34 @@ export const initialXuanxueStages = (
   const seeded = order.seededStages.find(
     (stage) => stage.stageId === definition.stageId,
   );
+  const seededFailure = seeded
+    ? xuanxueAiOutputIntegrityFailure(seeded.rawResponseText)
+    : null;
+  const seededAccepted = Boolean(seeded && !seededFailure);
   return {
     orderId: order.orderId,
     stageId: definition.stageId,
     ordinal,
-    executionId: seeded?.executionId
-      ?? `${XUANXUE_AI_PRODUCTION_JOB_ID}:${order.orderId}:${definition.stageId}`,
-    status: seeded ? "completed" : "queued",
+    executionId: seededAccepted
+      ? seeded!.executionId
+      : `${XUANXUE_AI_PRODUCTION_JOB_ID}:${order.orderId}:${definition.stageId}`,
+    supersededExecutionId: seededFailure ? seeded!.executionId : null,
+    status: seededAccepted
+      ? "completed"
+      : seededFailure
+        ? "recovery_pending"
+        : "queued",
     attemptCount: seeded ? 1 : 0,
     material: order.materials[ordinal]!,
-    aiFeedResult: seeded ? seededAiResult(seeded) : null,
-    rawResponseText: seeded?.rawResponseText ?? null,
-    rawOutputHash: seeded?.rawOutputHash ?? null,
-    progressPhase: seeded ? "terminal" : "queued",
-    failureReason: null,
+    aiFeedResult: seededAccepted ? seededAiResult(seeded!) : null,
+    rawResponseText: seededAccepted ? seeded!.rawResponseText : null,
+    rawOutputHash: seededAccepted ? seeded!.rawOutputHash : null,
+    progressPhase: seededAccepted
+      ? "terminal"
+      : seededFailure
+        ? "recovery_pending"
+        : "queued",
+    failureReason: seededFailure,
     createdAt: order.createdAt,
     updatedAt: order.createdAt,
   };
@@ -128,7 +156,7 @@ async function writePriorStageInput(
   const bytes = Buffer.from(prior.rawResponseText, "utf8");
   const sha256 =
     `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
-  if (sha256 !== prior.rawOutputHash) {
+  if (sha256 !== canonicalXuanxueRawOutputHash(prior.rawOutputHash)) {
     throw new Error(
       `XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:${prior.stageId}`,
     );
@@ -164,7 +192,8 @@ const continuationFor = (
   }
   return {
     priorTaskId: prior.executionId,
-    priorRawOutputHash: prior.rawOutputHash,
+    priorRawOutputHash:
+      canonicalXuanxueRawOutputHash(prior.rawOutputHash),
     providerPageUrl,
   };
 };
@@ -184,12 +213,40 @@ const parentContinuation = async (
   if (!parentOrder || parentOrder.status !== "completed") {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_ORDER_MISSING");
   }
+  if (
+    isXuanxueAiFollowupProduct(record.order.productId)
+    && (
+      parentOrder.order.productId
+        !== xuanxueAiContinuationProfiles[
+          record.order.productId
+        ].productId
+      || parentRef.stageId
+        !== xuanxueAiContinuationProfiles[
+          record.order.productId
+        ].stageId
+    )
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_PROFILE_MISMATCH");
+  }
   const parentStage = requireXuanxueStage(parentOrder, parentRef.stageId);
+  const rebuild = runtime.store.readParentConversationRebuild({
+    parentJobId: parentRef.jobId,
+    parentStageId: parentRef.stageId,
+    originalRawOutputHash: parentRef.rawOutputHash,
+  });
+  const parentRawOutputHash = parentStage.rawOutputHash
+    ? canonicalXuanxueRawOutputHash(parentStage.rawOutputHash)
+    : null;
   const providerPageUrl =
     parentStage.aiFeedResult?.providerProof.webChatUrl;
   if (
-    parentStage.rawOutputHash !== parentRef.rawOutputHash
+    parentRawOutputHash
+      !== (rebuild?.rebuiltRawOutputHash ?? parentRef.rawOutputHash)
     || !providerPageUrl
+    || (
+      rebuild
+      && providerPageUrl !== rebuild.providerPageUrl
+    )
     || parentStage.status !== "completed"
   ) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
@@ -205,7 +262,7 @@ const parentContinuation = async (
     ],
     continuation: {
       priorTaskId: parentStage.executionId,
-      priorRawOutputHash: parentStage.rawOutputHash,
+      priorRawOutputHash: parentRawOutputHash,
       providerPageUrl,
     },
     taskLabel: labelForStage(
@@ -235,6 +292,22 @@ export const buildXuanxueAiFeedInput = async (
     ?? continuationFor(record, definition);
   const taskLabel = parent?.taskLabel
     ?? labelForStage(record.order.productId, stage.stageId);
+  const trustedGeneratedFileCount =
+    generated.length + (parent?.generated.length ?? 0);
+  const stageInputs = [
+    ...stage.material.inputRefs,
+    ...generated,
+    ...(parent?.generated ?? []),
+  ];
+  const inputRefs = stageInputs.some(
+    (inputRef) => inputRef.id === record.order.inputBundleRef,
+  )
+    ? stageInputs
+    : [{
+        id: record.order.inputBundleRef,
+        kind: "input_bundle",
+        summary: "玄学网站锁定的完整 AI 输入包",
+      }, ...stageInputs];
   return {
     providerKind: "gpt-web-chat",
     taskIdentity: {
@@ -247,15 +320,12 @@ export const buildXuanxueAiFeedInput = async (
     promptContractId: stage.material.promptContractId,
     expectedOutputSchemaRef: stage.material.expectedOutputSchemaRef,
     textPrompt: stage.material.textPrompt,
-    inputRefs: [
-      ...stage.material.inputRefs,
-      ...generated,
-      ...(parent?.generated ?? []),
-    ],
+    inputRefs,
     modelName: null,
     timeoutMs: stage.material.timeoutMs,
     maxInputChars: stage.material.maxInputChars,
-    maxFileCount: stage.material.maxFileCount,
+    maxFileCount:
+      stage.material.maxFileCount + trustedGeneratedFileCount,
     maxFileBytes: stage.material.maxFileBytes,
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,

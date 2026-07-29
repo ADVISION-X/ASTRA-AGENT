@@ -27,6 +27,8 @@ Xuanyuan 只拥有“一份已治理提示词包对应一次 GPT Web 投喂”�
 - 原始回答、hash、provider proof、失败账和恢复动作必须持久化。
 - 临时没有 GPT 标签页、浏览器断线、限流或网络问题保留同一任务为 `recovery_pending`；
   已提交任务按精确 execution id 恢复，禁止重复发送。
+- AI Input Gateway 返回 `review_required` 后，Xuanyuan 必须清空自动重试时间并停止调度；
+  重启不得把人工复核任务重新降级成 `recovery_pending` 或继续搜索 GPT。
 
 ## Forbidden
 
@@ -35,6 +37,7 @@ Xuanyuan 只拥有“一份已治理提示词包对应一次 GPT Web 投喂”�
 - 不得 import provider adapter、DOM、browser 私有实现或 provider SDK。
 - 不得接受 provider URL、tab id、selector、坐标、浏览器命令或调用方并发参数。
 - 不得解析、修复或判断领域内容，不得产生假成功。
+- 不得用旧的 `recovery_pending` progress 覆盖新的 `review_required` 结果。
 
 ```apex-law
 {
@@ -48,12 +51,13 @@ Xuanyuan 只拥有“一份已治理提示词包对应一次 GPT Web 投喂”�
   "required": [
     "Xuanyuan persists one governed request and one gateway result under an idempotent local task identity.",
     "Exact submitted work survives restart without duplicate prompt submission.",
+    "A gateway review_required result stops automatic retry and remains stopped after restart.",
     "The former Xuanyuan cloud production region remains physically deleted."
   ],
   "forbidden": [
     "website production claims or xuanxue product workflow graphs inside Xuanyuan",
     "provider adapter, browser private implementation or provider SDK inside Xuanyuan",
-    "fake success, duplicate restart submission or caller transport controls"
+    "fake success, duplicate restart submission, review-required auto-retry or caller transport controls"
   ],
   "clauses": [
     {

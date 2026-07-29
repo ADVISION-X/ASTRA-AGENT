@@ -16,3 +16,6 @@ export type {
   AiInputGatewayAbilityGroup,
   AiInputGatewayProgress,
 } from "./contract.js";
+export type {
+  WebChatFailureClassification,
+} from "./failure-classification.js";

@@ -10,6 +10,7 @@ import {
   buildClickChatGptLocalFileMenuItemScript,
 } from "./web-chat-composer-scripts.js";
 import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
+import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hygiene.js";
 
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
 
@@ -95,6 +96,7 @@ export const openChatGptNativeFilePicker = async (
   context: AiProviderAdapterContext,
   expectedPageUrl: string,
 ): Promise<void> => {
+  await dismissChatGptSearchDialogIfVisible(browser, context);
   const addButton = await browser.evaluateActiveTab<WebChatEvaluation>({
     description: "open ChatGPT attachment menu",
     script: buildClickChatGptAddButtonScript(expectedPageUrl),

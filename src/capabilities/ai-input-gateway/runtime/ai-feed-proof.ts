@@ -13,8 +13,8 @@ import {
 } from "../schema.js";
 import type { AiFeedInputPackage } from "./ai-feed-input-package.js";
 
-const hashValue = (value: string): string =>
-  createHash("sha256").update(value).digest("hex");
+const hashValue = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const outputDirectory = (dataDir: string): string =>
   path.join(dataDir, "runtime-data", "ai-input-gateway");

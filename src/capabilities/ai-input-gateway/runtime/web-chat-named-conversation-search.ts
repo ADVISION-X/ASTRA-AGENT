@@ -1,4 +1,5 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import { dismissChatGptSearchDialogIfVisible } from "../providers/web-chat-search-dialog-hygiene.js";
 
 type SearchTarget = {
   status: "success" | "pending" | "review_required";
@@ -120,42 +121,60 @@ export const searchAndOpenNamedConversation = async (input: {
   searchPoint: { x: number; y: number } | undefined;
   signal?: AbortSignal;
 }): Promise<void> => {
-  await clickTarget({
-    base: input.base,
-    description: "open ChatGPT chat search",
-    targetPoint: input.searchPoint,
-  });
-  const textbox = await locateSearchTarget({
-    base: input.base,
-    script: SEARCH_TEXTBOX_TARGET_SCRIPT,
-    description: "locate ChatGPT chat search textbox",
-    ...(input.signal ? { signal: input.signal } : {}),
-  });
-  await clickTarget({
-    base: input.base,
-    description: "focus ChatGPT chat search textbox",
-    targetPoint: textbox.targetPoint,
-  });
-  await input.base.textInput({
-    targetLabel: "ChatGPT chat search textbox",
-    action: "clear-input",
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  await input.base.textInput({
-    targetLabel: "ChatGPT chat search textbox",
-    action: "type-text",
-    text: input.systemChatTitle,
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  const result = await locateSearchTarget({
-    base: input.base,
-    script: buildSearchResultTargetScript(input.systemChatTitle),
-    description: "locate exact system-renamed ChatGPT search result",
-    ...(input.signal ? { signal: input.signal } : {}),
-  });
-  await clickTarget({
-    base: input.base,
-    description: "open exact system-renamed ChatGPT search result",
-    targetPoint: result.targetPoint,
-  });
+  const context = input.signal ? { abortSignal: input.signal } : {};
+  await dismissChatGptSearchDialogIfVisible(input.base, context);
+  let searchFailure: unknown = null;
+  try {
+    await clickTarget({
+      base: input.base,
+      description: "open ChatGPT chat search",
+      targetPoint: input.searchPoint,
+    });
+    const textbox = await locateSearchTarget({
+      base: input.base,
+      script: SEARCH_TEXTBOX_TARGET_SCRIPT,
+      description: "locate ChatGPT chat search textbox",
+      ...(input.signal ? { signal: input.signal } : {}),
+    });
+    await clickTarget({
+      base: input.base,
+      description: "focus ChatGPT chat search textbox",
+      targetPoint: textbox.targetPoint,
+    });
+    await input.base.textInput({
+      targetLabel: "ChatGPT chat search textbox",
+      action: "clear-input",
+      ...(input.signal ? { abortSignal: input.signal } : {}),
+    });
+    await input.base.textInput({
+      targetLabel: "ChatGPT chat search textbox",
+      action: "type-text",
+      text: input.systemChatTitle,
+      ...(input.signal ? { abortSignal: input.signal } : {}),
+    });
+    const result = await locateSearchTarget({
+      base: input.base,
+      script: buildSearchResultTargetScript(input.systemChatTitle),
+      description: "locate exact system-renamed ChatGPT search result",
+      ...(input.signal ? { signal: input.signal } : {}),
+    });
+    await clickTarget({
+      base: input.base,
+      description: "open exact system-renamed ChatGPT search result",
+      targetPoint: result.targetPoint,
+    });
+  } catch (error) {
+    searchFailure = error;
+  }
+  try {
+    await dismissChatGptSearchDialogIfVisible(input.base, context);
+  } catch (cleanupError) {
+    if (searchFailure) {
+      throw new Error(
+        `review_required: CHATGPT_NAMED_SEARCH_AND_DIALOG_CLEANUP_FAILED; search=${String(searchFailure)}; cleanup=${String(cleanupError)}`,
+      );
+    }
+    throw cleanupError;
+  }
+  if (searchFailure) throw searchFailure;
 };

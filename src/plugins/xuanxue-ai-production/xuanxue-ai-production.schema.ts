@@ -61,7 +61,30 @@ export const XuanxueAiStageMaterialSchema = z.object({
   maxFileBytes: z.number().int().min(1).max(1_000_000_000).default(500_000_000),
 }).strict();
 
-export const XuanxueAiProductionOrderSchema = z.object({
+export const xuanxueAiContinuationProfiles = {
+  bazi_report_followup: {
+    productId: "bazi_ai_full_analysis",
+    stageId: "question_analysis",
+  },
+  qimen_report_followup: {
+    productId: "qimen_professional_answer",
+    stageId: "analysis",
+  },
+  hehun_report_followup: {
+    productId: "hehun_ai_analysis",
+    stageId: "final_compatibility",
+  },
+} as const;
+
+export type XuanxueAiFollowupProductId =
+  keyof typeof xuanxueAiContinuationProfiles;
+
+export const isXuanxueAiFollowupProduct = (
+  productId: z.infer<typeof XuanxueAiProductIdSchema>,
+): productId is XuanxueAiFollowupProductId =>
+  Object.hasOwn(xuanxueAiContinuationProfiles, productId);
+
+export const XuanxueAiStoredProductionOrderSchema = z.object({
   protocolVersion: z.literal("xuanxue-ai-production-v1"),
   orderId: z.string().min(1).max(200),
   sourceProject: z.literal("xuanxue-web"),
@@ -85,15 +108,29 @@ export const XuanxueAiProductionOrderSchema = z.object({
   }).strict()).max(4).default([]),
   materials: z.array(XuanxueAiStageMaterialSchema).min(1).max(4),
   createdAt: z.string().datetime(),
-}).strict().superRefine((order, context) => {
-  if (
-    (order.productId === "manual_accuracy_challenge")
-    !== Boolean(order.continuationParent)
-  ) {
+}).strict();
+
+export const XuanxueAiProductionOrderSchema =
+XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
+  const continuationRequired =
+    order.productId === "manual_accuracy_challenge"
+    || isXuanxueAiFollowupProduct(order.productId);
+  if (continuationRequired !== Boolean(order.continuationParent)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
       path: ["continuationParent"],
+    });
+  }
+  if (
+    isXuanxueAiFollowupProduct(order.productId)
+    && order.continuationParent?.stageId
+      !== xuanxueAiContinuationProfiles[order.productId].stageId
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
+      path: ["continuationParent", "stageId"],
     });
   }
 });
@@ -112,6 +149,7 @@ export type XuanxueAiStageStatus =
   | "response_checkpointed"
   | "recovery_pending"
   | "completed"
+  | "cancelled"
   | "review_required"
   | "failed";
 
@@ -120,6 +158,7 @@ export type XuanxueAiOrderStatus =
   | "running"
   | "recovery_pending"
   | "completed"
+  | "cancelled"
   | "review_required"
   | "failed";
 
@@ -128,6 +167,7 @@ export interface XuanxueAiStageRecord {
   readonly stageId: XuanxueAiStageId;
   readonly ordinal: number;
   readonly executionId: string;
+  readonly supersededExecutionId?: string | null;
   readonly status: XuanxueAiStageStatus;
   readonly attemptCount: number;
   readonly material: XuanxueAiStageMaterial;

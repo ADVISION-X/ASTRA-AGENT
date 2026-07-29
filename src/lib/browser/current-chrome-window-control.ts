@@ -53,6 +53,8 @@ const runAppleScript = async (script: string, options?: { signal?: AbortSignal }
 const isTransientChromeApplicationError = (error: unknown): boolean => {
   const message = error instanceof Error ? error.message : String(error);
   return message.includes("(-600)")
+    || message.includes("(-1728)")
+    || message.includes("不能获取对象")
     || message.includes("应用程序没有运行")
     || message.includes("Application isn’t running")
     || message.includes("Application isn't running");

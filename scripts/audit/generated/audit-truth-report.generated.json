@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T14:07:25.621Z",
+  "generatedAt": "2026-07-29T19:05:17.245Z",
   "status": "PASS",
   "inspectorFileCount": 28,
   "generatedPlanEntryCount": 28,
@@ -13,8 +13,11 @@
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
     "scripts/audit/ci-full-phase-plan.ts",
     "scripts/audit/ci-full.ts",
+    "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
+    "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
     "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "scripts/audit/domains/ai-input-gateway/manifest.json",
+    "scripts/audit/domains/ai-input-gateway/paths.ts",
     "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/scheduler-inspector.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",

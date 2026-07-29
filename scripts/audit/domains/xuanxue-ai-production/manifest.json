@@ -6,8 +6,8 @@
     "mode": "explicit",
     "bindings": [
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-        "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+        "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
         "checkIds": [
           "xuanxue-ai-production/acceptance",
           "xuanxue-ai-production/fixed-profiles",
@@ -23,8 +23,8 @@
         ]
       },
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-        "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+        "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
         "checkIds": [
           "xuanxue-ai-production/acceptance",
           "xuanxue-ai-production/bounded-coordinator",

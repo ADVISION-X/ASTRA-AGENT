@@ -226,7 +226,20 @@ export const selectCurrentChromeNativePickerFiles = async (
   input: SelectFilesInNativePickerInput,
   refreshSnapshot: RefreshSnapshot,
 ) => {
-  const result = await runNativeMultiFilePickerSelection(input);
+  const controlledWindow = state.lastWindowState;
+  if (!controlledWindow) {
+    return {
+      ...createCurrentChromeBrowserActionResult({
+        ok: false,
+        message: "NATIVE_PICKER_CONTROLLED_WINDOW_IDENTITY_MISSING",
+      }),
+      observedFileNames: [],
+    };
+  }
+  const result = await runNativeMultiFilePickerSelection(
+    input,
+    controlledWindow,
+  );
   await refreshSnapshot(state);
   return result;
 };

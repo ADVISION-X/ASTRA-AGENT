@@ -24,8 +24,15 @@ import {
 } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
 import { prepareManagedWebChatExecution } from "./web-chat-managed-execution.js";
-import { classifyWebChatFailure } from "../failure-classification.js";
+import {
+  classifyWebChatFailure,
+  type WebChatFailureClassification,
+} from "../failure-classification.js";
 import { readWebChatExecution } from "./web-chat-execution-state.js";
+import {
+  markCheckpointedWebChatResponsePublished,
+  recoverCheckpointedWebChatResponse,
+} from "../providers/web-chat-checkpoint-response.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -37,6 +44,7 @@ type ExecuteAiFeedOnceInput = {
   runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
   executionId?: string;
+  supersededExecutionId?: string;
   webChatExecution?: WebChatExecutionContext;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
@@ -101,15 +109,23 @@ const buildProviderFailure = (input: {
   cooldownMs: number;
   error: unknown;
   providerLeaseId: string | null;
+  classification: WebChatFailureClassification;
+  response?: Partial<AiProviderRawResponse>;
 }): AiFeedResult => {
-  const response = responseEvidenceFromError(input.error);
+  const errorResponse = responseEvidenceFromError(input.error);
+  const response = errorResponse || input.response
+    ? {
+        ...(errorResponse ?? {}),
+        ...(input.response ?? {}),
+      }
+    : undefined;
   return buildAiFeedFailure({
     request: input.request,
     childCapabilityId: input.childCapabilityId,
     inputPackage: input.inputPackage,
     startedAt: input.startedAt,
     transport: input.transport,
-    status: classifyWebChatFailure(input.error, false) === "review_required"
+    status: input.classification === "review_required"
       ? "review_required"
       : "failed",
     reason: input.error instanceof Error ? input.error.message : String(input.error),
@@ -162,8 +178,21 @@ const RESUMABLE_EXECUTION_STATUSES = new Set([
   "waiting_provider",
   "response_checkpointed",
   "recovery_pending",
+  "response_captured",
   "review_required",
 ]);
+
+const waitForCheckpointPublication = async (input: {
+  active(): boolean;
+  recover(): Promise<AiFeedResult | null>;
+}): Promise<AiFeedResult> => {
+  while (input.active()) {
+    const recovered = await input.recover();
+    if (recovered) return recovered;
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  }
+  return new Promise<AiFeedResult>(() => undefined);
+};
 
 const prepareFeedInputPackage = async (
   input: ExecuteAiFeedOnceInput,
@@ -198,19 +227,143 @@ const prepareFeedInputPackage = async (
   };
 };
 
-const executeManagedProvider = async (input: {
+interface ManagedProviderInput {
   execution: ExecuteAiFeedOnceInput;
   inputPackage: AiFeedInputPackage;
   startedAt: string;
   cooldownMs: number;
-}): Promise<AiFeedResult> => {
-  let managed: Awaited<ReturnType<typeof prepareManagedWebChatExecution>> | null = null;
+}
+
+type ManagedExecution =
+  Awaited<ReturnType<typeof prepareManagedWebChatExecution>>;
+
+const recoverManagedCheckpoint = async (
+  input: ManagedProviderInput,
+  providerLeaseId: string | null,
+): Promise<AiFeedResult | null> => {
+  if (
+    input.execution.transport !== "web-chat"
+    || !input.execution.executionId
+  ) return null;
+  const recovered = await recoverCheckpointedWebChatResponse({
+    request: input.execution.request,
+    dataDir: input.execution.dataDir,
+    executionId: input.execution.executionId,
+    expectedInputHash: input.inputPackage.inputHash,
+  });
+  if (!recovered) return null;
+  const result = await buildProviderSuccess({
+    ...input.execution,
+    inputPackage: input.inputPackage,
+    startedAt: input.startedAt,
+    cooldownMs: input.cooldownMs,
+    providerLeaseId: providerLeaseId ?? recovered.providerLeaseId,
+    response: recovered.response,
+  });
+  await markCheckpointedWebChatResponsePublished({
+    dataDir: input.execution.dataDir,
+    executionId: input.execution.executionId,
+    responseHash: result.rawOutputHash!,
+  });
+  await input.execution.onProgress?.({
+    phase: "response_captured",
+    occurredAt: new Date().toISOString(),
+  });
+  return result;
+};
+
+const raceProviderWithCheckpoint = async (input: {
+  providerResponse: ReturnType<typeof executeProviderFeed>;
+  recoverCheckpoint: () => Promise<AiFeedResult | null>;
+}): Promise<
+  | { kind: "provider"; response: AiProviderRawResponse }
+  | { kind: "checkpoint"; result: AiFeedResult }
+> => {
+  let checkpointPatrolActive = true;
   try {
+    return await Promise.race([
+      input.providerResponse.then((response) => ({
+        kind: "provider" as const,
+        response,
+      })),
+      waitForCheckpointPublication({
+        active: () => checkpointPatrolActive,
+        recover: input.recoverCheckpoint,
+      }).then((result) => ({
+        kind: "checkpoint" as const,
+        result,
+      })),
+    ]);
+  } finally {
+    checkpointPatrolActive = false;
+  }
+};
+
+const buildManagedProviderFailure = async (
+  input: ManagedProviderInput,
+  managed: ManagedExecution | null,
+  error: unknown,
+): Promise<AiFeedResult> => {
+  let effectiveError = error;
+  try {
+    const recovered = await recoverManagedCheckpoint(
+      input,
+      managed?.providerLeaseId ?? null,
+    );
+    if (recovered) return recovered;
+  } catch (checkpointError) {
+    effectiveError = checkpointError;
+  }
+  const recordedClassification = managed
+    ? await managed.markFailure(effectiveError)
+    : null;
+  const persisted = !recordedClassification
+    && input.execution.executionId
+    ? await readWebChatExecution(
+        input.execution.dataDir,
+        input.execution.executionId,
+      )
+    : null;
+  const classification = recordedClassification
+    ?? (persisted?.status === "review_required"
+      ? "review_required"
+      : persisted?.status === "recovery_pending"
+        ? "recovery_pending"
+        : classifyWebChatFailure(effectiveError, false));
+  const submission = managed?.durableSubmission() ?? null;
+  return buildProviderFailure({
+    ...input.execution,
+    inputPackage: input.inputPackage,
+    startedAt: input.startedAt,
+    cooldownMs: input.cooldownMs,
+    providerLeaseId: managed?.providerLeaseId ?? null,
+    error: effectiveError,
+    classification,
+    ...(submission
+      ? {
+          response: {
+            webChatUrl:
+              submission.canonicalConversationUrl
+              ?? submission.transientConversationUrl,
+          },
+        }
+      : {}),
+  });
+};
+
+const executeManagedProvider = async (
+  input: ManagedProviderInput,
+): Promise<AiFeedResult> => {
+  let managed: ManagedExecution | null = null;
+  try {
+    const recoveredBeforeBrowser =
+      await recoverManagedCheckpoint(input, null);
+    if (recoveredBeforeBrowser) return recoveredBeforeBrowser;
     managed = await prepareManagedWebChatExecution(
       input.execution,
       input.inputPackage.inputHash,
     );
-    const response = await executeProviderFeed({
+    const providerResponse = executeProviderFeed({
       ...input.execution,
       request: managed.request,
       ...(managed.browser ? { browser: managed.browser } : {}),
@@ -218,6 +371,22 @@ const executeManagedProvider = async (input: {
         ? { webChatExecution: managed.webChatExecution }
         : {}),
     });
+    const outcome = await raceProviderWithCheckpoint({
+      providerResponse,
+      recoverCheckpoint: () =>
+        recoverManagedCheckpoint(input, managed!.providerLeaseId),
+    });
+    if (outcome.kind === "checkpoint") {
+      const postProcessing = managed;
+      managed = null;
+      void providerResponse
+        .then((response) => postProcessing.markResponse(response.rawText))
+        .catch((error: unknown) =>
+          postProcessing.markPostProcessingFailure(error))
+        .finally(() => postProcessing.release());
+      return outcome.result;
+    }
+    const response = outcome.response;
     await managed.markResponse(response.rawText);
     return await buildProviderSuccess({
       ...input.execution,
@@ -228,15 +397,7 @@ const executeManagedProvider = async (input: {
       response,
     });
   } catch (error) {
-    await managed?.markFailure(error);
-    return buildProviderFailure({
-      ...input.execution,
-      inputPackage: input.inputPackage,
-      startedAt: input.startedAt,
-      cooldownMs: input.cooldownMs,
-      providerLeaseId: managed?.providerLeaseId ?? null,
-      error,
-    });
+    return buildManagedProviderFailure(input, managed, error);
   } finally {
     await managed?.release();
   }
@@ -251,11 +412,14 @@ export const executeAiFeedOnce = async (
     rateGuardAlreadyRecorded,
   } = await prepareFeedInputPackage(input);
   const rate = rateGuardAlreadyRecorded
-    ? { ok: true as const, cooldownMs: 0, reason: null }
-    : checkAiFeedRateGuard({
+      ? { ok: true as const, cooldownMs: 0, reason: null }
+      : checkAiFeedRateGuard({
         inputHash: inputPackage.inputHash,
         roundId: input.request.roundId,
         transport: input.transport,
+        executionId: input.executionId ?? null,
+        supersededExecutionId:
+          input.supersededExecutionId ?? null,
       });
   if (!rate.ok) return buildRateGuardFailure({ ...input, inputPackage, startedAt, ...rate });
   return executeManagedProvider({

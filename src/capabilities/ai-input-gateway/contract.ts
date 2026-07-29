@@ -18,6 +18,7 @@ export type AiInputGatewayExecutionContext = {
 export type AiInputGatewayExecuteOptions = {
   signal?: AbortSignal;
   executionId?: string;
+  supersededExecutionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
 };
@@ -38,5 +39,14 @@ export interface AiInputGatewayAbilityGroup {
   readonly abilityGroupId: AiInputGatewayAbilityGroupId;
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
   getRuntimeCapacity(): number;
+  classifyFailure?(
+    error: unknown,
+    hasDurableSubmission: boolean,
+  ): "recovery_pending" | "review_required" | "failed";
+  recoverCheckpointedProviderLease?(input: {
+    executionId: string;
+    expectedInputHash: string;
+    expectedOutputHash: string;
+  }): Promise<string | null>;
   execute(input: unknown, options?: AiInputGatewayExecuteOptions): Promise<AiFeedResult>;
 }

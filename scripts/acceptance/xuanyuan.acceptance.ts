@@ -184,6 +184,10 @@ try {
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts"),
     "utf8",
   );
+  const freshConversationSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts"),
+    "utf8",
+  );
   const webChatClipboardSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts"),
     "utf8",
@@ -196,19 +200,43 @@ try {
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts"),
     "utf8",
   );
+  assert.equal(
+    webChatOpenSource.includes("startFreshChatGptConversation"),
+    true,
+    "Xuanyuan GPT transport must delegate fresh-chat ownership before submission",
+  );
   for (const requiredFreshConversationGuard of [
     "CHATGPT_FRESH_CONVERSATION_SCRIPT",
     "waitForFreshChatGptConversation",
     "ChatGPT fresh conversation was not established",
   ]) {
     assert.equal(
-      webChatOpenSource.includes(requiredFreshConversationGuard),
+      freshConversationSource.includes(requiredFreshConversationGuard),
       true,
       `Xuanyuan GPT transport must fail closed unless the fresh-conversation guard contains ${requiredFreshConversationGuard}`,
     );
   }
-  for (const requiredProbeGuard of ["[data-message-author-role=\"assistant\"]", "assistantCount === 0"]) {
+  for (const requiredProbeGuard of [
+    "[data-message-author-role=\"user\"]",
+    "[data-message-author-role=\"assistant\"]",
+    "CHATGPT_FRESH_ZERO_STATE_FIELDS.map",
+    "=== 0",
+    "!hasPastedTextCard",
+    "!generating",
+  ]) {
     assert.equal(freshConversationScriptSource.includes(requiredProbeGuard), true, `Fresh-conversation probe must contain ${requiredProbeGuard}`);
+  }
+  for (const requiredZeroStateField of [
+    "userCount",
+    "assistantCount",
+    "composerText.length",
+    "removeAttachmentCount",
+  ]) {
+    assert.equal(
+      freshConversationScriptSource.includes(`"${requiredZeroStateField}"`),
+      true,
+      `Fresh-conversation zero-state contract must contain ${requiredZeroStateField}`,
+    );
   }
   for (const requiredOneByOneClipboardGuard of [
     "tell process \"Finder\"",

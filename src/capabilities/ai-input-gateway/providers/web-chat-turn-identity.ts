@@ -11,6 +11,7 @@ type TurnIdentityObservation = {
   pageUrl: string;
   userTurnId: string | null;
   matchingUserTurnCount: number;
+  userTurnCount: number;
 };
 
 const observationScript = (turnMarker: string): string => `
@@ -52,6 +53,7 @@ if (matches.length > 1) {
     pageUrl: location.href,
     userTurnId: null,
     matchingUserTurnCount: matches.length,
+    userTurnCount: turns.length,
   };
 }
 if (matches.length === 0) {
@@ -61,6 +63,7 @@ if (matches.length === 0) {
     pageUrl: location.href,
     userTurnId: null,
     matchingUserTurnCount: 0,
+    userTurnCount: turns.length,
   };
 }
 return {
@@ -69,6 +72,7 @@ return {
   pageUrl: location.href,
   userTurnId: matches[0].id,
   matchingUserTurnCount: 1,
+  userTurnCount: turns.length,
 };
 `;
 
@@ -80,6 +84,66 @@ const isCanonicalConversationUrl = (request: AiFeedInput, pageUrl: string): bool
   }
   return parsed.host === "gemini.google.com" && parsed.pathname.startsWith("/app/");
 };
+
+const assertFreshConversationTurn = (input: {
+  request: AiFeedInput;
+  previousUserMessageCount: number;
+}, observation: TurnIdentityObservation): void => {
+  if (
+    input.request.providerKind !== "gpt-web-chat"
+    || input.request.providerContinuationRef
+  ) return;
+  if (
+    input.previousUserMessageCount === 0
+    && observation.userTurnCount === 1
+  ) return;
+  throw new Error(
+    "WEB_CHAT_FRESH_CONVERSATION_REBOUND: "
+    + `previous=${input.previousUserMessageCount}; `
+    + `actual=${observation.userTurnCount}; `
+    + `pageUrl=${observation.pageUrl}`,
+  );
+};
+
+const assertContinuationConversation = (
+  request: AiFeedInput,
+  pageUrl: string,
+  canonical: boolean,
+): void => {
+  if (!canonical || !request.providerContinuationRef) return;
+  const expected = new URL(
+    request.providerContinuationRef.providerPageUrl,
+  );
+  const actual = new URL(pageUrl);
+  if (
+    expected.origin === actual.origin
+    && expected.pathname === actual.pathname
+  ) return;
+  throw new Error(
+    "WEB_CHAT_CONTINUATION_CONVERSATION_DRIFT: "
+    + `expected=${expected.href}; actual=${actual.href}`,
+  );
+};
+
+const buildSubmissionProof = (input: {
+  observation: TurnIdentityObservation & { userTurnId: string };
+  transientConversationUrl: string;
+  canonical: boolean;
+  previousAssistantCount: number;
+  previousUserMessageCount: number;
+}): WebChatSubmissionProof => ({
+  transientConversationUrl: input.transientConversationUrl,
+  canonicalConversationUrl: input.canonical
+    ? input.observation.pageUrl
+    : null,
+  systemChatTitle: null,
+  observedAutoChatTitle: null,
+  chatTitleVerifiedAt: null,
+  userTurnId: input.observation.userTurnId,
+  previousAssistantCount: input.previousAssistantCount,
+  previousUserMessageCount: input.previousUserMessageCount,
+  submittedAt: new Date().toISOString(),
+});
 
 export const captureWebChatSubmissionProof = async (input: {
   browser: BrowserController;
@@ -105,22 +169,20 @@ export const captureWebChatSubmissionProof = async (input: {
       throw new Error(`review_required: ${last.message}`);
     }
     if (last.status === "success" && last.userTurnId) {
+      assertFreshConversationTurn(input, last);
       const canonical = isCanonicalConversationUrl(input.request, last.pageUrl);
+      assertContinuationConversation(input.request, last.pageUrl, canonical);
       if (input.requireCanonical && !canonical) {
         await input.browser.wait(250);
         continue;
       }
-      return {
-        transientConversationUrl,
-        canonicalConversationUrl: canonical ? last.pageUrl : null,
-        systemChatTitle: null,
-        observedAutoChatTitle: null,
-        chatTitleVerifiedAt: null,
-        userTurnId: last.userTurnId,
+      return buildSubmissionProof({
+        observation: { ...last, userTurnId: last.userTurnId },
+        transientConversationUrl: transientConversationUrl ?? last.pageUrl,
+        canonical,
         previousAssistantCount: input.previousAssistantCount,
         previousUserMessageCount: input.previousUserMessageCount,
-        submittedAt: new Date().toISOString(),
-      };
+      });
     }
     await input.browser.wait(250);
   }

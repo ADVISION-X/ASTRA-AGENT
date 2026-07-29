@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T14:06:29.343Z",
+  "generatedAt": "2026-07-29T19:04:25.859Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -11,7 +11,7 @@
         "APEX-AI-INPUT-GATEWAY-002-V1",
         "APEX-AI-INPUT-GATEWAY-003-V1",
         "APEX-AI-INPUT-GATEWAY-004-V1",
-        "APEX-AI-INPUT-GATEWAY-005-V1"
+        "APEX-AI-INPUT-GATEWAY-005-V2"
       ],
       "bindings": [
         {
@@ -119,8 +119,8 @@
           "evidenceMode": "real-chrome"
         },
         {
-          "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-          "clauseId": "apex-ai-input-gateway-005-requirement",
+          "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+          "clauseId": "apex-ai-input-gateway-005-v2-requirement",
           "checkIds": [
             "ai-input-gateway/authority-present",
             "ai-input-gateway/bounded-parallel-runtime",
@@ -131,6 +131,8 @@
             "ai-input-gateway/durable-fifo-scheduler",
             "ai-input-gateway/exact-sidebar-row-rename",
             "ai-input-gateway/failure-ledger",
+            "ai-input-gateway/fresh-conversation-identity",
+            "ai-input-gateway/fresh-execution-rate-owner-transfer",
             "ai-input-gateway/human-readable-system-chat-title",
             "ai-input-gateway/no-chatgpt-page-refresh",
             "ai-input-gateway/offscreen-sidebar-recovery",
@@ -141,6 +143,7 @@
             "ai-input-gateway/live-generation-proof",
             "ai-input-gateway/structured-task-identity",
             "ai-input-gateway/transient-submission-checkpoint",
+            "ai-input-gateway/transient-overlay-hygiene",
             "ai-input-gateway/removed-old-region",
             "ai-input-gateway/source-present"
           ],
@@ -13885,14 +13888,14 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
         "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-          "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+          "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
           "checkIds": [
             "xuanxue-ai-production/acceptance",
             "xuanxue-ai-production/fixed-profiles",
@@ -13909,8 +13912,8 @@
           "evidenceMode": "acceptance"
         },
         {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-          "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+          "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
           "checkIds": [
             "xuanxue-ai-production/acceptance",
             "xuanxue-ai-production/bounded-coordinator",

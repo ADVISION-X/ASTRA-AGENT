@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-28T14:07:17.032Z",
+  "generatedAt": "2026-07-29T19:05:10.573Z",
   "status": "PASS",
-  "scannedFiles": 523,
+  "scannedFiles": 543,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -78,8 +78,10 @@
     "src/app/workbench-video-download-routes.ts",
     "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
+    "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
@@ -98,12 +100,14 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
@@ -113,11 +117,14 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-response-extraction-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
@@ -137,7 +144,9 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
@@ -503,7 +512,18 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
@@ -545,7 +565,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 523,
+    "scannedFiles": 543,
     "emitCallCount": 52,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -556,7 +576,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 518,
+      "scannedFiles": 538,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -565,13 +585,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 415
+      "scannedFiles": 435
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 411,
+      "scannedFiles": 431,
       "metrics": {
         "emitCallCount": 41
       }
@@ -580,13 +600,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 411
+      "scannedFiles": 431
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 416,
+      "scannedFiles": 436,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -601,7 +621,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 416,
+      "scannedFiles": 436,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -622,7 +642,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 98
+      "scannedFiles": 118
     },
     {
       "name": "browser-action-log-contract",

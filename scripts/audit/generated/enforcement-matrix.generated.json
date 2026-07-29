@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T14:06:29.343Z",
+  "generatedAt": "2026-07-29T19:04:25.859Z",
   "rows": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -10,7 +10,7 @@
         "APEX-AI-INPUT-GATEWAY-002-V1",
         "APEX-AI-INPUT-GATEWAY-003-V1",
         "APEX-AI-INPUT-GATEWAY-004-V1",
-        "APEX-AI-INPUT-GATEWAY-005-V1"
+        "APEX-AI-INPUT-GATEWAY-005-V2"
       ]
     },
     {
@@ -441,8 +441,8 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "lawIds": [
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
         "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1"
       ]
     },

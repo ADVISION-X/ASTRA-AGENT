@@ -8,6 +8,9 @@ const judgeSource = readFileSync("src/plugins/facebook-product-video-mining/face
 const webChatSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", "utf8");
 const webChatResponseCaptureSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts", "utf8");
 const webChatEvaluationSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts", "utf8");
+const webChatResponseExtractionSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-response-extraction-script.ts", "utf8");
+const webChatAnswerSource =
+  `${webChatEvaluationSource}\n${webChatResponseExtractionSource}`;
 const webChatOpenSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-open.ts", "utf8");
 const webChatPageActionsSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts", "utf8");
 const webChatSubmitSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts", "utf8");
@@ -39,11 +42,15 @@ assert.match(roundOutcomesSource, /terminal:\s*true,\s*reason:\s*input\.judgment
 assert.match(roundSource, /timeoutMs:\s*90_000/u);
 assert.match(webChatResponseCaptureSource, /waitForStableAnswer/u);
 assert.match(webChatResponseCaptureSource, /STABLE_ROUNDS_REQUIRED\s*=\s*2/u);
-assert.match(webChatEvaluationSource, /data-message-author-role='assistant'/u);
-assert.match(webChatEvaluationSource, /\[class\*='model-response'\]/u);
-assert.match(webChatEvaluationSource, /aria-busy="true"/u);
-assert.match(webChatEvaluationSource, /main article|data-testid\*='conversation'|role='presentation'/u);
-assert.match(webChatEvaluationSource, /thinking|reasoning|回答中|生成中|思考中/u);
+assert.match(webChatAnswerSource, /data-message-author-role='assistant'/u);
+assert.match(webChatAnswerSource, /\[class\*='model-response'\]/u);
+assert.match(webChatEvaluationSource, /aria-busy=['"]true['"]/u);
+assert.match(
+  webChatResponseExtractionSource,
+  /main article|data-testid\*='conversation'|role='presentation'/u,
+);
+assert.match(webChatEvaluationSource, /thinking|reasoning/u);
+assert.match(webChatEvaluationSource, /生成中|思考/u);
 assert.doesNotMatch(judgeSource, /providers\/gpt-web-chat|providers\/gemini-web-chat/u);
 
 let aborted = false;

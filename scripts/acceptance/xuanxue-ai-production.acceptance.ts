@@ -1,14 +1,9 @@
 import assert from "node:assert/strict";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import type {
-  AiFeedInput,
-  AiFeedResult,
-  AiInputGatewayAbilityGroup,
-} from "../../src/capabilities/ai-input-gateway/index.js";
 import {
   createXuanxueAiProductionOrder,
   executeXuanxueAiProductionOrder,
@@ -18,154 +13,20 @@ import {
   type XuanxueAiProductionOrder,
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
-
-const hash = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
-
-const providerResult = (
-  input: AiFeedInput,
-  ordinal: number,
-): AiFeedResult => {
-  const rawResponseText = JSON.stringify({
-    stage: input.roundId,
-    ordinal,
-    verdict: "fixture-transport-only",
-  });
-  return {
-    abilityGroupId: "ai-input-gateway",
-    childCapabilityId: "feed-gpt-web-chat-once",
-    providerKind: "gpt-web-chat",
-    status: "success",
-    rawResponseText,
-    transportWarnings: [],
-    normalizedText: rawResponseText,
-    rawOutputRef: `fixture-output:${input.taskIdentity.sourceTaskId}`,
-    rawOutputHash: hash(rawResponseText),
-    parseStatus: "json_valid",
-    parsedJson: JSON.parse(rawResponseText),
-    schemaValidationStatus: "valid",
-    providerProof: {
-      providerKind: "gpt-web-chat",
-      providerLeaseId: `fixture-lease:${ordinal}`,
-      modelName: null,
-      inputHash: hash(JSON.stringify(input)),
-      outputHash: hash(rawResponseText),
-      inputRefs: input.inputRefs.map((ref) => ref.id),
-      uploadedFileRefs: input.inputRefs.map((ref) => ref.id),
-      outputRefs: [`fixture-output:${input.taskIdentity.sourceTaskId}`],
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
-      durationMs: 1,
-      transport: "web-chat",
-      webChatUrl: input.providerContinuationRef?.providerPageUrl
-        ?? `https://chatgpt.com/c/${String(ordinal).padStart(8, "0")}`,
-      sourcePageUrlBeforeFeed: null,
-      restoredSourcePage: null,
-      retryCount: 0,
-      cooldownMs: 0,
-      estimatedInputTokens: null,
-      estimatedOutputTokens: null,
-      tokenEstimateUnavailableReason: "fixture",
-      ...(input.providerContinuationRef
-        ? {
-            continuationPriorTaskId:
-              input.providerContinuationRef.priorTaskId,
-            continuationPriorRawOutputHash:
-              input.providerContinuationRef.priorRawOutputHash,
-            continuationRequestedUrl:
-              input.providerContinuationRef.providerPageUrl,
-            continuationActualUrl:
-              input.providerContinuationRef.providerPageUrl,
-            continuationVerified: true,
-          }
-        : {}),
-    },
-    failureReason: null,
-    reviewRequiredReason: null,
-  };
-};
-
-class FixtureGateway implements AiInputGatewayAbilityGroup {
-  readonly abilityGroupId = "ai-input-gateway" as const;
-  readonly requests: AiFeedInput[] = [];
-  readonly started: string[] = [];
-  active = 0;
-  maxActive = 0;
-  holdQimen = false;
-  private releaseHeldQimen: (() => void) | null = null;
-  private readonly heldQimen = new Promise<void>((resolve) => {
-    this.releaseHeldQimen = resolve;
-  });
-
-  listChildCapabilityIds():
-    ReturnType<AiInputGatewayAbilityGroup["listChildCapabilityIds"]> {
-    return ["feed-gpt-web-chat-once"];
-  }
-
-  getRuntimeCapacity(): number {
-    return 10;
-  }
-
-  async execute(input: unknown): Promise<AiFeedResult> {
-    const request = input as AiFeedInput;
-    this.requests.push(request);
-    this.started.push(request.taskIdentity.sourceTaskId);
-    this.active += 1;
-    this.maxActive = Math.max(this.maxActive, this.active);
-    try {
-      if (
-        this.holdQimen
-        && request.taskIdentity.taskKind === "qimen_professional_answer"
-      ) {
-        await this.heldQimen;
-      } else {
-        await new Promise<void>((resolve) => setTimeout(resolve, 5));
-      }
-      return providerResult(request, this.requests.length);
-    } finally {
-      this.active -= 1;
-    }
-  }
-
-  releaseQimen(): void {
-    this.releaseHeldQimen?.();
-    this.releaseHeldQimen = null;
-  }
-}
-
-const material = (
-  stageId: XuanxueAiProductionOrder["materials"][number]["stageId"],
-): XuanxueAiProductionOrder["materials"][number] => ({
-  stageId,
-  promptPackageId: `fixture:${stageId}`,
-  promptContractId: `fixture-contract:${stageId}`,
-  expectedOutputSchemaRef: `fixture-schema:${stageId}`,
-  textPrompt: `fixture prompt for ${stageId}`,
-  inputRefs: [],
-  timeoutMs: 60_000,
-  maxInputChars: 10_000,
-  maxFileCount: 8,
-  maxFileBytes: 10_000_000,
-});
-
-const order = (
-  orderId: string,
-  productId: XuanxueAiProductionOrder["productId"],
-  stageIds: readonly XuanxueAiProductionOrder["materials"][number]["stageId"][],
-): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v1",
-  orderId,
-  sourceProject: "xuanxue-web",
-  sourceTaskId: `source:${orderId}`,
-  productId,
-  inputBundleRef: `bundle:${orderId}`,
-  inputBundleHash: hash(`bundle:${orderId}`),
-  requestHash: hash(`request:${orderId}`),
-  continuationParent: null,
-  seededStages: [],
-  materials: stageIds.map(material),
-  createdAt: new Date().toISOString(),
-});
+import {
+  FixtureGateway,
+  hash,
+  order,
+} from "./xuanxue-ai-production-fixture.js";
+import {
+  acceptXuanxueParentRecovery,
+} from "./xuanxue-ai-production-parent-recovery.js";
+import {
+  acceptXuanxueRestartRecovery,
+} from "./xuanxue-ai-production-restart-recovery.js";
+import {
+  acceptXuanxueOrderGraphs,
+} from "./xuanxue-ai-production-order-graph-acceptance.js";
 
 const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
@@ -179,68 +40,11 @@ try {
     store,
   };
 
-  const hehun = order("aiprod_hehun", "hehun_ai_analysis", [
-    "party_a_interpretation",
-    "party_b_interpretation",
-    "final_compatibility",
-  ]);
-  createXuanxueAiProductionOrder(runtime, hehun);
-  const hehunResult = await executeXuanxueAiProductionOrder(
-    runtime,
-    hehun.orderId,
-  );
-  assert.equal(hehunResult.status, "completed");
-  assert.equal(hehunResult.result?.stages.length, 3);
-  assert.deepEqual(
-    gateway.started.slice(0, 2).map((value) => value.split(":").at(-1)).sort(),
-    ["party_a_interpretation", "party_b_interpretation"],
-  );
-  const finalRequest = gateway.requests.find(
-    (request) => request.roundId === "final_compatibility",
-  );
-  assert.ok(finalRequest?.providerContinuationRef);
-  assert.ok(finalRequest.inputRefs.some(
-    (ref) => ref.kind === "prior_stage_raw_response",
-  ));
-  const parentFinal = hehunResult.stages.find(
-    (stage) => stage.stageId === "final_compatibility",
-  );
-  assert.ok(parentFinal?.rawOutputHash);
-  const challenge: XuanxueAiProductionOrder = {
-    ...order(
-      "aiprod_manual_challenge",
-      "manual_accuracy_challenge",
-      ["manual_accuracy_challenge"],
-    ),
-    continuationParent: {
-      jobId: hehun.orderId,
-      stageId: "final_compatibility",
-      rawOutputHash: parentFinal.rawOutputHash,
-    },
-  };
-  createXuanxueAiProductionOrder(runtime, challenge);
-  const challengeResult = await executeXuanxueAiProductionOrder(
-    runtime,
-    challenge.orderId,
-  );
-  assert.equal(challengeResult.status, "completed");
-  const challengeRequest = gateway.requests.find(
-    (request) =>
-      request.roundId === "manual_accuracy_challenge",
-  );
-  assert.equal(
-    challengeRequest?.providerContinuationRef?.priorTaskId,
-    parentFinal.executionId,
-  );
-  assert.equal(
-    challengeRequest?.providerContinuationRef?.priorRawOutputHash,
-    parentFinal.rawOutputHash,
-  );
-  assert.ok(challengeRequest?.inputRefs.some(
-    (ref) =>
-      ref.kind === "prior_stage_raw_response"
-      && ref.sha256 === parentFinal.rawOutputHash,
-  ));
+  const {
+    hehun,
+    qimenFollowupParent,
+    qimenFollowupParentFinal,
+  } = await acceptXuanxueOrderGraphs({ runtime, gateway });
   const legacyBazi = order(
     "aiprod_legacy_bazi",
     "bazi_ai_full_analysis",
@@ -291,6 +95,120 @@ try {
     gateway.requests.at(-1)?.providerContinuationRef?.priorTaskId,
     legacyBase.executionId,
   );
+  const invalidSeedText =
+    `{"answer":"\uE200filecite\uE202turn0file0\uE201"}`;
+  const invalidSeededBazi: XuanxueAiProductionOrder = {
+    ...order(
+      "aiprod_invalid_seeded_output",
+      "bazi_ai_full_analysis",
+      ["base_interpretation", "question_analysis"],
+    ),
+    seededStages: [{
+      ...seededBazi.seededStages[0]!,
+      rawResponseText: invalidSeedText,
+      rawOutputHash: hash(invalidSeedText),
+      providerProof: {
+        ...seededBazi.seededStages[0]!.providerProof,
+        outputHash: hash(invalidSeedText),
+      },
+    }],
+  };
+  const beforeInvalidSeed = gateway.requests.length;
+  const invalidSeedRecord = createXuanxueAiProductionOrder(
+    runtime,
+    invalidSeededBazi,
+  );
+  assert.equal(
+    invalidSeedRecord.stages[0]?.status,
+    "recovery_pending",
+    "provider-polluted seeded output must never enter a completed stage",
+  );
+  const recoveredInvalidSeed = await executeXuanxueAiProductionOrder(
+    runtime,
+    invalidSeededBazi.orderId,
+  );
+  assert.equal(recoveredInvalidSeed.status, "completed");
+  assert.equal(
+    gateway.requests.length - beforeInvalidSeed,
+    2,
+    "polluted seed must replay the first stage before its continuation",
+  );
+  assert.doesNotMatch(
+    recoveredInvalidSeed.result?.stages[0]?.rawResponseText ?? "",
+    /filecite/u,
+  );
+  const providerFailureText = "消息流中的错误 重试";
+  const failedSeededBazi: XuanxueAiProductionOrder = {
+    ...order(
+      "aiprod_provider_failure_seed",
+      "bazi_ai_full_analysis",
+      ["base_interpretation", "question_analysis"],
+    ),
+    seededStages: [{
+      ...seededBazi.seededStages[0]!,
+      rawResponseText: providerFailureText,
+      rawOutputHash: hash(providerFailureText),
+      providerProof: {
+        ...seededBazi.seededStages[0]!.providerProof,
+        outputHash: hash(providerFailureText),
+      },
+    }],
+  };
+  const beforeFailedSeed = gateway.requests.length;
+  const failedSeedRecord = createXuanxueAiProductionOrder(
+    runtime,
+    failedSeededBazi,
+  );
+  assert.equal(failedSeedRecord.stages[0]?.status, "recovery_pending");
+  assert.equal(
+    (await executeXuanxueAiProductionOrder(
+      runtime,
+      failedSeededBazi.orderId,
+    )).status,
+    "completed",
+  );
+  assert.equal(gateway.requests.length - beforeFailedSeed, 2);
+
+  const staleSeededParent: XuanxueAiProductionOrder = {
+    ...order(
+      "aiprod_stale_seeded_parent",
+      "bazi_ai_full_analysis",
+      ["base_interpretation", "question_analysis"],
+    ),
+    seededStages: seededBazi.seededStages,
+  };
+  gateway.continuationFailures.set(
+    `${staleSeededParent.orderId}:question_analysis`,
+    1,
+  );
+  const beforeGraphRebuild = gateway.requests.length;
+  createXuanxueAiProductionOrder(runtime, staleSeededParent);
+  const rebuiltGraph = await executeXuanxueAiProductionOrder(
+    runtime,
+    staleSeededParent.orderId,
+  );
+  assert.equal(rebuiltGraph.status, "completed");
+  assert.equal(
+    gateway.requests.length - beforeGraphRebuild,
+    3,
+    "lost same-order parent must fail once, replay stage one, then continue",
+  );
+  assert.equal(
+    new Set(rebuiltGraph.stages.map(
+      (stage) => stage.aiFeedResult?.providerProof.webChatUrl,
+    )).size,
+    1,
+    "the rebuilt graph must finish inside one newly rebuilt conversation",
+  );
+  assert.match(
+    rebuiltGraph.stages[0]?.executionId ?? "",
+    /conversation-graph-rebuild/u,
+  );
+  assert.ok(
+    rebuiltGraph.stages.every((stage) =>
+      stage.supersededExecutionId),
+    "every rebuilt graph node must retain the superseded execution id",
+  );
   assert.throws(
     () => createXuanxueAiProductionOrder(runtime, {
       ...order(
@@ -319,6 +237,22 @@ try {
     }),
     /SEEDED_STAGE_PROOF_INVALID/u,
   );
+
+  gateway.bareOutputHashes = true;
+  const canonicalHashBoundary = order(
+    "aiprod_canonical_hash_boundary",
+    "bazi_ai_full_analysis",
+    ["base_interpretation", "question_analysis"],
+  );
+  createXuanxueAiProductionOrder(runtime, canonicalHashBoundary);
+  const canonicalHashResult = await executeXuanxueAiProductionOrder(
+    runtime,
+    canonicalHashBoundary.orderId,
+  );
+  gateway.bareOutputHashes = false;
+  assert.equal(canonicalHashResult.status, "completed");
+  assert.ok(canonicalHashResult.stages.every((stage) =>
+    /^sha256:[a-f0-9]{64}$/u.test(stage.rawOutputHash ?? "")));
 
   const payment = order(
     "aiprod_payment_observation",
@@ -363,6 +297,106 @@ try {
     publicResearchStage?.aiFeedResult?.providerProof.webChatUrl,
   );
 
+  const transientOrder = order(
+    "aiprod_transient_stage_retry",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  createXuanxueAiProductionOrder(runtime, transientOrder);
+  gateway.transientFailures.set(
+    `${transientOrder.orderId}:analysis`,
+    1,
+  );
+  const beforeTransient = gateway.requests.length;
+  const transientResult = await executeXuanxueAiProductionOrder(
+    runtime,
+    transientOrder.orderId,
+  );
+  assert.equal(transientResult.status, "completed");
+  assert.equal(
+    gateway.requests.length - beforeTransient,
+    2,
+    "a temporary stage failure must retry under the live order execution",
+  );
+  const transientExecutionIds = gateway.executionIds.slice(
+    beforeTransient,
+  );
+  assert.equal(
+    new Set(transientExecutionIds).size,
+    1,
+    "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
+  );
+  assert.equal(
+    gateway.supersededExecutionIds.slice(beforeTransient)
+      .filter(Boolean).length,
+    0,
+    "a recoverable transport failure must not retire or replace its durable gateway owner",
+  );
+
+  const monitoredOrder = order(
+    "aiprod_submitted_monitor_interference",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  createXuanxueAiProductionOrder(runtime, monitoredOrder);
+  gateway.submittedReviewFailures.set(
+    `${monitoredOrder.orderId}:analysis`,
+    1,
+  );
+  const beforeMonitorInterference = gateway.requests.length;
+  const monitoredResult = await executeXuanxueAiProductionOrder(
+    runtime,
+    monitoredOrder.orderId,
+  );
+  assert.equal(monitoredResult.status, "completed");
+  assert.equal(
+    new Set(
+      gateway.executionIds.slice(beforeMonitorInterference),
+    ).size,
+    1,
+    "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
+  );
+  assert.equal(
+    gateway.supersededExecutionIds.slice(beforeMonitorInterference)
+      .filter(Boolean).length,
+    0,
+  );
+
+  const contaminatedNaming = order(
+    "aiprod_contaminated_naming",
+    "naming_from_existing_bazi_report",
+    ["naming_author"],
+  );
+  const contaminatedSource =
+    `${contaminatedNaming.orderId}:naming_author`;
+  gateway.contaminatedResponses.set(contaminatedSource, 1);
+  const beforeContaminated = gateway.requests.length;
+  createXuanxueAiProductionOrder(runtime, contaminatedNaming);
+  const contaminatedRecovered =
+    await executeXuanxueAiProductionOrder(
+      runtime,
+      contaminatedNaming.orderId,
+    );
+  assert.equal(contaminatedRecovered.status, "completed");
+  assert.equal(
+    gateway.requests.length - beforeContaminated,
+    2,
+    "provider citation residue must discard the response and restart once",
+  );
+  const contaminationExecutionIds = gateway.executionIds.slice(
+    beforeContaminated,
+  );
+  assert.equal(new Set(contaminationExecutionIds).size, 2);
+  assert.equal(
+    gateway.supersededExecutionIds.at(-1),
+    contaminationExecutionIds[0],
+  );
+  assert.doesNotMatch(
+    contaminatedRecovered.result?.stages[0]?.rawResponseText ?? "",
+    /filecite/u,
+  );
+  assert.equal(transientResult.stages[0]?.attemptCount, 2);
+
   const parallelOrders = Array.from({ length: 11 }, (_, index) =>
     order(
       `aiprod_qimen_${index + 1}`,
@@ -378,7 +412,8 @@ try {
     coordinator.execute(candidate.orderId));
   await new Promise<void>((resolve) => setTimeout(resolve, 100));
   assert.equal(
-    gateway.started.filter((value) => value.includes("aiprod_qimen")).length,
+    gateway.started.filter((value) =>
+      /aiprod_qimen_\d+:analysis$/u.test(value)).length,
     10,
     "the eleventh order must remain outside the ten-order production window",
   );
@@ -390,6 +425,13 @@ try {
   assert.ok(completed.every((record) => record.status === "completed"));
   await coordinator.close();
 
+  await acceptXuanxueParentRecovery({
+    runtime,
+    gateway,
+    qimenParent: qimenFollowupParent,
+    qimenParentFinal: qimenFollowupParentFinal,
+  });
+
   const replay = createXuanxueAiProductionOrder(runtime, hehun);
   assert.equal(replay.order.orderId, hehun.orderId);
   assert.throws(
@@ -400,49 +442,18 @@ try {
     /ORDER_IDENTITY_CONFLICT/u,
   );
 
-  const recoverable = Array.from({ length: 70 }, (_, index) =>
-    order(
-      `aiprod_restart_recovery_${index + 1}`,
-      "qimen_professional_answer",
-      ["analysis"],
-    ));
-  for (const candidate of recoverable) {
-    createXuanxueAiProductionOrder(runtime, candidate);
-  }
-  store.close();
-  const reopened = new XuanxueAiProductionStore(dataDir);
-  assert.equal(reopened.readOrder(hehun.orderId)?.status, "completed");
-  assert.equal(
-    reopened.listRecoverableOrders().length,
-    recoverable.length,
-    "restart discovery must never truncate an offline backlog",
-  );
-  const resumedRuntime = { ...runtime, store: reopened };
-  const resumedCoordinator =
-    new XuanxueAiProductionCoordinator(resumedRuntime);
-  resumedCoordinator.resumeRecoverableOrders();
-  const recoveryDeadline = Date.now() + 5_000;
-  while (
-    Date.now() < recoveryDeadline
-    && recoverable.some(
-      (candidate) =>
-        reopened.readOrder(candidate.orderId)?.status !== "completed",
-    )
-  ) {
-    await new Promise<void>((resolve) => setTimeout(resolve, 20));
-  }
-  assert.ok(
-    recoverable.every(
-      (candidate) =>
-        reopened.readOrder(candidate.orderId)?.status === "completed",
-    ),
-    "all persisted offline orders must resume without a 64-order ceiling",
-  );
-  await resumedCoordinator.close();
-  assert.equal(reopened.listRecoverableOrders().length, 0);
-  reopened.close();
+  await acceptXuanxueRestartRecovery({
+    dataDir,
+    gateway,
+    runtime,
+    completedOrderId: hehun.orderId,
+    qimenParent: {
+      jobId: qimenFollowupParent.orderId,
+      rawOutputHash: qimenFollowupParentFinal.rawOutputHash!,
+    },
+  });
   process.stdout.write(
-    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed graphs, parallel branches, seeded legacy checkpoints, same-chat manual challenges and SEO, payment observation, idempotency and SQLite restart recovery.\n",
+    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed single-conversation graphs, contaminated-output restart, exact-parent FIFO, parent-conversation replay from cloud material, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",
   );
 } finally {
   await rm(dataDir, { recursive: true, force: true });

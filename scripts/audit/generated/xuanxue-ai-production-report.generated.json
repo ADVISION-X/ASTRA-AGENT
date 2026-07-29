@@ -1,63 +1,63 @@
 {
-  "generatedAt": "2026-07-28T14:07:23.362Z",
+  "generatedAt": "2026-07-29T19:05:15.622Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-    "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
+    "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+    "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
     "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1"
   ],
   "status": "PASS",
   "findings": [],
   "executedChecks": [
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
       "checkId": "xuanxue-ai-production/acceptance"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
       "checkId": "xuanxue-ai-production/fixed-profiles"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
       "checkId": "xuanxue-ai-production/forbidden-private-import"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
       "checkId": "xuanxue-ai-production/source-present"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
       "checkId": "xuanxue-ai-production/whole-order-contract"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
       "checkId": "xuanxue-ai-production/acceptance"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
       "checkId": "xuanxue-ai-production/bounded-coordinator"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
       "checkId": "xuanxue-ai-production/durable-ledger"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
       "checkId": "xuanxue-ai-production/no-untracked-background-work"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
       "checkId": "xuanxue-ai-production/source-present"
     },
     {
@@ -89,9 +89,20 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
@@ -101,6 +112,10 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
     "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
     "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-    "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
+    "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+    "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts"
   ]
 }

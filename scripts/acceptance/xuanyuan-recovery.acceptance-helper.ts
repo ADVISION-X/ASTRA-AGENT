@@ -175,9 +175,63 @@ const runAutomaticRecoveryAcceptance = async (
   );
 };
 
+const runReviewStopsRecoveryAcceptance = async (
+  fixture: RecoveryAcceptanceFixture,
+): Promise<void> => {
+  let executions = 0;
+  const reviewGateway: AiInputGatewayAbilityGroup = {
+    abilityGroupId: "ai-input-gateway",
+    listChildCapabilityIds: () => ["feed-gpt-web-chat-once"],
+    getRuntimeCapacity: () => 10,
+    async execute(input: unknown, options): Promise<AiFeedResult> {
+      executions += 1;
+      await options?.onProgress?.({
+        phase: "recovery_pending",
+        occurredAt: new Date().toISOString(),
+      });
+      const failed = fixture.buildFailedResult(
+        input as AiFeedInput,
+        "exact conversation lookup exhausted",
+      );
+      return {
+        ...failed,
+        status: "review_required",
+        failureReason: null,
+        reviewRequiredReason: "exact conversation lookup exhausted",
+      };
+    },
+  };
+  const request = {
+    ...(fixture.buildRequest(101) as Record<string, unknown>),
+    requestId: "acceptance-review-stops-recovery",
+    promptPackageId: "acceptance-review-stops-recovery-package",
+  };
+  const coordinator = createXuanyuanTaskCoordinator({
+    dataDir: fixture.dataDir,
+    aiInputGateway: reviewGateway,
+  });
+  const taskId = await runQueuedTaskToIdle(coordinator, request);
+  const stopped = (await getXuanyuanTaskStatus(
+    { dataDir: fixture.dataDir },
+    taskId,
+  ))!;
+  assert.equal(stopped.status, "review_required");
+  assert.equal(stopped.recovery.recoverable, false);
+  assert.equal(stopped.recovery.nextRetryAt, null);
+  assert.equal(executions, 1);
+
+  const restarted = createXuanyuanTaskCoordinator({
+    dataDir: fixture.dataDir,
+    aiInputGateway: reviewGateway,
+  });
+  await resumeExistingQueueToIdle(restarted);
+  assert.equal(executions, 1, "review_required must not query GPT after restart");
+};
+
 export const runXuanyuanRecoveryAcceptance = async (
   fixture: RecoveryAcceptanceFixture,
 ): Promise<void> => {
   await runRestartRecoveryAcceptance(fixture);
   await runAutomaticRecoveryAcceptance(fixture);
+  await runReviewStopsRecoveryAcceptance(fixture);
 };

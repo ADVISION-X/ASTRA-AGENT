@@ -4,7 +4,7 @@ import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
   buildMarkerScopedChatGptResponseScript,
   EXTRACT_LAST_RESPONSE_SCRIPT,
-} from "./web-chat-evaluation.js";
+} from "./web-chat-response-extraction-script.js";
 
 type StableAnswerState = {
   lastText: string;

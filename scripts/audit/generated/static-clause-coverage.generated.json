@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T14:07:25.641Z",
+  "generatedAt": "2026-07-29T19:05:17.261Z",
   "summary": {
     "activeLawCount": 250,
     "activeClauseCount": 257,
@@ -126,8 +126,8 @@
       "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V1",
-      "clauseId": "apex-ai-input-gateway-005-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "capabilityDomain": "ai-input-gateway",
       "evidenceMode": "real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
@@ -141,6 +141,8 @@
         "ai-input-gateway/durable-fifo-scheduler",
         "ai-input-gateway/exact-sidebar-row-rename",
         "ai-input-gateway/failure-ledger",
+        "ai-input-gateway/fresh-conversation-identity",
+        "ai-input-gateway/fresh-execution-rate-owner-transfer",
         "ai-input-gateway/human-readable-system-chat-title",
         "ai-input-gateway/no-chatgpt-page-refresh",
         "ai-input-gateway/offscreen-sidebar-recovery",
@@ -151,6 +153,7 @@
         "ai-input-gateway/live-generation-proof",
         "ai-input-gateway/structured-task-identity",
         "ai-input-gateway/transient-submission-checkpoint",
+        "ai-input-gateway/transient-overlay-hygiene",
         "ai-input-gateway/removed-old-region",
         "ai-input-gateway/source-present"
       ],
@@ -13871,8 +13874,8 @@
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-001-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -13892,8 +13895,8 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-002-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",

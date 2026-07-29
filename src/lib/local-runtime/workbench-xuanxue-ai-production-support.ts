@@ -25,7 +25,6 @@ export const createWorkbenchXuanxueAiProductionSupport = (
       store = new XuanxueAiProductionStore(dataDir);
       runtime = { dataDir, aiInputGateway, store };
       coordinator = new XuanxueAiProductionCoordinator(runtime);
-      coordinator.resumeRecoverableOrders();
       worker = await startXuanxueAiProductionCloudWorker({
         dataDir,
         execution: {
@@ -33,6 +32,18 @@ export const createWorkbenchXuanxueAiProductionSupport = (
             createXuanxueAiProductionOrder(runtime!, input),
           executeOrder: (orderId) =>
             coordinator!.execute(orderId),
+          listCloudRecoveryOrders: () =>
+            store!.listCloudRecoveryOrders(),
+          repairCompletedCheckpointProviderProofs: () =>
+            store!.repairCompletedCheckpointProviderProofs(
+              (input) =>
+                aiInputGateway.recoverCheckpointedProviderLease?.(input)
+                ?? Promise.resolve(null),
+            ),
+          quarantineForeignCloudRecoveryOrder: (orderId, reason) =>
+            store!.quarantineForeignCloudRecoveryOrder(orderId, reason),
+          cancelCloudRecoveryOrder: (orderId, reason) =>
+            store!.cancelCloudRecoveryOrder(orderId, reason),
           availableCapacity: () => coordinator!.availableCapacity(),
         },
       });

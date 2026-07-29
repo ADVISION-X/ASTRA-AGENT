@@ -124,13 +124,13 @@ const statusFromResult = (
   result: AiFeedResult,
   phase: XuanyuanTaskRecord["progress"]["phase"],
 ): XuanyuanTaskStatus => {
+  if (result.status === "review_required") return "review_required";
   if (
     phase === "recovery_pending"
-    && (result.status === "failed" || result.status === "review_required")
+    && result.status === "failed"
   ) {
     return "recovery_pending";
   }
-  if (result.status === "review_required") return "review_required";
   if (result.status === "failed") return "failed";
   return "response_captured";
 };

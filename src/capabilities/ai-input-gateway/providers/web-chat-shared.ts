@@ -6,8 +6,6 @@ import type {
   WebChatAttachmentUploadProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import { waitForStableAnswer } from "./web-chat-answer.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
 import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
 import { startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
@@ -32,14 +30,15 @@ import {
   restoreAfterWebChatFeed,
 } from "./web-chat-recovery.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
-import { checkpointSubmittedWebChatTurn } from "./web-chat-submission-checkpoint.js";
 import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
 import {
-  acknowledgeWebChatRateLimitIfVisible,
   emitWebChatStage,
   extractWebChatConversation,
 } from "./web-chat-response-capture.js";
 import { resumeSubmittedWebChatConversation } from "./web-chat-resume.js";
+import {
+  readPreSubmitConversationState,
+} from "./web-chat-pre-submit-state.js";
 
 const PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1;
 
@@ -61,18 +60,16 @@ const isPick3MissingBoundImageError = (input: {
   input.error instanceof Error &&
   input.error.message.includes("provider_missing_bound_image");
 
-const shouldSkipPreSubmitConversationState = (request: AiFeedInput): boolean =>
-  request.providerKind === "gemini-web-chat" &&
-  isPick3WebChatRequest({ request });
-
 const submitWebChatPrompt = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
+  previousAssistantCount: number;
   previousUserMessageCount: number;
+  uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
-}): Promise<void> => {
+}): Promise<Awaited<ReturnType<typeof submitPromptViaClipboard>>> => {
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -81,76 +78,15 @@ const submitWebChatPrompt = async (input: {
       ? { abortSignal: input.context.abortSignal }
       : {}),
   });
-  await submitPromptViaClipboard({
+  return submitPromptViaClipboard({
     browser: input.browser,
     request: input.request,
     context: input.context,
+    previousAssistantCount: input.previousAssistantCount,
     previousUserMessageCount: input.previousUserMessageCount,
+    uploadedFiles: input.uploadedFiles,
     attachmentUploadProof: input.attachmentUploadProof,
   });
-};
-
-const readPreSubmitConversationState = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-}): Promise<{
-  previousAssistantCount: number;
-  previousUserMessageCount: number;
-  previousAnswerText: string | null;
-}> => {
-  if (shouldSkipPreSubmitConversationState(input.request)) {
-    emitWebChatStage({
-      request: input.request,
-      stage: "pre_submit_snapshot",
-      status: "skipped",
-      startedAtMs: null,
-      refs: { reason: "fresh_gemini_pick3_conversation" },
-    });
-    return {
-      previousAssistantCount: 0,
-      previousUserMessageCount: 0,
-      previousAnswerText: null,
-    };
-  }
-  const startedAtMs = Date.now();
-  const preSubmitContext = { ...input.context };
-  delete preSubmitContext.webChatExecution;
-  emitWebChatStage({
-    request: input.request,
-    stage: "pre_submit_snapshot",
-    status: "start",
-    startedAtMs: null,
-  });
-  await assertActiveProviderPage({
-    browser: input.browser,
-    providerUrl: input.providerUrl,
-    phase: "pre-submit conversation snapshot",
-    ...(input.context.abortSignal
-      ? { abortSignal: input.context.abortSignal }
-      : {}),
-  });
-  const beforeSubmit = await waitForStableAnswer({
-    browser: input.browser,
-    context: preSubmitContext,
-    timeoutMs: 1_000,
-    pollIntervalMs: 250,
-    stableRoundsRequired: 1,
-    beforePoll: () => acknowledgeWebChatRateLimitIfVisible(input),
-  });
-  emitWebChatStage({
-    request: input.request,
-    stage: "pre_submit_snapshot",
-    status: "success",
-    startedAtMs,
-    refs: { assistantCount: beforeSubmit.assistantCount ?? 0 },
-  });
-  return {
-    previousAssistantCount: beforeSubmit.assistantCount ?? 0,
-    previousUserMessageCount: beforeSubmit.userMessageCount ?? 0,
-    previousAnswerText: beforeSubmit.answerText?.trim() ?? null,
-  };
 };
 
 type OpenedWebChatConversationInput = {
@@ -211,6 +147,12 @@ const prepareWebChatConversation = async (
       ? { abortSignal: input.context.abortSignal }
       : {}),
   });
+  const preSubmit = await readPreSubmitConversationState({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    providerUrl: input.providerUrl,
+  });
   const attachmentResult = await attachApprovedWebChatFilesOnce({
     browser: input.browser,
     request: input.request,
@@ -221,12 +163,7 @@ const prepareWebChatConversation = async (
     allowAnyProviderTab: false,
   });
   return {
-    ...(await readPreSubmitConversationState({
-      browser: input.browser,
-      request: input.request,
-      context: input.context,
-      providerUrl: input.providerUrl,
-    })),
+    ...preSubmit,
     uploadedFiles: attachmentResult.uploadedFiles,
     attachmentUploadProof: attachmentResult.attachmentUploadProof,
   };
@@ -311,18 +248,11 @@ const executeWebChatConversation = async (
     ...input,
     allowAnyProviderTab: false,
   });
-  await submitWebChatPrompt({
+  const capturedSubmission = await submitWebChatPrompt({
     browser: input.browser,
     request: input.request,
     context: input.context,
     providerUrl: input.providerUrl,
-    previousUserMessageCount: preSubmit.previousUserMessageCount,
-    attachmentUploadProof: preSubmit.attachmentUploadProof,
-  });
-  const capturedSubmission = await checkpointSubmittedWebChatTurn({
-    browser: input.browser,
-    context: input.context,
-    request: input.request,
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousUserMessageCount: preSubmit.previousUserMessageCount,
     uploadedFiles: preSubmit.uploadedFiles,

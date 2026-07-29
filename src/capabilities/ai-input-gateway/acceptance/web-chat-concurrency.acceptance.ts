@@ -21,25 +21,23 @@ import {
   advanceStableAnswer,
   createStableAnswerState,
 } from "../providers/web-chat-answer-support.js";
-import { resolveManagedGptPollIntervalMs } from "../providers/web-chat-response-capture.js";
 import {
   acquireWebChatBrowserMutationLease,
   acquireWebChatBrowserPatrolLease,
   pendingWebChatSubmissionCount,
   registerPendingWebChatSubmission,
 } from "../runtime/web-chat-concurrency-lease.js";
-import { classifyWebChatFailure } from "../failure-classification.js";
 import {
   startOrResumeWebChatExecution,
   updateWebChatExecution,
 } from "../runtime/web-chat-execution-state.js";
-import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
 import {
   assertFailureLedger,
   assertResponseCheckpointRecovery,
 } from "./web-chat-recovery.acceptance-helper.js";
 import { assertWebChatSourceContracts } from "./web-chat-source-contract.acceptance-helper.js";
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
+import { assertWebChatIdentityAndRecoveryPolicies } from "./web-chat-identity-recovery.acceptance-helper.js";
 
 const delay = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -151,72 +149,7 @@ if (workerArgs[0] === "--worker") {
     throw new Error("invalid concurrency worker arguments");
   await runWorker(dataDir, worker);
 } else {
-  const seoTitle = buildHumanReadableSystemChatTitle({
-    labelKey: "seo_research",
-    executionId: "xuanyuan_example-seo-task",
-    turnMarker: "GRASSEYE_TURN_1234567890abcdef",
-    createdAt: "2026-07-26T04:40:00.000Z",
-  });
-  assert.match(
-    seoTitle,
-    /^SEO资料研究｜07-26 04:40Z｜[A-F0-9]{8}-CDEF$/u,
-    "SEO conversations must have a readable task label, UTC time and short trace",
-  );
-  assert.doesNotMatch(
-    seoTitle,
-    /public-knowledge|xuanyuan|GRASSEYE_TURN/u,
-    "readable titles must not expose transport ids or raw contract vocabulary",
-  );
-  assert.match(
-    buildHumanReadableSystemChatTitle({
-      labelKey: "bazi_analysis",
-      executionId: "xuanyuan_example-bazi-task",
-      turnMarker: "GRASSEYE_TURN_abcdef1234567890",
-      createdAt: "2026-07-26T04:41:00.000Z",
-    }),
-    /^八字分析｜07-26 04:41Z｜[A-F0-9]{8}-7890$/u,
-    "known business contracts must resolve to a human-readable allowlisted label",
-  );
-  assert.match(
-    buildHumanReadableSystemChatTitle({
-      labelKey: "generic_ai",
-      executionId: "xuanyuan_example-generic-task",
-      turnMarker: "GRASSEYE_TURN_1234567890abcdef",
-      createdAt: "2026-07-26T04:42:00.000Z",
-    }),
-    /^AI任务｜07-26 04:42Z｜[A-F0-9]{8}-CDEF$/u,
-    "unknown contracts must use the neutral internal fallback without copying caller text",
-  );
-  assert.equal(resolveManagedGptPollIntervalMs(""), 5_000);
-  assert.equal(resolveManagedGptPollIntervalMs("1000"), 1_000);
-  assert.throws(
-    () => resolveManagedGptPollIntervalMs("999"),
-    /WEB_CHAT_PATROL_INTERVAL_MS/u,
-  );
-  assert.equal(
-    classifyWebChatFailure(
-      new Error("GPT_PROMPT_MISMATCH; controlled Chrome tab is not active"),
-      false,
-    ),
-    "recovery_pending",
-    "a pre-submit controlled-tab interruption must retain the same execution for retry",
-  );
-  assert.equal(
-    classifyWebChatFailure(
-      new Error("GPT_PROMPT_MISMATCH; 不能获取对象。 (-1728)"),
-      false,
-    ),
-    "recovery_pending",
-    "a transient JXA object loss must not terminally discard unsubmitted provider work",
-  );
-  assert.equal(
-    classifyWebChatFailure(
-      new Error("review_required: NATIVE_FILE_LIST_MISMATCH"),
-      false,
-    ),
-    "recovery_pending",
-    "a native file-picker ordering drift must retain the same execution for retry",
-  );
+  await assertWebChatIdentityAndRecoveryPolicies();
 
   await assertTransientPatrolRemainsRetryable();
 
