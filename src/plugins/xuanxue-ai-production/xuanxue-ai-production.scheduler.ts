@@ -3,8 +3,8 @@ import {
   type XuanxueAiProductionRuntime,
 } from "./xuanxue-ai-production.flow.js";
 import {
-  isXuanxueAiFollowupProduct,
-  xuanxueAiContinuationProfiles,
+  isXuanxueAiRequiredContinuationProduct,
+  xuanxueAiRequiredContinuationProfiles,
   type XuanxueAiOrderRecord,
 } from "./xuanxue-ai-production.schema.js";
 import { requireXuanxueStage } from "./xuanxue-ai-production-feed.js";
@@ -54,13 +54,16 @@ const rebuildContinuationParent = async (
   child: XuanxueAiOrderRecord,
 ): Promise<void> => {
   const parentRef = child.order.continuationParent;
-  if (!parentRef || !isXuanxueAiFollowupProduct(child.order.productId)) {
+  if (
+    !parentRef
+    || !isXuanxueAiRequiredContinuationProduct(child.order.productId)
+  ) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_BINDING_MISSING",
     );
   }
   const expected =
-    xuanxueAiContinuationProfiles[child.order.productId];
+    xuanxueAiRequiredContinuationProfiles[child.order.productId];
   const parent = runtime.store.readOrder(parentRef.jobId);
   if (!parent) {
     throw new Error(
@@ -110,13 +113,6 @@ const rebuildContinuationParent = async (
   });
 };
 
-const continuationLaneKey = (
-  record: XuanxueAiOrderRecord,
-): string | null => {
-  const parent = record.order.continuationParent;
-  return parent ? `${parent.jobId}:${parent.stageId}` : null;
-};
-
 const precedes = (
   left: XuanxueAiOrderRecord,
   right: XuanxueAiOrderRecord,
@@ -139,6 +135,23 @@ export class XuanxueAiProductionCoordinator {
     this.productionWindow = resolveXuanxueAiProductionWindow();
   }
 
+  private continuationLaneKey(
+    record: XuanxueAiOrderRecord,
+  ): string | null {
+    const parent = record.order.continuationParent;
+    if (!parent) return null;
+    const parentOrder = this.runtime.store.readOrder(parent.jobId);
+    const parentStage = parentOrder?.stages.find(
+      (stage) => stage.stageId === parent.stageId,
+    );
+    const exactUrl =
+      parentStage?.aiFeedResult?.providerProof.webChatUrl;
+    return typeof exactUrl === "string"
+      && exactUrl.startsWith("https://chatgpt.com/")
+      ? `gpt-chat:${exactUrl}`
+      : `parent-stage:${parent.jobId}:${parent.stageId}`;
+  }
+
   execute(orderId: string): Promise<XuanxueAiOrderRecord> {
     const existing = this.runtime.store.readOrder(orderId);
     if (!existing) {
@@ -147,11 +160,11 @@ export class XuanxueAiProductionCoordinator {
       );
     }
     if (terminal(existing)) return Promise.resolve(existing);
-    const lane = continuationLaneKey(existing);
+    const lane = this.continuationLaneKey(existing);
     if (lane) {
       for (const predecessor of this.runtime.store.listRecoverableOrders()) {
         if (
-          continuationLaneKey(predecessor) === lane
+          this.continuationLaneKey(predecessor) === lane
           && precedes(predecessor, existing)
         ) this.register(predecessor.order.orderId);
       }
@@ -220,7 +233,7 @@ export class XuanxueAiProductionCoordinator {
       const scheduled = this.scheduled.get(orderId);
       if (!scheduled || this.active.has(orderId)) continue;
       const record = this.runtime.store.readOrder(orderId);
-      const lane = record ? continuationLaneKey(record) : null;
+      const lane = record ? this.continuationLaneKey(record) : null;
       if (lane) this.activeContinuationLanes.set(lane, orderId);
       const tracked = this.run(scheduled).finally(() => {
         this.active.delete(orderId);
@@ -249,13 +262,13 @@ export class XuanxueAiProductionCoordinator {
   private orderCanRun(orderId: string): boolean {
     const record = this.runtime.store.readOrder(orderId);
     if (!record) return true;
-    const lane = continuationLaneKey(record);
+    const lane = this.continuationLaneKey(record);
     if (!lane) return true;
     if (this.activeContinuationLanes.has(lane)) return false;
     return !this.runtime.store.listRecoverableOrders().some(
       (candidate) =>
         candidate.order.orderId !== orderId
-        && continuationLaneKey(candidate) === lane
+        && this.continuationLaneKey(candidate) === lane
         && precedes(candidate, record),
     );
   }

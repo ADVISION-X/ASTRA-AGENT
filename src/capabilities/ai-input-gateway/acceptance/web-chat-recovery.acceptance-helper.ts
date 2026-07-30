@@ -8,6 +8,9 @@ import {
 import { classifyWebChatFailure } from "../failure-classification.js";
 import { readWebChatExecution } from "../runtime/web-chat-execution-state.js";
 import { readWebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
+import {
+  drainWebChatTitleHousekeeping,
+} from "../runtime/web-chat-title-housekeeping.js";
 
 const answerText = "durable answer captured before title rename";
 
@@ -103,6 +106,11 @@ const captureThenInterruptPostProcessing = async (input: {
   assert.equal(checkpointed?.status, "response_captured");
   assert.ok(checkpointed?.responseCheckpoint);
   assert.equal(
+    checkpointed?.chatTitleRename?.status,
+    "pending",
+    "answer publication must leave an explicit durable rename debt until the exact GPT title is verified",
+  );
+  assert.equal(
     await readWebChatResponseCheckpoint(checkpointed.responseCheckpoint!),
     answerText,
   );
@@ -149,6 +157,44 @@ const resumeFromCheckpoint = async (input: {
   );
 };
 
+const finishTitleHousekeepingAfterRestart = async (input: {
+  dataDir: string;
+  executionId: string;
+}): Promise<void> => {
+  let renameCount = 0;
+  const summary = await drainWebChatTitleHousekeeping({
+    dataDir: input.dataDir,
+    executeRename: async (record) => {
+      renameCount += 1;
+      assert.equal(
+        record.executionId,
+        input.executionId,
+        "restart housekeeping must retain the exact execution identity",
+      );
+      return {
+        ...record.submission!,
+        systemChatTitle: record.systemChatTitle,
+        observedAutoChatTitle: "fixture-before-durable-rename",
+        chatTitleVerifiedAt: new Date().toISOString(),
+      };
+    },
+  });
+  assert.equal(renameCount, 1);
+  assert.equal(summary.attempted, 1);
+  assert.equal(summary.verified, 1);
+  assert.equal(summary.pending, 0);
+  const verified = await readWebChatExecution(
+    input.dataDir,
+    input.executionId,
+  );
+  assert.equal(verified?.chatTitleRename?.status, "verified");
+  assert.equal(
+    verified?.submission?.systemChatTitle,
+    verified?.systemChatTitle,
+  );
+  assert.ok(verified?.submission?.chatTitleVerifiedAt);
+};
+
 export const assertResponseCheckpointRecovery = async (
   dataDir: string,
   request: AiFeedInput,
@@ -162,6 +208,7 @@ export const assertResponseCheckpointRecovery = async (
     submissionCount,
   });
   await resumeFromCheckpoint({ dataDir, executionId, request });
+  await finishTitleHousekeepingAfterRestart({ dataDir, executionId });
   assert.equal(
     submissionCount.value,
     1,

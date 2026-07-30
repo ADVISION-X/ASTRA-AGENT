@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-07-29T19:04:27.170Z",
+  "generatedAt": "2026-07-30T00:05:03.605Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -305,12 +305,22 @@
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
       "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+      "checkId": "ai-input-gateway/durable-title-housekeeping"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/durable-fifo-scheduler"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
       "clauseId": "apex-ai-input-gateway-005-v2-requirement",
       "checkId": "ai-input-gateway/exact-sidebar-row-rename"
+    },
+    {
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+      "checkId": "ai-input-gateway/exact-rename-identity-proof"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
@@ -443,8 +453,11 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-accessibility-window.ts",
     "src/lib/browser/current-chrome-browser-controller-execution.ts",
     "src/lib/browser/current-chrome-browser-controller-primitives.ts",
     "src/lib/browser/current-chrome-native-multi-file-picker.ts",

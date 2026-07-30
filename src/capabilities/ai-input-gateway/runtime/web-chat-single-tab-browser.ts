@@ -310,7 +310,6 @@ export const createSingleTabWebChatBrowser = (
             "review_required: the single controlled provider tab is not open.",
           );
         }
-        await routeToBoundConversation(input, state);
         return await operation(input.base);
       } finally {
         await lease.release();

@@ -9,19 +9,14 @@ import { resolveFromRepo } from "../../shared/paths.js";
 
 const paths = {
   checkpoint: "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
-  checkpointResponse:
-    "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
+  checkpointResponse: "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
   executionState: "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
-  continuationTitle:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
+  continuationTitle: "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
   managed: "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-  feedProviderOnce:
-    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+  feedProviderOnce: "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
   failureClassification: "src/capabilities/ai-input-gateway/failure-classification.ts",
   rateGuard: "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
-  identityAcceptance:
-    "src/capabilities/ai-input-gateway/acceptance/"
-    + "web-chat-identity-recovery.acceptance-helper.ts",
+  identityAcceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
   shared: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   submit: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
   submissionCheckpoint: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
@@ -29,8 +24,15 @@ const paths = {
   acceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
   recoveryAcceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
   realChrome: "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
+  realChromeTitleHousekeeping: "src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
   chatTitle: "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+  chatTitleScripts: "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+  titleHousekeeping: "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
+  titleHousekeepingWorker: "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+  abilityGroup: "src/capabilities/ai-input-gateway/ability-group.ts",
   windowControl: "src/lib/browser/current-chrome-window-control.ts",
+  accessibilityWindow:
+    "src/lib/browser/current-chrome-accessibility-window.ts",
   browserPrimitives: "src/lib/browser/current-chrome-browser-controller-primitives.ts",
   providerTab: "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
   routing: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
@@ -382,6 +384,49 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
       message: "Bounded title recovery is missing",
     },
     {
+      checkId: "ai-input-gateway/durable-title-housekeeping",
+      filePath: paths.titleHousekeeping,
+      sourceKeys: [
+        "executionState",
+        "managed",
+        "feedProviderOnce",
+        "titleHousekeeping",
+        "titleHousekeepingWorker",
+        "abilityGroup",
+        "recoveryAcceptance",
+        "realChromeTitleHousekeeping",
+      ],
+      required: [
+        "WebChatTitleRenameState",
+        "chatTitleRename",
+        "drainWebChatTitleHousekeeping",
+        "runWebChatTitleHousekeepingNow",
+        "scheduleWebChatTitleHousekeeping",
+        "schedulePublishedTitleHousekeeping",
+        "finishTitleHousekeepingAfterRestart",
+        "[REAL-CHROME-TITLE-HOUSEKEEPING-INTERRUPTED]",
+        "[REAL-CHROME-TITLE-HOUSEKEEPING-RECOVERED]",
+        "WEB_CHAT_TITLE_HOUSEKEEPING_RECOVERY_ROOT",
+        "response_captured",
+      ],
+      message:
+        "Published answer rename debt is not durable or restart-drainable",
+    },
+    {
+      checkId: "ai-input-gateway/exact-rename-identity-proof",
+      filePath: paths.chatTitleScripts,
+      sourceKeys: ["chatTitleScripts"],
+      required: [
+        "expectedPath",
+        "expectedTitle",
+        "currentPathMatches",
+        "markerCount",
+        "titleLinks",
+      ],
+      message:
+        "Final rename proof is not bound to canonical URL, title and marker",
+    },
+    {
       checkId: "ai-input-gateway/one-parent-conversation-title",
       filePath: paths.managed,
       sourceKeys: [
@@ -400,8 +445,19 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
     {
       checkId: "ai-input-gateway/controlled-chrome-window-identity",
       filePath: paths.windowControl,
-      sourceKeys: ["windowControl", "browserPrimitives", "providerTab"],
-      required: ["runJxa", "activateChrome", "focusSingleProviderTab"],
+      sourceKeys: [
+        "windowControl",
+        "accessibilityWindow",
+        "browserPrimitives",
+        "providerTab",
+      ],
+      required: [
+        "runJxa",
+        "activateChrome",
+        "focusSingleProviderTab",
+        "buildExactChromeAccessibilityWindowRaiseScript",
+        "EXACT_ACCESSIBILITY_WINDOW_STABILIZATION_ATTEMPTS",
+      ],
       message: "Exact controlled Chrome window binding is missing",
     },
 ];

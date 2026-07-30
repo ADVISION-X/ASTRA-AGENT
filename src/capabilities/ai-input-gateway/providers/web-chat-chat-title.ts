@@ -1,14 +1,14 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import { focusBoundWebChatConversation } from "../runtime/web-chat-single-tab-routing.js";
 import type { AiProviderAdapterContext, WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import { copyTextToMacClipboard, pasteMacClipboardIntoChrome } from "./web-chat-clipboard.js";
 import {
   buildConversationLinkTargetScript,
   buildConversationOptionsTargetScript,
-  buildFocusedSubmittedConversationScript,
+  buildRenameMenuTargetScript,
   buildRenamedIdentityVerificationScript,
   buildRenameTextboxTargetScript,
   buildRenameTextboxValueScript,
-  RENAME_MENU_TARGET_SCRIPT,
 } from "./web-chat-chat-title-scripts.js";
 
 type LocatedTarget = {
@@ -33,7 +33,7 @@ type TextboxValueVerification = {
 };
 
 const CHATGPT_RENAME_NOT_READY = "WEB_CHAT_RENAME_NOT_READY";
-const RENAME_PATROL_SLICE_MS = 4_000;
+export const RENAME_PATROL_SLICE_MS = 15_000;
 const RENAME_RETRY_DELAY_MS = 500;
 
 const renameNotReady = (message: string): Error =>
@@ -89,77 +89,62 @@ const locateAndClick = async (input: { browser: BrowserController; context: AiPr
   return target;
 };
 
-const focusSubmittedConversation = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; turnMarker: string; timeoutMs: number }): Promise<void> => {
-  const deadline = Date.now() + input.timeoutMs;
-  await locateAndClick({
-    browser: input.browser,
-    context: input.context,
-    description: "open the just-submitted ChatGPT conversation before renaming",
-    script: buildConversationLinkTargetScript({
-      canonicalConversationUrl: input.canonicalConversationUrl,
-    }),
-    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
-  });
-  while (Date.now() < deadline) {
-    const observation = await input.browser.evaluateActiveTab<{
-      status: "success" | "pending" | "review_required";
-      pageUrl: string;
-      markerCount: number;
-    }>({
-      description: "verify the just-submitted ChatGPT conversation is current before renaming",
-      script: buildFocusedSubmittedConversationScript({
-        canonicalConversationUrl: input.canonicalConversationUrl,
-        turnMarker: input.turnMarker,
-      }),
-      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    });
-    if (observation.status === "success") return;
-    if (observation.status === "review_required") {
-      throw new Error(`review_required: submitted ChatGPT conversation marker is ambiguous before rename; count=${observation.markerCount}`);
-    }
-    await input.browser.wait(250);
-  }
-  throw renameNotReady(
-    "just-submitted ChatGPT conversation did not become current before rename",
-  );
-};
-
 const applySystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<string | null> => {
   const deadline = Date.now() + input.timeoutMs;
-  const conversationLink = await locateTarget({
-    browser: input.browser,
-    context: input.context,
-    description: "locate the submitted ChatGPT conversation title before revealing its options",
-    script: buildConversationLinkTargetScript({
-      canonicalConversationUrl: input.canonicalConversationUrl,
-    }),
-    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+  const renameMenuScript = buildRenameMenuTargetScript({
+    canonicalConversationUrl: input.canonicalConversationUrl,
   });
-  if (!input.browser.move) {
-    throw new Error("review_required: browser cannot hover the submitted ChatGPT conversation title.");
+  const openRenameMenu = await input.browser.evaluateActiveTab<LocatedTarget>({
+    description:
+      "detect an interrupted exact-conversation rename menu",
+    script: renameMenuScript,
+    ...(input.context.abortSignal
+      ? { abortSignal: input.context.abortSignal }
+      : {}),
+  });
+  if (openRenameMenu.status === "review_required") {
+    throw new Error(
+      `review_required: ${openRenameMenu.message}`,
+    );
   }
-  const moved = await input.browser.move({
-    targetLabel: "hover the submitted ChatGPT conversation title",
-    point: conversationLink.targetPoint!,
-    coordinateSpace: "browserViewport",
-  });
-  if (!moved.ok) {
-    throw new Error(`review_required: submitted ChatGPT conversation hover failed; ${moved.message}`);
+  let observedTitle: string | null = null;
+  if (openRenameMenu.status !== "success") {
+    const conversationLink = await locateTarget({
+      browser: input.browser,
+      context: input.context,
+      description: "locate the submitted ChatGPT conversation title before revealing its options",
+      script: buildConversationLinkTargetScript({
+        canonicalConversationUrl: input.canonicalConversationUrl,
+      }),
+      timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+    });
+    if (!input.browser.move) {
+      throw new Error("review_required: browser cannot hover the submitted ChatGPT conversation title.");
+    }
+    const moved = await input.browser.move({
+      targetLabel: "hover the submitted ChatGPT conversation title",
+      point: conversationLink.targetPoint!,
+      coordinateSpace: "browserViewport",
+    });
+    if (!moved.ok) {
+      throw new Error(`review_required: submitted ChatGPT conversation hover failed; ${moved.message}`);
+    }
+    const options = await locateAndClick({
+      browser: input.browser,
+      context: input.context,
+      description: "click the submitted ChatGPT conversation options control",
+      script: buildConversationOptionsTargetScript({
+        canonicalConversationUrl: input.canonicalConversationUrl,
+      }),
+      timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+    });
+    observedTitle = options.observedTitle?.trim() || null;
   }
-  const options = await locateAndClick({
-    browser: input.browser,
-    context: input.context,
-    description: "click the submitted ChatGPT conversation options control",
-    script: buildConversationOptionsTargetScript({
-      canonicalConversationUrl: input.canonicalConversationUrl,
-    }),
-    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
-  });
   await locateAndClick({
     browser: input.browser,
     context: input.context,
     description: "click ChatGPT rename menu item",
-    script: RENAME_MENU_TARGET_SCRIPT,
+    script: renameMenuScript,
     timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
   await locateAndClick({
@@ -170,7 +155,7 @@ const applySystemChatTitle = async (input: { browser: BrowserController; context
     timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   });
   await writeExactSystemChatTitle(input);
-  return options.observedTitle?.trim() || null;
+  return observedTitle;
 };
 
 const writeExactSystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<void> => {
@@ -245,6 +230,7 @@ type RenameTransactionInput = {
   canonicalConversationUrl: string;
   systemChatTitle: string;
   turnMarker: string;
+  submission: WebChatSubmissionProof;
 };
 
 const recoverOpenTitleEditor = async (
@@ -299,14 +285,21 @@ const runRenameTransaction = async (input: {
   timeoutMs: number;
 }): Promise<string | null> => {
   const deadline = Date.now() + input.timeoutMs;
+  await focusBoundWebChatConversation({
+    base: input.renameInput.browser,
+    providerKind: "gpt-web-chat",
+    systemChatTitle: input.renameInput.systemChatTitle,
+    submission: input.renameInput.submission,
+    turnMarker: input.renameInput.turnMarker,
+    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
+    ...(input.renameInput.context.abortSignal
+      ? { signal: input.renameInput.context.abortSignal }
+      : {}),
+  });
   if (await recoverOpenTitleEditor({
     ...input.renameInput,
     timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
   })) return null;
-  await focusSubmittedConversation({
-    ...input.renameInput,
-    timeoutMs: remainingRenameMs(deadline, input.timeoutMs),
-  });
   const alreadyRenamed = await waitForRenamedIdentity({
     ...input.renameInput,
     timeoutMs: remainingRenameMs(deadline, 500),
@@ -360,6 +353,7 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
           canonicalConversationUrl: input.submission.canonicalConversationUrl!,
           systemChatTitle: execution.systemChatTitle!,
           turnMarker: execution.turnMarker,
+          submission: input.submission,
         };
         const observedTitle = await runRenameTransaction({
           renameInput,

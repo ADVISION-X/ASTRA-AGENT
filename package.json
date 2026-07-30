@@ -91,6 +91,7 @@
     "acceptance:ai-input-gateway-attachment:real-chrome": "node --import tsx scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "acceptance:ai-input-gateway-web-chat-parallel:real-chrome": "node --import tsx src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "acceptance:ai-input-gateway-web-chat-restart:real-chrome": "node --import tsx src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
+    "acceptance:ai-input-gateway-web-chat-title-housekeeping-restart:real-chrome": "node --import tsx src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
     "acceptance:ai-input-gateway-web-chat-concurrency": "node --import tsx src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts"
   },
   "dependencies": {

@@ -112,29 +112,7 @@ return {
 };
 `;
 
-export const buildFocusedSubmittedConversationScript = (input: {
-  canonicalConversationUrl: string;
-  turnMarker: string;
-}): string => `
-const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
-const marker = ${JSON.stringify(input.turnMarker)};
-const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
-const markerCount = Array.from(document.querySelectorAll("[data-message-author-role='user']"))
-  .filter((node) => normalized(node.textContent).includes(marker))
-  .length;
-return {
-  status: markerCount === 1
-    ? "success"
-    : markerCount > 1
-      ? "review_required"
-      : "pending",
-  message: "verify submitted conversation is current before opening its options",
-  pageUrl: location.href,
-  markerCount,
-};
-`;
-
-export const RENAME_MENU_TARGET_SCRIPT = `
+const RENAME_MENU_TARGET_BODY = `
 const visible = (node) => {
   if (!(node instanceof Element)) return false;
   const rect = node.getBoundingClientRect();
@@ -142,7 +120,66 @@ const visible = (node) => {
   return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
 };
 const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
-const candidates = Array.from(document.querySelectorAll("[role='menuitem'], [role='menu'] button"))
+const links = Array.from(document.querySelectorAll("a[href]"))
+  .filter((link) => {
+    try {
+      const rawHref = link.getAttribute("href") || "";
+      return conversationHrefPattern.test(rawHref)
+        && new URL(link.href, location.href).pathname === expectedPath
+        && visible(link);
+    } catch {
+      return false;
+    }
+  });
+if (links.length !== 1) {
+  return {
+    status: links.length === 0 ? "pending" : "review_required",
+    message: links.length === 0
+      ? "waiting for exact conversation row before rename menu recovery"
+      : "CHATGPT_RENAME_MENU_CONVERSATION_LINK_AMBIGUOUS",
+    pageUrl: location.href,
+  };
+}
+const row = links[0].closest(conversationRowSelector)
+  || links[0].parentElement;
+const openTriggers = row
+  ? Array.from(row.querySelectorAll("button"))
+      .filter((button) => visible(button))
+      .filter((button) =>
+        button.getAttribute("aria-expanded") === "true"
+        && button.getAttribute("data-state") === "open"
+        && button.getAttribute("aria-haspopup") === "menu"
+      )
+  : [];
+if (openTriggers.length !== 1) {
+  return {
+    status: openTriggers.length === 0 ? "pending" : "review_required",
+    message: openTriggers.length === 0
+      ? "waiting for exact conversation rename menu"
+      : "CHATGPT_RENAME_MENU_TRIGGER_AMBIGUOUS",
+    pageUrl: location.href,
+  };
+}
+const triggerId = openTriggers[0].getAttribute("id");
+const controlledMenuId = openTriggers[0].getAttribute("aria-controls");
+const menus = Array.from(document.querySelectorAll("[role='menu']"))
+  .filter((menu) => visible(menu))
+  .filter((menu) =>
+    (triggerId && menu.getAttribute("aria-labelledby") === triggerId)
+    || (controlledMenuId && menu.getAttribute("id") === controlledMenuId)
+  );
+if (menus.length !== 1) {
+  return {
+    status: menus.length === 0 ? "pending" : "review_required",
+    message: menus.length === 0
+      ? "waiting for exact conversation menu content"
+      : "CHATGPT_RENAME_MENU_CONTENT_AMBIGUOUS",
+    pageUrl: location.href,
+  };
+}
+const candidates = Array.from(
+  menus[0].querySelectorAll("[role='menuitem'], button")
+)
   .filter((node) => visible(node))
   .filter((node) => /^(重命名|rename)$/iu.test(normalized(node.textContent || node.getAttribute("aria-label"))));
 if (candidates.length !== 1) {
@@ -159,6 +196,15 @@ return {
   pageUrl: location.href,
   targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
 };
+`;
+
+export const buildRenameMenuTargetScript = (input: {
+  canonicalConversationUrl: string;
+}): string => `
+const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
+const conversationHrefPattern = new RegExp(${JSON.stringify(CHATGPT_CONVERSATION_HREF_PATTERN_SOURCE)}, "u");
+const conversationRowSelector = ${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)};
+${RENAME_MENU_TARGET_BODY}
 `;
 
 export const buildRenameTextboxTargetScript = (): string => `
@@ -217,19 +263,35 @@ return {
 };
 `;
 
+const buildRenameIdentityProof = (input: {
+  canonicalConversationUrl: string;
+  systemChatTitle: string;
+  turnMarker: string;
+}) => ({
+  expectedPath: new URL(input.canonicalConversationUrl).pathname,
+  expectedTitle: input.systemChatTitle,
+  marker: input.turnMarker,
+  titleLinks: 1,
+  markerCount: 1,
+  currentPathMatches: true,
+});
+
 export const buildRenamedIdentityVerificationScript = (input: {
   canonicalConversationUrl: string;
   systemChatTitle: string;
   turnMarker: string;
-}): string => `
-const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
-const expectedTitle = ${JSON.stringify(input.systemChatTitle)};
-const marker = ${JSON.stringify(input.turnMarker)};
+}): string => {
+  const proof = buildRenameIdentityProof(input);
+  return `
+const expectedPath = ${JSON.stringify(proof.expectedPath)};
+const expectedTitle = ${JSON.stringify(proof.expectedTitle)};
+const marker = ${JSON.stringify(proof.marker)};
 const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
 const titleLinks = Array.from(document.querySelectorAll("a[href]"))
   .filter((link) => {
     try {
       return (link.getAttribute("href") || "").includes("/c/")
+        && new URL(link.href, location.href).pathname === expectedPath
         && normalized(link.textContent) === expectedTitle;
     } catch {
       return false;
@@ -242,9 +304,12 @@ const currentPathMatches = location.pathname === expectedPath
   || titleLinks.some((link) => new URL(link.href, location.href).pathname === location.pathname);
 const documentTitleMatches = normalized(document.title) === expectedTitle;
 return {
-  status: titleLinks.length === 1 && markerCount === 1
+  status: titleLinks.length === ${String(proof.titleLinks)}
+      && markerCount === ${String(proof.markerCount)}
+      && currentPathMatches === ${JSON.stringify(proof.currentPathMatches)}
     ? "success"
-    : titleLinks.length > 1 || markerCount > 1
+    : titleLinks.length > ${String(proof.titleLinks)}
+        || markerCount > ${String(proof.markerCount)}
       ? "review_required"
       : "pending",
   message: "verify manually renamed ChatGPT conversation identity",
@@ -255,3 +320,4 @@ return {
   documentTitleMatches,
 };
 `;
+};

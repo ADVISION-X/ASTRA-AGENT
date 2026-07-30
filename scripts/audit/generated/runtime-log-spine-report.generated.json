@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-29T19:05:10.573Z",
+  "generatedAt": "2026-07-30T00:05:50.119Z",
   "status": "PASS",
-  "scannedFiles": 543,
+  "scannedFiles": 547,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -86,6 +86,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
@@ -155,6 +156,8 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -235,6 +238,7 @@
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-accessibility-window.ts",
     "src/lib/browser/current-chrome-browser-action-result.ts",
     "src/lib/browser/current-chrome-browser-click-probe.ts",
     "src/lib/browser/current-chrome-browser-controller-execution.ts",
@@ -547,7 +551,7 @@
     "src/types/sharp.d.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 52,
+  "emitCallCount": 58,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
@@ -555,7 +559,7 @@
   "missingTraceContractCount": 0,
   "catchBranchCount": 3,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 48,
+  "failureBranchCount": 49,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 39,
@@ -565,8 +569,8 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 543,
-    "emitCallCount": 52,
+    "scannedFiles": 547,
+    "emitCallCount": 58,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -576,7 +580,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 538,
+      "scannedFiles": 542,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -585,28 +589,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 435
+      "scannedFiles": 438
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 431,
+      "scannedFiles": 434,
       "metrics": {
-        "emitCallCount": 41
+        "emitCallCount": 47
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 431
+      "scannedFiles": 434
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 436,
+      "scannedFiles": 439,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -615,13 +619,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 28
+      "scannedFiles": 29
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 436,
+      "scannedFiles": 439,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -642,24 +646,24 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 118
+      "scannedFiles": 121
     },
     {
       "name": "browser-action-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 37
+      "scannedFiles": 38
     },
     {
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 28,
+      "scannedFiles": 29,
       "metrics": {
-        "emitCallCount": 52,
+        "emitCallCount": 58,
         "stageStartCount": 19,
         "stageTerminalCount": 39,
-        "failureBranchCount": 48
+        "failureBranchCount": 49
       }
     },
     {

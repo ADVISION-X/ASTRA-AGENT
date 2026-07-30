@@ -17,6 +17,9 @@ export const XuanxueAiProductIdSchema = z.enum([
   "hehun_report_followup",
   "naming_bazi_analysis_and_naming",
   "naming_from_existing_bazi_report",
+  "bazi_canonical_base_interpretation",
+  "hehun_canonical_party_a_interpretation",
+  "hehun_canonical_party_b_interpretation",
   "manual_accuracy_challenge",
   "payment_screenshot_observation",
   "public_knowledge_article_pipeline",
@@ -61,7 +64,7 @@ export const XuanxueAiStageMaterialSchema = z.object({
   maxFileBytes: z.number().int().min(1).max(1_000_000_000).default(500_000_000),
 }).strict();
 
-export const xuanxueAiContinuationProfiles = {
+export const xuanxueAiPaidFollowupProfiles = {
   bazi_report_followup: {
     productId: "bazi_ai_full_analysis",
     stageId: "question_analysis",
@@ -76,13 +79,37 @@ export const xuanxueAiContinuationProfiles = {
   },
 } as const;
 
-export type XuanxueAiFollowupProductId =
-  keyof typeof xuanxueAiContinuationProfiles;
+export const xuanxueAiReusableBaseConsumerProfiles = {
+  bazi_ai_full_analysis: {
+    productId: "bazi_canonical_base_interpretation",
+    stageId: "base_interpretation",
+  },
+  naming_bazi_analysis_and_naming: {
+    productId: "bazi_canonical_base_interpretation",
+    stageId: "base_interpretation",
+  },
+} as const;
 
-export const isXuanxueAiFollowupProduct = (
+export const xuanxueAiRequiredContinuationProfiles = {
+  ...xuanxueAiPaidFollowupProfiles,
+  ...xuanxueAiReusableBaseConsumerProfiles,
+} as const;
+
+export type XuanxueAiPaidFollowupProductId =
+  keyof typeof xuanxueAiPaidFollowupProfiles;
+
+export type XuanxueAiRequiredContinuationProductId =
+  keyof typeof xuanxueAiRequiredContinuationProfiles;
+
+export const isXuanxueAiPaidFollowupProduct = (
   productId: z.infer<typeof XuanxueAiProductIdSchema>,
-): productId is XuanxueAiFollowupProductId =>
-  Object.hasOwn(xuanxueAiContinuationProfiles, productId);
+): productId is XuanxueAiPaidFollowupProductId =>
+  Object.hasOwn(xuanxueAiPaidFollowupProfiles, productId);
+
+export const isXuanxueAiRequiredContinuationProduct = (
+  productId: z.infer<typeof XuanxueAiProductIdSchema>,
+): productId is XuanxueAiRequiredContinuationProductId =>
+  Object.hasOwn(xuanxueAiRequiredContinuationProfiles, productId);
 
 export const XuanxueAiStoredProductionOrderSchema = z.object({
   protocolVersion: z.literal("xuanxue-ai-production-v1"),
@@ -114,7 +141,7 @@ export const XuanxueAiProductionOrderSchema =
 XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
-    || isXuanxueAiFollowupProduct(order.productId);
+    || isXuanxueAiRequiredContinuationProduct(order.productId);
   if (continuationRequired !== Boolean(order.continuationParent)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
@@ -123,9 +150,9 @@ XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
     });
   }
   if (
-    isXuanxueAiFollowupProduct(order.productId)
+    isXuanxueAiRequiredContinuationProduct(order.productId)
     && order.continuationParent?.stageId
-      !== xuanxueAiContinuationProfiles[order.productId].stageId
+      !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,

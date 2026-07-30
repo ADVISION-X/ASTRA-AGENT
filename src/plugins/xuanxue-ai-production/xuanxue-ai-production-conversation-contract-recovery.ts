@@ -2,7 +2,7 @@ import type Database from "better-sqlite3";
 
 import {
   XuanxueAiStoredProductionOrderSchema,
-  isXuanxueAiFollowupProduct,
+  isXuanxueAiPaidFollowupProduct,
   type XuanxueAiOrderRecord,
   type XuanxueAiOrderStatus,
   type XuanxueAiProductionOrder,
@@ -27,10 +27,6 @@ const sameCanonical = (left: unknown, right: unknown): boolean =>
   JSON.stringify(canonicalJsonValue(left))
   === JSON.stringify(canonicalJsonValue(right));
 
-const LEGACY_NAMING_PREFIX =
-  "这是整张“八字分析并起名”生产订单的第三步，也是一个全新的 ChatGPT 会话。";
-const CURRENT_NAMING_PREFIX =
-  "这是整张“八字分析并起名”生产订单的第三步，必须继续本订单前两步所在的同一个 ChatGPT 会话；禁止打开空白新聊天。";
 const LEGACY_HEHUN_PREFIX =
   "这是合婚正式报告的一次独立付费追问。你处于全新的模型上下文，只允许一次模型调用和一份追问回答。";
 const CURRENT_HEHUN_PREFIX = [
@@ -49,8 +45,6 @@ const migrateLegacyPrompt = (
   material: XuanxueAiProductionOrder["materials"][number],
 ): string => {
   const migrations = [
-    ["naming_bazi_analysis_and_naming", "naming_author",
-      LEGACY_NAMING_PREFIX, CURRENT_NAMING_PREFIX],
     ["hehun_report_followup", "followup",
       LEGACY_HEHUN_PREFIX, CURRENT_HEHUN_PREFIX],
     ["qimen_report_followup", "followup",
@@ -97,128 +91,6 @@ const materialIdentity = (
   maxFileBytes: material.maxFileBytes,
 }));
 
-const canRepairConversationContract = (
-  current: XuanxueAiOrderRecord,
-  incoming: XuanxueAiProductionOrder,
-): boolean => (
-  current.order.orderId === incoming.orderId
-  && current.order.sourceProject === incoming.sourceProject
-  && current.order.sourceTaskId === incoming.sourceTaskId
-  && current.order.productId === incoming.productId
-  && current.order.inputBundleRef === incoming.inputBundleRef
-  && current.order.inputBundleHash === incoming.inputBundleHash
-  && current.order.productId === "naming_bazi_analysis_and_naming"
-  && ["queued", "running", "recovery_pending", "review_required", "failed"]
-    .includes(current.status)
-  && current.result === null
-  && sameCanonical(current.order.seededStages, incoming.seededStages)
-  && sameCanonical(materialIdentity(current.order, true), materialIdentity(incoming, false))
-  && !sameCanonical(materialIdentity(current.order, false), materialIdentity(incoming, false))
-);
-
-const repairedConversationStage = (input: {
-  current: XuanxueAiStageRecord;
-  incoming: XuanxueAiStageRecord;
-  preserveCompleted: boolean;
-  updatedAt: string;
-}): XuanxueAiStageRecord => input.preserveCompleted
-  ? {
-      ...input.current,
-      material: input.incoming.material,
-      updatedAt: input.updatedAt,
-    }
-  : {
-      ...input.incoming,
-      executionId:
-        `${input.incoming.orderId}:${input.incoming.stageId}:`
-        + `conversation-contract-recovery:${input.current.attemptCount + 1}`,
-      status: "queued",
-      attemptCount: input.current.attemptCount,
-      progressPhase: "queued",
-      updatedAt: input.updatedAt,
-    };
-
-const persistConversationContractRepair = (input: {
-  database: Database.Database;
-  current: XuanxueAiOrderRecord;
-  incoming: XuanxueAiProductionOrder;
-  incomingStages: readonly XuanxueAiStageRecord[];
-  changedIndex: number;
-  updatedAt: string;
-}): void => {
-  input.database.prepare(`
-    update production_orders set request_hash=?,status='recovery_pending',
-      order_json=?,result_json=null,failure_reason=null,updated_at=?
-    where order_id=? and result_json is null
-  `).run(
-    input.incoming.requestHash,
-    JSON.stringify(input.incoming),
-    input.updatedAt,
-    input.incoming.orderId,
-  );
-  for (let index = 0; index < input.current.stages.length; index += 1) {
-    const current = input.current.stages[index]!;
-    const repaired = repairedConversationStage({
-      current,
-      incoming: input.incomingStages[index]!,
-      preserveCompleted:
-        index < input.changedIndex && current.status === "completed",
-      updatedAt: input.updatedAt,
-    });
-    input.database.prepare(`
-      update production_stages set status=?,stage_json=?,updated_at=?
-      where order_id=? and stage_id=?
-    `).run(
-      repaired.status,
-      JSON.stringify(repaired),
-      input.updatedAt,
-      input.incoming.orderId,
-      repaired.stageId,
-    );
-  }
-};
-
-export const repairLegacyConversationContract = (
-  database: Database.Database,
-  current: XuanxueAiOrderRecord,
-  incoming: XuanxueAiProductionOrder,
-  incomingStages: readonly XuanxueAiStageRecord[],
-): boolean => {
-  if (!canRepairConversationContract(current, incoming)) return false;
-  const changedIndex = current.order.materials.findIndex(
-    (material, index) =>
-      material.textPrompt !== incoming.materials[index]?.textPrompt,
-  );
-  if (changedIndex < 0) return false;
-  const updatedAt = new Date().toISOString();
-  database.transaction(() => {
-    persistConversationContractRepair({
-      database,
-      current,
-      incoming,
-      incomingStages,
-      changedIndex,
-      updatedAt,
-    });
-    appendXuanxueAiProductionEvent(database, {
-      orderId: incoming.orderId,
-      stageId: incomingStages[changedIndex]!.stageId,
-      eventType: "legacy_conversation_contract_repaired",
-      fromStatus: current.status,
-      toStatus: "recovery_pending",
-      detail: {
-        previousRequestHash: current.order.requestHash,
-        repairedRequestHash: incoming.requestHash,
-        preservedCompletedStages: current.stages.slice(0, changedIndex),
-        replacedStage: current.stages[changedIndex],
-        forbiddenInstructionRemoved: "blank_new_conversation",
-      },
-      createdAt: updatedAt,
-    });
-  })();
-  return true;
-};
-
 const isLegacyFollowupParentRepair = (
   current: XuanxueAiOrderRecord,
   incoming: XuanxueAiProductionOrder,
@@ -229,7 +101,7 @@ const isLegacyFollowupParentRepair = (
   && current.order.productId === incoming.productId
   && current.order.inputBundleRef === incoming.inputBundleRef
   && current.order.inputBundleHash === incoming.inputBundleHash
-  && isXuanxueAiFollowupProduct(current.order.productId)
+  && isXuanxueAiPaidFollowupProduct(current.order.productId)
   && current.order.continuationParent === null
   && incoming.continuationParent !== null
   && ["failed", "review_required", "recovery_pending"].includes(current.status)
@@ -365,7 +237,10 @@ const repairWrongChatRow = (
   const order = XuanxueAiStoredProductionOrderSchema.parse(
     JSON.parse(row.order_json),
   );
-  if (!isXuanxueAiFollowupProduct(order.productId) || !order.continuationParent) {
+  if (
+    !isXuanxueAiPaidFollowupProduct(order.productId)
+    || !order.continuationParent
+  ) {
     return;
   }
   const stage = JSON.parse(row.stage_json) as XuanxueAiStageRecord;

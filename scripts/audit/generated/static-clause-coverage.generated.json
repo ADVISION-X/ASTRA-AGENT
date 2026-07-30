@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-29T19:05:17.261Z",
+  "generatedAt": "2026-07-30T00:05:56.860Z",
   "summary": {
     "activeLawCount": 250,
     "activeClauseCount": 257,
@@ -138,8 +138,10 @@
         "ai-input-gateway/bounded-rename-recovery",
         "ai-input-gateway/controlled-chrome-window-identity",
         "ai-input-gateway/deferred-completed-chat-rename",
+        "ai-input-gateway/durable-title-housekeeping",
         "ai-input-gateway/durable-fifo-scheduler",
         "ai-input-gateway/exact-sidebar-row-rename",
+        "ai-input-gateway/exact-rename-identity-proof",
         "ai-input-gateway/failure-ledger",
         "ai-input-gateway/fresh-conversation-identity",
         "ai-input-gateway/fresh-execution-rate-owner-transfer",
@@ -13874,8 +13876,8 @@
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -13895,8 +13897,8 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -13904,6 +13906,7 @@
         "xuanxue-ai-production/acceptance",
         "xuanxue-ai-production/bounded-coordinator",
         "xuanxue-ai-production/durable-ledger",
+        "xuanxue-ai-production/durable-title-housekeeping",
         "xuanxue-ai-production/no-untracked-background-work",
         "xuanxue-ai-production/source-present"
       ],

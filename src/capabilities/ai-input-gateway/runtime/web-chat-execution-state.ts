@@ -37,6 +37,15 @@ export type WebChatExecutionFailure = {
   reason: string;
 };
 
+export type WebChatTitleRenameState = {
+  status: "pending" | "verified" | "review_required";
+  attemptCount: number;
+  lastAttemptAt: string | null;
+  nextAttemptAt: string | null;
+  lastFailureReason: string | null;
+  verifiedAt: string | null;
+};
+
 export type WebChatExecutionRecord = {
   schemaVersion: "web-chat-execution-v2";
   executionId: string;
@@ -54,6 +63,7 @@ export type WebChatExecutionRecord = {
   attachmentUploadProof: WebChatAttachmentUploadProof | null;
   responseCheckpoint: WebChatResponseCheckpoint | null;
   responseHash: string | null;
+  chatTitleRename: WebChatTitleRenameState | null;
   failures: WebChatExecutionFailure[];
   createdAt: string;
   updatedAt: string;
@@ -78,6 +88,24 @@ const atomicWrite = async (filePath: string, value: WebChatExecutionRecord): Pro
   await rename(tempPath, filePath);
 };
 
+const derivePersistedTitleRenameState = (
+  parsed: Partial<WebChatExecutionRecord>,
+): WebChatTitleRenameState | null => {
+  if (parsed.chatTitleRename) return parsed.chatTitleRename;
+  if (parsed.providerKind !== "gpt-web-chat" || !parsed.responseCheckpoint) {
+    return null;
+  }
+  const verifiedAt = parsed.submission?.chatTitleVerifiedAt ?? null;
+  return {
+    status: verifiedAt ? "verified" : "pending",
+    attemptCount: 0,
+    lastAttemptAt: null,
+    nextAttemptAt: null,
+    lastFailureReason: null,
+    verifiedAt,
+  };
+};
+
 export const readWebChatExecution = async (
   dataDir: string,
   executionId: string,
@@ -90,6 +118,7 @@ export const readWebChatExecution = async (
     return {
       ...(parsed as WebChatExecutionRecord),
       providerLeaseId: parsed.providerLeaseId ?? null,
+      chatTitleRename: derivePersistedTitleRenameState(parsed),
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -153,6 +182,7 @@ const restartUnsubmittedExecution = async (
     attachmentUploadProof: null,
     responseCheckpoint: null,
     responseHash: null,
+    chatTitleRename: null,
     updatedAt: now,
   };
   await atomicWrite(statePath(input.dataDir, input.executionId), next);
@@ -317,6 +347,7 @@ const createWebChatExecution = async (
     attachmentUploadProof: null,
     responseCheckpoint: null,
     responseHash: null,
+    chatTitleRename: null,
     failures: [],
     createdAt: now,
     updatedAt: now,

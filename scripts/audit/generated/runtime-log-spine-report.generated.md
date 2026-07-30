@@ -6,8 +6,8 @@ Status: PASS
 
 - Total findings: 0
 - Fatal findings: 0
-- Scanned files: 543
-- Emit calls: 52
+- Scanned files: 547
+- Emit calls: 58
 - Console violations: 0
 - Failure events without class: 0
 - Stage coverage: 100%

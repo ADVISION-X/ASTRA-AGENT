@@ -3,12 +3,7 @@ import { existsSync } from "node:fs";
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import {
-  executedChecksForPlan,
-  type InspectorContext,
-  type InspectorFinding,
-  type InspectorOutput,
-} from "../../shared/inspector-contracts.js";
+import { executedChecksForPlan, type InspectorContext, type InspectorFinding, type InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const authorityPaths = [
@@ -17,22 +12,17 @@ const authorityPaths = [
   "scripts/audit/domains/xuanxue-ai-production/manifest.json",
 ] as const;
 
-const schemaPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
-const profilePath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
-const storePath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
-const schedulerPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
-const cloudContractPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
-const cloudCredentialPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts";
-const cloudWorkerPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
-const acceptancePath =
-  "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
+const schemaPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
+const profilePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
+const storePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
+const schedulerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
+const cloudContractPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
+const cloudCredentialPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts";
+const cloudWorkerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
+const gatewayTitleStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
+const gatewayTitleHousekeepingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts";
+const gatewayTitleWorkerPath = "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts";
+const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
 const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-fixture.ts",
   "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
@@ -68,6 +58,9 @@ const pluginPaths = [
   cloudWorkerPath,
   "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
   "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
+  gatewayTitleStatePath,
+  gatewayTitleHousekeepingPath,
+  gatewayTitleWorkerPath,
   acceptancePath,
   ...acceptanceSupportPaths,
 ] as const;
@@ -199,6 +192,9 @@ const inspectContracts = (
       "hehun_report_followup",
       "naming_bazi_analysis_and_naming",
       "naming_from_existing_bazi_report",
+      "bazi_canonical_base_interpretation",
+      "hehun_canonical_party_a_interpretation",
+      "hehun_canonical_party_b_interpretation",
       "manual_accuracy_challenge",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
@@ -222,13 +218,29 @@ const inspectContracts = (
       "seededStages",
       "continuationParent",
       "XUANXUE_AI_PRODUCTION_SEEDED_STAGE_PROOF_INVALID",
-      "xuanxueAiContinuationProfiles",
-      "isXuanxueAiFollowupProduct",
+      "xuanxueAiPaidFollowupProfiles",
+      "xuanxueAiReusableBaseConsumerProfiles",
+      "xuanxueAiRequiredContinuationProfiles",
+      "isXuanxueAiPaidFollowupProduct",
+      "isXuanxueAiRequiredContinuationProduct",
       "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
       "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID",
     ],
   });
 };
+
+const inspectTitleHousekeepingDurability = (
+  findings: InspectorFinding[],
+  durabilityLaw: string,
+  values: ReadonlySet<string>,
+): void => requireValues(findings, {
+  lawId: durabilityLaw,
+  checkId: "xuanxue-ai-production/durable-title-housekeeping",
+  filePath: gatewayTitleHousekeepingPath,
+  messagePrefix: "Published parent-chat title debt must contain",
+  values,
+  required: ["WebChatTitleRenameState", "chatTitleRename", "response_captured", "drainWebChatTitleHousekeeping", "scheduleWebChatTitleHousekeeping", "runWebChatTitleHousekeepingNow"],
+});
 
 const inspectDurability = (
   findings: InspectorFinding[],
@@ -253,9 +265,7 @@ const inspectDurability = (
       "invalid_completed_stage_restarted",
       "canonical_sha256_prefix_verified_against_raw_response_bytes",
       "requestHash",
-      "recoverMissingFollowupParents",
-      "repairLegacyConversationContract",
-      "repairLegacyDetachedDownstreamStages",
+      "recoverMissingRequiredContinuationParents",
       "repairLegacyFollowupWrongChatExecutionStates",
       "followup_parent_binding_repaired",
       "followup_parent_wrong_chat_execution_retired",
@@ -263,8 +273,6 @@ const inspectDurability = (
       "trustedGeneratedFileCount",
       "replacedExecutionIds",
       "followup_parent_replay_requested",
-      "legacy_conversation_contract_repaired",
-      "detached_downstream_conversation_restarted",
       "production_parent_conversation_rebuilds",
       "parent_conversation_rebuild_started",
       "resetOrderForConversationGraphRebuild",
@@ -276,7 +284,6 @@ const inspectDurability = (
       "supersededExecutionId",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
-      "completedOutsideParent",
     ],
   });
   requireValues(findings, {
@@ -292,6 +299,9 @@ const inspectDurability = (
       "scheduled",
       "waiting",
       "activeContinuationLanes",
+      "webChatUrl",
+      "exactUrl",
+      "parentStage",
       "order_parent_lane_deferred",
       "rebuildContinuationParent",
       "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_PAYLOAD_REQUIRED",
@@ -419,7 +429,6 @@ const inspectAcceptance = (
       "providerContinuationRef",
       "listCloudRecoveryOrders",
       "ORDER_IDENTITY_CONFLICT",
-      "a seeded base response must not be submitted to GPT again",
       "a byte-verified legacy hash prefix defect must resume without resubmitting the completed stage",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
@@ -427,11 +436,6 @@ const inspectAcceptance = (
       "orders sharing one parent GPT conversation must be serialized",
       "same-parent follow-ups must preserve FIFO order",
       "provider citation residue must discard the response and restart once",
-      "provider-polluted seeded output must never enter a completed stage",
-      "polluted seed must replay the first stage before its continuation",
-      "lost same-order parent must fail once, replay stage one, then continue",
-      "the rebuilt graph must finish inside one newly rebuilt conversation",
-      "every rebuilt graph node must retain the superseded execution id",
       "restart must retire an invalid completed prefix and every downstream node",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a missing parent chat must replay the parent first, then ask the follow-up",
@@ -441,8 +445,11 @@ const inspectAcceptance = (
       "legacy wrong-chat attachment proof must be retired with a fresh execution id",
       "an already repaired follow-up must retire its legacy wrong-chat execution",
       "JSON field ordering and governance transport upgrades must not block exact legacy parent repair",
-      "all Hehun stages must remain in the first stage conversation",
-      "Bazi, question and naming stages must remain in one GPT conversation",
+      "the paid question must continue the reusable Bazi base conversation",
+      "question and naming must continue the exact reusable base chat",
+      "naming must continue the immediately preceding question turn",
+      "two reusable private bases and one relationship chat are independent",
+      "every paid followup performs exactly one new AI call",
       "continuation_parent_replay",
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
     ],
@@ -455,11 +462,11 @@ export const inspectDomain = async (
   const laws: Laws = {
     boundary: selectLawId(
       context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+      "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
     ),
     durability: selectLawId(
       context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+      "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
     ),
     cloud: selectLawId(
       context.planEntry.lawIds,
@@ -474,6 +481,7 @@ export const inspectDomain = async (
   });
   const values = sourceValues(sources);
   inspectContracts(findings, laws, values);
+  inspectTitleHousekeepingDurability(findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);

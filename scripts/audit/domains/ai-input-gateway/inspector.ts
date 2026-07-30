@@ -307,7 +307,7 @@ const inspectCompletedConversationRename = (
         && property.getInitializerIfKind(SyntaxKind.NumericLiteral)
           ?.getLiteralValue() === 60_000)
   ) {
-    pushFinding(findings, lawId, P.runtime.chatTitlePath, "ai-input-gateway/submission-priority-over-rename", "A rename patrol slice must be bounded to four seconds, release the browser lane when UI is not ready, and never retain a sixty-second in-lock title wait.");
+    pushFinding(findings, lawId, P.runtime.chatTitlePath, "ai-input-gateway/submission-priority-over-rename", "A rename patrol slice must be bounded to fifteen seconds, release the browser lane when UI is not ready, and never retain a sixty-second in-lock title wait.");
   }
 };
 

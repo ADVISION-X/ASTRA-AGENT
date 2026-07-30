@@ -1,5 +1,4 @@
 export {
-  repairLegacyConversationContract,
   repairLegacyFollowupParentBinding,
   repairLegacyFollowupWrongChatExecutionStates,
 } from "./xuanxue-ai-production-conversation-contract-recovery.js";
@@ -9,6 +8,5 @@ export {
   repairRecoverableProviderFailures,
 } from "./xuanxue-ai-production-stage-output-recovery.js";
 export {
-  recoverMissingFollowupParents,
-  repairLegacyDetachedDownstreamStages,
+  recoverMissingRequiredContinuationParents,
 } from "./xuanxue-ai-production-conversation-graph-recovery.js";

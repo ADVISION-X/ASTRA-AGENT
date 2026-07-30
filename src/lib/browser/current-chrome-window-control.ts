@@ -3,6 +3,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import {
+  buildExactChromeAccessibilityWindowRaiseScript,
+} from "./current-chrome-accessibility-window.js";
+
 type ChromeWindowState = {
   windowX: number;
   windowY: number;
@@ -256,32 +260,19 @@ end tell
     throw new Error("Google Chrome window is not available for current-browser control.");
   }
 
-  const output = await runJxa(`
+const output = await runJxa(`
 const chrome = Application("Google Chrome");
 const chromeWindow = chrome.windows()[0];
 const bounds = chromeWindow.bounds();
 const tab = chromeWindow.activeTab();
 const currentUrl = String(tab.url() || "about:blank");
 const currentTitle = String(tab.title() || "Google Chrome");
-chromeWindow.index = 1;
-const systemEvents = Application("System Events");
-const processes = systemEvents.applicationProcesses.whose({name: {_equals: "Google Chrome"}})();
-if (processes.length === 0) throw new Error("Google Chrome accessibility process is unavailable");
-const process = processes[0];
-const matchingWindows = process.windows().filter((window) => {
-  const position = window.position();
-  const size = window.size();
-  return position[0] === bounds.x
-    && position[1] === bounds.y
-    && size[0] === bounds.width
-    && size[1] === bounds.height;
-});
-if (matchingWindows.length !== 1) {
-  throw new Error("controlled Chrome automation window does not have one exact accessibility window");
-}
-process.frontmost = true;
-matchingWindows[0].actions.byName("AXRaise").perform();
-delay(0.05);
+${buildExactChromeAccessibilityWindowRaiseScript({
+  chromeWindowVariable: "chromeWindow",
+  boundsVariable: "bounds",
+  mismatchReason:
+    "controlled Chrome automation window does not have one exact accessibility window after bounded stabilization",
+})}
 JSON.stringify({
   windowX: bounds.x,
   windowY: bounds.y,

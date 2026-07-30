@@ -83,6 +83,10 @@ Chrome 的“自动化窗口”和物理鼠标实际点击的“辅助功能窗�
 点击、悬停、按键或截图前，先按完整窗口坐标和尺寸做唯一匹配，再对该精确窗口执行
 `AXRaise`。只调用 Chrome `activate`、只取辅助功能 `window 1`，或者让前台的登录选择器、
 未登录窗口承接已登录窗口的 DOM 坐标，全部禁止。匹配为 0 或大于 1 时 fail closed。
+Chrome 把窗口切到前台后，自动化 bounds 与辅助功能窗口可能存在一个瞬时同步差。匹配为
+0 时只允许在同一完整 bounds 上执行一次不超过 750ms 的短稳定循环；一旦精确命中立即
+`AXRaise`。出现大于 1 个匹配时仍立即失败，禁止猜窗口。这个同步片区不得升级成数分钟的
+页面盲轮询，更不得在 GPT 已出现完成操作后阻止回答 checkpoint。
 
 侧栏行即使存在 DOM，只要中心点落在浏览器可视区之外，就不允许点击该坐标。系统必须把
 真实滚轮锚定在侧栏，把精确 canonical URL 或系统名称对应的行滚进可视区，重新定位后再
@@ -166,12 +170,15 @@ SEO资料研究｜07-26 04:40Z｜A9F193A3-489B
 → 回答完成
 → 原子写入回答正文、hash、byteCount、capture time、provider page URL
 → 状态 response_checkpointed
+→ 同一执行账本原子写入 chatTitleRename=pending
 → 读取并核验执行账本中的 provider lease
 → 在任何浏览器查找、重命名、附件装饰或清理之前连同 lease 发布生产结果
 → 状态 response_captured
+→ 独立改名工人取得持久 pending 尾工（不占 provider capacity，不调用模型）
 → 点击非 WEB 临时态的正式侧栏聊天行
 → 在一个不可穿插的短巡查片区内，只点击该行自己的对话选项、填写名称、回车提交
-→ 证明系统聊天名＋marker
+→ 证明 canonical URL＋系统聊天名＋marker
+→ 原子写入 chatTitleRename=verified＋chatTitleVerifiedAt
 ```
 
 这里的优先级是固定的：
@@ -212,7 +219,7 @@ SEO资料研究｜07-26 04:40Z｜A9F193A3-489B
 → 释放短锁
 ```
 
-这笔事务执行期间，其他任务不得切换同一标签页。单次事务巡查片区最多占锁四秒；四秒内
+这笔事务执行期间，其他任务不得切换同一标签页。单次事务巡查片区最多占锁十五秒；十五秒内
 没有完成就释放短锁，把整笔事务重新排队，禁止在锁内等待侧栏、菜单或输入框几十秒。
 任何已经排队的首轮发送或父聊天续问都优先于下一次改名巡查，因此多步骤流水线不得被
 标题整理拖慢。这是结果发布后的有界整理，不是用户结果
@@ -228,11 +235,14 @@ Gateway 的主结果等待必须同时监听 provider adapter 和持久 checkpoi
 这条竞争等待只有一个生命周期：无论 provider 正常返回、provider 抛错还是 checkpoint 先赢，
 都必须在 `finally` 中关闭 50ms checkpoint 巡查。禁止一次失败留下一条永久轮询，禁止失败越多
 后台巡查越多。
-若进程恰好断在标题输入框已打开、但回车尚未提交的片段，恢复链必须识别该输入框并原地
-补完，不得因为侧栏链接临时被输入框替换而永久等待。整笔重命名重试受任务 timeout 约束，
-禁止无限占用容量。
-只有出现多个目标、marker 重复/不匹配、名称身份冲突
-或任务总超时耗尽，才允许终止。
+若进程恰好断在对话选项菜单已打开，或标题输入框已打开、但回车尚未提交的片段，恢复链
+必须识别并原地补完，但检查菜单或输入框之前必须先用 canonical URL 与唯一 marker 证明
+当前页面就是原父聊天；已打开菜单还必须用 `aria-labelledby / aria-controls` 反证它由该
+父聊天行自己的选项按钮触发。禁止接管其他聊天里碰巧打开的菜单或标题输入框。每一轮改名
+只受十五秒巡查片约束，片段到期立即
+释放页面；整笔持久尾工不受已发布任务的旧 timeout 终止，也不占用模型生产容量。临时页面
+条件不足时跨重启继续，只有多个目标、marker 重复/不匹配或名称身份冲突才把该尾工转入
+人工复核。
 
 回答完成必须同时通过生成态检查。只要精确 assistant turn 仍缺少完成操作，或实时 DOM 中
 当前主对话存在可见的 `thinking / reasoning / loading / shimmer` 进度节点，就仍是
@@ -245,6 +255,19 @@ generating。侧栏、导航、编辑器、附件上传区或其他非主对话�
 改名、附件装饰和清理只能在发布后有界补做。后置整理失败不得覆盖回答、网站结果或重新进入
 回答轮询。checkpoint 的输入、附件、hash 或字节身份不一致时进入 `review_required`，禁止再次
 发送提示词；仅仅缺少可操作标签页或重命名控件不属于用户结果阻断。
+
+改名不是一条无人负责的内存 Promise。回答 checkpoint 创建时必须同步登记持久
+`chatTitleRename=pending`；只有执行状态已经进入 `response_captured`，独立改名工人才允许
+操作 GPT 页面。AGENT 每次启动、checkpoint 恢复发布以及后置页面处理失败，都必须唤醒同一个
+进程级改名协调器。协调器按 execution 创建时间顺序领取 pending 尾工，不重新领取 provider
+容量、不重新调用 AI、不读取一次性附件路径；每次只取得一张十五秒短巡查锁，失败后按 5 至
+60 秒有界退避释放页面。新任务或父聊天追问仍拥有绝对提交优先级。
+
+临时无 GPT 标签页、Chrome 窗口同步、侧栏未加载、改名菜单或输入框未出现、Enter 提交尚未
+反映，都保持 `pending` 并跨任意次数重启继续。只有 canonical URL、系统名称或 marker 出现
+多义和身份冲突时，尾工自身进入 `review_required`；已经发布的回答仍保持
+`response_captured`。改名成功必须逐字证明同一 canonical URL、同一系统名称和同一 marker，
+再原子写入 `chatTitleRename=verified` 与 `chatTitleVerifiedAt`。只看见一个同名链接不算成功。
 
 新执行取得容量时同步持久化真实 `providerLeaseId`。历史 checkpoint 若来自尚未保存租约的旧
 版本，只能在 execution id、attempt id、input hash、response hash 与 checkpoint 原始字节全部
@@ -498,6 +521,10 @@ physical actions raise the exact accessibility window matched to the DOM automat
 offscreen exact sidebar rows are physically scrolled into view before clicking
 restart recovery completes a title editor left open by process interruption
 completed-chat rename retries are bounded by task timeout
+checkpoint publication persists explicit pending title debt
+AGENT restart drains published pending title debt without provider or model replay
+post-publication browser failure reawakens the same durable title worker
+rename verification requires exact canonical URL, exact title and exact marker
 failed executions preserve a bounded phase and reason ledger
 fresh-chat readiness proves zero turns, empty composer, zero attachments and no generation
 continuation readiness proves the exact parent URL and fully hydrated prior user and assistant history

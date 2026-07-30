@@ -46,38 +46,38 @@ const seedHashRepair = (
 ): XuanxueAiProductionOrder => {
   const repairable = order(
     "aiprod_restart_hash_repair",
-    "bazi_ai_full_analysis",
-    ["base_interpretation", "question_analysis"],
+    "public_knowledge_article_pipeline",
+    ["corpus_research", "article_synthesis"],
   );
   const record = createXuanxueAiProductionOrder(runtime, repairable);
-  const base = record.stages[0]!;
-  const question = record.stages[1]!;
+  const research = record.stages[0]!;
+  const synthesis = record.stages[1]!;
   const result = providerResult({
     providerKind: "gpt-web-chat",
     taskIdentity: {
       labelKey: "bazi_analysis",
       sourceProject: "xuanxue-web",
       taskKind: repairable.productId,
-      sourceTaskId: `${repairable.orderId}:base_interpretation`,
+      sourceTaskId: `${repairable.orderId}:corpus_research`,
     },
-    promptPackageId: base.material.promptPackageId,
-    promptContractId: base.material.promptContractId,
-    expectedOutputSchemaRef: base.material.expectedOutputSchemaRef,
-    textPrompt: base.material.textPrompt,
+    promptPackageId: research.material.promptPackageId,
+    promptContractId: research.material.promptContractId,
+    expectedOutputSchemaRef: research.material.expectedOutputSchemaRef,
+    textPrompt: research.material.textPrompt,
     inputRefs: [],
     modelName: null,
-    timeoutMs: base.material.timeoutMs,
-    maxInputChars: base.material.maxInputChars,
-    maxFileCount: base.material.maxFileCount,
-    maxFileBytes: base.material.maxFileBytes,
+    timeoutMs: research.material.timeoutMs,
+    maxInputChars: research.material.maxInputChars,
+    maxFileCount: research.material.maxFileCount,
+    maxFileBytes: research.material.maxFileBytes,
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: repairable.orderId,
-    roundId: "base_interpretation",
+    roundId: "corpus_research",
   }, 1);
   const bareHash = result.rawOutputHash!.replace(/^sha256:/u, "");
   runtime.store.updateStage({
-    ...base,
+    ...research,
     status: "completed",
     attemptCount: 1,
     aiFeedResult: {
@@ -91,7 +91,7 @@ const seedHashRepair = (
     updatedAt: new Date().toISOString(),
   }, "fixture_legacy_stage_completed");
   runtime.store.updateStage({
-    ...question,
+    ...synthesis,
     status: "running",
     attemptCount: 1,
     progressPhase: "submitting",
@@ -101,7 +101,7 @@ const seedHashRepair = (
     orderId: repairable.orderId,
     status: "failed",
     failureReason:
-      "XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:base_interpretation",
+      "XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:corpus_research",
     updatedAt: new Date().toISOString(),
     eventType: "fixture_dependency_hash_failed",
   });
@@ -147,8 +147,8 @@ const seedInvalidCompletedPrefix = (
 ): XuanxueAiProductionOrder => {
   const invalid = order(
     "aiprod_restart_invalid_completed_prefix",
-    "bazi_ai_full_analysis",
-    ["base_interpretation", "question_analysis"],
+    "public_knowledge_article_pipeline",
+    ["corpus_research", "article_synthesis"],
   );
   const record = createXuanxueAiProductionOrder(runtime, invalid);
   const rawResponseText =
@@ -160,7 +160,7 @@ const seedInvalidCompletedPrefix = (
       labelKey: "bazi_analysis",
       sourceProject: "xuanxue-web",
       taskKind: invalid.productId,
-      sourceTaskId: `${invalid.orderId}:base_interpretation`,
+      sourceTaskId: `${invalid.orderId}:corpus_research`,
     },
     promptPackageId: record.stages[0]!.material.promptPackageId,
     promptContractId: record.stages[0]!.material.promptContractId,
@@ -176,7 +176,7 @@ const seedInvalidCompletedPrefix = (
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: invalid.orderId,
-    roundId: "base_interpretation",
+    roundId: "corpus_research",
   }, 1);
   runtime.store.updateStage({
     ...record.stages[0]!,
@@ -219,8 +219,8 @@ const seedForeignLedger = (
 ): XuanxueAiProductionOrder => {
   const foreign = order(
     "aiprod_restart_foreign_ledger",
-    "bazi_ai_full_analysis",
-    ["base_interpretation", "question_analysis"],
+    "qimen_professional_answer",
+    ["analysis"],
   );
   createXuanxueAiProductionOrder(runtime, foreign);
   const quarantined = runtime.store.quarantineForeignCloudRecoveryOrder(
@@ -241,8 +241,8 @@ const seedCloudCancelled = (
 ): XuanxueAiProductionOrder => {
   const cancelled = order(
     "aiprod_restart_cloud_cancelled",
-    "bazi_ai_full_analysis",
-    ["base_interpretation", "question_analysis"],
+    "public_knowledge_article_pipeline",
+    ["corpus_research", "article_synthesis"],
   );
   const record = createXuanxueAiProductionOrder(
     input.runtime,
@@ -296,12 +296,8 @@ const seedSubmittedContinuation = (
 } => {
   const candidate = order(
     "aiprod_restart_submitted_continuation",
-    "hehun_ai_analysis",
-    [
-      "party_a_interpretation",
-      "party_b_interpretation",
-      "final_compatibility",
-    ],
+    "public_knowledge_article_pipeline",
+    ["corpus_research", "article_synthesis"],
   );
   const record = createXuanxueAiProductionOrder(
     input.runtime,
@@ -323,7 +319,7 @@ const seedSubmittedContinuation = (
     updatedAt: new Date().toISOString(),
   }, "fixture_submitted_continuation_parent_completed");
   const executionId =
-    `${candidate.orderId}:party_b_interpretation:restart:7`;
+    `${candidate.orderId}:article_synthesis:restart:7`;
   input.runtime.store.updateStage({
     ...record.stages[1]!,
     executionId,

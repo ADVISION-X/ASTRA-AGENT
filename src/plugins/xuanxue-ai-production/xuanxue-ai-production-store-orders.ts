@@ -13,7 +13,6 @@ import {
   appendXuanxueAiProductionEvent,
 } from "./xuanxue-ai-production-store-event.js";
 import {
-  repairLegacyConversationContract,
   repairLegacyFollowupParentBinding,
 } from "./xuanxue-ai-production-store-recovery.js";
 
@@ -69,12 +68,7 @@ const resolveIdentityCollision = (input: {
   if (input.existing.order.requestHash === input.incoming.requestHash) {
     return input.existing;
   }
-  const repaired = repairLegacyConversationContract(
-    input.database,
-    input.existing,
-    input.incoming,
-    input.stages,
-  ) || repairLegacyFollowupParentBinding(
+  const repaired = repairLegacyFollowupParentBinding(
     input.database,
     input.existing,
     input.incoming,

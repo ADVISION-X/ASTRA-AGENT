@@ -1,7 +1,7 @@
 # GrassEye 玄学 AI 生产工厂施工图 V1
 
 status: construction-blueprint
-version: 2026-07-29
+version: 2026-07-30
 authority: `.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md`
 
 ## Boundary
@@ -26,13 +26,16 @@ AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 
 | 产品 | 固定图 | 最终阶段 |
 | --- | --- | --- |
-| 八字完整分析 | `base_interpretation → question_analysis` | `question_analysis` |
-| 八字追问 | 父 `bazi_ai_full_analysis/question_analysis` 会话 → `base_interpretation → question_analysis` | `question_analysis` |
+| 八字 canonical base（内部） | `base_interpretation` 独立私有会话 | `base_interpretation` |
+| 八字完整分析 | canonical base 精确会话 → `question_analysis` | `question_analysis` |
+| 八字追问 | 父 `bazi_ai_full_analysis/question_analysis` 会话 → seeded base（零 GPT）→ `question_analysis` | `question_analysis` |
 | 奇门专业解答 | `analysis` | `analysis` |
 | 奇门追问 | 父 `qimen_professional_answer/analysis` 会话 → `followup` | `followup` |
-| 合婚分析 | `party_a → party_b → final_compatibility` 全部同会话 | `final_compatibility` |
+| 合婚 canonical A（内部） | `party_a_interpretation` 独立私有会话 | `party_a_interpretation` |
+| 合婚 canonical B（内部） | `party_b_interpretation` 独立私有会话 | `party_b_interpretation` |
+| 合婚分析 | 两份 canonical 私解 + 双完整命盘 + 全部 READY → 新关系会话 `final_compatibility` | `final_compatibility` |
 | 合婚追问 | 父 `hehun_ai_analysis/final_compatibility` 会话 → `followup` | `followup` |
-| 新命盘起名 | `base → question → naming_author` 全部同会话 | `naming_author` |
+| 新命盘起名 | canonical base 精确会话 → `question_analysis → naming_author` | `naming_author` |
 | 已有报告起名 | `naming_author` | `naming_author` |
 | 人工准确度追问 | 父 job/stage/hash → 原会话 continuation | `manual_accuracy_challenge` |
 | 付款截图观察 | `payment_screenshot_observation` | 同名阶段 |
@@ -41,9 +44,14 @@ AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少一个或顺序错误都在 GPT 前失败。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
 和前序回答文件。零附件阶段因此仍有非空输入证明；上传计数只看带 `filePath` 的真实文件。
-每张多阶段订单的首节点创建唯一聊天，之后每个节点的 `continuationFrom` 必须指向紧邻的
-上一节点，实际 URL 必须与首节点完全相同。角色变化、提示词变化和材料变化都不是新建
-聊天的理由；profile 若出现非首节点 `continuationFrom=null`，整张订单在浏览器动作前失败。
+同一订单后继节点的 `continuationFrom` 必须指向紧邻的上一节点；跨订单的八字结果必须
+携带 canonical parent 并打开其精确 URL。所有解析到同一个 `webChatUrl` 的订单和 stage
+共用同一 FIFO 车道。合婚 A、B canonical 私解和关系综合是三个明确定义的独立上下文，
+profile 不得把它们串成旧的单聊天三调用图。
+
+三类 canonical base 按云端 stable source task/idempotency 唯一化，AGENT 不做语义相似
+判断。相同身份只执行同一 durable order；用户问题、伴侣、订单、付款和命名要求不得进入
+该身份，每个用户结果仍单独执行。
 
 三类付费追问必须在本地打开 GPT 前完成父订单、固定最终阶段、raw output hash 与原设备
 核验。原 `webChatUrl` 可用时直接续接；原会话或本地父账本丢失时，使用子 lease 绑定的
@@ -60,11 +68,13 @@ Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少
 → completed / recovery_pending
 ```
 
-同一订单在一个进程只有一份 tracked promise，内部阶段按动作图串行续接同一个 GPT URL；
-不同订单继续并发。Gateway 自己执行单标签页 N=1 短操作锁和最多 10 个 provider feed。
+同一订单在一个进程只有一份 tracked promise；所有指向相同 GPT URL 的工作串行，不同 URL
+继续并发。Gateway 自己执行单标签页 N=1 短操作锁和最多 10 个 provider feed。
 整单首轮只生成一次系统聊天名，后续所有 stage 继承该父聊天名称并各自使用新 marker；
 禁止每个 stage 用自己的 execution id 反复改名。上一 stage 的回答 checkpoint 发布后，
-下一 stage 的父聊天续问优先于旧 stage 的改名、附件装饰和页面清理。
+下一 stage 的父聊天续问优先于旧 stage 的改名、附件装饰和页面清理。旧 stage 未完成的
+改名必须作为 `chatTitleRename=pending` 持久尾工留在 Gateway 账本中；AGENT 重启只补做
+canonical URL＋父名称＋marker 核验，不得重放 GPT 回答，也不得占用整单 AI 生产容量。
 某张订单遇到浏览器瞬断或临时无货时，在当前有效 lease 持续 heartbeat 的前提下，按阶段
 timeout 内的有界退避继续同一 execution id；其他订单继续生产，不互相取消。只有阶段
 timeout 用尽，整单才向云端回传 `recovery_pending`。
@@ -73,8 +83,9 @@ turn 的执行保留原 execution id、marker 与父聊天恢复；监控插件�
 只暂停页面动作，绝不能换编号重发。只有被证明污染/无效的完整回答，或从未形成提交证明的
 真正终态身份故障，才清空旧 feed result、生成新 execution id，并继续绑定原父 GPT 聊天。
 
-调度器另有一层 `父 job + 父 stage` 车道。同一父 GPT 聊天的追问严格按
-`createdAt + orderId` FIFO，每次只允许一张投喂；不同父聊天仍可并发占用十张整单窗口。
+调度器以已验证 `webChatUrl` 作为最终车道；URL 尚未取得时才以 `父 job + 父 stage` 临时
+占位。同一 GPT 聊天上的问题、命名、复盘和追问严格按 `createdAt + orderId` FIFO，每次
+只允许一张投喂；不同聊天仍可并发占用十张整单窗口。
 前序追问处于 `recovery_pending` 时，后序追问只记录同车道等待并回传恢复态，绝不越过它
 向同一聊天发送消息。
 
@@ -163,20 +174,6 @@ GPT 回答含私用区字符、`filecite` 等内部引用残留、乱码替代�
 工厂换新 execution 重跑；网站仍只看到处理中。只有 continuation 阶段可复用正式 URL，
 并且实际 URL 必须等于固定父 URL。
 
-旧 profile 曾把合婚乙方解读或新命盘起名节点放进空白新聊天。启动迁移只处理尚未完成的
-整单中已经完成、且自身持久化 provider URL 与上一节点父 URL 明确不同的脱离节点：保留
-此前已完成的合法上游回答，从首个已证明脱离的节点清空错误 response/proof、换新 execution
-id，并写入 `detached_downstream_conversation_restarted` 事件。`waiting_provider`、
-`recovery_pending`、`running` 或已经提交但尚未聚合回答的节点，绝对不能因 execution id
-名称、attempt 数量或尚无 `aiFeedResult` 就被推定脱离；它必须保留原 execution id，让
-Gateway 依据已提交轮次原地恢复。修复后的节点必须回到上一节点的精确 URL；不得恢复旧
-空白页，也不得重跑无关的已完成上游节点。
-
-若历史未完成订单的冻结 prompt 本身仍写着“全新的 ChatGPT 会话”，网站和本地账本必须
-分别执行同一条窄迁移：只有订单身份、阶段、附件和其余 prompt 逐字一致时，才把该固定旧句
-替换为同会话指令并更新 request hash。已完成前缀保持原 proof/hash；首个受影响节点换新
-execution id，事件记录 `legacy_conversation_contract_repaired`。任何额外语义变化都拒绝。
-
 重启恢复禁止由 coordinator 脱离 cloud worker 自行启动。outbound worker 先扫描本地
 `queued/running/recovery_pending/completed` 整单，以
 `orderId + sourceTaskId + requestHash + 原设备身份` 与原 cloud job 对账；云端撤销旧租约、
@@ -236,9 +233,11 @@ src/plugins/xuanxue-ai-production/
 
 ## Acceptance
 
-- 证明八个产品的精确 stage graph。
-- 证明合婚甲方、乙方、总论严格串行并共享首阶段唯一 GPT URL，最终阶段带两份前序原始回答。
-- 证明新命盘起名的基础、问题、起名三阶段共享首阶段唯一 GPT URL。
+- 证明八个网站产品与三个 canonical base 内部动作的精确 stage graph。
+- 证明 canonical base 消费者继续精确 base URL，且同一 URL 的不同 job 严格 FIFO。
+- 证明合婚甲方、乙方私解可独立并发、各自完整上传语料，关系总论使用第三个新会话并带两份原始回答。
+- 证明新命盘起名的问题与起名阶段共享 canonical base 的精确 GPT URL。
+- 证明同一 stable canonical identity 的重复订单只执行一次，用户问题与关系综合绝不复用。
 - 证明 10 张在制整单时第 11 张等待，释放后才进入。
 - 证明 order/source task 幂等冲突在投喂前失败。
 - 关闭并重开 SQLite 后，queued/running/recovery_pending 按相同 execution id 恢复。
@@ -255,10 +254,6 @@ src/plugins/xuanxue-ai-production/
   父 URL 追问；父材料下载必须使用子 lease。
 - 证明历史无父身份追问重启后保持 `recovery_pending` 等待正确血缘，不会新建聊天。
 - 证明网站重发正确父身份后，同一历史订单原位修复并在精确父聊天继续；语义材料变化仍拒绝。
-- 证明历史未完成整单若曾让合婚乙方或起名节点脱离父聊天，会从首个错误节点换新 execution
-  重启并保留已完成上游回答，绝不续发旧空白页。
-- 证明历史起名 prompt 的固定空白聊天旧句可窄迁移，已完成前两步不重跑，任何额外语义
-  变化仍产生身份冲突。
 - 证明带 `filecite` / 私用区字符的回答立即作废、换新 execution id 重跑且不进入结果。
 - 证明污染或 provider 失败 seed 不进入 completed，并从该阶段重新执行。
 - 证明同一订单父聊天失效只触发一次下游失败，随后记录整图重建，从第一阶段到最后阶段

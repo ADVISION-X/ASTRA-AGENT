@@ -33,6 +33,9 @@ import {
   markCheckpointedWebChatResponsePublished,
   recoverCheckpointedWebChatResponse,
 } from "../providers/web-chat-checkpoint-response.js";
+import {
+  scheduleWebChatTitleHousekeeping,
+} from "./web-chat-title-housekeeping-worker.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -234,6 +237,19 @@ interface ManagedProviderInput {
   cooldownMs: number;
 }
 
+const schedulePublishedTitleHousekeeping = (
+  input: ExecuteAiFeedOnceInput,
+): void => {
+  if (!input.browser) return;
+  scheduleWebChatTitleHousekeeping({
+    dataDir: input.dataDir,
+    browser: input.browser,
+    ...(input.runtimeLogger
+      ? { runtimeLogger: input.runtimeLogger }
+      : {}),
+  });
+};
+
 type ManagedExecution =
   Awaited<ReturnType<typeof prepareManagedWebChatExecution>>;
 
@@ -310,7 +326,10 @@ const buildManagedProviderFailure = async (
       input,
       managed?.providerLeaseId ?? null,
     );
-    if (recovered) return recovered;
+    if (recovered) {
+      schedulePublishedTitleHousekeeping(input.execution);
+      return recovered;
+    }
   } catch (checkpointError) {
     effectiveError = checkpointError;
   }
@@ -358,7 +377,10 @@ const executeManagedProvider = async (
   try {
     const recoveredBeforeBrowser =
       await recoverManagedCheckpoint(input, null);
-    if (recoveredBeforeBrowser) return recoveredBeforeBrowser;
+    if (recoveredBeforeBrowser) {
+      schedulePublishedTitleHousekeeping(input.execution);
+      return recoveredBeforeBrowser;
+    }
     managed = await prepareManagedWebChatExecution(
       input.execution,
       input.inputPackage.inputHash,

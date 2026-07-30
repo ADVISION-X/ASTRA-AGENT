@@ -27,6 +27,8 @@ export const attachment = {
     "src/lib/browser/current-chrome-native-multi-file-picker.ts",
   chromeWindowControlPath:
     "src/lib/browser/current-chrome-window-control.ts",
+  chromeAccessibilityWindowPath:
+    "src/lib/browser/current-chrome-accessibility-window.ts",
   chromeBrowserPrimitivesPath:
     "src/lib/browser/current-chrome-browser-controller-primitives.ts",
   chromeBrowserExecutionPath:
@@ -66,6 +68,10 @@ export const runtime = {
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
   chatTitleScriptsPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+  titleHousekeepingPath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
+  titleHousekeepingWorkerPath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
   responseCapturePath:
     "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
   answerEvaluationPath:

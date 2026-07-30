@@ -6,8 +6,8 @@
     "mode": "explicit",
     "bindings": [
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
-        "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
+        "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
         "checkIds": [
           "xuanxue-ai-production/acceptance",
           "xuanxue-ai-production/fixed-profiles",
@@ -23,12 +23,13 @@
         ]
       },
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
-        "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
+        "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
         "checkIds": [
           "xuanxue-ai-production/acceptance",
           "xuanxue-ai-production/bounded-coordinator",
           "xuanxue-ai-production/durable-ledger",
+          "xuanxue-ai-production/durable-title-housekeeping",
           "xuanxue-ai-production/no-untracked-background-work",
           "xuanxue-ai-production/source-present"
         ],
@@ -71,5 +72,5 @@
       ]
     }
   ],
-  "description": "Whole-order xuanxue AI factory, fixed workflow profiles, bounded production window, SQLite recovery and outbound cloud lease audit."
+  "description": "Content-addressed private bases, unique user results, exact GPT URL FIFO continuation, bounded production window, SQLite recovery and outbound cloud lease audit."
 }

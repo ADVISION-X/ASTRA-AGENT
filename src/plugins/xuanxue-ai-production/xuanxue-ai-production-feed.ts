@@ -14,8 +14,8 @@ import type {
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import {
   XUANXUE_AI_PRODUCTION_JOB_ID,
-  isXuanxueAiFollowupProduct,
-  xuanxueAiContinuationProfiles,
+  isXuanxueAiRequiredContinuationProduct,
+  xuanxueAiRequiredContinuationProfiles,
   type XuanxueAiOrderRecord,
   type XuanxueAiProductionOrder,
   type XuanxueAiStageId,
@@ -214,14 +214,14 @@ const parentContinuation = async (
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_ORDER_MISSING");
   }
   if (
-    isXuanxueAiFollowupProduct(record.order.productId)
+    isXuanxueAiRequiredContinuationProduct(record.order.productId)
     && (
       parentOrder.order.productId
-        !== xuanxueAiContinuationProfiles[
+        !== xuanxueAiRequiredContinuationProfiles[
           record.order.productId
         ].productId
       || parentRef.stageId
-        !== xuanxueAiContinuationProfiles[
+        !== xuanxueAiRequiredContinuationProfiles[
           record.order.productId
         ].stageId
     )
@@ -287,7 +287,15 @@ export const buildXuanxueAiFeedInput = async (
         requireXuanxueStage(record, stageId),
       )),
   );
-  const parent = await parentContinuation(runtime, record, stage);
+  const parent = (
+    definition.continuationFrom === null
+    || (
+      record.order.productId === "bazi_report_followup"
+      && definition.stageId === "question_analysis"
+    )
+  )
+    ? await parentContinuation(runtime, record, stage)
+    : null;
   const continuation = parent?.continuation
     ?? continuationFor(record, definition);
   const taskLabel = parent?.taskLabel

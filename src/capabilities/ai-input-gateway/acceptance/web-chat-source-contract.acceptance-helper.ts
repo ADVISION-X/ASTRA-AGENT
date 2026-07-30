@@ -18,75 +18,77 @@ type ContractSources = {
   namedConversationSearch: string;
   pageActions: string;
   submit: string;
+  accessibilityWindow: string;
+  browserPrimitives: string;
+  providerTab: string;
+  abilityGroup: string;
+  feedProviderOnce: string;
+  titleHousekeeping: string;
+  titleHousekeepingWorker: string;
+  recoveryAcceptance: string;
 };
 
 const sourceText = (repoPath: string): Promise<string> =>
   readFile(path.join(process.cwd(), repoPath), "utf8");
 
+const contractSourcePaths = [
+  "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+  "src/lib/browser/current-chrome-accessibility-window.ts",
+  "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
+  "src/capabilities/ai-input-gateway/ability-group.ts",
+  "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+  "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+] as const;
+
+const requiredSource = (values: readonly string[], index: number): string => {
+  const value = values[index];
+  if (value === undefined) throw new Error(`missing contract source ${index}`);
+  return value;
+};
+
 const loadContractSources = async (): Promise<ContractSources> => {
-  const values = await Promise.all([
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
-    ),
-    sourceText(
-      "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-    ),
-  ]);
+  const values = await Promise.all(contractSourcePaths.map(sourceText));
   return {
-    shared: values[0],
-    title: values[1],
-    titleScripts: values[2],
-    answerEvaluation: values[3],
-    rateLimitWatcher: values[4],
-    answerSupport: values[5],
-    singleTabRouting: values[6],
-    managedExecution: values[7],
-    managedExecutionStart: values[8],
-    continuationTitle: values[9],
-    executionState: values[10],
-    searchDialogHygiene: values[11],
-    namedConversationSearch: values[12],
-    pageActions: values[13],
-    submit: values[14],
+    shared: requiredSource(values, 0),
+    title: requiredSource(values, 1),
+    titleScripts: requiredSource(values, 2),
+    answerEvaluation: requiredSource(values, 3),
+    rateLimitWatcher: requiredSource(values, 4),
+    answerSupport: requiredSource(values, 5),
+    singleTabRouting: requiredSource(values, 6),
+    managedExecution: requiredSource(values, 7),
+    managedExecutionStart: requiredSource(values, 8),
+    continuationTitle: requiredSource(values, 9),
+    executionState: requiredSource(values, 10),
+    searchDialogHygiene: requiredSource(values, 11),
+    namedConversationSearch: requiredSource(values, 12),
+    pageActions: requiredSource(values, 13),
+    submit: requiredSource(values, 14),
+    accessibilityWindow: requiredSource(values, 15),
+    browserPrimitives: requiredSource(values, 16),
+    providerTab: requiredSource(values, 17),
+    abilityGroup: requiredSource(values, 18),
+    feedProviderOnce: requiredSource(values, 19),
+    titleHousekeeping: requiredSource(values, 20),
+    titleHousekeepingWorker: requiredSource(values, 21),
+    recoveryAcceptance: requiredSource(values, 22),
   };
 };
 
@@ -112,16 +114,22 @@ const assertRenameTiming = (sources: ContractSources): void => {
   assert.equal(
     sources.title.includes("runExclusivePatrol")
       && sources.title.includes("WEB_CHAT_RENAME_NOT_READY")
-      && sources.title.includes("RENAME_PATROL_SLICE_MS = 4_000")
+      && sources.title.includes("RENAME_PATROL_SLICE_MS = 15_000")
       && sources.title.includes("remainingRenameMs")
       && !sources.title.includes("timeoutMs: 60_000")
       && !sources.title.includes("rename patrol exhausted the task timeout"),
     true,
-    "one completed-chat rename must stay atomic, yield within four seconds to submission work, and transient rename UI must never become a terminal task-timeout failure",
+    "one completed-chat rename must stay atomic, yield within fifteen seconds to submission work, and transient rename UI must never become a terminal task-timeout failure",
   );
 };
 
 const assertRenameTargeting = (sources: ContractSources): void => {
+  const renameTransaction = sources.title.slice(
+    sources.title.indexOf("const runRenameTransaction"),
+    sources.title.indexOf(
+      "export const renameSubmittedChatGptConversation",
+    ),
+  );
   assert.equal(
     sources.titleScripts.includes("(?!WEB:)"),
     true,
@@ -141,6 +149,91 @@ const assertRenameTargeting = (sources: ContractSources): void => {
     sources.titleScripts.includes("depth < 7"),
     false,
     "rename targeting must not climb into the page-header conversation menu",
+  );
+  assert.equal(
+    sources.titleScripts.includes(
+      "new URL(link.href, location.href).pathname === expectedPath",
+    )
+      && sources.titleScripts.includes(
+        "titleLinks.length === ${String(proof.titleLinks)}",
+      )
+      && sources.titleScripts.includes(
+        "markerCount === ${String(proof.markerCount)}",
+      )
+      && sources.titleScripts.includes(
+        "currentPathMatches === ${JSON.stringify(proof.currentPathMatches)}",
+      ),
+    true,
+    "rename verification must bind the exact canonical path, exact durable title and exact turn marker",
+  );
+  assert.equal(
+    sources.titleScripts.includes("buildRenameMenuTargetScript")
+      && sources.titleScripts.includes("aria-labelledby")
+      && sources.titleScripts.includes("aria-controls")
+      && sources.title.includes(
+        "detect an interrupted exact-conversation rename menu",
+      ),
+    true,
+    "an interrupted open rename menu must be resumed only when its trigger belongs to the exact canonical conversation row",
+  );
+  assert.equal(
+    renameTransaction.indexOf("focusBoundWebChatConversation")
+      < renameTransaction.indexOf("recoverOpenTitleEditor"),
+    true,
+    "restart rename recovery must prove the exact parent conversation before touching any open title editor",
+  );
+};
+
+const assertDurableRenameHousekeeping = (
+  sources: ContractSources,
+): void => {
+  assert.equal(
+    sources.executionState.includes("WebChatTitleRenameState")
+      && sources.executionState.includes("chatTitleRename")
+      && sources.titleHousekeeping.includes(
+        'record.status === "response_captured"',
+      )
+      && sources.titleHousekeeping.includes(
+        'record.chatTitleRename?.status === "pending"',
+      )
+      && sources.titleHousekeeping.includes(
+        "drainWebChatTitleHousekeeping",
+      ),
+    true,
+    "published answers with an unverified title must remain explicit durable housekeeping debt",
+  );
+  assert.equal(
+    sources.abilityGroup.includes("scheduleWebChatTitleHousekeeping")
+      && sources.feedProviderOnce.includes(
+        "schedulePublishedTitleHousekeeping",
+      )
+      && sources.managedExecution.includes(
+        "scheduleWebChatTitleHousekeeping",
+      )
+      && sources.titleHousekeepingWorker.includes(
+        "runWebChatTitleHousekeepingNow",
+      )
+      && sources.titleHousekeepingWorker.includes(
+        "setTimeout",
+      )
+      && sources.titleHousekeepingWorker.includes(
+        "timer.unref()",
+      ),
+    true,
+    "startup, checkpoint recovery and post-publication failure must all reawaken one bounded durable rename worker",
+  );
+  assert.equal(
+    sources.recoveryAcceptance.includes(
+      "finishTitleHousekeepingAfterRestart",
+    )
+      && sources.recoveryAcceptance.includes(
+        "drainWebChatTitleHousekeeping",
+      )
+      && sources.recoveryAcceptance.includes(
+        'verified?.chatTitleRename?.status, "verified"',
+      ),
+    true,
+    "acceptance must prove a checkpoint survives interruption and its rename debt completes after restart without another provider answer",
   );
 };
 
@@ -191,6 +284,32 @@ const assertSharedScheduling = (sources: ContractSources): void => {
   );
 };
 
+const assertExactWindowStabilization = (sources: ContractSources): void => {
+  assert.equal(
+    sources.accessibilityWindow.includes(
+      "EXACT_ACCESSIBILITY_WINDOW_STABILIZATION_ATTEMPTS = 30",
+    )
+      && sources.accessibilityWindow.includes(
+        "EXACT_ACCESSIBILITY_WINDOW_STABILIZATION_DELAY_SECONDS = 0.025",
+      )
+      && sources.accessibilityWindow.includes(
+        "exactChromeMatchingWindows.length === 1",
+      )
+      && sources.accessibilityWindow.includes(
+        "exactChromeMatchingWindows.length > 1",
+      )
+      && sources.accessibilityWindow.includes('actions.byName("AXRaise")')
+      && sources.browserPrimitives.includes(
+        "buildExactChromeAccessibilityWindowRaiseScript",
+      )
+      && sources.providerTab.includes(
+        "buildExactChromeAccessibilityWindowRaiseScript",
+      ),
+    true,
+    "exact Chrome and accessibility window identity must survive a bounded zero-match stabilization race while ambiguity still fails closed",
+  );
+};
+
 const assertExactSearchDialogHygiene = (sources: ContractSources): void => {
   assert.equal(
     sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_AMBIGUOUS")
@@ -218,7 +337,9 @@ export const assertWebChatSourceContracts = async (): Promise<void> => {
   const sources = await loadContractSources();
   assertRenameTiming(sources);
   assertRenameTargeting(sources);
+  assertDurableRenameHousekeeping(sources);
   assertProviderPatrol(sources);
   assertSharedScheduling(sources);
+  assertExactWindowStabilization(sources);
   assertExactSearchDialogHygiene(sources);
 };

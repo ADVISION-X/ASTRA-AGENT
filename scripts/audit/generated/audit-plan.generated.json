@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-29T19:04:25.859Z",
+  "generatedAt": "2026-07-30T00:05:02.154Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -128,8 +128,10 @@
             "ai-input-gateway/bounded-rename-recovery",
             "ai-input-gateway/controlled-chrome-window-identity",
             "ai-input-gateway/deferred-completed-chat-rename",
+            "ai-input-gateway/durable-title-housekeeping",
             "ai-input-gateway/durable-fifo-scheduler",
             "ai-input-gateway/exact-sidebar-row-rename",
+            "ai-input-gateway/exact-rename-identity-proof",
             "ai-input-gateway/failure-ledger",
             "ai-input-gateway/fresh-conversation-identity",
             "ai-input-gateway/fresh-execution-rate-owner-transfer",
@@ -13888,14 +13890,14 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
         "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
-          "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
+          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
+          "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
           "checkIds": [
             "xuanxue-ai-production/acceptance",
             "xuanxue-ai-production/fixed-profiles",
@@ -13912,12 +13914,13 @@
           "evidenceMode": "acceptance"
         },
         {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
-          "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
+          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
+          "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
           "checkIds": [
             "xuanxue-ai-production/acceptance",
             "xuanxue-ai-production/bounded-coordinator",
             "xuanxue-ai-production/durable-ledger",
+            "xuanxue-ai-production/durable-title-housekeeping",
             "xuanxue-ai-production/no-untracked-background-work",
             "xuanxue-ai-production/source-present"
           ],

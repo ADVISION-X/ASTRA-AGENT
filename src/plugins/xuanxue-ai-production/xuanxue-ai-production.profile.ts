@@ -6,8 +6,8 @@ import type {
   XuanxueAiStageId,
 } from "./xuanxue-ai-production.schema.js";
 import {
-  isXuanxueAiFollowupProduct,
-  xuanxueAiContinuationProfiles,
+  isXuanxueAiRequiredContinuationProduct,
+  xuanxueAiRequiredContinuationProfiles,
 } from "./xuanxue-ai-production.schema.js";
 
 export interface XuanxueAiStageDefinition {
@@ -44,7 +44,12 @@ const profiles: Readonly<Record<
 >> = {
   bazi_ai_full_analysis: {
     productId: "bazi_ai_full_analysis",
-    stages: baziStages,
+    stages: [{
+      stageId: "question_analysis",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
     finalStageId: "question_analysis",
   },
   bazi_report_followup: {
@@ -74,32 +79,12 @@ const profiles: Readonly<Record<
   },
   hehun_ai_analysis: {
     productId: "hehun_ai_analysis",
-    stages: [
-      {
-        stageId: "party_a_interpretation",
-        dependsOn: [],
-        continuationFrom: null,
-        generatedInputsFrom: [],
-      },
-      {
-        stageId: "party_b_interpretation",
-        dependsOn: ["party_a_interpretation"],
-        continuationFrom: "party_a_interpretation",
-        generatedInputsFrom: [],
-      },
-      {
-        stageId: "final_compatibility",
-        dependsOn: [
-          "party_a_interpretation",
-          "party_b_interpretation",
-        ],
-        continuationFrom: "party_b_interpretation",
-        generatedInputsFrom: [
-          "party_a_interpretation",
-          "party_b_interpretation",
-        ],
-      },
-    ],
+    stages: [{
+      stageId: "final_compatibility",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
     finalStageId: "final_compatibility",
   },
   hehun_report_followup: {
@@ -115,7 +100,12 @@ const profiles: Readonly<Record<
   naming_bazi_analysis_and_naming: {
     productId: "naming_bazi_analysis_and_naming",
     stages: [
-      ...baziStages,
+      {
+        stageId: "question_analysis",
+        dependsOn: [],
+        continuationFrom: null,
+        generatedInputsFrom: [],
+      },
       {
         stageId: "naming_author",
         dependsOn: ["question_analysis"],
@@ -134,6 +124,36 @@ const profiles: Readonly<Record<
       generatedInputsFrom: [],
     }],
     finalStageId: "naming_author",
+  },
+  bazi_canonical_base_interpretation: {
+    productId: "bazi_canonical_base_interpretation",
+    stages: [{
+      stageId: "base_interpretation",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
+    finalStageId: "base_interpretation",
+  },
+  hehun_canonical_party_a_interpretation: {
+    productId: "hehun_canonical_party_a_interpretation",
+    stages: [{
+      stageId: "party_a_interpretation",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
+    finalStageId: "party_a_interpretation",
+  },
+  hehun_canonical_party_b_interpretation: {
+    productId: "hehun_canonical_party_b_interpretation",
+    stages: [{
+      stageId: "party_b_interpretation",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
+    finalStageId: "party_b_interpretation",
   },
   manual_accuracy_challenge: {
     productId: "manual_accuracy_challenge",
@@ -264,16 +284,16 @@ const assertContinuationProfile = (
 ): void => {
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
-    || isXuanxueAiFollowupProduct(order.productId);
+    || isXuanxueAiRequiredContinuationProduct(order.productId);
   if (continuationRequired !== Boolean(order.continuationParent)) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
     );
   }
   if (
-    isXuanxueAiFollowupProduct(order.productId)
+    isXuanxueAiRequiredContinuationProduct(order.productId)
     && order.continuationParent?.stageId
-      !== xuanxueAiContinuationProfiles[order.productId].stageId
+      !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
   ) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",

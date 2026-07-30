@@ -6,7 +6,7 @@ applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/lib/local-runtime/workbe
 # GrassEye 玄学 AI 生产工厂法案
 
 status: active
-version: 2026-07-29
+version: 2026-07-30
 capabilityDomain: xuanxue-ai-production
 
 ## 1. 唯一责任
@@ -29,29 +29,45 @@ naming_bazi_analysis_and_naming
 naming_from_existing_bazi_report
 ```
 
+可复用基础工作使用三种内部订单，不计入网站 13 个产品：
+
+```txt
+bazi_canonical_base_interpretation
+hehun_canonical_party_a_interpretation
+hehun_canonical_party_b_interpretation
+```
+
+云端以 owner、角色/解释模式、命盘 ref/version/hash、候选集合、合同、模型上下文和 READY
+正文/索引 hash 生成稳定 source task/idempotency。相同身份并发只下发同一订单；订单、付款、
+问题、经历、伴侣、命名要求、时间和重启次数不得进入基础身份。AGENT 不判断是否相似，
+只执行云端已经唯一化的固定订单。
+
 ## 2. 固定动作图
 
 动作图只能由版本化产品 profile 决定，不使用通用 planner，不根据 AI 回答生成下一动作：
 
 ```txt
-八字完整：基础解读 → 同会话问题分析
-八字追问：从父正式分析最终会话续接基础解读 → 同会话问题分析
+八字 canonical base：基础解读（独立私有会话）
+八字完整：从 canonical base 精确会话续接一次问题分析
+八字追问：读取父任务 seeded base（零 GPT）→ 从父正式回答会话续接一次新问题分析
 奇门专业解答：单阶段分析
 奇门追问：从父专业解答最终会话续接单阶段追问
-合婚分析：甲方解读 → 同会话乙方解读 → 同会话形成合婚总论
+合婚 canonical A/B：甲方、乙方各自在隔离会话完成一次私解；两张基础订单可并发
+合婚分析：读取两份已校验私解、双完整命盘和全部 READY 语料，在关系专属新会话形成合婚总论
 合婚追问：从父合婚总论最终会话续接单阶段追问
-新命盘起名：八字基础解读 → 同会话八字问题分析 → 同会话起名
+新命盘起名：从 canonical base 会话续接八字问题分析 → 同会话起名
 已有报告起名：单阶段起名
 人工准确度追问：继续父订单原 GPT 会话
 付款截图观察：单阶段观察
 公开知识文章：完整语料研究 → 同会话文章写作
 ```
 
-网站必须一次提供该产品全部“静态阶段材料”。AGENT 只按固定 profile 决定依赖、
+网站必须一次提供每张 cloud job 的全部静态阶段材料。AGENT 只按固定 profile 决定依赖、
 续聊和下一阶段；前序 AI 原始回答由 AGENT 校验 hash 后生成内部附件，网站不得伪造。
-一张订单只有一个 GPT 聊天：第一阶段创建聊天，第二阶段起每个节点都必须继续上一节点
-验证过的精确 URL。产品 profile 中任何非首节点缺少 `continuationFrom` 都属于 P0 配置
-错误，必须在打开空白页或发送正文前失败；不得把“下一专业角色”解释成“新会话”。
+同一 job 的后继 stage 必须继续上一 stage 的精确 URL；跨 job 的八字用户结果订单必须继续
+其 canonical parent 的精确 URL。所有最终指向同一个已验证 `webChatUrl` 的订单共用一条
+FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一聊天。合婚 A、B canonical
+私解与关系综合是三个明确独立上下文，不能套用“每张商业履行只能一个聊天”的旧规则。
 
 ## 3. 持久工厂
 
@@ -106,12 +122,14 @@ naming_from_existing_bazi_report
   必须立即退休本次后续 execution，把整张订单的全部节点从第一阶段开始重放到一个新的
   GPT 会话，事件记录 `conversation_graph_rebuild_started`，每个新节点保存被替换的
   `supersededExecutionId`。这是保证用户报告完整性的高成本兜底，用户侧始终只显示处理中。
-- 同一 `父 job + 父 stage` 是一条持久串行车道：该父聊天的 N 个追问严格按本地
-  `createdAt + orderId` FIFO，前一追问未完成时下一追问不得投喂。不同父聊天继续共享
-  总生产窗口并发，不得把全厂降成单线程。
+- 同一已验证 `webChatUrl` 是一条持久串行车道：该聊天上的 N 个用户问题、命名步骤、
+  人工复盘与追问严格按本地 `createdAt + orderId` FIFO，前一项未完成时下一项不得投喂。
+  URL 尚未取得前用不可变父 job/stage 作为临时车道键；不同物理聊天继续共享总生产窗口并发。
 - 同一张整单的第二、第三或第 N 个 stage 必须继承首轮父聊天的同一个系统名称；阶段只新增
   turn marker，不得根据自己的 execution id 再给父聊天改名。回答 checkpoint 一旦完成，
-  下一 stage 立即取得提交优先级，旧 stage 的改名整理不得阻塞它。
+  下一 stage 立即取得提交优先级，旧 stage 的改名整理不得阻塞它。每个已经发布但尚未核验
+  父标题的 stage 必须保留独立持久 `chatTitleRename=pending` 尾工；AGENT 重启后只补做页面
+  改名和身份核验，禁止重放模型、重新收费或让整单退回 AI 轮询。
 - 启动时发现历史付费追问没有 `continuationParent`，必须保留其订单、阶段和事件证据，
   进入 `recovery_pending` 并请求网站按原业务记录重新发出带父身份与父重放包的订单；
   用户侧只显示处理中。新 claim 到达时只允许在原 order/source/product/input bundle 与
@@ -147,14 +165,6 @@ naming_from_existing_bazi_report
   timeout 内的有界退避继续同一 execution id；其他整单不能因为某张订单仍在生成就
   放弃本应完成的首次发布。超出阶段 timeout 后才允许整单回传 `recovery_pending`，
   下一次 lease 仍从同一 execution id 恢复。
-- 历史版本若已让合婚乙方阶段或新命盘起名阶段离开本订单首个聊天，未完成整单必须保留
-  已完成上游回答并从第一个脱离节点换新 execution id 重启；旧空白页或错误会话不得续发，
-  修复动作和被替换阶段快照必须写入事件账。
-- 历史未完成订单的冻结 prompt 若仍含“全新的 ChatGPT 会话”等旧运输指令，只允许在网站
-  和本地账本同时验证订单身份、阶段顺序、附件身份及除该固定旧句外的全部语义完全一致后，
-  原位替换为同会话指令并更新 request hash；已完成前缀保持不变，首个受影响节点换新
-  execution id。禁止用通用 prompt 改写或兼容执行器扩大迁移范围。
-
 ## 4. 云端激活
 
 本机主动向网站服务器轮询，不开放入站端口。设备凭据只存 0600 文件或 secret env。
@@ -176,22 +186,28 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
 - 禁止重复提示词、失败吞没、假结果、无 lease 输入下载或无 hash 的跨阶段回答。
 - 禁止人工复盘新开无父身份聊天，禁止把 seeded 回答当成无需 proof 的普通文本。
 - 禁止任何付费报告追问新开空白聊天；禁止同一父聊天的两个追问同时投喂。
-- 禁止一张多阶段订单的后续节点新开聊天；合婚和新命盘起名也没有专业角色分会话例外。
+- 禁止同一 URL 上的多个订单或阶段并发投喂。
+- 禁止为每张八字、合婚或起名商业订单重复创建相同 canonical base。
+- 禁止把用户问题、伴侣或命名要求放进 canonical base 身份。
+- 禁止复用任何用户问题、关系综合或命名回答。
+- 禁止 `question_analysis → naming_author` 后继节点新开聊天。
 - 禁止把可恢复的父会话丢失、provider 故障或坏回答包装为用户侧失败/阻断。
 - 禁止同一订单后续节点因父聊天丢失而紧循环；必须整图从第一步重建。
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3",
+  "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "xuanxue-ai-production",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance",
-  "summary": "The website submits one governed material order and receives one result; every later stage stays in the first stage GPT conversation, and every paid follow-up binds the exact final GPT conversation of its fixed parent product.",
+  "summary": "The factory executes eight user-result products plus three private canonical-base actions; canonical bases are singleflight, every user question remains unique, and exact GPT URL continuation never falls back to a blank chat.",
   "required": [
-    "Exactly eight AI product ids enter one whole-order protocol.",
-    "Only versioned product profiles control dependencies, continuation and final stage; every non-first stage continues the immediately preceding stage.",
+    "Exactly eight AI product ids and three unpriced canonical-base action ids enter the protocol.",
+    "Only versioned product profiles control dependencies, continuation and final stage.",
+    "Bazi user-result jobs continue their exact canonical-base conversation; naming_author continues question_analysis.",
+    "Hehun canonical A and B contexts are isolated and the relationship result uses its own complete context.",
     "Business plugins call AI Input Gateway only through its public contract.",
     "Every stage binds the immutable input bundle as a non-file input ref, including zero-attachment stages.",
     "Bazi, Qimen and Hehun paid follow-ups bind their fixed parent product, final stage and raw output hash; if the exact GPT Web URL is unavailable, the Agent replays the complete parent graph and continues only in the rebuilt parent conversation."
@@ -200,14 +216,17 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "website-controlled next action, browser command or per-stage cloud job",
     "generic planner, AI-generated workflow or second execution owner",
     "deterministic products entering GPT transport",
+    "duplicate canonical-base production for one stable identity",
+    "user question, partner or naming requirement included in a canonical-base identity",
+    "reuse of a user answer",
     "a downstream stage of one multi-stage order opening a blank or different GPT conversation",
     "paid follow-up execution outside its exact or fully rebuilt parent conversation",
     "blank new GPT conversation used as a follow-up fallback"
   ],
   "clauses": [
     {
-      "clauseId": "grasseye-xuanxue-ai-production-001-v3-requirement",
-      "statement": "Every non-first stage continues the immediately preceding stage in one exact GPT conversation; paid follow-ups use the exact parent conversation or a fully replayed parent graph, never a blank chat.",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "statement": "Canonical bases execute once per stable identity, every user question executes once, and every required continuation uses the exact canonical or paid-parent GPT conversation rather than a blank chat.",
       "evidenceMode": "acceptance",
       "ownerDomain": "xuanxue-ai-production"
     }
@@ -217,13 +236,13 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3",
+  "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "xuanxue-ai-production",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance",
-  "summary": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable; follow-ups sharing one parent conversation use one durable FIFO lane while different parents remain concurrent.",
+  "summary": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable; all work sharing one exact GPT URL uses one durable FIFO lane while different URLs remain concurrent.",
   "required": [
     "Order, stage, raw response, provider proof and event truth persist in SQLite.",
     "Every raw response hash uses canonical sha256-prefixed identity and byte-verified metadata repair preserves already completed analysis.",
@@ -232,12 +251,11 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "Restart resumes a durable submitted turn without duplicate prompt submission. Recoverable transport faults retain the same execution id and logical-turn marker, whether they happen before or after submission. Only a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault, creates a fresh execution id and fresh marker; a captured submission always resumes instead of sending again."
     ,"Restart reconciliation reclaims the original cloud job before local execution and republishes any already completed local result under a fresh lease.",
     "A cloud-confirmed foreign-device recovery ledger is durably quarantined as review_required once and is excluded from later automatic restart reconciliation.",
-    "Only one follow-up for the same parent job and stage may submit at a time, in createdAt and orderId FIFO order.",
+    "Only one order or stage for the same exact webChatUrl may submit at a time, in createdAt and orderId FIFO order.",
     "Historical paid follow-ups without a continuation parent remain recovery_pending until the website reissues their immutable parent identity; an exact one-way local repair preserves old stage evidence and users never receive an ordinary runtime failure.",
     "Provider citation residue, private-use characters, invalid required JSON and missing raw output are discarded and restarted with a fresh execution id and fresh marker, while a transport retry never duplicates one already submitted logical turn merely because page-global turn counts changed during provider hydration.",
     "A failed or review_required gateway execution with durable submission proof always resumes the same execution id, marker and provider conversation. A fresh execution is allowed only for a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault.",
     "A missing local or provider parent conversation is reconstructed from the lease-bound parent replay package and persisted in production_parent_conversation_rebuilds."
-    ,"An unfinished legacy Hehun or naming order may restart from a downstream stage only when that stage has completed and its durable provider URL proves it detached from the preceding parent URL. A waiting_provider, recovery_pending, running or submitted stage is never declared detached from its execution-id shape, attempt count or absent aggregate result; it retains the exact execution id so Gateway submission proof can resume without duplication."
   ],
   "forbidden": [
     "in-memory-only order truth, untracked background promise or swallowed failure",
@@ -253,8 +271,8 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
   ],
   "clauses": [
     {
-      "clauseId": "grasseye-xuanxue-ai-production-002-v3-requirement",
-      "statement": "Follow-ups sharing one exact or reconstructed parent GPT conversation execute through one durable FIFO lane; detached downstream stages and contaminated outputs restart from the faulty node, and ordinary recovery never becomes a user-visible terminal failure.",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "statement": "All work sharing one exact or reconstructed GPT URL executes through one durable FIFO lane; captured work survives restart, invalid outputs restart only their execution, and ordinary recovery never becomes a user-visible terminal failure.",
       "evidenceMode": "acceptance",
       "ownerDomain": "xuanxue-ai-production"
     }

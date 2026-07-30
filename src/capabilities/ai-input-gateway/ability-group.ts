@@ -19,6 +19,9 @@ import {
   recoverCheckpointedWebChatProviderLease,
 } from "./providers/web-chat-checkpoint-response.js";
 import { classifyWebChatFailure } from "./failure-classification.js";
+import {
+  scheduleWebChatTitleHousekeeping,
+} from "./runtime/web-chat-title-housekeeping-worker.js";
 
 const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
   "feed-gemini-api-once",
@@ -126,35 +129,46 @@ const executeParsedRequest = (
 export const createAiInputGatewayAbilityGroup = (
   context: AiInputGatewayExecutionContext,
   browser?: BrowserController,
-): AiInputGatewayAbilityGroup => ({
-  abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
-
-  listChildCapabilityIds(): AiInputGatewayChildCapabilityId[] {
-    return [...CHILD_CAPABILITY_IDS];
-  },
-
-  getRuntimeCapacity(): number {
-    return resolveWebChatMaxInFlight();
-  },
-
-  classifyFailure(error, hasDurableSubmission) {
-    return classifyWebChatFailure(error, hasDurableSubmission);
-  },
-
-  recoverCheckpointedProviderLease(input): Promise<string | null> {
-    return recoverCheckpointedWebChatProviderLease({
+): AiInputGatewayAbilityGroup => {
+  if (browser) {
+    scheduleWebChatTitleHousekeeping({
       dataDir: context.dataDir,
-      ...input,
-    });
-  },
-
-  execute(rawInput: unknown, options): Promise<AiFeedResult> {
-    const request = AiFeedInputSchema.parse(rawInput);
-    return executeParsedRequest({
-      context,
       browser,
-      request,
-      options,
+      ...(context.runtimeLogger
+        ? { runtimeLogger: context.runtimeLogger }
+        : {}),
     });
-  },
-});
+  }
+  return {
+    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
+
+    listChildCapabilityIds(): AiInputGatewayChildCapabilityId[] {
+      return [...CHILD_CAPABILITY_IDS];
+    },
+
+    getRuntimeCapacity(): number {
+      return resolveWebChatMaxInFlight();
+    },
+
+    classifyFailure(error, hasDurableSubmission) {
+      return classifyWebChatFailure(error, hasDurableSubmission);
+    },
+
+    recoverCheckpointedProviderLease(input): Promise<string | null> {
+      return recoverCheckpointedWebChatProviderLease({
+        dataDir: context.dataDir,
+        ...input,
+      });
+    },
+
+    execute(rawInput: unknown, options): Promise<AiFeedResult> {
+      const request = AiFeedInputSchema.parse(rawInput);
+      return executeParsedRequest({
+        context,
+        browser,
+        request,
+        options,
+      });
+    },
+  };
+};

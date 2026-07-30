@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-29T19:04:29.084Z",
+  "generatedAt": "2026-07-30T00:05:05.690Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -524,6 +524,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
@@ -593,6 +594,8 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -673,6 +676,7 @@
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-accessibility-window.ts",
     "src/lib/browser/current-chrome-browser-action-result.ts",
     "src/lib/browser/current-chrome-browser-click-probe.ts",
     "src/lib/browser/current-chrome-browser-controller-execution.ts",

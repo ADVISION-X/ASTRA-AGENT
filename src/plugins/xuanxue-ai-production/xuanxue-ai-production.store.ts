@@ -33,10 +33,9 @@ import {
   updateXuanxueAiProductionStage,
 } from "./xuanxue-ai-production-store-orders.js";
 import {
-  recoverMissingFollowupParents,
+  recoverMissingRequiredContinuationParents,
   repairCanonicalOutputHashState,
   repairInvalidCompletedStageOutputs,
-  repairLegacyDetachedDownstreamStages,
   repairLegacyFollowupWrongChatExecutionStates,
   repairRecoverableProviderFailures,
 } from "./xuanxue-ai-production-store-recovery.js";
@@ -66,8 +65,7 @@ export class XuanxueAiProductionStore {
     repairCanonicalOutputHashState(this.database);
     repairInvalidCompletedStageOutputs(this.database);
     repairRecoverableProviderFailures(this.database);
-    repairLegacyDetachedDownstreamStages(this.database);
-    recoverMissingFollowupParents(this.database);
+    recoverMissingRequiredContinuationParents(this.database);
     repairLegacyFollowupWrongChatExecutionStates(this.database);
   }
 

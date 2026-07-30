@@ -357,7 +357,7 @@ return {
 
 const buildUnrenamedChatGptIdentityScript = (input: { turnMarker: string; targetPath: string }): string => UNRENAMED_CHATGPT_IDENTITY_SCRIPT.replace("__TURN_MARKER__", JSON.stringify(input.turnMarker)).replace("__TARGET_PATH__", JSON.stringify(input.targetPath));
 
-const focusUnrenamedChatGptConversation = async (input: { base: BrowserController; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
+const focusUnrenamedChatGptConversation = async (input: { base: BrowserController; submission: WebChatSubmissionProof; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
   const targetUrl = input.submission.canonicalConversationUrl ?? input.submission.transientConversationUrl;
   const targetPath = new URL(targetUrl).pathname;
   const inspectAndLocate = () =>
@@ -374,7 +374,10 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
       script: buildUnrenamedChatGptIdentityScript({ turnMarker: input.turnMarker, targetPath }),
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + Math.max(
+    1,
+    Math.min(input.timeoutMs ?? 15_000, 15_000),
+  );
   let last: Awaited<ReturnType<typeof inspectAndLocate>> | null = null;
   while (Date.now() < deadline) {
     last = await inspectAndLocate();
@@ -409,13 +412,14 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
   throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact submitted ChatGPT sidebar row is not ready for marker verification; last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? targetUrl}`);
 };
 
-export const focusBoundWebChatConversation = async (input: { base: BrowserController; providerKind: "gpt-web-chat" | "gemini-web-chat"; systemChatTitle: string | null; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
+export const focusBoundWebChatConversation = async (input: { base: BrowserController; providerKind: "gpt-web-chat" | "gemini-web-chat"; systemChatTitle: string | null; submission: WebChatSubmissionProof; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
   if (input.providerKind === "gpt-web-chat") {
     if (input.submission.systemChatTitle !== input.systemChatTitle || !input.submission.chatTitleVerifiedAt) {
       await focusUnrenamedChatGptConversation({
         base: input.base,
         submission: input.submission,
         turnMarker: input.turnMarker,
+        ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
         ...(input.signal ? { signal: input.signal } : {}),
       });
       return;

@@ -1,4 +1,4 @@
-generatedAt: "2026-07-29T19:04:25.859Z"
+generatedAt: "2026-07-30T00:05:02.154Z"
 rows:
   - capabilityDomain: "ai-input-gateway"
     manifestPath: "scripts/audit/domains/ai-input-gateway/manifest.json"
@@ -361,8 +361,8 @@ rows:
     manifestPath: "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/xuanxue-ai-production/inspector.ts"
     lawIds:
-      - "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V3"
-      - "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V3"
+      - "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4"
+      - "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4"
       - "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1"
   - capabilityDomain: "xuanyuan"
     manifestPath: "scripts/audit/domains/xuanyuan/manifest.json"
