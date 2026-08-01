@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "xuanxue-ai-production:v1-drain": "node --import tsx scripts/startup/xuanxue-ai-production-v1-drain.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "internal:app-server": "node dist/src/app/server.js",

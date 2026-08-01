@@ -96,6 +96,8 @@ export const runtime = {
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
   submitPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+  generatedImageCapturePath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
 } as const;
 
 export const executionRuntime = {

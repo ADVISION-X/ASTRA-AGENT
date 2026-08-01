@@ -20,6 +20,74 @@ interface ParentlessOrderRow extends GraphOrderRow {
   failure_reason: string | null;
 }
 
+interface ReconciledTerminalRow {
+  order_id: string;
+  to_status: "failed" | "review_required";
+}
+
+const restoreReconciledV1TerminalRows = (
+  database: Database.Database,
+  now: string,
+): void => {
+  const rows = database.prepare(`
+    select o.order_id,e.to_status
+    from production_orders o
+    join production_protocol_migrations m on m.order_id=o.order_id
+    join production_events e on e.rowid=(
+      select max(re.rowid) from production_events re
+      where re.order_id=o.order_id
+        and re.event_type='v1_cloud_terminal_reconciled'
+    )
+    where o.status='recovery_pending'
+      and e.to_status in ('failed','review_required')
+  `).all() as ReconciledTerminalRow[];
+  const updateOrder = database.prepare(`
+    update production_orders set status=?,failure_reason=?,updated_at=?
+    where order_id=?
+  `);
+  const readStages = database.prepare(`
+    select stage_id,stage_json from production_stages
+    where order_id=? order by ordinal
+  `);
+  const updateStage = database.prepare(`
+    update production_stages set status=?,stage_json=?,updated_at=?
+    where order_id=? and stage_id=?
+  `);
+  for (const row of rows) {
+    const reason = "v1-cutover: cloud terminal status is authoritative";
+    updateOrder.run(row.to_status, reason, now, row.order_id);
+    for (const stageRow of readStages.all(row.order_id) as Array<{
+      stage_id: string;
+      stage_json: string;
+    }>) {
+      const stage = JSON.parse(stageRow.stage_json) as Record<string, unknown>;
+      const restored = {
+        ...stage,
+        status: row.to_status,
+        progressPhase: row.to_status,
+        failureReason: reason,
+        updatedAt: now,
+      };
+      updateStage.run(
+        row.to_status,
+        JSON.stringify(restored),
+        now,
+        row.order_id,
+        stageRow.stage_id,
+      );
+    }
+    appendXuanxueAiProductionEvent(database, {
+      orderId: row.order_id,
+      stageId: null,
+      eventType: "v1_terminal_status_restored",
+      fromStatus: "recovery_pending",
+      toStatus: row.to_status,
+      detail: { cloudIsAuthoritative: true },
+      createdAt: now,
+    });
+  }
+};
+
 const resetParentlessStages = (
   database: Database.Database,
   row: ParentlessOrderRow,
@@ -94,10 +162,13 @@ export const recoverMissingRequiredContinuationParents = (
 ): void => {
   const rows = database.prepare(`
     select order_id,order_json,status,failure_reason
-    from production_orders order by created_at,order_id
+    from production_orders
+    where status in ('queued','running','recovery_pending')
+    order by created_at,order_id
   `).all() as ParentlessOrderRow[];
   const now = new Date().toISOString();
   database.transaction(() => {
+    restoreReconciledV1TerminalRows(database, now);
     for (const row of rows) recoverParentlessOrder(database, row, now);
   })();
 };

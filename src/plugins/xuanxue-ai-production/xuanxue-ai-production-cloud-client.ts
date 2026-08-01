@@ -5,10 +5,22 @@ import {
   type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
 import type { XuanxueAiProductionResult } from "./xuanxue-ai-production.schema.js";
+import { readFile } from "node:fs/promises";
 
 interface RecoveredCloudJob {
   readonly job_id: string;
   readonly status: string;
+}
+
+interface UploadedOutputArtifact {
+  readonly artifact_id: string;
+  readonly object_ref: string;
+  readonly sha256: `sha256:${string}`;
+  readonly mime_type: "image/webp";
+  readonly byte_count: number;
+  readonly width: 1200;
+  readonly height: 630;
+  readonly state: "staged";
 }
 
 interface JsonEnvelope<T> {
@@ -162,6 +174,55 @@ export async function downloadXuanxueAiProductionParentReplayInput(
     );
   }
   return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function uploadXuanxueAiProductionOutputArtifact(
+  credential: XuanxueAiProductionCloudCredential,
+  job: XuanxueAiProductionCloudClaimedJob,
+  input: {
+    readonly stageId: "article_image_generation";
+    readonly artifactId: string;
+    readonly filePath: string;
+    readonly sha256: `sha256:${string}`;
+    readonly originalSha256: `sha256:${string}`;
+    readonly executionId: string;
+    readonly providerOutputRef: string;
+    readonly checkpointProofRef: string;
+    readonly byteCount: number;
+  },
+): Promise<UploadedOutputArtifact> {
+  const bytes = await readFile(input.filePath);
+  if (bytes.byteLength !== input.byteCount) {
+    throw new Error("XUANXUE_AI_PRODUCTION_OUTPUT_LOCAL_BYTES_CHANGED");
+  }
+  const response = await fetch(
+    `${baseUrl(credential)}/internal/ai-production/jobs/`
+    + `${encodeURIComponent(job.job_id)}/artifacts/`
+    + `${encodeURIComponent(input.stageId)}/${encodeURIComponent(input.artifactId)}`,
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${credential.credential}`,
+        ...leaseHeaders(job),
+        "content-type": "image/webp",
+        "x-ai-content-sha256": input.sha256,
+        "x-ai-original-sha256": input.originalSha256,
+        "x-ai-execution-id": input.executionId,
+        "x-ai-provider-output-ref": input.providerOutputRef,
+        "x-ai-checkpoint-proof-ref": input.checkpointProofRef,
+        "x-ai-content-bytes": String(input.byteCount),
+      },
+      body: bytes,
+      signal: AbortSignal.timeout(120_000),
+    },
+  );
+  const body = await response.json() as JsonEnvelope<UploadedOutputArtifact>;
+  if (!response.ok || body.ok !== true || !body.data) {
+    throw new Error(
+      `XUANXUE_AI_PRODUCTION_OUTPUT_UPLOAD_FAILED:${body.error?.code ?? response.status}`,
+    );
+  }
+  return body.data;
 }
 
 export async function heartbeatXuanxueAiProductionJob(

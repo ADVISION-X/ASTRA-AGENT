@@ -24,6 +24,7 @@ const createRequest = (promptContractId: string): AiFeedInput => ({
   promptPackageId: `${promptContractId}-package`,
   promptContractId,
   expectedOutputSchemaRef: null,
+  expectedOutputKind: "text",
   textPrompt: `Acceptance prompt for ${promptContractId}`,
   inputRefs: [],
   modelName: null,

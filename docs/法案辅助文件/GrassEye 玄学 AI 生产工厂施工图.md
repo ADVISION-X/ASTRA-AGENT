@@ -1,7 +1,7 @@
-# GrassEye 玄学 AI 生产工厂施工图 V1
+# GrassEye 玄学 AI 生产工厂施工图 V2
 
 status: construction-blueprint
-version: 2026-07-30
+version: 2026-08-01
 authority: `.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md`
 
 ## Boundary
@@ -38,8 +38,9 @@ AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 | 新命盘起名 | canonical base 精确会话 → `question_analysis → naming_author` | `naming_author` |
 | 已有报告起名 | `naming_author` | `naming_author` |
 | 人工准确度追问 | 父 job/stage/hash → 原会话 continuation | `manual_accuracy_challenge` |
+| 定时质量复盘 | 冻结快照 → 独立私有新会话 | `scheduled_quality_reflection` |
 | 付款截图观察 | `payment_screenshot_observation` | 同名阶段 |
-| 公开知识文章 | `corpus_research → article_synthesis` 同会话 | `article_synthesis` |
+| 公开知识文章 | `corpus_research → article_synthesis → article_image_generation` 同会话 | `article_image_generation` |
 
 Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少一个或顺序错误都在 GPT 前失败。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
@@ -204,7 +205,14 @@ device heartbeat
 → one whole-order result or bounded failure
 ```
 
-协议固定 `xuanxue-ai-production-v1`。领取后的所有 job mutation 携带 lease token/version
+协议固定 `xuanxue-ai-production-v2`。活动创建、领取和恢复不接受 v1。SQLite 启动迁移只处理
+已终态 v1：逐阶段重算原始回答 hash、保留 URL/proof、为文本阶段补 `outputKind=text` 与空
+artifact 数组并记录迁移前后 hash；任何活动 v1 或字节/hash 不一致使启动失败，不建双轨。
+一次性 `xuanxue-ai-production:v1-drain` 只以原设备凭证查询绑定 job 的 `job_id/status`，把云端
+终态追加为本地 `v1_cloud_terminal_reconciled` 后再升级凭证。conversation graph 冷启动仅扫描
+活动状态；若旧版本曾误把已对账终态改为 `recovery_pending`，必须从迁移账恢复云端终态并追加
+`v1_terminal_status_restored`，禁止再次执行或重新提交 GPT。
+领取后的所有 job mutation 携带 lease token/version
 和幂等键；唯一例外是重启恢复请求，它没有可信旧 token，必须绑定原设备与四段稳定身份，
 并在恢复后重新领取新 lease。
 父重放材料只允许通过
@@ -258,5 +266,10 @@ src/plugins/xuanxue-ai-production/
 - 证明污染或 provider 失败 seed 不进入 completed，并从该阶段重新执行。
 - 证明同一订单父聊天失效只触发一次下游失败，随后记录整图重建，从第一阶段到最后阶段
   重新落在同一个新 GPT URL，禁止紧循环与空白追问。
-- 证明付款观察和 SEO 两轮也只有一张整单，SEO 第二轮继续研究会话。
+- 证明定时质量复盘总在独立新聊天执行，无 continuation parent；人工 challenge 仍继续父会话。
+- 证明 SEO 三轮只有一张整单、一个 canonical URL，第三轮只捕获目标 assistant turn 的一个
+  原图；下载/转换/上传中断从同 execution/checkpoint 恢复，不重发第三轮。
+- 证明媒体 facade 使用 contain 固定中性画布输出无元数据的 1200×630 WebP，红线不确定即阻断；
+  插件内不存在第二套 sharp/Vision 处理器，任务期间不联网安装依赖。
+- 证明终态 v1 账本 hash 校验迁移，活动 v1 和错误 hash 均阻断。
 - 审计云端领取只使用剩余容量，旧 Xuanyuan 云端执行片区不存在。

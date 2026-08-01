@@ -6,7 +6,7 @@ import {
 } from "./xuanxue-ai-production.schema.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
-  "xuanxue-ai-production-v1" as const;
+  "xuanxue-ai-production-v2" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
@@ -27,6 +27,7 @@ const CloudStageMaterialSchema = z.object({
   prompt_package_id: z.string().min(1),
   prompt_contract_id: z.string().min(1),
   output_schema_ref: z.string().min(1).nullable(),
+  expected_output_kind: z.enum(["text", "generated_image"]).default("text"),
   text_prompt: z.string().min(1),
   timeout_ms: z.number().int().min(60_000).max(3_600_000),
   max_input_chars: z.number().int().positive(),
@@ -48,6 +49,11 @@ const CloudParentReplaySchema = z.object({
   job_id: z.string().min(1),
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
+  service_class: z.enum(["user_delivery", "public_content", "quality_background"]),
+  trigger_kind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection"]),
+  lineage_id: z.string().min(1).nullable(),
+  reflection_snapshot_ref: z.string().min(1).nullable(),
+  reflection_plan_id: z.string().min(1).nullable(),
   input_bundle_ref: z.string().min(1),
   input_bundle_hash: hashSchema,
   request_hash: hashSchema,
@@ -64,6 +70,11 @@ export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
   idempotency_key: z.string().min(1),
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
+  service_class: z.enum(["user_delivery", "public_content", "quality_background"]),
+  trigger_kind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection"]),
+  lineage_id: z.string().min(1).nullable(),
+  reflection_snapshot_ref: z.string().min(1).nullable(),
+  reflection_plan_id: z.string().min(1).nullable(),
   input_bundle_ref: z.string().min(1),
   input_bundle_hash: hashSchema,
   request_hash: hashSchema,

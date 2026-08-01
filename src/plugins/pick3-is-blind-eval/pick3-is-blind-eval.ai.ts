@@ -43,6 +43,7 @@ export const buildPick3AiGatewayInput = (input: {
     sourceTaskId: input.image.imageId,
   },
   promptPackageId: `pick3:${input.batchId}:${input.image.imageId}:${input.promptPackage.playbookVersionId}`,
+  expectedOutputKind: "text",
   ...pick3PromptContractMetadata(input.promptPackage),
   textPrompt: renderPick3PredictionPrompt(input.promptPackage),
   inputRefs: [{

@@ -14,10 +14,11 @@ import {
   requireXuanxueStage,
 } from "./xuanxue-ai-production-feed.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
+import { completeXuanxueAiProductionOrder } from "./xuanxue-ai-production-result.js";
 import {
+  XUANXUE_AI_PRODUCTION_JOB_ID,
   XuanxueAiProductionOrderSchema,
   type XuanxueAiOrderRecord,
-  type XuanxueAiProductionResult,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
 import {
@@ -69,6 +70,74 @@ const canonicalizeStageResult = (
     providerProof: {
       ...result.providerProof,
       outputHash: providerOutputHash,
+    },
+  };
+};
+
+const normalizeGeneratedImageResult = async (
+  runtime: XuanxueAiProductionRuntime,
+  orderId: string,
+  stageId: XuanxueAiStageRecord["stageId"],
+  result: AiFeedResult,
+): Promise<AiFeedResult> => {
+  if (result.outputKind !== "generated_image" || result.status !== "success") {
+    return result;
+  }
+  const source = result.outputArtifacts[0];
+  if (!source) throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_SOURCE_MISSING");
+  const processed = await runtime.mediaProcessing.processMedia({
+    missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
+    runId: `${orderId}-${stageId}`,
+    inputFilePath: source.filePath,
+    presetId: "public-knowledge-hero",
+    artifactPolicy: "deliverable",
+    timeoutMs: 120_000,
+  });
+  if (processed.status !== "success" || processed.output.status !== "success") {
+    throw new Error(
+      `review_required: generated image normalization failed:${processed.reviewRequiredReason ?? processed.failureReason ?? "unknown"}`,
+    );
+  }
+  const artifact = processed.output.outputArtifacts[0];
+  if (
+    !artifact
+    || artifact.contentType !== "image/webp"
+    || artifact.width !== 1200
+    || artifact.height !== 630
+  ) {
+    throw new Error("review_required: generated image normalization contract mismatch");
+  }
+  const safety = await runtime.mediaProcessing.processMedia({
+    missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
+    runId: `${orderId}-${stageId}-safety`,
+    inputFilePath: artifact.filePath,
+    presetId: "public-knowledge-redline-check",
+    artifactPolicy: "staging",
+    timeoutMs: 120_000,
+  });
+  if (safety.status !== "success" || safety.output.status !== "success") {
+    throw new Error(`review_required: generated image safety:${safety.reviewRequiredReason ?? safety.failureReason ?? "uncertain"}`);
+  }
+  return {
+    ...result,
+    outputArtifacts: [{
+      kind: "generated_image",
+      artifactRef: artifact.artifactRef,
+      filePath: artifact.filePath,
+      mimeType: "image/webp",
+      sha256: `sha256:${artifact.sha256}`,
+      originalSha256: source.originalSha256,
+      providerOutputRef: source.providerOutputRef,
+      byteCount: artifact.byteSize,
+      width: 1200,
+      height: 630,
+    }],
+    providerProof: {
+      ...result.providerProof,
+      outputRefs: [
+        ...result.providerProof.outputRefs,
+        `safety-proof:${safety.runtimeProof.proofId}`,
+      ],
     },
   };
 };
@@ -251,7 +320,7 @@ const executeStage = async (
     failureReason: null,
     updatedAt: startedAt,
   }, "stage_started");
-  const result = canonicalizeStageResult(
+  const gatewayResult = canonicalizeStageResult(
     await runtime.aiInputGateway.execute(
       feedInput,
       {
@@ -271,6 +340,12 @@ const executeStage = async (
           ),
       },
     ),
+  );
+  const result = await normalizeGeneratedImageResult(
+    runtime,
+    orderId,
+    stage.stageId,
+    gatewayResult,
   );
   return persistStageResult(runtime, orderId, stage, result);
 };
@@ -349,56 +424,6 @@ const firstBlockingStage = (
   || stage.status === "review_required"
   || stage.status === "recovery_pending");
 
-const completeOrder = (
-  runtime: XuanxueAiProductionRuntime,
-  record: XuanxueAiOrderRecord,
-  profile: XuanxueAiProductionProfile,
-): XuanxueAiOrderRecord => {
-  const stages = record.stages.map((stage) => {
-    if (
-      stage.status !== "completed"
-      || !stage.rawResponseText
-      || !stage.rawOutputHash
-      || !stage.aiFeedResult
-    ) {
-      throw new Error(
-        `XUANXUE_AI_PRODUCTION_STAGE_INCOMPLETE:${stage.stageId}`,
-      );
-    }
-    return {
-      stageId: stage.stageId,
-      executionId: stage.executionId,
-      rawResponseText: stage.rawResponseText,
-      rawOutputHash: stage.rawOutputHash,
-      providerProof: stage.aiFeedResult.providerProof,
-      transportWarnings: stage.aiFeedResult.transportWarnings ?? [],
-    };
-  });
-  const updatedAt = nowIso();
-  const result: XuanxueAiProductionResult = {
-    orderId: record.order.orderId,
-    sourceTaskId: record.order.sourceTaskId,
-    productId: record.order.productId,
-    inputBundleRef: record.order.inputBundleRef,
-    inputBundleHash: record.order.inputBundleHash,
-    requestHash: record.order.requestHash,
-    status: "completed",
-    finalStageId: profile.finalStageId,
-    stages,
-    failureReason: null,
-    createdAt: record.createdAt,
-    updatedAt,
-  };
-  return runtime.store.updateOrder({
-    orderId: record.order.orderId,
-    status: "completed",
-    result,
-    failureReason: null,
-    updatedAt,
-    eventType: "order_completed",
-  });
-};
-
 export const executeXuanxueAiProductionOrder = async (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
@@ -459,5 +484,5 @@ export const executeXuanxueAiProductionOrder = async (
       });
     }
   }
-  return completeOrder(runtime, record, profile);
+  return completeXuanxueAiProductionOrder(runtime, record, profile);
 };

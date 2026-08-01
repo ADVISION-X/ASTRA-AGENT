@@ -190,8 +190,24 @@ const profiles: Readonly<Record<
         continuationFrom: "corpus_research",
         generatedInputsFrom: ["corpus_research"],
       },
+      {
+        stageId: "article_image_generation",
+        dependsOn: ["article_synthesis"],
+        continuationFrom: "article_synthesis",
+        generatedInputsFrom: ["article_synthesis"],
+      },
     ],
-    finalStageId: "article_synthesis",
+    finalStageId: "article_image_generation",
+  },
+  scheduled_quality_reflection: {
+    productId: "scheduled_quality_reflection",
+    stages: [{
+      stageId: "scheduled_quality_reflection",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
+    finalStageId: "scheduled_quality_reflection",
   },
 };
 

@@ -101,6 +101,18 @@ export type AiProviderRawResponse = {
   uploadedFiles?: AiProviderUploadedFileProof[];
   attachmentUploadProof?: WebChatAttachmentUploadProof;
   outputRefs?: string[];
+  outputArtifacts?: Array<{
+    kind: "generated_image";
+    artifactRef: string;
+    filePath: string;
+    mimeType: string;
+    sha256: `sha256:${string}`;
+    originalSha256: `sha256:${string}`;
+    providerOutputRef: string;
+    byteCount: number;
+    width: number;
+    height: number;
+  }>;
   providerTabPolicy?: string | null;
   providerRecoveryAttemptCount?: number | null;
   providerRecoveryStatus?: string | null;

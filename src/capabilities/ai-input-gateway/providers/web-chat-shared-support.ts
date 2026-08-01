@@ -131,6 +131,7 @@ export const buildWebChatRawResponse = (input: {
   uploadedFiles?: AiProviderUploadedFileProof[];
   attachmentUploadProof?: WebChatAttachmentUploadProof;
   outputRefs?: string[];
+  outputArtifacts?: AiProviderRawResponse["outputArtifacts"];
   managedParallelExecution?: boolean;
 }): AiProviderRawResponse => ({
   webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
@@ -161,6 +162,7 @@ export const buildWebChatRawResponse = (input: {
   uploadedFiles: input.uploadedFiles ?? [],
   ...(input.attachmentUploadProof ? { attachmentUploadProof: input.attachmentUploadProof } : {}),
   outputRefs: input.outputRefs ?? [],
+  outputArtifacts: input.outputArtifacts ?? [],
   estimatedInputTokens: null,
   estimatedOutputTokens: null,
   tokenEstimateUnavailableReason: "web chat token estimates are unavailable.",

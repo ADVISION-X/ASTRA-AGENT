@@ -266,6 +266,7 @@ generate-video-poster-once
 optimize-image-for-web-once
 resize-image-for-web-once
 generate-responsive-image-variants-once
+inspect-public-knowledge-image-redlines-once
 ```
 
 Child semantics:
@@ -276,6 +277,7 @@ Child semantics:
 - `optimize-image-for-web-once` transforms one source image into one optimized website image output.
 - `resize-image-for-web-once` transforms one source image into one requested dimension-constrained image output.
 - `generate-responsive-image-variants-once` transforms one source image into one deterministic responsive variant set defined by the caller-approved preset.
+- `inspect-public-knowledge-image-redlines-once` observes one normalized public-knowledge image for faces, readable text and page/map/chart/logo-style classifications; it returns hash-bound proof or `review_required` and never decides publication.
 
 Required direction:
 
@@ -370,11 +372,11 @@ FORBIDDEN:
   "capabilityDomain": "media-processing-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "runtime+ast",
-  "summary": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only.",
+  "summary": "media-processing runtime dependencies must come from the reviewed repository lockfile, be confirmed available before every public use, and never mutate the installation at runtime.",
   "clauses": [
     {
       "clauseId": "grasseye-media-processing-capability-005-requirement",
-      "statement": "media-processing runtime dependencies must be refreshed or confirmed latest before every public media-processing use, then validated, bounded, and invoked through internal safe adapters only.",
+      "statement": "media-processing runtime dependencies must come from the reviewed repository lockfile, be confirmed available before every public use, and never mutate the installation at runtime.",
       "evidenceMode": "acceptance",
       "ownerDomain": "media-processing-capability"
     }
@@ -388,16 +390,16 @@ FORBIDDEN:
 
 ### 法条
 
-Media processing may use local media tooling only after the governed media-processing dependency gate has refreshed or confirmed the required packages at the latest published version for that use.
+Media processing may use local media tooling only after the governed dependency gate confirms that the repository-lockfile installation is available for that use.
 
 Required direction:
 
-- Every public `processMedia` / `execute` path must run a media-processing-owned latest dependency use gate before any child ability starts image or video work.
-- The latest dependency use gate must cover `sharp`, `@img/sharp-darwin-arm64`, `ffmpeg-static`, and `ffprobe-static`.
-- The latest dependency use gate must use bounded, argv-array npm execution to inspect latest availability and install outdated governed packages as `<package>@latest`.
-- The latest dependency use gate must serialize concurrent refreshes and return structured status: `already_latest`, `updated`, or `failed`.
-- A failed latest dependency refresh must return structured `review_required` or `failed` before media processing work begins.
-- The latest dependency use gate must live inside the `media-processing` runtime/public execution boundary, not in App Shell UI, route code, `video-download`, or a standalone updater chain.
+- Every public `processMedia` / `execute` path must run a media-processing-owned locked-dependency availability gate before any child ability starts image or video work.
+- The gate must cover `sharp`, `@img/sharp-darwin-arm64`, `ffmpeg-static`, and `ffprobe-static` as resolved by the committed lockfile.
+- The gate is read-only: it may import/probe packages and executables, but may not query a registry, invoke npm/pnpm install/update, or rewrite package metadata.
+- A failed availability check must return structured `review_required` or `failed` before media processing work begins.
+- Dependency upgrades are an explicit repository change followed by review, acceptance and CI; they are never a side effect of a user job.
+- The locked-dependency gate must live inside the `media-processing` runtime/public execution boundary, not in App Shell UI, route code, `video-download`, or a standalone updater chain.
 - Video processing must use an internal process runner with bounded arguments, timeout, abort handling, stdout/stderr redaction, and exit-code mapping.
 - ffprobe-like probing must be validated before success and must not be skipped for video outputs.
 - Image processing must use an internal decoding/encoding adapter with bounded dimensions, bounded input bytes, bounded output bytes, and memory safeguards.
@@ -415,8 +417,8 @@ FORBIDDEN:
 - loading 1GB+ media into memory when stream/path-based processing is required;
 - hidden fallback to remote processing APIs;
 - hidden fallback to third-party online compression/downloader websites;
-- treating startup `--update` or any one launch mode as the only latest dependency guarantee;
-- starting sharp/ffmpeg/ffprobe media work before the per-use latest dependency gate has passed;
+- changing dependencies during a media job or consulting the registry for an unreviewed `latest` version;
+- starting sharp/ffmpeg/ffprobe media work before the per-use locked-dependency gate has passed;
 - creating a second updater service, second runner, second dependency truth, or parallel media-processing dependency chain;
 - declaring success when runtime dependency is missing or unverified.
 
@@ -483,6 +485,8 @@ Required image success facts:
 - source artifact ref or source path hash;
 - proof ref;
 - completed timestamp.
+
+The `public-knowledge-hero` preset is fixed to opaque WebP 1200×630. It uses `contain` on an opaque neutral background so the complete generated frame remains visible; center crop is forbidden. Encoding must omit source metadata and the output must be decoded again before success. The caller must then invoke `public-knowledge-redline-check`; an unavailable or uncertain observer is `review_required`, never PASS.
 
 Required variant-set success facts:
 

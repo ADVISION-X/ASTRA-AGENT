@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T00:05:56.850Z",
+  "generatedAt": "2026-08-01T14:55:51.059Z",
   "status": "PASS",
   "inspectorFileCount": 28,
   "generatedPlanEntryCount": 28,
@@ -233,6 +233,7 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/manifest.json",
+    "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/manifest.json",
     "scripts/audit/domains/xuanyuan/inspector.ts",

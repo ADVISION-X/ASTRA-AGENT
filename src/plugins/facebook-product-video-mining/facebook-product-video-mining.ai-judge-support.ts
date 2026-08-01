@@ -145,6 +145,7 @@ export const buildAiFeedRequest = (input: {
   promptPackageId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
   promptContractId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
   expectedOutputSchemaRef: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+  expectedOutputKind: "text",
   textPrompt: input.prompt,
   inputRefs: input.inputRefs ?? [buildVideoInputRef({ roundId: input.roundId, videoFilePath: input.videoFilePath })],
   modelName: input.modelName ?? null,

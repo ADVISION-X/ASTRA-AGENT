@@ -4,6 +4,12 @@ declare module "sharp" {
     height?: number | undefined;
     fit?: string;
     withoutEnlargement?: boolean;
+    background?: {
+      r: number;
+      g: number;
+      b: number;
+      alpha?: number;
+    };
   };
 
   export type Region = {
@@ -17,6 +23,11 @@ declare module "sharp" {
     width?: number;
     height?: number;
     format?: string;
+    hasAlpha?: boolean;
+    exif?: Buffer;
+    icc?: Buffer;
+    iptc?: Buffer;
+    xmp?: Buffer;
   };
 
   export type SharpOutputInfo = {
@@ -43,6 +54,7 @@ declare module "sharp" {
     rotate(): Sharp;
     resize(options: ResizeOptions): Sharp;
     extract(region: Region): Sharp;
+    raw(): Sharp;
     jpeg(options?: { quality?: number; mozjpeg?: boolean }): Sharp;
     png(options?: { quality?: number }): Sharp;
     webp(options?: { quality?: number }): Sharp;

@@ -113,6 +113,7 @@ const buildReviewGatewayInput = (input: {
   // leaving rate-limit dialogs during review completely unhandled.
   promptContractId: "pick3-is-blind-eval-playbook-failure-review-v1",
   expectedOutputSchemaRef: "pick3-playbook-failure-review-json-v1",
+  expectedOutputKind: "text",
   textPrompt: input.aiReviewPrompt,
   inputRefs: [{
     id: input.image.imageId,

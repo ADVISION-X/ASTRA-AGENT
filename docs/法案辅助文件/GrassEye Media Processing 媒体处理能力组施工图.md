@@ -176,6 +176,7 @@ src/capabilities/media-processing/
   │  ├─ optimize-image-for-web-once.ts
   │  ├─ resize-image-for-web-once.ts
   │  └─ generate-responsive-image-variants-once.ts
+  │  └─ inspect-public-knowledge-image-redlines-once.ts
   ├─ runtime/
   │  ├─ ffmpeg-runner.ts                       # safe process adapter, no shell:true
   │  ├─ ffprobe-runner.ts                      # output/input video metadata validation
@@ -240,10 +241,10 @@ export {
 } from "./ability-group.js";
 
 export {
-  ensureMediaProcessingLatestDependenciesForUse,
-  MEDIA_PROCESSING_LATEST_DEPENDENCY_PACKAGES,
+  ensureMediaProcessingLockedDependenciesForUse,
+  MEDIA_PROCESSING_LOCKED_DEPENDENCY_PACKAGES,
   prepareMediaProcessingRuntimeDependencies,
-} from "./runtime/runtime-dependencies.js";
+} from "./dependency-readiness.js";
 ```
 
 禁止：
@@ -307,6 +308,7 @@ type MediaProcessingExecutionContext = {
 | `optimize-image-for-web-once` | 1 个本地图片 artifact | 1 个优化图片 artifact | 格式/质量/metadata 优化 |
 | `resize-image-for-web-once` | 1 个本地图片 artifact | 1 个尺寸受限图片 artifact | 不负责整套 responsive variants |
 | `generate-responsive-image-variants-once` | 1 个本地图片 artifact | 1 个 deterministic variant set | 一个输入生成一组固定尺寸图 |
+| `inspect-public-knowledge-image-redlines-once` | 1 个规范化 WebP | hash 绑定的观察 proof 或 review_required | 只观察人脸、可读文字和页面/地图/图表/Logo 类红线，不决定发布 |
 
 子能力原则：
 
@@ -648,13 +650,14 @@ type MediaProcessingFailure = {
 
 ## 17. Runtime Adapter 图纸
 
-### 17.0 Latest Dependency Use Gate
+### 17.0 Locked Dependency Readiness Gate
 
 生产目标：
 
 ```txt
 每一次媒体处理 public use 进入 child ability 之前，
-都先由 media-processing 自己确认图片/视频处理依赖是 npm latest。
+都由 media-processing 验证仓库锁文件确定的图片/视频处理依赖可用。
+运行时只读检查，不联网解析最新版，也不修改 package.json、lockfile 或 node_modules。
 ```
 
 治理包清单：
@@ -670,21 +673,18 @@ type MediaProcessingFailure = {
 
 ```txt
 processMedia / execute
-  -> ensureMediaProcessingLatestDependenciesForUse
+  -> ensureMediaProcessingLockedDependenciesForUse
   -> child.execute
 ```
 
 要求：
 
 ```txt
-- 使用 npm outdated --json 检查治理包
-- 只对 outdated 包执行 npm install <package>@latest
-- 使用 execFile/argv 数组模式，禁止 shell:true
-- bounded timeout
-- 并发调用必须共用同一个 refresh promise
-- 返回 already_latest / updated / failed
+- 使用仓库 lockfile 作为唯一依赖版本真相
+- 只验证 Sharp 可载入、ffmpeg/ffprobe 的受控二进制可执行
+- 返回 ready / failed
 - failed 必须在 child processing 之前返回 structured review_required/failed
-- 不依赖某一种启动方式；startup --update 只能是额外 preflight，不能是本目标的唯一保证
+- 依赖升级必须通过显式代码变更、评审和 CI
 ```
 
 禁止：
@@ -692,10 +692,10 @@ processMedia / execute
 ```txt
 - 新增 standalone updater
 - 新增第二 dependency truth
-- 把 latest gate 放到 App Shell UI
-- 把 latest gate 放到 video-download
-- route/plugin 直接调用 npm 或 runtime runner
-- latest gate 失败后继续调用 sharp/ffmpeg/ffprobe
+- 把 readiness gate 放到 App Shell UI 或 video-download
+- route/plugin 直接调用包管理器或 runtime runner
+- 运行时执行 npm outdated / npm install / @latest
+- readiness gate 失败后继续调用 sharp/ffmpeg/ffprobe
 ```
 
 ### 17.1 ffmpeg-runner
@@ -776,7 +776,7 @@ processMedia / execute
 MEDIA_PROCESSING_REQUEST_ACCEPTED
 MEDIA_PROCESSING_SOURCE_VALIDATION_STARTED
 MEDIA_PROCESSING_SOURCE_VALIDATION_COMPLETED
-MEDIA_PROCESSING_LATEST_DEPENDENCY_REFRESHED
+MEDIA_PROCESSING_LOCKED_DEPENDENCY_CONFIRMED
 MEDIA_PROCESSING_RUNTIME_DEPENDENCY_CHECKED
 MEDIA_PROCESSING_PRESET_RESOLVED
 MEDIA_PROCESSING_PROCESS_STARTED
@@ -953,6 +953,8 @@ Fixtures：
 [ ] optimize-image-for-web-once success
 [ ] resize-image-for-web-once success
 [ ] generate-responsive-image-variants-once success
+[ ] public-knowledge-hero uses 1200×630 contain canvas and opaque neutral background
+[ ] inspect-public-knowledge-image-redlines-once binds the inspected file hash and fails closed on unavailable or uncertain observation
 [ ] invalid extension-only image fails
 [ ] variant set does not upscale
 [ ] output validation failure prevents success
@@ -1008,15 +1010,19 @@ Fixtures：
 - optimize-image-for-web-once
 - resize-image-for-web-once
 - generate-responsive-image-variants-once
+- inspect-public-knowledge-image-redlines-once
+- inspect-public-knowledge-image-redlines-once
 - image acceptance
+- public-knowledge hero exact 1200×630 contain canvas, opaque neutral background and metadata stripping
+- public-knowledge redline observation for faces, readable text and page/map/chart/logo-style classifications
 ```
 
 ### Phase 3 — Video Processing
 
 ```txt
 - prepareMediaProcessingRuntimeDependencies
-- ensureMediaProcessingLatestDependenciesForUse
-- MEDIA_PROCESSING_LATEST_DEPENDENCY_PACKAGES
+- ensureMediaProcessingLockedDependenciesForUse
+- MEDIA_PROCESSING_LOCKED_DEPENDENCY_PACKAGES
 - ffmpeg-runner
 - ffprobe-runner
 - optimize-video-for-web-once

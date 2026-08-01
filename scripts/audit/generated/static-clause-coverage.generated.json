@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T00:05:56.860Z",
+  "generatedAt": "2026-08-01T14:55:51.070Z",
   "summary": {
     "activeLawCount": 250,
     "activeClauseCount": 257,
@@ -141,6 +141,7 @@
         "ai-input-gateway/durable-title-housekeeping",
         "ai-input-gateway/durable-fifo-scheduler",
         "ai-input-gateway/exact-sidebar-row-rename",
+        "ai-input-gateway/exact-generated-image-turn",
         "ai-input-gateway/exact-rename-identity-proof",
         "ai-input-gateway/failure-ledger",
         "ai-input-gateway/fresh-conversation-identity",

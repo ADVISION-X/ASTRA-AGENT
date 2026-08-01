@@ -47,7 +47,7 @@ const seedHashRepair = (
   const repairable = order(
     "aiprod_restart_hash_repair",
     "public_knowledge_article_pipeline",
-    ["corpus_research", "article_synthesis"],
+    ["corpus_research", "article_synthesis", "article_image_generation"],
   );
   const record = createXuanxueAiProductionOrder(runtime, repairable);
   const research = record.stages[0]!;
@@ -63,6 +63,7 @@ const seedHashRepair = (
     promptPackageId: research.material.promptPackageId,
     promptContractId: research.material.promptContractId,
     expectedOutputSchemaRef: research.material.expectedOutputSchemaRef,
+    expectedOutputKind: research.material.expectedOutputKind,
     textPrompt: research.material.textPrompt,
     inputRefs: [],
     modelName: null,
@@ -148,7 +149,7 @@ const seedInvalidCompletedPrefix = (
   const invalid = order(
     "aiprod_restart_invalid_completed_prefix",
     "public_knowledge_article_pipeline",
-    ["corpus_research", "article_synthesis"],
+    ["corpus_research", "article_synthesis", "article_image_generation"],
   );
   const record = createXuanxueAiProductionOrder(runtime, invalid);
   const rawResponseText =
@@ -166,6 +167,7 @@ const seedInvalidCompletedPrefix = (
     promptContractId: record.stages[0]!.material.promptContractId,
     expectedOutputSchemaRef:
       record.stages[0]!.material.expectedOutputSchemaRef,
+    expectedOutputKind: record.stages[0]!.material.expectedOutputKind,
     textPrompt: record.stages[0]!.material.textPrompt,
     inputRefs: [],
     modelName: null,
@@ -242,7 +244,7 @@ const seedCloudCancelled = (
   const cancelled = order(
     "aiprod_restart_cloud_cancelled",
     "public_knowledge_article_pipeline",
-    ["corpus_research", "article_synthesis"],
+    ["corpus_research", "article_synthesis", "article_image_generation"],
   );
   const record = createXuanxueAiProductionOrder(
     input.runtime,
@@ -282,7 +284,7 @@ const seedCloudCancelled = (
   assert.equal(settled.status, "cancelled");
   assert.deepEqual(
     settled.stages.map((stage) => stage.status),
-    ["completed", "cancelled"],
+    ["completed", "cancelled", "cancelled"],
     "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
   );
   return cancelled;
@@ -297,7 +299,7 @@ const seedSubmittedContinuation = (
   const candidate = order(
     "aiprod_restart_submitted_continuation",
     "public_knowledge_article_pipeline",
-    ["corpus_research", "article_synthesis"],
+    ["corpus_research", "article_synthesis", "article_image_generation"],
   );
   const record = createXuanxueAiProductionOrder(
     input.runtime,
@@ -412,7 +414,7 @@ const assertReopenedRepairState = (
   assert.equal(repairedInvalid?.status, "recovery_pending");
   assert.deepEqual(
     repairedInvalid?.stages.map((stage) => stage.status),
-    ["queued", "queued"],
+    ["queued", "queued", "queued"],
     "restart must retire an invalid completed prefix and every downstream node",
   );
   assert.match(

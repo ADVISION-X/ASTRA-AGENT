@@ -5,65 +5,12 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { executedChecksForPlan, type InspectorContext, type InspectorFinding, type InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-
-const authorityPaths = [
-  ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-  "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
-  "scripts/audit/domains/xuanxue-ai-production/manifest.json",
-] as const;
-
-const schemaPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
-const profilePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
-const storePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
-const schedulerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
-const cloudContractPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
-const cloudCredentialPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts";
-const cloudWorkerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
-const gatewayTitleStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
-const gatewayTitleHousekeepingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts";
-const gatewayTitleWorkerPath = "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts";
-const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
-const acceptanceSupportPaths = [
-  "scripts/acceptance/xuanxue-ai-production-fixture.ts",
-  "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-  "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
-] as const;
-
-const pluginPaths = [
-  "src/plugins/xuanxue-ai-production/index.ts",
-  schemaPath,
-  profilePath,
-  storePath,
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
-  schedulerPath,
-  cloudContractPath,
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
-  cloudCredentialPath,
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
-  cloudWorkerPath,
-  "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
-  "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-  gatewayTitleStatePath,
-  gatewayTitleHousekeepingPath,
-  gatewayTitleWorkerPath,
-  acceptancePath,
-  ...acceptanceSupportPaths,
-] as const;
+import {
+  acceptancePath, acceptanceSupportPaths, authorityPaths,
+  cloudContractPath, cloudCredentialPath, cloudWorkerPath,
+  gatewayTitleHousekeepingPath, gatewayTitleStatePath, gatewayTitleWorkerPath,
+  pluginPaths, profilePath, schedulerPath, schemaPath, storePath,
+} from "./inspector-paths.js";
 
 type Laws = {
   boundary: string;
@@ -183,7 +130,7 @@ const inspectContracts = (
     messagePrefix: "Whole-order contract must contain",
     values,
     required: [
-      "xuanxue-ai-production-v1",
+      "xuanxue-ai-production-v2",
       "bazi_ai_full_analysis",
       "bazi_report_followup",
       "qimen_professional_answer",
@@ -198,6 +145,9 @@ const inspectContracts = (
       "manual_accuracy_challenge",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
+      "scheduled_quality_reflection",
+      "article_image_generation",
+      "generated_image",
     ],
   });
   requireValues(findings, {
@@ -281,6 +231,11 @@ const inspectDurability = (
       "recordParentConversationRebuild",
       "stage_fresh_execution_restarted",
       "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER",
+      "migrateTerminalXuanxueAiProtocolV1Rows",
+      "XUANXUE_AI_PRODUCTION_V1_ACTIVE_DRAIN_REQUIRED",
+      "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
+      "v1_cloud_terminal_reconciled",
+      "v1_terminal_status_restored",
       "supersededExecutionId",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
@@ -452,6 +407,11 @@ const inspectAcceptance = (
       "every paid followup performs exactly one new AI call",
       "continuation_parent_replay",
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
+      "XUANXUE_AI_PRODUCTION_V1_ACTIVE_DRAIN_REQUIRED",
+      "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
+      "article_image_generation",
+      "scheduled_quality_reflection",
+      "public-knowledge-redline-check",
     ],
   });
 };

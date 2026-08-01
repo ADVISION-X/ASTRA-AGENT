@@ -25,12 +25,12 @@ const result = await group.processMedia({
   quality: 82,
 });
 
-assert.equal(result.status, "success", "Public media processing must pass the latest dependency gate before child work.");
+assert.equal(result.status, "success", "Public media processing must pass the locked dependency readiness gate before child work.");
 if (result.output.status !== "success") {
-  throw new Error("Latest dependency gate acceptance did not produce a success result.");
+  throw new Error("Locked dependency gate acceptance did not produce a success result.");
 }
 const [artifact] = result.output.outputArtifacts;
-assert.ok(artifact, "Latest dependency gate acceptance must produce an artifact.");
+assert.ok(artifact, "Locked dependency gate acceptance must produce an artifact.");
 await stat(artifact.filePath);
 
 process.stdout.write("[ACCEPTANCE][media-processing-latest-dependencies] PASS\n");

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T00:05:54.472Z",
+  "generatedAt": "2026-08-01T14:55:48.586Z",
   "capabilityDomain": "media-processing-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -1734,6 +1734,7 @@
     "src/capabilities/media-processing/runtime/result.ts",
     "src/capabilities/media-processing/dependency-readiness.ts",
     "src/capabilities/media-processing/runtime/sharp-runner.ts",
+    "src/capabilities/media-processing/runtime/image-redline-observer.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",

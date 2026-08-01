@@ -7,6 +7,7 @@ import {
   heartbeatXuanxueAiProductionDevice,
   heartbeatXuanxueAiProductionJob,
   recoverXuanxueAiProductionJob,
+  uploadXuanxueAiProductionOutputArtifact,
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
   XuanxueAiProductionCloudClaimedJob,
@@ -44,6 +45,8 @@ interface WorkerState {
   readonly reconciledLocalOrders: Set<string>;
   lastDeviceHeartbeatAt: number;
 }
+
+type ResultStage = NonNullable<XuanxueAiOrderRecord["result"]>["stages"][number];
 
 const pollIntervalMs = (): number => {
   const value = Number(
@@ -108,16 +111,60 @@ const heartbeatUntilSettled = async (
   return tracked;
 };
 
+const uploadGeneratedImageStage = async (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+  stage: ResultStage,
+): Promise<ResultStage> => {
+  if (stage.outputKind !== "generated_image") return stage;
+  if (!stage.artifact?.localFilePath) {
+    throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_LOCAL_FILE_MISSING");
+  }
+  if (!stage.artifact.checkpointProofRef) {
+    throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_CHECKPOINT_PROOF_MISSING");
+  }
+  const artifactId = `aiart_${job.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-80)}_${stage.artifact.sha256.slice(-16)}`;
+  const uploaded = await uploadXuanxueAiProductionOutputArtifact(
+    state.credential,
+    job,
+    {
+      stageId: "article_image_generation", artifactId,
+      filePath: stage.artifact.localFilePath, sha256: stage.artifact.sha256,
+      originalSha256: stage.artifact.originalSha256,
+      executionId: stage.executionId,
+      providerOutputRef: stage.artifact.providerOutputRef,
+      checkpointProofRef: stage.artifact.checkpointProofRef,
+      byteCount: stage.artifact.byteCount,
+    },
+  );
+  return {
+    ...stage,
+    artifact: {
+      artifactId: uploaded.artifact_id, role: "generated_image",
+      objectRef: uploaded.object_ref, sha256: uploaded.sha256,
+      originalSha256: stage.artifact.originalSha256,
+      providerOutputRef: stage.artifact.providerOutputRef,
+      checkpointProofRef: stage.artifact.checkpointProofRef,
+      mimeType: uploaded.mime_type, byteCount: uploaded.byte_count,
+      width: uploaded.width, height: uploaded.height,
+    },
+  };
+};
+
 const publishOrder = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
   record: XuanxueAiOrderRecord,
 ): Promise<void> => {
   if (record.status === "completed" && record.result) {
+    const stages = await Promise.all(record.result.stages.map(
+      (stage) => uploadGeneratedImageStage(state, job, stage),
+    ));
+    const publishableResult = { ...record.result, stages };
     await completeXuanxueAiProductionJob(
       state.credential,
       job,
-      record.result,
+      publishableResult,
     );
     await cleanXuanxueAiProductionCloudStaging(
       state.dataDir,

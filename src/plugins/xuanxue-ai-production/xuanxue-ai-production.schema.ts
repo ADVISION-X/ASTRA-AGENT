@@ -23,6 +23,7 @@ export const XuanxueAiProductIdSchema = z.enum([
   "manual_accuracy_challenge",
   "payment_screenshot_observation",
   "public_knowledge_article_pipeline",
+  "scheduled_quality_reflection",
 ]);
 
 export const XuanxueAiStageIdSchema = z.enum([
@@ -38,6 +39,8 @@ export const XuanxueAiStageIdSchema = z.enum([
   "payment_screenshot_observation",
   "corpus_research",
   "article_synthesis",
+  "article_image_generation",
+  "scheduled_quality_reflection",
 ]);
 
 const XuanxueAiMaterialRefSchema = z.object({
@@ -56,6 +59,7 @@ export const XuanxueAiStageMaterialSchema = z.object({
   promptPackageId: z.string().min(1).max(240),
   promptContractId: z.string().min(1).max(240),
   expectedOutputSchemaRef: z.string().min(1).max(240).nullable(),
+  expectedOutputKind: z.enum(["text", "generated_image"]).default("text"),
   textPrompt: z.string().min(1),
   inputRefs: z.array(XuanxueAiMaterialRefSchema),
   timeoutMs: z.number().int().min(60_000).max(3_600_000).default(3_600_000),
@@ -112,11 +116,16 @@ export const isXuanxueAiRequiredContinuationProduct = (
   Object.hasOwn(xuanxueAiRequiredContinuationProfiles, productId);
 
 export const XuanxueAiStoredProductionOrderSchema = z.object({
-  protocolVersion: z.literal("xuanxue-ai-production-v1"),
+  protocolVersion: z.literal("xuanxue-ai-production-v2"),
   orderId: z.string().min(1).max(200),
   sourceProject: z.literal("xuanxue-web"),
   sourceTaskId: z.string().min(1).max(240),
   productId: XuanxueAiProductIdSchema,
+  serviceClass: z.enum(["user_delivery", "public_content", "quality_background"]),
+  triggerKind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection"]),
+  lineageId: z.string().min(1).nullable(),
+  reflectionSnapshotRef: z.string().min(1).nullable(),
+  reflectionPlanId: z.string().min(1).nullable(),
   inputBundleRef: z.string().min(1).max(500),
   inputBundleHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
   requestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
@@ -207,6 +216,23 @@ export interface XuanxueAiStageRecord {
   readonly updatedAt: string;
 }
 
+export interface XuanxueAiGeneratedImageArtifact {
+  readonly artifactId: string;
+  readonly role: "generated_image";
+  readonly objectRef: string;
+  readonly sha256: `sha256:${string}`;
+  readonly originalSha256: `sha256:${string}`;
+  readonly providerOutputRef: string;
+  readonly mimeType: "image/webp";
+  readonly byteCount: number;
+  readonly width: 1200;
+  readonly height: 630;
+  /** Local-only path. The cloud worker strips it before publishing. */
+  readonly localFilePath?: string;
+  readonly safetyProofRef?: string;
+  readonly checkpointProofRef?: string;
+}
+
 export interface XuanxueAiProductionResult {
   readonly orderId: string;
   readonly sourceTaskId: string;
@@ -217,12 +243,14 @@ export interface XuanxueAiProductionResult {
   readonly status: XuanxueAiOrderStatus;
   readonly finalStageId: XuanxueAiStageId;
   readonly stages: readonly {
+    readonly outputKind: "text" | "generated_image";
     readonly stageId: XuanxueAiStageId;
     readonly executionId: string;
     readonly rawResponseText: string;
     readonly rawOutputHash: string;
     readonly providerProof: AiFeedResult["providerProof"];
     readonly transportWarnings: readonly string[];
+    readonly artifact?: XuanxueAiGeneratedImageArtifact;
   }[];
   readonly failureReason: string | null;
   readonly createdAt: string;

@@ -65,6 +65,8 @@ const createAiGatewaySuccess = (input: { normalizedText: string; inputHash: stri
   childCapabilityId: "feed-gpt-web-chat-once" as const,
   providerKind: "gpt-web-chat" as const,
   status: "success" as const,
+  outputKind: "text" as const,
+  outputArtifacts: [],
   normalizedText: input.normalizedText,
   rawOutputRef: null,
   rawOutputHash: null,

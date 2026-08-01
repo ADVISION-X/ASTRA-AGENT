@@ -112,11 +112,15 @@ const buildSuccessResult = (input: {
   outputHash: string;
   rawResponseText: string;
   transportWarnings: string[];
+  outputKind: "text" | "generated_image";
+  outputArtifacts: AiProviderRawResponse["outputArtifacts"];
 }): AiFeedResult => AiFeedResultSchema.parse({
     abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
     childCapabilityId: input.childCapabilityId,
     providerKind: input.request.providerKind,
-    status: "success",
+  status: "success",
+  outputKind: input.outputKind,
+  outputArtifacts: input.outputArtifacts ?? [],
     rawResponseText: input.rawResponseText,
     transportWarnings: input.transportWarnings,
     // 兼容旧调用方的同字节投影；运输层不再解析、截取、修复或挑选 JSON。
@@ -141,6 +145,13 @@ export const buildAiFeedSuccess = async (input: {
   cooldownMs: number;
   providerLeaseId: string | null;
 }): Promise<AiFeedResult> => {
+  const artifacts = input.response.outputArtifacts ?? [];
+  if (
+    (input.request.expectedOutputKind === "generated_image" && artifacts.length !== 1)
+    || (input.request.expectedOutputKind === "text" && artifacts.length !== 0)
+  ) {
+    throw new Error("AI_INPUT_GATEWAY_OUTPUT_KIND_MISMATCH");
+  }
   const rawOutputRef = await writeRawOutput({
     dataDir: input.dataDir,
     childCapabilityId: input.childCapabilityId,
@@ -154,6 +165,8 @@ export const buildAiFeedSuccess = async (input: {
     outputHash,
     rawResponseText: input.response.rawText,
     transportWarnings: input.response.transportWarnings ?? [],
+    outputKind: input.request.expectedOutputKind,
+    outputArtifacts: input.response.outputArtifacts ?? [],
     providerProof: buildProviderProof({
       ...input,
       rawOutputRef,
@@ -205,7 +218,9 @@ const buildFailureResult = (input: {
     abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
     childCapabilityId: input.childCapabilityId,
     providerKind: input.request.providerKind,
-    status: input.status,
+  status: input.status,
+  outputKind: input.request.expectedOutputKind,
+  outputArtifacts: [],
     rawResponseText: null,
     transportWarnings: input.providerProof.transportWarnings,
     normalizedText: null,

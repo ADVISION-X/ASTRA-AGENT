@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -13,6 +13,7 @@ import {
   type XuanxueAiProductionOrder,
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
+import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
 import {
   FixtureGateway,
   hash,
@@ -27,16 +28,39 @@ import {
 import {
   acceptXuanxueOrderGraphs,
 } from "./xuanxue-ai-production-order-graph-acceptance.js";
+import { acceptXuanxueV1Migration } from "./xuanxue-ai-production-v1-migration.js";
 
 const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
 );
 try {
-  const gateway = new FixtureGateway();
+  await acceptXuanxueV1Migration(dataDir);
+  const generatedDirectory = path.join(dataDir, "runtime-data", "ai-input-gateway", "generated-images");
+  await mkdir(generatedDirectory, { recursive: true });
+  const generatedImagePath = path.join(generatedDirectory, "fixture-generated.png");
+  const sharp = (await import("sharp")).default;
+  await sharp({
+    create: { width: 1400, height: 800, channels: 3, background: { r: 200, g: 181, b: 138 } },
+  }).png().toFile(generatedImagePath);
+  const generatedBytes = await readFile(generatedImagePath);
+  const generatedHash = `sha256:${createHash("sha256").update(generatedBytes).digest("hex")}` as const;
+  const gateway = new FixtureGateway({
+    kind: "generated_image",
+    artifactRef: "artifact://fixture/generated-image",
+    filePath: generatedImagePath,
+    mimeType: "image/png",
+    sha256: generatedHash,
+    originalSha256: generatedHash,
+    providerOutputRef: "artifact://fixture/generated-image",
+    byteCount: generatedBytes.byteLength,
+    width: 1400,
+    height: 800,
+  });
   const store = new XuanxueAiProductionStore(dataDir);
   const runtime: XuanxueAiProductionRuntime = {
     dataDir,
     aiInputGateway: gateway,
+    mediaProcessing: createMediaProcessingAbilityGroupFromFilesystem({ dataDir }),
     store,
   };
 
@@ -72,10 +96,28 @@ try {
     "completed",
   );
 
+  const reflection = order(
+    "aiprod_scheduled_quality_reflection",
+    "scheduled_quality_reflection",
+    ["scheduled_quality_reflection"],
+  );
+  createXuanxueAiProductionOrder(runtime, reflection);
+  const reflectionResult = await executeXuanxueAiProductionOrder(
+    runtime,
+    reflection.orderId,
+  );
+  const reflectionRequest = gateway.requests.find(
+    (request) => request.taskIdentity.taskKind === "scheduled_quality_reflection",
+  );
+  assert.equal(reflectionResult.status, "completed");
+  assert.equal(reflection.continuationParent, null);
+  assert.equal(reflectionRequest?.providerContinuationRef, undefined);
+  assert.equal(reflectionResult.stages.length, 1);
+
   const publicArticle = order(
     "aiprod_public_article",
     "public_knowledge_article_pipeline",
-    ["corpus_research", "article_synthesis"],
+    ["corpus_research", "article_synthesis", "article_image_generation"],
   );
   createXuanxueAiProductionOrder(runtime, publicArticle);
   const publicResult = await executeXuanxueAiProductionOrder(
@@ -94,6 +136,9 @@ try {
   const publicArticleStage = publicResult.stages.find(
     (stage) => stage.stageId === "article_synthesis",
   );
+  const publicImageStage = publicResult.stages.find(
+    (stage) => stage.stageId === "article_image_generation",
+  );
   assert.equal(
     publicArticleRequest?.providerContinuationRef?.priorTaskId,
     `${XUANXUE_AI_PRODUCTION_JOB_ID}:`
@@ -102,6 +147,20 @@ try {
   assert.equal(
     publicArticleStage?.aiFeedResult?.providerProof.webChatUrl,
     publicResearchStage?.aiFeedResult?.providerProof.webChatUrl,
+  );
+  assert.equal(publicImageStage?.aiFeedResult?.outputKind, "generated_image");
+  assert.equal(publicImageStage?.aiFeedResult?.outputArtifacts[0]?.width, 1200);
+  assert.equal(publicImageStage?.aiFeedResult?.outputArtifacts[0]?.height, 630);
+  const publicKnowledgeRedlinePreset = "public-knowledge-redline-check";
+  assert.ok(
+    publicImageStage?.aiFeedResult?.providerProof.outputRefs.some(
+      (ref) => ref.startsWith("safety-proof:"),
+    ),
+    `${publicKnowledgeRedlinePreset} must bind a safety proof to the image stage`,
+  );
+  assert.equal(
+    publicImageStage?.aiFeedResult?.providerProof.webChatUrl,
+    publicArticleStage?.aiFeedResult?.providerProof.webChatUrl,
   );
 
   const transientOrder = order(

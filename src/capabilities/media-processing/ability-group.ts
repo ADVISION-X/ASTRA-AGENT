@@ -19,7 +19,7 @@ import {
   listMediaProcessingChildren,
 } from "./registry.js";
 import { buildMediaProcessingFailure } from "./runtime/result.js";
-import { ensureMediaProcessingLatestDependenciesForUse } from "./dependency-readiness.js";
+import { ensureMediaProcessingLockedDependenciesForUse } from "./dependency-readiness.js";
 
 const stringOrFallback = (value: unknown, fallback: string): string =>
   typeof value === "string" ? value : fallback;
@@ -63,14 +63,14 @@ const buildUnknownChildFailure = (
     "invalid_input",
   );
 
-const buildDependencyLatestRefreshFailure = (
+const buildDependencyReadinessFailure = (
   input: ParsedMediaProcessingAbilityInput,
   context: MediaProcessingExecutionContext,
   reason: string | null,
 ): Promise<MediaProcessingResult> => buildMediaProcessingFailure(
     { input, dataDir: context.dataDir, startedAt: new Date().toISOString(), inputByteSize: null },
-    "media_processing_dependency_latest_refresh_failed",
-    reason ?? "Media processing dependencies must be refreshed to latest before processing can run.",
+    "media_processing_locked_dependency_unavailable",
+    reason ?? "Locked media processing dependencies are unavailable.",
     "review_required",
   );
 
@@ -111,6 +111,25 @@ const buildPublicRequestInput = (input: MediaProcessingPublicRequest): MediaProc
       const childCapabilityId = "generate-responsive-image-variants-once";
       return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: imageOutputFormat };
     }
+    case "public-knowledge-hero": {
+      const childCapabilityId = "resize-image-for-web-once";
+      return {
+        ...buildPublicRequestBase(parsed, childCapabilityId),
+        childCapabilityId,
+        outputFormat: "webp",
+        targetWidth: 1200,
+        targetHeight: 630,
+        quality: 86,
+      };
+    }
+    case "public-knowledge-redline-check": {
+      const childCapabilityId = "inspect-public-knowledge-image-redlines-once";
+      return {
+        ...buildPublicRequestBase(parsed, childCapabilityId),
+        childCapabilityId,
+        outputFormat: "webp",
+      };
+    }
     case "web-video": {
       const childCapabilityId = "optimize-video-for-web-once";
       return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: "mp4" };
@@ -139,9 +158,9 @@ const executeMediaProcessingRequest = async (input: {
   if (!child) {
     return buildUnknownChildFailure(parsed.data, input.context);
   }
-  const dependencyRefresh = await ensureMediaProcessingLatestDependenciesForUse();
-  if (dependencyRefresh.status === "failed") {
-    return buildDependencyLatestRefreshFailure(parsed.data, input.context, dependencyRefresh.reason);
+  const dependencyReadiness = await ensureMediaProcessingLockedDependenciesForUse();
+  if (dependencyReadiness.status === "failed") {
+    return buildDependencyReadinessFailure(parsed.data, input.context, dependencyReadiness.reason);
   }
   return child.execute(parsed.data, input.context);
 };

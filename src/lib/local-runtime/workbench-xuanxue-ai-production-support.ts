@@ -1,4 +1,5 @@
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
 import {
   createXuanxueAiProductionOrder,
   startXuanxueAiProductionCloudWorker,
@@ -11,6 +12,7 @@ import {
 export const createWorkbenchXuanxueAiProductionSupport = (
   dataDir: string,
   aiInputGateway: AiInputGatewayAbilityGroup,
+  mediaProcessing: MediaProcessingAbilityGroup,
 ) => {
   let worker: XuanxueAiProductionCloudWorkerHandle | null = null;
   let store: XuanxueAiProductionStore | null = null;
@@ -23,7 +25,7 @@ export const createWorkbenchXuanxueAiProductionSupport = (
         || worker
       ) return;
       store = new XuanxueAiProductionStore(dataDir);
-      runtime = { dataDir, aiInputGateway, store };
+      runtime = { dataDir, aiInputGateway, mediaProcessing, store };
       coordinator = new XuanxueAiProductionCoordinator(runtime);
       worker = await startXuanxueAiProductionCloudWorker({
         dataDir,

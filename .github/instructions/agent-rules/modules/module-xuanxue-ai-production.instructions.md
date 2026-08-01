@@ -6,7 +6,7 @@ applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/lib/local-runtime/workbe
 # GrassEye 玄学 AI 生产工厂法案
 
 status: active
-version: 2026-07-30
+version: 2026-08-01
 capabilityDomain: xuanxue-ai-production
 
 ## 1. 唯一责任
@@ -58,8 +58,9 @@ hehun_canonical_party_b_interpretation
 新命盘起名：从 canonical base 会话续接八字问题分析 → 同会话起名
 已有报告起名：单阶段起名
 人工准确度追问：继续父订单原 GPT 会话
+定时质量复盘：冻结快照 → 独立私有新会话单阶段复盘
 付款截图观察：单阶段观察
-公开知识文章：完整语料研究 → 同会话文章写作
+公开知识文章：完整语料研究 → 同会话文章写作 → 同会话生成一张文章图片
 ```
 
 网站必须一次提供每张 cloud job 的全部静态阶段材料。AGENT 只按固定 profile 决定依赖、
@@ -75,6 +76,12 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
 - 原始回答 hash 必须统一保存为 `sha256:<64位小写十六进制>`。启动时若发现旧记录只缺
   `sha256:` 前缀，必须先按保存的原始回答字节重算并完全一致，才可原子修复元数据并恢复
   后续阶段；字节不一致仍永久失败，禁止借迁移绕过完整性。
+- 活动订单只接受 `xuanxue-ai-production-v2`。历史 v1 账本只有在订单已终态且逐阶段按原始
+  回答字节重算 hash 完全一致时，才可一次性迁移为 v2 文本记录并补空 artifact 数组；存在
+  任一非终态 v1 订单必须拒绝启动并先排空，hash 不符必须阻断。排空工具只能用原设备凭证
+  读取该设备绑定 job 的最小终态，不得取得其他设备任务或私有材料；云端已终态时追加
+  `v1_cloud_terminal_reconciled` 后才允许升级本地凭证。重启恢复不得把该终态重新打开，必须
+  依据迁移账恢复为云端终态并追加 `v1_terminal_status_restored`。不得运行 v1/v2 双轨。
 - `orderId` 与 `sourceTaskId` 都幂等；相同 hash 重放复用，冲突在 GPT 提交前失败。
 - 每个阶段的 Gateway `inputRefs` 必须包含整单 `inputBundleRef` 这一非文件身份锚点。
   即使阶段没有附件，模型运行证明也不得出现空输入；附件数量、上传动作与文件证明只统计
@@ -107,6 +114,14 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
   禁止一边浪费合法旧分析，一边复用坏回答。
 - 人工准确度追问必须携带父 job/stage/raw hash；只允许父订单原设备领取，并在父
   `webChatUrl` 继续会话。父回答同时作为校验后的内部附件，不得覆盖或修改。
+- `scheduled_quality_reflection` 必须带服务器冻结的 snapshot/plan/lineage 身份，在全新私有
+  GPT 会话运行，禁止 continuation parent、禁止打开父 `webChatUrl`、禁止把复盘轮次写进
+  用户聊天。它只回传严格结构化线索或 `no_issue`，不修改父回答或生产对象。
+- 公开知识文章固定恰好三个阶段且共享同一个 canonical `webChatUrl`。第三阶段必须精确绑定
+  自己的 user turn marker 和紧随其后的目标 assistant turn，只登记一个逻辑生成图片；页面
+  其他图片、多个 preview/thumbnail、截图或文本 URL 不得进入结果。原图由 Gateway 下载，
+  工厂只能通过 `media-processing` 公共 facade 执行 contain 固定画布、WebP、元数据清除和
+  红线观察；任何失败或不确定必须 `review_required`，不得私写 sharp/Vision 第二实现。
 - 三类付费报告追问也必须携带固定父身份：八字只接受
   `bazi_ai_full_analysis/question_analysis`，奇门只接受
   `qimen_professional_answer/analysis`，合婚只接受
@@ -185,6 +200,8 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
 - 禁止把 5 个确定性产品送入 GPT。
 - 禁止重复提示词、失败吞没、假结果、无 lease 输入下载或无 hash 的跨阶段回答。
 - 禁止人工复盘新开无父身份聊天，禁止把 seeded 回答当成无需 proof 的普通文本。
+- 禁止定时质量复盘继续父会话；人工 challenge 与 scheduled reflection 的会话规则不得互换。
+- 禁止公开知识图片缺失、多张、错误目标 turn、插件私有图像处理或运行时联网安装依赖。
 - 禁止任何付费报告追问新开空白聊天；禁止同一父聊天的两个追问同时投喂。
 - 禁止同一 URL 上的多个订单或阶段并发投喂。
 - 禁止为每张八字、合婚或起名商业订单重复创建相同 canonical base。

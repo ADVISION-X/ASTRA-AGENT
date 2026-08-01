@@ -118,6 +118,7 @@
           "ai-input-gateway/durable-title-housekeeping",
           "ai-input-gateway/durable-fifo-scheduler",
           "ai-input-gateway/exact-sidebar-row-rename",
+          "ai-input-gateway/exact-generated-image-turn",
           "ai-input-gateway/exact-rename-identity-proof",
           "ai-input-gateway/failure-ledger",
           "ai-input-gateway/fresh-conversation-identity",

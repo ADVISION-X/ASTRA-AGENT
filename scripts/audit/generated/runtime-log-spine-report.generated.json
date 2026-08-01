@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-30T00:05:50.119Z",
+  "generatedAt": "2026-08-01T14:55:43.887Z",
   "status": "PASS",
-  "scannedFiles": 547,
+  "scannedFiles": 552,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -109,6 +109,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
@@ -195,6 +196,7 @@
     "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
     "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
     "src/capabilities/media-processing/runtime/hash-stream.ts",
+    "src/capabilities/media-processing/runtime/image-redline-observer.ts",
     "src/capabilities/media-processing/runtime/media-source.ts",
     "src/capabilities/media-processing/runtime/result.ts",
     "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -509,6 +511,7 @@
     "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
     "src/plugins/video-download-artifact/video-download-artifact.result.ts",
     "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -520,6 +523,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -527,6 +531,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
@@ -569,7 +574,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 547,
+    "scannedFiles": 552,
     "emitCallCount": 58,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -580,7 +585,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 542,
+      "scannedFiles": 547,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -589,13 +594,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 438
+      "scannedFiles": 443
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 434,
+      "scannedFiles": 439,
       "metrics": {
         "emitCallCount": 47
       }
@@ -604,13 +609,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 434
+      "scannedFiles": 439
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 439,
+      "scannedFiles": 444,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -625,7 +630,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 439,
+      "scannedFiles": 444,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -646,7 +651,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 121
+      "scannedFiles": 125
     },
     {
       "name": "browser-action-log-contract",

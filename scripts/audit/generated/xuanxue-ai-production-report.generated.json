@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T00:05:55.108Z",
+  "generatedAt": "2026-08-01T14:55:49.266Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -95,6 +95,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -107,7 +108,9 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
+    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
@@ -117,6 +120,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
     "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
     "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
+    "scripts/startup/xuanxue-ai-production-v1-drain.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
@@ -124,6 +128,8 @@
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-    "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts"
+    "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-v1-migration.ts",
+    "scripts/acceptance/xuanxue-ai-production-v1-migration-fixture.ts"
   ]
 }

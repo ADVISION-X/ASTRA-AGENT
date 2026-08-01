@@ -29,6 +29,7 @@ const governedFiles = [
   "src/capabilities/media-processing/runtime/result.ts",
   "src/capabilities/media-processing/dependency-readiness.ts",
   "src/capabilities/media-processing/runtime/sharp-runner.ts",
+  "src/capabilities/media-processing/runtime/image-redline-observer.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
@@ -52,6 +53,7 @@ const expectedChildren = [
   "optimize-image-for-web-once",
   "resize-image-for-web-once",
   "generate-responsive-image-variants-once",
+  "inspect-public-knowledge-image-redlines-once",
 ] as const;
 
 const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> = {
@@ -61,6 +63,7 @@ const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> =
   "optimize-image-for-web-once": "createOptimizeImageForWeb",
   "resize-image-for-web-once": "createResizeImageForWeb",
   "generate-responsive-image-variants-once": "createGenerateResponsiveImageSet",
+  "inspect-public-knowledge-image-redlines-once": "createInspectPublicKnowledgeImageRedlines",
 };
 
 const forbiddenMediaOwnerNames = [
@@ -328,27 +331,27 @@ const inspectFfprobeAndMetadataProof = (context: InspectorContext, findings: Fin
   }
 };
 
-const inspectLatestDependencyUseGate = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+const inspectLockedDependencyUseGate = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const dependencies = requiredSourceFile(context, findings, lawId, dependencyReadinessPath);
   const abilityGroup = requiredSourceFile(context, findings, lawId, "src/capabilities/media-processing/ability-group.ts");
   if (!dependencies || !abilityGroup) return;
 
-  if (!dependencies.getVariableDeclaration("MEDIA_PROCESSING_LATEST_DEPENDENCY_PACKAGES")) {
-    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-package-list", "Runtime dependency gate must declare the governed latest dependency package list.");
+  if (!dependencies.getVariableDeclaration("MEDIA_PROCESSING_LOCKED_DEPENDENCY_PACKAGES")) {
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-package-list", "Runtime dependency gate must declare the repository-locked dependency package list.");
   }
   for (const packageName of ["sharp", "@img/sharp-darwin-arm64", "ffmpeg-static", "ffprobe-static"]) {
     if (!hasStringLiteral(dependencies, packageName)) {
-      pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-package-covered", `Latest dependency gate must cover ${packageName}.`);
+      pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-package-covered", `Locked dependency gate must cover ${packageName}.`);
     }
   }
-  if (!dependencies.getVariableDeclaration("ensureMediaProcessingLatestDependenciesForUse")) {
-    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-gate-function", "Runtime dependencies must expose ensureMediaProcessingLatestDependenciesForUse.");
+  if (!dependencies.getVariableDeclaration("ensureMediaProcessingLockedDependenciesForUse")) {
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-gate-function", "Runtime dependencies must expose ensureMediaProcessingLockedDependenciesForUse.");
   }
-  if (!callNames(dependencies).has("execFileAsync") || !hasStringLiteral(dependencies, "outdated") || !hasStringLiteral(dependencies, "install") || !hasStringLiteral(dependencies, "@latest")) {
-    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-npm-latest", "Latest dependency gate must use bounded npm outdated/install @latest through execFile.");
+  if (hasStringLiteral(dependencies, "outdated") || hasStringLiteral(dependencies, "install") || hasStringLiteral(dependencies, "@latest")) {
+    pushFinding(findings, lawId, dependencyReadinessPath, "media-processing/latest-dependency-npm-latest", "Runtime media processing must not update packages or resolve latest versions.");
   }
-  if (!callNames(abilityGroup).has("ensureMediaProcessingLatestDependenciesForUse") || !hasStringLiteral(abilityGroup, "media_processing_dependency_latest_refresh_failed")) {
-    pushFinding(findings, lawId, "src/capabilities/media-processing/ability-group.ts", "media-processing/latest-dependency-before-child", "Ability group execution must refresh/confirm latest dependencies before child processing starts.");
+  if (!callNames(abilityGroup).has("ensureMediaProcessingLockedDependenciesForUse") || !hasStringLiteral(abilityGroup, "media_processing_locked_dependency_unavailable")) {
+    pushFinding(findings, lawId, "src/capabilities/media-processing/ability-group.ts", "media-processing/latest-dependency-before-child", "Ability group execution must confirm locked dependencies before child processing starts.");
   }
 };
 
@@ -393,7 +396,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAppShellSkillBoundary(context, findings, lawId);
   inspectGeneratedPlanVisibility(context, findings, lawId);
   inspectFfprobeAndMetadataProof(context, findings, lawId);
-  inspectLatestDependencyUseGate(context, findings, lawId);
+  inspectLockedDependencyUseGate(context, findings, lawId);
   inspectNoVideoDownloadOwnerLeak(context, findings, lawId);
   inspectNoParallelMediaOwner(context, findings, lawId);
 

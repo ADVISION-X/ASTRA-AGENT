@@ -512,6 +512,7 @@ valid checkpoint recovery requires zero live provider-tab or provider-adapter ac
 post-checkpoint rename or cleanup failure cannot downgrade the production result
 recovery rehydrates checkpoint bytes and skips provider analysis
 response extraction is scoped after the unique marked user turn
+generated-image extraction requires one exact marked user turn, its immediately following assistant turn, one logical image source and one newly downloaded original
 full-response web-chat-provider.lock is physically absent
 structured task identity is mandatory, input-hash-bound and never acts as free-text title
 system chat titles expose the task identity allowlisted label, UTC minute and short opaque trace

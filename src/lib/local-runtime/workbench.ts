@@ -461,6 +461,7 @@ export class GrassEyeWorkbench {
     this.xuanxueAiProduction = createWorkbenchXuanxueAiProductionSupport(
       this.assembly.dataDir,
       this.assembly.aiInputGateway,
+      this.assembly.mediaProcessing,
     );
   }
 

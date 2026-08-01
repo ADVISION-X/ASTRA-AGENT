@@ -88,6 +88,8 @@ const buildFixtureFeedResult = (input: {
   childCapabilityId: "feed-gpt-web-chat-once",
   providerKind: "gpt-web-chat",
   status: "success",
+  outputKind: "text",
+  outputArtifacts: [],
   rawResponseText: input.rawText,
   transportWarnings: [],
   normalizedText: input.rawText,

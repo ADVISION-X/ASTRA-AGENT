@@ -52,11 +52,13 @@ const runSingleImageOutput = async (input: {
   const outputPath = path.join(runDir, input.plan.outputFileName);
   let pipeline = sharp(input.sourceFilePath).rotate();
   if (input.plan.width || input.plan.height) {
+    const fixedHero = input.request.presetId === "public-knowledge-hero";
     pipeline = pipeline.resize({
       width: input.plan.width ?? undefined,
       height: input.plan.height ?? undefined,
-      fit: "inside",
-      withoutEnlargement: true,
+      fit: fixedHero ? "contain" : "inside",
+      ...(fixedHero ? { background: { r: 238, g: 234, b: 224, alpha: 1 } } : {}),
+      withoutEnlargement: !fixedHero,
     });
   }
   await imagePipelineForFormat(pipeline, input.format, input.request.quality).toFile(outputPath);

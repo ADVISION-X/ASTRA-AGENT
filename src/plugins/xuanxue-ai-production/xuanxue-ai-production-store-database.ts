@@ -2,6 +2,10 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
+import {
+  migrateTerminalXuanxueAiProtocolV1Rows,
+} from "./xuanxue-ai-production-store-protocol-migration.js";
+
 const databasePath = (dataDir: string): string =>
   path.join(
     dataDir,
@@ -65,5 +69,6 @@ export const openXuanxueAiProductionDatabase = (
       )
     );
   `);
+  migrateTerminalXuanxueAiProtocolV1Rows(database);
   return database;
 };

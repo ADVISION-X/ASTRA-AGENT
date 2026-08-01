@@ -23,6 +23,7 @@ import {
   requireBrowser,
 } from "./web-chat-shared-support.js";
 import { captureWebChatResponseArtifacts } from "./web-chat-response-artifacts.js";
+import { captureChatGptGeneratedImage } from "./web-chat-generated-image-capture.js";
 import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 import {
   recoverPick3MissingBoundImageConversation,
@@ -218,6 +219,11 @@ const buildCompletedWebChatResponse = async (input: {
     answerText: input.conversation.answerText,
     conversationUrl,
   });
+  const generatedImage = await captureChatGptGeneratedImage({
+    browser: input.opened.browser,
+    request: input.opened.request,
+    context: input.opened.context,
+  });
   return buildWebChatRawResponse({
     request: input.opened.request,
     runtimeName: input.opened.runtimeName,
@@ -226,16 +232,14 @@ const buildCompletedWebChatResponse = async (input: {
     extracted: conversationUrl
       ? { ...input.conversation.extracted, pageUrl: conversationUrl }
       : input.conversation.extracted,
-    answerText:
-      htmlArtifact?.htmlDocument ??
-      jsonArtifact?.jsonText ??
-      input.conversation.answerText,
+    answerText: htmlArtifact?.htmlDocument
+      ?? jsonArtifact?.jsonText
+      ?? input.conversation.answerText,
     uploadedFiles: input.preSubmit.uploadedFiles,
     attachmentUploadProof: input.preSubmit.attachmentUploadProof,
-    outputRefs: [
-      ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
-      ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
-    ],
+    outputRefs: [htmlArtifact?.outputRef, jsonArtifact?.outputRef,
+      generatedImage?.artifactRef].filter((ref): ref is string => Boolean(ref)),
+    outputArtifacts: generatedImage ? [generatedImage] : [],
     managedParallelExecution: Boolean(input.opened.context.webChatExecution),
   });
 };

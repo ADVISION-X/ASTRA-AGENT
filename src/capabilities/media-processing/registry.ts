@@ -2,6 +2,7 @@ import type { MediaProcessingChildCapability } from "./contract.js";
 import type { MediaProcessingChildCapabilityId } from "./schema.js";
 import {
   createGenerateResponsiveImageSet,
+  createInspectPublicKnowledgeImageRedlines,
   createOptimizeImageForWeb,
   createResizeImageForWeb,
 } from "./children/image-children.js";
@@ -15,6 +16,7 @@ const MEDIA_PROCESSING_CHILDREN: MediaProcessingChildCapability[] = [
   createOptimizeImageForWeb(),
   createResizeImageForWeb(),
   createGenerateResponsiveImageSet(),
+  createInspectPublicKnowledgeImageRedlines(),
   createOptimizeVideoForWeb(),
   createCompressVideoForWeb(),
   createGenerateVideoPosterForWeb(),

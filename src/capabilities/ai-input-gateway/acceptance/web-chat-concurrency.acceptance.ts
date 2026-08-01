@@ -76,6 +76,7 @@ const requestFor = (worker: number): AiFeedInput => ({
   promptPackageId: `parallel-worker-${worker}`,
   promptContractId: "ai-input-gateway-web-chat-concurrency.acceptance",
   expectedOutputSchemaRef: null,
+  expectedOutputKind: "text",
   textPrompt: `parallel worker ${worker}`,
   inputRefs: [],
   modelName: null,

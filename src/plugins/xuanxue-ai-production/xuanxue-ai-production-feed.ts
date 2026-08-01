@@ -24,6 +24,7 @@ import {
 import {
   xuanxueAiOutputIntegrityFailure,
 } from "./xuanxue-ai-production-output-integrity.js";
+import { publicKnowledgeImagePromptBoundary } from "./generated-image-policy.js";
 
 type GeneratedStageInput = Awaited<ReturnType<typeof writePriorStageInput>>;
 
@@ -60,6 +61,8 @@ const seededAiResult = (
   childCapabilityId: "feed-gpt-web-chat-once",
   providerKind: "gpt-web-chat",
   status: "success",
+  outputKind: "text",
+  outputArtifacts: [],
   rawResponseText: seeded.rawResponseText,
   transportWarnings: seeded.transportWarnings,
   normalizedText: seeded.rawResponseText,
@@ -327,7 +330,10 @@ export const buildXuanxueAiFeedInput = async (
     promptPackageId: stage.material.promptPackageId,
     promptContractId: stage.material.promptContractId,
     expectedOutputSchemaRef: stage.material.expectedOutputSchemaRef,
-    textPrompt: stage.material.textPrompt,
+    expectedOutputKind: stage.material.expectedOutputKind,
+    textPrompt: stage.material.expectedOutputKind === "generated_image"
+      ? `${stage.material.textPrompt}\n\n${publicKnowledgeImagePromptBoundary}`
+      : stage.material.textPrompt,
     inputRefs,
     modelName: null,
     timeoutMs: stage.material.timeoutMs,

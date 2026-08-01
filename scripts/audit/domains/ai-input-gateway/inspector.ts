@@ -414,6 +414,29 @@ const inspectTransientOverlayHygiene = (
   }
 };
 
+const inspectGeneratedImageCapture = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const capture = requireSourceFile(context, findings, lawId, P.runtime.generatedImageCapturePath);
+  if (!capture) return;
+  const values = new Set([...identifiers(capture), ...stringLiterals(capture)]);
+  for (const required of [
+    "captureChatGptGeneratedImage",
+    "markedUserTurns",
+    "assistantIndex",
+    "logicalSources",
+    "downloadButtons",
+    "waitForNewDownload",
+    "review_required: more than one new image download appeared during generated image capture",
+  ]) {
+    if (!values.has(required)) {
+      pushFinding(findings, lawId, P.runtime.generatedImageCapturePath, "ai-input-gateway/exact-generated-image-turn", `Generated image capture must contain ${required}.`);
+    }
+  }
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
@@ -446,6 +469,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectLiveGenerationProof(context, findings, parallelLawId);
   inspectTransientPatrolRetry(context, findings, parallelLawId);
   inspectTransientOverlayHygiene(context, findings, parallelLawId);
+  inspectGeneratedImageCapture(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

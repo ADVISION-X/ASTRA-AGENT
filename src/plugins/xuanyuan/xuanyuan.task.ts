@@ -106,6 +106,7 @@ const toAiFeedInput = (
   promptPackageId: request.promptPackageId,
   promptContractId: request.promptContractId,
   expectedOutputSchemaRef: request.expectedOutputSchemaRef,
+  expectedOutputKind: "text",
   textPrompt: buildTextPrompt(request),
   inputRefs: request.inputRefs,
   timeoutMs: request.timeoutMs,

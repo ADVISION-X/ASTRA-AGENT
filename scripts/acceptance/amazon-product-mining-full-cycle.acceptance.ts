@@ -180,6 +180,8 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
       childCapabilityId: "feed-gpt-web-chat-once",
       providerKind: "gpt-web-chat",
       status: "success",
+      outputKind: "text",
+      outputArtifacts: [],
       normalizedText,
       rawOutputRef: null,
       rawOutputHash: null,

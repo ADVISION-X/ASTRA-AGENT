@@ -6,6 +6,7 @@ export const MediaProcessingChildCapabilityIdSchema = z.enum([
   "optimize-image-for-web-once",
   "resize-image-for-web-once",
   "generate-responsive-image-variants-once",
+  "inspect-public-knowledge-image-redlines-once",
   "optimize-video-for-web-once",
   "compress-video-for-web-once",
   "generate-video-poster-once",
@@ -23,6 +24,8 @@ const MediaProcessingArtifactPolicySchema = z.enum(["deliverable", "staging"]);
 const MediaProcessingPresetIdSchema = z.enum([
   "web-image",
   "web-image-responsive",
+  "public-knowledge-hero",
+  "public-knowledge-redline-check",
   "web-video",
   "web-video-compressed",
   "web-video-poster",
@@ -89,6 +92,11 @@ const ResponsiveImageSetInputSchema = MediaProcessingInputBaseSchema.extend({
   outputFormat: MediaProcessingImageFormatSchema.default("webp"),
 }).strict();
 
+const InspectPublicKnowledgeImageInputSchema = MediaProcessingInputBaseSchema.extend({
+  childCapabilityId: z.literal("inspect-public-knowledge-image-redlines-once"),
+  outputFormat: z.literal("webp").default("webp"),
+}).strict();
+
 const OptimizeVideoInputSchema = MediaProcessingInputBaseSchema.extend({
   childCapabilityId: z.literal("optimize-video-for-web-once"),
   outputFormat: MediaProcessingVideoFormatSchema.default("mp4"),
@@ -109,6 +117,7 @@ export const MediaProcessingAbilityInputSchema = z.discriminatedUnion("childCapa
   OptimizeImageInputSchema,
   ResizeImageInputSchema,
   ResponsiveImageSetInputSchema,
+  InspectPublicKnowledgeImageInputSchema,
   OptimizeVideoInputSchema,
   CompressVideoInputSchema,
   VideoPosterInputSchema,
@@ -131,7 +140,7 @@ const MediaProcessingArtifactSchema = z.object({
   targetMaxBytes: z.number().int().positive().nullable(),
   targetBitrateKbps: z.number().int().positive().nullable(),
   compressionRatio: z.number().positive().nullable(),
-  derivativeKind: z.enum(["optimized", "resized", "responsive_variant", "video_optimized", "video_compressed", "poster"]),
+  derivativeKind: z.enum(["optimized", "resized", "responsive_variant", "inspection", "video_optimized", "video_compressed", "poster"]),
 }).strict();
 
 const MediaProcessingProofSchema = z.object({

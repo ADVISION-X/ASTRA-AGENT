@@ -15,6 +15,7 @@ export const hash = (value: string): `sha256:${string}` =>
 export const providerResult = (
   input: AiFeedInput,
   ordinal: number,
+  generatedImageArtifact?: AiFeedResult["outputArtifacts"][number],
 ): AiFeedResult => {
   const rawResponseText = JSON.stringify({
     stage: input.roundId,
@@ -26,6 +27,10 @@ export const providerResult = (
     childCapabilityId: "feed-gpt-web-chat-once",
     providerKind: "gpt-web-chat",
     status: "success",
+    outputKind: input.expectedOutputKind,
+    outputArtifacts: input.expectedOutputKind === "generated_image" && generatedImageArtifact
+      ? [generatedImageArtifact]
+      : [],
     rawResponseText,
     transportWarnings: [],
     normalizedText: rawResponseText,
@@ -191,6 +196,10 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     this.releaseHeldQimen = resolve;
   });
 
+  constructor(
+    private readonly generatedImageArtifact?: AiFeedResult["outputArtifacts"][number],
+  ) {}
+
   listChildCapabilityIds():
     ReturnType<AiInputGatewayAbilityGroup["listChildCapabilityIds"]> {
     return ["feed-gpt-web-chat-once"];
@@ -288,7 +297,11 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
         && request.taskIdentity.taskKind === "qimen_professional_answer"
       ) await this.heldQimen;
       else await new Promise<void>((resolve) => setTimeout(resolve, 5));
-      const result = providerResult(request, this.requests.length);
+      const result = providerResult(
+        request,
+        this.requests.length,
+        this.generatedImageArtifact,
+      );
       const continuationFailure =
         this.consumeContinuationFailure(request, result);
       if (continuationFailure) return continuationFailure;
@@ -324,6 +337,7 @@ export const material = (
   promptPackageId: `fixture:${stageId}`,
   promptContractId: `fixture-contract:${stageId}`,
   expectedOutputSchemaRef: `fixture-schema:${stageId}`,
+  expectedOutputKind: stageId === "article_image_generation" ? "generated_image" : "text",
   textPrompt: `fixture prompt for ${stageId}`,
   inputRefs: [],
   timeoutMs: 60_000,
@@ -337,11 +351,16 @@ export const order = (
   productId: XuanxueAiProductionOrder["productId"],
   stageIds: readonly XuanxueAiProductionOrder["materials"][number]["stageId"][],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v1",
+  protocolVersion: "xuanxue-ai-production-v2",
   orderId,
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,
   productId,
+  serviceClass: productId === "scheduled_quality_reflection" ? "quality_background" : productId === "public_knowledge_article_pipeline" ? "public_content" : "user_delivery",
+  triggerKind: productId === "scheduled_quality_reflection" ? "scheduled_quality_reflection" : productId === "public_knowledge_article_pipeline" ? "scheduled_public_content" : "user_request",
+  lineageId: productId === "scheduled_quality_reflection" ? `lineage:${orderId}` : null,
+  reflectionSnapshotRef: productId === "scheduled_quality_reflection" ? `snapshot:${orderId}` : null,
+  reflectionPlanId: productId === "scheduled_quality_reflection" ? `plan:${orderId}` : null,
   inputBundleRef: `bundle:${orderId}`,
   inputBundleHash: hash(`bundle:${orderId}`),
   requestHash: hash(`request:${orderId}`),
