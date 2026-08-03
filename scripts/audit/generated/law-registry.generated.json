@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-01T14:54:56.925Z",
+  "generatedAt": "2026-08-03T19:34:54.384Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -573,7 +573,7 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ledger+app-shell+acceptance+audit",
-      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success or already_uploaded for the same order id and invoice number.",
+      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, and the single upload flow must recover the exact Seller Central no-actions invoice dialog by one verified outside-dialog dismissal and reopen rather than refreshing the order page.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
@@ -595,8 +595,10 @@
         "Only ledger records with status upload_success or already_uploaded may be skipped before opening Seller Central.",
         "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
         "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
-        "After opening Manage invoice / 管理发票 for existing-invoice verification, the flow must wait a bounded production window of at least 45 seconds for strong invoice-list evidence before returning review_required.",
-        "If the Manage invoice list remains unconfirmed after the first evidence window, the flow may perform exactly one same-tab order-detail recovery refresh, reopen Manage invoice, and wait one more bounded strong-evidence window before returning review_required.",
+        "After opening Manage invoice / 管理发票 for existing-invoice verification, the flow must wait a bounded production window of at least 45 seconds for strong invoice-list evidence before returning review_required, unless the current-order dialog exposes the exact blocker 很抱歉，目前没有可用的操作。",
+        "Only when one visible current-order invoice dialog exposes the exact no-actions blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify that the blocked dialog disappeared, reopen Manage invoice, and wait again for strong invoice-list evidence.",
+        "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, the exact blocker appears again, or the second strong-evidence window expires, the order must stop as review_required before any PDF upload.",
+        "APP batch upload and external API upload must use this same plugin-owned recovery through the existing /api/plugins/amazon-invoice-upload/start route.",
         "A still-loading or slow Seller Central invoice list must not be collapsed into already_uploaded, upload_success, or a short-timeout review_required result.",
         "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
         "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
@@ -608,7 +610,11 @@
         "Skipping failed, review_required, blocked_auth, manual_required, or invalid records.",
         "Branching business logic from reason.includes(\"already uploaded\") instead of the formal already_uploaded status.",
         "Adding a second batch ledger, second batch route, or second upload service to support resume.",
-        "Uploading all selected PDFs in one multipart request."
+        "Uploading all selected PDFs in one multipart request.",
+        "Refreshing or reopening the order-detail URL as recovery for the no-actions Manage invoice dialog.",
+        "Using hard-coded, caller-provided, API-provided, or APP-provided coordinates to dismiss the dialog.",
+        "Retrying the outside-dialog dismissal or Manage invoice reopen more than once.",
+        "Keeping the retired order-refresh recovery as a fallback, compatibility bridge, or shadow branch."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 11

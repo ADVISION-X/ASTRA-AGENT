@@ -67,6 +67,42 @@ const smokeFixtureHtml = `
 </body></html>
 `;
 
+const noActionsDialogFixtureHtml = (behavior: "recovers" | "repeats"): string => `
+<html><head><title>Seller Central No Actions Dialog Fixture</title></head>
+<body>
+  <label for="order-search">Order search</label>
+  <input id="order-search" type="search" placeholder="Search orders by order id" />
+  <button id="search-button">Search</button>
+  <table id="orders">
+    <tr id="order-row"><td>123-1234567-1234567</td><td>Buyer</td><td>Ship</td></tr>
+  </table>
+  <div>订单编号：123-1234567-1234567</div>
+  <button id="manage-invoice">管理发票</button>
+  <div id="invoice-dialog" role="dialog" hidden
+    style="position:fixed;left:250px;top:180px;width:400px;height:220px;background:white;border:1px solid black;z-index:2">
+    <div id="invoice-dialog-content"></div>
+  </div>
+  <script>
+    const behavior = ${JSON.stringify(behavior)};
+    const dialog = document.querySelector("#invoice-dialog");
+    const content = document.querySelector("#invoice-dialog-content");
+    let manageClicks = 0;
+    document.querySelector("#manage-invoice").addEventListener("click", () => {
+      manageClicks += 1;
+      dialog.hidden = false;
+      content.textContent = behavior === "recovers" && manageClicks === 2
+        ? "订单123-1234567-1234567的发票 INV-RECOVERY 由卖家生成 成功：已上传"
+        : "订单123-1234567-1234567的发票 很抱歉，目前没有可用的操作。";
+    });
+    document.addEventListener("click", (event) => {
+      if (!dialog.hidden && !dialog.contains(event.target) && event.target.id !== "manage-invoice") {
+        dialog.hidden = true;
+      }
+    });
+  </script>
+</body></html>
+`;
+
 export type SmokeFixturePaths = {
   tmp: string;
   htmlPath: string;
@@ -79,6 +115,17 @@ export const createSmokeFixturePaths = (): SmokeFixturePaths => {
   const pdfPath = join(tmp, "invoice.pdf");
   writeFileSync(pdfPath, buildInvoicePdf("59.50"));
   writeFileSync(htmlPath, smokeFixtureHtml);
+  return { tmp, htmlPath, pdfPath };
+};
+
+export const createNoActionsDialogFixturePaths = (
+  behavior: "recovers" | "repeats",
+): SmokeFixturePaths => {
+  const tmp = mkdtempSync(join(tmpdir(), "grasseye-amazon-no-actions-"));
+  const htmlPath = join(tmp, "seller-central-no-actions.html");
+  const pdfPath = join(tmp, "invoice.pdf");
+  writeFileSync(pdfPath, buildInvoicePdf("59.50"));
+  writeFileSync(htmlPath, noActionsDialogFixtureHtml(behavior));
   return { tmp, htmlPath, pdfPath };
 };
 
@@ -151,8 +198,9 @@ const buildGeometrySnapshot = async (page: Page): Promise<BrowserGeometrySnapsho
 export class AmazonSmokeBrowserAdapter implements BrowserController {
   closeActiveTabCalls = 0;
   fileInputSetCalls = 0;
+  noActionsDialogDismissClicks = 0;
   openReusePolicies: string[] = [];
-  private fileUrlOpenCount = 0;
+  fileUrlOpenCount = 0;
   orderDetailRefreshOpenCount = 0;
 
   constructor(private readonly page: Page, private readonly screenshotDir: string) {}
@@ -166,16 +214,22 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
     if (input.url.startsWith("file:")) {
       this.fileUrlOpenCount += 1;
       if (this.fileUrlOpenCount >= 3) {
-        this.orderDetailRefreshOpenCount += 1;
-        await this.page.locator("#upload-invoice").evaluate((element) => {
-          element.textContent = "Upload invoice";
-        });
+        const uploadEntry = this.page.locator("#upload-invoice");
+        if (await uploadEntry.count() === 1) {
+          this.orderDetailRefreshOpenCount += 1;
+          await uploadEntry.evaluate((element) => {
+            element.textContent = "Upload invoice";
+          });
+        }
       }
     }
     return action(`opened ${input.title}`);
   }
   async scroll(): Promise<BrowserActionResult> { return action("scroll not needed"); }
   async click(input: { targetLabel: string; point: { x: number; y: number }; button?: "left" | "right" | "middle"; clickCount?: 1 | 2 }): Promise<BrowserActionResult> {
+    if (input.targetLabel === "dismiss Amazon manage invoice no-actions dialog") {
+      this.noActionsDialogDismissClicks += 1;
+    }
     await this.page.mouse.click(input.point.x, input.point.y, { button: input.button ?? "left", clickCount: input.clickCount ?? 1 });
     return action(`clicked ${input.targetLabel}`);
   }

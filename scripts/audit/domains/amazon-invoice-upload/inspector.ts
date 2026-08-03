@@ -410,6 +410,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     findings,
     lawId: lawIds.audit,
     conditionalRefreshLawId: lawIds.conditionalRefresh,
+    manageDialogRecoveryLawId: lawIds.batchLedgerPreflight,
     tabLifecycleLawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1"),
     apiFocusReturnLawId: lawIds.apiFocusReturn,
   });

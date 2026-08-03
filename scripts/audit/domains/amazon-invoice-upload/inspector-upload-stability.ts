@@ -26,6 +26,7 @@ type UploadStabilityGuardInput = {
   findings: InspectorFinding[];
   lawId: string;
   conditionalRefreshLawId: string;
+  manageDialogRecoveryLawId: string;
   tabLifecycleLawId: string;
   apiFocusReturnLawId: string;
 };
@@ -67,6 +68,21 @@ const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeN
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
     .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName);
 
+const functionIdentifierCallCount = (file: SourceFile, functionName: string, calleeName: string): number =>
+  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
+    .filter((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName)
+    .length;
+
+const functionCallsProperty = (file: SourceFile, functionName: string, ownerName: string, methodName: string): boolean =>
+  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
+  .some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === ownerName
+      && expression.getName() === methodName;
+  });
+
 const sourceCallsProperty = (file: SourceFile, ownerName: string, methodName: string): boolean =>
   file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
     const expression = call.getExpression();
@@ -98,8 +114,10 @@ export const inspectUploadStabilityGuard = (input: UploadStabilityGuardInput): v
   const refreshMissing = collectOrderRefreshGuardGaps(files.orderFile);
   appendUploadStabilityFindings(input.findings, input.conditionalRefreshLawId, refreshMissing);
   const missing = collectUploadStabilityGaps(files);
-  writeUploadStabilityDebug(missing.length);
+  const manageDialogMissing = collectExistingInvoiceEvidenceWaitGaps(files.existingUploadFile);
+  writeUploadStabilityDebug(missing.length + manageDialogMissing.length);
   appendUploadStabilityFindings(input.findings, input.lawId, missing);
+  appendUploadStabilityFindings(input.findings, input.manageDialogRecoveryLawId, manageDialogMissing);
   const tabLifecycleMissing = collectTabLifecycleGaps(files);
   appendUploadStabilityFindings(input.findings, input.tabLifecycleLawId, tabLifecycleMissing);
   const apiFocusMissing = collectApiFocusReturnGaps(files);
@@ -145,7 +163,6 @@ function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
     ...collectUploadRetryGuardGaps(files.flowFile),
     ...collectNoHumanFinalSubmitContractGaps(files.taskServiceFile, files.missionSchemaFile),
     ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingUploadFile, files.existingEvidenceFile),
-    ...collectExistingInvoiceEvidenceWaitGaps(files.existingUploadFile),
   ];
 }
 
@@ -395,21 +412,62 @@ function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUpload
 }
 
 function collectExistingInvoiceEvidenceWaitGaps(existingUploadFile: SourceFile): string[] {
+  return [
+    ...collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile),
+    ...collectExistingInvoiceRecoveryCallGaps(existingUploadFile),
+    ...collectRetiredExistingInvoiceRecoveryGaps(existingUploadFile),
+  ];
+}
+function collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile: SourceFile): string[] {
   const missing: string[] = [];
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceTimeoutMs", "45_000")) {
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceTimeoutMs", "45_000"))
     missing.push("existing-invoice-evidence-timeout-45000");
-  }
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", "250")) {
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", "250"))
     missing.push("existing-invoice-evidence-poll-250");
+  if (!hasConstInitializer(existingUploadFile, "noAvailableActionsDialogDismissTimeoutMs", "2_000"))
+    missing.push("existing-invoice-no-actions-dismiss-timeout-2000");
+  const blockerInitializer = existingUploadFile.getVariableDeclaration("noAvailableActionsDialogText")
+    ?.getInitializerIfKind(SyntaxKind.StringLiteral);
+  if (blockerInitializer?.getLiteralText() !== "很抱歉，目前没有可用的操作。")
+    missing.push("existing-invoice-exact-no-actions-dialog-text");
+  for (const functionName of [
+    "dismissNoAvailableActionsDialog",
+    "locateSafeOutsideDialogPoint",
+    "waitForNoAvailableActionsDialogDismissal",
+    "hasNoAvailableActionsDialog",
+  ]) {
+    if (!existingUploadFile.getFunction(functionName)) missing.push(`existing-invoice-no-actions-helper:${functionName}`);
   }
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceRecoveryAttempts", "1")) {
-    missing.push("existing-invoice-evidence-single-recovery");
+  return missing;
+}
+function collectExistingInvoiceRecoveryCallGaps(existingUploadFile: SourceFile): string[] {
+  const missing: string[] = [];
+  if (functionIdentifierCallCount(existingUploadFile, "verifyAlreadyUploadedInvoice", "dismissNoAvailableActionsDialog") !== 1)
+    missing.push("existing-invoice-single-dialog-dismiss-call");
+  if (functionIdentifierCallCount(existingUploadFile, "verifyAlreadyUploadedInvoice", "openManageInvoiceList") !== 2)
+    missing.push("existing-invoice-single-manage-reopen-call");
+  if (!functionCallsIdentifier(existingUploadFile, "waitForExistingInvoiceEvidence", "hasNoAvailableActionsDialog"))
+    missing.push("existing-invoice-wait-detects-no-actions-dialog");
+  if (!functionCallsProperty(existingUploadFile, "locateSafeOutsideDialogPoint", "browser", "evaluateActiveTab"))
+    missing.push("existing-invoice-live-dialog-geometry-evaluation");
+  if (!functionCallsProperty(existingUploadFile, "dismissNoAvailableActionsDialog", "browser", "click"))
+    missing.push("existing-invoice-outside-dialog-click");
+  if (!functionCallsIdentifier(existingUploadFile, "dismissNoAvailableActionsDialog", "waitForNoAvailableActionsDialogDismissal"))
+    missing.push("existing-invoice-dialog-dismissal-verification");
+  return missing;
+}
+function collectRetiredExistingInvoiceRecoveryGaps(existingUploadFile: SourceFile): string[] {
+  const missing: string[] = [];
+  if (existingUploadFile.getFunction("recoverExistingInvoiceList")) {
+    missing.push("existing-invoice-retired-order-refresh-helper-forbidden");
   }
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceRecoverySettleMs", "3_000")) {
-    missing.push("existing-invoice-evidence-recovery-settle-3000");
+  for (const retiredConstant of ["existingInvoiceEvidenceRecoveryAttempts", "existingInvoiceEvidenceRecoverySettleMs"]) {
+    if (existingUploadFile.getVariableDeclaration(retiredConstant)) {
+      missing.push(`existing-invoice-retired-order-refresh-constant-forbidden:${retiredConstant}`);
+    }
   }
-  if (!existingUploadFile.getFunction("recoverExistingInvoiceList")) {
-    missing.push("existing-invoice-evidence-recovery-helper");
+  if (sourceCallsProperty(existingUploadFile, "browser", "open")) {
+    missing.push("existing-invoice-order-detail-refresh-forbidden");
   }
   return missing;
 }

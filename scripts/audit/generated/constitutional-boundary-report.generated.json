@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-01T14:55:37.188Z",
+  "generatedAt": "2026-08-03T19:35:47.155Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",

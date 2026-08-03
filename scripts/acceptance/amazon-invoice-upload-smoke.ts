@@ -14,6 +14,7 @@ import {
   AmazonHangingOpenBrowserAdapter,
   AmazonSmokeBrowserAdapter,
   buildInvoicePdf,
+  createNoActionsDialogFixturePaths,
   createSmokeFixturePaths,
 } from "./amazon-invoice-upload-smoke-support.js";
 
@@ -54,10 +55,50 @@ async function main(): Promise<void> {
     assertBackendPdfTextAmountReadable();
     assertSplitSellerCentralOrderTotalReadable();
     assertLongSellerCentralOrderTotalReadable();
+    await assertNoActionsDialogRecovery(runtimeLogger, "recovers", "already_uploaded");
+    await assertNoActionsDialogRecovery(runtimeLogger, "repeats", "review_required");
     await assertAmountMismatchSkipsBeforeUpload(runtimeLogger);
     await assertUnreadablePdfSkipsBeforeUpload(runtimeLogger);
     await assertTaskServiceTimeoutGuard(runtimeLogger);
     process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success with retained tab lifecycle\n");
+  } finally {
+    await launched.close();
+  }
+}
+
+async function assertNoActionsDialogRecovery(
+  runtimeLogger: ReturnType<typeof createRuntimeLogger>,
+  behavior: "recovers" | "repeats",
+  expectedStatus: "already_uploaded" | "review_required",
+): Promise<void> {
+  const fixture = createNoActionsDialogFixturePaths(behavior);
+  const launched = await chromium.launch({ headless: true });
+  const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
+  const browser = new AmazonSmokeBrowserAdapter(page, fixture.tmp);
+  try {
+    const result = await runAmazonInvoiceUpload(browser, runtimeLogger, {
+      missionType: "amazon_invoice_upload",
+      marketplace: "AE",
+      amazonOrderId: "123-1234567-1234567",
+      invoiceNo: "INV-RECOVERY",
+      invoicePdfPath: fixture.pdfPath,
+      sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
+    });
+    if (result.status !== expectedStatus) {
+      throw new Error(`No-actions dialog ${behavior} fixture returned ${JSON.stringify(result)}.`);
+    }
+    if (browser.noActionsDialogDismissClicks !== 1) {
+      throw new Error(`No-actions dialog ${behavior} fixture must click outside exactly once; clicks=${browser.noActionsDialogDismissClicks}.`);
+    }
+    if (browser.orderDetailRefreshOpenCount !== 0) {
+      throw new Error(`No-actions dialog ${behavior} fixture must not refresh the order detail page.`);
+    }
+    if (browser.fileUrlOpenCount !== 2) {
+      throw new Error(`No-actions dialog ${behavior} fixture must keep only the two normal entry/order opens; opens=${browser.fileUrlOpenCount}.`);
+    }
+    if (browser.fileInputSetCalls !== 0) {
+      throw new Error(`No-actions dialog ${behavior} fixture must stop before PDF upload.`);
+    }
   } finally {
     await launched.close();
   }

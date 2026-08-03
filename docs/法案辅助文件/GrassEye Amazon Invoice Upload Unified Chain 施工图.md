@@ -1,6 +1,6 @@
 # GrassEye Amazon Invoice Upload Unified Chain 施工图
 
-版本：2026-05-28  
+版本：2026-08-03
 状态：active  
 owner：amazon-invoice-upload  
 对应法案：`.github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md`  
@@ -488,7 +488,10 @@ WHY HAPPEN:
 7. AGENT 发票上传执行链禁止默认或主动停在人工最终提交；`requireHumanFinalSubmit` 不再属于上传执行契约，UI/client/schema/service 均不得发送或保留该字段。外部旧 payload 若携带该字段，只能在 upload route 清洗后进入既有单张上传链路，生产执行必须继续自动点击 Seller Central 弹窗底部最终 `上传` / `Upload`。
 8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传强证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`由卖家生成` / `Seller generated`。`管理发票` / `Manage invoice` / `Pending` / `待处理` 只能定位发票动作或进入复核，不得作为 `upload_success` 或 `already_uploaded` 的充分证据。
 9. 点击 `管理发票` / `Manage invoice` 后，已上传确认必须等待至少 45 秒的有界生产窗口读取发票列表强证据；Seller Central 弹层仍在 loading 或慢返回时，不得用短超时把该订单批量降级为 `review_required`，也不得把弱入口文案伪造成成功。
-10. 首轮强证据窗口仍未确认时，只允许执行一次同 tab 订单详情恢复刷新，重新定位并点击 `管理发票` / `Manage invoice`，再等待一次 45 秒强证据窗口；两轮都没有强证据时才允许返回 `review_required`。
+10. 只有当前订单的唯一可见发票弹窗出现精确阻断文案 `很抱歉，目前没有可用的操作。` 时，才允许立即执行一次恢复：根据实时弹窗矩形和 viewport 动态计算弹窗外空白点，点击空白处，确认阻断弹窗已经消失，再重新点击一次 `管理发票` / `Manage invoice`，进入第二个强证据等待窗口。
+11. 空白点不得写死，不得由 APP 或 API 输入；弹窗不唯一、无法计算安全空白点、点击失败、弹窗未关闭、重开失败、第二次仍出现相同阻断或第二个证据窗口超时，必须在上传 PDF 前返回 `review_required`。
+12. 删除原“首轮未确认就刷新订单详情”的恢复片区；禁止把整页刷新保留为 fallback、兼容桥或影子分支。订单详情初次 readiness 缺失时由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 管理的单次恢复刷新不受影响。
+13. APP 批量上传和外部 API 上传都只能经既有 `/api/plugins/amazon-invoice-upload/start` 进入同一个 plugin flow，不得为弹窗恢复建立第二 route、第二 service 或第二业务链。
 
 生产落点：
 
@@ -524,6 +527,12 @@ schema / UI / client / service 均不得保留 `requireHumanFinalSubmit` 或 `st
 API Boundary 不得把 `requireHumanFinalSubmit` / `stopOnManualRequired` 当作 forbidden_external_request_key；upload route 必须清洗 legacy 非 schema 字段
 APP Ledger 页面必须读取 `/api/plugins/amazon-invoice-upload/ledger` 并展示 upload records
 Batch / Upload UI 不得暴露 `Safe Review Mode` 或 `require human final submit`
+existingInvoiceEvidenceTimeoutMs = 45_000
+existingInvoiceEvidencePollMs = 250
+精确阻断文案常量 = 很抱歉，目前没有可用的操作。
+verifyAlreadyUploadedInvoice 只允许一次 dismissNoAvailableActionsDialog -> openManageInvoiceList 恢复
+dismissNoAvailableActionsDialog 必须使用 BrowserController.evaluateActiveTab 动态计算弹窗外点，并用 BrowserController.click 点击
+生产文件不得保留 recoverExistingInvoiceList、existingInvoiceEvidenceRecoveryAttempts、existingInvoiceEvidenceRecoverySettleMs 或 order-detail browser.open 恢复
 ```
 
 验收要求：
