@@ -110,6 +110,7 @@ interface BrowserController {
     script: string;
     description: string;
     abortSignal?: AbortSignal;
+    timeoutMs?: number;
   }): Promise<T>;
   setFileInputFiles(input: {
     elementRef: BrowserFileInputRef;

@@ -11,9 +11,7 @@ import { captureDomEvidenceRef } from "./dom-evidence.js";
 
 const DANGEROUS_TEXT = /delete|refund|cancel|pay now|submit payment|remove/i;
 
-type ClickScriptResult = Pick<DomActionResult, "status" | "message"> & {
-  nativeClickPoint?: { x: number; y: number };
-};
+type ClickScriptResult = Pick<DomActionResult, "status" | "message">;
 
 function buildClickScript(selector: string, expectedText: string | undefined): string {
   return `
@@ -38,35 +36,9 @@ if (style.display === "none" || style.visibility === "hidden" || rect.width === 
 if (el.disabled || el.getAttribute("aria-disabled") === "true") return {status: "review_required", message: "element is disabled"};
 if (expectedText && !text.toLowerCase().includes(expectedText.toLowerCase())) return {status: "review_required", message: "expected text did not match"};
 el.scrollIntoView({block: "center", inline: "center"});
-const afterScrollRect = el.getBoundingClientRect();
-return {
-  status: "success",
-  message: "located DOM element is ready for governed native click",
-  nativeClickPoint: {
-    x: Math.round(afterScrollRect.x + afterScrollRect.width / 2),
-    y: Math.round(afterScrollRect.y + afterScrollRect.height / 2),
-  },
-};
+el.click();
+return {status: "success", message: "clicked revalidated DOM element"};
 `;
-}
-
-async function clickLocatedDomPoint(
-  browser: BrowserController,
-  result: ClickScriptResult,
-  targetLabel: string,
-): Promise<Pick<DomActionResult, "status" | "message">> {
-  if (!result.nativeClickPoint || result.status !== "success") return result;
-  const nativeClick = await browser.click({
-    targetLabel,
-    point: result.nativeClickPoint,
-    coordinateSpace: "browserViewport",
-    button: "left",
-    clickCount: 1,
-  });
-  return {
-    status: nativeClick.ok ? "success" : "failed",
-    message: nativeClick.ok ? "clicked located DOM element" : nativeClick.message,
-  };
 }
 
 export async function clickDomElementOnce(
@@ -82,26 +54,16 @@ export async function clickDomElementOnce(
     );
   }
 
-  const beforeEvidenceRef = await captureDomEvidenceRef(browser, "dom-click-before");
-  if (!beforeEvidenceRef) {
-    return buildDomReviewRequiredResult(
-      "before-action evidence capture failed",
-      "DOM click requires evidence before action.",
-    );
-  }
-  const clickPlan = await browser.evaluateActiveTab<ClickScriptResult>({
-    description: "click located visible enabled DOM element",
+  const result = await browser.evaluateActiveTab<ClickScriptResult>({
+    description: "revalidate and click located visible enabled DOM element",
     script: buildClickScript(elementRef.selector, input.expectedText),
   });
-  const result = await clickLocatedDomPoint(browser, clickPlan, input.expectedKind);
   if (input.waitAfterMs && input.waitAfterMs > 0) {
     await browser.wait(input.waitAfterMs);
   }
   const afterEvidenceRef = await captureDomEvidenceRef(browser, "dom-click-after");
   if (!afterEvidenceRef) {
-    return buildDomFailureResult("after-action evidence capture failed", {
-      beforeEvidenceRef,
-    });
+    return buildDomFailureResult("after-action evidence capture failed");
   }
-  return buildDomActionOutcome(result, beforeEvidenceRef, afterEvidenceRef);
+  return buildDomActionOutcome(result, undefined, afterEvidenceRef);
 }

@@ -23,7 +23,7 @@ export class CurrentChromeBrowserController implements BrowserController {
   clickLocatedDomElement(input: Parameters<BrowserController["clickLocatedDomElement"]>[0]) { return this.runtime.clickLocatedDomElement(input); }
   textInput(input: Parameters<BrowserController["textInput"]>[0]) { return this.runtime.textInput(input); }
   screenshotRegion(input: Parameters<BrowserController["screenshotRegion"]>[0]) { return this.runtime.screenshotRegion(input); }
-  evaluateActiveTab<T>(input: { script: string; description: string; abortSignal?: AbortSignal }) { return this.runtime.evaluateActiveTab<T>(input); }
+  evaluateActiveTab<T>(input: Parameters<BrowserController["evaluateActiveTab"]>[0]) { return this.runtime.evaluateActiveTab<T>(input); }
   setFileInputFiles(input: Parameters<BrowserController["setFileInputFiles"]>[0]) { return this.runtime.setFileInputFiles(input); }
   selectFilesInNativePicker(input: Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0]) {
     const action = this.runtime.selectFilesInNativePicker;

@@ -170,6 +170,7 @@ export async function readDomSnapshotOnce(
   const raw = await browser.evaluateActiveTab<unknown>({
     description: "read governed DOM structural summary from active tab",
     script: buildSnapshotScript(parsed.maxTextLengthPerNode, parsed.includeFrames),
+    ...(parsed.timeoutMs ? { timeoutMs: parsed.timeoutMs } : {}),
   });
   return DOM_SCHEMAS.DomSnapshot.parse(raw) as DomSnapshot;
 }

@@ -16,11 +16,15 @@ import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow
 import { amazonDomTraceRefFromIds, recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 const DOM_CLICK_SETTLE_MS = 50;
+const AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS = 1_800;
 
 export const readSnapshot = (
   browser: BrowserController,
   input?: Parameters<typeof readDomSnapshotOnce>[1],
-) => readDomSnapshotOnce(browser, input);
+) => readDomSnapshotOnce(browser, {
+  ...input,
+  timeoutMs: AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS,
+});
 
 export const verifyState = (
   input: Parameters<typeof verifyDomStateOnce>[0],

@@ -125,7 +125,6 @@ export const screenshotCurrentChromeRegion = async (
   state: RuntimeState,
   input: ScreenshotRegionInput,
   getGeometrySnapshot: GetGeometrySnapshot,
-  refreshSnapshot: RefreshSnapshot,
 ): Promise<BrowserCaptureResult> => {
   const geometry = await getGeometrySnapshot(state);
   const screenshot = await captureCurrentChromeScreenshot({
@@ -135,7 +134,6 @@ export const screenshotCurrentChromeRegion = async (
     allowFullscreenRetry: input.captureProfile !== "observation_lightweight",
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
-  await refreshSnapshot(state);
 
   return {
     browserActionId: createId("browser"),

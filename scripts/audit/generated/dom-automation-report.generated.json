@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T19:35:59.682Z",
+  "generatedAt": "2026-08-03T21:24:02.125Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -1250,6 +1250,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",

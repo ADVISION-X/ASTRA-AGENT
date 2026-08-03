@@ -134,6 +134,7 @@ const ReadDomSnapshotInputSchema = z.object({
   includeHidden: z.literal(false).optional().default(false),
   maxTextLengthPerNode: z.number().int().min(20).max(240).optional().default(120),
   targetScope: z.enum(["active-tab", "current-frame"]).optional().default("active-tab"),
+  timeoutMs: z.number().int().min(100).max(10_000).optional(),
 }).strict();
 
 const DomElementRefSchema = z.object({

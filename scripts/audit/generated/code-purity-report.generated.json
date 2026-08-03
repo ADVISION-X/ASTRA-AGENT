@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-08-03T19:35:46.944Z",
+  "generatedAt": "2026-08-03T21:23:51.660Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -134,6 +134,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
@@ -1701,9 +1702,9 @@
       "scriptName": "acceptance:ai-input-gateway-web-chat-title-housekeeping-restart:real-chrome"
     }
   ],
-  "liveExportCount": 2632,
+  "liveExportCount": 2635,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 885,
+  "reachableFileCount": 886,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1715,9 +1716,9 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2632,
+    "liveExportCount": 2635,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 885,
+    "reachableFileCount": 886,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0

@@ -325,7 +325,7 @@ export const createCurrentChromeBrowserControllerRuntime = (
       clickCount: 1,
     }),
     textInput: (input: TextInput) => textInputCurrentChrome(state, input, refreshSnapshot),
-    screenshotRegion: (input: ScreenshotRegionInput) => screenshotCurrentChromeRegion(state, input, getGeometrySnapshot, refreshSnapshot),
+    screenshotRegion: (input: ScreenshotRegionInput) => screenshotCurrentChromeRegion(state, input, getGeometrySnapshot),
     evaluateActiveTab: <T>(input: EvaluateActiveTabInput) => evaluateActiveTab<T>(state, input, refreshSnapshot),
     setFileInputFiles: (input: SetFileInputFilesInput) => setCurrentChromeFileInputFiles(state, input, refreshSnapshot, sleep),
     selectFilesInNativePicker: (input: SelectFilesInNativePickerInput) =>

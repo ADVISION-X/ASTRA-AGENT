@@ -130,6 +130,6 @@ export const captureCurrentChromeScreenshot = async (input: {
   abortSignal?: AbortSignal;
 }) => {
   await mkdir(input.screenshotDir, { recursive: true });
-  await activateChrome();
+  await activateChrome(input.abortSignal);
   return captureViewportRegionWithFullscreenRetry(input);
 };

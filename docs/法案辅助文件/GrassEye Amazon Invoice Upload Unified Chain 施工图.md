@@ -472,25 +472,27 @@ scripts/audit/domains/amazon-tax-invoice-download/**
 WHY HAPPEN:
 法案已定义 amazon-invoice-upload 单 owner、DOM 边界、audit+acceptance+ci-full 覆盖。
 旧治理把“订单详情打开后立即刷新一次”写成固定动作，虽然降低了闪烁失败，但过于机械且增加每单固定节奏。
-该缺口已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 固化为条件式唯一恢复刷新。
+该缺口已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 固化为单次订单导航与 2 秒步骤失败规则。
 ```
 
 后半段上传必须固定以下生产行为：
 
-1. 打开订单详情 URL 后，先在随机 10-15 秒 readiness window 内轮询 DOM。
-2. 若已出现目标 orderId + upload/manage/already-uploaded invoice action state，且页面不在 loading，则不得执行恢复刷新。
-3. 若 readiness window 内未出现目标 orderId + invoice action state，且不是登录/验证码/2FA gate，则只允许执行一次同 tab 恢复刷新。
-4. 恢复刷新后等待随机短窗口，再进入最终订单详情验证。
+1. `runAmazonInvoiceUpload` 直接进入 `openOrderDetail`；删除先开 `sellerCentralEntryUrl`、再开同一订单详情的旧入口片区。
+2. 每个订单只允许一次 `BrowserController.open`，随后最多执行三个同页观察窗口，每个窗口不超过 2 秒。
+3. 2 秒内出现目标 orderId + upload/manage/already-uploaded invoice action state 且页面不在 loading，才继续。
+4. 任一 2 秒窗口到期必须先记录结构化失败，再在不改变当前 URL 的情况下进入下一个同页窗口；三个窗口耗尽即失败。禁止再次导航、刷新 helper、随机等待或隐藏 fallback。
 3. 上传关键步骤失败时必须最多额外递归重试 2 次。
 4. 重试必须只复用既有 `amazon-invoice-upload` flow、既有 BrowserController、既有 Runtime Log Spine、既有 DOM public facade。
 5. 登录、2FA、验证码、人工最终提交、最终上传验证等敏感终态不得被重试伪造成成功。
 6. 每次刷新和每次重试必须通过 `recordAmazonDomStepTrace` 留下结构化调试证据，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
 7. AGENT 发票上传执行链禁止默认或主动停在人工最终提交；`requireHumanFinalSubmit` 不再属于上传执行契约，UI/client/schema/service 均不得发送或保留该字段。外部旧 payload 若携带该字段，只能在 upload route 清洗后进入既有单张上传链路，生产执行必须继续自动点击 Seller Central 弹窗底部最终 `上传` / `Upload`。
 8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传强证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`由卖家生成` / `Seller generated`。`管理发票` / `Manage invoice` / `Pending` / `待处理` 只能定位发票动作或进入复核，不得作为 `upload_success` 或 `already_uploaded` 的充分证据。
-9. 点击 `管理发票` / `Manage invoice` 后，已上传确认必须等待至少 45 秒的有界生产窗口读取发票列表强证据；Seller Central 弹层仍在 loading 或慢返回时，不得用短超时把该订单批量降级为 `review_required`，也不得把弱入口文案伪造成成功。
+9. 点击 `管理发票` / `Manage invoice` 后，强证据观察最多 2 秒；到期立即返回结构化 `review_required`，不得继续傻等，也不得把弱入口文案伪造成成功。
 10. 只有当前订单的唯一可见发票弹窗出现精确阻断文案 `很抱歉，目前没有可用的操作。` 时，才允许立即执行一次恢复：根据实时弹窗矩形和 viewport 动态计算弹窗外空白点，点击空白处，确认阻断弹窗已经消失，再重新点击一次 `管理发票` / `Manage invoice`，进入第二个强证据等待窗口。
 11. 空白点不得写死，不得由 APP 或 API 输入；弹窗不唯一、无法计算安全空白点、点击失败、弹窗未关闭、重开失败、第二次仍出现相同阻断或第二个证据窗口超时，必须在上传 PDF 前返回 `review_required`。
-12. 删除原“首轮未确认就刷新订单详情”的恢复片区；禁止把整页刷新保留为 fallback、兼容桥或影子分支。订单详情初次 readiness 缺失时由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 管理的单次恢复刷新不受影响。
+12. Amazon 发票链的每次 DOM snapshot 都显式传入不超过 `1800ms` 的底层执行上限，禁止底层默认 `10000ms` 穿透 2 秒业务窗口；订单详情 snapshot 异常必须先落为本窗口失败，再进入下一次同页观察。
+13. 截图证据在真实 capture 前重新激活唯一受控 Chrome 窗口；`count=0` 的无障碍窗口瞬态不得直接毁掉当前发票任务。
+12. 删除所有订单详情刷新、重复入口打开和随机 readiness 等待片区；禁止把它们保留为 fallback、兼容桥或影子分支。
 13. APP 批量上传和外部 API 上传都只能经既有 `/api/plugins/amazon-invoice-upload/start` 进入同一个 plugin flow，不得为弹窗恢复建立第二 route、第二 service 或第二业务链。
 
 生产落点：
@@ -510,24 +512,26 @@ scripts/audit/domains/amazon-invoice-upload/inspector.ts
 Inspector 必须用 ts-morph AST 检查：
 
 ```txt
-ORDER_DETAIL_READY_WAIT_MIN_MS = 7_000
-ORDER_DETAIL_READY_WAIT_MAX_MS = 15_000
-ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS / MAX 存在
+ORDER_DETAIL_READY_TIMEOUT_MS = 2_000
+ORDER_DETAIL_READY_POLL_INTERVAL_MS = 200
+ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT = 3
 openApprovedOrderDetail -> waitForApprovedOrderDetail
-openApprovedOrderDetail -> refreshApprovedOrderDetailIfNeeded
-禁止 refreshApprovedOrderDetailOnce
-random wait -> Math.random()
-恢复刷新日志包含 Order detail recovery refresh executed once after missing readiness markers
+amazon-invoice-upload-order-detail.ts 中 BrowserController.open 恰好一次
+禁止 refreshApprovedOrderDetailIfNeeded / refreshApprovedOrderDetailOnce / retryOrderDetailIfNeeded
+禁止旧 ENTRY_READY_TIMEOUT_MS / openSellerCentralEntry / waitForSellerCentralEntry
+UPLOAD_DIALOG_READY_TIMEOUT_MS = 2_000
+FILE_INPUT_READY_TIMEOUT_MS = 2_000
+UPLOAD_SUCCESS_TIMEOUT_MS = 2_000
 UPLOAD_STEP_RETRY_LIMIT = 2
 runUploadStepWithRetries 递归调用自身
-open order detail / open upload invoice entry / upload approved invoice 均接入 runUploadStepWithRetries
+只有 open upload invoice entry / upload approved invoice 接入 runUploadStepWithRetries；订单详情由单次导航后的三个 2 秒同页窗口负责
 敏感终态 gate 不进入无限重试
 不得存在 `file attached before final submit` 人审终止分支
 schema / UI / client / service 均不得保留 `requireHumanFinalSubmit` 或 `stopOnManualRequired`
 API Boundary 不得把 `requireHumanFinalSubmit` / `stopOnManualRequired` 当作 forbidden_external_request_key；upload route 必须清洗 legacy 非 schema 字段
 APP Ledger 页面必须读取 `/api/plugins/amazon-invoice-upload/ledger` 并展示 upload records
 Batch / Upload UI 不得暴露 `Safe Review Mode` 或 `require human final submit`
-existingInvoiceEvidenceTimeoutMs = 45_000
+existingInvoiceEvidenceTimeoutMs = 2_000
 existingInvoiceEvidencePollMs = 250
 精确阻断文案常量 = 很抱歉，目前没有可用的操作。
 verifyAlreadyUploadedInvoice 只允许一次 dismissNoAvailableActionsDialog -> openManageInvoiceList 恢复
@@ -748,9 +752,9 @@ batch start
   -> refresh current Chrome navigation state
   -> find existing Seller Central same-host worker tab, or open one if none exists
   -> item 1: navigate worker tab to /orders-v3/order/<orderId>
-       -> wait random 10-15s for order id + invoice action state
-       -> if missing and no auth gate, perform one recovery refresh and wait a random short window
-       -> verify target order id + invoice action state
+       -> observe order id + invoice action state in a 2s window
+       -> if missing, log failure and start the next 2s observation on the unchanged page
+       -> after at most three windows, fail without refresh or repeat navigation
        -> upload / already-uploaded judgment
        -> retain worker tab
   -> item 2: reuse same active worker tab and navigate URL

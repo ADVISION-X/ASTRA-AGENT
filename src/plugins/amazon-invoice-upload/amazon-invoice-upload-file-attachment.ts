@@ -18,7 +18,7 @@ import { fillInvoiceNumber } from "./amazon-invoice-upload-invoice-number.js";
 
 type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
 
-const FILE_INPUT_READY_TIMEOUT_MS = 10000;
+const FILE_INPUT_READY_TIMEOUT_MS = 2_000;
 const FILE_INPUT_READY_POLL_INTERVAL_MS = 250;
 
 const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });

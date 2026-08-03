@@ -1,10 +1,8 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import type { BrowserOpenReusePolicy } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
-import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import {
   normalizeSubmitFailure,
@@ -18,11 +16,9 @@ import { verifyAlreadyUploadedInvoice } from "./amazon-invoice-upload-existing.j
 import { verifyUploadSuccess } from "./amazon-invoice-upload-verify.js";
 import {
   clickLocated,
-  gatedResult,
   locateOrStatus,
   locateFailureResult,
   readSnapshot,
-  taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
@@ -44,8 +40,6 @@ type SubmitButtonLocateResult =
   | { ok: true; element: DomElementRef; expectedText: string }
   | LocateFailure;
 
-const ENTRY_READY_TIMEOUT_MS = 10000;
-const ENTRY_READY_POLL_INTERVAL_MS = 500;
 const UPLOAD_STEP_RETRY_LIMIT = 2;
 const UPLOAD_STEP_RETRY_SETTLE_MS = 500;
 
@@ -57,8 +51,6 @@ export async function runAmazonInvoiceUpload(
   rawMission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
-  const entryResult = await openSellerCentralEntry(browser, runtimeLogger, mission);
-  if (entryResult) return entryResult;
   return continueInvoiceUpload(browser, runtimeLogger, mission);
 }
 
@@ -67,13 +59,7 @@ async function continueInvoiceUpload(
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const orderDetailResult = await runUploadStepWithRetries({
-    browser,
-    runtimeLogger,
-    mission,
-    stepName: "open order detail",
-    action: () => openOrderDetail(browser, runtimeLogger, mission),
-  });
+  const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission);
   if (!orderDetailResult.ok) return orderDetailResult.failure;
 
   const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
@@ -123,115 +109,6 @@ function isRetryableUploadStepFailure(failure: AmazonInvoiceUploadTaskResult): b
   return failure.status !== "login_required"
     && failure.status !== "captcha_or_2fa_required"
     && failure.reachedStep !== "verify upload success";
-}
-
-async function openSellerCentralEntry(
-  browser: BrowserController,
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<AmazonInvoiceUploadTaskResult | null> {
-  const reusePolicy = await sellerCentralEntryReusePolicy(browser, mission.sellerCentralEntryUrl);
-  await browser.open({
-    url: mission.sellerCentralEntryUrl,
-    title: "Amazon Seller Central invoice upload entry",
-    reusePolicy,
-  });
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName: "open seller central entry tab lifecycle",
-    status: "success",
-    reason: reusePolicy === "reuse-host-tab" || reusePolicy === "reuse-active-tab"
-      ? "Reused retained Seller Central order worker tab for the next invoice."
-      : "Opened a dedicated Seller Central order worker tab.",
-  });
-  const entryReady = await waitForSellerCentralEntry(browser, mission);
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName: "wait seller central entry",
-    status: entryReady.ready ? "success" : "failed",
-    snapshot: entryReady.snapshot,
-    reason: entryReady.ready ? "Seller Central entry is ready." : entryReady.reason,
-  });
-  const gate = gatedResult(entryReady.snapshot, mission, "open seller central");
-  if (gate) return gate;
-  return entryReady.ready ? null : sellerCentralEntryNotReadyResult(mission, entryReady.reason);
-}
-
-async function sellerCentralEntryReusePolicy(
-  browser: BrowserController,
-  targetUrl: string,
-): Promise<BrowserOpenReusePolicy> {
-  await refreshCurrentBrowserState(browser);
-  if (isHttpSellerCentralUrl(targetUrl)) return "reuse-host-tab";
-  return isSameNavigationHost(browser.getSessionState().currentUrl, targetUrl) ? "reuse-active-tab" : "open-new-tab";
-}
-
-async function refreshCurrentBrowserState(browser: BrowserController): Promise<void> {
-  await browser.getGeometrySnapshot().catch(() => null);
-}
-
-function isHttpSellerCentralUrl(targetUrl: string): boolean {
-  try {
-    const url = new URL(targetUrl);
-    return (url.protocol === "http:" || url.protocol === "https:") && url.hostname.includes("sellercentral.amazon.");
-  } catch {
-    return false;
-  }
-}
-
-function isSameNavigationHost(currentUrl: string, targetUrl: string): boolean {
-  try {
-    const current = new URL(currentUrl);
-    const target = new URL(targetUrl);
-    return current.protocol === target.protocol && current.host === target.host;
-  } catch {
-    return false;
-  }
-}
-
-const sellerCentralEntryNotReadyResult = (
-  mission: AmazonInvoiceUploadMissionInput,
-  reason: string,
-): AmazonInvoiceUploadTaskResult =>
-  taskResult({
-    status: "review_required",
-    reason,
-    reachedStep: "wait for seller central order search",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    reviewRequired: true,
-  });
-
-async function waitForSellerCentralEntry(
-  browser: BrowserController,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<{ ready: true; snapshot: DomSnapshot } | { ready: false; snapshot: DomSnapshot; reason: string }> {
-  const startedAt = Date.now();
-  let lastSnapshot = await readSnapshot(browser);
-  while (Date.now() - startedAt <= ENTRY_READY_TIMEOUT_MS) {
-    const gate = gatedResult(lastSnapshot, mission, "open seller central");
-    if (gate) {
-      return { ready: true, snapshot: lastSnapshot };
-    }
-    const searchInput = locateOrStatus({
-      snapshot: lastSnapshot,
-      targetKind: "search-input",
-      hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.orderSearch],
-      notFoundStatus: "failed",
-    });
-    if (searchInput.ok) {
-      return { ready: true, snapshot: lastSnapshot };
-    }
-    await browser.wait(ENTRY_READY_POLL_INTERVAL_MS);
-    lastSnapshot = await readSnapshot(browser);
-  }
-  return {
-    ready: false,
-    snapshot: lastSnapshot,
-    reason: "Seller Central order search did not become available before timeout.",
-  };
 }
 
 async function uploadAndSubmitInvoice(

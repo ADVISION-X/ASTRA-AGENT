@@ -46,11 +46,14 @@ async function main(): Promise<void> {
     if (browser.closeActiveTabCalls !== 0) {
       throw new Error(`Amazon invoice smoke must retain the order tab; closeActiveTabCalls=${browser.closeActiveTabCalls}`);
     }
-    if (!browser.openReusePolicies.includes("reuse-active-tab")) {
-      throw new Error("Amazon invoice smoke must reuse the active order tab during order detail navigation.");
+    if (!browser.openReusePolicies.includes("open-new-tab")) {
+      throw new Error("Amazon invoice smoke must use the order-detail owner's single navigation policy for a fresh file fixture.");
     }
-    if (browser.orderDetailRefreshOpenCount !== 1) {
-      throw new Error(`Amazon invoice smoke must execute exactly one conditional recovery refresh; orderDetailRefreshOpenCount=${browser.orderDetailRefreshOpenCount}`);
+    if (browser.duplicateOrderDetailOpenCount !== 0 || browser.fileUrlOpenCount !== 1) {
+      throw new Error(`Amazon invoice smoke must open the order detail exactly once; opens=${browser.fileUrlOpenCount}, duplicates=${browser.duplicateOrderDetailOpenCount}`);
+    }
+    if (browser.domSnapshotTimeouts.length === 0 || browser.domSnapshotTimeouts.some((timeoutMs) => timeoutMs <= 0 || timeoutMs > 1_800)) {
+      throw new Error(`Every Amazon invoice DOM snapshot must carry a production deadline no greater than 1800ms: ${JSON.stringify(browser.domSnapshotTimeouts)}`);
     }
     assertBackendPdfTextAmountReadable();
     assertSplitSellerCentralOrderTotalReadable();
@@ -90,11 +93,11 @@ async function assertNoActionsDialogRecovery(
     if (browser.noActionsDialogDismissClicks !== 1) {
       throw new Error(`No-actions dialog ${behavior} fixture must click outside exactly once; clicks=${browser.noActionsDialogDismissClicks}.`);
     }
-    if (browser.orderDetailRefreshOpenCount !== 0) {
+    if (browser.duplicateOrderDetailOpenCount !== 0) {
       throw new Error(`No-actions dialog ${behavior} fixture must not refresh the order detail page.`);
     }
-    if (browser.fileUrlOpenCount !== 2) {
-      throw new Error(`No-actions dialog ${behavior} fixture must keep only the two normal entry/order opens; opens=${browser.fileUrlOpenCount}.`);
+    if (browser.fileUrlOpenCount !== 1) {
+      throw new Error(`No-actions dialog ${behavior} fixture must open the order detail exactly once; opens=${browser.fileUrlOpenCount}.`);
     }
     if (browser.fileInputSetCalls !== 0) {
       throw new Error(`No-actions dialog ${behavior} fixture must stop before PDF upload.`);

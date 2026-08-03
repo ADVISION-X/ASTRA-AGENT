@@ -18,7 +18,7 @@ type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoic
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 const UPLOAD_DIALOG_NOT_READY_REASON =
   "Upload invoice entry was clicked, but the upload dialog did not expose a file upload control";
-const UPLOAD_DIALOG_READY_TIMEOUT_MS = 15000;
+const UPLOAD_DIALOG_READY_TIMEOUT_MS = 2_000;
 const UPLOAD_DIALOG_READY_POLL_INTERVAL_MS = 250;
 
 const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });

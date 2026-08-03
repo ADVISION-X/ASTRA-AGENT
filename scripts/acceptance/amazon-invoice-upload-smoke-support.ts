@@ -56,6 +56,9 @@ const smokeFixtureHtml = `
     document.querySelector("#upload-invoice").addEventListener("click", () => {
       document.querySelector("#upload-panel").hidden = false;
     });
+    window.setTimeout(() => {
+      document.querySelector("#upload-invoice").textContent = "Upload invoice";
+    }, 2500);
     document.querySelector("#invoice-file").addEventListener("change", () => {
       document.querySelector("#status").textContent = "File attached INV-1";
     });
@@ -199,9 +202,10 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
   closeActiveTabCalls = 0;
   fileInputSetCalls = 0;
   noActionsDialogDismissClicks = 0;
+  domSnapshotTimeouts: number[] = [];
   openReusePolicies: string[] = [];
   fileUrlOpenCount = 0;
-  orderDetailRefreshOpenCount = 0;
+  duplicateOrderDetailOpenCount = 0;
 
   constructor(private readonly page: Page, private readonly screenshotDir: string) {}
 
@@ -213,23 +217,12 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
     await this.page.goto(input.url);
     if (input.url.startsWith("file:")) {
       this.fileUrlOpenCount += 1;
-      if (this.fileUrlOpenCount >= 3) {
-        const uploadEntry = this.page.locator("#upload-invoice");
-        if (await uploadEntry.count() === 1) {
-          this.orderDetailRefreshOpenCount += 1;
-          await uploadEntry.evaluate((element) => {
-            element.textContent = "Upload invoice";
-          });
-        }
-      }
+      if (this.fileUrlOpenCount > 1) this.duplicateOrderDetailOpenCount += 1;
     }
     return action(`opened ${input.title}`);
   }
   async scroll(): Promise<BrowserActionResult> { return action("scroll not needed"); }
   async click(input: { targetLabel: string; point: { x: number; y: number }; button?: "left" | "right" | "middle"; clickCount?: 1 | 2 }): Promise<BrowserActionResult> {
-    if (input.targetLabel === "dismiss Amazon manage invoice no-actions dialog") {
-      this.noActionsDialogDismissClicks += 1;
-    }
     await this.page.mouse.click(input.point.x, input.point.y, { button: input.button ?? "left", clickCount: input.clickCount ?? 1 });
     return action(`clicked ${input.targetLabel}`);
   }
@@ -268,7 +261,13 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
       createdAt: now(),
     };
   }
-  async evaluateActiveTab<T>(input: { script: string }): Promise<T> {
+  async evaluateActiveTab<T>(input: { script: string; description: string; timeoutMs?: number }): Promise<T> {
+    if (input.description === "read governed DOM structural summary from active tab") {
+      this.domSnapshotTimeouts.push(input.timeoutMs ?? 0);
+    }
+    if (input.description === "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog") {
+      this.noActionsDialogDismissClicks += 1;
+    }
     return this.page.evaluate<unknown, string>((source) => {
       const run = new Function(source) as () => unknown;
       return run();

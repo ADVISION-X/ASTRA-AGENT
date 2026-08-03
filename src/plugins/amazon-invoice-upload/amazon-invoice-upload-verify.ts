@@ -21,7 +21,7 @@ const UPLOAD_SUCCESS_HINTS = [
   "客户可以直接从自己的账户下载文件",
   "上传其他发票或贷记单",
 ];
-const UPLOAD_SUCCESS_TIMEOUT_MS = 15000;
+const UPLOAD_SUCCESS_TIMEOUT_MS = 2_000;
 const UPLOAD_SUCCESS_POLL_INTERVAL_MS = 250;
 
 type VerifySuccessResult = Awaited<ReturnType<typeof waitForState>>;

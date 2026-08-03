@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T19:34:54.384Z",
+  "generatedAt": "2026-08-03T21:23:08.586Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -533,35 +533,43 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "flow+ast+acceptance+chrome",
-      "summary": "Amazon invoice upload must not mechanically refresh every order detail page; it may execute only one recovery refresh after a bounded DOM readiness window proves the target order id and invoice action state are missing and auth gates are not present.",
+      "summary": "Amazon invoice upload must enter each order through one explicit order-detail navigation, must never refresh that page as recovery, and must turn any missing page-state transition after 2 seconds into a logged failure with a finite next action.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
-          "statement": "Amazon invoice upload must not mechanically refresh every order detail page; it may execute only one recovery refresh after a bounded DOM readiness window proves the target order id and invoice action state are missing and auth gates are not present.",
+          "statement": "Amazon invoice upload uses one order-detail navigation per item, never refreshes or reopens the order page, and turns every 2-second readiness miss into a logged failure followed only by a finite same-page observation.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "amazon-invoice-upload"
         }
       ],
       "appliesTo": [
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+        "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
+        "src/lib/browser/current-chrome-browser-screenshot.ts",
         "scripts/audit/domains/amazon-invoice-upload/**",
         "scripts/acceptance/amazon-invoice-upload*.ts",
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
       ],
       "required": [
-        "Order detail navigation first waits a random 10-15 second readiness window for target order id, upload/manage/already-uploaded invoice state, and loading completion.",
-        "If the readiness window succeeds, upload proceeds without a recovery refresh.",
-        "If the readiness window fails and login/captcha/2FA gates are not present, the flow executes at most one same-tab recovery refresh.",
-        "After the recovery refresh, the flow waits a random short window before final readiness verification.",
-        "The recovery refresh trace records why it happened without logging PDF bytes, cookies, documentId, or local absolute invoice paths.",
-        "The final readiness check still fails closed if target order id and invoice action state are not proven."
+        "The upload flow must call the order-detail owner directly; it must not first open the same sellerCentralEntryUrl through a generic Seller Central entry phase.",
+        "Each invoice item performs exactly one BrowserController.open for the order detail and never navigates that item again.",
+        "Order-detail readiness is observed in at most three consecutive windows; each window is no longer than 2 seconds and must record a structured failure before the next same-page observation begins.",
+        "Every Amazon invoice DOM snapshot has an explicit execution deadline no greater than 1800ms so a low-level Chrome evaluation cannot silently exceed the 2-second business window.",
+        "A DOM evaluation exception inside an order-detail observation is converted into that window's structured failure and the next finite same-page observation; it must not bypass the governed window sequence.",
+        "Evidence screenshot capture activates the controlled Chrome window before capture so a transient zero-accessibility-window state cannot fail the invoice item.",
+        "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting three windows returns review-required failure without refresh or repeat navigation.",
+        "Upload dialog readiness, file-input readiness, existing-invoice evidence, and post-submit success evidence each use an observation timeout no greater than 2 seconds.",
+        "Login, captcha, 2FA, amount mismatch, ambiguous DOM, exhausted retry, and final verification failure must fail closed without PDF upload or fake success."
       ],
       "forbidden": [
-        "Unconditional order-detail refresh immediately after every order-detail navigation.",
-        "More than one recovery refresh for the same order detail attempt.",
-        "Refresh loops that can continue indefinitely.",
-        "Refreshing login, captcha, or 2FA gates into a fake upload attempt.",
-        "Proceeding to upload before target order id and invoice action state are proven."
+        "Opening sellerCentralEntryUrl and then opening the derived order-detail URL as two normal entry steps for the same item.",
+        "Any same-tab order-page refresh helper, recovery refresh, random readiness delay, fallback, compatibility bridge, or shadow branch.",
+        "Any passive page-state wait longer than 2 seconds inside the upload execution flow.",
+        "Using the BrowserController 10-second default evaluation timeout for an Amazon invoice DOM snapshot.",
+        "Allowing a transient order-detail DOM evaluation exception to escape directly as an unclassified upload-flow runtime failure.",
+        "Starting the next same-page observation before the preceding 2-second window has returned and logged its failure.",
+        "Proceeding to upload before target order id, invoice action state, and amount equality are proven."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 10
@@ -595,11 +603,11 @@
         "Only ledger records with status upload_success or already_uploaded may be skipped before opening Seller Central.",
         "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
         "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
-        "After opening Manage invoice / 管理发票 for existing-invoice verification, the flow must wait a bounded production window of at least 45 seconds for strong invoice-list evidence before returning review_required, unless the current-order dialog exposes the exact blocker 很抱歉，目前没有可用的操作。",
-        "Only when one visible current-order invoice dialog exposes the exact no-actions blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify that the blocked dialog disappeared, reopen Manage invoice, and wait again for strong invoice-list evidence.",
+        "After opening Manage invoice / 管理发票, the flow observes strong invoice-list evidence or the exact blocker 很抱歉，目前没有可用的操作。 for at most 2 seconds; expiry is a structured review_required failure.",
+        "Only when one visible current-order invoice dialog exposes the exact no-actions blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and observe strong evidence for at most 2 seconds.",
         "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, the exact blocker appears again, or the second strong-evidence window expires, the order must stop as review_required before any PDF upload.",
         "APP batch upload and external API upload must use this same plugin-owned recovery through the existing /api/plugins/amazon-invoice-upload/start route.",
-        "A still-loading or slow Seller Central invoice list must not be collapsed into already_uploaded, upload_success, or a short-timeout review_required result.",
+        "A still-loading or unchanged Seller Central invoice list after 2 seconds must become review_required; it must never be collapsed into already_uploaded or upload_success.",
         "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
         "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
         "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf."
@@ -4178,7 +4186,8 @@
         "File-selected state treated as final business success.",
         "Login or captcha state downgraded to not_found.",
         "Verification evidence ref that cannot be traced to an observed snapshot or action.",
-        "Business success terms hardcoded in DOM core."
+        "Business success terms hardcoded in DOM core.",
+        "An underlying DOM snapshot evaluation that can outlive the caller's governed wait deadline."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
       "blockIndex": 9

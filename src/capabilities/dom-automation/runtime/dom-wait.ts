@@ -5,6 +5,8 @@ import type { VerifyDomStateInput, WaitForDomStateInput } from "../../../types/d
 import { readDomSnapshotOnce } from "./dom-snapshot.js";
 import { verifyDomStateOnce } from "./dom-verify.js";
 
+const DOM_WAIT_SNAPSHOT_TIMEOUT_MS = 1_800;
+
 export async function waitForDomStateOnce(
   browser: BrowserController,
   rawInput: WaitForDomStateInput,
@@ -13,7 +15,8 @@ export async function waitForDomStateOnce(
   const startedAt = Date.now();
   const timeoutMs = input.timeoutMs ?? 5000;
   const pollIntervalMs = input.pollIntervalMs ?? 500;
-  let snapshot = input.initialSnapshot ?? await readDomSnapshotOnce(browser);
+  const snapshotTimeoutMs = Math.min(timeoutMs, DOM_WAIT_SNAPSHOT_TIMEOUT_MS);
+  let snapshot = input.initialSnapshot ?? await readDomSnapshotOnce(browser, { timeoutMs: snapshotTimeoutMs });
   const verifyInput = {
     expectedStates: input.expectedStates,
     successHints: input.successHints,
@@ -22,7 +25,7 @@ export async function waitForDomStateOnce(
   let latest = verifyDomStateOnce({ ...verifyInput, snapshot } as VerifyDomStateInput);
   while (latest.status === "not_found" && Date.now() - startedAt < timeoutMs) {
     await browser.wait(pollIntervalMs);
-    snapshot = await readDomSnapshotOnce(browser);
+    snapshot = await readDomSnapshotOnce(browser, { timeoutMs: snapshotTimeoutMs });
     latest = verifyDomStateOnce({ ...verifyInput, snapshot } as VerifyDomStateInput);
   }
   return latest;

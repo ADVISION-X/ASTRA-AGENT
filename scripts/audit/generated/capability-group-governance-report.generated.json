@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T19:34:58.686Z",
+  "generatedAt": "2026-08-03T21:23:12.106Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -234,6 +234,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",

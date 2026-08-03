@@ -5,6 +5,7 @@ export type ReadDomSnapshotInput = {
   includeHidden?: false;
   maxTextLengthPerNode?: number | undefined;
   targetScope?: "active-tab" | "current-frame" | undefined;
+  timeoutMs?: number | undefined;
 };
 
 export type LocateDomElementInput = {

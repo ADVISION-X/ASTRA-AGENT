@@ -15,7 +15,7 @@ import {
   locateManageInvoiceEntry,
 } from "./amazon-existing-invoice-evidence.js";
 
-const existingInvoiceEvidenceTimeoutMs = 45_000;
+const existingInvoiceEvidenceTimeoutMs = 2_000;
 const existingInvoiceEvidencePollMs = 250;
 const noAvailableActionsDialogDismissTimeoutMs = 2_000;
 const noAvailableActionsDialogText = "很抱歉，目前没有可用的操作。";
@@ -25,8 +25,8 @@ type ExistingInvoiceEvidenceWaitResult =
   | { kind: "no_available_actions"; snapshot: Awaited<ReturnType<typeof readSnapshot>> }
   | { kind: "timeout" };
 
-type OutsideDialogPointResult =
-  | { ok: true; point: { x: number; y: number } }
+type OutsideDialogClickResult =
+  | { ok: true }
   | { ok: false; reason: string };
 
 type AlreadyUploadedRetainedTabInput = {
@@ -189,21 +189,11 @@ async function dismissNoAvailableActionsDialog(
     reason: "The unique current-order invoice dialog exposed the exact no-available-actions blocker.",
   });
 
-  const outsidePoint = await locateSafeOutsideDialogPoint(browser, mission);
-  if (!outsidePoint.ok) {
-    return existingInvoiceNeedsReview(mission, outsidePoint.reason);
-  }
-  const clicked = await browser.click({
-    targetLabel: "dismiss Amazon manage invoice no-actions dialog",
-    point: outsidePoint.point,
-    coordinateSpace: "browserViewport",
-    button: "left",
-    clickCount: 1,
-  });
+  const clicked = await clickSafeOutsideDialogPoint(browser, mission);
   if (!clicked.ok) {
     return existingInvoiceNeedsReview(
       mission,
-      `Amazon manage-invoice recovery could not click the verified outside-dialog blank area: ${clicked.message}`,
+      `Amazon manage-invoice recovery could not click the verified outside-dialog blank area: ${clicked.reason}`,
     );
   }
   if (!await waitForNoAvailableActionsDialogDismissal(browser, mission)) {
@@ -222,14 +212,14 @@ async function dismissNoAvailableActionsDialog(
   return null;
 }
 
-async function locateSafeOutsideDialogPoint(
+async function clickSafeOutsideDialogPoint(
   browser: BrowserController,
   mission: AmazonInvoiceUploadMissionInput,
-): Promise<OutsideDialogPointResult> {
+): Promise<OutsideDialogClickResult> {
   const orderId = JSON.stringify(mission.amazonOrderId);
   const blockerText = JSON.stringify(noAvailableActionsDialogText);
-  return browser.evaluateActiveTab<OutsideDialogPointResult>({
-    description: "locate one safe blank point outside the blocked Amazon manage-invoice dialog",
+  return browser.evaluateActiveTab<OutsideDialogClickResult>({
+    description: "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog",
     script: `
       const orderId = ${orderId};
       const blockerText = ${blockerText};
@@ -263,7 +253,12 @@ async function locateSafeOutsideDialogPoint(
         || (point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom)) {
         return { ok: false, reason: "Amazon manage-invoice recovery could not derive a safe blank point outside the live dialog." };
       }
-      return { ok: true, point: { x: point.x, y: point.y } };
+      const target = document.elementFromPoint(point.x, point.y);
+      if (!(target instanceof HTMLElement)) {
+        return { ok: false, reason: "Amazon manage-invoice recovery blank point has no clickable DOM target." };
+      }
+      target.click();
+      return { ok: true };
     `,
   });
 }

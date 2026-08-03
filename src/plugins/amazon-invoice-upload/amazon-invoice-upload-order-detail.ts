@@ -8,10 +8,9 @@ import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 type DomSnapshot = Awaited<ReturnType<typeof readSnapshot>>;
 
-const ORDER_DETAIL_READY_WAIT_MIN_MS = 7_000;
-const ORDER_DETAIL_READY_WAIT_MAX_MS = 15_000;
-const ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS = 2_000;
-const ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS = 4_000;
+const ORDER_DETAIL_READY_TIMEOUT_MS = 2_000;
+const ORDER_DETAIL_READY_POLL_INTERVAL_MS = 200;
+const ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT = 3;
 
 type OrderDetailWaitResult =
   | { status: "ready" }
@@ -29,21 +28,23 @@ export async function openApprovedOrderDetail(
     title: "Amazon Seller Central approved order detail",
     reusePolicy: await orderDetailReusePolicy(browser, detailUrl),
   });
-  const initialReady = await waitForApprovedOrderDetail(browser, runtimeLogger, mission, detailUrl, {
-    timeoutMs: randomOrderDetailReadyWaitMs(),
-    finalTrace: false,
-  });
-  if (initialReady.status === "ready") return null;
-  if (initialReady.status === "blocked") return initialReady.result;
-
-  await refreshApprovedOrderDetailIfNeeded(browser, runtimeLogger, mission, detailUrl, initialReady.reason);
-  const finalReady = await waitForApprovedOrderDetail(browser, runtimeLogger, mission, detailUrl, {
-    timeoutMs: 7_000,
-    finalTrace: true,
-  });
-  if (finalReady.status === "ready") return null;
-  if (finalReady.status === "blocked") return finalReady.result;
-  return buildOrderDetailNotFoundResult(mission);
+  let lastReason = "Order detail page did not show the requested order id and invoice action state.";
+  for (let window = 1; window <= ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT; window += 1) {
+    const readiness = await waitForApprovedOrderDetail(browser, runtimeLogger, mission, window);
+    if (readiness.status === "ready") return null;
+    if (readiness.status === "blocked") return readiness.result;
+    lastReason = readiness.reason;
+    if (window < ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT) {
+      recordAmazonDomStepTrace({
+        runtimeLogger,
+        mission,
+        stepName: `continue same-page order readiness window ${window + 1}`,
+        status: "snapshot",
+        reason: `The preceding 2000ms observation failed. Continue on the same page without refresh or another navigation.`,
+      });
+    }
+  }
+  return buildOrderDetailNotFoundResult(mission, lastReason);
 }
 
 async function orderDetailReusePolicy(browser: BrowserController, targetUrl: string): Promise<BrowserOpenReusePolicy> {
@@ -112,57 +113,22 @@ const snapshotIsLoading = (snapshot: DomSnapshot): boolean =>
   [...snapshot.textBlocks.map((item) => item.visibleText), ...snapshot.dialogs.map((item) => item.visibleText)]
     .some((value) => String(value ?? "").includes("正在加载"));
 
-const randomWaitMs = (minMs: number, maxMs: number): number =>
-  minMs + Math.floor(Math.random() * (maxMs - minMs + 1));
-
-const randomOrderDetailReadyWaitMs = (): number =>
-  randomWaitMs(ORDER_DETAIL_READY_WAIT_MIN_MS, ORDER_DETAIL_READY_WAIT_MAX_MS);
-
-const randomOrderDetailRecoveryRefreshWaitMs = (): number =>
-  randomWaitMs(ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS, ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS);
-
-async function refreshApprovedOrderDetailIfNeeded(
-  browser: BrowserController,
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-  detailUrl: string,
-  readinessFailureReason: string,
-): Promise<void> {
-  await browser.open({ url: detailUrl, title: "Amazon Seller Central approved order detail refresh", reusePolicy: "reuse-active-tab" });
-  const waitMs = randomOrderDetailRecoveryRefreshWaitMs();
-  await browser.wait(waitMs);
-  const snapshot = await readSnapshot(browser);
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName: "refresh approved order detail after readiness timeout",
-    status: "snapshot",
-    snapshot,
-    reason: `Order detail recovery refresh executed once after missing readiness markers: ${readinessFailureReason}; waited ${waitMs}ms.`,
-  });
-}
-
-const retryOrderDetailIfNeeded = (
-  browser: BrowserController,
-  snapshot: DomSnapshot,
-  detailUrl: string,
-  amazonOrderId: string,
-): Promise<unknown> | null =>
-  snapshot.url.includes(`/orders-v3/order/${amazonOrderId}`)
-    ? null
-    : browser.open({ url: detailUrl, title: "Amazon Seller Central approved order detail retry", reusePolicy: "reuse-active-tab" });
-
 const waitForApprovedOrderDetail = async (
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-  detailUrl: string,
-  options: { timeoutMs: number; finalTrace: boolean },
+  observationWindow: number,
 ): Promise<OrderDetailWaitResult> => {
   const startedAt = Date.now();
   let lastReason = "Order detail page did not show the requested order id and invoice action state.";
-  while (Date.now() - startedAt < options.timeoutMs) {
-    const snapshot = await readSnapshot(browser);
+  while (Date.now() - startedAt < ORDER_DETAIL_READY_TIMEOUT_MS) {
+    let snapshot: DomSnapshot;
+    try {
+      snapshot = await readSnapshot(browser);
+    } catch (error) {
+      lastReason = `Order detail DOM observation failed within the 2-second window: ${error instanceof Error ? error.message : String(error)}`;
+      break;
+    }
     const gate = gatedResult(snapshot, mission, "open approved order detail");
     if (gate) return { status: "blocked", result: gate };
     if (
@@ -178,22 +144,18 @@ const waitForApprovedOrderDetail = async (
         snapshot,
         reason: "Order detail showed the requested order id and invoice action state.",
       });
-      await browser.wait(100);
       return { status: "ready" };
     }
     lastReason = orderDetailReadinessFailureReason(snapshot, mission.amazonOrderId);
-    await retryOrderDetailIfNeeded(browser, snapshot, detailUrl, mission.amazonOrderId);
-    await browser.wait(350);
+    await browser.wait(ORDER_DETAIL_READY_POLL_INTERVAL_MS);
   }
-  if (options.finalTrace) {
-    recordAmazonDomStepTrace({
-      runtimeLogger,
-      mission,
-      stepName: "open approved order detail",
-      status: "failed",
-      reason: lastReason,
-    });
-  }
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "open approved order detail",
+    status: "failed",
+    reason: `${lastReason} The 2000ms observation window ${observationWindow}/${ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT} expired.`,
+  });
   return { status: "not_ready", reason: lastReason };
 };
 
@@ -212,10 +174,11 @@ const orderDetailReadinessFailureReason = (snapshot: DomSnapshot, amazonOrderId:
 
 const buildOrderDetailNotFoundResult = (
   mission: AmazonInvoiceUploadMissionInput,
+  reason: string,
 ): AmazonInvoiceUploadTaskResult =>
   taskResult({
     status: "order_not_found",
-    reason: "Approved order detail page did not show the requested Amazon order id.",
+    reason: `${reason} All ${ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT} same-page observation windows expired; no order-page refresh or repeat navigation was executed.`,
     reachedStep: "open approved order detail",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,

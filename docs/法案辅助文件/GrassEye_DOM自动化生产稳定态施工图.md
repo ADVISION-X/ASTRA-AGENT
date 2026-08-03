@@ -143,6 +143,8 @@ DOM 能力组当前允许 **7 个** active child ability:
 | `click-dom-element-once` | browser + expected kind/text + element ref | `DomActionResult` | DOM-first, coordinate as transport only |
 | `upload-approved-file-once` | browser + approved file + file input ref | `DomActionResult` | path approval, file input only, no content leak |
 | `wait-for-dom-state-once` | browser + expected states | `DomVerificationResult` | polling, timeout truth |
+
+`wait-for-dom-state-once` 的每次底层 snapshot 最长 `1800ms`，并且不得超过调用方给出的总 timeout；底层 Chrome evaluate 不允许以默认 `10000ms` 穿透上层等待窗口。
 | `verify-dom-state-once` | snapshot + expected states | `DomVerificationResult` | observed page state, not business fiction |
 
 新增子能力协议（每次新增必须按顺序走）:
@@ -494,7 +496,7 @@ src/capabilities/dom-automation/runtime/dom-click.ts
 
 生产级规则:
 
-- click identity 是 DOM element ref，不是坐标。
+- click identity 是 DOM element ref；重校验和点击在同一次受控 DOM 动作内完成，不再重复生成坐标点击链。
 - 坐标只允许作为 BrowserController 的执行传输细节。
 - 点击前 revalidate selector 只匹配一个元素。
 - 元素必须 visible + enabled。
@@ -880,7 +882,7 @@ Phase 1 inspector minimum:
 Phase 2 inspector:
 
 - AST check throw-based normal locator failure。
-- AST check evidence capture before/after fill/click/upload。
+- AST check fill/upload 的 before/after evidence；click 使用已完成的定位快照并强制 capture after evidence。
 - AST check no full HTML/cookie/storage/password snapshot fields。
 - AST check frameRef is not ignored by action paths once frame support is declared。
 - AST check snapshot has `overlays` and `dropdownTriggers` output fields。

@@ -31,8 +31,11 @@ const processPath = "docs/法案辅助文件/amazon_invoice_upload_process.md";
 const ownerRoot = "src/plugins/amazon-invoice-upload";
 const missionSchemaPath = `${ownerRoot}/mission.schema.ts`;
 const uploadFlowPath = `${ownerRoot}/amazon-invoice-upload.flow.ts`;
+const uploadFlowSupportPath = `${ownerRoot}/amazon-invoice-upload-flow-support.ts`;
 const amountGatePath = `${ownerRoot}/amazon-invoice-upload-amount-check.ts`;
 const orderDetailPath = `${ownerRoot}/amazon-invoice-upload-order-detail.ts`;
+const uploadStepsPath = `${ownerRoot}/amazon-invoice-upload-steps.ts`;
+const uploadFileAttachmentPath = `${ownerRoot}/amazon-invoice-upload-file-attachment.ts`;
 const taskServicePath = `${ownerRoot}/amazon-invoice-upload-task-service.ts`;
 const uploadLedgerPath = `${ownerRoot}/amazon-invoice-upload-ledger.ts`;
 const uploadStoragePath = `${ownerRoot}/amazon-invoice-upload-storage.ts`;
@@ -48,6 +51,7 @@ const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
 const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
+const chromeScreenshotPath = "src/lib/browser/current-chrome-browser-screenshot.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellClientPath = "src/app/workbench-home-client.ts";
@@ -59,8 +63,11 @@ const inspectedFiles = [
   blueprintPath,
   processPath,
   uploadFlowPath,
+  uploadFlowSupportPath,
   amountGatePath,
   orderDetailPath,
+  uploadStepsPath,
+  uploadFileAttachmentPath,
   taskServicePath,
   uploadLedgerPath,
   uploadStoragePath,
@@ -77,6 +84,7 @@ const inspectedFiles = [
   boundaryPath,
   browserControllerPath,
   chromeWindowControlPath,
+  chromeScreenshotPath,
   appShellLayoutPath,
   appShellAmazonInvoiceWorkspacePath,
   smokeAcceptanceSupportPath,
@@ -90,6 +98,7 @@ const inspectedFiles = [
   "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
   selfPath,
 ];
@@ -399,7 +408,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAppShellClient(source(context.project, appShellClientPath), findings, lawIds.ui);
   inspectUploadStabilityGuard({
     flowFile: source(context.project, uploadFlowPath),
+    flowSupportFile: source(context.project, uploadFlowSupportPath),
     orderFile: source(context.project, orderDetailPath),
+    stepsFile: source(context.project, uploadStepsPath),
+    fileAttachmentFile: source(context.project, uploadFileAttachmentPath),
     taskServiceFile: source(context.project, taskServicePath),
     missionSchemaFile: source(context.project, missionSchemaPath),
     verifyFile: source(context.project, uploadVerifyPath),
@@ -407,6 +419,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     existingEvidenceFile: source(context.project, existingEvidencePath),
     browserControllerFile: source(context.project, browserControllerPath),
     chromeWindowControlFile: source(context.project, chromeWindowControlPath),
+    chromeScreenshotFile: source(context.project, chromeScreenshotPath),
     findings,
     lawId: lawIds.audit,
     conditionalRefreshLawId: lawIds.conditionalRefresh,

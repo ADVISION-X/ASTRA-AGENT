@@ -1,8 +1,7 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
-
+import { collectUploadRuntimeStabilityGaps, hasConstInitializer } from "./inspector-upload-runtime-stability.js";
 const uploadFlowPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts";
 const orderDetailPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts";
 const taskServicePath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts";
@@ -10,19 +9,11 @@ const missionSchemaPath = "src/plugins/amazon-invoice-upload/mission.schema.ts";
 const verifyPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts";
 const existingUploadPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts";
 const existingEvidencePath = "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts";
+const flowSupportPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
 const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
-
-type UploadStabilityGuardInput = {
-  flowFile: SourceFile | null;
-  orderFile: SourceFile | null;
-  taskServiceFile: SourceFile | null;
-  missionSchemaFile: SourceFile | null;
-  verifyFile: SourceFile | null;
-  existingUploadFile: SourceFile | null;
-  existingEvidenceFile: SourceFile | null;
-  browserControllerFile: SourceFile | null;
-  chromeWindowControlFile: SourceFile | null;
+const chromeScreenshotPath = "src/lib/browser/current-chrome-browser-screenshot.ts";
+type UploadStabilityGuardInput = { [Key in keyof UploadStabilityFiles]: SourceFile | null } & {
   findings: InspectorFinding[];
   lawId: string;
   conditionalRefreshLawId: string;
@@ -30,10 +21,12 @@ type UploadStabilityGuardInput = {
   tabLifecycleLawId: string;
   apiFocusReturnLawId: string;
 };
-
 type UploadStabilityFiles = {
   flowFile: SourceFile;
+  flowSupportFile: SourceFile;
   orderFile: SourceFile;
+  stepsFile: SourceFile;
+  fileAttachmentFile: SourceFile;
   taskServiceFile: SourceFile;
   missionSchemaFile: SourceFile;
   verifyFile: SourceFile;
@@ -41,6 +34,7 @@ type UploadStabilityFiles = {
   existingEvidenceFile: SourceFile;
   browserControllerFile: SourceFile;
   chromeWindowControlFile: SourceFile;
+  chromeScreenshotFile: SourceFile;
 };
 
 const stringLiteralValues = (file: SourceFile): Set<string> =>
@@ -60,9 +54,6 @@ const propertyValue = (objectLiteral: Node, name: string): string | null => {
   const initializer = property.getInitializer();
   return initializer && Node.isStringLiteral(initializer) ? initializer.getLiteralText() : null;
 };
-
-const hasConstInitializer = (file: SourceFile, name: string, initializerText: string): boolean =>
-  file.getVariableDeclaration(name)?.getInitializer()?.getText() === initializerText;
 
 const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeName: string): boolean =>
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
@@ -91,6 +82,15 @@ const sourceCallsProperty = (file: SourceFile, ownerName: string, methodName: st
       && expression.getExpression().getText() === ownerName
       && expression.getName() === methodName;
   });
+
+const sourcePropertyCallCount = (file: SourceFile, ownerName: string, methodName: string): number =>
+  file.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === ownerName
+      && expression.getName() === methodName;
+  }).length;
 
 const sourceCallsMethod = (file: SourceFile, methodName: string): boolean =>
   file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
@@ -125,26 +125,14 @@ export const inspectUploadStabilityGuard = (input: UploadStabilityGuardInput): v
 };
 
 function resolveUploadStabilityFiles(input: UploadStabilityGuardInput): UploadStabilityFiles | null {
-  if (!input.flowFile || !input.orderFile || !input.taskServiceFile) return null;
+  if (!input.flowFile || !input.flowSupportFile || !input.orderFile || !input.stepsFile || !input.fileAttachmentFile || !input.taskServiceFile) return null;
   if (!input.missionSchemaFile || !input.verifyFile || !input.existingUploadFile || !input.existingEvidenceFile) return null;
-  if (!input.browserControllerFile || !input.chromeWindowControlFile) return null;
-  return {
-    flowFile: input.flowFile,
-    orderFile: input.orderFile,
-    taskServiceFile: input.taskServiceFile,
-    missionSchemaFile: input.missionSchemaFile,
-    verifyFile: input.verifyFile,
-    existingUploadFile: input.existingUploadFile,
-    existingEvidenceFile: input.existingEvidenceFile,
-    browserControllerFile: input.browserControllerFile,
-    chromeWindowControlFile: input.chromeWindowControlFile,
-  };
+  if (!input.browserControllerFile || !input.chromeWindowControlFile || !input.chromeScreenshotFile) return null;
+  return input as UploadStabilityFiles;
 }
 
 function writeUploadStabilityDebug(missingCount: number): void {
-  process.stdout.write(
-    `[AUDIT][amazon-invoice-upload][upload-stability] checked refresh/retry guards; missing=${missingCount}\n`,
-  );
+  process.stdout.write(`[AUDIT][amazon-invoice-upload][upload-stability] checked refresh/retry guards; missing=${missingCount}\n`);
 }
 
 function appendUploadStabilityFindings(findings: InspectorFinding[], lawId: string, missing: string[]): void {
@@ -161,6 +149,7 @@ function appendUploadStabilityFindings(findings: InspectorFinding[], lawId: stri
 function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
   return [
     ...collectUploadRetryGuardGaps(files.flowFile),
+    ...collectUploadRuntimeStabilityGaps(files),
     ...collectNoHumanFinalSubmitContractGaps(files.taskServiceFile, files.missionSchemaFile),
     ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingUploadFile, files.existingEvidenceFile),
   ];
@@ -177,6 +166,9 @@ function uploadStabilityFindingPath(item: string): string {
     ["existing-invoice-evidence", existingUploadPath],
     ["no-human-final-submit-schema", missionSchemaPath],
     ["no-human-final-submit-service", taskServicePath],
+    ["snapshot-deadline-flow-support", flowSupportPath],
+    ["snapshot-deadline-order-detail", orderDetailPath],
+    ["snapshot-deadline-screenshot", chromeScreenshotPath],
   ];
   const prefixPath = prefixPaths.find(([prefix]) => item.startsWith(prefix));
   return prefixPath?.[1] ?? (isOrderRefreshFinding(item) ? orderDetailPath : uploadFlowPath);
@@ -256,17 +248,11 @@ function tabLifecycleFindingPath(item: string): string | null {
 
 function collectTabLifecycleGaps(files: UploadStabilityFiles): string[] {
   const missing: string[] = [];
-  const flowValues = stringLiteralValues(files.flowFile);
   const orderValues = stringLiteralValues(files.orderFile);
   const verifyValues = stringLiteralValues(files.verifyFile);
   const existingValues = stringLiteralValues(files.existingUploadFile);
-  if (!flowValues.has("reuse-active-tab")) missing.push("tab-lifecycle-flow:reuse-active-tab");
   if (!orderValues.has("reuse-active-tab")) missing.push("tab-lifecycle-order:reuse-active-tab");
-  if (!flowValues.has("reuse-host-tab")) missing.push("tab-lifecycle-flow:reuse-host-tab");
   if (!orderValues.has("reuse-host-tab")) missing.push("tab-lifecycle-order:reuse-host-tab");
-  if (!sourceCallsMethod(files.flowFile, "getGeometrySnapshot")) {
-    missing.push("tab-lifecycle-flow:refresh-current-chrome-state");
-  }
   if (!sourceCallsMethod(files.orderFile, "getGeometrySnapshot")) {
     missing.push("tab-lifecycle-order:refresh-current-chrome-state");
   }
@@ -278,35 +264,34 @@ function collectTabLifecycleGaps(files: UploadStabilityFiles): string[] {
 }
 
 function isOrderRefreshFinding(item: string): boolean {
-  return item.startsWith("refresh")
-    || item === "order-detail-refresh-call"
-    || item === "random-refresh-wait";
+  return item.startsWith("order-detail") || item.startsWith("single-order-navigation");
 }
 
 function collectOrderRefreshGuardGaps(orderFile: SourceFile): string[] {
-  const orderValues = stringLiteralValues(orderFile);
   const missing: string[] = [];
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MIN_MS", "7_000")) missing.push("refresh-ready-min-7000");
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_WAIT_MAX_MS", "15_000")) missing.push("refresh-ready-max-15000");
-  if (!orderFile.getVariableDeclaration("ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS")) missing.push("refresh-recovery-min");
-  if (!orderFile.getVariableDeclaration("ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS")) missing.push("refresh-recovery-max");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_TIMEOUT_MS", "2_000")) missing.push("order-detail-timeout-2000");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_POLL_INTERVAL_MS", "200")) missing.push("order-detail-poll-200");
+  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT", "3")) missing.push("order-detail-window-limit-3");
   if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "waitForApprovedOrderDetail")) {
     missing.push("order-detail-readiness-wait-call");
   }
-  if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "refreshApprovedOrderDetailIfNeeded")) {
-    missing.push("order-detail-conditional-refresh-call");
+  if (sourcePropertyCallCount(orderFile, "browser", "open") !== 1) {
+    missing.push("single-order-navigation:browser-open-count");
   }
-  if (orderFile.getFunction("refreshApprovedOrderDetailOnce")) {
-    missing.push("order-detail-unconditional-refresh-function");
+  for (const retiredFunction of ["refreshApprovedOrderDetailIfNeeded", "refreshApprovedOrderDetailOnce", "retryOrderDetailIfNeeded"]) {
+    if (orderFile.getFunction(retiredFunction) || orderFile.getVariableDeclaration(retiredFunction)) {
+      missing.push(`order-detail-retired-refresh-function:${retiredFunction}`);
+    }
   }
-  if (!sourceCallsProperty(orderFile, "Math", "random")) missing.push("random-refresh-wait");
-  const evidenceValues = [
-    "Amazon Seller Central approved order detail refresh",
-    "refresh approved order detail after readiness timeout",
-    "Order detail recovery refresh executed once after missing readiness markers: ",
-  ];
-  for (const value of evidenceValues) {
-    if (!orderValues.has(value)) missing.push(value);
+  for (const retiredConstant of [
+    "ORDER_DETAIL_READY_WAIT_MIN_MS",
+    "ORDER_DETAIL_READY_WAIT_MAX_MS",
+    "ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS",
+    "ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS",
+  ]) {
+    if (orderFile.getVariableDeclaration(retiredConstant)) {
+      missing.push(`order-detail-retired-refresh-constant:${retiredConstant}`);
+    }
   }
   return missing;
 }
@@ -420,8 +405,8 @@ function collectExistingInvoiceEvidenceWaitGaps(existingUploadFile: SourceFile):
 }
 function collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile: SourceFile): string[] {
   const missing: string[] = [];
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceTimeoutMs", "45_000"))
-    missing.push("existing-invoice-evidence-timeout-45000");
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceTimeoutMs", "2_000"))
+    missing.push("existing-invoice-evidence-timeout-2000");
   if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", "250"))
     missing.push("existing-invoice-evidence-poll-250");
   if (!hasConstInitializer(existingUploadFile, "noAvailableActionsDialogDismissTimeoutMs", "2_000"))
@@ -432,7 +417,7 @@ function collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile: SourceFil
     missing.push("existing-invoice-exact-no-actions-dialog-text");
   for (const functionName of [
     "dismissNoAvailableActionsDialog",
-    "locateSafeOutsideDialogPoint",
+    "clickSafeOutsideDialogPoint",
     "waitForNoAvailableActionsDialogDismissal",
     "hasNoAvailableActionsDialog",
   ]) {
@@ -448,9 +433,9 @@ function collectExistingInvoiceRecoveryCallGaps(existingUploadFile: SourceFile):
     missing.push("existing-invoice-single-manage-reopen-call");
   if (!functionCallsIdentifier(existingUploadFile, "waitForExistingInvoiceEvidence", "hasNoAvailableActionsDialog"))
     missing.push("existing-invoice-wait-detects-no-actions-dialog");
-  if (!functionCallsProperty(existingUploadFile, "locateSafeOutsideDialogPoint", "browser", "evaluateActiveTab"))
-    missing.push("existing-invoice-live-dialog-geometry-evaluation");
-  if (!functionCallsProperty(existingUploadFile, "dismissNoAvailableActionsDialog", "browser", "click"))
+  if (!functionCallsProperty(existingUploadFile, "clickSafeOutsideDialogPoint", "browser", "evaluateActiveTab"))
+    missing.push("existing-invoice-live-dialog-click-evaluation");
+  if (!functionCallsIdentifier(existingUploadFile, "dismissNoAvailableActionsDialog", "clickSafeOutsideDialogPoint"))
     missing.push("existing-invoice-outside-dialog-click");
   if (!functionCallsIdentifier(existingUploadFile, "dismissNoAvailableActionsDialog", "waitForNoAvailableActionsDialogDismissal"))
     missing.push("existing-invoice-dialog-dismissal-verification");
@@ -480,9 +465,10 @@ function collectUploadRetryGuardGaps(flowFile: SourceFile): string[] {
   if (!functionCallsIdentifier(flowFile, "runUploadStepWithRetries", "runUploadStepWithRetries")) {
     missing.push("recursive-retry-self-call");
   }
-  for (const stepName of ["open order detail", "open upload invoice entry", "upload approved invoice"]) {
+  for (const stepName of ["open upload invoice entry", "upload approved invoice"]) {
     if (!retryStepNames(flowFile).has(stepName)) missing.push(`retry-step:${stepName}`);
   }
+  if (retryStepNames(flowFile).has("open order detail")) missing.push("repeat-order-navigation-retry-forbidden");
   if (!flowValues.has("verify upload success")) missing.push("retry-sensitive-terminal-gates");
   if (hasHumanFinalSubmitBranch(flowValues)) missing.push("human-final-submit-branch");
   for (const value of ["Please upload your invoice or credit note", "Upload"]) {

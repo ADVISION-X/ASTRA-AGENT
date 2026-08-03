@@ -552,7 +552,8 @@ Required:
     "File-selected state treated as final business success.",
     "Login or captcha state downgraded to not_found.",
     "Verification evidence ref that cannot be traced to an observed snapshot or action.",
-    "Business success terms hardcoded in DOM core."
+    "Business success terms hardcoded in DOM core.",
+    "An underlying DOM snapshot evaluation that can outlive the caller's governed wait deadline."
   ],
   "clauses": [
     {
@@ -571,6 +572,7 @@ Required:
 - `file_selected` is not final upload success unless the job flow explicitly expects only file selection.
 - Ambiguous success and failure signals return `ambiguous`.
 - Timeouts return the latest structured observed status, not fake success.
+- Every snapshot performed by `wait-for-dom-state-once` is bounded to at most `1800ms` and never exceeds the caller's total wait timeout.
 - Verification evidence must reference a real observation when the evidence store supports it; synthetic ids are temporary only and must be inventory-tracked.
 
 ## 13. Law APEX-DOM-011-V1 — Evidence and Logging Boundary

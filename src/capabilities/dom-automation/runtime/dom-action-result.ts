@@ -49,7 +49,7 @@ export function buildDomFailureResult(
 
 export function buildDomActionOutcome(
   result: BrowserDomActionOutcome,
-  beforeEvidenceRef: string,
+  beforeEvidenceRef: string | undefined,
   afterEvidenceRef: string,
 ): DomActionResult {
   const ok = result.status === "success";
@@ -57,7 +57,7 @@ export function buildDomActionOutcome(
     ok,
     status: ok ? "success" : result.status,
     message: result.message,
-    beforeEvidenceRef,
+    ...(beforeEvidenceRef ? { beforeEvidenceRef } : {}),
     afterEvidenceRef,
     ...(ok ? {} : { reviewRequiredReason: result.message }),
   });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T19:35:55.792Z",
+  "generatedAt": "2026-08-03T21:23:58.808Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -3947,8 +3947,11 @@
     "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
     "docs/法案辅助文件/amazon_invoice_upload_process.md",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
@@ -3965,6 +3968,7 @@
     "src/app/workbench-api-boundary.ts",
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/current-chrome-window-control.ts",
+    "src/lib/browser/current-chrome-browser-screenshot.ts",
     "src/app/app-shell/app-shell-layout.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
@@ -3978,6 +3982,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts"
   ]

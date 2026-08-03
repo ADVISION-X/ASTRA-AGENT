@@ -33,9 +33,16 @@ const runtimeGuards: readonly RuntimeGuard[] = [
     checkId: "dom/click-sensitive-review-gate",
     filePath: "src/capabilities/dom-automation/runtime/dom-click.ts",
     lawId: "APEX-DOM-008-V1",
-    requiredIdentifiers: ["DANGEROUS_TEXT", "buildDomReviewRequiredResult"],
-    requiredStringLiterals: ["expected text did not match"],
-    message: "DOM click must gate sensitive text and expected-text mismatch as review_required.",
+    requiredIdentifiers: ["DANGEROUS_TEXT", "buildDomReviewRequiredResult", "captureDomEvidenceRef"],
+    requiredStringLiterals: ["expected text did not match", "dom-click-after"],
+    message: "DOM click must gate sensitive text, revalidate once, and capture after-action evidence.",
+  },
+  {
+    checkId: "dom/wait-snapshot-deadline",
+    filePath: "src/capabilities/dom-automation/runtime/dom-wait.ts",
+    lawId: "APEX-DOM-010-V1",
+    requiredIdentifiers: ["DOM_WAIT_SNAPSHOT_TIMEOUT_MS", "snapshotTimeoutMs", "readDomSnapshotOnce"],
+    message: "DOM waits must bound every underlying snapshot so a low-level evaluation cannot outlive the governed wait window.",
   },
 ];
 
